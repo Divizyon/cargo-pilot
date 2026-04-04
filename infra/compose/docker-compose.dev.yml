@@ -1,0 +1,10 @@
+# ============================================
+# Cargo Pilot - Development Docker Compose
+# ============================================
+# US-D03e: Tüm bileşenleri kapsayan Docker Compose
+# Status: TODO - Bileşen Dockerfile'ları tamamlandıktan sonra oluşturulacak
+# ============================================
+
+version: '3.8'
+
+services: {}

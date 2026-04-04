@@ -1,0 +1,10 @@
+# ============================================
+# Cargo Pilot - Production Docker Compose
+# ============================================
+# US-D05b: Production ortamı için Docker Compose
+# Status: TODO - Dev compose tamamlandıktan sonra oluşturulacak
+# ============================================
+
+version: '3.8'
+
+services: {}

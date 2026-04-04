@@ -1,0 +1,10 @@
+# ============================================
+# Cargo Pilot - Test Docker Compose
+# ============================================
+# US-D05b: Test ortamı için Docker Compose
+# Status: TODO - Dev compose tamamlandıktan sonra oluşturulacak
+# ============================================
+
+version: '3.8'
+
+services: {}
