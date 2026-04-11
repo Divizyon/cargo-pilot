@@ -12,7 +12,8 @@ Bu branching stratejisinin amacı:
 - tüm ekip için ortak bir branch standardı oluşturmak
 - `main` branch'ini stabil tutmak
 - merge öncesi kontrol ve review süreçlerini zorunlu kılmak
-- branch yapısını ortam yönetiminden ayırarak gereksiz karmaşıklığı önlemek
+- test ortamına yalnızca seçilen işin kontrollü şekilde çıkarılmasını sağlamak
+- dev branch'inde bulunan diğer geliştirmelerin yanlışlıkla test ortamına taşınmasını önlemek
 
 Bu doküman, repository üzerinde çalışan tüm geliştiriciler için geçerlidir.
 
@@ -23,15 +24,16 @@ Bu doküman, repository üzerinde çalışan tüm geliştiriciler için geçerli
 Projede aşağıdaki branch türleri kullanılır:
 
 - `main`
+- `test`
+- `dev`
 - `feature/*`
 - `bugfix/*`
 
-Bu proje için ek olarak farklı branch isimleri kullanılmaz.
+Bu modelde en kritik nokta şudur:
 
-Tercih edilen yaklaşım sade ve düşük karmaşıklıklı bir modeldir:
-- tek stabil ana dal: `main`
-- yeni geliştirmeler için: `feature/*`
-- hata düzeltmeleri için: `bugfix/*`
+> **Feature branch'leri `dev`'den değil, `test` branch'inden açılır.**
+
+Bunun temel sebebi, `dev` branch'inin birden fazla geliştiricinin işlerini barındırabilmesi ve buradan açılan branch'lerin zaman içinde başka işlerin commit'lerini de dolaylı olarak taşıma riski oluşturmasıdır. `test` branch'inden açılan feature branch ise yalnızca ilgili işin test tabanlı ve kontrollü bir kopyası olur.
 
 ---
 
@@ -39,20 +41,50 @@ Tercih edilen yaklaşım sade ve düşük karmaşıklıklı bir modeldir:
 
 ### 3.1 `main`
 
-`main`, projenin ana ve stabil branch'idir.
+`main` branch'i production ortamını temsil eder.
 
 Özellikleri:
-- her zaman mümkün olduğunca stabil tutulmalıdır
-- deploy edilebilir referans branch olarak kabul edilir
+- canlıya çıkan kod burada bulunur
+- her zaman stabil tutulmalıdır
 - doğrudan geliştirme yapılmaz
 - doğrudan push yapılmaz
-- yalnızca Pull Request üzerinden güncellenir
-
-`main` branch'i, doğrulama ve review süreçlerinden geçmiş değişikliklerin birleştirildiği ana hattır.
+- yalnızca onaylı ve yayınlanabilir içerik bu branch'e alınır
 
 ---
 
-### 3.2 `feature/*`
+### 3.2 `test`
+
+`test` branch'i test ortamının temel referans branch'idir.
+
+Özellikleri:
+- test ortamına çıkacak işler bu branch üzerinden yönetilir
+- **feature branch'lerin başlangıç noktası burasıdır**
+- test ortamına deployment pipeline'ı bu branch üzerinden tetiklenir
+
+Buradaki amaç, geliştiricinin işini test tabanlı ve izole bir şekilde başlatmasıdır. Böylece `dev` branch'inde bulunan ve henüz test ortamına çıkması istenmeyen başka geliştirmeler, yeni feature branch'e taşınmaz.
+
+---
+
+### 3.3 `dev`
+
+`dev` branch'i bu modelde klasik anlamda "tüm geliştirmelerin toplandığı sürekli entegrasyon branch'i" **değildir**.
+
+Bu branch'in rolü:
+- feature tamamlandıktan sonra teknik olarak kontrol edilmesi
+- ortak yapıyla uyumunun görülmesi
+- geliştiricinin işinin temel doğrulamasının yapılması
+
+> **Önemli:** `dev`, test ortamına çıkacak tüm işlerin kalıcı toplama alanı değildir; geliştirme sonrası doğrulama amacıyla kullanılan bir ara kontrol branch'idir.
+
+Bu tanım yapılmazsa ekip zaman içinde `dev`'i klasik entegrasyon alanı gibi kullanmaya başlayabilir ve süreç bozulur.
+
+Pipeline durumu:
+- `dev` branch'inde otomatik deploy pipeline çalıştırılmaz
+- ancak PR validation olarak build ve lint kontrolleri çalışabilir
+
+---
+
+### 3.4 `feature/*`
 
 Yeni geliştirmeler için kullanılır.
 
@@ -72,23 +104,24 @@ feature/<iş-kodu>-<kısa-açıklama>
 Örnekler:
 
 ```text
-feature/US-D02a-monorepo-setup
-feature/US-D03e-local-docker-compose
-feature/US-D05c-health-check-endpoint
+feature/US-142-login-form
+feature/US-211-customer-search
+feature/US-D03e-docker-compose-setup
 ```
+
+> **Bu branch'ler `test` branch'inden açılır.**
 
 ---
 
-### 3.3 `bugfix/*`
+### 3.5 `bugfix/*`
 
 Hata düzeltmeleri için kullanılır.
 
 Örnek kullanım alanları:
-
-* test ortamında bulunan hata düzeltmeleri
-* geliştirme ortamında tespit edilen fonksiyonel sorunlar
-* container, config, network veya integration problemleri
-* canlıya çıkmış bir problemin düzeltmesi
+- test ortamında bulunan hata düzeltmeleri
+- geliştirme ortamında tespit edilen fonksiyonel sorunlar
+- container, config, network veya integration problemleri
+- canlıya çıkmış bir problemin düzeltmesi
 
 İsim formatı:
 
@@ -99,10 +132,12 @@ bugfix/<iş-kodu>-<kısa-açıklama>
 Örnekler:
 
 ```text
-bugfix/US-D04c-backend-test-failure
-bugfix/US-D03b-api-container-port-fix
+bugfix/US-188-null-check
+bugfix/US-233-timeout-fix
 bugfix/INC-001-prod-auth-validation-fix
 ```
+
+> **Bu branch'ler de `test` branch'inden açılır.**
 
 ---
 
@@ -110,19 +145,14 @@ bugfix/INC-001-prod-auth-validation-fix
 
 Bu projede aşağıdaki branch türleri kullanılmaz:
 
-* `develop`
-* `test`
-* `release`
-* `hotfix`
+- `develop` (dev farklı bir rol üstlenir)
+- `release`
+- `hotfix`
 
 Neden:
-
-* süreç karmaşıklığını azaltmak
-* gereksiz merge zincirlerini önlemek
-* ortam yönetimini branch sayısı artırmadan çözmek
-* onboarding sürecini kolaylaştırmak
-
-Ortamlar branch ile değil, CI/CD pipeline ve deployment kuralları ile yönetilir.
+- süreç karmaşıklığını azaltmak
+- gereksiz merge zincirlerini önlemek
+- onboarding sürecini kolaylaştırmak
 
 ---
 
@@ -130,19 +160,19 @@ Ortamlar branch ile değil, CI/CD pipeline ve deployment kuralları ile yönetil
 
 Tüm branch isimleri aşağıdaki kurallara uymalıdır:
 
-* branch prefix ve açıklama kısmı küçük harf olmalıdır
-* iş kodu orijinal haliyle yazılır (örn. `US-D02b`, `INC-001`)
-* boşluk kullanılmaz
-* Türkçe karakter kullanılmaz
-* kelimeler `-` ile ayrılır
-* branch isminde ilgili iş kodu veya task kodu yer almalıdır
+- branch prefix ve açıklama kısmı küçük harf olmalıdır
+- iş kodu orijinal haliyle yazılır (örn. `US-142`, `INC-001`)
+- boşluk kullanılmaz
+- Türkçe karakter kullanılmaz
+- kelimeler `-` ile ayrılır
+- branch isminde ilgili iş kodu veya task kodu yer almalıdır
 
 Doğru örnekler:
 
 ```text
-feature/US-D02b-branch-strategy-definition
-feature/US-D03e-docker-compose-setup
-bugfix/US-D04c-backend-pipeline-failure
+feature/US-142-login-form
+feature/US-211-customer-search
+bugfix/US-188-null-check
 bugfix/INC-002-minio-config-fix
 ```
 
@@ -150,11 +180,11 @@ Yanlış örnekler:
 
 ```text
 feature/yeni-yapi                          # iş kodu yok
-Feature/US-D02a-Monorepo                   # prefix ve açıklama büyük harf
+Feature/US-142-Login                       # prefix ve açıklama büyük harf
 bugfix/docker compose fix                  # boşluk var
-feature/eyup/US-D02a-monorepo-setup        # kullanıcı adı var
+feature/eyup/US-142-login                  # kullanıcı adı var
 feature/çalışan-yapı                       # Türkçe karakter
-feature/us-d02a-monorepo-setup             # iş kodu küçük harfe çekilmiş
+feature/us-142-login-form                  # iş kodu küçük harfe çekilmiş
 ```
 
 ---
@@ -163,264 +193,263 @@ feature/us-d02a-monorepo-setup             # iş kodu küçük harfe çekilmiş
 
 Branch açarken aşağıdaki kurallara uyulmalıdır:
 
-* her iş için ayrı branch açılmalıdır
-* bir branch içinde birden fazla bağımsız iş biriktirilmemelidir
-* branch açılmadan önce güncel `main` alınmalıdır
-* task tamamlandığında ilgili branch kapatılmalıdır
-* uzun süre yaşayan, amacı belirsiz branch'lerden kaçınılmalıdır
+- **her yeni geliştirme branch'i yalnızca `test` branch'inden açılır**
+- her iş için ayrı branch açılmalıdır
+- bir branch içinde birden fazla bağımsız iş biriktirilmemelidir
+- branch açılmadan önce güncel `test` alınmalıdır
+- task tamamlandığında ilgili branch kapatılmalıdır
+- uzun süre yaşayan, amacı belirsiz branch'lerden kaçınılmalıdır
 
 Doğru yaklaşım:
-
-* 1 iş / 1 task / 1 branch
+- 1 iş / 1 task / 1 branch
 
 Yanlış yaklaşım:
-
-* aynı branch içinde hem frontend geliştirmesi hem backend değişikliği hem unrelated refactor yapılması
+- aynı branch içinde hem frontend geliştirmesi hem backend değişikliği hem unrelated refactor yapılması
 
 ---
 
 ## 7. Geliştirme Akışı
 
-Standart geliştirme akışı aşağıdaki gibidir:
+### 7.1 Genel Akış Özeti
 
-1. remote güncellenir
-2. güncel `main`'den yeni branch açılır
-3. geliştirme yapılır
-4. commit'ler atılır
-5. gerekirse branch güncel `main` ile senkronize edilir
-6. push yapılır
-7. Pull Request açılır
-8. review ve kontroller tamamlanır
-9. `main` branch'ine merge edilir
-10. branch silinir
+```
+test ──► feature/* ──► dev (teknik doğrulama) ──► test (QA) ──► main (prod)
+```
 
-### Yeni Branch Açma
+### 7.2 Adım Adım Akış
+
+#### Adım 1: Feature Branch Açılması
+
+Yeni iş başladığında ilgili geliştirici `test` branch'ini baz alarak kendi feature branch'ini oluşturur.
 
 ```bash
 git fetch origin
-git checkout -b feature/US-D02a-monorepo-setup origin/main
+git checkout -b feature/US-142-login-form origin/test
 ```
 
-Bu komut:
-* remote'u günceller
-* `origin/main`'in son halinden yeni branch oluşturur
-* mevcut çalışmayı bozmaz, `main`'e geçmeye gerek yoktur
+Bu noktadan sonra geliştirme yalnızca bu branch üzerinde devam eder.
 
-### İş Tamamlandıktan Sonra
+#### Adım 2: Geliştirmenin Tamamlanması
 
-Push etmeden önce, çalışılan süreçte `main`'e başkalarının kodu merge etmiş olabileceği göz önünde bulundurularak bir senkron yapılır:
+Geliştirici ilgili geliştirmeyi kendi feature branch'inde bitirir. Kod, lokal ortamda çalıştırılır; temel testler ve kontroller yapılır.
+
+#### Adım 3: PR ile Dev Branch'ine Alınması
+
+Geliştirme tamamlandıktan sonra feature branch doğrudan `test`'e değil, önce `dev` branch'ine PR açar.
 
 ```bash
-git pull origin main
+git push origin feature/US-142-login-form
+# GitHub/GitLab üzerinden dev branch'ine PR aç
 ```
 
-Conflict varsa çözülür, ardından push yapılır:
+Amaç:
+- kodun teknik olarak kontrol edilmesi
+- varsa temel entegrasyon problemlerinin görülmesi
+- ekip içi review sürecinin işletilmesi
+- gerekiyorsa dev ortamında hızlı doğrulama yapılması
+
+> **Önemli:** Bu PR, "iş artık test ortamına hazır" anlamına gelmez. Bu PR, öncelikle "iş teknik olarak kontrol edilmeye hazır" anlamına gelir.
+
+#### Adım 4: Dev Üzerinde Doğrulama
+
+Feature branch `dev`'e alındıktan sonra aşağıdaki kontroller yapılır:
+
+- kod review tamamlanmış mı
+- temel build problemi var mı
+- ilgili geliştirme dev ortamında beklenen davranışı gösteriyor mu
+- kritik bir yan etki oluşturuyor mu
+- teknik açıdan test ortamına çıkarılabilecek yeterlilikte mi
+
+#### Adım 5: Aynı Feature Branch'in Teste Alınması
+
+`dev` üzerinde yapılan kontroller sonucunda işte problem görülmüyorsa, **aynı feature branch** bu kez `test` branch'ine PR açar.
 
 ```bash
-git push origin feature/US-D02a-monorepo-setup
+# GitHub/GitLab üzerinden test branch'ine PR aç
 ```
 
-Ardından Pull Request açılır.
+Bu yaklaşım sayesinde test ortamına tüm `dev` branch'i değil, yalnızca istenen iş taşınır.
+
+#### Adım 6: Test Sonrası Branch'in Silinmesi
+
+Feature branch hem gerekli review'lardan geçmiş hem de `test` branch'ine merge edilmişse, artık görevini tamamlamış kabul edilir ve silinir.
 
 ---
 
 ## 8. Pull Request Zorunluluğu
 
-Bu projede tüm değişiklikler `main` branch'ine Pull Request üzerinden alınır.
+Bu projede tüm değişiklikler PR üzerinden alınır.
 
-Kurallar:
+### Feature → Dev PR
 
-* `main` branch'ine doğrudan push yapılmaz
-* doğrudan merge yapılmaz
-* her değişiklik için PR açılır
-* PR açıklaması doldurulmalıdır
-* ilgili iş kodu belirtilmelidir
-* mümkünse PR tek amaçlı ve küçük tutulmalıdır
+Amaç:
+- teknik review
+- temel kalite kontrolü
+- dev doğrulaması
 
-PR yaklaşımının amacı:
+Beklenenler:
+- açıklayıcı PR description
+- ilgili iş kodu / task referansı
+- gerekiyorsa ekran görüntüsü / test notu
+- en az 1 onay
 
-* review sürecini zorunlu kılmak
-* kalite kontrollerini merge öncesi çalıştırmak
-* hatalı veya eksik değişikliklerin ana dala doğrudan gitmesini önlemek
+### Feature → Test PR
+
+Amaç:
+- dev'de doğrulanmış işin test ortamına alınması
+
+Beklenenler:
+- feature'ın dev doğrulamasını geçtiğinin belirtilmesi
+- test ortamına çıkış notu
+- gerekiyorsa QA notu
+
+### Test → Main PR
+
+Amaç:
+- test geçen işin production'a alınması
+
+Beklenenler:
+- QA onayı
+- production deployment hazırlığı
 
 ---
 
 ## 9. Merge Stratejisi
 
-Tercih edilen merge yöntemi:
-
-### Merge Commit
+Tercih edilen merge yöntemi: **Merge Commit**
 
 GitHub üzerinde **"Create a merge commit"** seçeneği kullanılır.
 
 Bu yöntemin tercih edilme nedenleri:
+- branch commit geçmişi korunur
+- COMMITS.md ile tanımlanan commit kurallarına uygun yazılmış commit'ler tarihçede görünür kalır
+- `git bisect` ile hata tespiti commit seviyesinde yapılabilir
 
-* branch commit geçmişi korunur
-* COMMITS.md ile tanımlanan commit kurallarına uygun yazılmış commit'ler `main` tarihçesinde görünür kalır
-* `git bisect` ile hata tespiti commit seviyesinde yapılabilir
-* ek bir karar veya aksiyon gerektirmez
-
-Bu nedenle PR merge edilirken her commit olduğu gibi `main`'e aktarılır.
-
-Commit geçmişinin anlamlı kalması için branch içindeki commit'lerin COMMITS.md kurallarına uygun yazılması yeterlidir.
+Alternatif olarak çok kirli commit geçmişi varsa **squash merge** tercih edilebilir. Ancak karışık kullanım geçmişi okunmaz hale getirir; ekip tek bir yaklaşımda kalmalıdır.
 
 ---
 
 ## 10. Doğrudan Push Kuralı
 
-Aşağıdaki branch'e doğrudan push yapılmaz:
+Aşağıdaki branch'lere doğrudan push yapılmaz:
 
-* `main`
+- `main`
+- `test`
+- `dev`
 
 Tüm değişiklikler Pull Request üzerinden geçmelidir.
 
-Bu kuralın amacı:
+---
 
-* review yapılmadan kod alınmasını önlemek
-* pipeline doğrulamasını zorunlu kılmak
-* ana dalın stabilitesini korumaktır
+## 11. Branch Koruma Kuralları
+
+`main`, `test` ve `dev` branch'leri için aşağıdaki korumalar önerilir:
+
+- direct push kapalı olmalı
+- en az 1 approval zorunlu olmalı
+- PR olmadan merge yapılamamalı
+- `test` ve `main` için pipeline başarısızsa merge engellenmeli
 
 ---
 
-## 11. Main Branch Koruma Kuralları
+## 12. Branch ve Ortam İlişkisi
 
-`main` branch için aşağıdaki korumalar önerilir:
-
-* direct push kapalı olmalı
-* en az 1 approval zorunlu olmalı
-* PR olmadan merge yapılamamalı
-* pipeline başarısızsa merge engellenmeli
-
-Takım büyüklüğü veya ihtiyaç arttıkça bu korumalar genişletilebilir.
+| Branch | Ortam | Pipeline | Açıklama |
+|--------|-------|----------|----------|
+| `feature/*`, `bugfix/*` | - | Opsiyonel (lint, build) | Geliştirme |
+| `dev` | Dev | ❌ Yok (PR validation olabilir) | Teknik doğrulama |
+| `test` | Test | ✅ Test deployment | QA ortamı |
+| `main` | Production | ✅ Prod deployment | Canlı |
 
 ---
 
-## 12. Main ile Senkron Kalma
+## 13. Pipeline Yaklaşımı
 
-Uzun süren branch'lerde güncel `main` ile senkron kalınmalıdır. Böylece büyük conflict'ler işin sonuna bırakılmaz.
+### Dev Branch
 
-Başlangıç aşamasında daha anlaşılır ve güvenli olduğu için aşağıdaki yaklaşım tercih edilir:
+- Otomatik deploy pipeline çalıştırılmaz
+- PR validation olarak build ve lint kontrolleri çalışabilir
 
-* `main`'in son halini mevcut branch'e çekmek
+### Test Branch
 
-Örnek:
+- Test ortamına deployment pipeline tetiklenir
+- QA süreçleri bu branch üzerinden yürütülür
 
-```bash
-git pull origin main
+### Main Branch
+
+- Production deployment pipeline tetiklenir
+- Yalnızca test geçen kod buraya alınır
+
+---
+
+## 14. Bu Modelin Avantajları
+
+1. **Teste yalnızca seçilen iş çıkar** - dev branch'inin tamamı test ortamına taşınmaz
+2. **Feature izole kalır** - branch test tabanlı olduğu için daha temiz bir başlangıç yapar
+3. **Dev ortamı kalite kapısı gibi kullanılır** - test öncesi teknik kontrol yapılır
+4. **Küçük ve orta ekipte uygulanabilir** - paralel iş sayısı yönetilebilir seviyedeyse çalışır
+
+---
+
+## 15. Bu Modelin Dikkat Edilmesi Gereken Yönleri
+
+1. **Branch akışı standart değildir** - branch test'ten doğup dev'e gidip tekrar test'e döner
+2. **Aynı feature branch iki farklı hedefe gider** - süreç iyi anlatılmazsa kafa karıştırabilir
+3. **Dev'in rolü yanlış anlaşılabilir** - dokümantasyon net olmalı
+4. **Süreç disiplini ister** - branch'ler yanlış tabandan açılırsa izlenebilirlik zorlaşır
+
+---
+
+## 16. Temel Kurallar Özeti
+
+| Kural | Açıklama |
+|-------|----------|
+| 1 | Her yeni geliştirme branch'i yalnızca `test` branch'inden açılır |
+| 2 | Feature branch önce `dev`'e alınmadan doğrudan `test`'e alınmaz |
+| 3 | `dev` branch'i kalıcı release toplama alanı değildir; teknik doğrulama alanıdır |
+| 4 | `dev` üzerinde sorun bulunan iş, aynı feature branch üzerinde düzeltilir |
+| 5 | `test`'e merge edilen branch'ler süreç tamamlandıktan sonra silinir |
+| 6 | `test`'e alınacak branch üzerinde, dev kontrolünden sonra kapsam dışı yeni geliştirme yapılmamalıdır |
+
+---
+
+## 17. İyi Uygulamalar
+
+Önerilen pratikler:
+
+- branch isimleri kısa ama açıklayıcı olsun
+- branch açmadan önce `test` güncellensin
+- büyük işler küçük PR'lara bölünsün
+- tek branch'te farklı konular karıştırılmasın
+- merge sonrası branch silinsin
+- branch adı iş kodu içersin
+- PR açıklamaları eksiksiz doldurulsun
+- dev doğrulamasından sonra branch'e ek commit atılmamalı (atılacaksa review edilmeli)
+
+---
+
+## 18. Özet
+
+Bu projede kullanılan branch yapısı:
+
+- `main` → production ortamı
+- `test` → test ortamı referans branch'i (feature'lar buradan açılır)
+- `dev` → teknik doğrulama branch'i
+- `feature/*` → yeni geliştirmeler
+- `bugfix/*` → hata düzeltmeleri
+
+Temel akış:
+
+```
+test ──► feature/* ──► dev (doğrulama) ──► test (QA) ──► main (prod)
 ```
 
-Bu komut:
-* remote'dan `main`'in son halini çeker ve mevcut branch'e merge eder
-* `main`'e geçmeye gerek yoktur, mevcut branch'te kalınır
+Bu modelin amacı:
 
----
-
-## 13. Ortamlar ile Branch Yapısı Aynı Şey Değildir
-
-Bu projede branch stratejisi ile ortam yönetimi birbirinden ayrıdır.
-
-Branch'ler:
-
-* geliştirme işinin nasıl organize edildiğini belirler
-
-Ortamlar:
-
-* kodun nereye deploy edileceğini ve hangi konfigürasyonla çalışacağını belirler
-
-Bu nedenle:
-
-* dev ortamı var diye `develop` branch'i açılmaz
-* test ortamı var diye `test` branch'i açılmaz
-* prod ortamı için ayrı bir branch zorunlu değildir
-
-Ortamlar, CI/CD pipeline ve deployment kuralları ile yönetilir.
-
----
-
-## 14. Branch ve Ortam İlişkisi
-
-Bu projede önerilen ilişki aşağıdaki gibidir:
-
-### `feature/*`
-
-* geliştirme burada yapılır
-* build, test ve kalite kontrolleri burada çalışabilir
-* doğrudan ortama deployment yapılması zorunlu değildir
-
-### `bugfix/*`
-
-* hata düzeltmeleri burada yapılır
-* build, test ve kalite kontrolleri burada çalışabilir
-* doğrudan ortama deployment yapılması zorunlu değildir
-
-### `main`
-
-* onaylanmış ve review edilmiş değişiklikler burada birikir
-* dev ortamına deployment için referans branch olarak kullanılabilir
-* test ve prod ortamlarına geçiş pipeline veya onay mekanizması ile yönetilir
-
-Bu yaklaşım sayesinde branch modeli sade kalırken ortam yönetimi kontrollü şekilde yürütülür.
-
----
-
-## 15. Dev, Test ve Prod Ortamları Branch ile Değil Pipeline ile Yönetilir
-
-Bu projede:
-
-* `dev`
-* `test`
-* `prod`
-
-ortamları bulunabilir; ancak bunlar için ayrı branch açılması gerekmez.
-
-Önerilen yaklaşım:
-
-* `feature/*` ve `bugfix/*` branch'lerinde CI çalışır
-* `main` branch'i dev ortamı için referans olabilir
-* test ortamına geçiş, pipeline adımı veya onaylı promotion ile yapılır
-* prod ortamına geçiş, kontrollü onay mekanizması ile yapılır
-
-Bu yaklaşımın avantajları:
-
-* daha az branch karmaşası
-* daha basit merge akışı
-* ortam yönetiminin deployment seviyesi üzerinden yapılması
-* gereksiz `develop` / `test` / `release` branch yükünün önlenmesi
-
----
-
-## 16. İyi Uygulamalar
-
-Önerilen pratikler
-
-* branch isimleri kısa ama açıklayıcı olsun
-* branch açmadan önce `main` güncellensin
-* büyük işler küçük PR'lara bölünsün
-* tek branch'te farklı konular karıştırılmasın
-* merge sonrası branch silinsin
-* branch adı iş kodu içersin
-* PR açıklamaları eksiksiz doldurulsun
-
----
-
-## 17. Özet
-
-Bu projede kullanılan branch yapısı aşağıdaki gibidir:
-
-* `main` → stabil ana dal
-* `feature/*` → yeni geliştirmeler
-* `bugfix/*` → hata düzeltmeleri
-
-Temel kararlar:
-
-* `main` branch'ine direct push yapılmaz
-* tüm değişiklikler PR ile alınır
-* ortamlar branch ile değil, pipeline ve deployment kuralları ile yönetilir
-
-Bu strateji, proje başlangıç aşaması ve mevcut ekip yapısı için sade, anlaşılır ve sürdürülebilir bir yaklaşım sunar.
+> Dev branch'inde bulunan diğer geliştirmelerin yanlışlıkla test ortamına taşınmasını önlemek ve test ortamına yalnızca seçilen işin kontrollü şekilde çıkarılmasını sağlamaktır.
 
 ---
 
 ## İlgili Dokümanlar
 
-* [Commit Conventions](./COMMITS.md) — Commit mesajı kuralları ve örnekleri
+- [Commit Conventions](./COMMITS.md) — Commit mesajı kuralları ve örnekleri
