@@ -104,9 +104,9 @@ feature/<iş-kodu>-<kısa-açıklama>
 Örnekler:
 
 ```text
-feature/US-142-login-form
-feature/US-211-customer-search
-feature/US-D03e-docker-compose-setup
+feature/US-D02a-monorepo-setup
+feature/US-D03e-local-docker-compose
+feature/US-D05c-health-check-endpoint
 ```
 
 > **Bu branch'ler `test` branch'inden açılır.**
@@ -343,12 +343,66 @@ Tüm değişiklikler Pull Request üzerinden geçmelidir.
 
 ## 11. Branch Koruma Kuralları
 
-`main`, `test` ve `dev` branch'leri için aşağıdaki korumalar önerilir:
+### 11.1 Genel Kurallar
 
-- direct push kapalı olmalı
-- en az 1 approval zorunlu olmalı
-- PR olmadan merge yapılamamalı
-- `test` ve `main` için pipeline başarısızsa merge engellenmeli
+Tüm korunan branch'ler (`main`, `test`, `dev`) için:
+- direct push kapalıdır
+- PR olmadan merge yapılamaz
+
+### 11.2 Dev Branch Kuralları
+
+`dev` branch'ine açılan PR'lar için:
+
+- repository üzerinde yazma yetkisine sahip ekip üyeleri tarafından review edilebilir
+- en az **1 approving review** ile merge edilebilir
+- herhangi bir yetkili geliştirici merge yapabilir
+
+```
+feature/* ──► dev
+             │
+             ├─ PR açılır
+             ├─ Ekipten herkes review verebilir
+             ├─ 1 onay gerekir
+             └─ Herkes merge yapabilir
+```
+
+### 11.3 Test Branch Kuralları
+
+`test` branch'ine açılan PR'lar için:
+
+- review herkes tarafından verilebilir
+- ancak **merge işlemi yalnızca Chapter Lead ve DevOps ekipleri** tarafından gerçekleştirilebilir
+- direct push yasaktır
+- pipeline başarısızsa merge engellenir
+
+```
+feature/* ──► test
+             │
+             ├─ PR açılır
+             ├─ Ekipten herkes review verebilir
+             ├─ 1 onay gerekir
+             └─ Sadece Chapter Lead / DevOps merge yapabilir
+```
+
+### 11.4 Main Branch Kuralları
+
+`main` branch'ine açılan PR'lar için:
+
+- merge işlemi yalnızca **Chapter Lead ve DevOps ekipleri** tarafından gerçekleştirilebilir
+- pipeline başarısızsa merge engellenir
+- production deployment onayı gerekir
+
+### 11.5 GitHub Yapılandırması
+
+GitHub'da branch protection rules ayarlanırken:
+
+| Branch | Require PR | Min Reviews | Restrict Push | Status Checks |
+|--------|------------|-------------|---------------|---------------|
+| `dev` | ✅ | 1 | ❌ (herkes) | Opsiyonel |
+| `test` | ✅ | 1 | ✅ (Chapter Lead, DevOps) | ✅ Zorunlu |
+| `main` | ✅ | 1 | ✅ (Chapter Lead, DevOps) | ✅ Zorunlu |
+
+> **Not:** Organization olmadan "Teams" kullanılamaz. Bunun yerine **Settings → Collaborators** üzerinden kişi bazlı yetkilendirme yapılır. Chapter Lead ve DevOps kişileri "Restrict who can push" listesine eklenir.
 
 ---
 
