@@ -391,7 +391,7 @@ Bu yaklaşımın avantajları:
 
 ## 16. İyi Uygulamalar
 
-Önerilen pratikler:
+Önerilen pratikler
 
 * branch isimleri kısa ama açıklayıcı olsun
 * branch açmadan önce `main` güncellensin
