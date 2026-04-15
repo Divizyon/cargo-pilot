@@ -1,5 +1,6 @@
 services:
   backend:
+    image: cargo-pilot-backend:test
     build:
       context: ../../apps/backend
       dockerfile: Dockerfile
@@ -28,13 +29,15 @@ services:
       - cargo-pilot-test
 
   frontend:
+    image: cargo-pilot-frontend:test
     build:
       context: ../../apps/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
     container_name: cargo-pilot-frontend-test
     environment:
       NODE_ENV: production
-      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
     ports:
       - "${FRONTEND_PORT}:80"
     depends_on:
