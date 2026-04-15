@@ -2,9 +2,14 @@ name: Test Ortamı CI/CD
 
 on:
   push:
-    branches: [test]
+    branches:
+      - test
+      - feature/**
+      - bugfix/**
   pull_request:
-    branches: [test]
+    branches:
+      - test
+      - dev
 
 jobs:
   # ─── Job 1: Her PR ve push'ta çalışır — sadece image build ───────────────────
@@ -58,7 +63,7 @@ jobs:
     name: Deploy (Test)
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/test'
 
     env:
       ENVIRONMENT: test
