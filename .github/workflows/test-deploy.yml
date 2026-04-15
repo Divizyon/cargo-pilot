@@ -66,9 +66,9 @@ jobs:
       - name: Servislerin hazır olmasını bekle
         run: |
           echo "Servisler bekleniyor..."
-          timeout 120 bash -c '
+          timeout 300 bash -c '
             until docker compose -f infra/compose/docker-compose.test.yml ps | grep -E "healthy|running"; do
-              sleep 5
+              sleep 10
             done
           '
           docker compose -f infra/compose/docker-compose.test.yml ps
