@@ -1,0 +1,103 @@
+name: Test Ortamı Deploy
+
+on:
+  push:
+    branches:
+      - test
+  pull_request:
+    branches:
+      - test
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy (Test)
+    runs-on: ubuntu-latest
+
+    env:
+      ENVIRONMENT: test
+      BACKEND_PORT: 8081
+      FRONTEND_PORT: 3001
+      MSSQL_PORT: 1434
+      MSSQL_DATABASE: CargoPilotTest
+      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
+      MINIO_API_PORT: 9002
+      MINIO_CONSOLE_PORT: 9003
+      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
+      MINIO_BUCKET: cargo-pilot-test
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Docker Buildx kur
+        uses: docker/setup-buildx-action@v3
+
+      - name: Backend image build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          push: false
+          load: true
+          tags: cargo-pilot-backend:test
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      - name: Frontend image build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          push: false
+          load: true
+          tags: cargo-pilot-frontend:test
+          cache-from: type=gha,scope=frontend-test
+          cache-to: type=gha,mode=max,scope=frontend-test
+
+      - name: Servisleri ayağa kaldır
+        run: |
+          docker compose \
+            -f infra/compose/docker-compose.test.yml \
+            up -d --no-build
+
+      - name: Servislerin hazır olmasını bekle
+        run: |
+          echo "Servisler bekleniyor..."
+          timeout 120 bash -c '
+            until docker compose -f infra/compose/docker-compose.test.yml ps | grep -E "healthy|running"; do
+              sleep 5
+            done
+          '
+          docker compose -f infra/compose/docker-compose.test.yml ps
+
+      - name: Backend sağlık kontrolü
+        run: |
+          timeout 60 bash -c '
+            until curl -sf http://localhost:${{ env.BACKEND_PORT }}/health; do
+              echo "Backend bekleniyor..."
+              sleep 5
+            done
+          '
+          echo "Backend hazır."
+
+      - name: Frontend sağlık kontrolü
+        run: |
+          timeout 60 bash -c '
+            until curl -sf http://localhost:${{ env.FRONTEND_PORT }}; do
+              echo "Frontend bekleniyor..."
+              sleep 5
+            done
+          '
+          echo "Frontend hazır."
+
+      - name: Servis loglarını göster (başarısızlık durumunda)
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.test.yml logs --tail=100
+
+      - name: Servisleri durdur ve temizle
+        if: always()
+        run: |
+          docker compose -f infra/compose/docker-compose.test.yml down -v
+          docker image rm cargo-pilot-backend:test cargo-pilot-frontend:test 2>/dev/null || true
