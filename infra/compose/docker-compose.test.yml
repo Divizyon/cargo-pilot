@@ -1,10 +1,97 @@
-# ============================================
-# Cargo Pilot - Test Docker Compose
-# ============================================
-# US-D05b: Test ortamı için Docker Compose
-# Status: TODO - Dev compose tamamlandıktan sonra oluşturulacak
-# ============================================
+services:
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    container_name: cargo-pilot-backend-test
+    environment:
+      ASPNETCORE_ENVIRONMENT: Test
+      ASPNETCORE_URLS: http://+:8080
+      MSSQL_HOST: mssql
+      MSSQL_PORT: 1433
+      MSSQL_DATABASE: ${MSSQL_DATABASE}
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${BACKEND_PORT}:8080"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
 
-version: '3.8'
+  frontend:
+    build:
+      context: ../../apps/frontend
+      dockerfile: Dockerfile
+    container_name: cargo-pilot-frontend-test
+    environment:
+      NODE_ENV: production
+      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
 
-services: {}
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: cargo-pilot-mssql-test
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "${MSSQL_PORT}:1433"
+    volumes:
+      - mssql_data_test:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: cargo-pilot-minio-test
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data_test:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+volumes:
+  mssql_data_test:
+    name: cargo-pilot-mssql-data-test
+  minio_data_test:
+    name: cargo-pilot-minio-data-test
+
+networks:
+  cargo-pilot-test:
+    name: cargo-pilot-test-network
