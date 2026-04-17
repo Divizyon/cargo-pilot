@@ -1,4 +1,5 @@
 import './index.css';
+import '@/lib/config/i18n';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

@@ -1,0 +1,62 @@
+{
+  "validations": {
+    "product": {
+      "nameRequired": "Product name is required",
+      "skuRequired": "SKU is required",
+      "widthPositive": "Width must be greater than zero",
+      "heightPositive": "Height must be greater than zero",
+      "lengthPositive": "Length must be greater than zero",
+      "weightPositive": "Weight must be greater than zero",
+      "maxStackRequired": "Max stack count is required when stacking is enabled",
+      "maxStackMin": "Max stack count must be at least 1",
+      "fragilityRange": "Fragility must be between 0 and 2"
+    },
+    "vehicle": {
+      "nameRequired": "Vehicle name is required",
+      "widthPositive": "Width must be greater than zero",
+      "heightPositive": "Height must be greater than zero",
+      "lengthPositive": "Length must be greater than zero",
+      "payloadPositive": "Payload capacity must be greater than zero"
+    }
+  },
+  "forms": {
+    "product": {
+      "title": "Product Definition",
+      "name": "Product Name",
+      "namePlaceholder": "e.g. Fragile Box",
+      "sku": "SKU",
+      "skuPlaceholder": "e.g. BOX-001",
+      "dimensions": "Dimensions (cm)",
+      "width": "Width",
+      "height": "Height",
+      "length": "Length",
+      "weight": "Weight (kg)",
+      "fragility": "Fragility Level",
+      "fragilityNonFragile": "Non-Fragile",
+      "fragilityFragile": "Fragile",
+      "fragilityLiquid": "Liquid",
+      "isStackable": "Stackable",
+      "isStackableHint": "This product can be placed on top of other products",
+      "maxStackCount": "Max Stack Count",
+      "maxStackCountPlaceholder": "e.g. 3",
+      "rotation": "Rotation Permissions",
+      "allowRotateX": "X Axis",
+      "allowRotateY": "Y Axis",
+      "allowRotateZ": "Z Axis",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "vehicle": {
+      "title": "Vehicle Definition",
+      "name": "Vehicle Name",
+      "namePlaceholder": "e.g. 40-Ton Truck",
+      "dimensions": "Interior Dimensions (cm)",
+      "width": "Width",
+      "height": "Height",
+      "length": "Length",
+      "payload": "Payload Capacity (kg)",
+      "submit": "Save",
+      "cancel": "Cancel"
+    }
+  }
+}
