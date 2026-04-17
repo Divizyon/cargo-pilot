@@ -507,3 +507,9 @@ Bu modelin amacı:
 ## İlgili Dokümanlar
 
 - [Commit Conventions](./COMMITS.md) — Commit mesajı kuralları ve örnekleri
+
+
+
+
+
+
