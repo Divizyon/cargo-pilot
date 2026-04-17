@@ -1,7 +1,9 @@
+import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
+
 export function App() {
   return (
-    <div>
-      <h1>Cargo Pilot</h1>
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <PlanCanvas />
     </div>
   );
 }
