@@ -7,6 +7,7 @@ public static class DependencyInjection
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
+        services.AddHealthChecks();
 
         return services;
     }
@@ -21,6 +22,7 @@ public static class DependencyInjection
 
         app.UseAuthorization();
         app.MapControllers();
+        app.MapHealthChecks("/health");
 
         return app;
     }
