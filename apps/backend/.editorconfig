@@ -1,7 +1,7 @@
-# Cargo Pilot Projesi - Kod Standartları Anayasası
+# Cargo Pilot Backend - Kod Yazim Standartlari
 root = true
 
-# Tüm Dosyalar İçin Genel Kurallar
+# Tum Dosyalar
 [*]
 indent_style = space
 indent_size = 4
@@ -10,35 +10,200 @@ trim_trailing_whitespace = true
 charset = utf-8
 end_of_line = crlf
 
-# C# Dosyaları (.cs) İçin Özel Kurallar
+# JSON / YAML / XML — 2 bosluk girintisi
+[*.{json,yml,yaml,xml,props,targets}]
+indent_size = 2
+
+# C# Dosyalari
 [*.cs]
 
-#### 1. İsimlendirme Standartları (Naming) ####
-# Private field'lar '_' ile başlamalı (Örn: _cargoService)
-dotnet_naming_rule.private_members_with_underscore.symbols = private_fields
-dotnet_naming_rule.private_members_with_underscore.style = prefix_underscore
-dotnet_naming_rule.private_members_with_underscore.severity = warning
+#### 1. Isimlendirme Kurallari (Naming Conventions) ####
 
-dotnet_naming_symbols.private_fields.applicable_kinds = field
-dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+# Interface'ler: IPascalCase
+dotnet_naming_rule.interfaces_begin_with_i.symbols  = interface_symbols
+dotnet_naming_rule.interfaces_begin_with_i.style    = interface_style
+dotnet_naming_rule.interfaces_begin_with_i.severity = warning
 
-dotnet_naming_style.prefix_underscore.capitalization = camel_case
-dotnet_naming_style.prefix_underscore.required_prefix = _
+dotnet_naming_symbols.interface_symbols.applicable_kinds          = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
 
-#### 2. Kod Düzeni (Layout) ####
-# Süslü parantezler her zaman yeni satırda olmalı (Allman style)
-csharp_new_line_before_open_brace = all:warning
-csharp_new_line_before_else = true:warning
-csharp_new_line_before_catch = true:warning
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_style.interface_style.capitalization  = pascal_case
 
-#### 3. Modern C# Kullanımı ####
-# Gereksiz 'this.' kullanımını engelle
-dotnet_style_qualification_for_field = false:suggestion
-dotnet_style_qualification_for_property = false:suggestion
+# Generic tür parametreleri: TPascalCase
+dotnet_naming_rule.type_parameters_begin_with_t.symbols  = type_parameter_symbols
+dotnet_naming_rule.type_parameters_begin_with_t.style    = type_parameter_style
+dotnet_naming_rule.type_parameters_begin_with_t.severity = suggestion
 
-# 'var' kullanımını teşvik et (Tip belli olduğunda)
+dotnet_naming_symbols.type_parameter_symbols.applicable_kinds = type_parameter
+
+dotnet_naming_style.type_parameter_style.required_prefix = T
+dotnet_naming_style.type_parameter_style.capitalization  = pascal_case
+
+# Sabitler (const/static readonly): PascalCase — ALL_CAPS kullanilmaz
+dotnet_naming_rule.constants_pascal_case.symbols  = constant_symbols
+dotnet_naming_rule.constants_pascal_case.style    = pascal_case_style
+dotnet_naming_rule.constants_pascal_case.severity = warning
+
+dotnet_naming_symbols.constant_symbols.applicable_kinds      = field
+dotnet_naming_symbols.constant_symbols.required_modifiers    = const
+
+# Private field'lar: _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols  = private_field_symbols
+dotnet_naming_rule.private_fields_underscore.style    = underscore_camel_style
+dotnet_naming_rule.private_fields_underscore.severity = warning
+
+dotnet_naming_symbols.private_field_symbols.applicable_kinds          = field
+dotnet_naming_symbols.private_field_symbols.applicable_accessibilities = private
+
+dotnet_naming_style.underscore_camel_style.required_prefix = _
+dotnet_naming_style.underscore_camel_style.capitalization  = camel_case
+
+# Async metotlar: PascalCaseAsync (override/interface implementasyonu haric)
+dotnet_naming_rule.async_methods_end_in_async.symbols  = async_method_symbols
+dotnet_naming_rule.async_methods_end_in_async.style    = async_suffix_style
+dotnet_naming_rule.async_methods_end_in_async.severity = warning
+
+dotnet_naming_symbols.async_method_symbols.applicable_kinds      = method
+dotnet_naming_symbols.async_method_symbols.required_modifiers    = async
+
+dotnet_naming_style.async_suffix_style.required_suffix = Async
+dotnet_naming_style.async_suffix_style.capitalization  = pascal_case
+
+# Public / protected / internal üyeler: PascalCase
+dotnet_naming_rule.public_members_pascal_case.symbols  = public_member_symbols
+dotnet_naming_rule.public_members_pascal_case.style    = pascal_case_style
+dotnet_naming_rule.public_members_pascal_case.severity = warning
+
+dotnet_naming_symbols.public_member_symbols.applicable_kinds          = property, method, field, event, delegate
+dotnet_naming_symbols.public_member_symbols.applicable_accessibilities = public, protected, internal, protected_internal
+
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Yerel degiskenler ve parametreler: camelCase
+dotnet_naming_rule.locals_camel_case.symbols  = local_symbols
+dotnet_naming_rule.locals_camel_case.style    = camel_case_style
+dotnet_naming_rule.locals_camel_case.severity = suggestion
+
+dotnet_naming_symbols.local_symbols.applicable_kinds = local, parameter
+
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+#### 2. Kod Duzeni (Layout) ####
+
+# Allman style — suslü parantez her zaman yeni satirda
+csharp_new_line_before_open_brace                          = all
+csharp_new_line_before_else                                = true
+csharp_new_line_before_catch                               = true
+csharp_new_line_before_finally                             = true
+csharp_new_line_before_members_in_object_initializers      = true
+csharp_new_line_before_members_in_anonymous_types          = true
+csharp_new_line_between_query_expression_clauses           = true
+
+# Tek satirlik if/else de dahil her zaman suslü parantez kullan
+csharp_prefer_braces = true:warning
+
+# File-scoped namespace (C# 10+)
+csharp_style_namespace_declarations = file_scoped:warning
+
+# using direktifleri namespace disinda
+csharp_using_directive_placement = outside_namespace:warning
+
+# System using'leri once sirala
+dotnet_sort_system_directives_first     = true
+dotnet_separate_import_directive_groups = false
+
+# Girintileme
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels        = flush_left
+
+# Bosluk kurallari
+csharp_space_after_cast                                                  = false
+csharp_space_after_keywords_in_control_flow_statements                  = true
+csharp_space_between_method_call_parameter_list_parentheses             = false
+csharp_space_between_method_declaration_parameter_list_parentheses      = false
+csharp_space_between_parentheses                                        = false
+csharp_space_before_colon_in_inheritance_clause                         = true
+csharp_space_after_colon_in_inheritance_clause                          = true
+csharp_space_around_binary_operators                                    = before_and_after
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_name_and_opening_parenthesis           = false
+csharp_space_between_method_call_empty_parameter_list_parentheses       = false
+
+#### 3. Modern C# Stil Kurallari ####
+
+# Erisim belirteçleri (public/private/internal vb.) her üye icin zorunlu
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+
+# 'this.' nitelendirmesi yasak
+dotnet_style_qualification_for_field    = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method   = false:warning
+dotnet_style_qualification_for_event    = false:warning
+
+# var kullanimi
+csharp_style_var_for_built_in_types  = false:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere           = false:suggestion
 
-# Kullanılmayan 'using'leri temizle
+# Null kontrolleri — null-propagation ve coalescing tercih edilir
+dotnet_style_null_propagation                                = true:suggestion
+dotnet_style_coalesce_expression                             = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+csharp_style_prefer_null_check_over_type_check               = true:suggestion
+
+# Nesne ve koleksiyon baslangic degeri
+dotnet_style_object_initializer     = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+
+# Otomatik property tercih et
+dotnet_style_prefer_auto_properties = true:suggestion
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_switch_expression                 = true:suggestion
+csharp_style_prefer_extended_property_pattern         = true:suggestion
+
+# Expression body — property/accessor/operator/indexer kisa yazim; constructor/method uzun kalir
+csharp_style_expression_bodied_properties       = true:suggestion
+csharp_style_expression_bodied_accessors        = true:suggestion
+csharp_style_expression_bodied_constructors     = false:none
+csharp_style_expression_bodied_methods          = false:none
+csharp_style_expression_bodied_operators        = true:suggestion
+csharp_style_expression_bodied_indexers         = true:suggestion
+csharp_style_expression_bodied_lambdas          = true:suggestion
+csharp_style_expression_bodied_local_functions  = false:none
+
+# throw expression tercih et (tek satirda atma)
+csharp_style_throw_expression = true:suggestion
+
+# out var satir ici tanimlama
+csharp_style_inlined_variable_declaration = true:suggestion
+
+# default() yerine default
+csharp_prefer_simple_default_expression = true:suggestion
+
+# ?.Invoke() tercih et
+csharp_style_conditional_delegate_call = true:suggestion
+
+# +=, -=, ??= vb. birlestik atama
+dotnet_style_prefer_compound_assignment = true:suggestion
+
+# Lokal static fonksiyon
+csharp_prefer_static_local_function = true:suggestion
+
+# 'using var' basit ifade (C# 8+)
+csharp_prefer_simple_using_statement = true:suggestion
+
+# Destructuring ile degisken acimi
+csharp_style_deconstructed_variable_declaration = true:suggestion
+
+# Tuple isimlendirmesi acik olmali
 dotnet_style_explicit_tuple_names = true:suggestion
-dotnet_diagnostic.IDE0005.severity = warning # Kullanılmayan using uyarısı
+
+#### 4. Tanisal Siddet Geçersiz Kilmalari ####
+dotnet_diagnostic.IDE0005.severity = warning    # Kullanilmayan using — kaldir
+dotnet_diagnostic.IDE0055.severity = suggestion # Formatlama uyumsuzlugu
+dotnet_diagnostic.IDE0160.severity = none       # File-scoped namespace yukaridaki kuralla yonetiliyor
