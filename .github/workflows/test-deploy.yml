@@ -1,5 +1,10 @@
 name: Test Ortamı CI/CD
 
+# Tetikleyiciler:
+#   push (feature/*, bugfix/*)  → sadece deploy (inline build + healthcheck)
+#   pull_request → dev           → sadece deploy
+#   pull_request → test          → build + deploy (test PR yalnızca dev'den açılabilir)
+#   push (test)                  → build + deploy
 on:
   push:
     branches:
@@ -12,10 +17,35 @@ on:
       - dev
 
 jobs:
-  # ─── Job 1: Her PR ve push'ta çalışır — sadece image build ───────────────────
+  # ─── Kural kontrolü: test'e açılan PR yalnızca dev'den gelebilir ──────────────
+  enforce-test-base:
+    name: Test PR Base Kontrolü
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'test'
+
+    steps:
+      - name: Head branch 'dev' değilse fail
+        run: |
+          HEAD="${{ github.head_ref }}"
+          echo "PR: ${HEAD} → test"
+          if [ "${HEAD}" != "dev" ]; then
+            echo "::error::test branch'ine PR yalnızca 'dev' branch'inden açılabilir. Mevcut head: ${HEAD}"
+            exit 1
+          fi
+          echo "Kural geçti: PR base=test, head=dev."
+
+  # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
   build:
     name: Image Build
     runs-on: ubuntu-latest
+    needs: [enforce-test-base]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/test')
+      )
 
     steps:
       - name: Kodu al
@@ -30,7 +60,6 @@ jobs:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
           push: false
-          load: true
           tags: cargo-pilot-backend:test
           cache-from: type=gha,scope=backend-test
           cache-to: type=gha,mode=max,scope=backend-test
@@ -41,29 +70,18 @@ jobs:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
           push: false
-          load: true
           tags: cargo-pilot-frontend:test
           cache-from: type=gha,scope=frontend-test
           cache-to: type=gha,mode=max,scope=frontend-test
 
-      - name: Image'ları artifact olarak kaydet
-        run: |
-          docker save cargo-pilot-backend:test cargo-pilot-frontend:test \
-            | gzip > /tmp/app-images.tar.gz
-
-      - name: Artifact'a yükle
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-images
-          path: /tmp/app-images.tar.gz
-          retention-days: 1
-
-  # ─── Job 2: Sadece test branch'ine push'ta çalışır — full deploy ─────────────
+  # ─── Deploy job: her ilgili trigger'da çalışır; image'ları inline build eder ──
   deploy:
     name: Deploy (Test)
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/test'
+    needs: [enforce-test-base]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped')
 
     env:
       ENVIRONMENT: test
@@ -83,9 +101,34 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@v4
 
+      - name: Docker Buildx kur
+        uses: docker/setup-buildx-action@v3
+
+      # Deploy kendi image'larını inline build eder; build job ile aynı GHA cache
+      # scope'u kullanıldığı için, build job da koştuysa ikinci build cache'ten döner.
+      - name: Backend image build (deploy için)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          push: false
+          load: true
+          tags: cargo-pilot-backend:test
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      - name: Frontend image build (deploy için)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          push: false
+          load: true
+          tags: cargo-pilot-frontend:test
+          cache-from: type=gha,scope=frontend-test
+          cache-to: type=gha,mode=max,scope=frontend-test
+
       # Infrastructure image'ları (MSSQL ~490MB, MinIO ~100MB) cache'lenir.
-      # İlk çalıştırmada pull edilip cache'e yazılır, sonraki çalıştırmalarda
-      # cache'den yüklenir — her seferinde pull edilmez.
       - name: Infrastructure image cache'i kontrol et
         id: infra-cache
         uses: actions/cache@v4
@@ -110,17 +153,6 @@ jobs:
           docker load < /tmp/infra-images/mssql.tar.gz
           docker load < /tmp/infra-images/minio.tar.gz
 
-      - name: Uygulama image'larını build job'dan indir
-        uses: actions/download-artifact@v4
-        with:
-          name: app-images
-          path: /tmp
-
-      - name: Uygulama image'larını docker'a yükle
-        run: docker load < /tmp/app-images.tar.gz
-
-      # --wait: tüm healthcheck'ler geçene kadar bekler (özel polling gerekmez)
-      # --wait-timeout: toplam bekleme süresi (saniye)
       - name: Servisleri ayağa kaldır ve hazır olmasını bekle
         run: |
           docker compose \
