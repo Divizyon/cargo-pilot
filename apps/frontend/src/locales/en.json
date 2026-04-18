@@ -43,6 +43,7 @@
       "allowRotateX": "X Axis",
       "allowRotateY": "Y Axis",
       "allowRotateZ": "Z Axis",
+      "rotateZLockedWarning": "Z axis is locked for fragile products",
       "submit": "Save",
       "cancel": "Cancel"
     },
