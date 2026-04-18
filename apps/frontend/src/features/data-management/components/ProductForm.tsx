@@ -216,6 +216,14 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: ProductFormPr
         {/* Döndürme izinleri */}
         <div>
           <p className="text-sm font-medium mb-3">{t('forms.product.rotation')}</p>
+          {fragility >= 1 && (
+            <p
+              role="status"
+              className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+            >
+              {t('forms.product.rotateZLockedWarning')}
+            </p>
+          )}
           <div className="space-y-3">
             {(
               [
