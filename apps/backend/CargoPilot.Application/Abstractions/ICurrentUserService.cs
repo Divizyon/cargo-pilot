@@ -1,6 +1,11 @@
 namespace CargoPilot.Application.Abstractions;
 
-public interface ICurrentUserService
-{
+/// <summary>
+/// Sistemde işlem yapan kullanıcının kimlik (Identity) bilgisini sağlayan servis sözleşmesi.
+/// </summary>
+public interface ICurrentUserService {
+    /// <summary>
+    /// Mevcut kullanıcının (eğer login ise) benzersiz kimliği.
+    /// </summary>
     Guid? UserId { get; }
 }

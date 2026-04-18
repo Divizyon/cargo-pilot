@@ -3,27 +3,23 @@ using CargoPilot.Domain.ValueObjects;
 
 namespace CargoPilot.Domain.Entities;
 
-public class Cargo : BaseEntity
-{
+public class Cargo : BaseEntity {
     public TrackingNumber TrackingNumber { get; private set; }
     public CargoStatus Status { get; private set; }
 
     protected Cargo() : base() { TrackingNumber = null!; }
 
     public Cargo(Guid id, TrackingNumber trackingNumber, CargoStatus status = CargoStatus.Created)
-        : base(id)
-    {
+        : base(id) {
         TrackingNumber = trackingNumber;
         Status = status;
     }
 
-    public void SetStatus(CargoStatus status)
-    {
+    public void SetStatus(CargoStatus status) {
         Status = status;
     }
 
-    public void Cancel()
-    {
+    public void Cancel() {
         Status = CargoStatus.Cancelled;
     }
 }

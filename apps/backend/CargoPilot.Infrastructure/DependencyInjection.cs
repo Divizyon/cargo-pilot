@@ -9,21 +9,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CargoPilot.Infrastructure;
 
-public static class DependencyInjection
-{
+public static class DependencyInjection {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        bool useInMemoryRepository = false)
-    {
+        bool useInMemoryRepository = false) {
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
 
-        if (useInMemoryRepository)
-        {
+        if (useInMemoryRepository) {
             services.AddSingleton<ICargoRepository, InMemoryCargoRepository>();
         }
-        else
-        {
+        else {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 

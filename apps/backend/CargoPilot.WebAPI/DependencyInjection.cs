@@ -1,9 +1,7 @@
 namespace CargoPilot.WebAPI;
 
-public static class DependencyInjection
-{
-    public static IServiceCollection AddPresentation(this IServiceCollection services)
-    {
+public static class DependencyInjection {
+    public static IServiceCollection AddPresentation(this IServiceCollection services) {
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
@@ -12,10 +10,8 @@ public static class DependencyInjection
         return services;
     }
 
-    public static WebApplication UsePresentation(this WebApplication app)
-    {
-        if (app.Environment.IsDevelopment())
-        {
+    public static WebApplication UsePresentation(this WebApplication app) {
+        if (app.Environment.IsDevelopment()) {
             app.UseSwagger();
             app.UseSwaggerUI();
         }
