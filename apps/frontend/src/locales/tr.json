@@ -43,6 +43,7 @@
       "allowRotateX": "X Ekseni",
       "allowRotateY": "Y Ekseni",
       "allowRotateZ": "Z Ekseni",
+      "rotateZLockedWarning": "Hassas ürünlerde Z ekseni kilitlidir",
       "submit": "Kaydet",
       "cancel": "İptal"
     },
