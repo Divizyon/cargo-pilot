@@ -15,9 +15,7 @@ const _result = envSchema.safeParse({
 });
 
 if (!_result.success) {
-  throw new Error(
-    `[env] Geçersiz ortam değişkenleri tespit edildi:\n${_result.error.toString()}`
-  );
+  throw new Error(`[env] Geçersiz ortam değişkenleri tespit edildi:\n${_result.error.toString()}`);
 }
 
 const _env = _result.data;
