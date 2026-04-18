@@ -8,8 +8,7 @@ export const FRAGILITY_LEVELS = {
 
 export type FragilityLevel = (typeof FRAGILITY_LEVELS)[keyof typeof FRAGILITY_LEVELS];
 
-const numField = (msgKey: string) =>
-  z.number({ message: msgKey }).positive(msgKey);
+const numField = (msgKey: string) => z.number({ message: msgKey }).positive(msgKey);
 
 export const productSchema = z
   .object({
