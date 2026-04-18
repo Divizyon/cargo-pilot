@@ -19,7 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useProductForm } from '@/features/data-management/hooks/useProductForm';
-import { FRAGILITY_LEVELS, type ProductFormValues } from '@/features/data-management/schemas/productSchema';
+import {
+  FRAGILITY_LEVELS,
+  type ProductFormValues,
+} from '@/features/data-management/schemas/productSchema';
 
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormValues>;
@@ -178,7 +181,8 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: ProductFormPr
                   checked={field.value}
                   onCheckedChange={(checked) => {
                     field.onChange(checked);
-                    if (!checked) form.setValue('maxStackCount', undefined, { shouldValidate: true });
+                    if (!checked)
+                      form.setValue('maxStackCount', undefined, { shouldValidate: true });
                   }}
                 />
               </FormControl>
