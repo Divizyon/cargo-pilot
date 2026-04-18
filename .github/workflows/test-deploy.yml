@@ -3,7 +3,11 @@ name: Test Ortamı CI/CD
 # Tetikleyiciler:
 #   push (feature/*, bugfix/*)  → sadece deploy (inline build + healthcheck)
 #   pull_request → dev           → sadece deploy
-#   pull_request → test          → build + deploy (test PR yalnızca dev'den açılabilir)
+#   pull_request → test          → build + deploy
+#                                  + PR base kontrolü:
+#                                     - head 'dev' OLAMAZ (dev→test yasak)
+#                                     - head branch'in PR commit'i origin/dev'de bulunmalı
+#                                       (önce dev'e merge edilmeli, aynı branch'ten test'e PR)
 #   push (test)                  → build + deploy
 on:
   push:
@@ -17,22 +21,36 @@ on:
       - dev
 
 jobs:
-  # ─── Kural kontrolü: test'e açılan PR yalnızca dev'den gelebilir ──────────────
+  # ─── Kural kontrolü: test PR, dev'e merge edilmiş feature/bugfix branch'ten gelmeli
   enforce-test-base:
-    name: Test PR Base Kontrolü
+    name: Test PR Dev Kontrolü
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && github.base_ref == 'test'
 
     steps:
-      - name: Head branch 'dev' değilse fail
+      - name: Kodu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Head 'dev' olmamalı ve PR commit'i dev'de bulunmalı
         run: |
           HEAD="${{ github.head_ref }}"
-          echo "PR: ${HEAD} → test"
-          if [ "${HEAD}" != "dev" ]; then
-            echo "::error::test branch'ine PR yalnızca 'dev' branch'inden açılabilir. Mevcut head: ${HEAD}"
+          PR_SHA="${{ github.event.pull_request.head.sha }}"
+          echo "PR: ${HEAD} (${PR_SHA}) → test"
+
+          if [ "${HEAD}" = "dev" ]; then
+            echo "::error::test branch'ine PR doğrudan 'dev' branch'inden açılamaz. Önce dev'e merge edilmiş feature/bugfix branch'ten PR açın."
             exit 1
           fi
-          echo "Kural geçti: PR base=test, head=dev."
+
+          git fetch --no-tags origin dev
+          if git merge-base --is-ancestor "${PR_SHA}" origin/dev; then
+            echo "OK: PR commit'i (${PR_SHA}) origin/dev'in ataları arasında — branch dev'e merge edilmiş."
+          else
+            echo "::error::Bu branch'in PR commit'i (${PR_SHA}) origin/dev'de bulunamadı. test'e PR atmadan önce branch'i dev'e merge edin."
+            exit 1
+          fi
 
   # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
   build:

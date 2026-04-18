@@ -32,9 +32,9 @@ Projede aşağıdaki branch türleri kullanılır:
 Bu modelde iki kritik nokta şudur:
 
 > **1. Feature branch'leri `dev`'den değil, `test` branch'inden açılır.**
-> **2. `test` branch'ine PR yalnızca `dev` branch'inden açılabilir. Feature branch doğrudan `test`'e PR atamaz.**
+> **2. `test` branch'ine PR, feature branch'in önce `dev`'e merge edildiği aynı feature branch'ten açılır. `dev` branch'inden `test`'e PR atılamaz.**
 
-Bunun temel sebebi, `dev` branch'inin birden fazla geliştiricinin işlerini barındırabilmesi ve buradan açılan branch'lerin zaman içinde başka işlerin commit'lerini de dolaylı olarak taşıma riski oluşturmasıdır. `test` branch'inden açılan feature branch ise yalnızca ilgili işin test tabanlı ve kontrollü bir kopyası olur. `test`'e promosyon ise yalnızca `dev` üzerinden yapılır; böylece `dev`'deki doğrulamadan geçmeyen hiçbir iş `test`'e ulaşmaz.
+Bunun temel sebebi, `dev` branch'inin birden fazla geliştiricinin işlerini barındırabilmesi ve buradan açılan branch'lerin zaman içinde başka işlerin commit'lerini de dolaylı olarak taşıma riski oluşturmasıdır. `test` branch'inden açılan feature branch ise yalnızca ilgili işin test tabanlı ve kontrollü bir kopyası olur. Aynı feature branch dev'de doğrulandıktan sonra test'e de PR atar; böylece dev'de biriken başka işler test'e taşınmaz, ama yine de dev doğrulaması zorunlu tutulur (CI kontrol eder).
 
 ---
 
@@ -61,7 +61,8 @@ Bunun temel sebebi, `dev` branch'inin birden fazla geliştiricinin işlerini bar
 - test ortamına çıkacak işler bu branch üzerinden yönetilir
 - **feature branch'lerin başlangıç noktası burasıdır**
 - test ortamına deployment pipeline'ı bu branch üzerinden tetiklenir
-- **`test` branch'ine PR yalnızca `dev` branch'inden açılabilir** (CI'da `enforce-test-base` job'u ile doğrulanır)
+- **`test` branch'ine PR yalnızca dev'e merge edilmiş feature/bugfix branch'ten açılabilir** (CI'da `enforce-test-base` job'u ile doğrulanır)
+- `dev` branch'inden `test` branch'ine doğrudan PR açılamaz
 
 Buradaki amaç, geliştiricinin işini test tabanlı ve izole bir şekilde başlatmasıdır. Böylece `dev` branch'inde bulunan ve henüz test ortamına çıkması istenmeyen başka geliştirmeler, yeni feature branch'e taşınmaz.
 
@@ -75,15 +76,16 @@ Bu branch'in rolü:
 - feature tamamlandıktan sonra teknik olarak kontrol edilmesi
 - ortak yapıyla uyumunun görülmesi
 - geliştiricinin işinin temel doğrulamasının yapılması
-- **`test` branch'ine promosyon için tek giriş noktası olması** (test'e PR yalnızca `dev`'den açılır)
+- test'e çıkış için ön koşul kapısı olması (CI, test PR'ında commit'in dev'de olup olmadığını kontrol eder)
 
-> **Önemli:** `dev`, "tüm geliştirmelerin kalıcı toplandığı klasik CI branch'i" değildir; test'e çıkacak işlerin son teknik doğrulama kapısıdır. `dev`'de biriken ve test'e çıkmak istenmeyen işler olmamalıdır — `dev`'e merge edilen her iş, kısa süre içinde `test`'e de geçirilmelidir.
+> **Önemli:** `dev`, test ortamına çıkacak tüm işlerin kalıcı toplama alanı değildir; geliştirme sonrası doğrulama amacıyla kullanılan bir ara kontrol branch'idir. Ancak test'e çıkarılacak her feature branch'in commit'i dev'de bulunmak zorundadır.
 
 Bu tanım yapılmazsa ekip zaman içinde `dev`'i klasik entegrasyon alanı gibi kullanmaya başlayabilir ve süreç bozulur.
 
 Pipeline durumu:
 - `dev`'e açılan PR'da **sadece deploy job** (inline build + healthcheck) çalışır
 - `dev` branch'inde otomatik prod deploy pipeline çalıştırılmaz
+- `dev` branch'inden `test` branch'ine PR atılamaz
 
 ---
 
@@ -216,10 +218,10 @@ Yanlış yaklaşım:
 ### 7.1 Genel Akış Özeti
 
 ```
-test ──► feature/* ──► PR → dev (teknik doğrulama) ──► PR: dev → test (QA) ──► PR: test → main (prod)
+test ──► feature/* ──► PR: feature → dev (teknik doğrulama) ──► PR: aynı feature → test (QA) ──► PR: test → main (prod)
 ```
 
-Önemli: `test`'e promosyon yalnızca `dev`'den yapılır. Feature branch doğrudan `test`'e PR atamaz.
+Önemli: `test`'e PR aynı feature branch'ten atılır. Ancak CI, bu branch'in commit'inin `dev`'de bulunup bulunmadığını zorunlu olarak doğrular (dev'e merge edilmemiş bir branch test'e PR atamaz). `dev`'den doğrudan `test`'e PR açılamaz.
 
 ### 7.2 Adım Adım Akış
 
@@ -265,21 +267,23 @@ Feature branch `dev`'e alındıktan sonra aşağıdaki kontroller yapılır:
 - kritik bir yan etki oluşturuyor mu
 - teknik açıdan test ortamına çıkarılabilecek yeterlilikte mi
 
-#### Adım 5: `dev` → `test` PR'ı Açılması
+#### Adım 5: Aynı Feature Branch'in Test'e PR'ı
 
-`dev` üzerinde yapılan kontroller sonucunda işte problem görülmüyorsa, `test` branch'ine PR **feature branch'ten değil, `dev` branch'inden** açılır.
+`dev` üzerinde yapılan kontroller sonucunda işte problem görülmüyorsa, **aynı feature branch** bu kez `test` branch'ine PR açar.
 
 ```bash
-# GitHub üzerinden: base=test, compare=dev şeklinde PR aç
+# GitHub üzerinden: base=test, compare=feature/US-142-login-form
 ```
 
-> **Kural:** `test` branch'ine PR yalnızca `dev` branch'inden açılabilir. Farklı bir head branch'ten açılan PR, CI'daki `enforce-test-base` job'u tarafından otomatik olarak fail edilir.
+> **Kural:** `test` branch'ine PR yalnızca dev'e merge edilmiş feature/bugfix branch'ten açılabilir. CI'daki `enforce-test-base` job'u şu iki kontrolü yapar:
+> - head branch `dev` olamaz (`dev → test` PR'ı yasaktır)
+> - PR commit'i `origin/dev`'in ataları arasında olmalı (branch önce dev'e merge edilmiş olmalı)
 
-Bu yaklaşımın sonucu: `dev`'de biriken ve test'e çıkmaması gereken bir iş varsa, önce dev'den revert/geri çekilmeli; test'e geçirme anında `dev` ≈ `test` hedefi olmalı. Bu nedenle `dev`, yalnızca test'e hazır işlerin kısa süreli doğrulama alanı olarak kullanılır.
+Bu yaklaşım sayesinde test ortamına tüm `dev` branch'i değil, yalnızca istenen iş taşınır; ancak dev doğrulamasının atlanmaması da garantidir.
 
 #### Adım 6: Test Sonrası Branch'in Silinmesi
 
-Feature branch hem gerekli review'lardan geçmiş hem de `dev` üzerinden `test` branch'ine merge edilmişse, artık görevini tamamlamış kabul edilir ve silinir.
+Feature branch hem gerekli review'lardan geçmiş hem de `test` branch'ine merge edilmişse, artık görevini tamamlamış kabul edilir ve silinir.
 
 ---
 
@@ -300,20 +304,20 @@ Beklenenler:
 - gerekiyorsa ekran görüntüsü / test notu
 - en az 1 onay
 
-### Dev → Test PR
+### Feature → Test PR
 
 Amaç:
-- dev'de doğrulanmış işlerin test ortamına alınması
+- dev'de doğrulanmış feature'ın test ortamına alınması
 
 Kural:
-- `test` branch'ine PR **yalnızca `dev` branch'inden** açılabilir (CI'da `enforce-test-base` ile doğrulanır)
-- feature branch doğrudan test'e PR atamaz
+- `test` branch'ine PR yalnızca dev'e merge edilmiş feature/bugfix branch'ten açılabilir (CI'daki `enforce-test-base` doğrular)
+- `dev` branch'inden doğrudan `test`'e PR açılamaz
+- feature branch dev'e merge edilmeden test'e PR atılamaz
 
 Beklenenler:
-- dev'de doğrulamanın geçtiğinin belirtilmesi
+- dev doğrulamasının geçtiğinin belirtilmesi
 - test ortamına çıkış notu
 - gerekiyorsa QA notu
-- `dev`'in o anki içeriğinin tamamının `test`'e çıkarılmaya uygun olması
 
 ### Test → Main PR
 
@@ -382,21 +386,22 @@ feature/* ──► dev
 
 `test` branch'ine açılan PR'lar için:
 
-- **PR yalnızca `dev` branch'inden açılabilir** (CI'daki `enforce-test-base` job'u farklı head branch'lerde fail eder)
+- **PR yalnızca dev'e merge edilmiş feature/bugfix branch'ten açılabilir** (CI'daki `enforce-test-base` job'u şunları kontrol eder: head `dev` değil + PR commit'i `origin/dev`'de)
+- `dev` → `test` doğrudan PR'ı yasaktır
 - review herkes tarafından verilebilir
 - ancak **merge işlemi yalnızca Chapter Lead ve DevOps ekipleri** tarafından gerçekleştirilebilir
 - direct push yasaktır
-- pipeline başarısızsa merge engellenir (required status checks: `Test PR Base Kontrolü`, `Image Build`, `Deploy (Test)`)
+- pipeline başarısızsa merge engellenir (required status checks: `Test PR Dev Kontrolü`, `Image Build`, `Deploy (Test)`)
 
 ```
-dev ──► test
-       │
-       ├─ PR açılır (sadece dev'den)
-       ├─ enforce-test-base doğrular
-       ├─ build + deploy job'ları çalışır
-       ├─ Ekipten herkes review verebilir
-       ├─ 1 onay gerekir
-       └─ Sadece Chapter Lead / DevOps merge yapabilir
+feature/* (dev'e merge edilmiş) ──► test
+                                   │
+                                   ├─ PR açılır (dev değil, aynı feature branch)
+                                   ├─ enforce-test-base doğrular (commit dev'de mi?)
+                                   ├─ build + deploy job'ları çalışır
+                                   ├─ Ekipten herkes review verebilir
+                                   ├─ 1 onay gerekir
+                                   └─ Sadece Chapter Lead / DevOps merge yapabilir
 ```
 
 ### 11.4 Main Branch Kuralları
