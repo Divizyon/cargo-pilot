@@ -151,5 +151,3 @@ Commit geçmişi okunabilir olmalı, yapılan iş anlaşılmalı ve mümkün old
 ## İlgili Dokümanlar
 
 * [Branching Strategy](./BRANCHING.md) — Branch yönetimi ve PR kuralları
-
-<!-- ci-rule-test: bu satır branch koruma kurallarını test etmek için eklenmiştir -->
