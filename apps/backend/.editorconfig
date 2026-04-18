@@ -1,0 +1,44 @@
+# Cargo Pilot Projesi - Kod Standartları Anayasası
+root = true
+
+# Tüm Dosyalar İçin Genel Kurallar
+[*]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+end_of_line = crlf
+
+# C# Dosyaları (.cs) İçin Özel Kurallar
+[*.cs]
+
+#### 1. İsimlendirme Standartları (Naming) ####
+# Private field'lar '_' ile başlamalı (Örn: _cargoService)
+dotnet_naming_rule.private_members_with_underscore.symbols = private_fields
+dotnet_naming_rule.private_members_with_underscore.style = prefix_underscore
+dotnet_naming_rule.private_members_with_underscore.severity = warning
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.prefix_underscore.capitalization = camel_case
+dotnet_naming_style.prefix_underscore.required_prefix = _
+
+#### 2. Kod Düzeni (Layout) ####
+# Süslü parantezler her zaman yeni satırda olmalı (Allman style)
+csharp_new_line_before_open_brace = all:warning
+csharp_new_line_before_else = true:warning
+csharp_new_line_before_catch = true:warning
+
+#### 3. Modern C# Kullanımı ####
+# Gereksiz 'this.' kullanımını engelle
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+
+# 'var' kullanımını teşvik et (Tip belli olduğunda)
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+# Kullanılmayan 'using'leri temizle
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_diagnostic.IDE0005.severity = warning # Kullanılmayan using uyarısı

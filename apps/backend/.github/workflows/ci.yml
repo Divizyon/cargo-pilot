@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.419"
+
+      - name: Restore
+        run: dotnet restore ./CargoPilot.WebAPI/CargoPilot.WebAPI.csproj
+
+      - name: Build
+        run: dotnet build ./CargoPilot.WebAPI/CargoPilot.WebAPI.csproj --no-restore

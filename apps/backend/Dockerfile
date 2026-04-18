@@ -4,12 +4,19 @@ WORKDIR /src
 # Copy full backend tree so solution/csproj discovery works for monorepo layouts.
 COPY . .
 
-# Build and publish the first API project found under backend tree.
+# ASP.NET Core Web API projesini (Sdk="Microsoft.NET.Sdk.Web") bul ve yayınla.
+# Çoklu proje (Domain/Application/Infrastructure class library'leri) olduğundan
+# "ilk bulunan csproj" yaklaşımı yanlış projeyi (örn. Domain) hedefler.
 RUN set -e; \
-    project=$(find . -name "*.csproj" | head -1); \
-    if [ -z "$project" ]; then echo "ERROR: No .csproj file found under apps/backend."; exit 1; fi; \
+    project=$(find . -type f -name '*.csproj' -exec grep -l 'Microsoft\.NET\.Sdk\.Web' {} + | head -1); \
+    if [ -z "$project" ]; then \
+        echo "ERROR: Sdk='Microsoft.NET.Sdk.Web' olan csproj bulunamadı apps/backend altında."; \
+        exit 1; \
+    fi; \
+    echo "Web API projesi: $project"; \
     dotnet restore "$project"; \
-    dotnet publish "$project" -c Release -o /app/publish /p:UseAppHost=false
+    dotnet publish "$project" -c Release -o /app/publish /p:UseAppHost=false; \
+    basename "$project" .csproj > /app/publish/.entry-dll
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
@@ -18,10 +25,12 @@ COPY --from=build /app/publish .
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
-# Entrypoint: uygulama DLL'ini bul ve çalıştır.
+# Entrypoint: publish sırasında yazılan proje adından tam DLL yolunu üret.
 RUN set -e; \
-    dll=$(find /app -maxdepth 1 -name "*.dll" ! -name "Microsoft.*" ! -name "System.*" | head -1); \
-    if [ -z "$dll" ]; then echo "ERROR: No application .dll found in /app after publish."; exit 1; fi; \
+    name=$(cat /app/.entry-dll); \
+    rm /app/.entry-dll; \
+    dll="/app/${name}.dll"; \
+    if [ ! -f "$dll" ]; then echo "ERROR: DLL bulunamadı: $dll"; ls /app; exit 1; fi; \
     printf '#!/bin/sh\nexec dotnet %s "$@"\n' "$dll" > /entrypoint.sh; \
     chmod +x /entrypoint.sh
 
