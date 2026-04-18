@@ -58,5 +58,21 @@ export default [
     },
   },
 
+  /* 50+ kutu kuralı: planning sahne dosyalarında doğrudan <mesh> JSX yasak.
+     BoxWrapper (<50 kutu) veya CargoMeshInstanced (≥50 kutu) kullanılır. */
+  {
+    files: ["src/features/planning/components/scene/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[name.name='mesh']",
+          message:
+            "Sahne dosyalarında doğrudan <mesh> kullanılmaz. <50 kutu için BoxWrapper, ≥50 kutu için CargoMeshInstanced kullanın.",
+        },
+      ],
+    },
+  },
+
   prettierConfig,
 ];
