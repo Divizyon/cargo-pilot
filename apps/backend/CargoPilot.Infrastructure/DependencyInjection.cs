@@ -1,6 +1,8 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Abstractions.Persistence;
 using CargoPilot.Infrastructure.Persistence;
 using CargoPilot.Infrastructure.Persistence.Repositories;
+using CargoPilot.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +16,8 @@ public static class DependencyInjection
         IConfiguration configuration,
         bool useInMemoryRepository = false)
     {
+        services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
+
         if (useInMemoryRepository)
         {
             services.AddSingleton<ICargoRepository, InMemoryCargoRepository>();

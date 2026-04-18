@@ -42,3 +42,15 @@ csharp_style_var_when_type_is_apparent = true:suggestion
 # Kullanılmayan 'using'leri temizle
 dotnet_style_explicit_tuple_names = true:suggestion
 dotnet_diagnostic.IDE0005.severity = warning # Kullanılmayan using uyarısı
+
+# EF Core tarafından üretilen migration dosyaları generated kod sayılır; ImplicitUsings ile çakışan
+# 'using System;' satırları IDE0005'i tetikler, TreatWarningsAsErrors ile build'i kırar.
+[**/Persistence/Migrations/*.cs]
+generated_code = true
+dotnet_diagnostic.IDE0005.severity = none
+
+# BaseEntity audit property'leri (CreatedDate, UpdatedDate vb.) private set ile tanımlanır
+# ancak yalnızca EF Core ChangeTracker.CurrentValue API'si üzerinden set edilir.
+# Sonar S1144 bu setter'ları "kullanılmayan private üye" olarak görür; bu kasıtlı bir EF Core pattern'idir.
+[**/Domain/Entities/BaseEntity.cs]
+dotnet_diagnostic.S1144.severity = none

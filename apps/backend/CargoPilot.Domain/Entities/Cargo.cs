@@ -3,20 +3,16 @@ using CargoPilot.Domain.ValueObjects;
 
 namespace CargoPilot.Domain.Entities;
 
-public class Cargo
+public class Cargo : BaseEntity
 {
-    public Guid Id { get; private set; }
     public TrackingNumber TrackingNumber { get; private set; }
     public CargoStatus Status { get; private set; }
 
-    public Cargo(Guid id, TrackingNumber trackingNumber, CargoStatus status = CargoStatus.Created)
-    {
-        if (id == Guid.Empty)
-        {
-            throw new ArgumentException("Cargo id cannot be empty.", nameof(id));
-        }
+    protected Cargo() : base() { TrackingNumber = null!; }
 
-        Id = id;
+    public Cargo(Guid id, TrackingNumber trackingNumber, CargoStatus status = CargoStatus.Created)
+        : base(id)
+    {
         TrackingNumber = trackingNumber;
         Status = status;
     }
