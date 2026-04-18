@@ -8,13 +8,12 @@ namespace CargoPilot.Infrastructure.Persistence;
 // Runtime tarafta kullanilmaz; sadece tasarim zamani (EF CLI) tarafindan cagirilir.
 public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
-    private const string FallbackConnectionString =
-        "Server=localhost;Database=CargoPilotDev;Trusted_Connection=True;TrustServerCertificate=True;";
-
     public AppDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? FallbackConnectionString;
+            ?? throw new InvalidOperationException(
+                "ConnectionStrings__DefaultConnection env var tanımsız. " +
+                "dotnet ef komutlarından önce bu değişkeni set et (örn. infra/env/.env.dev içindeki DATABASE_CONNECTION_STRING değeriyle, host'tan çalıştırırken 'mssql' yerine 'localhost' kullan).");
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         optionsBuilder.UseSqlServer(connectionString);
