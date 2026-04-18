@@ -1,0 +1,44 @@
+# ------------------------------------------------------------
+# CargoPilot .gitignore
+# ------------------------------------------------------------
+
+# Build outputs
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio / Rider user-specific files
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test & logs
+TestResults/
+*.log
+
+# Secret & environment files
+appsettings.*.Local.json
+.env
+.env.local
+.env.*.local
+secrets.json
+*.pfx
+*.key
+
+# NuGet
+*.nupkg
+packages/
+
+# Publish output
+publish/
+*.publishsettings
+
+# OS-generated
+Thumbs.db
+.DS_Store
