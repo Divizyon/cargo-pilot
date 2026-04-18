@@ -12,6 +12,9 @@ infra/env/.env.prod
 .env.*
 !.env.*.example
 !infra/env/.env.*.example
+# Frontend: geliştirme ve örnek env dosyaları commit edilebilir
+!apps/frontend/.env.development
+!apps/frontend/.env.example
 
 # --------------------------------------------
 # .NET / Backend
