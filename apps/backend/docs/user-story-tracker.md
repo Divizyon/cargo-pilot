@@ -203,22 +203,25 @@ Durum gostergeleri:
 ## 10) Swagger dokumantasyonu
 **Story:** Backend Chapter Lead olarak 3D ve Platform squad'larinin gelistirme yapabilmesi icin API uc noktalarini Swagger ile dokumante edilmesini isterim.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
 - `✅` Swagger servislerini ekle (`AddEndpointsApiExplorer`, `AddSwaggerGen`)
 - `✅` Swagger middleware kur (`UseSwagger`, `UseSwaggerUI`)
-- `🟡` Swagger gorunurlugunu ortamlara gore netlestir (sadece development disi gereksinim)
-- `⬜` Endpoint summary/description/response kod dokumantasyonlarini tamamla
-- `⬜` Auth kullaniliyorsa Swagger auth ayarlarini ekle
+- `✅` Swagger gorunurlugunu ortamlara gore netlestir (sadece development disi gereksinim) (Kapsam: `DependencyInjection.cs` icerisinde `app.Environment.IsDevelopment()` kontrolu `!app.Environment.IsProduction()` olarak degistirildi. Boylece Swagger; Development ve Staging ortamlarinda gorunur duruma, yalnizca guvenlik amaciyla Production ortaminda erisime kapali hale getirildi.)
+- `✅` Endpoint summary/description/response kod dokumantasyonlarini tamamla (Kapsam: XML dokumantasyon uretimi icin `CargoPilot.WebAPI.csproj` dosyasina `<GenerateDocumentationFile>true</GenerateDocumentationFile>` eklendi. Gerekli olmayan `<NoWarn>1591</NoWarn>` public property yorum uyarilari sessize alindi. Projedeki `Assembly.GetExecutingAssembly().GetName().Name + ".xml"` yolu yakalanarak `SwaggerGen` `IncludeXmlComments` metoduyla baglandi. Sonrasinda `CargosController` ve `HomeController` endpoint'lerine `/// <summary>`, `/// <response>` xml dökümanları ve `[ProducesResponseType]` attribute'ları girildi. 200/400 donus modelleri (`CreateCargoResponse`, `WelcomeResponse` vs.) Swagger'a acildi. Controller isim karmasasini onlemek icin `[Tags("Cargos")]` seklinde grouping etiketleri kullanildi.)
+- `✅` Auth kullaniliyorsa Swagger auth ayarlarini ekle (Kapsam: Henuz projenin JWT akislari kurulmamis olsa da, gelecekte iskelet teskil etmesi adina Swagger tarafinda JWT token butonunu cikaracak ayarlar eklendi. `Options.AddSecurityDefinition` ve `AddSecurityRequirement` konfigleri Swashbuckle v10 standardina gore yapilandirildi. Auth story implement edildiginde Swagger uzerinden 'Authorize' tusuyla test edilebilecek hale getirildi.)
 
 **Kanitlar:**
 - `CargoPilot.WebAPI/Program.cs`
 - `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/CargosController.cs`
+- `CargoPilot.WebAPI/HomeController.cs`
 
 ---
 
 ## Ozet (Story Bazli)
-- `✅ Tamamlandi`: 3 (1, 4, 6)
-- `🟡 Kismi / Devam ediyor`: 5 (2, 3, 5, 8, 10)
+- `✅ Tamamlandi`: 4 (1, 4, 6, 10)
+- `🟡 Kismi / Devam ediyor`: 4 (2, 3, 5, 8)
 - `⬜ Baslanmadi`: 2 (7, 9)
