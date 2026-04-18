@@ -1,0 +1,224 @@
+# CargoPilot User Story Tracker
+
+Bu dosya, her user story altindaki tum alt isleri tek tek takip etmek icin kullanilir.
+Hem daha once yapilanlar hem de bu sohbette tamamlananlar ayni listede isaretlenir.
+
+Durum gostergeleri:
+- `✅ Tamamlandi`
+- `🟡 Kismi / Devam ediyor`
+- `⬜ Baslanmadi`
+
+---
+
+## 1) Gelistirici ortam standardizasyonu (VS bilesenleri + SDK)
+**Story:** Backend Chapter Lead olarak, tum gelistiricilerin projeyi sorunsuz derleyebilmesi ve ayni arac setini kullanmasi icin gerekli olan Visual Studio bilesenlerinin ve SDK surumlerinin kurulumlarinin yapilmasini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Kabul Kriterleri
+- Repo kokunde, proje hedef frameworku ile uyumlu .NET SDK surumunu sabitleyen bir `global.json` bulunmalidir.
+- Gerekli Visual Studio workload'larini, kurulum adimlarini ve dogrulama komutlarini aciklayan bir `docs/developer-setup.md` dokumani bulunmalidir.
+- Temiz bir gelistirici ortaminda, dokumanda tanimlanan `dotnet restore` ve `dotnet build` komutlari basariyla calistirilabilmelidir.
+
+### Alt Isler
+- `✅` Repo kokunde `global.json` ile SDK surumunu sabitle
+- `✅` Proje hedef framework ile uyumlu SDK secimi yap (`net8.0` icin `.NET 8`)
+- `✅` Developer setup dokumani hazirla (`docs/developer-setup.md`)
+- `✅` Gerekli Visual Studio workload listesi dokumanda yazsin
+- `✅` Kurulum dogrulama komutlarini dokumanda tanimla
+- `✅` Komutlari ekip makinesinde calistirarak dogrula (`dotnet --info`, `--list-sdks`, `--version`, `restore`, `build`)
+- `✅` CI tarafinda ayni SDK bandinin pinlendigi bilgisini dokumana bagla
+
+**Kanitlar:**
+- `global.json`
+- `docs/developer-setup.md`
+- `.github/workflows/ci.yml`
+
+---
+
+## 2) Clean Architecture standardi
+**Story:** Backend Chapter Lead olarak, projenin ve dizin yapisinin surdurulebilir, test edilebilir ve moduler olmasi icin Clean Architecture standartlarinda olusturulmasini isterim.
+
+**Genel Durum:** `🟡 Kismi / Devam ediyor`
+
+**Bu story icin teknik kararlar (netlestirildi):**
+- `Application` katmaninda servis bazli yaklasim kullanilacak.
+- Veri erisiminde repository pattern uygulanacak.
+- Dogrulama standardi olarak FluentValidation kullanilacak.
+
+### Alt Isler
+- `✅` Katmanli cozum yapisini olustur (`WebAPI`, `Application`, `Domain`, `Infrastructure`)
+- `✅` Katmanlar arasi referans yonunu Clean Architecture prensibine gore kur
+- `✅` Application icin feature/use-case klasor standardini olustur (`Features/Cargos/CreateCargo`, `GetCargoById`, `ListCargos`, `UpdateCargoStatus`, `CancelCargo`)
+- `✅` Domain tarafinda temel entity/value object/aggregate iskeletini olustur (Kapsam: `Entities/Cargo`, `ValueObjects/TrackingNumber`, `Enums/CargoStatus`; Disinda: domain event, ileri seviye state-machine, adres/agırlik gibi ek modeller)
+- `✅` Application katmaninda repository interface'lerini tanimla (Kapsam: `Abstractions/Persistence/ICargoRepository` contract; Disinda: EF/SQL implementasyonu)
+- `✅` Infrastructure katmaninda EF Core tabanli repository implementasyonlarini yaz (Kapsam: `Persistence/Repositories/CargoRepository`, `AppDbContext` uzerinden `DbSet<Cargo>` ve `TrackingNumber` conversion; Disinda: migration/ileri query optimizasyonu)
+- `✅` Composition root (DI registration extensionlari) standardini kur (Kapsam: her katmanin kendi `DependencyInjection.cs` uzerinden `IServiceCollection` extension sunmasi. `CargoPilot.Application/DependencyInjection.cs` icinde `AddApplication()` use-case kayitlarini yapar; `CargoPilot.Infrastructure/DependencyInjection.cs` icinde `AddInfrastructure(IConfiguration, bool useInMemoryRepository)` `AppDbContext`+connection string okumasi ve `ICargoRepository` icin SQL/InMemory secimini ustlenir; `CargoPilot.WebAPI/DependencyInjection.cs` icinde `AddPresentation()` ve `UsePresentation()` controllers/Swagger/middleware zincirini kurar. `Program.cs` artik ~50 satirdan ~15 satira indi; concrete tip veya EF Core referansi icermiyor, sadece orkestrasyon yapiyor. Application'a DI extension'i kurabilmek icin `Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2` paket referansi eklendi; Infrastructure'in Hosting abstraction'ina bagimliligini onlemek icin environment karari `Program.cs`'de `builder.Environment.IsDevelopment()` flag'i uzerinden geciliyor. Disinda: assembly-scanning (Scrutor), FluentValidation pipeline kayitlari, auth/CORS middleware)
+- `✅` FluentValidation paket ve pipeline entegrasyonunu yap, ilk validatorlari ekle (Kapsam: `CargoPilot.Application` projesine `FluentValidation 11.11.0` ve `FluentValidation.DependencyInjectionExtensions 11.11.0` paketleri eklendi. Assembly scanning ile tum `AbstractValidator<T>` turevleri `Application/DependencyInjection.cs` icindeki `AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly)` cagrisi sayesinde otomatik olarak DI konteynirina kaydediliyor. Ilk validator olarak `Features/Cargos/CreateCargo/CreateCargoRequestValidator.cs` yazildi; `TrackingNumber` icin `NotEmpty` ve `MaximumLength(64)` kurallari, `Status` icin ise deger gonderildiginde `IsInEnum` kurali tanimli. `CreateCargoUseCase` constructor'ina `IValidator<CreateCargoRequest>` inject edildi; use-case bastan `ValidateAsync` cagirarak hatalari `Result<T>.Failure` ile `ValidationError` kodlu tek bir mesajda (`;` ile birlestirilmis) dondurur; boylece onceki ham `if (request is null)` kontrolu ve `try/catch (ArgumentException)` exception-for-control-flow kalibi ortadan kalkti. Disinda: MediatR pipeline behavior kurgusu (projede MediatR yok), cok-hatali structured `ValidationError` tipi (Story 8 response envelope standardi ile birlikte ele alinacak), ileri seviye kurallar (async DB kontrolleri, cross-field/cross-aggregate kurallar), validator icin unit test projesi (ayri story))
+- `✅` Architecture decision record veya mimari rehber dokumani ekle (Kapsam: `apps/backend/docs/architecture.md` dosyasi olusturuldu. Icerik: (1) katmanli yapi tablosu ve bagimlilik akisi diyagrami (Domain <- Application <- Infrastructure / WebAPI), (2) her katmanin icerik standardi ve orneklerle klasor yapisi (`Features/<Aggregate>/<UseCase>/`), (3) mimari kararlarin gerekcesi: service-based Application (MediatR neden alinmadi), repository pattern (aggregate-specific, generic degil), FluentValidation standardi ve assembly scanning yaklasimi, `Result<T>` ile exception-free akis, composition root (her katmanda `DependencyInjection.cs`), dev ortaminda `InMemoryCargoRepository` ile DB-siz calisma, configuration ve secret kaynaklari, (4) yeni use-case eklerken izlenecek 8 adimlik akis, (5) scope disi tutulan yaklasimlar (CQRS, domain event, Scrutor, generic repository). Developer setup ve environment-variables dokumanlariyla cross-link yapildi. Disinda: formal ADR numaralandirma/template akisi (ilerideki story'de), her karar icin ayri ADR dosyasi; bu surum tek bir rehber dokumanda konsolide edilmistir)
+
+**Kanitlar:**
+- `CargoPilot.Application/DependencyInjection.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Program.cs`
+- `CargoPilot.Application/CargoPilot.Application.csproj`
+- `CargoPilot.Application/Features/Cargos/CreateCargo/CreateCargoRequestValidator.cs`
+- `CargoPilot.Application/Features/Cargos/CreateCargo/CreateCargoUseCase.cs`
+- `docs/architecture.md`
+
+---
+
+## 3) Environment variables / .env kurgusu
+**Story:** Gelistirici Takimi icin uygulamanin farkli ortamlarda farkli API uc noktalarina baglanabilmesi icin ortam degiskenleri (environment variables / .env yapisi) kurgulanmali.
+
+**Genel Durum:** `🟡 Kismi / Devam ediyor`
+
+### Alt Isler
+- `✅` Ortam bazli appsettings dosyalarini olustur (`Development`, `Staging`)
+- `✅` Repo kokunde `.gitignore` olustur (Kapsam: repo koku `.gitignore` dosyasi elle yazildi; Microsoft'un `dotnet new gitignore` template'indeki ~300 satirlik genis liste yerine projenin fiilen kullandigi kalemler secildi. Bolumler: (a) build ciktilari `bin/`, `obj/`, `[Dd]ebug/`, `[Rr]elease/`, `x64/`, `x86/`; (b) Visual Studio/Rider kullanici dosyalari `.vs/`, `.idea/`, `*.user`, `*.suo`, `*.userosscache`, `*.sln.docstates`; (c) test & log `TestResults/`, `*.log`; (d) secret & env `appsettings.*.Local.json`, `.env`, `.env.local`, `.env.*.local`, `secrets.json`, `*.pfx`, `*.key`; (e) NuGet `*.nupkg`, `packages/`; (f) publish ciktilari `publish/`, `*.publishsettings`; (g) OS `Thumbs.db`, `.DS_Store`. `.env.example` pattern'den otomatik haric (farkli isim). User Secrets dosyalari zaten `%APPDATA%/Microsoft/UserSecrets/` altinda, repo disinda kaldigi icin ekstra kural gerekmedi. Disinda: `.vscode/` blok listesi (paylasima acik tutuldu), CI/CD runner-ozel ciktilari, resmi Microsoft template'indeki kullanilmayan ASP.NET Classic/Azure Tools/StyleCop kurallari)
+- `✅` Mevcut `appsettings.Development.json` ve `appsettings.Staging.json` icindeki placeholder connection string'leri kaldir (Kapsam: `appsettings.Development.json` icinden `ConnectionStrings.DefaultConnection` degeri (`Server=SUNUCU_IP_ADRESI;Database=CargoPilot_Dev;User Id=GELISTIRICI_USER;Password=GUCLU_SIFRE;TrustServerCertificate=True;`) ve `appsettings.Staging.json` icinden `ConnectionStrings.DefaultConnection` degeri (`Server=STAGING_SERVER_IP;Database=CargoPilot_Test;Trusted_Connection=True;`) tamamen silindi; her iki dosyada sadece `Logging` blogu kaldi. Yan etki olarak `Infrastructure/DependencyInjection.cs` icindeki `AddDbContext<AppDbContext>` cagrisi artik kosullu: `useInMemoryRepository == true` ise ne `AppDbContext` ne de SQL repository kaydedilir (boylece null connection string yuzunden `UseSqlServer` hata firlatmaz); `false` ise SQL modu `AddDbContext` + `CargoRepository` ikilisi kaydedilir. Development'ta `dotnet run` connection string olmadan sorunsuz baslatilabildigi runtime dogrulamasi ile teyit edildi. Program.cs'teki `useInMemoryRepository: builder.Environment.IsDevelopment()` secimi korundu; DB geldiginde bu tek satirin false'a cekilmesi ve user-secrets/env var ile `ConnectionStrings__DefaultConnection` set edilmesi yeterli. Disinda: config-driven otomatik switch (Yaklasim B) bilincli olarak ertelendi, staging icin Key Vault/secret store entegrasyonu (Story 5 kapsaminda ele alinacak))
+- `✅` Environment variable isim standardini tanimla (Kapsam: `docs/environment-variables.md` dosyasi olusturuldu ve naming standardi bolumu ile dolduruldu. Standart: `appsettings.json` icindeki nested key yolu (`Section:SubSection:Key`) env var'da cift alt cizgi (`Section__SubSection__Key`) olarak ifade edilir; bu .NET `EnvironmentVariablesConfigurationProvider`'inin otomatik destekledigi kanonik konvansiyondur. Dokumantasyonda (a) mevcut projedeki tum key'ler icin JSON-path -> env-var donusum tablosu (ConnectionStrings, Logging, ApplicationSettings), (b) neden `__` tercih edildigi (`:` POSIX kabuklarinda gecersiz, `__` Windows/Linux/macOS/Docker/K8s ortamlarinda tek isimle calisir), (c) kurallar (buyuk/kucuk harf duyarsizligi, `ASPNETCORE_`/`DOTNET_` prefix'lerin farki, nesting derinligi tavsiyesi, array indeksleme sozdizimi), (d) PowerShell/bash/Docker icin pratik set ornekleri yer aliyor. Kod tarafinda degisiklik yok, .NET zaten bu konvansiyonu destekliyor. Disinda: oncelik sirasi, ortam bazli kaynak tablosu, zorunlu/opsiyonel degisken listesi ve policy bolumleri (sonraki alt islerde ayni dosyaya eklenecek))
+- `⬜` Development icin User Secrets kurulumunu yap (`UserSecretsId` ekle, kullanim komutlarini belgele)
+- `⬜` Local gelistirme icin secret/config yukleme stratejisini belirle (User Secrets + `launchSettings.json` profilleri)
+- `⬜` `.env.example` olustur ve zorunlu/opsiyonel degiskenleri belgele
+- `⬜` `docs/environment-variables.md` olustur: naming standardi, oncelik sirasi, ortam bazli kaynak tablosu (user-secrets / env var / appsettings)
+- `⬜` Gizli verilerin dosyalarda tutulmamasini garanti edecek policy ekle (dokumanda + `.gitignore` + code review kurali)
+
+---
+
+## 4) Kod yazim standartlari (.editorconfig + statik analiz)
+**Story:** Backend Chapter Lead olarak, tum ekip uyelerinin ayni kod yazim standartlarina uymasini zorunlu kilmak icin `.editorconfig` ve statik kod analiz araclarinin projeye dahil edilmesini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt Isler
+- `✅` `.editorconfig` olustur
+- `✅` Kod stili kurallarini tanimla (indent, newline, naming)
+- `✅` Analyzer paketlerini projelere ekle (`Microsoft.CodeAnalysis.NetAnalyzers`)
+- `✅` Sonar analyzer paketini projelere ekle (`SonarAnalyzer.CSharp`)
+- `✅` Warning policy (treat as error, quality gate) seviyesini netlestir (Kapsam: `apps/backend/Directory.Build.props` olusturuldu; tum backend projelerine ortak kural seti uygulanir. Ayarlar: (1) `TreatWarningsAsErrors=true` — lokal ve CI build'leri uyari bulursa kirmiziya gecer, boylece kalite kapisi build seviyesinde islemeye baslar, (2) `EnforceCodeStyleInBuild=true` — `.editorconfig` IDE kurallari (IDE0005 gibi) build sirasinda dogrulanir, sadece editor zamaninda kalmaz, (3) `AnalysisLevel=latest` + `AnalysisMode=Recommended` — NetAnalyzers kuralcasi modern ve dengeli seviyede, (4) `GenerateDocumentationFile=true` — IDE0005 (kullanilmayan using) kontrolu icin on kosul, (5) `ContinuousIntegrationBuild` GitHub Actions'ta otomatik aciliyor (deterministik build). `WarningsNotAsErrors` listesi uc kalemi hata olmaktan muaf tutar: `CS1591` (public XML doc eksikligi — Story 10 kapsaminda olgunlasacak), `CA1000` (generic type uzerinde static uye — `Result<T>.Success`/`Failure` factory'leri Result pattern'in ozu), `CA1716` (`Error` reserved keyword ile cakismasi — domain terimi olarak korunuyor, VB tuketimi yok). Policy'yi aktif ederken analyzer'larin yakaladigi 4 gercek bulgu duzeltildi: (a) `InMemoryCargoRepository.UpdateAsync` S4144 duplicate body uyarisi: `_storage[cargo.Id] = cargo` yerine `_storage.AddOrUpdate(cargo.Id, cargo, (_, _) => cargo)` kullanildi — yapisal olarak `AddAsync`'ten farkli ve semantik olarak daha net, (b) `WebAPI/DependencyInjection.cs` IDE0005 gereksiz using'ler: Web SDK zaten implicit import ettigi icin 4 using satiri kaldirildi, (c) `HomeController.Get` S3400 sabit donen metot ve S6968 eksik `ProducesResponseType`: endpoint `ActionResult<WelcomeResponse>` donuyor, `WelcomeResponse` sealed record'u eklendi (`Message`, `Status`, `TimestampUtc`), `[ProducesResponseType(typeof(WelcomeResponse), StatusCodes.Status200OK)]` eklendi — hem Swagger sozlesmesi zenginlesti hem de pure-constant donus kalibi kirildi, (d) `Program.cs` S6966: `app.Run()` yerine `await app.RunAsync()` kullanildi, top-level async Main olarak calisir. Sonuc: Release build 0 hata / 13 uyari (tumuxs CS1591), Debug build 0 hata. Disinda: per-rule `.editorconfig` severity overrides (su an ihtiyac yok), CA/S kural ailesinin kapsamli customize edilmesi (SonarCloud/SonarQube entegrasyonu ile birlikte ileride ele alinacak), XML doc yazimi (Story 10))
+
+**Kanitlar:**
+- `.editorconfig`
+- `Directory.Build.props`
+- `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj`
+- `CargoPilot.Application/CargoPilot.Application.csproj`
+- `CargoPilot.Domain/CargoPilot.Domain.csproj`
+- `CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj`
+- `CargoPilot.Infrastructure/Persistence/Repositories/InMemoryCargoRepository.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/HomeController.cs`
+- `CargoPilot.WebAPI/Program.cs`
+
+---
+
+## 5) Connection string'in merkezi okunmasi + bulut DB baglantisi
+**Story:** Backend Chapter Lead olarak, uygulamanin veritabani ile iletisim kurabilmesi icin gerekli baglanti bilgilerinin (Connection String) merkezi bir dosyadan okunmasini ve bulut uzerindeki veri tabanina baglantisini saglanilmasini isterim.
+
+**Genel Durum:** `🟡 Kismi / Devam ediyor`
+
+### Alt Isler
+- `✅` Connection string'i configuration uzerinden oku (`GetConnectionString("DefaultConnection")`)
+- `✅` Ortam bazli connection string tanimlari ekle (`appsettings.*.json`)
+- `⬜` Secret management'e tasi (User Secrets / Key Vault / env vars)
+- `⬜` Bulut DB endpoint ve guvenli baglanti policy'sini dokumante et
+- `⬜` Connection resiliency/retry policy ekle
+- `✅` Hassas bilgi loglamasini kaldir (Kapsam: `Program.cs` icindeki `ApplicationSettings:AppName` ve `ConnectionStrings:DefaultConnection` degerlerini konsola yazan `Console.WriteLine` satirlari, composition root refactor'u sirasinda tamamen kaldirildi. Boylece baglanti dizesi ve uygulama meta verisi artik standart cikti akimina yazilmiyor. Disinda: yapilandirilmis log cercevesi (Serilog/ILogger) entegrasyonu ve hassas alan maskeleme kurallari)
+
+**Kanitlar:**
+- `CargoPilot.WebAPI/Program.cs`
+- `CargoPilot.WebAPI/appsettings.Development.json`
+- `CargoPilot.WebAPI/appsettings.Staging.json`
+
+---
+
+## 6) EF Core entegrasyonu + temel DbContext
+**Story:** Backend Chapter Lead olarak, uygulamanin SQL Server ve Bulut veritabanlariyla iletisim kurabilmesi icin Entity Framework Core entegrasyonunu ve temel DbContext yapisinin kurulmasini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt Isler
+- `✅` EF Core SQL Server paketlerini ekle
+- `✅` `AppDbContext` sinifini olustur
+- `✅` DI ile `AddDbContext` kaydini yap
+- `✅` Ilk migration ve veritabani olusturma akisini dokumante et (Kapsam: `apps/backend/docs/database-migrations.md` dosyasi olusturuldu; 10 bolumluk pratik rehber. Icerik: (1) `dotnet-ef` global tool kurulumu ve dogrulama komutlari, (2) `ConnectionStrings__DefaultConnection` env var kaynak sirasi ve Windows Auth / SA / Docker icin ornek connection string'ler, (3) komutlarin `apps/backend/` dizininden calistirilma standardi, (4) ilk migration uretimi: `dotnet ef migrations add InitialCreate --project CargoPilot.Infrastructure --startup-project CargoPilot.WebAPI --output-dir Persistence/Migrations` ve parametre aciklamalari, (5) `database update` ile DB olusturma/guncelleme, belirli migration'a geri donme, `0` ile tum migration'lari geri alma, (6) yeni migration ekleme isim kurali (PascalCase, ornekler `AddCargoWeightColumn` vb), (7) migration iptal akisi (DB'ye uygulanmadan `migrations remove`, uygulandiysa once `database update <Onceki>`), (8) ortam bazli akis: Dev modunda InMemory repo aktifken factory sayesinde migration'lar calisir, prod'da env var zorunlu ve auto-migrate vs pipeline-step secimleri, (9) SQL script uretme (`migrations script`) DBA akisi, (10) sorun giderme tablosu (6 yaygin hata ve cozum). Dokumanin calisir olmasi icin `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs` eklendi: `IDesignTimeDbContextFactory<AppDbContext>` implementasyonu, `ConnectionStrings__DefaultConnection` env var'i okur, local SQL fallback'i var; sadece tasarim zamani cagrilir, runtime'da kullanilmaz. Bu olmadan Development ortaminda (`useInMemoryRepository: true` iken `AddDbContext` kaydedilmedigi icin) `dotnet ef` komutlari "Unable to create an object of type 'AppDbContext'" hatasi verirdi; factory bu blokaji ortadan kaldirir ve EF CLI akisini runtime DI'dan bagimsiz kilar. Disinda: ilk migration dosyasinin gercek uretimi (tercihen ilk DB baglantisi story'si ile birlikte yapilacak), auto-migrate policy'sinin prod icin netlestirilmesi (Story 5 + CI/CD story'leri), seed data stratejisi (ayri story))
+- `✅` DbSet bazli domain tablolarini olustur (`DbSet<Cargo>`)
+
+**Kanitlar:**
+- `CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj`
+- `CargoPilot.Infrastructure/Persistence/AppDbContext.cs`
+- `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs`
+- `CargoPilot.WebAPI/Program.cs`
+- `docs/database-migrations.md`
+
+---
+
+## 7) Base Entity standardi
+**Story:** Backend Chapter Lead olarak, tum veritabani tablolarinda Id, CreatedDate, UpdatedDate ve IsDeleted (Soft Delete) gibi alanlarin standart olmasini saglayan bir Base Entity yapisinin kurulmasini isterim.
+
+**Genel Durum:** `⬜ Baslanmadi`
+
+### Alt Isler
+- `⬜` Domain'de `BaseEntity` tanimla (`Id`, `CreatedDate`, `UpdatedDate`, `IsDeleted`)
+- `⬜` Tum aggregate/entity siniflarini `BaseEntity`den turet
+- `⬜` `SaveChanges` seviyesinde audit alanlarini otomatik set et
+- `⬜` Soft delete query filter'larini global olarak tanimla
+- `⬜` IsDeleted icin index ve sorgu davranisi kararini dokumante et
+
+---
+
+## 8) Standart API response yapisi
+**Story:** Backend Chapter Lead olarak, API'den donen tum yanitlarin, tahmin edilebilir ve standart bir JSON yapisinda olmasini isterim.
+
+**Genel Durum:** `🟡 Kismi / Devam ediyor`
+
+### Alt Isler
+- `✅` Uygulama katmaninda `Result<T>` ve `Error` modellerini olustur
+- `⬜` Tanimli tek bir response contract'i belirle (success/error envelope)
+- `⬜` Tum controller endpointlerini bu contract ile hizala
+- `⬜` Validation hatalarini da ayni response yapisina bagla
+- `⬜` Swagger uzerinde response tiplerini standart goster
+
+**Kanitlar:**
+- `CargoPilot.Application/Common/Models/Result.cs`
+- `CargoPilot.Application/Common/Models/Error.cs`
+
+---
+
+## 9) Global Exception Handling
+**Story:** Backend Chapter Lead olarak, uygulama genelinde firlatilan tum beklenmedik hatalarin merkezi bir noktadan yakalanmasini (Global Exception Handling) isterim.
+
+**Genel Durum:** `⬜ Baslanmadi`
+
+### Alt Isler
+- `⬜` Global exception middleware veya `UseExceptionHandler` ekle
+- `⬜` Exception-to-response map stratejisi belirle
+- `⬜` Beklenmeyen hatalarda standart error response don
+- `⬜` Correlation id ve loglama baglantisini kur
+- `⬜` Exception handling icin unit/integration test ekle
+
+---
+
+## 10) Swagger dokumantasyonu
+**Story:** Backend Chapter Lead olarak 3D ve Platform squad'larinin gelistirme yapabilmesi icin API uc noktalarini Swagger ile dokumante edilmesini isterim.
+
+**Genel Durum:** `🟡 Kismi / Devam ediyor`
+
+### Alt Isler
+- `✅` Swagger servislerini ekle (`AddEndpointsApiExplorer`, `AddSwaggerGen`)
+- `✅` Swagger middleware kur (`UseSwagger`, `UseSwaggerUI`)
+- `🟡` Swagger gorunurlugunu ortamlara gore netlestir (sadece development disi gereksinim)
+- `⬜` Endpoint summary/description/response kod dokumantasyonlarini tamamla
+- `⬜` Auth kullaniliyorsa Swagger auth ayarlarini ekle
+
+**Kanitlar:**
+- `CargoPilot.WebAPI/Program.cs`
+- `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj`
+
+---
+
+## Ozet (Story Bazli)
+- `✅ Tamamlandi`: 3 (1, 4, 6)
+- `🟡 Kismi / Devam ediyor`: 5 (2, 3, 5, 8, 10)
+- `⬜ Baslanmadi`: 2 (7, 9)

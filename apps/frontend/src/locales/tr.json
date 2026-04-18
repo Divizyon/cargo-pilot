@@ -1,0 +1,62 @@
+{
+  "validations": {
+    "product": {
+      "nameRequired": "Ürün adı zorunludur",
+      "skuRequired": "SKU zorunludur",
+      "widthPositive": "Genişlik sıfırdan büyük olmalıdır",
+      "heightPositive": "Yükseklik sıfırdan büyük olmalıdır",
+      "lengthPositive": "Uzunluk sıfırdan büyük olmalıdır",
+      "weightPositive": "Ağırlık sıfırdan büyük olmalıdır",
+      "maxStackRequired": "İstifleme izni verildiğinde maksimum istif sayısı zorunludur",
+      "maxStackMin": "Maksimum istif sayısı en az 1 olmalıdır",
+      "fragilityRange": "Kırılganlık değeri 0-2 arasında olmalıdır"
+    },
+    "vehicle": {
+      "nameRequired": "Araç adı zorunludur",
+      "widthPositive": "Genişlik sıfırdan büyük olmalıdır",
+      "heightPositive": "Yükseklik sıfırdan büyük olmalıdır",
+      "lengthPositive": "Uzunluk sıfırdan büyük olmalıdır",
+      "payloadPositive": "Yük kapasitesi sıfırdan büyük olmalıdır"
+    }
+  },
+  "forms": {
+    "product": {
+      "title": "Ürün Tanımlama",
+      "name": "Ürün Adı",
+      "namePlaceholder": "Örn: Kırılgan Kutu",
+      "sku": "SKU",
+      "skuPlaceholder": "Örn: BOX-001",
+      "dimensions": "Boyutlar (cm)",
+      "width": "Genişlik",
+      "height": "Yükseklik",
+      "length": "Uzunluk",
+      "weight": "Ağırlık (kg)",
+      "fragility": "Kırılganlık Seviyesi",
+      "fragilityNonFragile": "Kırılmaz",
+      "fragilityFragile": "Kırılgan",
+      "fragilityLiquid": "Sıvı",
+      "isStackable": "İstifleme İzni",
+      "isStackableHint": "Bu ürün diğer ürünlerin üstüne konulabilir",
+      "maxStackCount": "Maksimum İstif Sayısı",
+      "maxStackCountPlaceholder": "Örn: 3",
+      "rotation": "Döndürme İzinleri",
+      "allowRotateX": "X Ekseni",
+      "allowRotateY": "Y Ekseni",
+      "allowRotateZ": "Z Ekseni",
+      "submit": "Kaydet",
+      "cancel": "İptal"
+    },
+    "vehicle": {
+      "title": "Araç Tanımlama",
+      "name": "Araç Adı",
+      "namePlaceholder": "Örn: Tır 40 Ton",
+      "dimensions": "İç Boyutlar (cm)",
+      "width": "Genişlik",
+      "height": "Yükseklik",
+      "length": "Uzunluk",
+      "payload": "Yük Kapasitesi (kg)",
+      "submit": "Kaydet",
+      "cancel": "İptal"
+    }
+  }
+}
