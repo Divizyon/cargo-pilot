@@ -1,3 +1,5 @@
+name: cargo-pilot-prod
+
 services:
   backend:
     build:

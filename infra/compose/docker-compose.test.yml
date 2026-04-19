@@ -1,3 +1,5 @@
+name: cargo-pilot-test
+
 services:
   backend:
     image: cargo-pilot-backend:test
@@ -69,7 +71,7 @@ services:
       - cargo-pilot-test
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     container_name: cargo-pilot-minio-test
     command: server /data --console-address ":9001"
     environment:

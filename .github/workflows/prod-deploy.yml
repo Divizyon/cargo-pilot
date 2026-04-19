@@ -1,0 +1,56 @@
+name: Production Deploy
+
+# main'e push olunca (PR merge dahil) otomatik tetiklenir
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy (Production)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sunucuya bağlan ve güncelle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/cargo-pilot
+
+            echo "==> Kod güncelleniyor..."
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
+
+            echo "==> Compose izolasyonu kontrol ediliyor..."
+            grep -q "^name:" infra/compose/docker-compose.prod.yml || sed -i "1s/^/name: cargo-pilot-prod\n\n/" infra/compose/docker-compose.prod.yml
+            grep -q "^name:" infra/compose/docker-compose.test.yml || sed -i "1s/^/name: cargo-pilot-test\n\n/" infra/compose/docker-compose.test.yml
+
+            echo "==> Container'lar yeniden build ediliyor..."
+            docker compose \
+              -f infra/compose/docker-compose.prod.yml \
+              --env-file infra/env/.env.prod \
+              up -d --build
+
+            echo "==> Eski image'lar temizleniyor..."
+            docker image prune -f
+
+      - name: Backend health check
+        run: |
+          echo "Backend'in ayağa kalkması bekleniyor..."
+          sleep 20
+          for i in $(seq 1 10); do
+            if curl -sf http://${{ secrets.PROD_SSH_HOST }}:8080/health; then
+              echo "Backend hazır."
+              exit 0
+            fi
+            echo "Deneme $i/10..."
+            sleep 10
+          done
+          echo "::error::Backend health check başarısız oldu."
+          exit 1
