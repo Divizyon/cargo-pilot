@@ -60,6 +60,28 @@
       "cancel": "İptal"
     }
   },
+  "plans": {
+    "free": "Ücretsiz",
+    "starter": "Başlangıç",
+    "pro": "Profesyonel",
+    "enterprise": "Kurumsal"
+  },
+  "features": {
+    "bulkImport": "Excel ile toplu ürün içe aktarma",
+    "pdfExport": "PDF rapor çıktısı",
+    "excelExport": "Excel rapor çıktısı",
+    "manualPlacement": "Manuel yerleşim düzenleme",
+    "advanced3D": "Gelişmiş 3D görselleştirme",
+    "multiUser": "Çoklu kullanıcı yönetimi",
+    "erpIntegration": "ERP entegrasyonu",
+    "apiAccess": "API erişimi"
+  },
+  "upgrade": {
+    "title": "Bu özellik paketinizde bulunmuyor",
+    "description": "{{feature}} özelliğini kullanmak için en az {{plan}} paketine geçmeniz gerekiyor.",
+    "viewPlans": "Paketleri Gör",
+    "dismiss": "Vazgeç"
+  },
   "import": {
     "product": {
       "title": "Ürün Toplu İçe Aktarma",
