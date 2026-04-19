@@ -1,6 +1,7 @@
 # Cargo Pilot - Deployment Bilgileri
 
 **Son Güncelleme:** 2026-04-19
+**CI/CD:** Otomatik deploy aktif ✅
 **Sunucu:** 104.247.163.42
 
 ---
