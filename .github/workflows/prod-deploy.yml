@@ -25,11 +25,7 @@ jobs:
             echo "==> Kod güncelleniyor..."
             git fetch origin
             git checkout main
-            git reset --hard origin/main
-
-            echo "==> Compose izolasyonu kontrol ediliyor..."
-            grep -q "^name:" infra/compose/docker-compose.prod.yml || sed -i "1s/^/name: cargo-pilot-prod\n\n/" infra/compose/docker-compose.prod.yml
-            grep -q "^name:" infra/compose/docker-compose.test.yml || sed -i "1s/^/name: cargo-pilot-test\n\n/" infra/compose/docker-compose.test.yml
+            git pull origin main
 
             echo "==> Container'lar yeniden build ediliyor..."
             docker compose \
