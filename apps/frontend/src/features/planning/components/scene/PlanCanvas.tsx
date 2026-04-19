@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { Html, useProgress } from '@react-three/drei';
 import { SceneLights } from '@/features/planning/components/scene/SceneLights';
 import { SceneControls } from '@/features/planning/components/scene/SceneControls';
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
@@ -7,6 +9,18 @@ import { SceneDisposer } from '@/lib/three/SceneDisposer';
 interface PlanCanvasProps {
   className?: string;
   planId?: string;
+}
+
+function SceneLoader() {
+  const { progress } = useProgress();
+  return (
+    <Html center>
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
+      </div>
+    </Html>
+  );
 }
 
 export function PlanCanvas({ className, planId = '' }: PlanCanvasProps) {
@@ -19,9 +33,11 @@ export function PlanCanvas({ className, planId = '' }: PlanCanvasProps) {
         style={{ width: '100%', height: '100%' }}
       >
         <SceneDisposer />
-        <SceneLights />
-        <SceneControls />
-        <CargoMeshInstanced planId={planId} />
+        <Suspense fallback={<SceneLoader />}>
+          <SceneLights />
+          <SceneControls />
+          <CargoMeshInstanced planId={planId} />
+        </Suspense>
       </Canvas>
     </div>
   );

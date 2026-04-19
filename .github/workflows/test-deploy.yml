@@ -254,9 +254,9 @@ jobs:
       - name: Sunucuya bağlan ve test stack'ini güncelle
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_SSH_HOST }}
+          host: ${{ secrets.TEST_SSH_HOST }}
           username: root
-          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
           script: |
             set -e
             cd /opt/cargo-pilot
@@ -264,7 +264,11 @@ jobs:
             echo "==> Test branch güncelleniyor..."
             git fetch origin
             git checkout test
-            git pull origin test
+            git reset --hard origin/test
+
+            echo "==> Compose izolasyonu kontrol ediliyor..."
+            grep -q "^name:" infra/compose/docker-compose.prod.yml || sed -i "1s/^/name: cargo-pilot-prod\n\n/" infra/compose/docker-compose.prod.yml
+            grep -q "^name:" infra/compose/docker-compose.test.yml || sed -i "1s/^/name: cargo-pilot-test\n\n/" infra/compose/docker-compose.test.yml
 
             echo "==> Test container'ları yeniden build ediliyor..."
             docker compose \
@@ -280,7 +284,7 @@ jobs:
           echo "Test backend'in ayağa kalkması bekleniyor..."
           sleep 20
           for i in $(seq 1 10); do
-            if curl -sf http://${{ secrets.PROD_SSH_HOST }}:8081/health; then
+            if curl -sf http://${{ secrets.TEST_SSH_HOST }}:8081/health; then
               echo "Test backend hazır."
               exit 0
             fi
