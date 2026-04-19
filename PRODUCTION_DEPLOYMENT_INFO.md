@@ -32,12 +32,12 @@ Trust Server Certificate: True
 
 ### Connection String (Sunucu Dışından)
 ```
-Server=<SUNUCU_IP_ADRESI>,1433;Database=CargoPilot;User Id=sa;Password=xeuhO/7bsuR/BjZ35MVzLkjh26xrs45n;TrustServerCertificate=True;
+Server=<SUNUCU_IP_ADRESI>,1433;Database=CargoPilot;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;
 ```
 
 ### Connection String (Docker İçi - Backend için)
 ```
-Server=mssql,1433;Database=CargoPilot;User Id=sa;Password=xeuhO/7bsuR/BjZ35MVzLkjh26xrs45n;TrustServerCertificate=True;
+Server=mssql,1433;Database=CargoPilot;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;
 ```
 
 ### MSSQL Versiyon
@@ -116,12 +116,12 @@ Backend developer'ı kendi makinasından şu adımları izleyecek:
 
 **Windows PowerShell:**
 ```powershell
-$env:ConnectionStrings__DefaultConnection = "Server=<SUNUCU_IP_ADRESI>,1433;Database=CargoPilot;User Id=sa;Password=xeuhO/7bsuR/BjZ35MVzLkjh26xrs45n;TrustServerCertificate=True;"
+$env:ConnectionStrings__DefaultConnection = "Server=<SUNUCU_IP_ADRESI>,1433;Database=CargoPilot;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;"
 ```
 
 **Linux/macOS:**
 ```bash
-export ConnectionStrings__DefaultConnection="Server=<SUNUCU_IP_ADRESI>,1433;Database=CargoPilot;User Id=sa;Password=xeuhO/7bsuR/BjZ35MVzLkjh26xrs45n;TrustServerCertificate=True;"
+export ConnectionStrings__DefaultConnection="Server=<SUNUCU_IP_ADRESI>,1433;Database=CargoPilot;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;"
 ```
 
 5. Migration'ı çalıştırın:
@@ -143,7 +143,7 @@ dotnet ef migrations script --project CargoPilot.Infrastructure --startup-projec
 Migration başarıyla çalıştıktan sonra şu komutu çalıştırıp tabloları görebilirsiniz:
 
 ```bash
-docker exec cargo-pilot-mssql-prod /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "xeuhO/7bsuR/BjZ35MVzLkjh26xrs45n" -C -Q "SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')"
+docker exec cargo-pilot-mssql-prod /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "<MSSQL_SA_PASSWORD>" -C -Q "SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')"
 ```
 
 ---
