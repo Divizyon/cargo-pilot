@@ -10,7 +10,7 @@ namespace CargoPilot.WebAPI.Controllers;
 [ApiController]
 [Route("cargos")]
 [Tags("Cargos")]
-public class CargosController : ControllerBase
+public class CargosController : BaseController
 {
     private readonly CreateCargoUseCase _createCargoUseCase;
 
@@ -28,17 +28,12 @@ public class CargosController : ControllerBase
     /// <response code="200">Kargo başarıyla oluşturuldu.</response>
     /// <response code="400">Geçersiz istek verisi veya iş kuralı ihlali.</response>
     [HttpPost]
-    [ProducesResponseType(typeof(CreateCargoResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Result<CreateCargoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<CreateCargoResponse>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateCargoRequest request, CancellationToken cancellationToken)
     {
         Result<CreateCargoResponse> result = await _createCargoUseCase.ExecuteAsync(request, cancellationToken);
 
-        if (!result.IsSuccess)
-        {
-            return BadRequest(result.Error);
-        }
-
-        return Ok(result.Data);
+        return HandleResult(result);
     }
 }

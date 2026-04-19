@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CargoPilot.WebAPI.Controllers;
@@ -8,7 +9,7 @@ namespace CargoPilot.WebAPI.Controllers;
 [ApiController]
 [Route("/")]
 [Tags("Home")]
-public class HomeController : ControllerBase
+public class HomeController : BaseController
 {
     /// <summary>
     /// API'nin çalışır durumda olduğunu doğrular ve karşılama mesajı döner.
@@ -16,11 +17,16 @@ public class HomeController : ControllerBase
     /// <returns>Karşılama mesajı, durum ve UTC zaman damgası.</returns>
     /// <response code="200">API başarıyla yanıt verdi.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(WelcomeResponse), StatusCodes.Status200OK)]
-    public ActionResult<WelcomeResponse> Get() => Ok(new WelcomeResponse(
-        "Cargo Pilot Projesine Hoş Geldiniz!",
-        "ok",
-        DateTime.UtcNow));
+    [ProducesResponseType(typeof(Result<WelcomeResponse>), StatusCodes.Status200OK)]
+    public IActionResult Get()
+    {
+        var response = new WelcomeResponse(
+            "Cargo Pilot Projesine Hoş Geldiniz!",
+            "ok",
+            DateTime.UtcNow);
+            
+        return HandleResult(Result<WelcomeResponse>.Success(response));
+    }
 }
 
 /// <summary>
