@@ -22,10 +22,14 @@ on:
 
 jobs:
   # ─── Kural kontrolü: test PR, dev'e merge edilmiş feature/bugfix branch'ten gelmeli
+  # sync/* branch'leri bu kontrolü atlar (dev birikimi senkronizasyon PR'ları için)
   enforce-test-base:
     name: Test PR Dev Kontrolü
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.base_ref == 'test'
+    if: |
+      github.event_name == 'pull_request' &&
+      github.base_ref == 'test' &&
+      !startsWith(github.head_ref, 'sync/')
 
     steps:
       - name: Kodu al
