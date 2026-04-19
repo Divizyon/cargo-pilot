@@ -59,5 +59,11 @@
       "submit": "Kaydet",
       "cancel": "İptal"
     }
+  },
+  "export": {
+    "excel": "Excel İndir",
+    "pdf": "PDF İndir",
+    "loadingExcel": "Excel hazırlanıyor...",
+    "loadingPdf": "PDF hazırlanıyor..."
   }
 }

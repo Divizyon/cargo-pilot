@@ -59,5 +59,11 @@
       "submit": "Save",
       "cancel": "Cancel"
     }
+  },
+  "export": {
+    "excel": "Download Excel",
+    "pdf": "Download PDF",
+    "loadingExcel": "Preparing Excel...",
+    "loadingPdf": "Preparing PDF..."
   }
 }
