@@ -20,6 +20,14 @@ export const loadingPlanSchema = z.object({
 export type Placement = z.infer<typeof placementSchema>;
 export type LoadingPlan = z.infer<typeof loadingPlanSchema>;
 
+export const placementWithDimensionsSchema = placementSchema.extend({
+  width: z.number().positive(),
+  height: z.number().positive(),
+  depth: z.number().positive(),
+});
+
+export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;
+
 export const OptimizationCriteria = {
   Weight: 0,
   Volume: 1,
