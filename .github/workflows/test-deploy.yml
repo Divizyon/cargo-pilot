@@ -266,9 +266,11 @@ jobs:
             git checkout test
             git reset --hard origin/test
 
-            echo "==> Compose izolasyonu kontrol ediliyor..."
-            grep -q "^name:" infra/compose/docker-compose.prod.yml || sed -i "1s/^/name: cargo-pilot-prod\n\n/" infra/compose/docker-compose.prod.yml
-            grep -q "^name:" infra/compose/docker-compose.test.yml || sed -i "1s/^/name: cargo-pilot-test\n\n/" infra/compose/docker-compose.test.yml
+            echo "==> Eski stack temizleniyor..."
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              down --remove-orphans 2>/dev/null || true
 
             echo "==> Test container'ları yeniden build ediliyor..."
             docker compose \
