@@ -59,5 +59,28 @@
       "submit": "Save",
       "cancel": "Cancel"
     }
+  },
+  "import": {
+    "product": {
+      "title": "Bulk Product Import",
+      "description": "Upload your Excel file to import products in bulk. Downloading the template first is recommended.",
+      "downloadTemplate": "Download Template",
+      "selectFile": "Select Excel File",
+      "processing": "Processing...",
+      "reset": "Reset",
+      "emptyFile": "File is empty or no readable rows found",
+      "errorCount": "{{count}} errors found",
+      "summary": "{{success}} products added successfully. {{validated}} rows validated, {{failed}} rows rejected.",
+      "phase": {
+        "parsing": "Reading file",
+        "validating": "Validating rows",
+        "uploading": "Uploading to server"
+      },
+      "column": {
+        "row": "Row",
+        "field": "Field",
+        "message": "Error"
+      }
+    }
   }
 }
