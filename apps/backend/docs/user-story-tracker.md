@@ -39,7 +39,7 @@ Durum gostergeleri:
 ## 2) Clean Architecture standardi
 **Story:** Backend Chapter Lead olarak, projenin ve dizin yapisinin surdurulebilir, test edilebilir ve moduler olmasi icin Clean Architecture standartlarinda olusturulmasini isterim.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 **Bu story icin teknik kararlar (netlestirildi):**
 - `Application` katmaninda servis bazli yaklasim kullanilacak.
@@ -72,20 +72,28 @@ Durum gostergeleri:
 ## 3) Environment variables / .env kurgusu
 **Story:** Gelistirici Takimi icin uygulamanin farkli ortamlarda farkli API uc noktalarina baglanabilmesi icin ortam degiskenleri (environment variables / .env yapisi) kurgulanmali.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
 - `✅` Ortam bazli appsettings dosyalarini olustur (`Development`, `Staging`)
 - `✅` Repo kokunde `.gitignore` olustur (Kapsam: repo koku `.gitignore` dosyasi elle yazildi; Microsoft'un `dotnet new gitignore` template'indeki ~300 satirlik genis liste yerine projenin fiilen kullandigi kalemler secildi. Bolumler: (a) build ciktilari `bin/`, `obj/`, `[Dd]ebug/`, `[Rr]elease/`, `x64/`, `x86/`; (b) Visual Studio/Rider kullanici dosyalari `.vs/`, `.idea/`, `*.user`, `*.suo`, `*.userosscache`, `*.sln.docstates`; (c) test & log `TestResults/`, `*.log`; (d) secret & env `appsettings.*.Local.json`, `.env`, `.env.local`, `.env.*.local`, `secrets.json`, `*.pfx`, `*.key`; (e) NuGet `*.nupkg`, `packages/`; (f) publish ciktilari `publish/`, `*.publishsettings`; (g) OS `Thumbs.db`, `.DS_Store`. `.env.example` pattern'den otomatik haric (farkli isim). User Secrets dosyalari zaten `%APPDATA%/Microsoft/UserSecrets/` altinda, repo disinda kaldigi icin ekstra kural gerekmedi. Disinda: `.vscode/` blok listesi (paylasima acik tutuldu), CI/CD runner-ozel ciktilari, resmi Microsoft template'indeki kullanilmayan ASP.NET Classic/Azure Tools/StyleCop kurallari)
 - `✅` Mevcut `appsettings.Development.json` ve `appsettings.Staging.json` icindeki placeholder connection string'leri kaldir (Kapsam: `appsettings.Development.json` icinden `ConnectionStrings.DefaultConnection` degeri (`Server=SUNUCU_IP_ADRESI;Database=CargoPilot_Dev;User Id=GELISTIRICI_USER;Password=GUCLU_SIFRE;TrustServerCertificate=True;`) ve `appsettings.Staging.json` icinden `ConnectionStrings.DefaultConnection` degeri (`Server=STAGING_SERVER_IP;Database=CargoPilot_Test;Trusted_Connection=True;`) tamamen silindi; her iki dosyada sadece `Logging` blogu kaldi. Yan etki olarak `Infrastructure/DependencyInjection.cs` icindeki `AddDbContext<AppDbContext>` cagrisi artik kosullu: `useInMemoryRepository == true` ise ne `AppDbContext` ne de SQL repository kaydedilir (boylece null connection string yuzunden `UseSqlServer` hata firlatmaz); `false` ise SQL modu `AddDbContext` + `CargoRepository` ikilisi kaydedilir. Development'ta `dotnet run` connection string olmadan sorunsuz baslatilabildigi runtime dogrulamasi ile teyit edildi. Program.cs'teki `useInMemoryRepository: builder.Environment.IsDevelopment()` secimi korundu; DB geldiginde bu tek satirin false'a cekilmesi ve user-secrets/env var ile `ConnectionStrings__DefaultConnection` set edilmesi yeterli. Disinda: config-driven otomatik switch (Yaklasim B) bilincli olarak ertelendi, staging icin Key Vault/secret store entegrasyonu (Story 5 kapsaminda ele alinacak))
 - `✅` Environment variable isim standardini tanimla (Kapsam: `docs/environment-variables.md` dosyasi olusturuldu ve naming standardi bolumu ile dolduruldu. Standart: `appsettings.json` icindeki nested key yolu (`Section:SubSection:Key`) env var'da cift alt cizgi (`Section__SubSection__Key`) olarak ifade edilir; bu .NET `EnvironmentVariablesConfigurationProvider`'inin otomatik destekledigi kanonik konvansiyondur. Dokumantasyonda (a) mevcut projedeki tum key'ler icin JSON-path -> env-var donusum tablosu (ConnectionStrings, Logging, ApplicationSettings), (b) neden `__` tercih edildigi (`:` POSIX kabuklarinda gecersiz, `__` Windows/Linux/macOS/Docker/K8s ortamlarinda tek isimle calisir), (c) kurallar (buyuk/kucuk harf duyarsizligi, `ASPNETCORE_`/`DOTNET_` prefix'lerin farki, nesting derinligi tavsiyesi, array indeksleme sozdizimi), (d) PowerShell/bash/Docker icin pratik set ornekleri yer aliyor. Kod tarafinda degisiklik yok, .NET zaten bu konvansiyonu destekliyor. Disinda: oncelik sirasi, ortam bazli kaynak tablosu, zorunlu/opsiyonel degisken listesi ve policy bolumleri (sonraki alt islerde ayni dosyaya eklenecek))
-- `⬜` Development icin User Secrets kurulumunu yap (`UserSecretsId` ekle, kullanim komutlarini belgele)
-- `⬜` Local gelistirme icin secret/config yukleme stratejisini belirle (User Secrets + `launchSettings.json` profilleri)
-- `⬜` `.env.example` olustur ve zorunlu/opsiyonel degiskenleri belgele
-- `⬜` `docs/environment-variables.md` olustur: naming standardi, oncelik sirasi, ortam bazli kaynak tablosu (user-secrets / env var / appsettings)
-- `⬜` Gizli verilerin dosyalarda tutulmamasini garanti edecek policy ekle (dokumanda + `.gitignore` + code review kurali)
 
----
+- `✅` Development icin User Secrets kurulumunu yap (`UserSecretsId` ekle, kullanim komutlarini belgele) (Kapsam: `CargoPilot.WebAPI.csproj` dosyasina `<UserSecretsId>cargo-pilot-backend</UserSecretsId>` eklendi. ASP.NET Core `WebApplication.CreateBuilder`, `ASPNETCORE_ENVIRONMENT=Development` oldugunda User Secrets'i otomatik yukler; `Program.cs`'de ekstra kod gerekmez. `docs/environment-variables.md` dosyasina "Development: User Secrets Kurulumu" bolumu eklendi; Windows/Linux icin `dotnet user-secrets set` ve `dotnet user-secrets list` komutlari, dosya konumu (`%APPDATA%/Microsoft/UserSecrets/cargo-pilot-backend/`) belgelendi. Disinda: CI ortami icin User Secrets devre disi birakma (CI'da env var kullanilir zaten), per-developer secrets rotation politikasi)
+- `✅` Local gelistirme icin secret/config yukleme stratejisini belirle (User Secrets + `launchSettings.json` profilleri) (Kapsam: `docs/environment-variables.md` dosyasinda yapilandirma oncelik sirasi ve ortam bazli kaynak tablosu tanimlandi: Docker'siz local gelistirmede User Secrets, Docker dev ortaminda `.env.dev` -> compose env var zinciri kullanilir. `launchSettings.json` mevcut profili `ASPNETCORE_ENVIRONMENT: Development` ile korundu; bu ayar User Secrets'i otomatik aktive eder, ayri bir profil gerekmedi. Disinda: `launchSettings.json`'a Docker Compose profili eklenmesi (Visual Studio'nun Docker destegi bu senaryoyu ayri kurgular), Staging ortami icin local profil)
+- `✅` `.env.example` olustur ve zorunlu/opsiyonel degiskenleri belgele (Kapsam: `infra/env/.env.dev.example` ve `infra/env/.env.prod.example` dosyalari olusturuldu ve guncel tutuldu. `.env.dev.example` gelistirici icin calisan default degerlerle (MSSQL, MinIO, port'lar, `DATABASE_CONNECTION_STRING`) dolduruldu; `cp .env.dev.example .env.dev` ile hemen kullanilabilir. `.env.prod.example` production icin placeholder degerler ve guvenlik uyarilariyla dolduruldu. Zorunlu/opsiyonel degisken tablosu `docs/environment-variables.md` dosyasina eklendi. `.gitignore` `.env.dev`, `.env.prod`, `.env.test` dosyalarini repoya girmeyi engeller; `.env.*.example` dosyalari repoda kalir. Disinda: `.env.staging.example` (staging altyapisi kurulunca eklenecek), Kubernetes Secret manifest ornegi)
+- `✅` `docs/environment-variables.md` olustur: naming standardi, oncelik sirasi, ortam bazli kaynak tablosu (user-secrets / env var / appsettings) (Kapsam: Dosya onceki story'de naming standardi bolumuyle olusturulmustu; bu story kapsaminda genisletildi. Eklenen bölümler: (1) Yapilandirma Oncelik Sirasi (appsettings.json -> appsettings.{Env}.json -> User Secrets -> Environment Variables -> CLI args), (2) Ortam Bazli Secret Kaynaklari tablosu (local/Docker dev, production), (3) Development User Secrets kurulum komutlari, (4) Production baglanti akis diyagrami (.env.prod -> compose -> IConfiguration -> GetConnectionString), (5) zorunlu/opsiyonel degisken tablosu. Disinda: Staging ortami icin ayri tablo satiri (staging altyapisi netlesince eklenecek))
+- `✅` Gizli verilerin dosyalarda tutulmamasini garanti edecek policy ekle (dokumanda + `.gitignore` + code review kurali) (Kapsam: Uc katmanli guvence kuruldu. (1) `.gitignore`: `infra/env/.env.dev`, `infra/env/.env.test`, `infra/env/.env.prod`, `.env`, `.env.*` satirlari ile tum gercek env dosyalari engellendi; `!.env.*.example` ve `!infra/env/.env.*.example` satirlari ile sadece ornek dosyalara izin verildi. (2) `docs/environment-variables.md` "Secret Management Policy" bolumu: `.env.prod` icin `chmod 600` zorunlulugu, credentials'in appsettings/kaynak koda yazilmamasi kurali ve "PR review'larinda connection string iceren dosyalar reddedilir" politikasi dokumante edildi. (3) Uygulama kodu: `AppDbContextFactory` fallback connection string kaldirildigi icin sert kodlanmis secret girme imkani ortadan kaldirildi; `Program.cs`'de hassas veri loglayan `Console.WriteLine` satirlari daha once temizlenmisti. Disinda: otomatik secret tarama (git-secrets / trufflehog CI entegrasyonu), branch protection rule olarak secret scan zorunlulugu)
+
+**Kanitlar:**
+- `apps/backend/.gitignore` (env dosya koruma kurallari)
+- `infra/env/.env.dev.example`
+- `infra/env/.env.prod.example`
+- `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` (UserSecretsId)
+- `CargoPilot.WebAPI/Properties/launchSettings.json`
+- `docs/environment-variables.md`
+
 
 ## 4) Kod yazim standartlari (.editorconfig + statik analiz)
 **Story:** Backend Chapter Lead olarak, tum ekip uyelerinin ayni kod yazim standartlarina uymasini zorunlu kilmak icin `.editorconfig` ve statik kod analiz araclarinin projeye dahil edilmesini isterim.
@@ -116,14 +124,14 @@ Durum gostergeleri:
 ## 5) Connection string'in merkezi okunmasi + bulut DB baglantisi
 **Story:** Backend Chapter Lead olarak, uygulamanin veritabani ile iletisim kurabilmesi icin gerekli baglanti bilgilerinin (Connection String) merkezi bir dosyadan okunmasini ve bulut uzerindeki veri tabanina baglantisini saglanilmasini isterim.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
 - `✅` Connection string'i configuration uzerinden oku (`GetConnectionString("DefaultConnection")`)
 - `✅` Ortam bazli connection string tanimlari ekle (`appsettings.*.json`)
-- `⬜` Secret management'e tasi (User Secrets / Key Vault / env vars)
-- `⬜` Bulut DB endpoint ve guvenli baglanti policy'sini dokumante et
-- `⬜` Connection resiliency/retry policy ekle
+- `✅` Secret management'e tasi (User Secrets / Key Vault / env vars) (Kapsam: `CargoPilot.WebAPI.csproj` dosyasina `<UserSecretsId>cargo-pilot-backend</UserSecretsId>` eklendi; Docker'siz local gelistirmede `dotnet user-secrets set` ile connection string set edilebilir. Production icin `docker-compose.prod.yml` backend servisine `ConnectionStrings__DefaultConnection: ${DATABASE_CONNECTION_STRING}` env binding'i eklendi; `.env.prod.example` dosyasina `DATABASE_CONNECTION_STRING` degiskeni eklendi. Disinda: Azure Key Vault / AWS Secrets Manager entegrasyonu (proje su an self-hosted Docker ortaminda))
+- `✅` Bulut DB endpoint ve guvenli baglanti policy'sini dokumante et (Kapsam: `docs/environment-variables.md` dosyasi genisletildi; eklenenler: (1) yapilandirma oncelik sirasi (appsettings -> User Secrets -> env vars), (2) ortam bazli secret kaynak tablosu (local/Docker dev, production), (3) User Secrets kurulum komutlari, (4) production baglanti akis diyagrami, (5) `TrustServerCertificate=True` aciklamasi ve reverse proxy TLS notu, (6) secret management policy (chmod 600, gitignore, PR review kurali), (7) zorunlu/opsiyonel degisken tablosu. Disinda: Nginx TLS konfigurasyonu, SSL sertifika kurulumu (infra story kapsaminda))
+- `✅` Connection resiliency/retry policy ekle (Kapsam: `CargoPilot.Infrastructure/DependencyInjection.cs` icindeki `AddDbContext` cagrisi `EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: 30s, errorNumbersToAdd: null)` ile guncellendi. EF Core SQL Server provider'in built-in transient fault detection'i kullaniliyor; gecici ag kesintileri ve SQL Server yeniden baslatma senaryolarinda otomatik retry yapilir. Disinda: Polly ile HTTP client retry policy, circuit breaker pattern)
 - `✅` Hassas bilgi loglamasini kaldir (Kapsam: `Program.cs` icindeki `ApplicationSettings:AppName` ve `ConnectionStrings:DefaultConnection` degerlerini konsola yazan `Console.WriteLine` satirlari, composition root refactor'u sirasinda tamamen kaldirildi. Boylece baglanti dizesi ve uygulama meta verisi artik standart cikti akimina yazilmiyor. Disinda: yapilandirilmis log cercevesi (Serilog/ILogger) entegrasyonu ve hassas alan maskeleme kurallari)
 
 ### US-DB01: Merkezi baglanti yonetimi — `✅ Tamamlandi`
@@ -137,9 +145,14 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.WebAPI/Program.cs`
 - `CargoPilot.WebAPI/appsettings.Development.json`
 - `CargoPilot.WebAPI/appsettings.Staging.json`
+- `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` (UserSecretsId)
 - `infra/env/.env.dev.example`
+- `infra/env/.env.prod.example` (DATABASE_CONNECTION_STRING)
 - `infra/compose/docker-compose.dev.yml`
+- `infra/compose/docker-compose.prod.yml` (ConnectionStrings__DefaultConnection binding)
 - `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs` (EnableRetryOnFailure)
+- `docs/environment-variables.md`
 
 ---
 
