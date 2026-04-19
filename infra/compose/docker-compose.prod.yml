@@ -66,7 +66,7 @@ services:
       - cargo-pilot-prod
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     container_name: cargo-pilot-minio-prod
     command: server /data --console-address ":9001"
     environment:
