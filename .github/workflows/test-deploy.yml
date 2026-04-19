@@ -48,13 +48,27 @@ jobs:
             exit 1
           fi
 
-          git fetch --no-tags origin dev
-          if git merge-base --is-ancestor "${PR_SHA}" origin/dev; then
-            echo "OK: PR commit'i (${PR_SHA}) origin/dev'in ataları arasında — branch dev'e merge edilmiş."
-          else
-            echo "::error::Bu branch'in PR commit'i (${PR_SHA}) origin/dev'de bulunamadı. test'e PR atmadan önce branch'i dev'e merge edin."
+          git fetch --no-tags origin dev test
+
+          # Feature branch'e özgü commit'leri bul (test'ten gelmeyen).
+          # Bu sayede conflict çözümü için test'i feature'a merge eden commit'ler
+          # kontrolü bozmaz; asıl feature commit'lerinin dev'de olup olmadığı kontrol edilir.
+          FEATURE_COMMITS=$(git log --pretty=format:"%H" "${PR_SHA}" --not origin/test)
+
+          if [ -z "$FEATURE_COMMITS" ]; then
+            echo "::error::Feature branch'te test'e özgü olmayan commit bulunamadı. Branch test'ten mi açıldı?"
             exit 1
           fi
+
+          for commit in $FEATURE_COMMITS; do
+            if git merge-base --is-ancestor "${commit}" origin/dev; then
+              echo "OK: Commit ${commit} origin/dev'de bulundu — branch dev'e merge edilmiş."
+              exit 0
+            fi
+          done
+
+          echo "::error::Bu branch'in commit'leri origin/dev'de bulunamadı. test'e PR atmadan önce branch'i dev'e merge edin."
+          exit 1
 
   # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
   build:
