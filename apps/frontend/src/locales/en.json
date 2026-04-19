@@ -59,5 +59,27 @@
       "submit": "Save",
       "cancel": "Cancel"
     }
+  },
+  "plans": {
+    "free": "Free",
+    "starter": "Starter",
+    "pro": "Pro",
+    "enterprise": "Enterprise"
+  },
+  "features": {
+    "bulkImport": "Bulk product import via Excel",
+    "pdfExport": "PDF report export",
+    "excelExport": "Excel report export",
+    "manualPlacement": "Manual placement editing",
+    "advanced3D": "Advanced 3D visualization",
+    "multiUser": "Multi-user management",
+    "erpIntegration": "ERP integration",
+    "apiAccess": "API access"
+  },
+  "upgrade": {
+    "title": "This feature is not included in your plan",
+    "description": "To use {{feature}}, you need to upgrade to at least the {{plan}} plan.",
+    "viewPlans": "View Plans",
+    "dismiss": "Dismiss"
   }
 }
