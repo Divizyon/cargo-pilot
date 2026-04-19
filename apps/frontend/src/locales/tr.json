@@ -65,5 +65,49 @@
     "pdf": "PDF İndir",
     "loadingExcel": "Excel hazırlanıyor...",
     "loadingPdf": "PDF hazırlanıyor..."
+  "plans": {
+    "free": "Ücretsiz",
+    "starter": "Başlangıç",
+    "pro": "Profesyonel",
+    "enterprise": "Kurumsal"
+  },
+  "features": {
+    "bulkImport": "Excel ile toplu ürün içe aktarma",
+    "pdfExport": "PDF rapor çıktısı",
+    "excelExport": "Excel rapor çıktısı",
+    "manualPlacement": "Manuel yerleşim düzenleme",
+    "advanced3D": "Gelişmiş 3D görselleştirme",
+    "multiUser": "Çoklu kullanıcı yönetimi",
+    "erpIntegration": "ERP entegrasyonu",
+    "apiAccess": "API erişimi"
+  },
+  "upgrade": {
+    "title": "Bu özellik paketinizde bulunmuyor",
+    "description": "{{feature}} özelliğini kullanmak için en az {{plan}} paketine geçmeniz gerekiyor.",
+    "viewPlans": "Paketleri Gör",
+    "dismiss": "Vazgeç"
+  },
+  "import": {
+    "product": {
+      "title": "Ürün Toplu İçe Aktarma",
+      "description": "Hazırladığınız Excel dosyasını yükleyerek ürünleri toplu olarak sisteme aktarabilirsiniz. Öncelikle şablonu indirip doldurmanız önerilir.",
+      "downloadTemplate": "Şablonu İndir",
+      "selectFile": "Excel Dosyası Seç",
+      "processing": "İşleniyor...",
+      "reset": "Temizle",
+      "emptyFile": "Dosya boş ya da okunabilir satır bulunamadı",
+      "errorCount": "{{count}} hata bulundu",
+      "summary": "{{success}} ürün başarıyla eklendi. {{validated}} satır doğrulandı, {{failed}} satır reddedildi.",
+      "phase": {
+        "parsing": "Dosya okunuyor",
+        "validating": "Satırlar doğrulanıyor",
+        "uploading": "Sunucuya gönderiliyor"
+      },
+      "column": {
+        "row": "Satır",
+        "field": "Alan",
+        "message": "Hata"
+      }
+    }
   }
 }

@@ -12,6 +12,8 @@
  * Bkz. apps/frontend/.claude/CLAUDE.md → "3D Sahne: R3F ve Three.js Standartları"
  */
 
+import { useSceneStore } from '@/lib/store/useSceneStore';
+
 interface BoxWrapperProps {
   width: number;
   height: number;
@@ -23,6 +25,7 @@ interface BoxWrapperProps {
   opacity?: number;
   onClick?: (id: string) => void;
   itemId?: string;
+  isSelected?: boolean;
 }
 
 export function BoxWrapper({
@@ -36,21 +39,27 @@ export function BoxWrapper({
   opacity = 0.85,
   onClick,
   itemId,
+  isSelected = false,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
   const cz = positionZ + depth / 2;
+
+  const effectiveColor = isSelected ? '#F97316' : color;
 
   return (
     <mesh
       position={[cx, cy, cz]}
       onClick={(e) => {
         e.stopPropagation();
-        if (itemId !== undefined) onClick?.(itemId);
+        if (itemId !== undefined) {
+          useSceneStore.getState().setSelectedBoxId(itemId);
+          onClick?.(itemId);
+        }
       }}
     >
       <boxGeometry args={[width, height, depth]} />
-      <meshStandardMaterial color={color} transparent opacity={opacity} />
+      <meshStandardMaterial color={effectiveColor} transparent opacity={opacity} />
     </mesh>
   );
 }
