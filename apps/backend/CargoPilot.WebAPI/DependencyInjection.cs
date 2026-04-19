@@ -1,10 +1,13 @@
 using System.Reflection;
+using CargoPilot.WebAPI.Middlewares;
 using Microsoft.OpenApi;
 
 namespace CargoPilot.WebAPI;
 
 public static class DependencyInjection {
     public static IServiceCollection AddPresentation(this IServiceCollection services) {
+        services.AddTransient<GlobalExceptionMiddleware>();
+
         services.AddControllers().AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
@@ -52,6 +55,8 @@ public static class DependencyInjection {
 
     public static WebApplication UsePresentation(this WebApplication app)
     {
+        app.UseMiddleware<GlobalExceptionMiddleware>();
+
         // Production dışındaki tüm ortamlarda (Development, Staging) Swagger aktif
         if (!app.Environment.IsProduction())
         {
