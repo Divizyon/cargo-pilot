@@ -230,14 +230,18 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 ## 9) Global Exception Handling
 **Story:** Backend Chapter Lead olarak, uygulama genelinde firlatilan tum beklenmedik hatalarin merkezi bir noktadan yakalanmasini (Global Exception Handling) isterim.
 
-**Genel Durum:** `⬜ Baslanmadi`
+**Genel Durum:** `🟡 Kismi / Devam ediyor`
 
 ### Alt Isler
-- `⬜` Global exception middleware veya `UseExceptionHandler` ekle
-- `⬜` Exception-to-response map stratejisi belirle
-- `⬜` Beklenmeyen hatalarda standart error response don
-- `⬜` Correlation id ve loglama baglantisini kur
+- `✅` Global exception middleware veya `UseExceptionHandler` ekle (Kapsam: `IMiddleware` arayuzunu uygulayan `GlobalExceptionMiddleware` olusturuldu ve `DependencyInjection.cs` uzerinden kaydedildi.)
+- `✅` Exception-to-response map stratejisi belirle (Kapsam: Mimari dokumanlarda belirtildigi gibi hatalarin `Result<T>` formatina map edilmesi kararlastirildi.)
+- `✅` Beklenmeyen hatalarda standart error response don (Kapsam: Beklenmeyen hatalarin (`Exception`) 500 status code ile standart JSON (`IsSuccess: false`, `Error` iceren) zarfina donusturulerek donulmesi saglandi.)
+- `🟡` Correlation id ve loglama baglantisini kur (Kapsam: `[LoggerMessage]` source generator ile yuksek performansli loglama kuruldu (CA1848 ihlali onlendi). Eksik: `context.TraceIdentifier` henuz log mesajina ve response zarfina eklenmedi; correlation ID takibi tamamlanmamis.)
 - `⬜` Exception handling icin unit/integration test ekle
+
+**Kanitlar:**
+- `CargoPilot.WebAPI/Middlewares/GlobalExceptionMiddleware.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
 
 ---
 
