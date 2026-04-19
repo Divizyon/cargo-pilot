@@ -126,10 +126,20 @@ Durum gostergeleri:
 - `⬜` Connection resiliency/retry policy ekle
 - `✅` Hassas bilgi loglamasini kaldir (Kapsam: `Program.cs` icindeki `ApplicationSettings:AppName` ve `ConnectionStrings:DefaultConnection` degerlerini konsola yazan `Console.WriteLine` satirlari, composition root refactor'u sirasinda tamamen kaldirildi. Boylece baglanti dizesi ve uygulama meta verisi artik standart cikti akimina yazilmiyor. Disinda: yapilandirilmis log cercevesi (Serilog/ILogger) entegrasyonu ve hassas alan maskeleme kurallari)
 
+### US-DB01: Merkezi baglanti yonetimi — `✅ Tamamlandi`
+Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglanti dizesi artik tek kaynaktan (`infra/env/.env.dev`) okunuyor; ikinci bir hard-coded degere duzelme ihtiyaci kalmadi.
+
+- `✅` `.env.dev.example` + `.env.dev` dosyalarina `DATABASE_CONNECTION_STRING` degiskeni eklendi (Kapsam: MSSQL blogu altina, Docker network icinde gecerli `Server=mssql,1433;Database=CargoPilotDev;User Id=sa;Password=DevPassword123!;TrustServerCertificate=True;` degeri ile; host uzerinden `dotnet ef` calistirilirken `mssql` yerine `localhost` kullanilmasi gerektigi yorum satirinda belirtildi. Disinda: `.env.test.example` ve `.env.prod.example` icin benzer degiskenlerin tanimlanmasi (ilgili ortam compose dosyalari US-D03e kapsaminda tamamlaninca eklenecek))
+- `✅` `docker-compose.dev.yml` backend servisine `ConnectionStrings__DefaultConnection: ${DATABASE_CONNECTION_STRING}` env binding'i eklendi (Kapsam: `.env.dev` -> compose -> container env var zinciri kuruldu; .NET `EnvironmentVariablesConfigurationProvider` bu degeri dogrudan `IConfiguration.GetConnectionString("DefaultConnection")` uzerinden sunuyor, ara bir mapping gerekmiyor. Container yeniden olusturulup env var'in `printenv ConnectionStrings__DefaultConnection` ile dogrulanmasi yapildi. Disinda: kullanilmayan `MSSQL_HOST/PORT/USER/PASSWORD` env entry'lerinin backend servisinden temizlenmesi (ileri bir temizlik commit'ine birakildi; fonksiyonel etki yok))
+- `✅` `AppDbContextFactory` icindeki sert kodlanmis `FallbackConnectionString` kaldirildi (Kapsam: `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs` icindeki `Server=localhost;...Trusted_Connection=True;...` sabiti ve `?? FallbackConnectionString` null-coalescing zinciri silindi. Env var tanimsizsa tasarim zamani komutlari net bir `InvalidOperationException` ile durup "dotnet ef komutlarindan once bu degiskeni set et" mesajiyla kullaniciyi `.env.dev` degerine yonlendiriyor; sessiz localhost-fallback davranisi boylece ortadan kaldirildi. Disinda: `Program.cs:9`'daki `useInMemoryRepository: builder.Environment.IsDevelopment()` flag'i — runtime'da MSSQL'e gecis icin ayri bir commit'e birakildi, bu is sadece altyapiyi hazirladi))
+
 **Kanitlar:**
 - `CargoPilot.WebAPI/Program.cs`
 - `CargoPilot.WebAPI/appsettings.Development.json`
 - `CargoPilot.WebAPI/appsettings.Staging.json`
+- `infra/env/.env.dev.example`
+- `infra/compose/docker-compose.dev.yml`
+- `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs`
 
 ---
 

@@ -1,7 +1,6 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-# --ignore-scripts: husky gibi git-hook kurulum script'lerini docker build'inde atla
 RUN npm ci --ignore-scripts
 
 FROM node:20-alpine AS build
