@@ -167,14 +167,28 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 ## 7) Base Entity standardi
 **Story:** Backend Chapter Lead olarak, tum veritabani tablolarinda Id, CreatedDate, UpdatedDate ve IsDeleted (Soft Delete) gibi alanlarin standart olmasini saglayan bir Base Entity yapisinin kurulmasini isterim.
 
-**Genel Durum:** `⬜ Baslanmadi`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
-- `⬜` Domain'de `BaseEntity` tanimla (`Id`, `CreatedDate`, `UpdatedDate`, `IsDeleted`)
-- `⬜` Tum aggregate/entity siniflarini `BaseEntity`den turet
-- `⬜` `SaveChanges` seviyesinde audit alanlarini otomatik set et
-- `⬜` Soft delete query filter'larini global olarak tanimla
-- `⬜` IsDeleted icin index ve sorgu davranisi kararini dokumante et
+- `✅` Story 7 oncesi ortam dogrulamasi: `global.json` (SDK `8.0.419`, `rollForward: latestPatch`) uyumlu `8.0.420` ile `dotnet build CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` basariyla tamamlandi (0 hata); boylece BaseEntity turetmesi oncesi baseline temiz build teyit edildi.
+- `✅` Ilk `InitialCreate` migration'ini uret (Kapsam: `dotnet ef migrations add InitialCreate --project CargoPilot.Infrastructure --startup-project CargoPilot.Infrastructure --output-dir Persistence/Migrations` komutu ile `20260418104913_InitialCreate.cs`, `.Designer.cs` ve `AppDbContextModelSnapshot.cs` dosyalari olusturuldu. Migration; `Cargos` tablosunu uretiyor: `Id uniqueidentifier PK`, `TrackingNumber nvarchar(64) NOT NULL`, `Status int NOT NULL`. EF CLI `AppDbContextFactory` uzerinden tasarim zamani context olusturdugu icin `ConnectionStrings__DefaultConnection` env var'i olmadan da uretim basarili oldu. Bu migration BaseEntity calismasi icin referans snapshot gorevi gorur; `BaseEntity` eklendiginde bir sonraki `AddBaseEntity` migration'i bu baseline uzerinden `CreatedDate`, `UpdatedDate`, `IsDeleted` kolonlarini getirecek. Disinda: migration'in aktif DB'ye uygulanmasi (Story 5 kapsaminda DB endpoint netlestikten sonra `database update`))
+- `✅` Migration generator ile `TreatWarningsAsErrors` kalite kapisi arasindaki catismayi mimari seviyede coz (Kapsam: `InitialCreate` uretildikten sonra ilk build `IDE0005: Using directive is unnecessary` hatasiyla kirildi. Sebep: EF Core generator her migration dosyasinin basina sabit olarak `using System;` ekler, ancak `CargoPilot.Infrastructure.csproj` icinde `<ImplicitUsings>enable</ImplicitUsings>` acik oldugu icin `System` namespace'i zaten global olarak import edilir ve satir gereksiz sayilir. Story 4'te aktif edilen `TreatWarningsAsErrors=true` + `EnforceCodeStyleInBuild=true` policy'si bu uyariyi hataya cevirdigi icin build kirildi. Her migration uretildiginde satiri elle silmek (a) gelecekteki ekip uyeleri icin ayak bagi, (b) generated koda manuel mudahale anti-pattern'i. Cozum olarak `.editorconfig` dosyasina `[**/Persistence/Migrations/*.cs]` bolumu eklendi: `generated_code = true` ile bu klasor generated kod olarak isaretlendi (analyzer'lar bu dosyalari otomatik atlar), `dotnet_diagnostic.IDE0005.severity = none` ile style analizi muafiyeti kesinlestirildi. Sonraki build 0 hata / 83 uyari (tumu CS1591, policy muaf) ile gecti. Disinda: Migrations klasoru icin baska analyzer kurali customize'i (ileri story'lerde ihtiyac dogarsa))
+- `✅` Domain'de `BaseEntity` tanimla (Kapsam: `CargoPilot.Domain/Entities/BaseEntity.cs` olusturuldu. Alanlar: `Id (Guid, protected set)`, `CreatedDate (DateTime, private set)`, `UpdatedDate (DateTime, private set)`, `IsDeleted (bool, private set)`, `CreatedBy (Guid?, private set)`, `UpdatedBy (Guid?, private set)`. `protected BaseEntity()` EF Core tasarim zamani nesnelestirmesi icin; `protected BaseEntity(Guid id)` uygulama kodu icin — `id == Guid.Empty` dogrulamasi burada merkezi olarak yapiliyor. Audit property'leri `private set` ile korunuyor; EF Core `ChangeTracker.CurrentValue` API'si CLR seviyesinde setter'i atlayarak alanlara yazacagi icin Sonar S1144 ("kullanilmayan private setter") yanh pozitif uretir. Bunu suppress etmek icin iki adim atildi: (a) `apps/backend/.editorconfig` dosyasina `[**/Domain/Entities/BaseEntity.cs]` bolumu ile `dotnet_diagnostic.S1144.severity = none` eklendi — ancak Sonar Roslyn analyzer bu glob pattern'i build sirasinda okuyamadi, (b) dogrudan kaynak dosyaya `#pragma warning disable S1144 / #pragma warning restore S1144` eklendi — bu Roslyn tabanli her analyzer icin garantili calisir. Disinda: `CreatedBy`/`UpdatedBy` icin gercek userId (auth story'si ile gelecek), domain event pattern, `DeletedDate` stamp)
+- `✅` Tum aggregate/entity siniflarini `BaseEntity`den turet (Kapsam: `Cargo` sinifi `BaseEntity`'den turetildi. `Id` property'si `Cargo`'dan kaldirildi (artik `BaseEntity`'de). Constructor `base(id)` cagrisi ile id dogrulamasini `BaseEntity`'ye delege ediyor. EF Core icin `protected Cargo() : base() { TrackingNumber = null!; }` constructor'i eklendi — `private` yerine `protected` kullanildi: Sonar S1144 private constructor'lari "kullanilmayan" olarak isaretler cunku EF Core reflection ile cagirdigini goremez; `protected` yapilarak bu false pozitif engellendi. `TrackingNumber = null!` null-forgiving atamasi CS8618 uyarisini susturur — bu EF Core constructor'i oldugu icin compiler dogrulama yapamaz, anlambilim olarak dogru. Disinda: baska aggregate/entity yoktur; yenisi eklendigi zaman ayni pattern izlenecek)
+- `✅` `SaveChanges` seviyesinde audit alanlarini otomatik set et ve `CreatedBy`/`UpdatedBy` icin `ICurrentUserService` altyapisini kur (Kapsam: `AppDbContext.SaveChangesAsync` ve `SaveChanges` override edilerek `ApplyAuditFields()` private metodu cagrilir. Metod `ChangeTracker.Entries<BaseEntity>()` uzerinden tum tracked entity'leri tarar: `EntityState.Added` ise `CreatedDate`, `UpdatedDate`, `CreatedBy`, `UpdatedBy` set edilir; `EntityState.Modified` ise sadece `UpdatedDate` ve `UpdatedBy` set edilir. Set islemi `entry.Property(x => x.CreatedDate).CurrentValue = now` seklinde EF Core'un expression tree API'si uzerinden yapilir — bu yontem `private set` kisitini atlar. Kim-degistirdi bilgisi icin `ICurrentUserService` interface'i `CargoPilot.Application/Abstractions/ICurrentUserService.cs` olarak tanimlandi (tek property: `Guid? UserId`); `CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs` `UserId => null` dondurecek sekilde implement edildi (`internal sealed`). `Infrastructure/DependencyInjection.cs` icinde `services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>()` kaydedildi. `AppDbContext` constructor'ina `ICurrentUserService` inject edildi. `AppDbContextFactory` (design-time, DI'siz) `new AnonymousCurrentUserService()` ile dogrudan orneklendi. Auth story'si geldiginde yalnizca `AnonymousCurrentUserService` yerine `JwtCurrentUserService` yazilip DI kaydedilecek; `AppDbContext`, `BaseEntity`, `Cargo` degismez. Disinda: gercek `UserId` okuma (JWT/session), `IHttpContextAccessor` inject etme, `CreatedBy`/`UpdatedBy` icin navigation property)
+- `✅` Soft delete query filter'larini global olarak tanimla ve `IsDeleted` icin index ekle (Kapsam: `AppDbContext.OnModelCreating` icinde `Cargo` entity konfigurasyonuna `entity.HasQueryFilter(cargo => !cargo.IsDeleted)` eklendi — bu sayede tum `SELECT` sorgularina otomatik `WHERE IsDeleted = 0` eklenir. Silinen kaydi gormek gerektiginde `dbContext.Cargos.IgnoreQueryFilters().Where(...)` kullanilir. Performans icin `entity.HasIndex(cargo => cargo.IsDeleted)` ile `IX_Cargos_IsDeleted` indeksi tanimlandi. Audit kolonlari (`CreatedDate NOT NULL`, `UpdatedDate NOT NULL`, `IsDeleted NOT NULL DEFAULT 0`, `CreatedBy uniqueidentifier NULL`, `UpdatedBy uniqueidentifier NULL`) entity konfigurasyonunda `IsRequired()`/`HasDefaultValue(false)` ile belirtildi. Disinda: cascade soft delete (iliskili entity'ler, proje su an tek aggregate), `DeletedDate` / `DeletedBy` stamp alanlari, soft delete icin ayri repository metotlari (`ListIncludingDeleted` vb.))
+- `✅` `AddBaseEntity` migration'ini uret ve son build dogrula (Kapsam: `dotnet ef migrations add AddBaseEntity --project CargoPilot.Infrastructure --startup-project CargoPilot.Infrastructure --output-dir Persistence/Migrations` komutu basariyla tamamlandi; `20260418115212_AddBaseEntity.cs` ve `.Designer.cs` olusturuldu. Migration `Cargos` tablosuna `CreatedBy (uniqueidentifier NULL)`, `CreatedDate (datetime2 NOT NULL)`, `IsDeleted (bit NOT NULL DEFAULT 0)`, `UpdatedBy (uniqueidentifier NULL)`, `UpdatedDate (datetime2 NOT NULL)` kolonlarini ve `IX_Cargos_IsDeleted` indeksini ekler. Migration sonrasi `dotnet build CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` 0 hata ile tamamlandi. Disinda: `database update` ile DB'ye uygulanmasi (Story 5 kapsaminda aktif baglanti saglannca))
+
+**Kanitlar:**
+- `CargoPilot.Domain/Entities/BaseEntity.cs`
+- `CargoPilot.Domain/Entities/Cargo.cs`
+- `CargoPilot.Application/Abstractions/ICurrentUserService.cs`
+- `CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.Infrastructure/Persistence/AppDbContext.cs`
+- `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260418115212_AddBaseEntity.cs`
+- `apps/backend/.editorconfig`
 
 ---
 
@@ -213,22 +227,20 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 ## 10) Swagger dokumantasyonu
 **Story:** Backend Chapter Lead olarak 3D ve Platform squad'larinin gelistirme yapabilmesi icin API uc noktalarini Swagger ile dokumante edilmesini isterim.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
 - `✅` Swagger servislerini ekle (`AddEndpointsApiExplorer`, `AddSwaggerGen`)
 - `✅` Swagger middleware kur (`UseSwagger`, `UseSwaggerUI`)
-- `🟡` Swagger gorunurlugunu ortamlara gore netlestir (sadece development disi gereksinim)
-- `⬜` Endpoint summary/description/response kod dokumantasyonlarini tamamla
-- `⬜` Auth kullaniliyorsa Swagger auth ayarlarini ekle
+- `✅` Swagger gorunurlugunu ortamlara gore netlestir (sadece development disi gereksinim) (Kapsam: `DependencyInjection.cs` icerisinde `app.Environment.IsDevelopment()` kontrolu `!app.Environment.IsProduction()` olarak degistirildi. Boylece Swagger; Development ve Staging ortamlarinda gorunur duruma, yalnizca guvenlik amaciyla Production ortaminda erisime kapali hale getirildi.)
+- `✅` Endpoint summary/description/response kod dokumantasyonlarini tamamla (Kapsam: XML dokumantasyon uretimi icin `CargoPilot.WebAPI.csproj` dosyasina `<GenerateDocumentationFile>true</GenerateDocumentationFile>` eklendi. Gerekli olmayan `<NoWarn>1591</NoWarn>` public property yorum uyarilari sessize alindi. Projedeki `Assembly.GetExecutingAssembly().GetName().Name + ".xml"` yolu yakalanarak `SwaggerGen` `IncludeXmlComments` metoduyla baglandi. Sonrasinda `CargosController` ve `HomeController` endpoint'lerine `/// <summary>`, `/// <response>` xml dökümanları ve `[ProducesResponseType]` attribute'ları girildi. 200/400 donus modelleri (`CreateCargoResponse`, `WelcomeResponse` vs.) Swagger'a acildi. Controller isim karmasasini onlemek icin `[Tags("Cargos")]` seklinde grouping etiketleri kullanildi.)
+- `✅` Auth kullaniliyorsa Swagger auth ayarlarini ekle (Kapsam: Henuz projenin JWT akislari kurulmamis olsa da, gelecekte iskelet teskil etmesi adina Swagger tarafinda JWT token butonunu cikaracak ayarlar eklendi. `Options.AddSecurityDefinition` ve `AddSecurityRequirement` konfigleri Swashbuckle v10 standardina gore yapilandirildi. Auth story implement edildiginde Swagger uzerinden 'Authorize' tusuyla test edilebilecek hale getirildi.)
 
 **Kanitlar:**
 - `CargoPilot.WebAPI/Program.cs`
 - `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/CargosController.cs`
+- `CargoPilot.WebAPI/HomeController.cs`
 
 ---
-
-## Ozet (Story Bazli)
-- `✅ Tamamlandi`: 3 (1, 4, 6)
-- `🟡 Kismi / Devam ediyor`: 5 (2, 3, 5, 8, 10)
-- `⬜ Baslanmadi`: 2 (7, 9)
