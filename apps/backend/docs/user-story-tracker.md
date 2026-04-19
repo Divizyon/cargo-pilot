@@ -195,18 +195,22 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 ## 8) Standart API response yapisi
 **Story:** Backend Chapter Lead olarak, API'den donen tum yanitlarin, tahmin edilebilir ve standart bir JSON yapisinda olmasini isterim.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
-- `✅` Uygulama katmaninda `Result<T>` ve `Error` modellerini olustur
-- `⬜` Tanimli tek bir response contract'i belirle (success/error envelope)
-- `⬜` Tum controller endpointlerini bu contract ile hizala
+- `✅` Uygulama katmaninda `Result<T>` ve `Error` modellerini olustur (Kapsam: TDD Madde 1.1'e uygun PascalCase ve isSuccess, data, error yapısını taşıyan generic sarmalayıcı sınıfları uygulandı.)
+- `✅` Tanimli tek bir response contract'i belirle (success/error envelope) (Kapsam: JSON formatının PascalCase kalmasını sağlamak için JsonSerializerOptions güncellendi ve tüm sonuçların ortak BaseController üzerinden dönülmesi standartlaştırıldı.)
+- `✅` Tum controller endpointlerini bu contract ile hizala (Kapsam: CargosController ve HomeController sınıfları BaseController'dan türetildi ve HandleResult metoduyla Result<T> dönecek şekilde düzenlendi.)
 - `⬜` Validation hatalarini da ayni response yapisina bagla
-- `⬜` Swagger uzerinde response tiplerini standart goster
+- `✅` Swagger uzerinde response tiplerini standart goster (Kapsam: ProducesResponseType kullanılarak Swagger dökümantasyonunda API dönüş tipleri Result<T> olacak şekilde kapsüllendi.)
 
 **Kanitlar:**
 - `CargoPilot.Application/Common/Models/Result.cs`
 - `CargoPilot.Application/Common/Models/Error.cs`
+- `CargoPilot.WebAPI/Controllers/BaseController.cs`
+- `CargoPilot.WebAPI/CargosController.cs`
+- `CargoPilot.WebAPI/HomeController.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
 
 ---
 
