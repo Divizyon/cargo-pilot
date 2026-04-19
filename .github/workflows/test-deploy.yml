@@ -48,13 +48,41 @@ jobs:
             exit 1
           fi
 
-          git fetch --no-tags origin dev
-          if git merge-base --is-ancestor "${PR_SHA}" origin/dev; then
-            echo "OK: PR commit'i (${PR_SHA}) origin/dev'in ataları arasında — branch dev'e merge edilmiş."
-          else
-            echo "::error::Bu branch'in PR commit'i (${PR_SHA}) origin/dev'de bulunamadı. test'e PR atmadan önce branch'i dev'e merge edin."
+          git fetch --no-tags origin dev test
+
+          # Feature branch'e özgü commit'leri bul (test'ten gelmeyen).
+          FEATURE_COMMITS=$(git log --pretty=format:"%H" "${PR_SHA}" --not origin/test)
+
+          if [ -z "$FEATURE_COMMITS" ]; then
+            echo "::error::Feature branch'te test'e özgü olmayan commit bulunamadı. Branch test'ten mi açıldı?"
             exit 1
           fi
+
+          # Her commit dev'de olmalı.
+          # İstisna: test'i feature'a merge eden conflict resolution commit'leri atlanır
+          # (bu commit'lerin bir parent'ı origin/test'te bulunur).
+          for commit in $FEATURE_COMMITS; do
+            PARENTS=$(git log --pretty=format:"%P" -1 "${commit}")
+            IS_TEST_MERGE=false
+            for parent in $PARENTS; do
+              if git merge-base --is-ancestor "${parent}" origin/test 2>/dev/null; then
+                IS_TEST_MERGE=true
+                break
+              fi
+            done
+
+            if [ "$IS_TEST_MERGE" = "true" ]; then
+              echo "Conflict resolution merge commit atlanıyor: ${commit}"
+              continue
+            fi
+
+            if ! git merge-base --is-ancestor "${commit}" origin/dev; then
+              echo "::error::Commit ${commit} origin/dev'de bulunamadı. test'e PR atmadan önce tüm commit'leri dev'e merge edin."
+              exit 1
+            fi
+          done
+
+          echo "OK: Tüm feature commit'leri origin/dev'de mevcut."
 
   # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
   build:
@@ -210,3 +238,54 @@ jobs:
         if: always()
         run: |
           docker compose -f infra/compose/docker-compose.test.yml down -v
+
+  # ─── Test sunucusuna deploy: sadece test branch'e push'ta çalışır ─────────────
+  deploy-test-server:
+    name: Deploy (Test Server)
+    runs-on: ubuntu-latest
+    needs: [enforce-test-base]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/test'
+
+    steps:
+      - name: Sunucuya bağlan ve test stack'ini güncelle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/cargo-pilot
+
+            echo "==> Test branch güncelleniyor..."
+            git fetch origin
+            git checkout test
+            git pull origin test
+
+            echo "==> Test container'ları yeniden build ediliyor..."
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              up -d --build
+
+            echo "==> Eski image'lar temizleniyor..."
+            docker image prune -f
+
+      - name: Test backend health check
+        run: |
+          echo "Test backend'in ayağa kalkması bekleniyor..."
+          sleep 20
+          for i in $(seq 1 10); do
+            if curl -sf http://${{ secrets.PROD_SSH_HOST }}:8081/health; then
+              echo "Test backend hazır."
+              exit 0
+            fi
+            echo "Deneme $i/10..."
+            sleep 10
+          done
+          echo "::error::Test backend health check başarısız oldu."
+          exit 1
