@@ -10,7 +10,7 @@ public static class DependencyInjection {
 
         services.AddControllers().AddJsonOptions(options =>
         {
-            options.JsonSerializerOptions.PropertyNamingPolicy = null;
+            options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         });
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
