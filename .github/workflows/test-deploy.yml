@@ -264,7 +264,11 @@ jobs:
             echo "==> Test branch güncelleniyor..."
             git fetch origin
             git checkout test
-            git pull origin test
+            git reset --hard origin/test
+
+            echo "==> Compose izolasyonu kontrol ediliyor..."
+            grep -q "^name:" infra/compose/docker-compose.prod.yml || sed -i "1s/^/name: cargo-pilot-prod\n\n/" infra/compose/docker-compose.prod.yml
+            grep -q "^name:" infra/compose/docker-compose.test.yml || sed -i "1s/^/name: cargo-pilot-test\n\n/" infra/compose/docker-compose.test.yml
 
             echo "==> Test container'ları yeniden build ediliyor..."
             docker compose \
