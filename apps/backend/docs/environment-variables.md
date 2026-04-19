@@ -74,10 +74,90 @@ ENV ConnectionStrings__DefaultConnection=Server=db;Database=CargoPilot;...
 
 ---
 
-## Sonraki Bolumler
+## Yapilandirma Oncelik Sirasi
 
-Bu dokuman sonraki user story alt islerinde genisletilecektir:
-- Yapilandirma oncelik sirasi (env var vs user-secrets vs appsettings)
-- Ortam bazli kaynak tablosu (Development / Staging / Production)
-- Zorunlu/opsiyonel degisken listesi
-- Secret management policy
+ASP.NET Core yapilandirmayi asagidaki siraya gore ust uste yukler (son kaynak kazanir):
+
+1. `appsettings.json`
+2. `appsettings.{Environment}.json`
+3. **User Secrets** (sadece Development)
+4. **Environment Variables**
+5. Command-line arguments
+
+---
+
+## Ortam Bazli Secret Kaynaklari
+
+| Ortam | Connection String Kaynagi | Nasil Set Edilir |
+|---|---|---|
+| Development (local, Docker'siz) | User Secrets | `dotnet user-secrets set` |
+| Development (Docker) | `.env.dev` → compose env | `infra/env/.env.dev` |
+| Production (Docker) | `.env.prod` → compose env | `/opt/cargo-pilot/infra/env/.env.prod` |
+
+---
+
+## Development: User Secrets Kurulumu
+
+`UserSecretsId` `CargoPilot.WebAPI.csproj` icinde `cargo-pilot-backend` olarak tanimlidir.
+Docker kullanmadan `dotnet run` ile local calistirirken:
+
+**Windows (PowerShell):**
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=CargoPilotDev;User Id=sa;Password=SIFRE;TrustServerCertificate=True;" --project apps/backend/CargoPilot.WebAPI
+```
+
+**Linux/macOS:**
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=CargoPilotDev;User Id=sa;Password=SIFRE;TrustServerCertificate=True;" --project apps/backend/CargoPilot.WebAPI
+```
+
+Kayitli secrets listesi:
+```bash
+dotnet user-secrets list --project apps/backend/CargoPilot.WebAPI
+```
+
+User Secrets dosyalari `%APPDATA%/Microsoft/UserSecrets/cargo-pilot-backend/` altinda saklanir; repoya eklenmez.
+
+---
+
+## Production: Bulut DB Baglantisi ve Guvenlik Policy
+
+### Baglanti Akisi
+
+```
+.env.prod  (DATABASE_CONNECTION_STRING)
+  └─> docker-compose.prod.yml  (ConnectionStrings__DefaultConnection)
+      └─> ASP.NET Core IConfiguration
+          └─> GetConnectionString("DefaultConnection")
+```
+
+### Connection String Formati
+
+```
+Server=mssql,1433;Database=CargoPilot;User Id=sa;Password=SIFRE;TrustServerCertificate=True;
+```
+
+- `mssql` — Docker network icindeki servis adi; sunucu disından erisimde IP/hostname kullanilir
+- `TrustServerCertificate=True` — Docker icinde self-signed sertifika ile calistigi icin gerekli
+- Production TLS icin backend onune reverse proxy (Nginx/Caddy) konulmalidir
+
+### Secret Management Policy
+
+- `.env.prod` sunucuda `/opt/cargo-pilot/infra/env/.env.prod` konumunda `chmod 600` ile korunur
+- `.env.prod` repoya eklenmez (`.gitignore` korumalı)
+- Credentials asla `appsettings.json`, `appsettings.Production.json` veya kaynak koda yazilmaz
+- PR review'larinda connection string iceren dosyalar reddedilir
+
+---
+
+## Zorunlu / Opsiyonel Degiskenler
+
+| Degisken | Zorunlu | Aciklama |
+|---|---|---|
+| `ConnectionStrings__DefaultConnection` | **Evet** | SQL Server baglanti dizesi |
+| `ASPNETCORE_ENVIRONMENT` | **Evet** | `Production` veya `Development` |
+| `ASPNETCORE_URLS` | **Evet** | Dinlenecek adres (orn. `http://+:8080`) |
+| `MINIO_ENDPOINT` | MinIO kullaniliyorsa | MinIO API endpoint |
+| `MINIO_BUCKET` | MinIO kullaniliyorsa | Hedef bucket adi |
+| `MINIO_ROOT_USER` | MinIO kullaniliyorsa | MinIO erisim kullanici adi |
+| `MINIO_ROOT_PASSWORD` | MinIO kullaniliyorsa | MinIO erisim sifresi |
