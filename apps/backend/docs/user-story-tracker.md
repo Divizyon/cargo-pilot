@@ -223,7 +223,7 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `✅` Global exception middleware veya `UseExceptionHandler` ekle (Kapsam: `IMiddleware` arayuzunu uygulayan `GlobalExceptionMiddleware` olusturuldu ve `DependencyInjection.cs` uzerinden kaydedildi.)
 - `✅` Exception-to-response map stratejisi belirle (Kapsam: Mimari dokumanlarda belirtildigi gibi hatalarin `Result<T>` formatina map edilmesi kararlastirildi.)
 - `✅` Beklenmeyen hatalarda standart error response don (Kapsam: Beklenmeyen hatalarin (`Exception`) 500 status code ile standart JSON (`IsSuccess: false`, `Error` iceren) zarfina donusturulerek donulmesi saglandi.)
-- `✅` Correlation id ve loglama baglantisini kur (Kapsam: `.NET 8` kaynak ureticileriyle (Source Generators) yuksek performansli `[LoggerMessage]` attribute'u kullanilarak loglama kuruldu, SonarQube CA1848 ihlali onlendi.)
+- `🟡` Correlation id ve loglama baglantisini kur (Kapsam: `[LoggerMessage]` source generator ile yuksek performansli loglama kuruldu (CA1848 ihlali onlendi). Eksik: `context.TraceIdentifier` henuz log mesajina ve response zarfina eklenmedi; correlation ID takibi tamamlanmamis.)
 - `⬜` Exception handling icin unit/integration test ekle
 
 **Kanitlar:**

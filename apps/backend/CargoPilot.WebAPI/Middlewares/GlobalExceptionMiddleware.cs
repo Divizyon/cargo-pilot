@@ -32,13 +32,8 @@ public partial class GlobalExceptionMiddleware : IMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-        // Mimari kararlara uygun Result<T> zarfı
-        var response = new
-        {
-            IsSuccess = false,
-            Data = (object?)null,
-            Error = new Error("ServerError.Unhandled", "Sunucuda beklenmeyen bir hata meydana geldi.")
-        };
+        var response = Result<object>.Failure(
+            new Error("ServerError.Unhandled", "Sunucuda beklenmeyen bir hata meydana geldi."));
 
         await context.Response.WriteAsJsonAsync(response);
     }
