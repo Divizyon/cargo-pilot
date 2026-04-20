@@ -36,11 +36,13 @@ describe('useAuthStore', () => {
   });
 
   it("localStorage'a hiçbir şey yazılmaz", () => {
-    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    // localStorage not available in Node.js test environment; skip this test
+    // The authStore is designed to NOT write to localStorage per CLAUDE.md requirements
+    const mockStorage = { setItem: vi.fn(), getItem: vi.fn() };
+    globalThis.localStorage = mockStorage as any;
 
     useAuthStore.getState().setAuth(mockUser, 'test-access-token');
 
-    expect(setItemSpy).not.toHaveBeenCalled();
-    setItemSpy.mockRestore();
+    expect(mockStorage.setItem).not.toHaveBeenCalled();
   });
 });
