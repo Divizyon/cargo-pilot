@@ -32,9 +32,9 @@ axiosInstance.interceptors.response.use(
       config._retry = true;
       try {
         const { data } = await axios.post<{ accessToken: string }>(
-          `${API_BASE_URL}/auth/refresh`,
+          '/auth/refresh',
           {},
-          { withCredentials: true },
+          { baseURL: API_BASE_URL, withCredentials: true },
         );
         useAuthStore.getState().setAccessToken(data.accessToken);
         config.headers.Authorization = `Bearer ${data.accessToken}`;
