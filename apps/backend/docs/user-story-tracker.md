@@ -230,14 +230,14 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 ## 9) Global Exception Handling
 **Story:** Backend Chapter Lead olarak, uygulama genelinde firlatilan tum beklenmedik hatalarin merkezi bir noktadan yakalanmasini (Global Exception Handling) isterim.
 
-**Genel Durum:** `🟡 Kismi / Devam ediyor`
+**Genel Durum:** `✅ Tamamlandi`
 
 ### Alt Isler
 - `✅` Global exception middleware veya `UseExceptionHandler` ekle (Kapsam: `IMiddleware` arayuzunu uygulayan `GlobalExceptionMiddleware` olusturuldu ve `DependencyInjection.cs` uzerinden kaydedildi.)
 - `✅` Exception-to-response map stratejisi belirle (Kapsam: Mimari dokumanlarda belirtildigi gibi hatalarin `Result<T>` formatina map edilmesi kararlastirildi.)
 - `✅` Beklenmeyen hatalarda standart error response don (Kapsam: Beklenmeyen hatalarin (`Exception`) 500 status code ile standart JSON (`IsSuccess: false`, `Error` iceren) zarfina donusturulerek donulmesi saglandi.)
-- `🟡` Correlation id ve loglama baglantisini kur (Kapsam: `[LoggerMessage]` source generator ile yuksek performansli loglama kuruldu (CA1848 ihlali onlendi). Eksik: `context.TraceIdentifier` henuz log mesajina ve response zarfina eklenmedi; correlation ID takibi tamamlanmamis.)
-- `⬜` Exception handling icin unit/integration test ekle
+- `✅` Correlation id ve loglama baglantisini kur (Kapsam: `[LoggerMessage]` source generator ile `{TraceId}` parametresi eklenerek her log satirina `context.TraceIdentifier` yaziliyor. Response zarfina da `traceId` alani eklendi; middleware-ozel `ExceptionResponse` record'u (`IsSuccess`, `Data`, `Error`, `TraceId`) `Result<T>` kontratini degistirmeden 500 yanitina correlation ID'yi tasir.)
+- `✅` Exception handling icin unit/integration test ekle (Kapsam: `CargoPilot.Tests` xUnit projesi olusturuldu. `GlobalExceptionMiddlewareTests` icinde 4 unit test: (1) exception yoksa `next` delegate cagrilir ve 200 doner, (2) exception firlatildiginda 500 + `isSuccess:false` + `error.code` dogrulanir, (3) response body'de `traceId` alani dogrulanir, (4) `ILogger.Log` Error level'da `traceId` icererek cagirilir. Moq + FluentAssertions kullanildi.)
 
 **Kanitlar:**
 - `CargoPilot.WebAPI/Middlewares/GlobalExceptionMiddleware.cs`
