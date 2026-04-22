@@ -35,7 +35,7 @@ public partial class GlobalExceptionMiddleware : IMiddleware
         var response = new ExceptionResponse(
             IsSuccess: false,
             Data: null,
-            Error: new Error("ServerError.Unhandled", "Sunucuda beklenmeyen bir hata meydana geldi."),
+            Error: new Error(ErrorType.Unexpected, "ServerError.Unhandled", "Sunucuda beklenmeyen bir hata meydana geldi."),
             TraceId: context.TraceIdentifier);
 
         await context.Response.WriteAsJsonAsync(response);
