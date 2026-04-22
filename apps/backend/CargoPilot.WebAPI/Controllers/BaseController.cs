@@ -13,6 +13,19 @@ public abstract class BaseController : ControllerBase
             return Ok(result);
         }
 
-        return BadRequest(result);
+        var statusCode = result.Error.Type switch
+        {
+            ErrorType.Validation => StatusCodes.Status400BadRequest,
+            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+            ErrorType.NotFound => StatusCodes.Status404NotFound,
+            ErrorType.Conflict => StatusCodes.Status409Conflict,
+            ErrorType.BusinessRule => StatusCodes.Status422UnprocessableEntity,
+            ErrorType.RateLimit => StatusCodes.Status429TooManyRequests,
+            ErrorType.Unexpected => StatusCodes.Status500InternalServerError,
+            _ => StatusCodes.Status400BadRequest
+        };
+
+        return StatusCode(statusCode, result);
     }
 }
