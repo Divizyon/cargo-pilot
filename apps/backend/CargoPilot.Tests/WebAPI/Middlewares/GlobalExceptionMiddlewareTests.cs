@@ -51,12 +51,14 @@ public class GlobalExceptionMiddlewareTests
         httpContext.Response.ContentType.Should().Contain("application/json");
 
         httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        var body = await new StreamReader(httpContext.Response.Body).ReadToEndAsync();
-        var json = JsonDocument.Parse(body).RootElement;
+        using var reader = new StreamReader(httpContext.Response.Body);
+        var body = await reader.ReadToEndAsync();
+        using var json = JsonDocument.Parse(body);
+        var root = json.RootElement;
 
-        json.GetProperty("isSuccess").GetBoolean().Should().BeFalse();
-        json.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
-        json.GetProperty("error").GetProperty("code").GetString().Should().Be("ServerError.Unhandled");
+        root.GetProperty("isSuccess").GetBoolean().Should().BeFalse();
+        root.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
+        root.GetProperty("error").GetProperty("code").GetString().Should().Be("ServerError.Unhandled");
     }
 
     [Fact]
@@ -75,10 +77,11 @@ public class GlobalExceptionMiddlewareTests
         await middleware.InvokeAsync(httpContext, Next);
 
         httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        var body = await new StreamReader(httpContext.Response.Body).ReadToEndAsync();
-        var json = JsonDocument.Parse(body).RootElement;
+        using var reader = new StreamReader(httpContext.Response.Body);
+        var body = await reader.ReadToEndAsync();
+        using var doc = JsonDocument.Parse(body);
 
-        json.GetProperty("traceId").GetString().Should().Be(expectedTraceId);
+        doc.RootElement.GetProperty("traceId").GetString().Should().Be(expectedTraceId);
     }
 
     [Fact]
