@@ -11,8 +11,8 @@ public partial class GlobalExceptionMiddleware : IMiddleware
         _logger = logger;
     }
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Uygulama genelinde beklenmeyen bir hata oluştu.")]
-    private partial void LogUnhandledException(Exception ex);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Beklenmeyen hata. TraceId: {TraceId}")]
+    private partial void LogUnhandledException(string traceId, Exception ex);
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
@@ -22,7 +22,7 @@ public partial class GlobalExceptionMiddleware : IMiddleware
         }
         catch (Exception ex)
         {
-            LogUnhandledException(ex);
+            LogUnhandledException(context.TraceIdentifier, ex);
             await HandleExceptionAsync(context);
         }
     }
@@ -32,9 +32,14 @@ public partial class GlobalExceptionMiddleware : IMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-        var response = Result<object>.Failure(
-            new Error("ServerError.Unhandled", "Sunucuda beklenmeyen bir hata meydana geldi."));
+        var response = new ExceptionResponse(
+            IsSuccess: false,
+            Data: null,
+            Error: new Error("ServerError.Unhandled", "Sunucuda beklenmeyen bir hata meydana geldi."),
+            TraceId: context.TraceIdentifier);
 
         await context.Response.WriteAsJsonAsync(response);
     }
+
+    private sealed record ExceptionResponse(bool IsSuccess, object? Data, Error Error, string TraceId);
 }
