@@ -214,6 +214,7 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `✅` Uygulama katmaninda `Result<T>` ve `Error` modellerini olustur (Kapsam: TDD Madde 1.1'e uygun PascalCase ve isSuccess, data, error yapısını taşıyan generic sarmalayıcı sınıfları uygulandı.)
 - `✅` Tanimli tek bir response contract'i belirle (success/error envelope) (Kapsam: JSON formatının PascalCase kalmasını sağlamak için JsonSerializerOptions güncellendi ve tüm sonuçların ortak BaseController üzerinden dönülmesi standartlaştırıldı.)
 - `✅` Tum controller endpointlerini bu contract ile hizala (Kapsam: CargosController ve HomeController sınıfları BaseController'dan türetildi ve HandleResult metoduyla Result<T> dönecek şekilde düzenlendi.)
+- `✅` ErrorType enum ekle ve BaseController'da HTTP status code mapping'i kur (Kapsam: `Error.cs` dosyasina `ErrorType` enum eklendi (None/Validation/Unauthorized/Forbidden/NotFound/Conflict/BusinessRule/RateLimit/Unexpected). `Error` record constructor'i `ErrorType Type` parametresi alacak sekilde guncellendi. `BaseController.HandleResult` metodu `result.Error.Type` switch expression ile hata tipine gore dogru HTTP status code donecek sekilde yeniden yazildi: Validation→400, Unauthorized→401, Forbidden→403, NotFound→404, Conflict→409, BusinessRule→422, RateLimit→429, Unexpected→500. Onceki sabit `BadRequest(result)` donusu kaldirildi. `CreateCargoUseCase` icindeki `new Error("ValidationError", message)` cagrisi yeni constructor imzasina uygun `new Error(ErrorType.Validation, "ValidationError", message)` olarak guncellendi. `GlobalExceptionMiddleware` de ayni sekilde `ErrorType.Unexpected` kullanacak sekilde duzeltildi.)
 - `⬜` Validation hatalarini da ayni response yapisina bagla
 - `✅` Swagger uzerinde response tiplerini standart goster (Kapsam: ProducesResponseType kullanılarak Swagger dökümantasyonunda API dönüş tipleri Result<T> olacak şekilde kapsüllendi.)
 
@@ -221,8 +222,8 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Application/Common/Models/Result.cs`
 - `CargoPilot.Application/Common/Models/Error.cs`
 - `CargoPilot.WebAPI/Controllers/BaseController.cs`
-- `CargoPilot.WebAPI/CargosController.cs`
-- `CargoPilot.WebAPI/HomeController.cs`
+- `CargoPilot.WebAPI/Controllers/CargosController.cs`
+- `CargoPilot.WebAPI/Controllers/HomeController.cs`
 - `CargoPilot.WebAPI/DependencyInjection.cs`
 
 ---
@@ -261,7 +262,7 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.WebAPI/Program.cs`
 - `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj`
 - `CargoPilot.WebAPI/DependencyInjection.cs`
-- `CargoPilot.WebAPI/CargosController.cs`
-- `CargoPilot.WebAPI/HomeController.cs`
+- `CargoPilot.WebAPI/Controllers/CargosController.cs`
+- `CargoPilot.WebAPI/Controllers/HomeController.cs`
 
 ---

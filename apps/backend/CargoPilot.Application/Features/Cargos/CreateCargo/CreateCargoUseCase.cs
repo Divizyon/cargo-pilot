@@ -24,7 +24,8 @@ public class CreateCargoUseCase
         if (!validationResult.IsValid)
         {
             var message = string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage));
-            return Result<CreateCargoResponse>.Failure(new Error("ValidationError", message));
+            return Result<CreateCargoResponse>.Failure(
+                new Error(ErrorType.Validation, "ValidationError", message));
         }
 
         var trackingNumber = new TrackingNumber(request.TrackingNumber);
