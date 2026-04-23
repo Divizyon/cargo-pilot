@@ -3,9 +3,7 @@ import type { PdfExportData } from '@/lib/utils/exportPlanToPdf';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 
-const mockToBlob = vi.fn().mockResolvedValue(
-  new Blob(['pdf'], { type: 'application/pdf' })
-);
+const mockToBlob = vi.fn().mockResolvedValue(new Blob(['pdf'], { type: 'application/pdf' }));
 const mockPdf = vi.fn(() => ({
   toBlob: mockToBlob,
 }));
@@ -63,8 +61,8 @@ describe('exportPlanToPdf', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-    global.URL.revokeObjectURL = vi.fn();
+    globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+    globalThis.URL.revokeObjectURL = vi.fn();
   });
 
   it('should call pdf with React element', async () => {
@@ -76,14 +74,14 @@ describe('exportPlanToPdf', () => {
     };
 
     if (typeof document === 'undefined') {
-      (global as any).document = {
+      vi.stubGlobal('document', {
         createElement: vi.fn(() => mockLink),
         body: { appendChild: vi.fn(), removeChild: vi.fn() },
-      };
+      });
     } else {
       const originalCreateElement = document.createElement.bind(document);
       document.createElement = vi.fn((tag: string) => {
-        if (tag === 'a') return mockLink as any;
+        if (tag === 'a') return mockLink as HTMLAnchorElement;
         return originalCreateElement(tag);
       });
     }
@@ -103,14 +101,14 @@ describe('exportPlanToPdf', () => {
     };
 
     if (typeof document === 'undefined') {
-      (global as any).document = {
+      vi.stubGlobal('document', {
         createElement: vi.fn(() => mockLink),
         body: { appendChild: vi.fn(), removeChild: vi.fn() },
-      };
+      });
     } else {
       const originalCreateElement = document.createElement.bind(document);
       document.createElement = vi.fn((tag: string) => {
-        if (tag === 'a') return mockLink as any;
+        if (tag === 'a') return mockLink as HTMLAnchorElement;
         return originalCreateElement(tag);
       });
     }
@@ -118,7 +116,7 @@ describe('exportPlanToPdf', () => {
     await exportPlanToPdf(mockData);
 
     expect(mockToBlob).toHaveBeenCalled();
-    expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
   });
 
   it('should use correct filename format with first 8 chars of plan ID', async () => {
@@ -129,14 +127,14 @@ describe('exportPlanToPdf', () => {
     };
 
     if (typeof document === 'undefined') {
-      (global as any).document = {
+      vi.stubGlobal('document', {
         createElement: vi.fn(() => mockLink),
         body: { appendChild: vi.fn(), removeChild: vi.fn() },
-      };
+      });
     } else {
       const originalCreateElement = document.createElement.bind(document);
       document.createElement = vi.fn((tag: string) => {
-        if (tag === 'a') return mockLink as any;
+        if (tag === 'a') return mockLink as HTMLAnchorElement;
         return originalCreateElement(tag);
       });
     }

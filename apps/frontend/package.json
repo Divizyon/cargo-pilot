@@ -12,6 +12,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest",
+    "test:ci": "vitest run --reporter=verbose",
     "prepare": "husky"
   },
   "lint-staged": {
