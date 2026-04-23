@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
@@ -18,8 +19,7 @@ export async function exportPlanToPdf(data: PdfExportData): Promise<void> {
 
   const React = (await import('react')).default;
   // @react-pdf/renderer pdf() fonksiyonu React.ReactElement bekler; tip uyumu için cast gerekli
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element = React.createElement(PlanPdfDocument as React.ComponentType<any>, data);
+  const element = React.createElement(PlanPdfDocument as ComponentType<PdfExportData>, data);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const blob = await pdf(element as any).toBlob();
 
