@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,43 +7,43 @@
 @layer base {
   :root {
     /* ------------------------------------------------------------------ */
-    /* Temel yüzey renkleri                                                 */
+    /* Temel yüzey renkleri — Zinc palette                                  */
     /* ------------------------------------------------------------------ */
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 98%;        /* zinc-50  */
+    --foreground: 240 10% 3.9%;    /* zinc-950 */
 
     /* ------------------------------------------------------------------ */
     /* Kart & Popover                                                       */
     /* ------------------------------------------------------------------ */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 240 10% 3.9%;
 
     /* ------------------------------------------------------------------ */
-    /* Marka renkleri — UI Kit geldiğinde bu değerler güncellenir          */
+    /* Marka renkleri — Zinc-900 primary (industrial dark)                  */
     /* ------------------------------------------------------------------ */
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 240 5.9% 10%;       /* zinc-900 */
+    --primary-foreground: 0 0% 98%; /* zinc-50  */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 240 4.8% 95.9%;   /* zinc-100 */
+    --secondary-foreground: 240 5.9% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 4.8% 95.9%;       /* zinc-100 */
+    --muted-foreground: 240 3.7% 46.1%; /* zinc-500 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 240 4.8% 95.9%;      /* zinc-100 */
+    --accent-foreground: 240 5.9% 10%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
     /* ------------------------------------------------------------------ */
     /* Form & Sınır çizgileri                                              */
     /* ------------------------------------------------------------------ */
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 240 5.9% 90%;        /* zinc-200 */
+    --input: 240 5.9% 90%;         /* zinc-200 */
+    --ring: 240 5.9% 10%;          /* zinc-900 */
 
     /* ------------------------------------------------------------------ */
     /* Yarıçap & Katman efektleri                                          */
@@ -49,38 +51,39 @@
     --radius: 0.5rem;
     --radius-xl: 1rem;
 
-    /* Yüzen paneller (Modal, Toast, Drawer) için — UI Kit gelene kadar   */
     --surface-overlay: 255 255 255 / 0.13;
     --overlay-blur: 12px;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;    /* zinc-950 */
+    --foreground: 0 0% 98%;        /* zinc-50  */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --card: 240 5.9% 10%;          /* zinc-900 */
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;       /* zinc-950 */
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 0% 98%;           /* zinc-50 (açık yüzey üstü koyu bg'de) */
+    --primary-foreground: 240 5.9% 10%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 3.7% 15.9%;   /* zinc-800 */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 3.7% 15.9%;       /* zinc-800 */
+    --muted-foreground: 240 5% 64.9%; /* zinc-400 */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 3.7% 15.9%;      /* zinc-800 */
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 240 3.7% 15.9%;      /* zinc-800 */
+    --input: 240 3.7% 15.9%;       /* zinc-800 */
+    --ring: 240 4.9% 83.9%;        /* zinc-300 */
+
+    --surface-overlay: 0 0% 0% / 0.2;
   }
 
   * {
