@@ -211,20 +211,20 @@ jobs:
 
       - name: Backend sağlık kontrolü
         run: |
-          timeout 60 bash -c '
+          timeout 180 bash -c '
             until curl -sf http://localhost:${{ env.BACKEND_PORT }}/health; do
               echo "Backend bekleniyor..."
-              sleep 5
+              sleep 10
             done
           '
           echo "Backend hazır."
 
       - name: Frontend sağlık kontrolü
         run: |
-          timeout 60 bash -c '
+          timeout 180 bash -c '
             until curl -sf http://localhost:${{ env.FRONTEND_PORT }}; do
               echo "Frontend bekleniyor..."
-              sleep 5
+              sleep 10
             done
           '
           echo "Frontend hazır."

@@ -4,10 +4,12 @@ using CargoPilot.WebAPI;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var useInMemory = builder.Environment.IsDevelopment();
+
 builder.Services
     .AddApplication()
-    .AddInfrastructure(builder.Configuration, useInMemoryRepository: builder.Environment.IsDevelopment())
-    .AddPresentation();
+    .AddInfrastructure(builder.Configuration, useInMemoryRepository: useInMemory)
+    .AddPresentation(useInMemoryRepository: useInMemory);
 
 var app = builder.Build();
 
