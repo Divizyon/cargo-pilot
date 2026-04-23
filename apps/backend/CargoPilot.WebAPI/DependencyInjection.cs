@@ -81,7 +81,7 @@ public static class DependencyInjection {
             services.AddScoped<DatabaseHealthCheck>();
             healthChecks.AddCheck<DatabaseHealthCheck>(
                 "database",
-                failureStatus: HealthStatus.Unhealthy,
+                failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
         }
 
