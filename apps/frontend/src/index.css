@@ -9,8 +9,8 @@
     /* ------------------------------------------------------------------ */
     /* Temel yüzey renkleri — Zinc palette                                  */
     /* ------------------------------------------------------------------ */
-    --background: 0 0% 98%;        /* zinc-50  */
-    --foreground: 240 10% 3.9%;    /* zinc-950 */
+    --background: 0 0% 98%; /* zinc-50  */
+    --foreground: 240 10% 3.9%; /* zinc-950 */
 
     /* ------------------------------------------------------------------ */
     /* Kart & Popover                                                       */
@@ -23,16 +23,16 @@
     /* ------------------------------------------------------------------ */
     /* Marka renkleri — Zinc-900 primary (industrial dark)                  */
     /* ------------------------------------------------------------------ */
-    --primary: 240 5.9% 10%;       /* zinc-900 */
+    --primary: 240 5.9% 10%; /* zinc-900 */
     --primary-foreground: 0 0% 98%; /* zinc-50  */
 
-    --secondary: 240 4.8% 95.9%;   /* zinc-100 */
+    --secondary: 240 4.8% 95.9%; /* zinc-100 */
     --secondary-foreground: 240 5.9% 10%;
 
-    --muted: 240 4.8% 95.9%;       /* zinc-100 */
+    --muted: 240 4.8% 95.9%; /* zinc-100 */
     --muted-foreground: 240 3.7% 46.1%; /* zinc-500 */
 
-    --accent: 240 4.8% 95.9%;      /* zinc-100 */
+    --accent: 240 4.8% 95.9%; /* zinc-100 */
     --accent-foreground: 240 5.9% 10%;
 
     --destructive: 0 84.2% 60.2%;
@@ -41,9 +41,9 @@
     /* ------------------------------------------------------------------ */
     /* Form & Sınır çizgileri                                              */
     /* ------------------------------------------------------------------ */
-    --border: 240 5.9% 90%;        /* zinc-200 */
-    --input: 240 5.9% 90%;         /* zinc-200 */
-    --ring: 240 5.9% 10%;          /* zinc-900 */
+    --border: 240 5.9% 90%; /* zinc-200 */
+    --input: 240 5.9% 90%; /* zinc-200 */
+    --ring: 240 5.9% 10%; /* zinc-900 */
 
     /* ------------------------------------------------------------------ */
     /* Yarıçap & Katman efektleri                                          */
@@ -56,32 +56,32 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;    /* zinc-950 */
-    --foreground: 0 0% 98%;        /* zinc-50  */
+    --background: 240 10% 3.9%; /* zinc-950 */
+    --foreground: 0 0% 98%; /* zinc-50  */
 
-    --card: 240 5.9% 10%;          /* zinc-900 */
+    --card: 240 5.9% 10%; /* zinc-900 */
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;       /* zinc-950 */
+    --popover: 240 10% 3.9%; /* zinc-950 */
     --popover-foreground: 0 0% 98%;
 
-    --primary: 0 0% 98%;           /* zinc-50 (açık yüzey üstü koyu bg'de) */
+    --primary: 0 0% 98%; /* zinc-50 (açık yüzey üstü koyu bg'de) */
     --primary-foreground: 240 5.9% 10%;
 
-    --secondary: 240 3.7% 15.9%;   /* zinc-800 */
+    --secondary: 240 3.7% 15.9%; /* zinc-800 */
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 3.7% 15.9%;       /* zinc-800 */
+    --muted: 240 3.7% 15.9%; /* zinc-800 */
     --muted-foreground: 240 5% 64.9%; /* zinc-400 */
 
-    --accent: 240 3.7% 15.9%;      /* zinc-800 */
+    --accent: 240 3.7% 15.9%; /* zinc-800 */
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;      /* zinc-800 */
-    --input: 240 3.7% 15.9%;       /* zinc-800 */
-    --ring: 240 4.9% 83.9%;        /* zinc-300 */
+    --border: 240 3.7% 15.9%; /* zinc-800 */
+    --input: 240 3.7% 15.9%; /* zinc-800 */
+    --ring: 240 4.9% 83.9%; /* zinc-300 */
 
     --surface-overlay: 0 0% 0% / 0.2;
   }
