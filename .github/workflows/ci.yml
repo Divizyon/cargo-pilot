@@ -69,22 +69,19 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: NuGet paketlerini yükle
-        run: dotnet restore
-        working-directory: apps/backend
+        run: dotnet restore cargo-pilot.sln
 
-      - name: Build (warnings as errors)
-        run: dotnet build --no-restore --configuration Release
-        working-directory: apps/backend
+      - name: Build (Release)
+        run: dotnet build cargo-pilot.sln --no-restore --configuration Release
 
       - name: Testleri çalıştır
         run: |
-          TEST_PROJECTS=$(find . -name "*.Tests.csproj" -o -name "*.Test.csproj" 2>/dev/null)
+          TEST_PROJECTS=$(find apps/backend -name "*.Tests.csproj" -o -name "*.Test.csproj" 2>/dev/null)
           if [ -z "$TEST_PROJECTS" ]; then
             echo "Test projesi bulunamadı, adım atlanıyor."
           else
-            dotnet test --no-build --configuration Release --verbosity normal
+            dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
           fi
-        working-directory: apps/backend
 
   # ─── Docker Image Build (sadece test'e giden PR ve test push) ────────────────
   docker-build:
