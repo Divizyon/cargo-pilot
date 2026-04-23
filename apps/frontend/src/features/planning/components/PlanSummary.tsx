@@ -61,9 +61,7 @@ export function PlanSummary({ plan, getSnapshot }: PlanSummaryProps) {
       </div>
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">
-          Yerleştirme Sayısı
-        </p>
+        <p className="text-sm font-medium text-muted-foreground">Yerleştirme Sayısı</p>
         <p className="text-lg font-semibold">{placements.length}</p>
       </div>
 

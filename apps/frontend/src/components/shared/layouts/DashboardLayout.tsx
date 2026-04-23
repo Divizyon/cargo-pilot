@@ -7,7 +7,10 @@ function Sidebar() {
     <aside className="flex h-full w-60 flex-col border-r border-border bg-card px-4 py-6">
       <span className="mb-8 text-lg font-bold tracking-tight">Cargo Pilot</span>
       <nav className="flex flex-col gap-1 text-sm text-muted-foreground">
-        <a href="/dashboard" className="rounded-md px-3 py-2 hover:bg-accent hover:text-accent-foreground">
+        <a
+          href="/dashboard"
+          className="rounded-md px-3 py-2 hover:bg-accent hover:text-accent-foreground"
+        >
           Dashboard
         </a>
       </nav>
