@@ -9,6 +9,12 @@ using Microsoft.OpenApi;
 namespace CargoPilot.WebAPI;
 
 public static class DependencyInjection {
+    private static readonly JsonSerializerOptions _healthJsonOptions = new()
+    {
+        PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
+        WriteIndented          = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
     public static IServiceCollection AddPresentation(
         this IServiceCollection services,
         bool useInMemoryRepository = false)
@@ -151,11 +157,6 @@ public static class DependencyInjection {
         };
 
         await context.Response.WriteAsync(
-            JsonSerializer.Serialize(result, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy    = JsonNamingPolicy.CamelCase,
-                WriteIndented           = false,
-                DefaultIgnoreCondition  = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-            }));
+            JsonSerializer.Serialize(result, _healthJsonOptions));
     }
 }

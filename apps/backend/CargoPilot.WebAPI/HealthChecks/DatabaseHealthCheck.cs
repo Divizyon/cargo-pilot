@@ -22,9 +22,11 @@ public sealed class DatabaseHealthCheck : IHealthCheck
     {
         try
         {
-            // Basit bağlantı testi — gerçek sorgu çalıştırır
-            _ = await _dbContext.Database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
-            return HealthCheckResult.Healthy("Veritabanı bağlantısı sağlıklı.");
+            // Basit bağlantı testi — CanConnectAsync tüm EF Core provider'larında çalışır
+            var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
+            return canConnect
+                ? HealthCheckResult.Healthy("Veritabanı bağlantısı sağlıklı.")
+                : HealthCheckResult.Unhealthy("Veritabanına bağlanılamadı.");
         }
         catch (Exception ex)
         {
