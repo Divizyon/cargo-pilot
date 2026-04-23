@@ -15,6 +15,7 @@ services:
       MSSQL_DATABASE: ${MSSQL_DATABASE}
       MSSQL_USER: sa
       MSSQL_PASSWORD: ${MSSQL_SA_PASSWORD}
+      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=${MSSQL_DATABASE};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
       MINIO_ENDPOINT: minio:9000
       MINIO_BUCKET: ${MINIO_BUCKET}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -26,6 +27,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
     networks:
       - cargo-pilot-test

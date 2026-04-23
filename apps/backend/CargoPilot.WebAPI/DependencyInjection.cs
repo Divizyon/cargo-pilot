@@ -1,11 +1,24 @@
 using System.Reflection;
+using System.Text.Json;
+using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
 
 namespace CargoPilot.WebAPI;
 
 public static class DependencyInjection {
-    public static IServiceCollection AddPresentation(this IServiceCollection services) {
+    private static readonly JsonSerializerOptions _healthJsonOptions = new()
+    {
+        PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
+        WriteIndented          = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+    public static IServiceCollection AddPresentation(
+        this IServiceCollection services,
+        bool useInMemoryRepository = false)
+    {
         services.AddTransient<GlobalExceptionMiddleware>();
 
         services.AddControllers().AddJsonOptions(options =>
@@ -48,7 +61,29 @@ public static class DependencyInjection {
             });
         });
 
-        services.AddHealthChecks();
+        // HttpClient — MinIO sağlık kontrolü için
+        services.AddHttpClient("minio-health")
+            .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(5));
+
+        // MinIO sağlık kontrolü her zaman kayıtlı
+        services.AddScoped<MinioHealthCheck>();
+
+        // Sağlık kontrolleri
+        var healthChecks = services.AddHealthChecks()
+            .AddCheck<MinioHealthCheck>(
+                "minio",
+                failureStatus: HealthStatus.Degraded,
+                tags: ["storage", "infrastructure"]);
+
+        // Veritabanı sağlık kontrolü yalnızca gerçek DB kullanıldığında
+        if (!useInMemoryRepository)
+        {
+            services.AddScoped<DatabaseHealthCheck>();
+            healthChecks.AddCheck<DatabaseHealthCheck>(
+                "database",
+                failureStatus: HealthStatus.Degraded,
+                tags: ["db", "infrastructure"]);
+        }
 
         return services;
     }
@@ -70,8 +105,58 @@ public static class DependencyInjection {
 
         app.UseAuthorization();
         app.MapControllers();
-        app.MapHealthChecks("/health");
+
+        // Özet health endpoint — sadece Healthy/Unhealthy (yük dengeleyici için)
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy]   = StatusCodes.Status200OK,
+                [HealthStatus.Degraded]  = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+            }
+        });
+
+        // Detaylı health endpoint — bileşen bazında JSON (izleme araçları için)
+        app.MapHealthChecks("/health/detail", new HealthCheckOptions
+        {
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy]   = StatusCodes.Status200OK,
+                [HealthStatus.Degraded]  = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+            },
+            ResponseWriter = WriteDetailedHealthResponse
+        });
 
         return app;
+    }
+
+    /// <summary>
+    /// Bileşen bazında detaylı sağlık durumu JSON olarak döndürür.
+    /// </summary>
+    private static async Task WriteDetailedHealthResponse(
+        HttpContext context,
+        HealthReport report)
+    {
+        context.Response.ContentType = "application/json; charset=utf-8";
+
+        var result = new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.Select(e => new
+            {
+                name        = e.Key,
+                status      = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                durationMs  = e.Value.Duration.TotalMilliseconds,
+                tags        = e.Value.Tags,
+                error       = e.Value.Exception?.Message
+            })
+        };
+
+        await context.Response.WriteAsync(
+            JsonSerializer.Serialize(result, _healthJsonOptions));
     }
 }
