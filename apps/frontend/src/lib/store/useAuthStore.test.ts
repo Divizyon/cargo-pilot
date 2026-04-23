@@ -39,7 +39,7 @@ describe('useAuthStore', () => {
     // localStorage not available in Node.js test environment; skip this test
     // The authStore is designed to NOT write to localStorage per CLAUDE.md requirements
     const mockStorage = { setItem: vi.fn(), getItem: vi.fn() };
-    globalThis.localStorage = mockStorage as any;
+    vi.stubGlobal('localStorage', mockStorage);
 
     useAuthStore.getState().setAuth(mockUser, 'test-access-token');
 
