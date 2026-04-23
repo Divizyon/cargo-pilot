@@ -64,7 +64,7 @@ describe('exportPlanToExcel', () => {
     expect(jsonToSheetCall).toEqual([
       {
         'Ürün Adı': 'Test Item',
-        'SKU': 'SKU-001',
+        SKU: 'SKU-001',
         'Genişlik (cm)': 10,
         'Yükseklik (cm)': 20,
         'Derinlik (cm)': 30,
@@ -104,10 +104,7 @@ describe('exportPlanToExcel', () => {
 
     exportPlanToExcel(planId, placements, items);
 
-    expect(mockWriteFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      'CargoPilot_Plan_plan-123.xlsx'
-    );
+    expect(mockWriteFile).toHaveBeenCalledWith(expect.any(Object), 'CargoPilot_Plan_plan-123.xlsx');
   });
 
   it('should call book_append_sheet with correct sheet name', () => {
@@ -119,7 +116,7 @@ describe('exportPlanToExcel', () => {
     expect(mockBookAppendSheet).toHaveBeenCalledWith(
       expect.any(Object),
       expect.any(Object),
-      'Yükleme Planı'
+      'Yükleme Planı',
     );
   });
 });

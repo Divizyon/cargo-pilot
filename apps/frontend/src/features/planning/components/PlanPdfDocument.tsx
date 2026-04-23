@@ -1,12 +1,4 @@
-import {
-  Document,
-  Page,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  Font,
-} from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
@@ -114,10 +106,7 @@ export function PlanPdfDocument({
   const calculateFillRate = (): number => {
     if (!vehicle) return 0;
     const vehicleVolume = vehicle.width * vehicle.height * vehicle.length;
-    const placedVolume = placements.reduce(
-      (sum, p) => sum + p.width * p.height * p.depth,
-      0
-    );
+    const placedVolume = placements.reduce((sum, p) => sum + p.width * p.height * p.depth, 0);
     return vehicleVolume > 0 ? (placedVolume / vehicleVolume) * 100 : 0;
   };
 
@@ -138,9 +127,7 @@ export function PlanPdfDocument({
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Plan Özeti</Text>
-          <Text style={{ marginBottom: 10, fontSize: 9, color: '#6b7280' }}>
-            Plan ID: {planId}
-          </Text>
+          <Text style={{ marginBottom: 10, fontSize: 9, color: '#6b7280' }}>Plan ID: {planId}</Text>
 
           <View style={styles.summaryGrid}>
             <View style={styles.summaryBox}>
@@ -173,9 +160,7 @@ export function PlanPdfDocument({
               const item = items.find((i) => i.id === placement.itemId);
               return (
                 <View key={idx} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>
-                    {item?.name ?? '-'}
-                  </Text>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{item?.name ?? '-'}</Text>
                   <Text style={styles.tableCell}>{placement.positionX}</Text>
                   <Text style={styles.tableCell}>{placement.positionY}</Text>
                   <Text style={styles.tableCell}>{placement.positionZ}</Text>
