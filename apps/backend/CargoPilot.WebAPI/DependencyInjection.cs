@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.Json;
-using CargoPilot.Infrastructure;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -72,7 +71,13 @@ public static class DependencyInjection {
 
         // Veritabanı sağlık kontrolü yalnızca gerçek DB kullanıldığında
         if (!useInMemoryRepository)
-            healthChecks.AddDatabaseHealthCheck();
+        {
+            services.AddScoped<DatabaseHealthCheck>();
+            healthChecks.AddCheck<DatabaseHealthCheck>(
+                "database",
+                failureStatus: HealthStatus.Unhealthy,
+                tags: ["db", "infrastructure"]);
+        }
 
         return services;
     }

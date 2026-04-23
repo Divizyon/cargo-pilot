@@ -1,7 +1,7 @@
 using CargoPilot.Infrastructure.Persistence;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace CargoPilot.Infrastructure.HealthChecks;
+namespace CargoPilot.WebAPI.HealthChecks;
 
 /// <summary>
 /// SQL Server veritabanı bağlantı sağlık kontrolü.
