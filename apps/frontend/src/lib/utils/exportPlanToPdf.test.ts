@@ -3,9 +3,7 @@ import type { PdfExportData } from '@/lib/utils/exportPlanToPdf';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 
-const mockToBlob = vi.fn().mockResolvedValue(
-  new Blob(['pdf'], { type: 'application/pdf' })
-);
+const mockToBlob = vi.fn().mockResolvedValue(new Blob(['pdf'], { type: 'application/pdf' }));
 const mockPdf = vi.fn(() => ({
   toBlob: mockToBlob,
 }));

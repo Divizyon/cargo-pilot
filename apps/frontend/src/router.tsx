@@ -29,9 +29,7 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <DashboardLayout />,
-        children: [
-          { path: '/dashboard', element: <DashboardPage /> },
-        ],
+        children: [{ path: '/dashboard', element: <DashboardPage /> }],
       },
       {
         element: <FocusModeLayout />,
