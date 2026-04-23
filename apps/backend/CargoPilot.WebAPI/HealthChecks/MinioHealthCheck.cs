@@ -30,11 +30,11 @@ public sealed class MinioHealthCheck : IHealthCheck
 
             return response.IsSuccessStatusCode
                 ? HealthCheckResult.Healthy("MinIO erişilebilir.")
-                : HealthCheckResult.Degraded($"MinIO yanıt kodu: {(int)response.StatusCode}");
+                : new HealthCheckResult(context.Registration.FailureStatus, $"MinIO yanıt kodu: {(int)response.StatusCode}");
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy("MinIO bağlantısı başarısız.", ex);
+            return new HealthCheckResult(context.Registration.FailureStatus, "MinIO bağlantısı başarısız.", ex);
         }
     }
 }

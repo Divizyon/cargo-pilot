@@ -26,11 +26,11 @@ public sealed class DatabaseHealthCheck : IHealthCheck
             var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
             return canConnect
                 ? HealthCheckResult.Healthy("Veritabanı bağlantısı sağlıklı.")
-                : HealthCheckResult.Unhealthy("Veritabanına bağlanılamadı.");
+                : new HealthCheckResult(context.Registration.FailureStatus, "Veritabanına bağlanılamadı.");
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy("Veritabanı bağlantısı başarısız.", ex);
+            return new HealthCheckResult(context.Registration.FailureStatus, "Veritabanı bağlantısı başarısız.", ex);
         }
     }
 }
