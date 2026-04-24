@@ -1,8 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Domain.Entities;
-using CargoPilot.Domain.ValueObjects;
+using CargoPilot.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CargoPilot.Infrastructure.Persistence;
 
@@ -14,7 +13,10 @@ public class AppDbContext : DbContext {
         _currentUserService = currentUserService;
     }
 
-    public DbSet<Cargo> Cargos => Set<Cargo>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<UserLogin> UserLogins => Set<UserLogin>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -27,40 +29,10 @@ public class AppDbContext : DbContext {
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
-        var trackingNumberConverter = new ValueConverter<TrackingNumber, string>(
-            valueObject => valueObject.Value,
-            value => new TrackingNumber(value));
-
-        modelBuilder.Entity<Cargo>(entity => {
-            entity.ToTable("Cargos");
-            entity.HasKey(cargo => cargo.Id);
-
-            entity.Property(cargo => cargo.TrackingNumber)
-                .HasConversion(trackingNumberConverter)
-                .HasMaxLength(64)
-                .IsRequired();
-
-            entity.Property(cargo => cargo.Status)
-                .IsRequired();
-
-            entity.Property(cargo => cargo.CreatedDate)
-                .IsRequired();
-
-            entity.Property(cargo => cargo.UpdatedDate)
-                .IsRequired();
-
-            entity.Property(cargo => cargo.IsDeleted)
-                .IsRequired()
-                .HasDefaultValue(false);
-
-            entity.Property(cargo => cargo.CreatedBy);
-
-            entity.Property(cargo => cargo.UpdatedBy);
-
-            entity.HasIndex(cargo => cargo.IsDeleted);
-
-            entity.HasQueryFilter(cargo => !cargo.IsDeleted);
-        });
+        modelBuilder.ApplyConfiguration(new CompanyConfiguration());
+        modelBuilder.ApplyConfiguration(new AppUserConfiguration());
+        modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new UserLoginConfiguration());
     }
 
     private void ApplyAuditFields() {
@@ -69,13 +41,15 @@ public class AppDbContext : DbContext {
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>()) {
             if (entry.State == EntityState.Added) {
-                entry.Property(x => x.CreatedDate).CurrentValue = now;
-                entry.Property(x => x.UpdatedDate).CurrentValue = now;
+                entry.Property(x => x.CreatedAtUtc).CurrentValue = now;
+                entry.Property(x => x.UpdatedAtUtc).CurrentValue = null;
                 entry.Property(x => x.CreatedBy).CurrentValue = userId;
                 entry.Property(x => x.UpdatedBy).CurrentValue = userId;
+                entry.Property(x => x.IsDeleted).CurrentValue = false;
+                entry.Property(x => x.IsActive).CurrentValue = true;
             }
             else if (entry.State == EntityState.Modified) {
-                entry.Property(x => x.UpdatedDate).CurrentValue = now;
+                entry.Property(x => x.UpdatedAtUtc).CurrentValue = now;
                 entry.Property(x => x.UpdatedBy).CurrentValue = userId;
             }
         }

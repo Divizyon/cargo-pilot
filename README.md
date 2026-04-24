@@ -87,6 +87,8 @@ docker compose -f infra/compose/docker-compose.dev.yml up -d
 
 Detaylı kurulum adımları için: [Local Setup](docs/setup/local-setup.md)
 
+Default login (development seed): `admin@cargopilot.com / Admin123!`
+
 ---
 
 ## Geliştirme Kuralları

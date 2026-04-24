@@ -1,7 +1,8 @@
 using CargoPilot.Application.Abstractions;
-using CargoPilot.Application.Abstractions.Persistence;
+using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Infrastructure.Persistence;
-using CargoPilot.Infrastructure.Persistence.Repositories;
+using CargoPilot.Infrastructure.Persistence.Seeding;
+using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,11 +16,9 @@ public static class DependencyInjection {
         IConfiguration configuration,
         bool useInMemoryRepository = false) {
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
+        services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 
-        if (useInMemoryRepository) {
-            services.AddSingleton<ICargoRepository, InMemoryCargoRepository>();
-        }
-        else {
+        if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
@@ -27,8 +26,7 @@ public static class DependencyInjection {
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(30),
                         errorNumbersToAdd: null)));
-
-            services.AddScoped<ICargoRepository, CargoRepository>();
+            services.AddScoped<DbInitializer>();
         }
 
         return services;

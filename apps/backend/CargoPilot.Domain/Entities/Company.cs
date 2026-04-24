@@ -1,0 +1,28 @@
+using CargoPilot.Domain.Enums;
+
+namespace CargoPilot.Domain.Entities;
+
+public sealed class Company : BaseEntity {
+    public string Name { get; private set; } = null!;
+    public string? Address { get; private set; }
+    public string? LogoUrl { get; private set; }
+    public SubscriptionType SubscriptionType { get; private set; }
+    public int MaxUserCount { get; private set; }
+    public ICollection<AppUser> Users { get; } = [];
+
+    private Company() { }
+
+    public Company(
+        Guid id,
+        string name,
+        SubscriptionType subscriptionType,
+        int maxUserCount = 5,
+        string? address = null,
+        string? logoUrl = null) : base(id) {
+        Name = name;
+        Address = address;
+        LogoUrl = logoUrl;
+        SubscriptionType = subscriptionType;
+        MaxUserCount = maxUserCount;
+    }
+}

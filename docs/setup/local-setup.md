@@ -145,6 +145,8 @@ Seed veriler kullanılıyorsa:
 
 local veya test ortamında yüklenebilir.
 
+Default login (development seed): `admin@cargopilot.com / Admin123!`
+
 > Not: Seed veriler geliştirme ve test amaçlıdır. Production ortamında kontrollü kullanılmalıdır.
 
 ---
