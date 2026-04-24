@@ -7,7 +7,11 @@ RUN npm ci --ignore-scripts
 FROM node:20-alpine AS build
 WORKDIR /app
 ARG VITE_API_BASE_URL
+ARG VITE_APP_VERSION=dev
+ARG VITE_APP_ENV=production
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
+ENV VITE_APP_ENV=$VITE_APP_ENV
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
