@@ -43,7 +43,9 @@ services:
       context: ../../apps/frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
+        VITE_API_BASE_URL: http://${SERVER_HOST:-localhost}:${BACKEND_PORT}
+        VITE_APP_VERSION: ${APP_VERSION:-dev}
+        VITE_APP_ENV: test
     container_name: cargo-pilot-frontend-test
     environment:
       NODE_ENV: production
