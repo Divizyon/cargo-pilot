@@ -31,6 +31,7 @@
 | `github-actions-prod-deploy` | GitHub Actions CI/CD otomatik deploy |
 | `dogancanyildiz-cargo-pilot` | Doğancan Yıldız – geliştirici erişimi |
 | `hturk-cargo-pilot` | Hasan Türk – geliştirici erişimi |
+| `eyupece-cargo-pilot` | Eyüp Ece – geliştirici erişimi |
 
 ### Key ile Bağlantı
 ```bash
