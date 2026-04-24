@@ -1,6 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Infrastructure.Persistence;
+using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
@@ -17,6 +18,7 @@ public static class DependencyInjection {
         bool useInMemoryRepository = false) {
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>
