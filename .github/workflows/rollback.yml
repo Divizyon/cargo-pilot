@@ -1,0 +1,80 @@
+name: Manuel Rollback
+
+# Sadece manuel tetiklenir — GitHub Actions UI'dan çalıştırılır.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Rollback yapılacak ortam'
+        required: true
+        type: choice
+        options:
+          - test
+          - prod
+        default: test
+      target_ref:
+        description: 'Hedef Git tag veya commit SHA (boş = bir önceki tag)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  rollback:
+    name: Rollback (${{ github.event.inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Hedef ref'i doğrula
+        run: |
+          TARGET="${{ github.event.inputs.target_ref }}"
+          ENV="${{ github.event.inputs.environment }}"
+          echo "Ortam  : ${ENV}"
+          echo "Hedef  : ${TARGET:-'(önceki tag)'}"
+
+          if [[ -n "${TARGET}" ]]; then
+            if ! git rev-parse --verify "${TARGET}" > /dev/null 2>&1; then
+              echo "::error::Geçersiz ref: ${TARGET}"
+              exit 1
+            fi
+            echo "Doğrulanan ref: $(git rev-parse --short ${TARGET})"
+          fi
+
+      - name: Test sunucusuna rollback yap
+        if: github.event.inputs.environment == 'test'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TEST_SSH_HOST }}
+          username: root
+          key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TARGET="${{ github.event.inputs.target_ref }}"
+            /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET}"
+
+      - name: Prod sunucusuna rollback yap
+        if: github.event.inputs.environment == 'prod'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TARGET="${{ github.event.inputs.target_ref }}"
+            /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET}"
+
+      - name: Rollback özeti
+        if: always()
+        run: |
+          echo "## Rollback Özeti" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ortam**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Hedef**: ${{ github.event.inputs.target_ref || '(önceki tag)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tetikleyen**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Zaman**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY

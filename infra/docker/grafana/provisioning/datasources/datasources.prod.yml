@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus-Prod
+    type: prometheus
+    uid: prometheus-prod
+    access: proxy
+    url: http://cargo-pilot-prometheus-prod:9090
+    isDefault: true
+    jsonData:
+      timeInterval: "15s"
+
+  - name: Loki-Prod
+    type: loki
+    uid: loki-prod
+    access: proxy
+    url: http://cargo-pilot-loki-prod:3100

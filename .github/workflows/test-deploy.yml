@@ -318,17 +318,27 @@ jobs:
             git checkout test
             git reset --hard origin/test
 
+            echo "==> Image'lar sırayla build ediliyor (paralel build OOM riskini önler)..."
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              build --no-cache backend
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              build --no-cache frontend
+
             echo "==> Eski stack temizleniyor..."
             docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
               down --remove-orphans 2>/dev/null || true
 
-            echo "==> Test container'ları yeniden build ediliyor..."
+            echo "==> Stack ayağa kaldırılıyor (build yok, image hazır)..."
             docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
-              up -d --build
+              up -d --no-build
 
             echo "==> Eski image'lar temizleniyor..."
             docker image prune -f

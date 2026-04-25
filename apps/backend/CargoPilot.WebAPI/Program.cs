@@ -2,8 +2,16 @@ using CargoPilot.Application;
 using CargoPilot.Infrastructure;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.WebAPI;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, configuration) =>
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console(new CompactJsonFormatter()));
 
 var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 
