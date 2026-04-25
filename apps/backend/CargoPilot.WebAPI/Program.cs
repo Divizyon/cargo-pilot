@@ -7,6 +7,10 @@ using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Local secret override: appsettings.Development.Local.json gitignored'dır,
+// gerçek SA parolası buraya yazılır (appsettings.Development.json'a değil).
+builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
+
 builder.Host.UseSerilog((context, configuration) =>
     configuration
         .ReadFrom.Configuration(context.Configuration)
