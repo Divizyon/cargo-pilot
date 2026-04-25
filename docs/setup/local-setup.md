@@ -49,16 +49,15 @@ Beklenen yaklaşım:
 
 Örnek dosyalar:
 
-* `infra/env/.env.dev.example`
 * `infra/env/.env.test.example`
 * `infra/env/.env.prod.example`
 
-Local geliştirme için uygun örnek dosya kullanılarak gerçek `.env` dosyası hazırlanmalıdır.
+Local geliştirme için test ortamı örnek dosyası kullanılarak gerçek `.env` dosyası hazırlanmalıdır.
 
 Örnek yaklaşım:
 
 ```bash
-cp infra/env/.env.dev.example infra/env/.env.dev
+cp infra/env/.env.test.example infra/env/.env.test
 ```
 
 Gerekli alanlar ekipte belirlenen değerlere göre güncellenmelidir.
@@ -91,7 +90,7 @@ docker-compose up -d
 Eğer belirli bir compose dosyası kullanılıyorsa:
 
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml up -d
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
 ```
 
 Eğer proje kökünde compose dosyası varsa doğrudan `docker compose up -d` yeterlidir.
@@ -145,7 +144,7 @@ Seed veriler kullanılıyorsa:
 
 local veya test ortamında yüklenebilir.
 
-Default login (development seed): `admin@cargopilot.com / Admin123!`
+Default login: `admin@cargopilot.com / Admin@CargoPilot1!`
 
 > Not: Seed veriler geliştirme ve test amaçlıdır. Production ortamında kontrollü kullanılmalıdır.
 
