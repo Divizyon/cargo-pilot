@@ -3,10 +3,12 @@ using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using FluentValidation;
+using MediatR;
 
 namespace CargoPilot.Application.Features.Auth.Register;
 
-public sealed class RegisterCommandHandler {
+public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<RegisterResponse>>
+{
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IValidator<RegisterCommand> _validator;
@@ -14,41 +16,44 @@ public sealed class RegisterCommandHandler {
     public RegisterCommandHandler(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IValidator<RegisterCommand> validator) {
+        IValidator<RegisterCommand> validator)
+    {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _validator = validator;
     }
 
-    public async Task<Result<RegisterResponse>> HandleAsync(
-        RegisterCommand command,
-        CancellationToken cancellationToken = default) {
-
-        var validationResult = await _validator.ValidateAsync(command, cancellationToken);
-        if (!validationResult.IsValid) {
-            var first = validationResult.Errors[0];
+    public async Task<Result<RegisterResponse>> Handle(
+        RegisterCommand request,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var failures = validationResult.Errors
+                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
+                .ToList();
             return Result<RegisterResponse>.Failure(
-                new Error(ErrorType.Validation, first.ErrorCode, first.ErrorMessage));
+                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var emailNormalized = command.Email.Trim().ToLowerInvariant();
+        var emailNormalized = request.Email.Trim().ToLowerInvariant();
 
         var emailExists = await _userRepository.ExistsByEmailAsync(emailNormalized, cancellationToken);
-        if (emailExists) {
+        if (emailExists)
+        {
             return Result<RegisterResponse>.Failure(
-                new Error(
-                    ErrorType.Conflict,
-                    "Auth.EmailAlreadyExists",
-                    "Bu e-posta adresi zaten kullanımda."));
+                new Error(ErrorType.Conflict, "Auth.EmailAlreadyExists", "Bu e-posta adresi zaten kullanımda."));
         }
 
-        var passwordHash = _passwordHasher.HashPassword(command.Password);
+        var passwordHash = _passwordHasher.HashPassword(request.Password);
 
+        // Self-register: bireysel kullanıcı, şirketsiz. Davet akışı ayrıca implement edilecek.
         var user = new AppUser(
             id: Guid.NewGuid(),
             companyId: null,
-            firstName: command.FirstName.Trim(),
-            lastName: command.LastName.Trim(),
+            firstName: request.FirstName.Trim(),
+            lastName: request.LastName.Trim(),
             email: emailNormalized,
             passwordHash: passwordHash,
             userType: UserType.Individual,
