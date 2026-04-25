@@ -1,4 +1,4 @@
-using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
