@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
 import { FocusModeLayout } from '@/components/shared/layouts/FocusModeLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { ProductsPage } from '@/pages/ProductsPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 
@@ -29,7 +30,14 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <DashboardLayout />,
-        children: [{ path: '/dashboard', element: <DashboardPage /> }],
+        children: [
+          { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/products',  element: <ProductsPage /> },
+          { path: '/vehicles',  element: <DashboardPage /> },
+          { path: '/planning',  element: <DashboardPage /> },
+          { path: '/reports',   element: <DashboardPage /> },
+          { path: '/settings',  element: <DashboardPage /> },
+        ],
       },
       {
         element: <FocusModeLayout />,
