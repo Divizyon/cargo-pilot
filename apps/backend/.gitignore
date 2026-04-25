@@ -23,6 +23,8 @@ TestResults/
 *.log
 
 # Secret & environment files
+# appsettings.Development.json → repoda placeholder değerler içerir, gerçek şifreyi
+# appsettings.Development.Local.json dosyasına koy (aşağıdaki pattern ile gitignored).
 appsettings.*.Local.json
 .env
 .env.local
