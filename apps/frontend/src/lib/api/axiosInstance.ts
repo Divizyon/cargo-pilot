@@ -32,7 +32,7 @@ axiosInstance.interceptors.response.use(
       config._retry = true;
       try {
         const { data } = await axios.post<{ accessToken: string }>(
-          '/auth/refresh',
+          '/api/v1/auth/refresh',
           {},
           { baseURL: API_BASE_URL, withCredentials: true },
         );
