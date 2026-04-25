@@ -38,8 +38,14 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
             .MinimumLength(8)
                 .WithErrorCode("AUTH_VAL_PASSWORD_TOO_SHORT")
                 .WithMessage("Şifre en az 8 karakter olmalıdır.")
-            .MaximumLength(100)
+            .MaximumLength(72)
                 .WithErrorCode("AUTH_VAL_PASSWORD_TOO_LONG")
-                .WithMessage("Şifre en fazla 100 karakter olabilir.");
+                .WithMessage("Şifre en fazla 72 karakter olabilir.")
+            .Matches(@"[A-Z]")
+                .WithErrorCode("AUTH_VAL_PASSWORD_NO_UPPERCASE")
+                .WithMessage("Şifre en az bir büyük harf içermelidir.")
+            .Matches(@"[0-9]")
+                .WithErrorCode("AUTH_VAL_PASSWORD_NO_DIGIT")
+                .WithMessage("Şifre en az bir rakam içermelidir.");
     }
 }
