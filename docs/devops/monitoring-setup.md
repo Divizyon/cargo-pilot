@@ -2,7 +2,7 @@
 
 **Görevler:** US-D19-I, US-D20-I, US-D21-I, US-D28-I, US-D29-I  
 **Tarih:** 2026-04-25  
-**Durum:** Test ortamı aktif — D21 bekliyor, D20 kanel kararı bekliyor
+**Durum:** Test ortamı aktif — D20 kanal kararı bekliyor (kural hazır)
 
 ---
 
@@ -14,7 +14,7 @@
 | US-D19-I | Log Toplama Altyapısı | ✅ Tamamlandı | Loki+Promtail çalışıyor |
 | US-D29-I | Grafana Dashboard Kurulumu | ✅ Tamamlandı | Grafana 10.3.3 aktif |
 | US-D20-I | Hata Log Uyarıları | ⚠️ Kısmen | Kurallar var, bildirim kanalı yok |
-| US-D21-I | Temel Metrik İzleme | ❌ Yapılmadı | node_exporter gerekiyor |
+| US-D21-I | Temel Metrik İzleme | ✅ Tamamlandı | node_exporter + cAdvisor eklendi |
 
 ---
 
@@ -87,21 +87,27 @@
 
 ---
 
-## Yapılmamış Tasklar
+## Tamamlanan Tasklar (devam)
 
-### US-D21-I — Temel Metrik İzleme Kurulumu ❌
+### US-D21-I — Temel Metrik İzleme Kurulumu ✅
 
 Bu task **sunucu ve container bazlı sistem metriklerini** kapsar — backend uygulama metriklerinden (D28) farklıdır.
 
-**Gereksinim:** CPU kullanımı, RAM, disk, network, container kaynak tüketimi
+**Ne yapıldı:**
+1. `node_exporter:v1.7.0` — sunucu OS metrikleri (CPU, RAM, disk, network) — iç ağda çalışır
+2. `cAdvisor:v0.49.1` — container bazlı kaynak metrikleri — iç ağda çalışır
+3. `prometheus.test.yml` + `prometheus.prod.yml`'a scrape hedefleri eklendi: `node-exporter-test:9100`, `cadvisor-test:8080`
+4. `infra/docker/grafana/dashboards/system-metrics.json` — 10 panelli sistem dashboard'u eklendi
 
-**Yapılması gerekenler:**
-1. `node_exporter` container ekle — sunucu OS metrikleri (CPU, RAM, disk, network)
-2. `cAdvisor` container ekle — container bazlı kaynak metrikleri
-3. `prometheus.test.yml`'a yeni scrape hedefleri ekle
-4. Grafana'ya sistem dashboard'u ekle (Grafana ID: 1860 — Node Exporter Full)
+**Dashboard panelleri:**
+- CPU Usage gauge + per-core timeline
+- Memory Usage gauge + timeline (total/used/available)
+- Disk Usage gauge
+- Network I/O (RX/TX, docker/veth hariç)
+- Disk I/O (read/write)
+- Container CPU + Memory (cargo-pilot-* container'ları)
 
-**Yeni portlar gerekmez** — node_exporter ve cAdvisor iç ağda çalışır.
+**Yeni portlar açılmadı** — node_exporter ve cAdvisor iç ağda çalışır.
 
 ---
 
@@ -165,4 +171,5 @@ docker logs cargo-pilot-loki-test --tail=50
 | Grafana | 3000 | 3002 | Test ✅ / Prod ❌ bekliyor |
 | Prometheus | 9090 | 9091 | Test ✅ / Prod ❌ bekliyor |
 | Loki | iç ağ | iç ağ | Test ✅ / Prod ❌ bekliyor |
-| node_exporter | — | — | ❌ D21 için yapılacak |
+| node_exporter | iç ağ | iç ağ | Kod hazır — sunucu güncelleme gerekiyor |
+| cAdvisor | iç ağ | iç ağ | Kod hazır — sunucu güncelleme gerekiyor |

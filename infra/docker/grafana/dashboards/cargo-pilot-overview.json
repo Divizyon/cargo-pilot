@@ -120,7 +120,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "${datasource_loki}" },
-          "expr": "{job=~\"cargo-pilot-.*\"} | json | level=\"Error\"",
+          "expr": "{job=~\"cargo-pilot-.*\", level=\"Error\"}",
           "legendFormat": "",
           "queryType": "range"
         }
