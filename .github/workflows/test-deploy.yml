@@ -105,12 +105,11 @@ jobs:
       - name: EF Core CLI kur
         run: dotnet tool install --global dotnet-ef
 
-      - name: Solution build (migration check için)
-        run: dotnet build cargo-pilot.sln --configuration Release --no-restore
-        continue-on-error: false
-
       - name: NuGet paketlerini yükle
         run: dotnet restore cargo-pilot.sln
+
+      - name: Solution build (migration check için)
+        run: dotnet build cargo-pilot.sln --configuration Release --no-restore
 
       - name: Pending model değişikliği kontrolü
         run: |
