@@ -76,18 +76,18 @@ cd cargo-pilot
 2. **Ortam dosyasını hazırlayın:**
 
 ```bash
-cp infra/env/.env.dev.example infra/env/.env.dev
+cp infra/env/.env.test.example infra/env/.env.test
 ```
 
 3. **Docker ile başlatın:**
 
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml up -d
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
 ```
 
 Detaylı kurulum adımları için: [Local Setup](docs/setup/local-setup.md)
 
-Default login (development seed): `admin@cargopilot.com / Admin123!`
+Default login: `admin@cargopilot.com / Admin@CargoPilot1!`
 
 ---
 
@@ -126,7 +126,7 @@ Projede branch yapısı ile ortam yönetimi birbirinden ayrıdır.
 * Branch'ler geliştirme akışını yönetir
 * Ortamlar ise deployment ve configuration seviyesinde yönetilir
 
-Dev, test ve prod ortamlarına ilişkin detaylar CI/CD ve infra yapıları üzerinden ele alınır.
+Test ve prod ortamlarına ilişkin detaylar CI/CD ve infra yapıları üzerinden ele alınır.
 
 ---
 
