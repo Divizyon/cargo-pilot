@@ -95,7 +95,12 @@ export function LoginForm() {
             className="mt-3 w-full border-dashed text-muted-foreground"
             onClick={() => {
               setAuth(
-                { id: 'dev-1', email: 'dev@cargopilot.io', fullName: 'Dev Admin', role: USER_ROLES.Admin },
+                {
+                  id: 'dev-1',
+                  email: 'dev@cargopilot.io',
+                  fullName: 'Dev Admin',
+                  role: USER_ROLES.Admin,
+                },
                 'dev-token',
               );
               navigate('/dashboard', { replace: true });

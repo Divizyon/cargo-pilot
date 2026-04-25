@@ -32,11 +32,11 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/dashboard', element: <DashboardPage /> },
-          { path: '/products',  element: <ProductsPage /> },
-          { path: '/vehicles',  element: <DashboardPage /> },
-          { path: '/planning',  element: <DashboardPage /> },
-          { path: '/reports',   element: <DashboardPage /> },
-          { path: '/settings',  element: <DashboardPage /> },
+          { path: '/products', element: <ProductsPage /> },
+          { path: '/vehicles', element: <DashboardPage /> },
+          { path: '/planning', element: <DashboardPage /> },
+          { path: '/reports', element: <DashboardPage /> },
+          { path: '/settings', element: <DashboardPage /> },
         ],
       },
       {

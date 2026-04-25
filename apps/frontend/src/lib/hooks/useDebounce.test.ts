@@ -38,12 +38,12 @@ describe('debounce — timer contract', () => {
     const cb = vi.fn();
 
     // First schedule
-    let id = setTimeout(cb, 350);
+    const first = setTimeout(cb, 350);
     vi.advanceTimersByTime(200);
 
     // Cancel and re-schedule (simulates useEffect cleanup + re-run)
-    clearTimeout(id);
-    id = setTimeout(cb, 350);
+    clearTimeout(first);
+    setTimeout(cb, 350);
     vi.advanceTimersByTime(349);
     expect(cb).not.toHaveBeenCalled(); // full 350 ms not elapsed yet
 
@@ -55,15 +55,15 @@ describe('debounce — timer contract', () => {
     vi.useFakeTimers();
     const cb = vi.fn();
 
-    let id = setTimeout(cb, 350);
+    const first = setTimeout(cb, 350);
     vi.advanceTimersByTime(100);
-    clearTimeout(id);
+    clearTimeout(first);
 
-    id = setTimeout(cb, 350);
+    const second = setTimeout(cb, 350);
     vi.advanceTimersByTime(100);
-    clearTimeout(id);
+    clearTimeout(second);
 
-    id = setTimeout(cb, 350);
+    setTimeout(cb, 350);
     vi.advanceTimersByTime(350);
 
     expect(cb).toHaveBeenCalledTimes(1);

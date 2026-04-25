@@ -72,12 +72,24 @@ function ProductTableSkeleton() {
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="hover:bg-transparent">
-            <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-14" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-36" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-20" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-40" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-16" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-14" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-12" />
+            </TableCell>
             <TableCell>
               <div className="flex gap-1">
                 <Skeleton className="h-6 w-6 rounded-md" />
@@ -143,9 +155,7 @@ function ProductRow({ item, unit, searchTerm, onEdit, onDelete }: ProductRowProp
 
       {/* Hacim — auto-calculated, updates with unit (AC2) */}
       <TableCell>
-        <span className="text-xs font-medium text-foreground">
-          {formatVolume(volume, unit)}
-        </span>
+        <span className="text-xs font-medium text-foreground">{formatVolume(volume, unit)}</span>
       </TableCell>
 
       {/* Ağırlık */}
@@ -209,17 +219,18 @@ export function ProductTable({ onEdit, onDelete }: ProductTableProps) {
 
   const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
 
-  const { data: items, isLoading, isFetching } = useItems(
-    searchTerm ? { search: searchTerm } : undefined,
-  );
+  const {
+    data: items,
+    isLoading,
+    isFetching,
+  } = useItems(searchTerm ? { search: searchTerm } : undefined);
 
   const showSkeleton = isLoading || isFetching;
-  const isEmpty   = !showSkeleton && items?.length === 0 && !searchTerm;
+  const isEmpty = !showSkeleton && items?.length === 0 && !searchTerm;
   const noResults = !showSkeleton && items?.length === 0 && Boolean(searchTerm);
 
   return (
     <div className="flex flex-col gap-4">
-
       {/* Toolbar */}
       <div className="flex items-center gap-2.5">
         {/* Search input — debounce + X button inside (AC1, AC2, AC6) */}
@@ -252,9 +263,7 @@ export function ProductTable({ onEdit, onDelete }: ProductTableProps) {
       {/* No-results alert (AC5) */}
       {noResults && (
         <Alert>
-          <AlertDescription>
-            Aradığınız kriterlere uygun ürün bulunamadı.
-          </AlertDescription>
+          <AlertDescription>Aradığınız kriterlere uygun ürün bulunamadı.</AlertDescription>
         </Alert>
       )}
 
@@ -266,20 +275,39 @@ export function ProductTable({ onEdit, onDelete }: ProductTableProps) {
           <Table className="min-w-[860px]">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-44 text-[10px] font-semibold uppercase tracking-widest">Ürün</TableHead>
-                <TableHead className="w-24 text-[10px] font-semibold uppercase tracking-widest">SKU</TableHead>
-                <TableHead className="w-52 text-[10px] font-semibold uppercase tracking-widest">Boyutlar (L × G × Y)</TableHead>
-                <TableHead className="w-24 text-[10px] font-semibold uppercase tracking-widest">Hacim</TableHead>
-                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">Ağırlık</TableHead>
-                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">Maks. İstif</TableHead>
-                <TableHead className="w-32 text-[10px] font-semibold uppercase tracking-widest">Kısıtlar</TableHead>
-                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">İşlem</TableHead>
+                <TableHead className="w-44 text-[10px] font-semibold uppercase tracking-widest">
+                  Ürün
+                </TableHead>
+                <TableHead className="w-24 text-[10px] font-semibold uppercase tracking-widest">
+                  SKU
+                </TableHead>
+                <TableHead className="w-52 text-[10px] font-semibold uppercase tracking-widest">
+                  Boyutlar (L × G × Y)
+                </TableHead>
+                <TableHead className="w-24 text-[10px] font-semibold uppercase tracking-widest">
+                  Hacim
+                </TableHead>
+                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">
+                  Ağırlık
+                </TableHead>
+                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">
+                  Maks. İstif
+                </TableHead>
+                <TableHead className="w-32 text-[10px] font-semibold uppercase tracking-widest">
+                  Kısıtlar
+                </TableHead>
+                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">
+                  İşlem
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={8} className="py-16 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={8}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
                     Henüz ürün eklenmemiş.
                   </TableCell>
                 </TableRow>

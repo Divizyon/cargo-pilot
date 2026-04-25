@@ -35,11 +35,11 @@ interface NavItemDef {
 }
 
 const MAIN_NAV: NavItemDef[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',  path: '/dashboard', end: true  },
-  { icon: Package,         label: 'Ürünler',    path: '/products',  end: false },
-  { icon: Truck,           label: 'Araçlar',    path: '/vehicles',  end: false },
-  { icon: ClipboardList,   label: 'Planlama',   path: '/planning',  end: false },
-  { icon: BarChart3,       label: 'Raporlar',   path: '/reports',   end: false },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', end: true },
+  { icon: Package, label: 'Ürünler', path: '/products', end: false },
+  { icon: Truck, label: 'Araçlar', path: '/vehicles', end: false },
+  { icon: ClipboardList, label: 'Planlama', path: '/planning', end: false },
+  { icon: BarChart3, label: 'Raporlar', path: '/reports', end: false },
 ];
 
 const BOTTOM_NAV: NavItemDef[] = [
@@ -119,11 +119,7 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
         className="absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:flex"
         title={isCollapsed ? 'Genişlet' : 'Daralt'}
       >
-        {isCollapsed ? (
-          <ChevronRight className="h-3 w-3" />
-        ) : (
-          <ChevronLeft className="h-3 w-3" />
-        )}
+        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </button>
 
       {/* Brand */}
@@ -163,9 +159,7 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>
-            Yeni Plan
-          </span>
+          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>Yeni Plan</span>
         </button>
 
         {/* Main nav */}
@@ -193,7 +187,9 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
         <div
           className={cn(
             'flex items-center rounded-lg transition-colors',
-            isCollapsed ? 'lg:justify-center py-2' : 'gap-3 px-2 py-2.5 hover:bg-sidebar-accent cursor-pointer',
+            isCollapsed
+              ? 'lg:justify-center py-2'
+              : 'gap-3 px-2 py-2.5 hover:bg-sidebar-accent cursor-pointer',
           )}
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
