@@ -44,7 +44,10 @@ services:
       context: ../../apps/frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://${SERVER_HOST:-localhost}:${BACKEND_PORT}
+        # VITE_API_BASE_URL: .env.test'te tanımla (nginx + domain için)
+        # Örnek: VITE_API_BASE_URL=https://cargopilot.divizyon.org
+        # Tanımlanmazsa local fallback kullanılır.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://${SERVER_HOST:-localhost}:${BACKEND_PORT}}
         VITE_APP_VERSION: ${APP_VERSION:-dev}
         VITE_APP_ENV: test
     container_name: cargo-pilot-frontend-test
