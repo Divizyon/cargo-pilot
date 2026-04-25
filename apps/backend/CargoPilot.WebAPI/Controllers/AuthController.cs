@@ -1,4 +1,5 @@
 using CargoPilot.Application.Features.Auth.Register;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CargoPilot.WebAPI.Controllers;
@@ -7,11 +8,13 @@ namespace CargoPilot.WebAPI.Controllers;
 /// Kimlik doğrulama ve oturum yönetimi endpoint'leri.
 /// </summary>
 [Route("api/auth")]
-public sealed class AuthController : BaseController {
-    private readonly RegisterCommandHandler _registerHandler;
+public sealed class AuthController : BaseController
+{
+    private readonly IMediator _mediator;
 
-    public AuthController(RegisterCommandHandler registerHandler) {
-        _registerHandler = registerHandler;
+    public AuthController(IMediator mediator)
+    {
+        _mediator = mediator;
     }
 
     /// <summary>
@@ -21,17 +24,21 @@ public sealed class AuthController : BaseController {
     /// Başarılı kayıt sonrası kullanıcı /auth/login sayfasına yönlendirilmelidir.
     /// Şifre sunucuda BCrypt ile hashlenir; düz metin asla saklanmaz.
     /// </remarks>
-    /// <response code="200">Kayıt başarılı; userId, firstName, lastName, email döner.</response>
+    /// <response code="201">Kayıt başarılı; userId, firstName, lastName, email döner.</response>
     /// <response code="400">Doğrulama hatası (eksik alan, hatalı e-posta formatı, kısa şifre vb.).</response>
     /// <response code="409">Bu e-posta adresi zaten kayıtlı.</response>
     [HttpPost("register")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(
         [FromBody] RegisterCommand command,
-        CancellationToken cancellationToken) {
-        var result = await _registerHandler.HandleAsync(command, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        // Rate limiting: AddRateLimiter ile auth policy eklenecek (ayrı task)
+        var result = await _mediator.Send(command, cancellationToken);
+        if (result.IsSuccess)
+            return StatusCode(StatusCodes.Status201Created, result);
         return HandleResult(result);
     }
 }

@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Infrastructure.Persistence;
 using CargoPilot.Infrastructure.Persistence.Repositories;
