@@ -12,8 +12,9 @@ internal sealed class UserRepository : IUserRepository {
     }
 
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default) {
+        // email parametresi handler'da ToLowerInvariant() ile normalize edilmiş olmalı
         return _dbContext.Users
-            .AnyAsync(u => u.Email.ToLower() == email.ToLower(), cancellationToken);
+            .AnyAsync(u => u.Email == email, cancellationToken);
     }
 
     public void Add(AppUser user) {
