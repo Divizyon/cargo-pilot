@@ -89,7 +89,7 @@ export function LoginForm() {
         </Form>
 
         {/* DEV ONLY — remove before production */}
-        {import.meta.env.DEV && (
+        {import.meta.env.VITE_APP_ENV !== 'production' && (
           <Button
             variant="outline"
             className="mt-3 w-full border-dashed text-muted-foreground"
