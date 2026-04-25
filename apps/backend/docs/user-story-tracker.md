@@ -88,7 +88,6 @@ Durum gostergeleri:
 
 **Kanitlar:**
 - `apps/backend/.gitignore` (env dosya koruma kurallari)
-- `infra/env/.env.dev.example`
 - `infra/env/.env.prod.example`
 - `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` (UserSecretsId)
 - `CargoPilot.WebAPI/Properties/launchSettings.json`
@@ -146,9 +145,7 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.WebAPI/appsettings.Development.json`
 - `CargoPilot.WebAPI/appsettings.Staging.json`
 - `CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` (UserSecretsId)
-- `infra/env/.env.dev.example`
 - `infra/env/.env.prod.example` (DATABASE_CONNECTION_STRING)
-- `infra/compose/docker-compose.dev.yml`
 - `infra/compose/docker-compose.prod.yml` (ConnectionStrings__DefaultConnection binding)
 - `CargoPilot.Infrastructure/Persistence/AppDbContextFactory.cs`
 - `CargoPilot.Infrastructure/DependencyInjection.cs` (EnableRetryOnFailure)
