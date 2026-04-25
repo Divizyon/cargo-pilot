@@ -85,13 +85,18 @@ jobs:
           echo "OK: Tüm feature commit'leri origin/dev'de mevcut."
 
   # ─── Migration kontrolü: model değişmiş ama migration oluşturulmamışsa fail ──
+  # Sadece test'e giden PR'larda veya test'e push'ta çalışır (feature push'larda gereksiz)
   migration-check:
     name: Pending Migration Kontrolü
     runs-on: ubuntu-latest
     needs: [enforce-test-base]
     if: |
       always() &&
-      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped')
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/test')
+      )
 
     steps:
       - name: Kodu al
@@ -112,6 +117,10 @@ jobs:
         run: dotnet build cargo-pilot.sln --configuration Release --no-restore
 
       - name: Pending model değişikliği kontrolü
+        # AppDbContextFactory design-time'da connection string gerektirir;
+        # gerçek DB bağlantısı kurulmaz, sadece model karşılaştırması yapılır.
+        env:
+          ConnectionStrings__DefaultConnection: "Server=localhost;Database=ci_check;User Id=sa;Password=CI_placeholder_not_used!;"
         run: |
           dotnet ef migrations has-pending-model-changes \
             --project apps/backend/CargoPilot.Infrastructure \
@@ -167,7 +176,7 @@ jobs:
     if: |
       always() &&
       (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
-      (needs.migration-check.result == 'success') &&
+      (needs.migration-check.result == 'success' || needs.migration-check.result == 'skipped') &&
       (
         (github.event_name == 'pull_request' && github.base_ref == 'test') ||
         (github.event_name == 'push')
@@ -285,10 +294,11 @@ jobs:
   deploy-test-server:
     name: Deploy (Test Server)
     runs-on: ubuntu-latest
-    needs: [enforce-test-base]
+    needs: [enforce-test-base, migration-check]
     if: |
       always() &&
       (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (needs.migration-check.result == 'success') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/test'
 
