@@ -47,17 +47,22 @@ RAM kullanımı:
   ├── Backend (.NET 8)     ~256 MB × 2              = 512 MB
   ├── MSSQL 2022           ~2 GB × 2                = 4 GB
   ├── MinIO                ~128 MB × 2              = 256 MB
-  └── Toplam tahmini       ≈ 5.4 GB / 16 GB (%34)
+  ├── Monitoring (Prometheus + Grafana + Loki + Promtail + cAdvisor + node_exporter) ~1.5 GB
+  └── Toplam tahmini       ≈ 6.9 GB / 16 GB (%43)
+
+  ⚠️ Docker image build sırasında .NET + node peak RAM kullanımı +3-5 GB ekler.
+     Build adımları sırayla yapılmalı (backend önce, frontend sonra).
 
 Disk kullanımı:
-  ├── OS + Docker images    ~16 GB (mevcut)
+  ├── OS + Docker images    ~23 GB (2026-04-25 itibarıyla)
   ├── MSSQL data            ~1-5 GB (büyüme var)
   ├── MinIO data            ~1-10 GB (büyüme var)
-  └── Toplam tahmini        < 40 GB / 147 GB (%27)
+  └── Toplam tahmini        < 40 GB / 147 GB (%16)
 ```
 
 ### Sonuç: ✅ Yeterli
-Mevcut sunucu kapasitesi prod + test ortamlarını aynı anda çalıştırmaya fazlasıyla yeterli.
+Mevcut sunucu kapasitesi prod + test + monitoring stack'i aynı anda çalıştırmaya yeterli.
+Build sırasında paralel image build yapılmamalı (OOM riski).
 
 ---
 
@@ -70,7 +75,7 @@ Mevcut sunucu kapasitesi prod + test ortamlarını aynı anda çalıştırmaya f
 
 ---
 
-## 5. Aktif Servisler (2026-04-23 itibarıyla)
+## 5. Aktif Servisler (2026-04-25 itibarıyla)
 
 | Servis | Durum | Port |
 |--------|-------|------|
@@ -78,6 +83,10 @@ Mevcut sunucu kapasitesi prod + test ortamlarını aynı anda çalıştırmaya f
 | cargo-pilot-backend-test | ✅ Çalışıyor | 8081 |
 | cargo-pilot-mssql-test | ✅ Çalışıyor | 1434 |
 | cargo-pilot-minio-test | ✅ Çalışıyor | 9002/9003 |
+| cargo-pilot-prometheus-test | ✅ Çalışıyor | 9091 |
+| cargo-pilot-grafana-test | ✅ Çalışıyor | 3002 |
+| cargo-pilot-loki-test | ✅ Çalışıyor | iç ağ |
+| cargo-pilot-promtail-test | ✅ Çalışıyor | iç ağ |
 | cargo-pilot-*-prod | ⚠️ Henüz kurulmadı | — |
 
 > **Not:** Production stack henüz deploy edilmemiştir. `.env.prod` dosyası sunucuda oluşturulmalıdır.
@@ -87,6 +96,6 @@ Mevcut sunucu kapasitesi prod + test ortamlarını aynı anda çalıştırmaya f
 ## 6. Öneriler
 
 1. **Production stack deploy edilmeli** — `.env.prod` oluşturulup `docker-compose.prod.yml` ayağa kaldırılmalı (bkz. US-D02)
-2. **Monitoring** için ek kaynak ayrılabilir: Prometheus + Grafana ~512 MB RAM (bkz. US-D21)
-3. **Yedekleme:** MSSQL data volume ve MinIO data volume için düzenli snapshot alınmalı (bkz. US-D18)
-4. **Firewall:** Şu an tüm portlar açık — gereksiz portlar kapatılmalı (bkz. US-D02)
+2. **Monitoring** ✅ Kuruldu — Prometheus + Grafana + Loki + Promtail + cAdvisor + node_exporter test ortamında aktif (bkz. US-D21)
+3. **Yedekleme** ✅ Kuruldu — `setup-backup-cron.sh` çalıştırıldı; prod DB 02:00, test DB 03:00 otomatik yedeklenir (bkz. US-D18)
+4. **Firewall** ✅ UFW aktif — portlar yapılandırıldı, fail2ban SSH koruması aktif (bkz. server-access.md)
