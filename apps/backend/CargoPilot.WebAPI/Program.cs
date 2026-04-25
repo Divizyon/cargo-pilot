@@ -14,6 +14,7 @@ builder.Services
 
 var app = builder.Build();
 
+// Gerçek DB kullanıldığında migration + seed çalıştır
 if (!useInMemory) {
     using var scope = app.Services.CreateScope();
     var dbInitializer = scope.ServiceProvider.GetRequiredService<DbInitializer>();
