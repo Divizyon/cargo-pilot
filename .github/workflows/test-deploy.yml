@@ -167,7 +167,11 @@ jobs:
     if: |
       always() &&
       (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
-      (needs.migration-check.result == 'success')
+      (needs.migration-check.result == 'success') &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+        (github.event_name == 'push')
+      )
 
     env:
       ENVIRONMENT: test
@@ -182,6 +186,8 @@ jobs:
       MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER || 'minioadmin' }}
       MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD || 'minioadmin123' }}
       MINIO_BUCKET: cargo-pilot-test
+      # Seed için varsayılan admin şifresi — CI fallback değeri
+      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
 
     steps:
       - name: Kodu al

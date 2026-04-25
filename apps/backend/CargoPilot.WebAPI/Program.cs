@@ -1,12 +1,11 @@
 using CargoPilot.Application;
 using CargoPilot.Infrastructure;
-using CargoPilot.Infrastructure.Persistence;
+using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.WebAPI;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var useInMemory = builder.Environment.IsDevelopment();
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 
 builder.Services
     .AddApplication()
@@ -15,13 +14,11 @@ builder.Services
 
 var app = builder.Build();
 
-// Gerçek DB kullanıldığında migration'ları otomatik uygula
-// Development'ta InMemory kullanıldığından migration gerekmez
-if (!useInMemory)
-{
+// Gerçek DB kullanıldığında migration + seed çalıştır
+if (!useInMemory) {
     using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    var dbInitializer = scope.ServiceProvider.GetRequiredService<DbInitializer>();
+    await dbInitializer.InitializeAsync();
 }
 
 app.UsePresentation();

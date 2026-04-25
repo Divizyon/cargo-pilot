@@ -20,6 +20,7 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
     ports:
       - "${BACKEND_PORT}:8080"
     depends_on:
@@ -43,7 +44,9 @@ services:
       context: ../../apps/frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
+        VITE_API_BASE_URL: http://${SERVER_HOST:-localhost}:${BACKEND_PORT}
+        VITE_APP_VERSION: ${APP_VERSION:-dev}
+        VITE_APP_ENV: test
     container_name: cargo-pilot-frontend-test
     environment:
       NODE_ENV: production
@@ -57,7 +60,9 @@ services:
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
     container_name: cargo-pilot-mssql-test
+    user: root
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer

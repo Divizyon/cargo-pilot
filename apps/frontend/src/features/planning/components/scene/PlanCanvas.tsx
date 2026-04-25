@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, type MutableRefObject } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Html, useProgress } from '@react-three/drei';
 import { SceneLights } from '@/features/planning/components/scene/SceneLights';
@@ -9,7 +9,7 @@ import { SceneDisposer } from '@/lib/three/SceneDisposer';
 interface PlanCanvasProps {
   className?: string;
   planId?: string;
-  snapshotRef?: React.MutableRefObject<(() => string) | null>;
+  snapshotRef?: MutableRefObject<(() => string) | null>;
 }
 
 function SceneLoader() {
@@ -27,7 +27,7 @@ function SceneLoader() {
 function SnapshotBridge({
   snapshotRef,
 }: {
-  snapshotRef?: React.MutableRefObject<(() => string) | null>;
+  snapshotRef?: MutableRefObject<(() => string) | null>;
 }) {
   const gl = useThree((state) => state.gl);
 
@@ -45,11 +45,7 @@ function SnapshotBridge({
   return null;
 }
 
-export function PlanCanvas({
-  className,
-  planId = '',
-  snapshotRef,
-}: PlanCanvasProps) {
+export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
   return (
     <div className={className} style={{ width: '100%', height: '100%' }}>
       <Canvas

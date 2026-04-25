@@ -1,0 +1,123 @@
+name: CI — Kod Kalite ve Build Kontrolü
+
+# Tüm feature/bugfix push'larında ve dev/test PR'larında çalışır.
+# Amaç: hataları main/test branch'e ulaşmadan yakalamak.
+on:
+  push:
+    branches:
+      - feature/**
+      - bugfix/**
+  pull_request:
+    branches:
+      - dev
+      - test
+
+jobs:
+  # ─── Frontend CI ─────────────────────────────────────────────────────────────
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/frontend
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Bağımlılıkları yükle
+        run: npm ci
+
+      - name: ESLint kontrolü
+        run: npm run lint
+
+      - name: Prettier format kontrolü
+        run: npm run format:check
+
+      - name: TypeScript + Vite build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: http://localhost:8080/api/v1
+          VITE_APP_VERSION: ci
+          VITE_APP_ENV: test
+
+      - name: Birim testleri (Vitest)
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+
+  # ─── Backend CI ──────────────────────────────────────────────────────────────
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: .NET 8 SDK kur
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: NuGet paketlerini yükle
+        run: dotnet restore cargo-pilot.sln
+
+      - name: Build (Release)
+        run: dotnet build cargo-pilot.sln --no-restore --configuration Release
+
+      - name: Testleri çalıştır
+        run: |
+          TEST_PROJECTS=$(find apps/backend -name "*.Tests.csproj" -o -name "*.Test.csproj" 2>/dev/null)
+          if [ -z "$TEST_PROJECTS" ]; then
+            echo "Test projesi bulunamadı, adım atlanıyor."
+          else
+            dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
+          fi
+
+  # ─── Docker Image Build (sadece test'e giden PR ve test push) ────────────────
+  docker-build:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci]
+    if: |
+      (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/bugfix/'))
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Docker Buildx kur
+        uses: docker/setup-buildx-action@v3
+
+      - name: Backend Docker image build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          push: false
+          tags: cargo-pilot-backend:ci
+          cache-from: type=gha,scope=backend-ci
+          cache-to: type=gha,mode=max,scope=backend-ci
+
+      - name: Frontend Docker image build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          push: false
+          tags: cargo-pilot-frontend:ci
+          build-args: |
+            VITE_API_BASE_URL=http://localhost:8080/api/v1
+          cache-from: type=gha,scope=frontend-ci
+          cache-to: type=gha,mode=max,scope=frontend-ci
