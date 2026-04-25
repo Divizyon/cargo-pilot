@@ -2,7 +2,7 @@
 
 **Görevler:** US-D19-I, US-D20-I, US-D21-I, US-D28-I, US-D29-I  
 **Tarih:** 2026-04-25  
-**Durum:** Test ortamı aktif — D20 kanal kararı bekliyor (kural hazır)
+**Durum:** Test ortamı aktif — D20 bildirim kanalı kararı bekliyor
 
 ---
 
@@ -11,165 +11,225 @@
 | Task | Başlık | Durum | Not |
 |------|--------|-------|-----|
 | US-D28-I | Prometheus Metrik Toplama | ✅ Tamamlandı | Backend scrape `health: up` |
-| US-D19-I | Log Toplama Altyapısı | ✅ Tamamlandı | Loki+Promtail çalışıyor |
-| US-D29-I | Grafana Dashboard Kurulumu | ✅ Tamamlandı | Grafana 10.3.3 aktif |
-| US-D20-I | Hata Log Uyarıları | ⚠️ Kısmen | Kurallar var, bildirim kanalı yok |
+| US-D19-I | Log Toplama Altyapısı | ✅ Tamamlandı | Loki + Promtail çalışıyor |
+| US-D29-I | Grafana Dashboard Kurulumu | ✅ Tamamlandı | Grafana 10.3.3 aktif, 2 dashboard |
 | US-D21-I | Temel Metrik İzleme | ✅ Tamamlandı | node_exporter + cAdvisor eklendi |
+| US-D20-I | Hata Log Uyarıları | ⚠️ Kısmen | 3 kural var, bildirim kanalı tanımlanmadı |
 
 ---
 
-## Tamamlanan Tasklar
+## Mimari
+
+```
+backend stdout (Serilog compact JSON)
+  └─► Promtail (Docker socket) ──► Loki ──────────────────────┐
+                                                               │
+backend /metrics (prometheus-net)                              ▼
+  └─► Prometheus ◄── node_exporter (OS)              Grafana (UI + Alerting)
+                  ◄── cAdvisor (containers)
+```
+
+Monitoring stack uygulama stack'inden **bağımsız** ayrı bir compose dosyasında çalışır.  
+Mevcut `cargo-pilot-test-network`'e `external: true` ile katılır — CI/CD pipeline'ı etkilemez.
+
+---
+
+## İlk Kurulum (Sıfırdan Başlıyorsan)
+
+### Ön koşul
+- Uygulama stack'i (`docker-compose.test.yml`) çalışıyor olmalı — `cargo-pilot-test-network` var olmalı
+- Sunucuda `/opt/cargo-pilot/` dizini mevcut olmalı
+
+### 1. Env dosyasını oluştur
+```bash
+cp /opt/cargo-pilot/infra/env/.env.monitoring.test.example \
+   /opt/cargo-pilot/infra/env/.env.monitoring.test
+
+# Dosyayı aç ve şifreyi gir:
+nano /opt/cargo-pilot/infra/env/.env.monitoring.test
+```
+
+`.env.monitoring.test` içeriği:
+```
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=<güvenli-şifre>
+```
+
+### 2. Monitoring stack'i başlat
+```bash
+docker compose \
+  -f /opt/cargo-pilot/infra/compose/docker-compose.monitoring.test.yml \
+  --env-file /opt/cargo-pilot/infra/env/.env.monitoring.test \
+  up -d
+```
+
+### 3. Kontrol et
+```bash
+docker ps | grep -E 'loki|promtail|prometheus|grafana|node-exporter|cadvisor'
+# 6 container çalışmalı
+```
+
+### 4. Grafana'ya gir
+- URL: `http://104.247.163.42:3002`
+- Kullanıcı: `admin` / Şifre: `.env.monitoring.test`'teki değer
+
+---
+
+## Config Güncelleme (Var Olan Stack'i Güncelleme)
+
+```bash
+cd /opt/cargo-pilot
+git pull origin <branch>
+
+docker compose \
+  -f infra/compose/docker-compose.monitoring.test.yml \
+  --env-file infra/env/.env.monitoring.test \
+  up -d --force-recreate
+```
+
+---
+
+## Stack Bileşenleri
 
 ### US-D28-I — Prometheus Metrik Toplama ✅
 
-**Ne yapıldı:**
-- `prometheus-net.AspNetCore` NuGet eklendi
-- `UseHttpMetrics()` + `MapMetrics("/metrics")` backend'e eklendi
-- Prometheus container `cargo-pilot-prometheus-test` çalışıyor (port 9091)
-- Backend hedefi scrape ediliyor: `cargo-pilot-backend-test → health: up`
+- `prometheus-net.AspNetCore` NuGet ile backend `/metrics` endpoint'i açıldı
+- `UseHttpMetrics()` + `MapMetrics("/metrics")` DependencyInjection.cs'e eklendi
+- Prometheus container: `cargo-pilot-prometheus-test` (port 9091 dışa açık)
+- Scrape hedefleri: backend, node-exporter, cAdvisor
 
-**Mevcut metrikler (`/metrics` endpoint):**
-- HTTP request rate, duration, in-flight sayısı
-- .NET GC heap, thread pool, runtime metrikleri
+**Mevcut metrikler:**
+- `http_requests_received_total` — istek sayısı (method/code/path label'lı)
+- `http_request_duration_seconds` — latency histogram
+- `http_requests_in_progress` — anlık aktif istek sayısı
+- `dotnet_total_memory_bytes` — .NET managed heap
+- `process_working_set_bytes` — process working set
 
 ---
 
 ### US-D19-I — Log Toplama Altyapısı ✅
 
-**Ne yapıldı:**
-- `Serilog.AspNetCore` + `Serilog.Sinks.Console` + `Serilog.Formatting.Compact` eklendi
-- `Program.cs`'e `builder.Host.UseSerilog(...)` — stdout'a compact JSON yazar (`@t/@l/@m`)
-- `appsettings.json`'a Serilog MinimumLevel config eklendi
-- Loki container `cargo-pilot-loki-test` çalışıyor (iç ağ, 3100)
-- Promtail container `cargo-pilot-promtail-test` çalışıyor — Docker socket ile container loglarını toplar
-
-**Log formatı örneği:**
-```json
-{"@t":"2026-04-25T10:00:00Z","@l":"Information","@m":"Request completed","StatusCode":200}
-```
+- `Serilog.AspNetCore` + `Serilog.Sinks.Console` + `Serilog.Formatting.Compact` NuGet eklendi
+- Backend stdout'a compact JSON yazar: `{"@t":"...","@l":"Information","@m":"..."}`
+- Loki container: `cargo-pilot-loki-test` (iç ağ, port 3100)
+- Promtail container: `cargo-pilot-promtail-test` — Docker socket ile backend+frontend container loglarını toplar
+- Promtail `level` label'ını Serilog'un `@l` alanından regex ile çıkarır
 
 ---
 
 ### US-D29-I — Grafana Dashboard Kurulumu ✅
 
-**Ne yapıldı:**
-- Grafana 10.3.3 container `cargo-pilot-grafana-test` çalışıyor (port 3002)
-- Datasource provisioning: `Prometheus-Test` + `Loki-Test` otomatik yüklendi
-- Dashboard `Cargo Pilot Overview` provisioning ile hazır (6 panel)
+- Grafana 10.3.3, port 3002 — datasource + dashboard + alert kuralları provisioning ile yüklenir
+- **Datasource:** Prometheus-Test, Loki-Test (otomatik, elle yapılandırma gerekmez)
 
-**Erişim:**
-- URL: `http://104.247.163.42:3002`
-- Kullanıcı: `admin` / Şifre: `.env.monitoring.test`'teki değer
+**Dashboard: Cargo Pilot Overview**
+1. Request Rate (req/s)
+2. Error Rate 5xx (kırmızı threshold > 0.1)
+3. P99 Latency (gauge, sarı > 500ms, kırmızı > 1s)
+4. Active Requests (anlık sayaç)
+5. .NET Memory (managed heap + working set)
+6. Error Logs (Loki stream, level=Error filtreli)
 
-**Dashboard panelleri:**
-1. Request Rate (PromQL)
-2. Error Rate 5xx — kırmızı threshold
-3. P99 Latency
-4. Aktif istek sayısı
-5. .NET GC Heap
-6. Error Log Stream (LogQL)
+**Dashboard: System Metrics**
+1. CPU Usage % (gauge, sarı > 70%, kırmızı > 90%)
+2. Memory Usage % (gauge)
+3. Disk Usage % (gauge)
+4. Available Memory (stat)
+5. CPU per Core (timeline)
+6. Memory Timeline (total/used/available)
+7. Network I/O (RX/TX, veth/lo hariç)
+8. Disk I/O (read/write)
+9. Container CPU Usage (cargo-pilot-* container'ları)
+10. Container Memory Usage (cargo-pilot-* container'ları)
 
 ---
 
-## Kısmen Tamamlanan Tasklar
+### US-D21-I — Temel Metrik İzleme ✅
+
+- `node_exporter:v1.7.0` — sunucu OS metrikleri (CPU, RAM, disk, network) — iç ağda
+- `cAdvisor:v0.49.1` — container bazlı kaynak metrikleri — iç ağda, privileged
+- Her ikisi de host porta bind edilmez; sadece Prometheus scrape eder
+
+---
 
 ### US-D20-I — Hata Log Uyarıları ⚠️
 
-**Ne yapıldı:**
-- 3 alert kuralı tanımlandı ve Grafana'ya provisioning ile yüklendi:
-  - Yüksek 5xx oranı (>0.1 req/s, 2dk)
-  - Fazla error log (>5/5dk, 2dk)
-  - Backend health degraded
+3 alert kuralı provisioning ile Grafana'ya yüklendi:
 
-**Eksik:**
-- Bildirim kanalı (Contact Point) tanımlanmadı — Circle platformu veya email/Slack karar bekliyor
-- Kanal tanımlanmadan kurallar sadece Grafana içinde görünür, dışarı bildirim atmaz
+| Kural | Koşul | Süre | Severity |
+|-------|-------|------|---------|
+| Yüksek 5xx Hata Oranı | `sum(rate(http_requests_received_total{code=~"5.."}[5m])) > 0.1` | 2dk | critical |
+| Fazla Error Log | Son 5dk'da > 5 error log | 2dk | warning |
+| Backend Health Degraded | `up{job="cargo-pilot-backend-test"} < 1` | 1dk | critical |
 
----
-
-## Tamamlanan Tasklar (devam)
-
-### US-D21-I — Temel Metrik İzleme Kurulumu ✅
-
-Bu task **sunucu ve container bazlı sistem metriklerini** kapsar — backend uygulama metriklerinden (D28) farklıdır.
-
-**Ne yapıldı:**
-1. `node_exporter:v1.7.0` — sunucu OS metrikleri (CPU, RAM, disk, network) — iç ağda çalışır
-2. `cAdvisor:v0.49.1` — container bazlı kaynak metrikleri — iç ağda çalışır
-3. `prometheus.test.yml` + `prometheus.prod.yml`'a scrape hedefleri eklendi: `node-exporter-test:9100`, `cadvisor-test:8080`
-4. `infra/docker/grafana/dashboards/system-metrics.json` — 10 panelli sistem dashboard'u eklendi
-
-**Dashboard panelleri:**
-- CPU Usage gauge + per-core timeline
-- Memory Usage gauge + timeline (total/used/available)
-- Disk Usage gauge
-- Network I/O (RX/TX, docker/veth hariç)
-- Disk I/O (read/write)
-- Container CPU + Memory (cargo-pilot-* container'ları)
-
-**Yeni portlar açılmadı** — node_exporter ve cAdvisor iç ağda çalışır.
+**Eksik:** Bildirim kanalı (Contact Point) tanımlanmadı.  
+Kurallar Grafana içinde "Normal/Alerting" durumu gösterir ama dışarı (email/Slack/webhook) bildirim atmaz.  
+Karar alınınca `infra/docker/grafana/provisioning/alerting/contact-points.yml` dosyası eklenmeli.
 
 ---
 
-## Test Edilmesi Gereken Maddeler
+## Sorun Giderme
 
-### Grafana'da yapılacak manuel kontroller
+```bash
+# Container'ların durumunu gör
+docker ps | grep -E 'loki|promtail|prometheus|grafana|node-exporter|cadvisor'
 
-| Kontrol | Nerede | Beklenen |
-|---------|--------|---------|
-| Prometheus veri geliyor mu? | Dashboards → Cargo Pilot Overview | Request Rate panelinde değer görünmeli |
-| Loki log geliyor mu? | Explore → Loki-Test → `{job="cargo-pilot-test"}` | Log satırları görünmeli |
-| Alert kuralları aktif mi? | Alerting → Alert Rules | 3 kural "Normal" veya "Pending" durumda |
-| Datasource bağlantısı | Connections → Data Sources → Test | Her ikisi yeşil |
+# Log kontrol
+docker logs cargo-pilot-grafana-test --tail=50
+docker logs cargo-pilot-loki-test --tail=50
+docker logs cargo-pilot-promtail-test --tail=50
+docker logs cargo-pilot-node-exporter-test --tail=20
+docker logs cargo-pilot-cadvisor-test --tail=20
+
+# Prometheus hedef durumu (browser'da)
+http://104.247.163.42:9091/targets
+# cargo-pilot-backend-test, node-exporter-test, cadvisor-test → "up" görünmeli
+
+# Loki'ye log geliyor mu
+docker exec cargo-pilot-promtail-test wget -qO- http://cargo-pilot-loki-test:3100/ready
+```
 
 ---
 
-## Sunucudaki Dosya Yapısı
+## Dosya Yapısı
 
 ```
 /opt/cargo-pilot/
 ├── infra/
 │   ├── compose/
-│   │   ├── docker-compose.test.yml           (uygulama stack)
-│   │   ├── docker-compose.monitoring.test.yml (monitoring stack — CI'dan bağımsız)
-│   │   └── docker-compose.monitoring.prod.yml (prod için hazır)
+│   │   ├── docker-compose.test.yml                (uygulama stack — CI yönetir)
+│   │   ├── docker-compose.monitoring.test.yml     (monitoring stack — elle yönetilir)
+│   │   └── docker-compose.monitoring.prod.yml     (prod için hazır — prod app deploy edilince)
 │   ├── docker/
-│   │   ├── prometheus/prometheus.test.yml
+│   │   ├── prometheus/
+│   │   │   ├── prometheus.test.yml                (3 scrape hedefi)
+│   │   │   └── prometheus.prod.yml
 │   │   ├── loki/loki-config.yml
-│   │   ├── promtail/promtail.test.yml
-│   │   └── grafana/provisioning/...
+│   │   ├── promtail/
+│   │   │   ├── promtail.test.yml
+│   │   │   └── promtail.prod.yml
+│   │   └── grafana/
+│   │       ├── provisioning/
+│   │       │   ├── datasources/datasources.test.yml
+│   │       │   ├── dashboards/dashboard-provider.yml
+│   │       │   └── alerting/alert-rules.test.yml
+│   │       └── dashboards/
+│   │           ├── cargo-pilot-overview.json      (uygulama metrikleri + loglar)
+│   │           └── system-metrics.json            (sunucu + container kaynakları)
 │   └── env/
-│       ├── .env.monitoring.test              (sunucuda mevcut, git'te yok)
-│       └── .env.monitoring.test.example      (şablon, git'te var)
-```
-
----
-
-## Monitoring Stack Komutları
-
-```bash
-# Durumu gör
-docker ps | grep -E 'loki|promtail|prometheus|grafana'
-
-# Yeniden başlat (config değişikliğinde)
-docker compose \
-  -f /opt/cargo-pilot/infra/compose/docker-compose.monitoring.test.yml \
-  --env-file /opt/cargo-pilot/infra/env/.env.monitoring.test \
-  up -d --force-recreate
-
-# Logları gör
-docker logs cargo-pilot-grafana-test --tail=50
-docker logs cargo-pilot-loki-test --tail=50
+│       ├── .env.monitoring.test                   (sunucuda — git'te YOK)
+│       └── .env.monitoring.test.example           (şablon — git'te var)
 ```
 
 ---
 
 ## Port Tablosu
 
-| Servis | Prod Port | Test Port | Durum |
+| Servis | Test Port | Prod Port | Durum |
 |--------|-----------|-----------|-------|
-| Grafana | 3000 | 3002 | Test ✅ / Prod ❌ bekliyor |
-| Prometheus | 9090 | 9091 | Test ✅ / Prod ❌ bekliyor |
-| Loki | iç ağ | iç ağ | Test ✅ / Prod ❌ bekliyor |
-| node_exporter | iç ağ | iç ağ | Kod hazır — sunucu güncelleme gerekiyor |
-| cAdvisor | iç ağ | iç ağ | Kod hazır — sunucu güncelleme gerekiyor |
+| Grafana | 3002 | 3000 | Test ✅ |
+| Prometheus | 9091 | 9090 | Test ✅ |
+| Loki | iç ağ | iç ağ | Test ✅ |
+| node_exporter | iç ağ | iç ağ | Test — sunucu güncellemesi bekleniyor |
+| cAdvisor | iç ağ | iç ağ | Test — sunucu güncellemesi bekleniyor |
+| Prod stack | — | — | ❌ prod app deploy edilince başlatılacak |
