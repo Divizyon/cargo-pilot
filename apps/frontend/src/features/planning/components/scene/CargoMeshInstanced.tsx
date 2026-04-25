@@ -3,9 +3,11 @@ import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { BoxWrapper } from '@/components/shared/BoxWrapper';
 
-const INSTANCED_THRESHOLD = 50;
-const COLOR_VIOLATION = 0xdc2626;
-const COLOR_NORMAL = 0x2563eb;
+import { SCENE } from '@/lib/config/scene-config';
+
+const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
+const COLOR_VIOLATION = SCENE.COLORS.VIOLATION;
+const COLOR_NORMAL = SCENE.COLORS.NORMAL;
 
 interface CargoMeshInstancedProps {
   planId: string;
@@ -69,7 +71,7 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
             positionX={p.positionX}
             positionY={p.positionY}
             positionZ={p.positionZ}
-            color={p.isViolation ? '#DC2626' : '#2563EB'}
+            color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : SCENE.COLORS.NORMAL_STR}
             itemId={p.itemId}
           />
         ))}

@@ -1,0 +1,42 @@
+export const SCENE = {
+  CAMERA_POSITION: [0, 8, 14] as const,
+  CAMERA_FOV: 50,
+
+  ORBIT_MIN_DISTANCE: 2,
+  ORBIT_MAX_DISTANCE: 50,
+  ORBIT_AUTO_ROTATE_SPEED: 0.6,
+  ORBIT_DAMPING_FACTOR: 0.05,
+
+  LOAD_INTERVAL_MS: 380,
+  DROP_EASING: 0.12,
+  DROP_GLOW: 0.25,
+  IDLE_GLOW: 0.06,
+
+  AMBIENT_INTENSITY: 0.6,
+  DIRECTIONAL_INTENSITY: 1,
+  DIRECTIONAL_POSITION: [10, 10, 5] as const,
+  RIM_INTENSITY: 0.3,
+  RIM_POSITION: [-8, 4, -6] as const,
+  RIM_COLOR: 0x4488ff,
+
+  COLORS: {
+    VIOLATION: 0xdc2626,
+    VIOLATION_STR: '#dc2626',
+    SELECTED: 0xfbbf24,
+    SELECTED_STR: '#fbbf24',
+    NORMAL: 0x2563eb,
+    NORMAL_STR: '#2563eb',
+    CONTAINER_EDGE: '#334155',
+    CONTAINER_DOOR: '#f59e0b',
+    GRID: '#94a3b8',
+    GROUPS: {
+      A: 0xef4444,
+      B: 0x3b82f6,
+      C: 0xf59e0b,
+      D: 0x22c55e,
+    },
+  },
+
+  INSTANCED_THRESHOLD: 50,
+  GRID_STEP_CM: 50,
+} as const;

@@ -4,7 +4,9 @@ import { Html, useProgress } from '@react-three/drei';
 import { SceneLights } from '@/features/planning/components/scene/SceneLights';
 import { SceneControls } from '@/features/planning/components/scene/SceneControls';
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
+import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
+import { SCENE } from '@/lib/config/scene-config';
 
 interface PlanCanvasProps {
   className?: string;
@@ -49,7 +51,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
   return (
     <div className={className} style={{ width: '100%', height: '100%' }}>
       <Canvas
-        camera={{ position: [0, 8, 14], fov: 50 }}
+        camera={{ position: SCENE.CAMERA_POSITION, fov: SCENE.CAMERA_FOV }}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows
         style={{ width: '100%', height: '100%' }}
@@ -59,6 +61,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
         <Suspense fallback={<SceneLoader />}>
           <SceneLights />
           <SceneControls />
+          <ContainerMesh />
           <CargoMeshInstanced planId={planId} />
         </Suspense>
       </Canvas>
