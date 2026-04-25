@@ -126,3 +126,123 @@ groups:
           severity: critical
         noDataState: Alerting
         execErrState: Alerting
+
+      - uid: high-cpu-usage-test
+        title: Yüksek CPU Kullanımı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: 100 - (avg(rate(node_cpu_seconds_total{job="node-exporter-test",mode="idle"}[5m])) * 100)
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [90]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 5m
+        annotations:
+          summary: "CPU kullanımı %90 üzerinde (5 dakika sürdü)"
+        labels:
+          severity: critical
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: high-ram-usage-test
+        title: Yüksek RAM Kullanımı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: (node_memory_MemTotal_bytes{job="node-exporter-test"} - node_memory_MemAvailable_bytes{job="node-exporter-test"}) / node_memory_MemTotal_bytes{job="node-exporter-test"} * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [85]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 5m
+        annotations:
+          summary: "RAM kullanımı %85 üzerinde (5 dakika sürdü)"
+        labels:
+          severity: critical
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: high-disk-usage-test
+        title: Yüksek Disk Kullanımı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: (node_filesystem_size_bytes{job="node-exporter-test",mountpoint="/",fstype!="tmpfs"} - node_filesystem_free_bytes{job="node-exporter-test",mountpoint="/",fstype!="tmpfs"}) / node_filesystem_size_bytes{job="node-exporter-test",mountpoint="/",fstype!="tmpfs"} * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [80]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 5m
+        annotations:
+          summary: "Disk kullanımı %80 üzerinde (5 dakika sürdü)"
+        labels:
+          severity: warning
+        noDataState: NoData
+        execErrState: Error
