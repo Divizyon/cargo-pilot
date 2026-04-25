@@ -40,7 +40,9 @@ function VehicleTypeCard({ vehicle, isSelected, onSelect }: VehicleTypeCardProps
       )}
     >
       <Icon className="w-5 h-5 shrink-0" />
-      <span className="text-[10px] leading-tight font-medium whitespace-pre-line">{meta.label}</span>
+      <span className="text-[10px] leading-tight font-medium whitespace-pre-line">
+        {meta.label}
+      </span>
     </button>
   );
 }

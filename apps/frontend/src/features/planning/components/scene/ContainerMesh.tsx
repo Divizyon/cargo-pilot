@@ -3,7 +3,15 @@ import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
 
-function ContainerEdges({ width, height, length }: { width: number; height: number; length: number }) {
+function ContainerEdges({
+  width,
+  height,
+  length,
+}: {
+  width: number;
+  height: number;
+  length: number;
+}) {
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(width, height, length);
     const edges = new THREE.EdgesGeometry(box);
@@ -12,10 +20,7 @@ function ContainerEdges({ width, height, length }: { width: number; height: numb
   }, [width, height, length]);
 
   return (
-    <lineSegments
-      geometry={edgesGeo}
-      position={[width / 2, height / 2, length / 2]}
-    >
+    <lineSegments geometry={edgesGeo} position={[width / 2, height / 2, length / 2]}>
       <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
     </lineSegments>
   );

@@ -35,16 +35,64 @@ interface DisplayGroup {
 // ─── Mock data (API entegrasyonu ayrı task) ───────────────────────────────────
 
 const MOCK_ITEMS: DisplayItem[] = [
-  { id: 'U1', ad: 'Elektronik Aksam',   adet: 18, agirlik: 180, boyut: '80×60×40 cm',  dotClass: 'bg-indigo-500', kisitlar: ['fragile']      },
-  { id: 'U2', ad: 'Tekstil Paketleri',  adet: 24, agirlik: 80,  boyut: '60×40×30 cm',  dotClass: 'bg-sky-500',    kisitlar: []               },
-  { id: 'U3', ad: 'Plastik Bileşenler', adet: 12, agirlik: 240, boyut: '100×80×60 cm', dotClass: 'bg-amber-500',  kisitlar: ['heavy_side']   },
-  { id: 'U4', ad: 'Metal Profiller',    adet: 8,  agirlik: 550, boyut: '200×10×10 cm', dotClass: 'bg-rose-500',   kisitlar: ['bottom_only']  },
-  { id: 'U5', ad: 'Kimyasal Variller',  adet: 6,  agirlik: 900, boyut: '60×60×90 cm',  dotClass: 'bg-violet-500', kisitlar: ['hazmat']       },
-  { id: 'U6', ad: 'Ahşap Kasalar',      adet: 15, agirlik: 120, boyut: '80×80×60 cm',  dotClass: 'bg-orange-400', kisitlar: []               },
+  {
+    id: 'U1',
+    ad: 'Elektronik Aksam',
+    adet: 18,
+    agirlik: 180,
+    boyut: '80×60×40 cm',
+    dotClass: 'bg-indigo-500',
+    kisitlar: ['fragile'],
+  },
+  {
+    id: 'U2',
+    ad: 'Tekstil Paketleri',
+    adet: 24,
+    agirlik: 80,
+    boyut: '60×40×30 cm',
+    dotClass: 'bg-sky-500',
+    kisitlar: [],
+  },
+  {
+    id: 'U3',
+    ad: 'Plastik Bileşenler',
+    adet: 12,
+    agirlik: 240,
+    boyut: '100×80×60 cm',
+    dotClass: 'bg-amber-500',
+    kisitlar: ['heavy_side'],
+  },
+  {
+    id: 'U4',
+    ad: 'Metal Profiller',
+    adet: 8,
+    agirlik: 550,
+    boyut: '200×10×10 cm',
+    dotClass: 'bg-rose-500',
+    kisitlar: ['bottom_only'],
+  },
+  {
+    id: 'U5',
+    ad: 'Kimyasal Variller',
+    adet: 6,
+    agirlik: 900,
+    boyut: '60×60×90 cm',
+    dotClass: 'bg-violet-500',
+    kisitlar: ['hazmat'],
+  },
+  {
+    id: 'U6',
+    ad: 'Ahşap Kasalar',
+    adet: 15,
+    agirlik: 120,
+    boyut: '80×80×60 cm',
+    dotClass: 'bg-orange-400',
+    kisitlar: [],
+  },
 ];
 
 const INITIAL_GROUPS: DisplayGroup[] = [
-  { id: 'G1', ad: 'Grup A', acik: true,  itemIdler: ['U1', 'U2'] },
+  { id: 'G1', ad: 'Grup A', acik: true, itemIdler: ['U1', 'U2'] },
   { id: 'G2', ad: 'Grup B', acik: false, itemIdler: ['U4', 'U5'] },
 ];
 
@@ -53,10 +101,10 @@ const UNGROUPED_IDS = ['U3', 'U6'];
 // ─── Constraint metadata ──────────────────────────────────────────────────────
 
 const KISIT_META: Record<string, { icon: ElementType; label: string }> = {
-  fragile:     { icon: AlertTriangle,   label: 'Kırılgan'        },
-  heavy_side:  { icon: FlipHorizontal,  label: 'Yan Yükleme'     },
-  bottom_only: { icon: ArrowDownToLine, label: 'Alt Katman'       },
-  hazmat:      { icon: Flame,           label: 'Tehlikeli Mad.'   },
+  fragile: { icon: AlertTriangle, label: 'Kırılgan' },
+  heavy_side: { icon: FlipHorizontal, label: 'Yan Yükleme' },
+  bottom_only: { icon: ArrowDownToLine, label: 'Alt Katman' },
+  hazmat: { icon: Flame, label: 'Tehlikeli Mad.' },
 };
 
 // ─── ItemRow ──────────────────────────────────────────────────────────────────
@@ -161,10 +209,7 @@ export function PlanLeftPanel() {
                 <span className="text-xs text-zinc-400">{groupTotal} kalem</span>
               </button>
 
-              {g.acik &&
-                g.itemIdler.map((id) => (
-                  <ItemRow key={id} item={getItem(id)} indent />
-                ))}
+              {g.acik && g.itemIdler.map((id) => <ItemRow key={id} item={getItem(id)} indent />)}
             </div>
           );
         })}

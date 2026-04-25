@@ -42,9 +42,7 @@ export const router = createBrowserRouter([
       },
       {
         element: <FocusModeLayout />,
-        children: [
-          { path: '/planning/new', element: <NewPlanPage /> },
-        ],
+        children: [{ path: '/planning/new', element: <NewPlanPage /> }],
       },
     ],
   },
