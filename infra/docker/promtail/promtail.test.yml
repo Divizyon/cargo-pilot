@@ -27,9 +27,7 @@ scrape_configs:
       - target_label: job
         replacement: cargo-pilot-test
     pipeline_stages:
-      - json:
-          expressions:
-            level: '@l'
-            message: '@m'
+      - regex:
+          expression: '"@l":"(?P<level>[^"]*)"'
       - labels:
           level:

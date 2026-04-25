@@ -11,6 +11,9 @@ groups:
         condition: C
         data:
           - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
             datasourceUid: prometheus-test
             model:
               expr: sum(rate(http_requests_received_total{code=~"5.."}[5m]))
@@ -18,6 +21,9 @@ groups:
               maxDataPoints: 43200
               refId: A
           - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
             datasourceUid: __expr__
             model:
               conditions:
@@ -34,7 +40,7 @@ groups:
               type: classic_conditions
         for: 2m
         annotations:
-          summary: "Backend 5xx hata oranı yüksek ({{ $value | printf \"%.2f\" }} req/s)"
+          summary: "Backend 5xx hata oranı yüksek"
         labels:
           severity: critical
         noDataState: NoData
@@ -45,6 +51,9 @@ groups:
         condition: C
         data:
           - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
             datasourceUid: loki-test
             model:
               expr: sum(count_over_time({job="cargo-pilot-test"} | json | level="Error" [5m]))
@@ -53,6 +62,9 @@ groups:
               refId: A
               queryType: range
           - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
             datasourceUid: __expr__
             model:
               conditions:
@@ -69,7 +81,7 @@ groups:
               type: classic_conditions
         for: 2m
         annotations:
-          summary: "Son 5 dakikada {{ $value }} adet error log"
+          summary: "Son 5 dakikada çok fazla error log"
         labels:
           severity: warning
         noDataState: NoData
@@ -80,6 +92,9 @@ groups:
         condition: C
         data:
           - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
             datasourceUid: prometheus-test
             model:
               expr: up{job="cargo-pilot-backend-test"}
@@ -87,6 +102,9 @@ groups:
               maxDataPoints: 43200
               refId: A
           - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
             datasourceUid: __expr__
             model:
               conditions:
