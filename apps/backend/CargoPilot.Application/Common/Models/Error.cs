@@ -13,7 +13,13 @@ public enum ErrorType
     Unexpected = 8
 }
 
-public record Error(ErrorType Type, string Code, string Description)
- {
+public sealed record ValidationFailure(string Field, string Message);
+
+public record Error(
+    ErrorType Type,
+    string Code,
+    string Description,
+    IReadOnlyList<ValidationFailure>? ValidationErrors = null)
+{
     public static readonly Error None = new(ErrorType.None, string.Empty, string.Empty);
 }
