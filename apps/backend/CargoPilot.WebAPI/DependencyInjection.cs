@@ -5,6 +5,7 @@ using CargoPilot.WebAPI.Middlewares;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
+using Prometheus;
 
 namespace CargoPilot.WebAPI;
 
@@ -103,8 +104,10 @@ public static class DependencyInjection {
             });
         }
 
+        app.UseHttpMetrics();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapMetrics("/metrics");
 
         // Özet health endpoint — sadece Healthy/Unhealthy (yük dengeleyici için)
         app.MapHealthChecks("/health", new HealthCheckOptions
