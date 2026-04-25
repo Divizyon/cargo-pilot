@@ -100,11 +100,16 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
-          "expr": "dotnet_gc_memory_total_available_bytes",
-          "legendFormat": "GC Available Memory"
+          "expr": "dotnet_total_memory_bytes",
+          "legendFormat": "Managed Heap"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+          "expr": "process_working_set_bytes",
+          "legendFormat": "Working Set"
         }
       ],
-      "title": ".NET GC Heap",
+      "title": ".NET Memory",
       "type": "timeseries"
     },
     {
@@ -115,7 +120,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "${datasource_loki}" },
-          "expr": "{job=~\"cargo-pilot-.*\"} | json | level=\"Error\"",
+          "expr": "{job=~\"cargo-pilot-.*\", level=\"Error\"}",
           "legendFormat": "",
           "queryType": "range"
         }

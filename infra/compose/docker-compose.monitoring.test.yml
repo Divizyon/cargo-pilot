@@ -24,6 +24,34 @@ services:
     networks:
       - cargo-pilot-test
 
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: cargo-pilot-node-exporter-test
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    pid: host
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cargo-pilot-cadvisor-test
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
   prometheus:
     image: prom/prometheus:v2.50.1
     container_name: cargo-pilot-prometheus-test

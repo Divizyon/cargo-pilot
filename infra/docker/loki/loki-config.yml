@@ -11,6 +11,9 @@ ingester:
       replication_factor: 1
   chunk_idle_period: 5m
   chunk_retain_period: 30s
+  wal:
+    enabled: true
+    dir: /loki/wal
 
 schema_config:
   configs:
