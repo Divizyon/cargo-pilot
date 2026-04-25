@@ -5,10 +5,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import type { Vehicle } from '@/lib/types/vehicle';
 
-const STANDARD_VEHICLES: Vehicle[] = [
+export const STANDARD_VEHICLES: Vehicle[] = [
   {
     id: '00000000-0000-0000-0000-000000000001',
     name: '20ft Konteyner',
@@ -43,7 +44,11 @@ const STANDARD_VEHICLES: Vehicle[] = [
   },
 ];
 
-export function VehicleSelector() {
+interface VehicleSelectorProps {
+  className?: string;
+}
+
+export function VehicleSelector({ className }: VehicleSelectorProps = {}) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
 
@@ -54,7 +59,7 @@ export function VehicleSelector() {
 
   return (
     <Select value={selectedVehicle?.id ?? ''} onValueChange={handleValueChange}>
-      <SelectTrigger className="w-56">
+      <SelectTrigger className={cn('w-56', className)}>
         <SelectValue placeholder="Araç tipi seçin" />
       </SelectTrigger>
       <SelectContent>

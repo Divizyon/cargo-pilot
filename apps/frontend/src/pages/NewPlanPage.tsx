@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
+import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 
 export function NewPlanPage() {
@@ -17,9 +18,9 @@ export function NewPlanPage() {
         <PlanCanvas snapshotRef={snapshotRef} />
       </div>
 
-      {/* Sağ panel — ilerleyen tasklarda */}
-      <div className="w-[280px] shrink-0 rounded-xl bg-white border border-zinc-200 flex items-center justify-center">
-        <span className="text-xs text-zinc-400">Araç seçimi</span>
+      {/* Sağ panel — Araç Seçimi */}
+      <div className="w-[280px] shrink-0">
+        <PlanRightPanel />
       </div>
     </div>
   );

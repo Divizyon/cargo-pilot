@@ -51,7 +51,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
   return (
     <div className={className} style={{ width: '100%', height: '100%' }}>
       <Canvas
-        camera={{ position: SCENE.CAMERA_POSITION, fov: SCENE.CAMERA_FOV }}
+        camera={{ position: SCENE.CAMERA_POSITION, fov: SCENE.CAMERA_FOV, near: SCENE.CAMERA_NEAR, far: SCENE.CAMERA_FAR }}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows
         style={{ width: '100%', height: '100%' }}
