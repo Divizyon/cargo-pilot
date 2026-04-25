@@ -7,10 +7,10 @@
 @layer base {
   :root {
     /* ------------------------------------------------------------------ */
-    /* Temel yüzey renkleri — Zinc palette                                  */
+    /* Temel yüzey renkleri — #ffffff saf beyaz                             */
     /* ------------------------------------------------------------------ */
-    --background: 0 0% 98%; /* zinc-50  */
-    --foreground: 240 10% 3.9%; /* zinc-950 */
+    --background: 0 0% 100%; /* #ffffff */
+    --foreground: 240 10% 3.9%;
 
     /* ------------------------------------------------------------------ */
     /* Kart & Popover                                                       */
@@ -21,69 +21,99 @@
     --popover-foreground: 240 10% 3.9%;
 
     /* ------------------------------------------------------------------ */
-    /* Marka renkleri — Zinc-900 primary (industrial dark)                  */
+    /* Marka renkleri — #030213 koyu lacivert primary                       */
     /* ------------------------------------------------------------------ */
-    --primary: 240 5.9% 10%; /* zinc-900 */
-    --primary-foreground: 0 0% 98%; /* zinc-50  */
+    --primary: 244 81% 4.1%; /* #030213 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 4.8% 95.9%; /* zinc-100 */
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 240 4.8% 93.1%; /* oklch(0.95 0.0058 264.53) */
+    --secondary-foreground: 244 81% 4.1%;
 
-    --muted: 240 4.8% 95.9%; /* zinc-100 */
-    --muted-foreground: 240 3.7% 46.1%; /* zinc-500 */
+    --muted: 240 12% 93.3%; /* #ececf0 */
+    --muted-foreground: 240 7% 47.6%; /* #717182 */
 
-    --accent: 240 4.8% 95.9%; /* zinc-100 */
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 220 16% 92.5%; /* #e9ebef */
+    --accent-foreground: 244 81% 4.1%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 348 80% 46.3%; /* #d4183d */
+    --destructive-foreground: 0 0% 100%;
 
     /* ------------------------------------------------------------------ */
     /* Form & Sınır çizgileri                                              */
     /* ------------------------------------------------------------------ */
-    --border: 240 5.9% 90%; /* zinc-200 */
-    --input: 240 5.9% 90%; /* zinc-200 */
-    --ring: 240 5.9% 10%; /* zinc-900 */
+    --border: 0 0% 89.8%; /* rgba(0,0,0,0.1) on white */
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 70.8%; /* oklch(0.708 0 0) */
+
+    /* ------------------------------------------------------------------ */
+    /* Özel bileşen token'ları                                              */
+    /* ------------------------------------------------------------------ */
+    --input-background: 240 9% 95.7%; /* #f3f3f5 */
+    --switch-background: 220 9.5% 81.4%; /* #cbced4 */
 
     /* ------------------------------------------------------------------ */
     /* Yarıçap & Katman efektleri                                          */
     /* ------------------------------------------------------------------ */
-    --radius: 0.5rem;
+    --radius: 0.625rem;
     --radius-xl: 1rem;
 
     --surface-overlay: 255 255 255 / 0.13;
     --overlay-blur: 12px;
+
+    /* ------------------------------------------------------------------ */
+    /* Sidebar                                                              */
+    /* ------------------------------------------------------------------ */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 240 10% 3.9%;
+    --sidebar-primary: 244 81% 4.1%;
+    --sidebar-primary-foreground: 0 0% 98.5%;
+    --sidebar-accent: 0 0% 97%;
+    --sidebar-accent-foreground: 0 0% 20.5%;
+    --sidebar-border: 0 0% 92.2%;
+    --sidebar-ring: 0 0% 70.8%;
   }
 
   .dark {
-    --background: 240 10% 3.9%; /* zinc-950 */
-    --foreground: 0 0% 98%; /* zinc-50  */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 240 5.9% 10%; /* zinc-900 */
+    --card: 240 5.9% 10%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%; /* zinc-950 */
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 0 0% 98%; /* zinc-50 (açık yüzey üstü koyu bg'de) */
-    --primary-foreground: 240 5.9% 10%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 20.5%;
 
-    --secondary: 240 3.7% 15.9%; /* zinc-800 */
+    --secondary: 0 0% 26.9%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 3.7% 15.9%; /* zinc-800 */
-    --muted-foreground: 240 5% 64.9%; /* zinc-400 */
+    --muted: 0 0% 26.9%;
+    --muted-foreground: 0 0% 70.8%;
 
-    --accent: 240 3.7% 15.9%; /* zinc-800 */
+    --accent: 0 0% 26.9%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%; /* zinc-800 */
-    --input: 240 3.7% 15.9%; /* zinc-800 */
-    --ring: 240 4.9% 83.9%; /* zinc-300 */
+    --border: 0 0% 26.9%;
+    --input: 0 0% 26.9%;
+    --ring: 0 0% 43.9%;
+
+    --input-background: 0 0% 20%;
+    --switch-background: 0 0% 40%;
 
     --surface-overlay: 0 0% 0% / 0.2;
+
+    --sidebar: 0 0% 20.5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 264 55% 49%; /* oklch(0.488 0.243 264.376) */
+    --sidebar-primary-foreground: 0 0% 98.5%;
+    --sidebar-accent: 0 0% 26.9%;
+    --sidebar-accent-foreground: 0 0% 98.5%;
+    --sidebar-border: 0 0% 26.9%;
+    --sidebar-ring: 0 0% 43.9%;
   }
 
   * {
