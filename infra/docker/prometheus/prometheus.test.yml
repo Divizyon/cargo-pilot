@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: cargo-pilot-backend-test
+    static_configs:
+      - targets: ['cargo-pilot-backend-test:8080']
+    metrics_path: /metrics
+
+  - job_name: node-exporter-test
+    static_configs:
+      - targets: ['cargo-pilot-node-exporter-test:9100']
+
+  - job_name: cadvisor-test
+    static_configs:
+      - targets: ['cargo-pilot-cadvisor-test:8080']

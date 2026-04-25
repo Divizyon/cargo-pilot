@@ -31,6 +31,7 @@
 | `github-actions-prod-deploy` | GitHub Actions CI/CD otomatik deploy |
 | `dogancanyildiz-cargo-pilot` | Doğancan Yıldız – geliştirici erişimi |
 | `hturk-cargo-pilot` | Hasan Türk – geliştirici erişimi |
+| `eyupece-cargo-pilot` | Eyüp Ece – geliştirici erişimi |
 
 ### Key ile Bağlantı
 ```bash
@@ -62,6 +63,10 @@ echo "ssh-ed25519 AAAA... isim-cargo-pilot" >> ~/.ssh/authorized_keys
 | 9003 | TCP | MinIO Test Console | Test yönetim |
 | 1433 | TCP | MSSQL Prod | Development erişimi için açık |
 | 1434 | TCP | MSSQL Test | Development erişimi için açık |
+| 3000 | TCP | Grafana Prod | Monitoring dashboard |
+| 3002 | TCP | Grafana Test | Test monitoring dashboard |
+| 9090 | TCP | Prometheus Prod | Metrics scraper |
+| 9091 | TCP | Prometheus Test | Test metrics scraper |
 
 > **Not:** MSSQL portları (1433/1434) geliştirici erişimi için açık tutulmaktadır.
 > Production'da bu portlara erişimi IP kısıtlaması ile sınırlandırmak önerilir.
@@ -109,7 +114,34 @@ fail2ban-client set sshd unbanip <IP>
 
 ---
 
-## 6. GitHub Actions Deploy Key
+## 6. Monitoring Stack Başlatma
+
+Monitoring stack CI/CD'den bağımsız olarak bir kez başlatılır ve çalışır halde kalır.
+
+```bash
+# Test ortamı monitoring
+docker compose \
+  -f /opt/cargo-pilot/infra/compose/docker-compose.monitoring.test.yml \
+  --env-file /opt/cargo-pilot/infra/env/.env.monitoring.test \
+  up -d
+
+# Prod ortamı monitoring
+docker compose \
+  -f /opt/cargo-pilot/infra/compose/docker-compose.monitoring.prod.yml \
+  --env-file /opt/cargo-pilot/infra/env/.env.monitoring.prod \
+  up -d
+```
+
+> **Not:** `.env.monitoring.prod` ve `.env.monitoring.test` dosyaları sunucuda manuel oluşturulmalıdır (`.example` dosyaları referans alınır).
+
+| Servis | Prod URL | Test URL |
+|--------|----------|----------|
+| Grafana | `http://104.247.163.42:3000` | `http://104.247.163.42:3002` |
+| Prometheus | `http://104.247.163.42:9090` | `http://104.247.163.42:9091` |
+
+---
+
+## 7. GitHub Actions Deploy Key
 
 CI/CD pipeline'ı sunucuya `github-actions-prod-deploy` key'i ile bağlanır.  
 GitHub repository → Settings → Secrets'ta saklanır:

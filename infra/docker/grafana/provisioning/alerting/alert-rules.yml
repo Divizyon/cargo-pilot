@@ -1,0 +1,128 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: cargo-pilot-alerts
+    folder: Cargo Pilot
+    interval: 1m
+    rules:
+      - uid: high-5xx-error-rate
+        title: Yüksek 5xx Hata Oranı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-prod
+            model:
+              expr: sum(rate(http_requests_received_total{code=~"5.."}[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 2m
+        annotations:
+          summary: "Backend 5xx hata oranı yüksek"
+        labels:
+          severity: critical
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: high-error-log-count
+        title: Fazla Error Log
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki-prod
+            model:
+              expr: sum(count_over_time({job="cargo-pilot-prod"} | json | level="Error" [5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+              queryType: range
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 2m
+        annotations:
+          summary: "Son 5 dakikada çok fazla error log"
+        labels:
+          severity: warning
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: backend-health-degraded
+        title: Backend Health Degraded
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-prod
+            model:
+              expr: up{job="cargo-pilot-backend-prod"}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 1m
+        annotations:
+          summary: "Backend scrape hedefi erişilemiyor"
+        labels:
+          severity: critical
+        noDataState: Alerting
+        execErrState: Alerting
