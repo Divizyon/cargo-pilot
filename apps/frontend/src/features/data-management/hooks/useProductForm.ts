@@ -38,6 +38,11 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
   return useForm<ProductFormValues>({
     resolver,
     defaultValues: {
+      productType: 'box',
+      widthUnit: 'cm',
+      heightUnit: 'cm',
+      lengthUnit: 'cm',
+      weightUnit: 'kg',
       isStackable: false,
       fragility: 0,
       allowRotateX: true,
@@ -45,5 +50,6 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
       allowRotateZ: true,
       ...defaultValues,
     },
+    mode: 'onChange',
   });
 }

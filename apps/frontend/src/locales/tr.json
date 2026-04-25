@@ -9,7 +9,8 @@
       "weightPositive": "Ağırlık sıfırdan büyük olmalıdır",
       "maxStackRequired": "İstifleme izni verildiğinde maksimum istif sayısı zorunludur",
       "maxStackMin": "Maksimum istif sayısı en az 1 olmalıdır",
-      "fragilityRange": "Kırılganlık değeri 0-2 arasında olmalıdır"
+      "fragilityRange": "Kırılganlık değeri 0-2 arasında olmalıdır",
+      "typeRequired": "Ürün tipi seçilmelidir"
     },
     "vehicle": {
       "nameRequired": "Araç adı zorunludur",
@@ -44,7 +45,21 @@
       "allowRotateY": "Y Ekseni",
       "allowRotateZ": "Z Ekseni",
       "rotateZLockedWarning": "Hassas ürünlerde Z ekseni kilitlidir",
+      "sectionIdentity": "Kimlik",
+      "sectionType": "Ürün Tipi",
+      "sectionPhysical": "Fiziksel Özellikler",
+      "sectionConstraints": "Kısıtlar",
+      "typeBox": "Koli",
+      "typeBarrel": "Varil",
+      "typePackage": "Paket",
+      "volume": "Hacim",
+      "axisGuideAria": "Eksen rehberi",
+      "axisGuideTitle": "Eksen yönleri",
+      "axisXTooltip": "X — Genişlik (sol-sağ)",
+      "axisYTooltip": "Y — Yükseklik (yukarı-aşağı)",
+      "axisZTooltip": "Z — Derinlik (öne-arkaya)",
       "submit": "Kaydet",
+      "submitting": "Kaydediliyor...",
       "cancel": "İptal"
     },
     "vehicle": {

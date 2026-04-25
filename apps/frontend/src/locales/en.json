@@ -9,7 +9,8 @@
       "weightPositive": "Weight must be greater than zero",
       "maxStackRequired": "Max stack count is required when stacking is enabled",
       "maxStackMin": "Max stack count must be at least 1",
-      "fragilityRange": "Fragility must be between 0 and 2"
+      "fragilityRange": "Fragility must be between 0 and 2",
+      "typeRequired": "Product type is required"
     },
     "vehicle": {
       "nameRequired": "Vehicle name is required",
@@ -44,7 +45,21 @@
       "allowRotateY": "Y Axis",
       "allowRotateZ": "Z Axis",
       "rotateZLockedWarning": "Z axis is locked for fragile products",
+      "sectionIdentity": "Identity",
+      "sectionType": "Product Type",
+      "sectionPhysical": "Physical Properties",
+      "sectionConstraints": "Constraints",
+      "typeBox": "Box",
+      "typeBarrel": "Barrel",
+      "typePackage": "Package",
+      "volume": "Volume",
+      "axisGuideAria": "Axis guide",
+      "axisGuideTitle": "Axis directions",
+      "axisXTooltip": "X — Width (left-right)",
+      "axisYTooltip": "Y — Height (up-down)",
+      "axisZTooltip": "Z — Depth (front-back)",
       "submit": "Save",
+      "submitting": "Saving...",
       "cancel": "Cancel"
     },
     "vehicle": {
