@@ -48,6 +48,7 @@ function ContainerGrid({ width, length }: { width: number; length: number }) {
 // Rear door indicator: colored quad on the Z=0 face (rear of container)
 function DoorIndicator({ width, height }: { width: number; height: number }) {
   return (
+    // eslint-disable-next-line no-restricted-syntax
     <mesh position={[width / 2, height / 2, 0]}>
       <planeGeometry args={[width * 0.9, height * 0.9]} />
       <meshBasicMaterial

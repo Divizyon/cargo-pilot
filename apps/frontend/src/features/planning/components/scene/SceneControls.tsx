@@ -36,7 +36,7 @@ export function SceneControls() {
     orbit.target.set(cx, cy, cz);
     orbit.update();
     orbit.autoRotate = true;
-  }, [vehicle?.id, camera]);
+  }, [vehicle, camera]);
 
   return (
     <OrbitControls

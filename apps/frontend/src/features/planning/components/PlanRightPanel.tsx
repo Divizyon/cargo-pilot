@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import type { Vehicle } from '@/lib/types/vehicle';
-import { STANDARD_VEHICLES, VehicleSelector } from './VehicleSelector';
+import { STANDARD_VEHICLES } from '@/lib/config/vehicles';
+import { VehicleSelector } from './VehicleSelector';
 
 // ─── Vehicle card metadata ────────────────────────────────────────────────────
 
