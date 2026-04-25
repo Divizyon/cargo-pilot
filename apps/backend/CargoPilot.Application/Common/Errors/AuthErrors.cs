@@ -1,0 +1,16 @@
+using CargoPilot.Application.Common.Models;
+
+namespace CargoPilot.Application.Common.Errors;
+
+public static class AuthErrors
+{
+    public static readonly Error InvalidCredentials = new(
+        ErrorType.Unauthorized,
+        "AUTH_INVALID_CREDENTIALS",
+        "Email veya şifre hatalı.");
+
+    public static Error AccountLocked(int minutesRemaining) => new(
+        ErrorType.Unauthorized,
+        "AUTH_ACCOUNT_LOCKED",
+        $"Hesabınız çok fazla hatalı giriş denemesi nedeniyle geçici olarak kilitlendi. Lütfen {minutesRemaining} dakika sonra tekrar deneyin.");
+}
