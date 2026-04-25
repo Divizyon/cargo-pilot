@@ -5,6 +5,7 @@ import { FocusModeLayout } from '@/components/shared/layouts/FocusModeLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProductsPage } from '@/pages/ProductsPage';
+import { NewPlanPage } from '@/pages/NewPlanPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 
@@ -42,7 +43,7 @@ export const router = createBrowserRouter([
       {
         element: <FocusModeLayout />,
         children: [
-          // Squad 2: /plan/new, /plan/:id vb. buraya eklenir
+          { path: '/planning/new', element: <NewPlanPage /> },
         ],
       },
     ],
