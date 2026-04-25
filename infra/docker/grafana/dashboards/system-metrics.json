@@ -210,7 +210,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
-          "expr": "rate(container_cpu_usage_seconds_total{name=~\"cargo-pilot-.*\",name!=\"\"}[5m]) * 100",
+          "expr": "rate(container_cpu_usage_seconds_total{name=~\"/cargo-pilot-.*\",name!=\"\"}[5m]) * 100",
           "legendFormat": "{{name}}"
         }
       ],
@@ -229,7 +229,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
-          "expr": "container_memory_working_set_bytes{name=~\"cargo-pilot-.*\",name!=\"\"}",
+          "expr": "container_memory_working_set_bytes{name=~\"/cargo-pilot-.*\",name!=\"\"}",
           "legendFormat": "{{name}}"
         }
       ],

@@ -81,7 +81,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
-          "expr": "http_requests_in_progress",
+          "expr": "sum(http_requests_in_progress)",
           "legendFormat": "Active Requests"
         }
       ],
