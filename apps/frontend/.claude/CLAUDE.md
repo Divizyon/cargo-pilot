@@ -377,6 +377,334 @@ const fragility = useWatch({ control: form.control, name: "fragility" });
 ---
 
 ## 3D Sahne: R3F ve Three.js Standartları
+**CARGO PILOT**
+
+3D Görselleştirme - Teknik Standartlar Eki
+
+Squad 2 · Epic 1 · Nisan 2026
+
+**Bu belge hakkında**
+
+Ana geliştirme standartları dokümanının Squad 2'ye özel Three.js / R3F ekidir. Dosya yapısı, isimlendirme ve genel kurallar ana belgede tanımlıdır. Bu belgede yalnızca 3D katmanına özgü, Epic 1 kapsamında yazılacak kodla doğrudan ilişkili teknik kararlar yer alır.
+
+# **1\. scene-config.ts - Merkezi Sabit Dosyası**
+
+Ana belgede bu dosyanın koordinat mapping'ini tutacağı belirtilmiş ancak içeriği tanımlanmamış. Aşağıdaki sabitler bu dosyada merkezi olarak tutulur; bileşen içine hardcoded değer yazılmaz.
+
+// lib/config/scene-config.ts
+
+export const SCENE = {
+
+CAMERA_POSITION: \[0, 8, 14\] as const,
+
+CAMERA_FOV: 50,
+
+ORBIT_MIN_DISTANCE: 2,
+
+ORBIT_MAX_DISTANCE: 50,
+
+LOAD_INTERVAL_MS: 380, // kutular arası bekleme
+
+DROP_EASING: 0.12, // lerp faktörü
+
+DROP_GLOW: 0.25, // düşerken emissiveIntensity
+
+IDLE_GLOW: 0.06, // yerleştikten sonra
+
+COLORS: {
+
+VIOLATION: 0xDC2626, // ihlal - kırmızı
+
+SELECTED: 0xfbbf24, // seçili kutu - sarı
+
+GROUPS: {
+
+A: 0xef4444, // Barcelona
+
+B: 0x3b82f6, // Paris
+
+C: 0xf59e0b, // Berlin
+
+D: 0x22c55e, // Hassas yük
+
+},
+
+},
+
+INSTANCED_THRESHOLD: 50,
+
+} as const;
+
+**Kural**
+
+Squad 2 içindeki hiçbir bileşen bu dosyayı bypass ederek hardcoded hex veya sayısal sabit kullanamaz. Değişiklik gerekiyorsa yalnızca bu dosya güncellenir.
+
+# **02 Işıklandırma Standartları**
+
+Ana belgede iki satırla geçilmiş. Sahne atmosferi ve kutu ayrışması için üç ışık standardı uygulanır:
+
+- Ambient light - sahnenin tamamına düşük yoğunluklu genel aydınlatma (intensity: 0.6)
+- Directional light - gölge üreten ana ışık, sağ üstten gelir (position: \[10, 10, 5\], intensity: 1)
+- Rim light - arka sol köşeden hafif mavi ton; kutular birbirine yakın yerleşince ayrışmayı sağlar, olmadan kutular iç içe geçmiş gibi görünür
+
+&lt;ambientLight intensity={SCENE.AMBIENT_INTENSITY} /&gt;
+
+&lt;directionalLight position={\[10,10,5\]} intensity={1} castShadow /&gt;
+
+&lt;pointLight position={\[-8, 4, -6\]} intensity={0.3} color={0x4488ff} /&gt;
+
+**Not**
+
+Işık değerleri scene-config.ts'e taşınır. UI Kit teslim edilince materyal güncellemesi bu değerleri etkileyebilir - o aşamada burası da güncellenir. (tailwind zinc)
+
+# **03 Yükleme Animasyonu - State Machine**
+
+Brief'te isteniyor, ana belgede hiç yer almıyor. Kutular kapı tarafından başlayarak sırayla yerleşir.
+
+## **State tanımı - useSceneStore'a eklenecek**
+
+animationState: 'idle' | 'loading' | 'complete'
+
+animationSpeed: number // 1 = normal, 0.5 = yavaş, 2 = hızlı
+
+## **Akış**
+
+- Kullanıcı butona basar → idle → loading
+- Placement listesi sırayla işlenir, her kutu LOAD_INTERVAL_MS \* (1/animationSpeed) arayla eklenir
+- Her kutu hedef Y'nin 1.5 birim üstünden başlar, DROP_EASING lerp ile aşağı iner
+- Kutu hedefe ulaşınca DROP_GLOW → IDLE_GLOW geçişi yapılır
+- Tüm kutular yerleşince → complete
+
+## **useFrame içinde çalışacak mantık**
+
+meshes.forEach(mesh => {
+
+if (!mesh.userData.active) return;
+
+const dist = mesh.userData.targetY - mesh.position.y;
+
+if (Math.abs(dist) > 0.005) {
+
+mesh.position.y += dist \* SCENE.DROP_EASING;
+
+} else {
+
+mesh.position.y = mesh.userData.targetY;
+
+mesh.userData.active = false;
+
+mesh.material.emissiveIntensity = SCENE.IDLE_GLOW;
+
+}
+
+});
+
+## **Cancel mekanizması**
+
+Animasyon devam ederken kullanıcı farklı bir plan seçerse animasyon yarıda kesilmeli, sahne temizlenmeli ve state idle'a dönmeli. Bu akış tanımlanmazsa loading state'inde takılı kalınır.
+
+// usePlanStore'da plan değişince
+
+useEffect(() => {
+
+if (animationState === 'loading') {
+
+cancelAnimation(); // interval temizle
+
+clearScene(); // mesh'leri dispose et
+
+setAnimationState('idle');
+
+}
+
+}, \[selectedPlanId\]);
+
+**Kural**
+
+useFrame içinde setState çağrısı yasaktır - React render döngüsünü tetikler. Animasyon durumu yalnızca useSceneStore.getState() ile güncellenir.
+
+# **04 BoxWrapper - Animasyon Sırasında Pivot Offset**
+
+Ana belgede BoxWrapper'ın neden gerekli olduğu açıklanmış (Bottom-Left-Rear → Center dönüşümü). Animasyon sırasında ek bir kural uygulanır.
+
+Normal render'da offset bir kez hesaplanır. Animasyonda kutu her frame'de hareket ettiği için hem başlangıç hem hedef pozisyonuna offset uygulanmış olmalıdır. Yalnızca hedefe offset uygulanırsa kutu düşerken görsel olarak "zıplar".
+
+// Başlangıç pozisyonu - offset dahil
+
+const startY = targetY + 1.5 + height / 2;
+
+// Hedef pozisyonu - offset dahil
+
+const targetCY = positionY + height / 2;
+
+InstancedMesh'te bu hesap setMatrixAt() her çağrıldığında matrix'e dahil edilir:
+
+matrix.setPosition(
+
+p.positionX + p.width / 2, // cx
+
+currentY + p.height / 2, // cy - her frame güncellenir
+
+p.positionZ + p.depth / 2 // cz
+
+);
+
+meshRef.current.setMatrixAt(i, matrix);
+
+meshRef.current.instanceMatrix.needsUpdate = true;
+
+# **05 InstancedMesh + Raycaster Farkı**
+
+Ana belgede manuel Raycaster yasaklanmış, R3F onClick prop zorunlu tutulmuş. InstancedMesh kullanılınca onClick farklı davranır - bu fark manuel düzeltme özelliğini doğrudan etkiler.
+
+Standart Mesh'te onClick eventi object referansı döndürür. InstancedMesh'te 50 kutu tek bir obje olduğu için event instanceId döndürür:
+
+// Standart Mesh
+
+onClick={(e) => e.object} // → doğrudan mesh referansı
+
+// InstancedMesh
+
+onClick={(e) => e.instanceId} // → 2 (kaçıncı instance?)
+
+// placements\[e.instanceId\] ile hangi kutu olduğu bulunur
+
+**Kritik**
+
+Bu fark bilinmeden yazılan manuel düzeltme kodu çalışmaz. instanceId ile placements dizisini eşleştiren mantık useBoxSelection.ts hook'una izole edilmeli; diğer bileşenler seçim detayını bilmemeli.
+
+## **useSceneStore'a eklenecek alan**
+
+selectedInstanceId: number | null
+
+Seçim yapılınca setMatrixAt ile o instance'a SCENE.COLORS.SELECTED uygulanır. İşlem bitince orijinal renk geri yüklenir.
+
+# **06 Performans - useFrame Kuralları**
+
+useFrame her saniye 60 kez çalışır. Aşağıdaki kurallar ihlal edilirse FPS düşer ve debug etmesi saatler alır.
+
+## **Yasak - setState**
+
+// ❌ YASAK - React render döngüsünü tetikler
+
+useFrame(() => {
+
+setCount(prev => prev + 1);
+
+});
+
+// ✅ DOĞRU - store.getState() ile direkt güncelle
+
+useFrame(() => {
+
+useSceneStore.getState().setSelectedBoxId(id);
+
+});
+
+## **Yasak - her frame'de yeni obje yaratmak**
+
+// ❌ YASAK - GC baskısı yaratır, frame drop çıkar
+
+useFrame(() => {
+
+const vec = new THREE.Vector3(x, y, z);
+
+});
+
+// ✅ DOĞRU - dışarıda bir kez yarat, reuse et
+
+const \_vec = new THREE.Vector3();
+
+useFrame(() => {
+
+\_vec.set(x, y, z);
+
+});
+
+## **Yasak - ağır hesaplamayı her frame'de yapmak**
+
+// ❌ YASAK
+
+useFrame(() => {
+
+const sorted = placements.sort(...);
+
+});
+
+// ✅ DOĞRU - veri değişince useMemo ile hesapla
+
+const sorted = useMemo(() => placements.sort(...), \[placements\]);
+
+**Kural**
+
+useFrame içinde sadece pozisyon/matris güncellemesi ve emissive geçişleri yapılır. Hesaplama, filtreleme ve state yazma işlemleri kesinlikle useFrame dışında kalır.
+
+# **07 Violation - Görsel İhlal Sistemi**
+
+Ana belgede yalnızca ihlal rengi tanımlı (0xDC2626).
+
+## **useSceneStore'a eklenecek alan**
+
+violations: { instanceId: number; reason: string }\[\]
+
+setViolations: (v: Violation\[\]) => void
+
+# **08 autoRotate - Kamera Başlangıç Davranış rotade mouse icon, /onboarding**
+
+OrbitControls konfigürasyonu ana belgede var. Başlangıç davranışı tanımlanmamış.
+
+- Kullanıcı sayfaya gelince kamera yavaşça döner - hem görsel, hem "bu döndürülebilir" mesajı verir
+- İlk tıklamada autoRotate kapanır, bir daha açılmaz
+- autoRotate ref ile tutulur - useState ile tutulursa her değişimde tüm canvas re-render alır
+
+<OrbitControls
+
+ref={orbitRef}
+
+enableDamping
+
+dampingFactor={0.05}
+
+autoRotate
+
+autoRotateSpeed={0.6}
+
+minDistance={SCENE.ORBIT_MIN_DISTANCE}
+
+maxDistance={SCENE.ORBIT_MAX_DISTANCE}
+
+onStart={() => { orbitRef.current.autoRotate = false; }}
+
+/>
+
+# **09 Snapshot Zamanlaması**
+
+Ana belgede gl.domElement.toDataURL() ile snapshot alınacağı yazılmış. Ne zaman alınacağı tanımlanmamış.
+
+- Snapshot yalnızca animationState === 'complete' olduğunda alınabilir
+- Animasyon devam ederken çağrılırsa kutular yarım pozisyonda PDF'e girer
+- preserveDrawingBuffer: true ana belgede zaten zorunlu tutulmuş - bu doğru
+- Snapshot isteği geldiğinde bir sonraki frame'de alınmalı - yarım frame yakalanmasın
+
+// useSceneStore'a eklenecek
+
+requestSnapshot: () => Promise&lt;string&gt; // base64 PNG döner
+
+// Implementasyon
+
+const requestSnapshot = () => new Promise&lt;string&gt;((resolve) => {
+
+if (animationState !== 'complete') return;
+
+requestAnimationFrame(() => {
+
+resolve(gl.domElement.toDataURL('image/png'));
+
+});
+
+});
+
+
 
 ### Koordinat Sistemi
 

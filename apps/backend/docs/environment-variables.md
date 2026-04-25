@@ -91,7 +91,7 @@ ASP.NET Core yapilandirmayi asagidaki siraya gore ust uste yukler (son kaynak ka
 | Ortam | Connection String Kaynagi | Nasil Set Edilir |
 |---|---|---|
 | Development (local, Docker'siz) | User Secrets | `dotnet user-secrets set` |
-| Development (Docker) | `.env.dev` → compose env | `infra/env/.env.dev` |
+| Test (Docker) | `.env.test` → compose env | `infra/env/.env.test` |
 | Production (Docker) | `.env.prod` → compose env | `/opt/cargo-pilot/infra/env/.env.prod` |
 
 ---

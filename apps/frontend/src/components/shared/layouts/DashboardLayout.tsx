@@ -1,43 +1,304 @@
-import { Outlet } from 'react-router-dom';
-import { useAuthStore } from '@/lib/store/useAuthStore';
+import { type ElementType, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Package,
+  Plus,
+  Settings,
+  Truck,
+  Waypoints,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/lib/store/useAuthStore';
+import { useUIStore } from '@/lib/store/useUIStore';
 
-function Sidebar() {
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  manager: 'Yönetici',
+  viewer: 'Görüntüleyici',
+};
+
+interface NavItemDef {
+  icon: ElementType;
+  label: string;
+  path: string;
+  end: boolean;
+}
+
+const MAIN_NAV: NavItemDef[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', end: true },
+  { icon: Package, label: 'Ürünler', path: '/products', end: false },
+  { icon: Truck, label: 'Araçlar', path: '/vehicles', end: false },
+  { icon: ClipboardList, label: 'Planlama', path: '/planning', end: false },
+  { icon: BarChart3, label: 'Raporlar', path: '/reports', end: false },
+];
+
+const BOTTOM_NAV: NavItemDef[] = [
+  { icon: Settings, label: 'Ayarlar', path: '/settings', end: false },
+];
+
+// ─── NavItem ──────────────────────────────────────────────────────────────────
+
+interface NavItemProps {
+  item: NavItemDef;
+  isCollapsed: boolean;
+}
+
+function NavItem({ item, isCollapsed }: NavItemProps) {
+  const { pathname } = useLocation();
+  const isActive = item.end
+    ? pathname === item.path
+    : pathname === item.path || pathname.startsWith(item.path + '/');
+
   return (
-    <aside className="flex h-full w-60 flex-col border-r border-border bg-card px-4 py-6">
-      <span className="mb-8 text-lg font-bold tracking-tight">Cargo Pilot</span>
-      <nav className="flex flex-col gap-1 text-sm text-muted-foreground">
-        <a
-          href="/dashboard"
-          className="rounded-md px-3 py-2 hover:bg-accent hover:text-accent-foreground"
-        >
-          Dashboard
-        </a>
-      </nav>
-    </aside>
+    <NavLink
+      to={item.path}
+      end={item.end}
+      title={isCollapsed ? item.label : undefined}
+      className={cn(
+        'flex h-9 items-center gap-3 rounded-lg text-sm font-medium transition-colors',
+        isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
+        isActive
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+      )}
+    >
+      <item.icon
+        className={cn(
+          'h-4 w-4 shrink-0',
+          isActive ? 'text-accent-foreground' : 'text-muted-foreground',
+        )}
+        strokeWidth={isActive ? 2.5 : 2}
+      />
+      <span className={cn('flex-1', isCollapsed && 'lg:hidden')}>{item.label}</span>
+    </NavLink>
   );
 }
 
-function Topbar() {
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+interface SidebarProps {
+  isCollapsed: boolean;
+  onCollapsedChange: (v: boolean) => void;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
-      <span className="text-sm text-muted-foreground">{user?.fullName}</span>
-      <Button variant="ghost" size="sm" onClick={clearAuth}>
-        Çıkış
-      </Button>
+    <aside
+      className={cn(
+        'relative flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200',
+        isCollapsed ? 'lg:w-16' : 'lg:w-64',
+        'w-64',
+      )}
+    >
+      {/* Collapse toggle — desktop only */}
+      <button
+        onClick={() => onCollapsedChange(!isCollapsed)}
+        className="absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:flex"
+        title={isCollapsed ? 'Genişlet' : 'Daralt'}
+      >
+        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+      </button>
+
+      {/* Brand */}
+      <div
+        className={cn(
+          'flex items-center border-b border-sidebar-border px-3 py-5',
+          isCollapsed ? 'lg:justify-center' : 'gap-3',
+        )}
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
+          <Waypoints className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
+        </div>
+        <div className={cn(isCollapsed && 'lg:hidden')}>
+          <span className="block text-[15px] font-bold tracking-[0.15em] text-foreground">
+            CARGOPILOT
+          </span>
+          <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
+            Lojistik Platformu
+          </span>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav
+        className={cn(
+          'flex flex-1 flex-col gap-4 overflow-y-auto py-4',
+          isCollapsed ? 'lg:px-2 px-3' : 'px-3',
+        )}
+      >
+        {/* Primary CTA */}
+        <button
+          onClick={() => navigate('/planning/new')}
+          title={isCollapsed ? 'Yeni Yükleme Planı' : undefined}
+          className={cn(
+            'flex h-9 w-full items-center gap-3 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90',
+            isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
+          )}
+        >
+          <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>Yeni Plan</span>
+        </button>
+
+        {/* Main nav */}
+        <div className="space-y-0.5">
+          {MAIN_NAV.map((item) => (
+            <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
+          ))}
+        </div>
+
+        {/* Bottom nav */}
+        <div className="mt-auto space-y-0.5">
+          {BOTTOM_NAV.map((item) => (
+            <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
+          ))}
+        </div>
+      </nav>
+
+      {/* User profile */}
+      <div
+        className={cn(
+          'border-t border-sidebar-border pb-4 pt-2',
+          isCollapsed ? 'lg:px-2 px-3' : 'px-3',
+        )}
+      >
+        <div
+          className={cn(
+            'flex items-center rounded-lg transition-colors',
+            isCollapsed
+              ? 'lg:justify-center py-2'
+              : 'gap-3 px-2 py-2.5 hover:bg-sidebar-accent cursor-pointer',
+          )}
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+            {user ? getInitials(user.fullName) : '?'}
+          </div>
+          <div className={cn('min-w-0 flex-1', isCollapsed && 'lg:hidden')}>
+            <p className="truncate text-sm font-medium leading-none text-foreground">
+              {user?.fullName ?? '—'}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {user ? (ROLE_LABELS[user.role] ?? user.role) : ''}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={clearAuth}
+            title="Çıkış Yap"
+            className={cn(
+              'h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground',
+              isCollapsed && 'lg:hidden',
+            )}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Topbar ───────────────────────────────────────────────────────────────────
+
+interface TopbarProps {
+  onMenuToggle: () => void;
+}
+
+function Topbar({ onMenuToggle }: TopbarProps) {
+  const user = useAuthStore((s) => s.user);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  return (
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
+      {/* Mobile hamburger */}
+      <button
+        onClick={onMenuToggle}
+        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+        title="Menüyü Aç"
+      >
+        <Menu className="h-4 w-4" />
+      </button>
+
+      {/* Right side: user info + logout */}
+      <div className="ml-auto flex items-center gap-3">
+        <div className="hidden text-right sm:block">
+          <p className="text-sm font-medium leading-none text-foreground">
+            {user?.fullName ?? '—'}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {user ? (ROLE_LABELS[user.role] ?? user.role) : ''}
+          </p>
+        </div>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground sm:hidden">
+          {user ? getInitials(user.fullName) : '?'}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearAuth}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="ml-2 hidden sm:inline">Çıkış</span>
+        </Button>
+      </div>
     </header>
   );
 }
 
+// ─── DashboardLayout ──────────────────────────────────────────────────────────
+
 export function DashboardLayout() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar />
+      {/* Mobile overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-foreground/20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar: fixed drawer on mobile, static flex item on desktop */}
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 transition-transform duration-200',
+          'lg:static lg:z-auto lg:translate-x-0',
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        )}
+      >
+        <Sidebar isCollapsed={isCollapsed} onCollapsedChange={setIsCollapsed} />
+      </div>
+
+      {/* Main content */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <Topbar onMenuToggle={toggleSidebar} />
         <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>

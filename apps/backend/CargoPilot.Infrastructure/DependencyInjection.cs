@@ -4,6 +4,7 @@ using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Infrastructure.Auth;
 using CargoPilot.Infrastructure.Persistence;
+using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
@@ -28,6 +29,8 @@ public static class DependencyInjection {
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IUserRepository, UserRepository>();
+
 
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>

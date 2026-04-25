@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Prometheus;
 
 namespace CargoPilot.WebAPI;
 
@@ -127,8 +128,10 @@ public static class DependencyInjection {
         }
 
         app.UseAuthentication();
+        app.UseHttpMetrics();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapMetrics("/metrics");
 
         app.MapHealthChecks("/health", new HealthCheckOptions
         {

@@ -1,0 +1,248 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: cargo-pilot-alerts
+    folder: Cargo Pilot
+    interval: 1m
+    rules:
+      - uid: high-5xx-error-rate-test
+        title: Yüksek 5xx Hata Oranı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: sum(rate(http_requests_received_total{code=~"5.."}[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 2m
+        annotations:
+          summary: "Backend 5xx hata oranı yüksek"
+        labels:
+          severity: critical
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: high-error-log-count-test
+        title: Fazla Error Log
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki-test
+            model:
+              expr: sum(count_over_time({job="cargo-pilot-test"} | json | level="Error" [5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+              queryType: range
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 2m
+        annotations:
+          summary: "Son 5 dakikada çok fazla error log"
+        labels:
+          severity: warning
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: backend-health-degraded-test
+        title: Backend Health Degraded
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: up{job="cargo-pilot-backend-test"}
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 1m
+        annotations:
+          summary: "Backend scrape hedefi erişilemiyor"
+        labels:
+          severity: critical
+        noDataState: Alerting
+        execErrState: Alerting
+
+      - uid: high-cpu-usage-test
+        title: Yüksek CPU Kullanımı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: 100 - (avg(rate(node_cpu_seconds_total{job="node-exporter-test",mode="idle"}[5m])) * 100)
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [90]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 5m
+        annotations:
+          summary: "CPU kullanımı %90 üzerinde (5 dakika sürdü)"
+        labels:
+          severity: critical
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: high-ram-usage-test
+        title: Yüksek RAM Kullanımı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: (node_memory_MemTotal_bytes{job="node-exporter-test"} - node_memory_MemAvailable_bytes{job="node-exporter-test"}) / node_memory_MemTotal_bytes{job="node-exporter-test"} * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [85]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 5m
+        annotations:
+          summary: "RAM kullanımı %85 üzerinde (5 dakika sürdü)"
+        labels:
+          severity: critical
+        noDataState: NoData
+        execErrState: Error
+
+      - uid: high-disk-usage-test
+        title: Yüksek Disk Kullanımı
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-test
+            model:
+              expr: (node_filesystem_size_bytes{job="node-exporter-test",mountpoint="/",fstype!="tmpfs"} - node_filesystem_free_bytes{job="node-exporter-test",mountpoint="/",fstype!="tmpfs"}) / node_filesystem_size_bytes{job="node-exporter-test",mountpoint="/",fstype!="tmpfs"} * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [80]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        for: 5m
+        annotations:
+          summary: "Disk kullanımı %80 üzerinde (5 dakika sürdü)"
+        labels:
+          severity: warning
+        noDataState: NoData
+        execErrState: Error

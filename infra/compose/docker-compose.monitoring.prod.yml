@@ -1,0 +1,106 @@
+name: cargo-pilot-monitoring-prod
+
+services:
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: cargo-pilot-loki-prod
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ../docker/loki/loki-config.yml:/etc/loki/config.yml:ro
+      - loki_data_prod:/loki
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-prod
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: cargo-pilot-promtail-prod
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ../docker/promtail/promtail.prod.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-prod
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: cargo-pilot-node-exporter-prod
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    pid: host
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-prod
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cargo-pilot-cadvisor-prod
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-prod
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: cargo-pilot-prometheus-prod
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ../docker/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data_prod:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-prod
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: cargo-pilot-grafana-prod
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ALERTING_ENABLED: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+    volumes:
+      - ../docker/grafana/provisioning/datasources/datasources.prod.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../docker/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ../docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data_prod:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-prod
+
+volumes:
+  loki_data_prod:
+    name: cargo-pilot-loki-data-prod
+  prometheus_data_prod:
+    name: cargo-pilot-prometheus-data-prod
+  grafana_data_prod:
+    name: cargo-pilot-grafana-data-prod
+
+networks:
+  cargo-pilot-prod:
+    name: cargo-pilot-prod-network
+    external: true
