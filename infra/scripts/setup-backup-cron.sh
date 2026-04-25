@@ -16,6 +16,8 @@ mkdir -p "${BACKUP_DIR}/mssql/test"
 # Scriptleri çalıştırılabilir yap
 chmod +x "${DEPLOY_DIR}/infra/scripts/backup-db.sh"
 chmod +x "${DEPLOY_DIR}/infra/scripts/rollback.sh"
+chmod +x "${DEPLOY_DIR}/infra/scripts/restore-db.sh"
+chmod +x "${DEPLOY_DIR}/infra/scripts/verify-backup.sh"
 
 # Cron job'larını ekle (mevcut crontab'ı koru)
 CRON_CONTENT=$(crontab -l 2>/dev/null || echo "")
@@ -42,6 +44,11 @@ add_cron \
 add_cron \
     "0 3 * * * ${DEPLOY_DIR}/infra/scripts/backup-db.sh test >> ${LOG_DIR}/backup-test.log 2>&1" \
     "Cargo Pilot - Test DB yedek"
+
+# Prod yedek doğrulaması — her Pazar 04:00
+add_cron \
+    "0 4 * * 0 ${DEPLOY_DIR}/infra/scripts/verify-backup.sh prod >> ${LOG_DIR}/verify-backup.log 2>&1" \
+    "Cargo Pilot - Prod yedek doğrulama"
 
 # Crontab'a yaz
 echo "${CRON_CONTENT}" | crontab -
