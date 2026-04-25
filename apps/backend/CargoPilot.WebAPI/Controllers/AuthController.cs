@@ -7,7 +7,7 @@ namespace CargoPilot.WebAPI.Controllers;
 /// <summary>
 /// Kimlik doğrulama ve oturum yönetimi endpoint'leri.
 /// </summary>
-[Route("api/auth")]
+[Route("api/v1/auth")]
 public sealed class AuthController : BaseController
 {
     private readonly IMediator _mediator;
