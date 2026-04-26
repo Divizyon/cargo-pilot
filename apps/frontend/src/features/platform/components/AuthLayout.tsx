@@ -19,9 +19,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Form Card */}
-      <Card className="w-full max-w-md rounded-xl border-border shadow-sm p-8">
-        {children}
-      </Card>
+      <Card className="w-full max-w-md rounded-xl border-border shadow-sm p-8">{children}</Card>
     </div>
   );
 }

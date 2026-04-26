@@ -10,7 +10,7 @@ import type { RegisterFormValues } from '@/features/platform/schemas/registerSch
 
 // baseURL = http://104.247.163.42:8081, so full paths needed
 const AUTH_ENDPOINTS = {
-  login:    '/api/v1/auth/login',
+  login: '/api/v1/auth/login',
   register: '/api/v1/auth/register',
 } as const;
 
@@ -81,10 +81,10 @@ export function useLogin() {
       axiosInstance.post<LoginApiResponse>(AUTH_ENDPOINTS.login, data).then((r) => r.data),
     onSuccess: (res) => {
       const user: AuthUser = {
-        id:       res.data.userId,
-        email:    res.data.email,
+        id: res.data.userId,
+        email: res.data.email,
         fullName: res.data.fullName,
-        role:     res.data.role as UserRole,
+        role: res.data.role as UserRole,
       };
       setAuth(user, res.data.accessToken);
       navigate('/dashboard', { replace: true });
@@ -100,17 +100,16 @@ export function useRegister() {
     mutationFn: (data) => {
       const payload = {
         firstName: data.firstName,
-        lastName:  data.lastName,
-        email:     data.email,
-        password:  data.password,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
       };
       return axiosInstance.post<void>(AUTH_ENDPOINTS.register, payload).then((r) => r.data);
     },
     onSuccess: () => {
-      toast.success(
-        'Hesabınız oluşturuldu. E-posta adresinize bir doğrulama maili gönderdik.',
-        { position: 'bottom-right' },
-      );
+      toast.success('Hesabınız oluşturuldu. E-posta adresinize bir doğrulama maili gönderdik.', {
+        position: 'bottom-right',
+      });
       navigate('/auth/login', { replace: true });
     },
     onError: (error) => {

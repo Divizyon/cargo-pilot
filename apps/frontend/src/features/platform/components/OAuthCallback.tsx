@@ -11,13 +11,13 @@ export function OAuthCallback() {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const params = new URLSearchParams(window.location.search);
-  const accessToken   = params.get('accessToken');
-  const refreshToken  = params.get('refreshToken'); // reserved — refresh flow tarafından kullanılacak
-  const userId        = params.get('userId');
-  const email         = params.get('email');
-  const fullName      = params.get('fullName');
-  const role          = params.get('role');
-  const errorParam    = params.get('error');
+  const accessToken = params.get('accessToken');
+  const refreshToken = params.get('refreshToken'); // reserved — refresh flow tarafından kullanılacak
+  const userId = params.get('userId');
+  const email = params.get('email');
+  const fullName = params.get('fullName');
+  const role = params.get('role');
+  const errorParam = params.get('error');
 
   void refreshToken; // şu an kullanılmıyor; interceptor refresh flow'u yönetir
 
