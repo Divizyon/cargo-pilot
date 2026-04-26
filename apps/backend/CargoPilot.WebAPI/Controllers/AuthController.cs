@@ -1,5 +1,10 @@
+using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Auth;
+using CargoPilot.Application.Features.Auth.DTOs;
 using CargoPilot.Application.Features.Auth.Register;
+using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CargoPilot.WebAPI.Controllers;
@@ -8,13 +13,21 @@ namespace CargoPilot.WebAPI.Controllers;
 /// Kimlik doğrulama ve oturum yönetimi endpoint'leri.
 /// </summary>
 [Route("api/v1/auth")]
+[Tags("Auth")]
 public sealed class AuthController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IAuthService _authService;
+    private readonly IValidator<LoginRequest> _validator;
 
-    public AuthController(IMediator mediator)
+    public AuthController(
+        IMediator mediator,
+        IAuthService authService,
+        IValidator<LoginRequest> validator)
     {
         _mediator = mediator;
+        _authService = authService;
+        _validator = validator;
     }
 
     /// <summary>
@@ -28,6 +41,7 @@ public sealed class AuthController : BaseController
     /// <response code="400">Doğrulama hatası (eksik alan, hatalı e-posta formatı, kısa şifre vb.).</response>
     /// <response code="409">Bu e-posta adresi zaten kayıtlı.</response>
     [HttpPost("register")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -35,10 +49,41 @@ public sealed class AuthController : BaseController
         [FromBody] RegisterCommand command,
         CancellationToken cancellationToken)
     {
-        // Rate limiting: AddRateLimiter ile auth policy eklenecek (ayrı task)
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Kullanıcı girişi yapar. Başarılı girişte JWT access token ve refresh token döner.
+    /// </summary>
+    /// <response code="200">Giriş başarılı — token çifti döndü.</response>
+    /// <response code="400">Model doğrulama hatası (eksik email veya şifre).</response>
+    /// <response code="401">Email veya şifre hatalı / hesap kilitli.</response>
+    [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validation = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            var validationError = new Error(
+                ErrorType.Validation,
+                "VALIDATION_FAILED",
+                string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
+
+            return HandleResult(Result<LoginResponse>.Failure(validationError));
+        }
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _authService.LoginAsync(request, ipAddress, cancellationToken);
         return HandleResult(result);
     }
 }

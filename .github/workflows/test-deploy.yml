@@ -148,6 +148,15 @@ jobs:
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@v3
 
+      - name: .NET base image önceden çek (MCR rate limit koruması)
+        run: |
+          for i in 1 2 3; do
+            docker pull mcr.microsoft.com/dotnet/sdk:8.0 && \
+            docker pull mcr.microsoft.com/dotnet/aspnet:8.0 && break
+            echo "Deneme $i başarısız, 15s bekleniyor..."
+            sleep 15
+          done
+
       - name: Backend image build
         uses: docker/build-push-action@v5
         with:
@@ -209,6 +218,15 @@ jobs:
 
       # Deploy kendi image'larını inline build eder; build job ile aynı GHA cache
       # scope'u kullanıldığı için, build job da koştuysa ikinci build cache'ten döner.
+      - name: .NET base image önceden çek (MCR rate limit koruması)
+        run: |
+          for i in 1 2 3; do
+            docker pull mcr.microsoft.com/dotnet/sdk:8.0 && \
+            docker pull mcr.microsoft.com/dotnet/aspnet:8.0 && break
+            echo "Deneme $i başarısız, 15s bekleniyor..."
+            sleep 15
+          done
+
       - name: Backend image build (deploy için)
         uses: docker/build-push-action@v5
         with:
