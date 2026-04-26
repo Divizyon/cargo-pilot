@@ -1,7 +1,22 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Box, Cylinder, HelpCircle, Info, Layers, Package, RotateCcw } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  Box,
+  Cylinder,
+  HelpCircle,
+  Info,
+  Layers,
+  Move3d,
+  Package,
+  PackageOpen,
+  RotateCcw,
+  Ruler,
+  ShieldOff,
+  Tag,
+} from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -53,16 +68,19 @@ const ROTATION_AXES = [
     name: 'allowRotateX',
     labelKey: 'forms.product.allowRotateX',
     tooltipKey: 'forms.product.axisXTooltip',
+    Icon: ArrowLeftRight,
   },
   {
     name: 'allowRotateY',
     labelKey: 'forms.product.allowRotateY',
     tooltipKey: 'forms.product.axisYTooltip',
+    Icon: ArrowUpDown,
   },
   {
     name: 'allowRotateZ',
     labelKey: 'forms.product.allowRotateZ',
     tooltipKey: 'forms.product.axisZTooltip',
+    Icon: Move3d,
   },
 ] as const;
 
@@ -81,10 +99,12 @@ export function ProductForm({
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
 
-  const [width, widthUnit, height, heightUnit, length, lengthUnit, isStackable] = useWatch({
+  const [width, widthUnit, height, heightUnit, length, lengthUnit, maxStackCount] = useWatch({
     control: form.control,
-    name: ['width', 'widthUnit', 'height', 'heightUnit', 'length', 'lengthUnit', 'isStackable'],
+    name: ['width', 'widthUnit', 'height', 'heightUnit', 'length', 'lengthUnit', 'maxStackCount'],
   });
+
+  const isNonStackable = !maxStackCount || maxStackCount <= 1;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
@@ -97,7 +117,7 @@ export function ProductForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Bölüm 1 — Kimlik */}
           <section className="space-y-4">
-            <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
+            <SectionTitle icon={Tag}>{t('forms.product.sectionIdentity')}</SectionTitle>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -130,7 +150,7 @@ export function ProductForm({
 
           {/* Bölüm 2 — Ürün Tipi */}
           <section className="space-y-4">
-            <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
+            <SectionTitle icon={PackageOpen}>{t('forms.product.sectionType')}</SectionTitle>
             <FormField
               control={form.control}
               name="productType"
@@ -159,7 +179,7 @@ export function ProductForm({
 
           {/* Bölüm 3 — Fiziksel Özellikler */}
           <section className="space-y-4">
-            <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
+            <SectionTitle icon={Ruler}>{t('forms.product.sectionPhysical')}</SectionTitle>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <DimensionField
                 form={form}
@@ -235,59 +255,59 @@ export function ProductForm({
 
           {/* Bölüm 4 — Kısıtlar */}
           <section className="space-y-4">
-            <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
+            <SectionTitle icon={ShieldOff}>{t('forms.product.sectionConstraints')}</SectionTitle>
 
-            <FormField
-              control={form.control}
-              name="isStackable"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-md border p-3">
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-5 w-5 text-muted-foreground" />
-                    <FormLabel className="m-0">{t('forms.product.isStackable')}</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (!checked) {
-                          form.setValue('maxStackCount', 1, { shouldValidate: true });
-                        }
-                      }}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="maxStackCount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-muted-foreground" />
+                      {t('forms.product.layerCount')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        placeholder="1"
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
+                          field.onChange(value);
+                          form.setValue('isStackable', value > 1, { shouldValidate: false });
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="maxStackCount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('forms.product.maxStackCount')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      step={1}
-                      disabled={!isStackable}
-                      placeholder={t('forms.product.maxStackCountPlaceholder')}
-                      className="max-w-[200px]"
-                      {...field}
-                      value={field.value ?? ''}
-                      onChange={(e) =>
-                        field.onChange(e.target.value === '' ? 1 : e.target.valueAsNumber)
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <div
+                className={cn(
+                  'flex items-center gap-3 rounded-md border p-3 transition-colors',
+                  isNonStackable
+                    ? 'border-amber-300 bg-amber-50 text-amber-800'
+                    : 'border-border bg-muted/40 text-muted-foreground',
+                )}
+              >
+                <ShieldOff className="h-5 w-5 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{t('forms.product.nonStackable')}</span>
+                  <span className="text-xs opacity-80">
+                    {isNonStackable
+                      ? t('forms.product.nonStackableActive')
+                      : t('forms.product.nonStackableInactive')}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-            {/* Rotasyon — yan yana kutu şeklinde, eksen tooltip'leri ile */}
+            {/* Rotasyon — yan yana kutu şeklinde, eksen ikonları + tooltip */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <RotateCcw className="h-4 w-4 text-muted-foreground" />
@@ -310,15 +330,29 @@ export function ProductForm({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                {ROTATION_AXES.map(({ name, labelKey, tooltipKey }) => (
+                {ROTATION_AXES.map(({ name, labelKey, tooltipKey, Icon }) => (
                   <FormField
                     key={name}
                     control={form.control}
                     name={name}
                     render={({ field }) => (
-                      <FormItem className="flex flex-col items-center gap-2 rounded-md border p-3 text-center">
+                      <FormItem
+                        className={cn(
+                          'flex flex-col items-center gap-2 rounded-md border p-4 text-center transition-colors',
+                          field.value
+                            ? 'border-primary/40 bg-primary/5'
+                            : 'border-border bg-muted/30',
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            'h-6 w-6',
+                            field.value ? 'text-primary' : 'text-muted-foreground',
+                          )}
+                          strokeWidth={1.5}
+                        />
                         <div className="flex items-center gap-1">
-                          <FormLabel className="m-0 font-normal">{t(labelKey)}</FormLabel>
+                          <FormLabel className="m-0 text-sm font-medium">{t(labelKey)}</FormLabel>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button type="button" aria-label={t(tooltipKey)}>
@@ -357,13 +391,17 @@ export function ProductForm({
 
 interface SectionTitleProps {
   children: ReactNode;
+  icon?: ComponentType<{ className?: string }>;
 }
 
-function SectionTitle({ children }: SectionTitleProps) {
+function SectionTitle({ children, icon: Icon }: SectionTitleProps) {
   return (
-    <h3 className={cn('text-sm font-semibold uppercase tracking-wide text-muted-foreground')}>
-      {children}
-    </h3>
+    <div className="flex items-center gap-2 border-b pb-2">
+      {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+      <h3 className={cn('text-sm font-semibold uppercase tracking-wide text-muted-foreground')}>
+        {children}
+      </h3>
+    </div>
   );
 }
 
