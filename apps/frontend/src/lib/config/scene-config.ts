@@ -38,9 +38,18 @@ export const SCENE = {
       D: 0x22c55e,
     },
     SKU_PALETTE: [
-      '#6366f1', '#0ea5e9', '#f59e0b', '#f43f5e',
-      '#8b5cf6', '#fb923c', '#22c55e', '#3b82f6',
-      '#ef4444', '#14b8a6', '#ec4899', '#84cc16',
+      '#6366f1',
+      '#0ea5e9',
+      '#f59e0b',
+      '#f43f5e',
+      '#8b5cf6',
+      '#fb923c',
+      '#22c55e',
+      '#3b82f6',
+      '#ef4444',
+      '#14b8a6',
+      '#ec4899',
+      '#84cc16',
     ] as string[],
   },
 
@@ -51,10 +60,10 @@ export const SCENE = {
   CAMERA_DISTANCE_FACTOR: 1.5,
 
   CAMERA_PRESETS: {
-    TOP:   { dir: [0, 1, 0.001] as const, label: 'Üstten' },
-    FRONT: { dir: [0, 0.25, 1]  as const, label: 'Önden'  },
-    SIDE:  { dir: [1, 0.25, 0]  as const, label: 'Yandan' },
-    ISO:   { dir: [0.55, 0.5, 0.9] as const, label: 'İzometrik' },
+    TOP: { dir: [0, 1, 0.001] as const, label: 'Üstten' },
+    FRONT: { dir: [0, 0.25, 1] as const, label: 'Önden' },
+    SIDE: { dir: [1, 0.25, 0] as const, label: 'Yandan' },
+    ISO: { dir: [0.55, 0.5, 0.9] as const, label: 'İzometrik' },
   },
 } as const;
 

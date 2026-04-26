@@ -4,7 +4,10 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
 
-export function assignSkuColor(sku: string, currentMap: Record<string, string>): Record<string, string> {
+export function assignSkuColor(
+  sku: string,
+  currentMap: Record<string, string>,
+): Record<string, string> {
   if (currentMap[sku]) return currentMap;
   const palette = SCENE.COLORS.SKU_PALETTE;
   const usedColors = new Set(Object.values(currentMap));
@@ -43,7 +46,10 @@ interface PlanStore {
   placements: PlacementWithDimensions[];
   setVehicle: (vehicle: Vehicle | null) => void;
   /** Seed the catalog without touching placements (called once on panel mount). */
-  initItems: (items: Array<{ item: Item; quantity: number }>, colorMap: Record<string, string>) => void;
+  initItems: (
+    items: Array<{ item: Item; quantity: number }>,
+    colorMap: Record<string, string>,
+  ) => void;
   addItem: (item: Item, qty: number) => void;
   /** Add item AND create placements in the 3-D scene. */
   addManualItem: (item: Item, qty: number, color: string) => void;
@@ -75,8 +81,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setVehicle: (vehicle) => set({ selectedVehicle: vehicle }),
 
-  initItems: (items, colorMap) =>
-    set({ selectedItems: items, skuColorMap: colorMap }),
+  initItems: (items, colorMap) => set({ selectedItems: items, skuColorMap: colorMap }),
 
   addItem: (item, qty) =>
     set((s) => ({
@@ -87,9 +92,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((s) => {
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
       const maxZ =
-        s.placements.length > 0
-          ? Math.max(...s.placements.map((p) => p.positionZ + p.depth))
-          : 0;
+        s.placements.length > 0 ? Math.max(...s.placements.map((p) => p.positionZ + p.depth)) : 0;
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],
         skuColorMap: updatedColorMap,
@@ -138,16 +141,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
       const maxZ =
-        s.placements.length > 0
-          ? Math.max(...s.placements.map((p) => p.positionZ + p.depth))
-          : 0;
+        s.placements.length > 0 ? Math.max(...s.placements.map((p) => p.positionZ + p.depth)) : 0;
       return {
         placements: [...s.placements, ...buildPlacements(entry.item, entry.quantity, color, maxZ)],
       };
     }),
 
-  setSkuColor: (sku, color) =>
-    set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
+  setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
 
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements }),

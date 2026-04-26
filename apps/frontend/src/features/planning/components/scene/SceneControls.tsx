@@ -53,7 +53,10 @@ export function SceneControls() {
     const orbit = orbitRef.current;
     if (!orbit || !cameraPreset) return;
 
-    let cx = 0, cy = 0, cz = 0, dist: number;
+    let cx = 0,
+      cy = 0,
+      cz = 0,
+      dist: number;
     if (vehicle) {
       cx = vehicle.width / 2;
       cy = vehicle.height / 2;
@@ -73,10 +76,7 @@ export function SceneControls() {
     gsap.killTweensOf(orbit.target);
     animateCameraTo(camera, orbit, tmpPos, tmpLook, SCENE.CAMERA_TRANSITION_S);
 
-    const timer = window.setTimeout(
-      () => setCameraPreset(null),
-      SCENE.CAMERA_TRANSITION_S * 1000,
-    );
+    const timer = window.setTimeout(() => setCameraPreset(null), SCENE.CAMERA_TRANSITION_S * 1000);
     return () => window.clearTimeout(timer);
   }, [cameraPreset, vehicle, camera, setCameraPreset]);
 

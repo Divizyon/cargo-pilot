@@ -29,7 +29,12 @@ function InstancedBoxes() {
     return edges;
   }, []);
 
-  useEffect(() => () => { edgesGeo.dispose(); }, [edgesGeo]);
+  useEffect(
+    () => () => {
+      edgesGeo.dispose();
+    },
+    [edgesGeo],
+  );
 
   useEffect(() => {
     if (!meshRef.current) return;
@@ -89,18 +94,13 @@ function InstancedBoxes() {
           if (instanceId === undefined) return;
           const p = placements[instanceId];
           if (!p) return;
-          setSelectedItemId(
-            p.itemId === selectedItemId ? null : p.itemId,
-          );
+          setSelectedItemId(p.itemId === selectedItemId ? null : p.itemId);
         }}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial transparent opacity={0.85} />
       </instancedMesh>
-      <instancedMesh
-        ref={edgeMeshRef}
-        args={[edgesGeo, undefined, placements.length]}
-      >
+      <instancedMesh ref={edgeMeshRef} args={[edgesGeo, undefined, placements.length]}>
         <lineBasicMaterial color="#000000" />
       </instancedMesh>
     </>
@@ -127,7 +127,9 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
             positionX={p.positionX}
             positionY={p.positionY}
             positionZ={p.positionZ}
-            color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
+            color={
+              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+            }
             itemId={p.itemId}
             isSelected={p.itemId === selectedItemId}
             isHidden={hiddenItemIds.includes(p.itemId)}

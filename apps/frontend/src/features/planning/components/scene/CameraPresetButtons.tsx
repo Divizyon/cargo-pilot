@@ -5,10 +5,10 @@ import { SCENE, type CameraPreset } from '@/lib/config/scene-config';
 import { cn } from '@/lib/utils';
 
 const PRESETS: { key: CameraPreset; icon: typeof Box }[] = [
-  { key: 'TOP',   icon: ArrowDownToLine },
+  { key: 'TOP', icon: ArrowDownToLine },
   { key: 'FRONT', icon: Square },
-  { key: 'SIDE',  icon: MoveRight },
-  { key: 'ISO',   icon: Box },
+  { key: 'SIDE', icon: MoveRight },
+  { key: 'ISO', icon: Box },
 ];
 
 export function CameraPresetButtons({ className }: { className?: string }) {
@@ -16,7 +16,9 @@ export function CameraPresetButtons({ className }: { className?: string }) {
   const setCameraPreset = useSceneStore((s) => s.setCameraPreset);
 
   return (
-    <div className={cn('flex gap-1.5 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur', className)}>
+    <div
+      className={cn('flex gap-1.5 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur', className)}
+    >
       {PRESETS.map(({ key, icon: Icon }) => {
         const active = cameraPreset === key;
         return (
@@ -31,9 +33,7 @@ export function CameraPresetButtons({ className }: { className?: string }) {
             aria-pressed={active}
           >
             <Icon className="h-4 w-4" />
-            <span className="hidden text-xs sm:inline">
-              {SCENE.CAMERA_PRESETS[key].label}
-            </span>
+            <span className="hidden text-xs sm:inline">{SCENE.CAMERA_PRESETS[key].label}</span>
           </Button>
         );
       })}

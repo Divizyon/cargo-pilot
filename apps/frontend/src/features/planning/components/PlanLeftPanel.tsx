@@ -37,7 +37,7 @@ const MOCK_IDS = {
 } as const;
 
 const INITIAL_GROUPS: Array<{ id: string; ad: string; acik: boolean; itemIdler: string[] }> = [
-  { id: 'G1', ad: 'Grup A', acik: true,  itemIdler: [MOCK_IDS.U1, MOCK_IDS.U2] },
+  { id: 'G1', ad: 'Grup A', acik: true, itemIdler: [MOCK_IDS.U1, MOCK_IDS.U2] },
   { id: 'G2', ad: 'Grup B', acik: false, itemIdler: [MOCK_IDS.U4, MOCK_IDS.U5] },
 ];
 
@@ -50,67 +50,133 @@ type CatalogEntry = { item: Item; quantity: number; color: string };
 const CATALOG_SEED: CatalogEntry[] = [
   {
     item: {
-      id: MOCK_IDS.U1, name: 'Elektronik Aksam', sku: 'SKU-001', productType: 'koli',
-      width: 80, height: 40, length: 60, weight: 180,
-      isStackable: false, maxStackCount: 1,
-      fragility: 1, allowRotateX: true, allowRotateY: true, allowRotateZ: false,
+      id: MOCK_IDS.U1,
+      name: 'Elektronik Aksam',
+      sku: 'SKU-001',
+      productType: 'koli',
+      width: 80,
+      height: 40,
+      length: 60,
+      weight: 180,
+      isStackable: false,
+      maxStackCount: 1,
+      fragility: 1,
+      allowRotateX: true,
+      allowRotateY: true,
+      allowRotateZ: false,
     },
-    quantity: 18, color: '#6366f1',
+    quantity: 18,
+    color: '#6366f1',
   },
   {
     item: {
-      id: MOCK_IDS.U2, name: 'Tekstil Paketleri', sku: 'SKU-002', productType: 'koli',
-      width: 60, height: 30, length: 40, weight: 80,
-      isStackable: true, maxStackCount: 3,
-      fragility: 0, allowRotateX: true, allowRotateY: true, allowRotateZ: true,
+      id: MOCK_IDS.U2,
+      name: 'Tekstil Paketleri',
+      sku: 'SKU-002',
+      productType: 'koli',
+      width: 60,
+      height: 30,
+      length: 40,
+      weight: 80,
+      isStackable: true,
+      maxStackCount: 3,
+      fragility: 0,
+      allowRotateX: true,
+      allowRotateY: true,
+      allowRotateZ: true,
     },
-    quantity: 24, color: '#0ea5e9',
+    quantity: 24,
+    color: '#0ea5e9',
   },
   {
     item: {
-      id: MOCK_IDS.U3, name: 'Plastik Bileşenler', sku: 'SKU-003', productType: 'koli',
-      width: 100, height: 60, length: 80, weight: 240,
-      isStackable: false, maxStackCount: 1,
-      fragility: 0, allowRotateX: true, allowRotateY: false, allowRotateZ: true,
+      id: MOCK_IDS.U3,
+      name: 'Plastik Bileşenler',
+      sku: 'SKU-003',
+      productType: 'koli',
+      width: 100,
+      height: 60,
+      length: 80,
+      weight: 240,
+      isStackable: false,
+      maxStackCount: 1,
+      fragility: 0,
+      allowRotateX: true,
+      allowRotateY: false,
+      allowRotateZ: true,
     },
-    quantity: 12, color: '#f59e0b',
+    quantity: 12,
+    color: '#f59e0b',
   },
   {
     item: {
-      id: MOCK_IDS.U4, name: 'Metal Profiller', sku: 'SKU-004', productType: 'palet',
-      width: 200, height: 10, length: 10, weight: 550,
-      isStackable: false, maxStackCount: 1,
-      fragility: 0, allowRotateX: false, allowRotateY: true, allowRotateZ: false,
+      id: MOCK_IDS.U4,
+      name: 'Metal Profiller',
+      sku: 'SKU-004',
+      productType: 'palet',
+      width: 200,
+      height: 10,
+      length: 10,
+      weight: 550,
+      isStackable: false,
+      maxStackCount: 1,
+      fragility: 0,
+      allowRotateX: false,
+      allowRotateY: true,
+      allowRotateZ: false,
     },
-    quantity: 8, color: '#f43f5e',
+    quantity: 8,
+    color: '#f43f5e',
   },
   {
     item: {
-      id: MOCK_IDS.U5, name: 'Kimyasal Variller', sku: 'SKU-005', productType: 'varil',
-      width: 60, height: 90, length: 60, weight: 900,
-      isStackable: false, maxStackCount: 1,
-      fragility: 2, allowRotateX: false, allowRotateY: false, allowRotateZ: false,
+      id: MOCK_IDS.U5,
+      name: 'Kimyasal Variller',
+      sku: 'SKU-005',
+      productType: 'varil',
+      width: 60,
+      height: 90,
+      length: 60,
+      weight: 900,
+      isStackable: false,
+      maxStackCount: 1,
+      fragility: 2,
+      allowRotateX: false,
+      allowRotateY: false,
+      allowRotateZ: false,
     },
-    quantity: 6, color: '#8b5cf6',
+    quantity: 6,
+    color: '#8b5cf6',
   },
   {
     item: {
-      id: MOCK_IDS.U6, name: 'Ahşap Kasalar', sku: 'SKU-006', productType: 'koli',
-      width: 80, height: 60, length: 80, weight: 120,
-      isStackable: true, maxStackCount: 4,
-      fragility: 0, allowRotateX: true, allowRotateY: true, allowRotateZ: true,
+      id: MOCK_IDS.U6,
+      name: 'Ahşap Kasalar',
+      sku: 'SKU-006',
+      productType: 'koli',
+      width: 80,
+      height: 60,
+      length: 80,
+      weight: 120,
+      isStackable: true,
+      maxStackCount: 4,
+      fragility: 0,
+      allowRotateX: true,
+      allowRotateY: true,
+      allowRotateZ: true,
     },
-    quantity: 15, color: '#fb923c',
+    quantity: 15,
+    color: '#fb923c',
   },
 ];
 
 // ─── Constraint metadata ──────────────────────────────────────────────────────
 
 const KISIT_META: Record<string, { icon: ElementType; label: string }> = {
-  fragile:     { icon: AlertTriangle,   label: 'Kırılgan'       },
-  heavy_side:  { icon: FlipHorizontal,  label: 'Yan Yükleme'    },
-  bottom_only: { icon: ArrowDownToLine, label: 'Alt Katman'     },
-  hazmat:      { icon: Flame,           label: 'Tehlikeli Mad.' },
+  fragile: { icon: AlertTriangle, label: 'Kırılgan' },
+  heavy_side: { icon: FlipHorizontal, label: 'Yan Yükleme' },
+  bottom_only: { icon: ArrowDownToLine, label: 'Alt Katman' },
+  hazmat: { icon: Flame, label: 'Tehlikeli Mad.' },
 };
 
 function getConstraints(item: Item): string[] {
@@ -156,10 +222,17 @@ function StoreItemRow({
     <div
       className={cn(
         'flex items-start gap-2 px-2 py-2 rounded-lg transition-colors group/item cursor-pointer',
-        isSelected ? 'bg-amber-50 ring-1 ring-amber-300' : isPlaced ? 'bg-zinc-50 hover:bg-zinc-100' : 'hover:bg-zinc-50',
+        isSelected
+          ? 'bg-amber-50 ring-1 ring-amber-300'
+          : isPlaced
+            ? 'bg-zinc-50 hover:bg-zinc-100'
+            : 'hover:bg-zinc-50',
         indent && 'ml-5',
       )}
-      onClick={() => { onSelect(); if (!isPlaced) onTogglePlace(); }}
+      onClick={() => {
+        onSelect();
+        if (!isPlaced) onTogglePlace();
+      }}
     >
       <GripVertical
         className="w-3.5 h-3.5 text-zinc-300 group-hover/item:text-zinc-400 shrink-0 cursor-grab mt-0.5"
@@ -176,7 +249,12 @@ function StoreItemRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
-          <span className={cn('text-sm truncate', isPlaced ? 'text-zinc-900 font-medium' : 'text-zinc-700')}>
+          <span
+            className={cn(
+              'text-sm truncate',
+              isPlaced ? 'text-zinc-900 font-medium' : 'text-zinc-700',
+            )}
+          >
             {item.name}
           </span>
           <span className="text-xs text-zinc-400 shrink-0">{quantity} adet</span>
@@ -185,7 +263,9 @@ function StoreItemRow({
           <span className="font-mono bg-zinc-100 px-1 rounded">{item.sku}</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-400">
-          <span>{item.width}×{item.length}×{item.height} cm</span>
+          <span>
+            {item.width}×{item.length}×{item.height} cm
+          </span>
           <span>·</span>
           <span>{item.weight} kg</span>
         </div>
@@ -292,10 +372,15 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
   useEffect(() => {
     if (selectedItems.length === 0) {
       const colorMap: Record<string, string> = {};
-      CATALOG_SEED.forEach(({ item, color }) => { colorMap[item.sku] = color; });
-      initItems(CATALOG_SEED.map(({ item, quantity }) => ({ item, quantity })), colorMap);
+      CATALOG_SEED.forEach(({ item, color }) => {
+        colorMap[item.sku] = color;
+      });
+      initItems(
+        CATALOG_SEED.map(({ item, quantity }) => ({ item, quantity })),
+        colorMap,
+      );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // All known grouped IDs
@@ -359,7 +444,10 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
             size="icon"
             title="Ürün Ekle"
             className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
-            onClick={() => { setEditingItemId(null); setShowItemModal(true); }}
+            onClick={() => {
+              setEditingItemId(null);
+              setShowItemModal(true);
+            }}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
@@ -369,7 +457,6 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
       {/* Scrollable area */}
       <ScrollArea className="flex-1">
         <div ref={scrollRef} className="p-3 flex flex-col gap-2">
-
           {/* Groups */}
           {groups.map((g) => {
             const groupEntries = g.itemIdler
@@ -466,7 +553,9 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                   isSelected={selectedItemId === si.item.id}
                   isHidden={hiddenItemIds.includes(si.item.id)}
                   onTogglePlace={() => togglePlacement(si.item.id)}
-                  onSelect={() => setSelectedItemId(selectedItemId === si.item.id ? null : si.item.id)}
+                  onSelect={() =>
+                    setSelectedItemId(selectedItemId === si.item.id ? null : si.item.id)
+                  }
                   onToggleHide={() => toggleHiddenItem(si.item.id)}
                   onEdit={() => openEdit(si.item.id)}
                   onDelete={() => handleDelete(si.item.id)}
@@ -474,7 +563,6 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
               ))}
             </div>
           )}
-
         </div>
       </ScrollArea>
 
