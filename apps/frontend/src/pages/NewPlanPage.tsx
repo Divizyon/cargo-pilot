@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Package2, Truck } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
+import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { StatsPanel } from '@/features/planning/components/StatsPanel';
 import { cn } from '@/lib/utils';
 
@@ -76,8 +77,9 @@ export function NewPlanPage() {
 
         {/* Merkez — 3D Viewport */}
         <div className="flex-1 min-w-0 p-3 overflow-hidden">
-          <div className="h-full rounded-xl bg-white border border-zinc-200 overflow-hidden">
+          <div className="relative h-full rounded-xl bg-white border border-zinc-200 overflow-hidden">
             <PlanCanvas snapshotRef={snapshotRef} />
+            <CameraPresetButtons className="absolute right-3 top-3 z-10" />
           </div>
         </div>
 
