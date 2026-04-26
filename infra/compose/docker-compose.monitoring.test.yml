@@ -1,0 +1,106 @@
+name: cargo-pilot-monitoring-test
+
+services:
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: cargo-pilot-loki-test
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ../docker/loki/loki-config.yml:/etc/loki/config.yml:ro
+      - loki_data_test:/loki
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: cargo-pilot-promtail-test
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ../docker/promtail/promtail.test.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: cargo-pilot-node-exporter-test
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    pid: host
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cargo-pilot-cadvisor-test
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: cargo-pilot-prometheus-test
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ../docker/prometheus/prometheus.test.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data_test:/prometheus
+    ports:
+      - "9091:9090"
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: cargo-pilot-grafana-test
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ALERTING_ENABLED: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+    volumes:
+      - ../docker/grafana/provisioning/datasources/datasources.test.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../docker/grafana/provisioning/alerting/alert-rules.test.yml:/etc/grafana/provisioning/alerting/alert-rules.yml:ro
+      - ../docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data_test:/var/lib/grafana
+    ports:
+      - "3002:3000"
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+volumes:
+  loki_data_test:
+    name: cargo-pilot-loki-data-test
+  prometheus_data_test:
+    name: cargo-pilot-prometheus-data-test
+  grafana_data_test:
+    name: cargo-pilot-grafana-data-test
+
+networks:
+  cargo-pilot-test:
+    name: cargo-pilot-test-network
+    external: true

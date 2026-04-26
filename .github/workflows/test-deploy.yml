@@ -1,0 +1,380 @@
+name: Test Ortamı CI/CD
+
+# Tetikleyiciler:
+#   push (feature/*, bugfix/*)  → sadece deploy (inline build + healthcheck)
+#   pull_request → dev           → sadece deploy
+#   pull_request → test          → build + deploy
+#                                  + PR base kontrolü:
+#                                     - head 'dev' OLAMAZ (dev→test yasak)
+#                                     - head branch'in PR commit'i origin/dev'de bulunmalı
+#                                       (önce dev'e merge edilmeli, aynı branch'ten test'e PR)
+#   push (test)                  → build + deploy
+on:
+  push:
+    branches:
+      - test
+      - feature/**
+      - bugfix/**
+  pull_request:
+    branches:
+      - test
+      - dev
+
+jobs:
+  # ─── Kural kontrolü: test PR, dev'e merge edilmiş feature/bugfix branch'ten gelmeli
+  # sync/* branch'leri bu kontrolü atlar (dev birikimi senkronizasyon PR'ları için)
+  enforce-test-base:
+    name: Test PR Dev Kontrolü
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' &&
+      github.base_ref == 'test' &&
+      !startsWith(github.head_ref, 'sync/')
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Head 'dev' olmamalı ve PR commit'i dev'de bulunmalı
+        run: |
+          HEAD="${{ github.head_ref }}"
+          PR_SHA="${{ github.event.pull_request.head.sha }}"
+          echo "PR: ${HEAD} (${PR_SHA}) → test"
+
+          if [ "${HEAD}" = "dev" ]; then
+            echo "::error::test branch'ine PR doğrudan 'dev' branch'inden açılamaz. Önce dev'e merge edilmiş feature/bugfix branch'ten PR açın."
+            exit 1
+          fi
+
+          git fetch --no-tags origin dev test
+
+          # Feature branch'e özgü commit'leri bul (test'ten gelmeyen).
+          FEATURE_COMMITS=$(git log --pretty=format:"%H" "${PR_SHA}" --not origin/test)
+
+          if [ -z "$FEATURE_COMMITS" ]; then
+            echo "::error::Feature branch'te test'e özgü olmayan commit bulunamadı. Branch test'ten mi açıldı?"
+            exit 1
+          fi
+
+          # Her commit dev'de olmalı.
+          # İstisna: test'i feature'a merge eden conflict resolution commit'leri atlanır
+          # (bu commit'lerin bir parent'ı origin/test'te bulunur).
+          for commit in $FEATURE_COMMITS; do
+            PARENTS=$(git log --pretty=format:"%P" -1 "${commit}")
+            IS_TEST_MERGE=false
+            for parent in $PARENTS; do
+              if git merge-base --is-ancestor "${parent}" origin/test 2>/dev/null; then
+                IS_TEST_MERGE=true
+                break
+              fi
+            done
+
+            if [ "$IS_TEST_MERGE" = "true" ]; then
+              echo "Conflict resolution merge commit atlanıyor: ${commit}"
+              continue
+            fi
+
+            if ! git merge-base --is-ancestor "${commit}" origin/dev; then
+              echo "::error::Commit ${commit} origin/dev'de bulunamadı. test'e PR atmadan önce tüm commit'leri dev'e merge edin."
+              exit 1
+            fi
+          done
+
+          echo "OK: Tüm feature commit'leri origin/dev'de mevcut."
+
+  # ─── Migration kontrolü: model değişmiş ama migration oluşturulmamışsa fail ──
+  # Sadece test'e giden PR'larda veya test'e push'ta çalışır (feature push'larda gereksiz)
+  migration-check:
+    name: Pending Migration Kontrolü
+    runs-on: ubuntu-latest
+    needs: [enforce-test-base]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/test')
+      )
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: .NET 8 SDK kur
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: EF Core CLI kur
+        run: dotnet tool install --global dotnet-ef
+
+      - name: NuGet paketlerini yükle
+        run: dotnet restore cargo-pilot.sln
+
+      - name: Solution build (migration check için)
+        run: dotnet build cargo-pilot.sln --configuration Release --no-restore
+
+      - name: Pending model değişikliği kontrolü
+        # AppDbContextFactory design-time'da connection string gerektirir;
+        # gerçek DB bağlantısı kurulmaz, sadece model karşılaştırması yapılır.
+        env:
+          ConnectionStrings__DefaultConnection: "Server=localhost;Database=ci_check;User Id=sa;Password=CI_placeholder_not_used!;"
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project apps/backend/CargoPilot.Infrastructure \
+            --startup-project apps/backend/CargoPilot.WebAPI \
+            --configuration Release
+          echo "Migration kontrolü geçti: bekleyen model değişikliği yok."
+
+  # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
+  build:
+    name: Image Build
+    runs-on: ubuntu-latest
+    needs: [enforce-test-base]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/test')
+      )
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Docker Buildx kur
+        uses: docker/setup-buildx-action@v3
+
+      - name: .NET base image önceden çek (MCR rate limit koruması)
+        run: |
+          for i in 1 2 3; do
+            docker pull mcr.microsoft.com/dotnet/sdk:8.0 && \
+            docker pull mcr.microsoft.com/dotnet/aspnet:8.0 && break
+            echo "Deneme $i başarısız, 15s bekleniyor..."
+            sleep 15
+          done
+
+      - name: Backend image build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          push: false
+          tags: cargo-pilot-backend:test
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      - name: Frontend image build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          push: false
+          tags: cargo-pilot-frontend:test
+          cache-from: type=gha,scope=frontend-test
+          cache-to: type=gha,mode=max,scope=frontend-test
+
+  # ─── Deploy job: her ilgili trigger'da çalışır; image'ları inline build eder ──
+  deploy:
+    name: Deploy (Test)
+    runs-on: ubuntu-latest
+    needs: [enforce-test-base, migration-check]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (needs.migration-check.result == 'success' || needs.migration-check.result == 'skipped') &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+        (github.event_name == 'push')
+      )
+
+    env:
+      ENVIRONMENT: test
+      BACKEND_PORT: 8081
+      FRONTEND_PORT: 3001
+      MSSQL_PORT: 1434
+      MSSQL_DATABASE: CargoPilotTest
+      # Secret yoksa CI için geçerli bir fallback parola kullanılır
+      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD || 'CiTestPassword123!' }}
+      MINIO_API_PORT: 9002
+      MINIO_CONSOLE_PORT: 9003
+      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER || 'minioadmin' }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD || 'minioadmin123' }}
+      MINIO_BUCKET: cargo-pilot-test
+      # Seed için varsayılan admin şifresi — CI fallback değeri
+      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
+      # JWT secret — en az 32 karakter olmalı
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-at-least-32-chars-long!' }}
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Docker Buildx kur
+        uses: docker/setup-buildx-action@v3
+
+      # Deploy kendi image'larını inline build eder; build job ile aynı GHA cache
+      # scope'u kullanıldığı için, build job da koştuysa ikinci build cache'ten döner.
+      - name: .NET base image önceden çek (MCR rate limit koruması)
+        run: |
+          for i in 1 2 3; do
+            docker pull mcr.microsoft.com/dotnet/sdk:8.0 && \
+            docker pull mcr.microsoft.com/dotnet/aspnet:8.0 && break
+            echo "Deneme $i başarısız, 15s bekleniyor..."
+            sleep 15
+          done
+
+      - name: Backend image build (deploy için)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          push: false
+          load: true
+          tags: cargo-pilot-backend:test
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      - name: Frontend image build (deploy için)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          push: false
+          load: true
+          tags: cargo-pilot-frontend:test
+          cache-from: type=gha,scope=frontend-test
+          cache-to: type=gha,mode=max,scope=frontend-test
+
+      # Infrastructure image'ları (MSSQL ~490MB, MinIO ~100MB) cache'lenir.
+      - name: Infrastructure image cache'i kontrol et
+        id: infra-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/infra-images
+          key: infra-images-mssql2022-minio-release-2022-v1
+
+      - name: Infrastructure image'larını pull et ve cache'e kaydet
+        if: steps.infra-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/infra-images
+          docker pull mcr.microsoft.com/mssql/server:2022-latest
+          docker pull quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
+          docker save mcr.microsoft.com/mssql/server:2022-latest \
+            | gzip > /tmp/infra-images/mssql.tar.gz
+          docker save quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z \
+            | gzip > /tmp/infra-images/minio.tar.gz
+
+      - name: Infrastructure image'larını cache'den yükle
+        if: steps.infra-cache.outputs.cache-hit == 'true'
+        run: |
+          docker load < /tmp/infra-images/mssql.tar.gz
+          docker load < /tmp/infra-images/minio.tar.gz
+
+      - name: Servisleri ayağa kaldır ve hazır olmasını bekle
+        run: |
+          docker compose \
+            -f infra/compose/docker-compose.test.yml \
+            up -d --no-build --wait --wait-timeout 300
+
+      - name: Backend sağlık kontrolü
+        run: |
+          timeout 180 bash -c '
+            until curl -sf http://localhost:${{ env.BACKEND_PORT }}/health; do
+              echo "Backend bekleniyor..."
+              sleep 10
+            done
+          '
+          echo "Backend hazır."
+
+      - name: Frontend sağlık kontrolü
+        run: |
+          timeout 180 bash -c '
+            until curl -sf http://localhost:${{ env.FRONTEND_PORT }}; do
+              echo "Frontend bekleniyor..."
+              sleep 10
+            done
+          '
+          echo "Frontend hazır."
+
+      - name: Servis loglarını göster (başarısızlık durumunda)
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.test.yml logs --tail=100
+
+      - name: Servisleri durdur ve temizle
+        if: always()
+        run: |
+          docker compose -f infra/compose/docker-compose.test.yml down -v
+
+  # ─── Test sunucusuna deploy: sadece test branch'e push'ta çalışır ─────────────
+  deploy-test-server:
+    name: Deploy (Test Server)
+    runs-on: ubuntu-latest
+    needs: [enforce-test-base, migration-check]
+    if: |
+      always() &&
+      (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
+      (needs.migration-check.result == 'success') &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/test'
+
+    steps:
+      - name: Sunucuya bağlan ve test stack'ini güncelle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TEST_SSH_HOST }}
+          username: root
+          key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/cargo-pilot
+
+            echo "==> Test branch güncelleniyor..."
+            git remote prune origin
+            git fetch --prune origin
+            git checkout test
+            git reset --hard origin/test
+
+            echo "==> Image'lar sırayla build ediliyor (paralel build OOM riskini önler)..."
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              build --no-cache backend
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              build --no-cache frontend
+
+            echo "==> Eski stack temizleniyor..."
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              down --remove-orphans 2>/dev/null || true
+
+            echo "==> Stack ayağa kaldırılıyor (build yok, image hazır)..."
+            docker compose \
+              -f infra/compose/docker-compose.test.yml \
+              --env-file infra/env/.env.test \
+              up -d --no-build
+
+            echo "==> Eski image'lar temizleniyor..."
+            docker image prune -f
+
+      - name: Test backend health check
+        run: |
+          echo "Test backend'in ayağa kalkması bekleniyor..."
+          sleep 20
+          for i in $(seq 1 10); do
+            if curl -sf http://${{ secrets.TEST_SSH_HOST }}:8081/health; then
+              echo "Test backend hazır."
+              exit 0
+            fi
+            echo "Deneme $i/10..."
+            sleep 10
+          done
+          echo "::error::Test backend health check başarısız oldu."
+          exit 1

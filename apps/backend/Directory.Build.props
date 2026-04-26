@@ -1,0 +1,53 @@
+<Project>
+
+  <!--
+    Tum backend projeleri icin ortak build ayarlari.
+    Bu dosya, apps/backend/ altindaki her .csproj dosyasina otomatik uygulanir.
+    Amac: warning policy ve analiz seviyesini tek merkezden yonetmek.
+  -->
+
+  <PropertyGroup>
+    <!-- Dil ve temel ayarlar (csproj'larda tekrarlanmasin diye buraya tasindi) -->
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Statik analiz seviyesi -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+
+    <!-- .editorconfig'te tanimlanan stil kurallari build sirasinda kontrol edilir -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- IDE0005 (kullanilmayan using) kontrolu icin gerekli; XML dokuman dosyasi uretir -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Quality gate: tum uyarilar hata olarak isaretlenir (lokalde de CI'da da) -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Hata olarak yukseltilmeyecek uyarilar (gecici veya kasitli istisnalar):
+         - CS1591 : public API XML dokumantasyon eksikligi. Story 10 kapsaminda
+                    endpoint/model bazinda tamamlanacak; su an warning kalir.
+         - CA1000 : Generic type uzerinde static uye. Result<T>.Success/Failure
+                    factory metotlari Result pattern'in ozunu olusturur; bilincli.
+         - CA1716 : Reserved language keyword ("Error") ile isim cakismasi. VB
+                    tuketimi planlanmiyor; domain terimi olarak "Error" korunur. -->
+    <WarningsNotAsErrors>CS1591;CA1000;CA1716</WarningsNotAsErrors>
+
+    <!-- Uretim build'lerinde deterministic derleme; CI icinde otomatik devreye girer -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Ortak Statik Analiz Paketleri -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.201">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.22.0.136894">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
