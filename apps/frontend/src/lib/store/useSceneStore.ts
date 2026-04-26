@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { CameraPreset } from '@/lib/config/scene-config';
 
 type DisplayMode = 'wireframe' | 'solid';
 
@@ -8,12 +9,14 @@ interface SceneStore {
   selectedItemId: string | null;
   hiddenItemIds: string[];
   displayMode: DisplayMode;
+  cameraPreset: CameraPreset | null;
   setActiveLayer: (layer: number) => void;
   setSelectedBoxId: (id: string | null) => void;
   setSelectedItemId: (id: string | null) => void;
   toggleHiddenItem: (id: string) => void;
   setDisplayMode: (mode: DisplayMode) => void;
   toggleDisplayMode: () => void;
+  setCameraPreset: (preset: CameraPreset | null) => void;
   reset: () => void;
 }
 
@@ -23,6 +26,7 @@ const initialState = {
   selectedItemId: null,
   hiddenItemIds: [] as string[],
   displayMode: 'solid' as DisplayMode,
+  cameraPreset: null as CameraPreset | null,
 };
 
 export const useSceneStore = create<SceneStore>((set) => ({
@@ -39,5 +43,6 @@ export const useSceneStore = create<SceneStore>((set) => ({
   setDisplayMode: (mode) => set({ displayMode: mode }),
   toggleDisplayMode: () =>
     set((s) => ({ displayMode: s.displayMode === 'solid' ? 'wireframe' : 'solid' })),
+  setCameraPreset: (preset) => set({ cameraPreset: preset }),
   reset: () => set(initialState),
 }));

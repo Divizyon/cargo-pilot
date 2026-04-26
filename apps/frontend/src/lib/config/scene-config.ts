@@ -46,4 +46,16 @@ export const SCENE = {
 
   INSTANCED_THRESHOLD: 50,
   GRID_STEP_CM: 50,
+
+  CAMERA_TRANSITION_S: 0.8,
+  CAMERA_DISTANCE_FACTOR: 1.5,
+
+  CAMERA_PRESETS: {
+    TOP:   { dir: [0, 1, 0.001] as const, label: 'Üstten' },
+    FRONT: { dir: [0, 0.25, 1]  as const, label: 'Önden'  },
+    SIDE:  { dir: [1, 0.25, 0]  as const, label: 'Yandan' },
+    ISO:   { dir: [0.55, 0.5, 0.9] as const, label: 'İzometrik' },
+  },
 } as const;
+
+export type CameraPreset = keyof typeof SCENE.CAMERA_PRESETS;
