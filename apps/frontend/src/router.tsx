@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
 import { FocusModeLayout } from '@/components/shared/layouts/FocusModeLayout';
 import { LoginPage } from '@/pages/LoginPage';
+import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { ErrorPage } from '@/pages/ErrorPage';
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
   {
     path: '/auth/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/auth/register',
+    element: <RegisterPage />,
   },
   {
     path: '/share/:token',
