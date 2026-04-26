@@ -214,7 +214,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("HeightUnit")
                         .HasColumnType("int");
-
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -246,7 +245,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("LengthUnit")
                         .HasColumnType("int");
-
                     b.Property<int>("MaxStackCount")
                         .HasColumnType("int");
 
@@ -286,7 +284,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("VolumeInCm3")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
-
                     b.Property<decimal>("Weight")
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
@@ -301,7 +298,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("WeightUnit")
                         .HasColumnType("int");
-
                     b.Property<decimal>("Width")
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
@@ -316,7 +312,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("WidthUnit")
                         .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");

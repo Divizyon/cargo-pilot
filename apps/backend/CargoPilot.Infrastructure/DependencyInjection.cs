@@ -32,7 +32,6 @@ public static class DependencyInjection {
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
 
-
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(

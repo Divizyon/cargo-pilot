@@ -25,7 +25,6 @@ public sealed class Item : BaseEntity {
     public decimal LengthInCm { get; private set; }
     public decimal WeightInKg { get; private set; }
     public decimal VolumeInCm3 { get; private set; }
-
     public decimal Width { get; private set; }
     public decimal Height { get; private set; }
     public decimal Length { get; private set; }

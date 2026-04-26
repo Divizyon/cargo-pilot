@@ -55,7 +55,6 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_WIDTHUNIT_INVALID")
                 .WithMessage("Gecersiz genislik birimi.");
-
         RuleFor(x => x.Height)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_HEIGHT_POSITIVE")
@@ -65,7 +64,6 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_HEIGHTUNIT_INVALID")
                 .WithMessage("Gecersiz yukseklik birimi.");
-
         RuleFor(x => x.Length)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_LENGTH_POSITIVE")
@@ -75,7 +73,6 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_LENGTHUNIT_INVALID")
                 .WithMessage("Gecersiz uzunluk birimi.");
-
         RuleFor(x => x.Diameter)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_DIAMETER_POSITIVE")
@@ -91,7 +88,6 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_WEIGHTUNIT_INVALID")
                 .WithMessage("Gecersiz agirlik birimi.");
-
         RuleFor(x => x.FragilityType)
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_FRAGILITY_INVALID")

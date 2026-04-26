@@ -79,7 +79,6 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.VolumeInCm3)
             .IsRequired()
             .HasPrecision(18, 3);
-
         builder.Property(item => item.Width)
             .IsRequired()
             .HasPrecision(12, 3);
