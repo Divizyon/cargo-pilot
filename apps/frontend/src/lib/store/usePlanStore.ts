@@ -3,6 +3,7 @@ import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
+import { computeViolations } from '@/lib/utils/geometry';
 
 export function assignSkuColor(
   sku: string,
@@ -93,10 +94,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
       const maxZ =
         s.placements.length > 0 ? Math.max(...s.placements.map((p) => p.positionZ + p.depth)) : 0;
+      const next = [...s.placements, ...buildPlacements(item, qty, color, maxZ)];
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],
         skuColorMap: updatedColorMap,
-        placements: [...s.placements, ...buildPlacements(item, qty, color, maxZ)],
+        placements: computeViolations(next),
       };
     }),
 
@@ -118,10 +120,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
         otherPlacements.length > 0
           ? Math.max(...otherPlacements.map((p) => p.positionZ + p.depth))
           : 0;
+      const next = [...otherPlacements, ...buildPlacements(item, qty, color, maxZ)];
       return {
         selectedItems: updatedItems,
         skuColorMap: updatedColorMap,
-        placements: [...otherPlacements, ...buildPlacements(item, qty, color, maxZ)],
+        placements: computeViolations(next),
       };
     }),
 
@@ -142,15 +145,14 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
       const maxZ =
         s.placements.length > 0 ? Math.max(...s.placements.map((p) => p.positionZ + p.depth)) : 0;
-      return {
-        placements: [...s.placements, ...buildPlacements(entry.item, entry.quantity, color, maxZ)],
-      };
+      const next = [...s.placements, ...buildPlacements(entry.item, entry.quantity, color, maxZ)];
+      return { placements: computeViolations(next) };
     }),
 
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
 
   setCriteria: (criteria) => set({ criteria }),
-  setPlacements: (placements) => set({ placements }),
+  setPlacements: (placements) => set({ placements: computeViolations(placements) }),
   reset: () =>
     set({ selectedVehicle: null, selectedItems: [], skuColorMap: {}, criteria: 0, placements: [] }),
 }));
