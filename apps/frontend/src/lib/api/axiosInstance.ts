@@ -7,6 +7,22 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
+interface QueueEntry {
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}
+
+let isRefreshing = false;
+let failedQueue: QueueEntry[] = [];
+
+function processQueue(error: unknown, token: string | null = null): void {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token!);
+  });
+  failedQueue = [];
+}
+
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
@@ -30,19 +46,37 @@ axiosInstance.interceptors.response.use(
 
     if (error.response?.status === 401 && config && !config._retry) {
       config._retry = true;
+
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            config.headers.Authorization = `Bearer ${token}`;
+            return axiosInstance(config);
+          })
+          .catch((err: unknown) => Promise.reject(err));
+      }
+
+      isRefreshing = true;
+
       try {
         const { data } = await axios.post<{ accessToken: string }>(
-          '/auth/refresh',
+          '/api/v1/auth/refresh',
           {},
           { baseURL: API_BASE_URL, withCredentials: true },
         );
         useAuthStore.getState().setAccessToken(data.accessToken);
+        processQueue(null, data.accessToken);
         config.headers.Authorization = `Bearer ${data.accessToken}`;
         return axiosInstance(config);
-      } catch {
+      } catch (refreshError: unknown) {
+        processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
         window.location.href = '/auth/login';
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
