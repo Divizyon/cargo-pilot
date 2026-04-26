@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  VITE_API_BASE_URL: z.string().url('VITE_API_BASE_URL geçerli bir URL olmalıdır'),
+  VITE_API_BASE_URL: z.string().url('VITE_API_BASE_URL geçerli bir URL olmalıdır').or(z.literal('')),
   VITE_APP_VERSION: z.string().min(1, 'VITE_APP_VERSION boş olamaz'),
   VITE_APP_ENV: z.enum(['development', 'test', 'production'], {
     error: 'VITE_APP_ENV yalnızca development | test | production olabilir',
