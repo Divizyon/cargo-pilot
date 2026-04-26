@@ -211,9 +211,10 @@ function ProductRow({ item, unit, searchTerm, onEdit, onDelete }: ProductRowProp
 interface ProductTableProps {
   onEdit?: (item: Item) => void;
   onDelete?: (item: Item) => void;
+  onCreateClick?: () => void;
 }
 
-export function ProductTable({ onEdit, onDelete }: ProductTableProps) {
+export function ProductTable({ onEdit, onDelete, onCreateClick }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [unit, setUnit] = useState<DimensionUnit>('cm');
 
@@ -254,7 +255,7 @@ export function ProductTable({ onEdit, onDelete }: ProductTableProps) {
           ))}
         </div>
 
-        <Button size="sm" className="shrink-0 gap-2 text-xs">
+        <Button size="sm" className="shrink-0 gap-2 text-xs" onClick={onCreateClick}>
           <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
           Yeni Ürün Ekle
         </Button>
