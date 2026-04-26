@@ -12,6 +12,8 @@ interface BoxWrapperProps {
   opacity?: number;
   onClick?: (id: string) => void;
   itemId?: string;
+  isSelected?: boolean;
+  isHidden?: boolean;
 }
 
 export function BoxWrapper({
@@ -25,6 +27,8 @@ export function BoxWrapper({
   opacity = 0.85,
   onClick,
   itemId,
+  isSelected = false,
+  isHidden = false,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
@@ -39,6 +43,8 @@ export function BoxWrapper({
 
   useEffect(() => () => { edgesGeo.dispose(); }, [edgesGeo]);
 
+  if (isHidden) return null;
+
   return (
     <group
       position={[cx, cy, cz]}
@@ -49,10 +55,16 @@ export function BoxWrapper({
     >
       <mesh>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} transparent opacity={opacity} />
+        <meshStandardMaterial
+          color={isSelected ? '#fbbf24' : color}
+          transparent
+          opacity={isSelected ? 0.95 : opacity}
+          emissive={isSelected ? '#fbbf24' : '#000000'}
+          emissiveIntensity={isSelected ? 0.3 : 0}
+        />
       </mesh>
       <lineSegments geometry={edgesGeo}>
-        <lineBasicMaterial color="#000000" />
+        <lineBasicMaterial color={isSelected ? '#f59e0b' : '#000000'} />
       </lineSegments>
     </group>
   );

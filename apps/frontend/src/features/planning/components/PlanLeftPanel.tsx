@@ -4,18 +4,23 @@ import {
   ArrowDownToLine,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
   Flame,
   FlipHorizontal,
   FolderPlus,
   GripVertical,
   Layers,
+  PackageMinus,
   Pencil,
   Plus,
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { AddItemModal } from './AddItemModal';
 import type { Item } from '@/lib/types/item';
@@ -121,8 +126,12 @@ interface StoreItemRowProps {
   storeEntry: { item: Item; quantity: number };
   dotColor: string;
   isPlaced: boolean;
+  isSelected: boolean;
+  isHidden: boolean;
   indent?: boolean;
   onTogglePlace: () => void;
+  onSelect: () => void;
+  onToggleHide: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -131,8 +140,12 @@ function StoreItemRow({
   storeEntry,
   dotColor,
   isPlaced,
+  isSelected,
+  isHidden,
   indent = false,
   onTogglePlace,
+  onSelect,
+  onToggleHide,
   onEdit,
   onDelete,
 }: StoreItemRowProps) {
@@ -143,10 +156,10 @@ function StoreItemRow({
     <div
       className={cn(
         'flex items-start gap-2 px-2 py-2 rounded-lg transition-colors group/item cursor-pointer',
-        isPlaced ? 'bg-zinc-50 hover:bg-zinc-100' : 'hover:bg-zinc-50',
+        isSelected ? 'bg-amber-50 ring-1 ring-amber-300' : isPlaced ? 'bg-zinc-50 hover:bg-zinc-100' : 'hover:bg-zinc-50',
         indent && 'ml-5',
       )}
-      onClick={onTogglePlace}
+      onClick={() => { onSelect(); if (!isPlaced) onTogglePlace(); }}
     >
       <GripVertical
         className="w-3.5 h-3.5 text-zinc-300 group-hover/item:text-zinc-400 shrink-0 cursor-grab mt-0.5"
@@ -167,6 +180,9 @@ function StoreItemRow({
             {item.name}
           </span>
           <span className="text-xs text-zinc-400 shrink-0">{quantity} adet</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mb-0.5">
+          <span className="font-mono bg-zinc-100 px-1 rounded">{item.sku}</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-400">
           <span>{item.width}×{item.length}×{item.height} cm</span>
@@ -194,9 +210,12 @@ function StoreItemRow({
         )}
       </div>
 
-      {/* Actions — visible on hover, stop propagation so row click doesn't fire */}
+      {/* Actions — visible on hover (always visible if hidden), stop propagation so row click doesn't fire */}
       <div
-        className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity mt-0.5"
+        className={cn(
+          'flex flex-col items-center gap-0.5 shrink-0 transition-opacity',
+          isHidden ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100',
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -213,6 +232,29 @@ function StoreItemRow({
         >
           <Trash2 className="w-3 h-3" />
         </button>
+        {isPlaced && (
+          <>
+            <button
+              title={isHidden ? 'Göster' : 'Gizle'}
+              onClick={onToggleHide}
+              className={cn(
+                'w-5 h-5 rounded flex items-center justify-center transition-colors',
+                isHidden
+                  ? 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100',
+              )}
+            >
+              {isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            </button>
+            <button
+              title="Kamyondan Çıkar"
+              onClick={onTogglePlace}
+              className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            >
+              <PackageMinus className="w-3 h-3" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -238,6 +280,11 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
   const removeItem = usePlanStore((s) => s.removeItem);
   const togglePlacement = usePlanStore((s) => s.togglePlacement);
   const initItems = usePlanStore((s) => s.initItems);
+
+  const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
+  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
+  const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
 
   const placedIds = new Set(placements.map((p) => p.itemId));
 
@@ -320,8 +367,8 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
       </div>
 
       {/* Scrollable area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col">
-        <div className="p-3 flex flex-col gap-2">
+      <ScrollArea className="flex-1">
+        <div ref={scrollRef} className="p-3 flex flex-col gap-2">
 
           {/* Groups */}
           {groups.map((g) => {
@@ -357,8 +404,12 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                         storeEntry={entry}
                         dotColor={skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR}
                         isPlaced={placedIds.has(id)}
+                        isSelected={selectedItemId === id}
+                        isHidden={hiddenItemIds.includes(id)}
                         indent
                         onTogglePlace={() => togglePlacement(id)}
+                        onSelect={() => setSelectedItemId(selectedItemId === id ? null : id)}
+                        onToggleHide={() => toggleHiddenItem(id)}
                         onEdit={() => openEdit(id)}
                         onDelete={() => handleDelete(id)}
                       />
@@ -385,7 +436,11 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                     storeEntry={entry}
                     dotColor={skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR}
                     isPlaced={placedIds.has(id)}
+                    isSelected={selectedItemId === id}
+                    isHidden={hiddenItemIds.includes(id)}
                     onTogglePlace={() => togglePlacement(id)}
+                    onSelect={() => setSelectedItemId(selectedItemId === id ? null : id)}
+                    onToggleHide={() => toggleHiddenItem(id)}
                     onEdit={() => openEdit(id)}
                     onDelete={() => handleDelete(id)}
                   />
@@ -408,7 +463,11 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                   storeEntry={si}
                   dotColor={skuColorMap[si.item.sku] ?? SCENE.COLORS.NORMAL_STR}
                   isPlaced={placedIds.has(si.item.id)}
+                  isSelected={selectedItemId === si.item.id}
+                  isHidden={hiddenItemIds.includes(si.item.id)}
                   onTogglePlace={() => togglePlacement(si.item.id)}
+                  onSelect={() => setSelectedItemId(selectedItemId === si.item.id ? null : si.item.id)}
+                  onToggleHide={() => toggleHiddenItem(si.item.id)}
                   onEdit={() => openEdit(si.item.id)}
                   onDelete={() => handleDelete(si.item.id)}
                 />
@@ -417,7 +476,7 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
           )}
 
         </div>
-      </div>
+      </ScrollArea>
 
       <AddItemModal
         open={showItemModal}

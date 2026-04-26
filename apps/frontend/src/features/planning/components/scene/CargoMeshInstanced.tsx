@@ -1,11 +1,13 @@
 import { useRef, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
 import { BoxWrapper } from '@/components/shared/BoxWrapper';
 import { SCENE } from '@/lib/config/scene-config';
 
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = SCENE.COLORS.VIOLATION;
+const COLOR_SELECTED = SCENE.COLORS.SELECTED;
 const COLOR_NORMAL = SCENE.COLORS.NORMAL;
 
 interface CargoMeshInstancedProps {
@@ -16,6 +18,9 @@ function InstancedBoxes() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const edgeMeshRef = useRef<THREE.InstancedMesh>(null);
   const placements = usePlanStore((s) => s.placements);
+  const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
+  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
 
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -33,22 +38,30 @@ function InstancedBoxes() {
     const quaternion = new THREE.Quaternion();
 
     placements.forEach((p, i) => {
+      const isHidden = hiddenItemIds.includes(p.itemId);
+      const isSelected = p.itemId === selectedItemId;
+
       const position = new THREE.Vector3(
         p.positionX + p.width / 2,
         p.positionY + p.height / 2,
         p.positionZ + p.depth / 2,
       );
-      const scale = new THREE.Vector3(p.width, p.height, p.depth);
+      // Scale to 0 to hide — avoids destroying instance index order
+      const scale = isHidden
+        ? new THREE.Vector3(0, 0, 0)
+        : new THREE.Vector3(p.width, p.height, p.depth);
       matrix.compose(position, quaternion, scale);
 
       meshRef.current!.setMatrixAt(i, matrix);
       meshRef.current!.setColorAt(
         i,
-        p.isViolation
-          ? color.setHex(COLOR_VIOLATION)
-          : p.color
-            ? color.set(p.color)
-            : color.setHex(COLOR_NORMAL),
+        isSelected
+          ? color.setHex(COLOR_SELECTED)
+          : p.isViolation
+            ? color.setHex(COLOR_VIOLATION)
+            : p.color
+              ? color.set(p.color)
+              : color.setHex(COLOR_NORMAL),
       );
 
       edgeMeshRef.current?.setMatrixAt(i, matrix);
@@ -61,7 +74,7 @@ function InstancedBoxes() {
     if (edgeMeshRef.current) {
       edgeMeshRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [placements]);
+  }, [placements, selectedItemId, hiddenItemIds]);
 
   return (
     <>
@@ -70,11 +83,20 @@ function InstancedBoxes() {
         args={[undefined, undefined, placements.length]}
         castShadow
         receiveShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          const instanceId = e.instanceId;
+          if (instanceId === undefined) return;
+          const p = placements[instanceId];
+          if (!p) return;
+          setSelectedItemId(
+            p.itemId === selectedItemId ? null : p.itemId,
+          );
+        }}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial transparent opacity={0.85} />
       </instancedMesh>
-      {/* Edge overlay — uses LineSegments geometry per instance via separate instanced mesh trick */}
       <instancedMesh
         ref={edgeMeshRef}
         args={[edgesGeo, undefined, placements.length]}
@@ -87,6 +109,9 @@ function InstancedBoxes() {
 
 export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
   const placements = usePlanStore((s) => s.placements);
+  const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
+  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
 
   if (placements.length === 0) return null;
 
@@ -104,6 +129,9 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
             positionZ={p.positionZ}
             color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
             itemId={p.itemId}
+            isSelected={p.itemId === selectedItemId}
+            isHidden={hiddenItemIds.includes(p.itemId)}
+            onClick={(id) => setSelectedItemId(id === selectedItemId ? null : id)}
           />
         ))}
       </>
