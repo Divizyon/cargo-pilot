@@ -6,7 +6,7 @@ export const registerSchema = z
     firstName:       z.string().min(2, 'Ad en az 2 karakter olmalıdır'),
     lastName:        z.string().min(2, 'Soyad en az 2 karakter olmalıdır'),
     email:           z.string().email('Geçerli bir e-posta adresi giriniz'),
-    companyName:     z.string().min(2, 'Firma adı zorunludur'),
+    companyName:     z.string().optional(),
     password:        z
       .string()
       .min(8,         'En az 8 karakter olmalıdır')

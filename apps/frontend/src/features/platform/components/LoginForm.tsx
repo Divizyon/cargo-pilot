@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -16,7 +17,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { USER_ROLES, useAuthStore } from '@/lib/store/useAuthStore';
-import { useLogin } from '@/lib/api/useAuth';
+import { useLogin, isLoginNotFound } from '@/lib/api/useAuth';
+import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
 import { loginSchema } from '@/features/platform/schemas/loginSchema';
 import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
 
@@ -45,7 +47,10 @@ function MicrosoftIcon() {
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { mutate: login, isPending } = useLogin();
+  const { mutate: login, isPending, error: loginError } = useLogin();
+
+  // AC4: hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
+  const accountNotFound = loginError != null && isLoginNotFound(loginError);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -53,7 +58,25 @@ export function LoginForm() {
   });
 
   function onSubmit(values: LoginFormValues) {
-    login(values);
+    login(values, {
+      onError: (err) => {
+        if (err.response?.status !== 401) {
+          toast.error('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.', {
+            position: 'bottom-right',
+          });
+          return;
+        }
+        // AC3: 401'de her zaman generic mesaj (hesap bulunamadı durumu inline gösterilir)
+        if (!isLoginNotFound(err)) {
+          toast.error('E-posta adresi veya şifre hatalıdır.', { position: 'bottom-right' });
+        }
+      },
+    });
+  }
+
+  function handleOAuth(url: string | undefined) {
+    if (!url) return;
+    window.location.href = url;
   }
 
   return (
@@ -65,9 +88,25 @@ export function LoginForm() {
         </p>
       </div>
 
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* AC4: Hesap bulunamadı inline banner */}
+          {accountNotFound && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Bu e-posta adresine ait hesap bulunamadı.{' '}
+                <Link
+                  to="/auth/register"
+                  className="font-semibold underline underline-offset-2 hover:opacity-80"
+                >
+                  Kayıt ol
+                </Link>
+                {' '}sayfasından yeni bir hesap oluşturabilirsiniz.
+              </span>
+            </div>
+          )}
+
           {/* E-posta */}
           <FormField
             control={form.control}
@@ -145,7 +184,6 @@ export function LoginForm() {
                 Giriş yapılıyor...
               </>
             ) : 'Giriş Yap'}
-
           </Button>
 
           {/* Onay metni */}
@@ -182,7 +220,8 @@ export function LoginForm() {
           type="button"
           variant="outline"
           className="w-full"
-          onClick={() => console.log('Google OAuth — implement edilecek')}
+          onClick={() => handleOAuth(OAUTH_GOOGLE_URL)}
+          disabled={!OAUTH_GOOGLE_URL}
         >
           <GoogleIcon />
           Google ile Giriş Yap
@@ -191,7 +230,8 @@ export function LoginForm() {
           type="button"
           variant="outline"
           className="w-full"
-          onClick={() => console.log('Microsoft OAuth — implement edilecek')}
+          onClick={() => handleOAuth(OAUTH_MICROSOFT_URL)}
+          disabled={!OAUTH_MICROSOFT_URL}
         >
           <MicrosoftIcon />
           Microsoft ile Giriş Yap

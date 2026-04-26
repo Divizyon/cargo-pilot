@@ -58,13 +58,11 @@ interface RegisterErrorBody {
 
 // --- Error extractors ---
 
-function extractLoginError(error: AxiosError<LoginErrorBody>, fallback: string): string {
-  const be = error.response?.data?.error;
-  if (!be) return fallback;
-  if (be.validationErrors && be.validationErrors.length > 0) {
-    return be.validationErrors[0].message;
-  }
-  return be.description || fallback;
+/** AC3: 401'de her zaman generic mesaj. AC4: "not found" kodu varsa true döner. */
+export function isLoginNotFound(error: AxiosError<LoginErrorBody>): boolean {
+  if (error.response?.status !== 401) return false;
+  const code = error.response?.data?.error?.code ?? '';
+  return /not.?found|user.?not.?exist/i.test(code);
 }
 
 function extractRegisterError(error: AxiosError<RegisterErrorBody>, fallback: string): string {
@@ -91,10 +89,7 @@ export function useLogin() {
       setAuth(user, res.data.accessToken);
       navigate('/dashboard', { replace: true });
     },
-    onError: (error) => {
-      const message = extractLoginError(error, 'E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
-      toast.error(message, { position: 'bottom-right' });
-    },
+    // onError: component handles it (AC3/AC4 ayrımı için)
   });
 }
 
@@ -112,7 +107,10 @@ export function useRegister() {
       return axiosInstance.post<void>(AUTH_ENDPOINTS.register, payload).then((r) => r.data);
     },
     onSuccess: () => {
-      toast.success('Hesabınız oluşturuldu. Giriş yapabilirsiniz.', { position: 'bottom-right' });
+      toast.success(
+        'Hesabınız oluşturuldu. E-posta adresinize bir doğrulama maili gönderdik.',
+        { position: 'bottom-right' },
+      );
       navigate('/auth/login', { replace: true });
     },
     onError: (error) => {

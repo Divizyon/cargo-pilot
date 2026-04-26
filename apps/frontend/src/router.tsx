@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
 import { FocusModeLayout } from '@/components/shared/layouts/FocusModeLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { ProductCreatePage } from '@/pages/ProductCreatePage';
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
   {
     path: '/auth/register',
     element: <RegisterPage />,
+  },
+  {
+    path: '/auth/callback',
+    element: <AuthCallbackPage />,
   },
   {
     path: '/share/:token',

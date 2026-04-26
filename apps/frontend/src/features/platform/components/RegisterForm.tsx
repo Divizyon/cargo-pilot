@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRegister } from '@/lib/api/useAuth';
+import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
 import { registerSchema } from '@/features/platform/schemas/registerSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
 
@@ -66,13 +67,18 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { mutate: register, isPending } = useRegister();
 
+  function handleOAuth(url: string | undefined) {
+    if (!url) return;
+    window.location.href = url;
+  }
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName:       '',
       lastName:        '',
       email:           '',
-      companyName:     '',
+      companyName:     undefined,
       password:        '',
       confirmPassword: '',
     },
@@ -162,7 +168,10 @@ export function RegisterForm() {
             name="companyName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Firma Adı</FormLabel>
+                <FormLabel>
+                  Firma Adı{' '}
+                  <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
+                </FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -331,7 +340,8 @@ export function RegisterForm() {
           type="button"
           variant="outline"
           className="w-full"
-          onClick={() => console.log('Google OAuth — implement edilecek')}
+          onClick={() => handleOAuth(OAUTH_GOOGLE_URL)}
+          disabled={!OAUTH_GOOGLE_URL}
         >
           <GoogleIcon />
           Google ile Kayıt Ol
@@ -340,7 +350,8 @@ export function RegisterForm() {
           type="button"
           variant="outline"
           className="w-full"
-          onClick={() => console.log('Microsoft OAuth — implement edilecek')}
+          onClick={() => handleOAuth(OAUTH_MICROSOFT_URL)}
+          disabled={!OAUTH_MICROSOFT_URL}
         >
           <MicrosoftIcon />
           Microsoft ile Kayıt Ol
