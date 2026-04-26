@@ -31,6 +31,9 @@ export const WEIGHT_UNITS = {
 export type WeightUnitKey = keyof typeof WEIGHT_UNITS;
 export type WeightUnitId = (typeof WEIGHT_UNITS)[WeightUnitKey];
 
+export const NOTES_MAX_LENGTH = 500;
+export const NOTES_PREVIEW_LENGTH = 50;
+
 const numField = (msgKey: string) => z.number({ message: msgKey }).positive(msgKey);
 
 export const productSchema = z
@@ -52,6 +55,7 @@ export const productSchema = z
     allowRotateX: z.boolean(),
     allowRotateY: z.boolean(),
     allowRotateZ: z.boolean(),
+    notes: z.string().max(NOTES_MAX_LENGTH, 'validations.product.notesTooLong').optional(),
   })
   .refine((data) => !data.isStackable || data.maxStackCount !== undefined, {
     message: 'validations.product.maxStackRequired',

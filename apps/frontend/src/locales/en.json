@@ -10,7 +10,8 @@
       "maxStackRequired": "Max stack count is required when stacking is enabled",
       "maxStackMin": "Max stack count must be at least 1",
       "fragilityRange": "Fragility must be between 0 and 2",
-      "typeRequired": "Product type is required"
+      "typeRequired": "Product type is required",
+      "notesTooLong": "Note must be at most 500 characters"
     },
     "vehicle": {
       "nameRequired": "Vehicle name is required",
@@ -53,6 +54,12 @@
       "nonStackable": "Non-Stackable",
       "nonStackableActive": "Nothing can be stacked on top of this product",
       "nonStackableInactive": "Can be stacked on top of each other",
+      "enableStacking": "Enable stacking",
+      "disableStacking": "Disable stacking",
+      "summaryStackable": "Stackable on top",
+      "summaryNonStackable": "Not stackable on top",
+      "summaryRotationFree": "No rotation restriction",
+      "summaryRotationLocked": "Locked axes: {{axes}}",
       "typeBox": "Box",
       "typeBarrel": "Barrel",
       "typePallet": "Pallet",
@@ -64,7 +71,13 @@
       "axisZTooltip": "Z — Depth (front-back)",
       "submit": "Save",
       "submitting": "Saving...",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "sectionNotes": "Special Handling Notes",
+      "notesLabel": "Handling note",
+      "notesPlaceholder": "e.g. Forklift only, keep away from sunlight.",
+      "notesHelper": "Use this to communicate constraints beyond the standard ones to handling teams.",
+      "notesCounter": "{{count}} / {{max}}",
+      "notesSummaryLabel": "Note"
     },
     "vehicle": {
       "title": "Vehicle Definition",

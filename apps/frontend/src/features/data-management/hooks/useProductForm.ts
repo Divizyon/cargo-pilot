@@ -49,6 +49,7 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
       allowRotateX: true,
       allowRotateY: true,
       allowRotateZ: true,
+      notes: '',
       ...defaultValues,
     },
     mode: 'onChange',
