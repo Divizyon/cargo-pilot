@@ -8,7 +8,7 @@ export const FRAGILITY_LEVELS = {
 
 export type FragilityLevel = (typeof FRAGILITY_LEVELS)[keyof typeof FRAGILITY_LEVELS];
 
-export const PRODUCT_TYPES = ['box', 'barrel', 'package'] as const;
+export const PRODUCT_TYPES = ['box', 'barrel', 'pallet'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
 export const DIMENSION_UNITS = {

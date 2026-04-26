@@ -1,17 +1,7 @@
 import type { ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import {
-  AlertTriangle,
-  Box,
-  Cylinder,
-  Droplets,
-  HelpCircle,
-  Info,
-  Layers,
-  Package,
-  RotateCcw,
-} from 'lucide-react';
+import { Box, Cylinder, HelpCircle, Info, Layers, Package, RotateCcw } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -35,7 +25,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useProductForm } from '@/features/data-management/hooks/useProductForm';
 import {
   DIMENSION_UNITS,
-  FRAGILITY_LEVELS,
   WEIGHT_UNITS,
   toCentimeters,
   type DimensionUnitKey,
@@ -56,7 +45,7 @@ const WEIGHT_KEYS = Object.keys(WEIGHT_UNITS) as Array<keyof typeof WEIGHT_UNITS
 const PRODUCT_TYPE_OPTIONS = [
   { value: 'box', labelKey: 'forms.product.typeBox', Icon: Box },
   { value: 'barrel', labelKey: 'forms.product.typeBarrel', Icon: Cylinder },
-  { value: 'package', labelKey: 'forms.product.typePackage', Icon: Package },
+  { value: 'pallet', labelKey: 'forms.product.typePallet', Icon: Package },
 ] as const;
 
 const ROTATION_AXES = [
@@ -92,20 +81,10 @@ export function ProductForm({
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
 
-  const [width, widthUnit, height, heightUnit, length, lengthUnit, isStackable, fragility] =
-    useWatch({
-      control: form.control,
-      name: [
-        'width',
-        'widthUnit',
-        'height',
-        'heightUnit',
-        'length',
-        'lengthUnit',
-        'isStackable',
-        'fragility',
-      ],
-    });
+  const [width, widthUnit, height, heightUnit, length, lengthUnit, isStackable] = useWatch({
+    control: form.control,
+    name: ['width', 'widthUnit', 'height', 'heightUnit', 'length', 'lengthUnit', 'isStackable'],
+  });
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
@@ -260,45 +239,6 @@ export function ProductForm({
 
             <FormField
               control={form.control}
-              name="fragility"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
-                  <FormControl>
-                    <ToggleGroup
-                      type="single"
-                      value={String(field.value)}
-                      onValueChange={(value) => {
-                        if (!value) return;
-                        const num = Number(value);
-                        field.onChange(num);
-                        if (num >= 1) {
-                          form.setValue('allowRotateZ', false, { shouldValidate: true });
-                        }
-                      }}
-                      className="flex flex-wrap"
-                    >
-                      <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
-                        <Package className="h-5 w-5" />
-                        <span className="text-xs">{t('forms.product.fragilityNonFragile')}</span>
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
-                        <AlertTriangle className="h-5 w-5 text-amber-500" />
-                        <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
-                        <Droplets className="h-5 w-5 text-blue-500" />
-                        <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
-                      </ToggleGroupItem>
-                    </ToggleGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="isStackable"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-md border p-3">
@@ -312,7 +252,7 @@ export function ProductForm({
                       onCheckedChange={(checked) => {
                         field.onChange(checked);
                         if (!checked) {
-                          form.setValue('maxStackCount', undefined, { shouldValidate: true });
+                          form.setValue('maxStackCount', 1, { shouldValidate: true });
                         }
                       }}
                     />
@@ -321,34 +261,33 @@ export function ProductForm({
               )}
             />
 
-            {isStackable && (
-              <FormField
-                control={form.control}
-                name="maxStackCount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('forms.product.maxStackCount')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        step={1}
-                        placeholder={t('forms.product.maxStackCountPlaceholder')}
-                        className="max-w-[200px]"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) =>
-                          field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="maxStackCount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('forms.product.maxStackCount')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={1}
+                      step={1}
+                      disabled={!isStackable}
+                      placeholder={t('forms.product.maxStackCountPlaceholder')}
+                      className="max-w-[200px]"
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? 1 : e.target.valueAsNumber)
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            {/* Rotasyon — eksen tooltip'leri ile */}
+            {/* Rotasyon — yan yana kutu şeklinde, eksen tooltip'leri ile */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <RotateCcw className="h-4 w-4 text-muted-foreground" />
@@ -370,24 +309,15 @@ export function ProductForm({
                 </Tooltip>
               </div>
 
-              {fragility >= 1 && (
-                <p
-                  role="status"
-                  className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
-                >
-                  {t('forms.product.rotateZLockedWarning')}
-                </p>
-              )}
-
-              <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-3">
                 {ROTATION_AXES.map(({ name, labelKey, tooltipKey }) => (
                   <FormField
                     key={name}
                     control={form.control}
                     name={name}
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-md border p-3">
-                        <div className="flex items-center gap-2">
+                      <FormItem className="flex flex-col items-center gap-2 rounded-md border p-3 text-center">
+                        <div className="flex items-center gap-1">
                           <FormLabel className="m-0 font-normal">{t(labelKey)}</FormLabel>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -399,11 +329,7 @@ export function ProductForm({
                           </Tooltip>
                         </div>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            disabled={name === 'allowRotateZ' && fragility >= 1}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}

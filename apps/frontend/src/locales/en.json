@@ -51,7 +51,7 @@
       "sectionConstraints": "Constraints",
       "typeBox": "Box",
       "typeBarrel": "Barrel",
-      "typePackage": "Package",
+      "typePallet": "Pallet",
       "volume": "Volume",
       "axisGuideAria": "Axis guide",
       "axisGuideTitle": "Axis directions",

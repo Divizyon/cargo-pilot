@@ -1,18 +1,8 @@
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ProductForm } from '@/features/data-management/components/ProductForm';
+import { useNavigate } from 'react-router-dom';
 import { ProductTable } from '@/features/data-management/components/ProductTable';
-import { useCreateItem } from '@/lib/api/useItems';
 
 export function ProductsPage() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const createItem = useCreateItem();
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,27 +13,7 @@ export function ProductsPage() {
         </p>
       </div>
 
-      <ProductTable onCreateClick={() => setIsCreateOpen(true)} />
-
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Yeni Ürün Ekle</DialogTitle>
-            <DialogDescription>
-              Ürünün kimliğini, fiziksel özelliklerini ve kısıtlarını tanımlayın.
-            </DialogDescription>
-          </DialogHeader>
-          <ProductForm
-            isSubmitting={createItem.isPending}
-            onCancel={() => setIsCreateOpen(false)}
-            onSubmit={(values) =>
-              createItem.mutate(values, {
-                onSuccess: () => setIsCreateOpen(false),
-              })
-            }
-          />
-        </DialogContent>
-      </Dialog>
+      <ProductTable onCreateClick={() => navigate('/products/new')} />
     </div>
   );
 }
