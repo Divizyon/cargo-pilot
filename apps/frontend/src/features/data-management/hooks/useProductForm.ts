@@ -42,6 +42,7 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
       widthUnit: 'cm',
       heightUnit: 'cm',
       lengthUnit: 'cm',
+
       weightUnit: 'kg',
       isStackable: false,
       maxStackCount: 1,

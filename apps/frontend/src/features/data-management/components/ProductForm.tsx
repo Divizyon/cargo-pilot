@@ -501,6 +501,7 @@ export function ProductForm({
                   <span className="block text-xs uppercase tracking-wide text-muted-foreground">
                     {t('forms.product.volume')}
                   </span>
+
                   <span
                     key={volumeCm3 > 0 ? Math.round(volumeCm3 * 100) : 'empty'}
                     className={cn(
@@ -508,6 +509,7 @@ export function ProductForm({
                       volumeCm3 > 0 && 'animate-volume-flash',
                     )}
                   >
+
                     {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
                   </span>
                 </div>
