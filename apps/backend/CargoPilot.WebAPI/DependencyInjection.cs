@@ -1,9 +1,14 @@
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
+using CargoPilot.Application.Abstractions;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
+using CargoPilot.WebAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Prometheus;
 
@@ -16,11 +21,35 @@ public static class DependencyInjection {
         WriteIndented          = false,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
+
     public static IServiceCollection AddPresentation(
         this IServiceCollection services,
+        IConfiguration configuration,
         bool useInMemoryRepository = false)
     {
         services.AddTransient<GlobalExceptionMiddleware>();
+
+        // Override Infrastructure's AnonymousCurrentUserService with the JWT-aware implementation.
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, JwtCurrentUserService>();
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = configuration["Jwt:Issuer"],
+                    ValidAudience = configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!)),
+                    ClockSkew = TimeSpan.Zero,
+                };
+            });
 
         services.AddControllers().AddJsonOptions(options =>
         {
@@ -36,13 +65,11 @@ public static class DependencyInjection {
                 Description = "CargoPilot uygulamasının REST API dokümantasyonu."
             });
 
-            // XML yorum dosyasını Swagger'a dahil et
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
             if (File.Exists(xmlPath))
                 options.IncludeXmlComments(xmlPath);
 
-            // JWT Bearer auth iskelet tanımı (auth implemente edildiğinde devreye alınacak)
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
@@ -66,17 +93,14 @@ public static class DependencyInjection {
         services.AddHttpClient("minio-health")
             .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(5));
 
-        // MinIO sağlık kontrolü her zaman kayıtlı
         services.AddScoped<MinioHealthCheck>();
 
-        // Sağlık kontrolleri
         var healthChecks = services.AddHealthChecks()
             .AddCheck<MinioHealthCheck>(
                 "minio",
                 failureStatus: HealthStatus.Degraded,
                 tags: ["storage", "infrastructure"]);
 
-        // Veritabanı sağlık kontrolü yalnızca gerçek DB kullanıldığında
         if (!useInMemoryRepository)
         {
             services.AddScoped<DatabaseHealthCheck>();
@@ -93,7 +117,6 @@ public static class DependencyInjection {
     {
         app.UseMiddleware<GlobalExceptionMiddleware>();
 
-        // Production dışındaki tüm ortamlarda (Development, Staging) Swagger aktif
         if (!app.Environment.IsProduction())
         {
             app.UseSwagger();
@@ -104,12 +127,12 @@ public static class DependencyInjection {
             });
         }
 
+        app.UseAuthentication();
         app.UseHttpMetrics();
         app.UseAuthorization();
         app.MapControllers();
         app.MapMetrics("/metrics");
 
-        // Özet health endpoint — sadece Healthy/Unhealthy (yük dengeleyici için)
         app.MapHealthChecks("/health", new HealthCheckOptions
         {
             ResultStatusCodes =
@@ -120,7 +143,6 @@ public static class DependencyInjection {
             }
         });
 
-        // Detaylı health endpoint — bileşen bazında JSON (izleme araçları için)
         app.MapHealthChecks("/health/detail", new HealthCheckOptions
         {
             ResultStatusCodes =

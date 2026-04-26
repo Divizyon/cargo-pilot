@@ -54,6 +54,12 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser> {
             .IsRequired()
             .HasDefaultValue(CargoPilot.Domain.Enums.AuthProvider.Local);
 
+        builder.Property(user => user.FailedLoginAttempts)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(user => user.LockoutEndUtc);
+
         builder.HasIndex(user => user.Email)
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");

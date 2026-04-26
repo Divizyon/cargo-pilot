@@ -65,6 +65,7 @@ export function LoginForm() {
         </p>
       </div>
 
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* E-posta */}
@@ -144,6 +145,7 @@ export function LoginForm() {
                 Giriş yapılıyor...
               </>
             ) : 'Giriş Yap'}
+
           </Button>
 
           {/* Onay metni */}
