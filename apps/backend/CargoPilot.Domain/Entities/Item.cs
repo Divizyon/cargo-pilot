@@ -24,6 +24,46 @@ public sealed class Item : BaseEntity {
 
     private Item() { }
 
+    public void Update(
+        string sku,
+        string name,
+        string productType,
+        ItemCategory category,
+        decimal width,
+        decimal height,
+        decimal length,
+        decimal weight,
+        FragilityType fragilityType,
+        bool isStackable,
+        int maxStackCount,
+        decimal maxWeightOnTop,
+        AllowedRotations allowedRotations,
+        string? barcode = null,
+        decimal? diameter = null,
+        string? imageUrl = null,
+        string? stackGroup = null,
+        string? specialNotes = null)
+    {
+        SKU = sku;
+        Barcode = barcode;
+        Name = name;
+        ProductType = productType;
+        Category = category;
+        Width = width;
+        Height = height;
+        Length = length;
+        Diameter = diameter;
+        Weight = weight;
+        FragilityType = fragilityType;
+        IsStackable = isStackable;
+        MaxStackCount = maxStackCount;
+        MaxWeightOnTop = maxWeightOnTop;
+        AllowedRotations = allowedRotations;
+        ImageUrl = imageUrl;
+        StackGroup = stackGroup;
+        SpecialNotes = specialNotes;
+    }
+
     public Item(
         Guid id,
         string sku,
