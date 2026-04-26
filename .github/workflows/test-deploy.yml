@@ -197,6 +197,8 @@ jobs:
       MINIO_BUCKET: cargo-pilot-test
       # Seed için varsayılan admin şifresi — CI fallback değeri
       Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
+      # JWT secret — en az 32 karakter olmalı
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-at-least-32-chars-long!' }}
 
     steps:
       - name: Kodu al
