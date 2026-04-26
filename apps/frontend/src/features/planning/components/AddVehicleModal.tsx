@@ -4,12 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ElementType } from 'react';
 import { Car, Package2, Truck } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,11 +15,11 @@ import type { Vehicle } from '@/lib/types/vehicle';
 
 const vehicleModalSchema = z.object({
   vehicleType: z.enum(['tir', 'kamyon', 'kamposet', 'konteyner']),
-  name:        z.string().min(1, 'Zorunlu'),
-  payload:     z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
-  length:      z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
-  width:       z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
-  height:      z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  name: z.string().min(1, 'Zorunlu'),
+  payload: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  length: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   loadingArea: z.enum(['arka', 'yan', 'arka-yan']),
 });
 
@@ -32,11 +27,11 @@ type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
 
 const EMPTY_DEFAULTS: VehicleModalValues = {
   vehicleType: 'kamyon',
-  name:        '',
-  payload:     0,
-  length:      0,
-  width:       0,
-  height:      0,
+  name: '',
+  payload: 0,
+  length: 0,
+  width: 0,
+  height: 0,
   loadingArea: 'arka',
 };
 
@@ -47,9 +42,9 @@ const VEHICLE_TYPES: Array<{
   label: string;
   Icon: ElementType;
 }> = [
-  { value: 'tir',       label: 'Tır',       Icon: Truck    },
-  { value: 'kamyon',    label: 'Kamyon',    Icon: Truck    },
-  { value: 'kamposet',  label: 'Kamposet',  Icon: Car      },
+  { value: 'tir', label: 'Tır', Icon: Truck },
+  { value: 'kamyon', label: 'Kamyon', Icon: Truck },
+  { value: 'kamposet', label: 'Kamposet', Icon: Car },
   { value: 'konteyner', label: 'Konteyner', Icon: Package2 },
 ];
 
@@ -59,8 +54,8 @@ const LOADING_AREAS: Array<{
   value: 'arka' | 'yan' | 'arka-yan';
   label: string;
 }> = [
-  { value: 'arka',     label: 'Yalnızca Arka'      },
-  { value: 'yan',      label: '+ Yan Profil'        },
+  { value: 'arka', label: 'Yalnızca Arka' },
+  { value: 'yan', label: '+ Yan Profil' },
   { value: 'arka-yan', label: '+ Arka + Yan (Full)' },
 ];
 
@@ -86,30 +81,28 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
 
   useEffect(() => {
     if (open) reset(EMPTY_DEFAULTS);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const name        = useWatch({ control, name: 'name' });
-  const payload     = useWatch({ control, name: 'payload' });
-  const length      = useWatch({ control, name: 'length' });
-  const width       = useWatch({ control, name: 'width' });
-  const height      = useWatch({ control, name: 'height' });
+  const name = useWatch({ control, name: 'name' });
+  const payload = useWatch({ control, name: 'payload' });
+  const length = useWatch({ control, name: 'length' });
+  const width = useWatch({ control, name: 'width' });
+  const height = useWatch({ control, name: 'height' });
   const loadingArea = useWatch({ control, name: 'loadingArea' });
 
   const volumeM3 =
-    length && width && height
-      ? ((length * width * height) / 1_000_000).toFixed(1)
-      : '0';
+    length && width && height ? ((length * width * height) / 1_000_000).toFixed(1) : '0';
 
   const loadingLabel = LOADING_AREAS.find((a) => a.value === loadingArea)?.label ?? '';
 
   function onSubmit(data: VehicleModalValues) {
     const vehicle: Vehicle = {
-      id:      crypto.randomUUID(),
-      name:    data.name,
-      length:  data.length,
-      width:   data.width,
-      height:  data.height,
+      id: crypto.randomUUID(),
+      name: data.name,
+      length: data.length,
+      width: data.width,
+      height: data.height,
       payload: data.payload,
     };
     onAdd(vehicle);
@@ -120,12 +113,8 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
         <div className="flex">
-
           {/* ── Left: Form ───────────────────────────────────────────────── */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex-1 flex flex-col gap-5 p-6"
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-5 p-6">
             <DialogHeader>
               <DialogTitle className="text-base font-semibold text-zinc-900">
                 Yeni Araç Ekle
@@ -193,13 +182,11 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {(
-                  [
-                    { key: 'width'  as const, label: 'EN'         },
-                    { key: 'length' as const, label: 'BOY'        },
-                    { key: 'height' as const, label: 'YÜKSEKLİK' },
-                  ]
-                ).map(({ key, label }) => (
+                {[
+                  { key: 'width' as const, label: 'EN' },
+                  { key: 'length' as const, label: 'BOY' },
+                  { key: 'height' as const, label: 'YÜKSEKLİK' },
+                ].map(({ key, label }) => (
                   <div key={key} className="flex flex-col gap-1">
                     <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
                       {label}
@@ -257,10 +244,7 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
               >
                 İptal
               </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700"
-              >
+              <Button type="submit" className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700">
                 Kaydet
               </Button>
             </div>
@@ -298,7 +282,6 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
               )}
             </div>
           </div>
-
         </div>
       </DialogContent>
     </Dialog>

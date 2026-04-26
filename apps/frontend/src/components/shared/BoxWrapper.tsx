@@ -41,7 +41,12 @@ export function BoxWrapper({
     return edges;
   }, [width, height, depth]);
 
-  useEffect(() => () => { edgesGeo.dispose(); }, [edgesGeo]);
+  useEffect(
+    () => () => {
+      edgesGeo.dispose();
+    },
+    [edgesGeo],
+  );
 
   if (isHidden) return null;
 

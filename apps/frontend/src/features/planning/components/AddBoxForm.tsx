@@ -85,7 +85,10 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
   const initialColor = (() => {
     if (isEditing) return skuColorMap[editTarget.item.sku] ?? palette[0];
     const usedColors = new Set(Object.values(skuColorMap));
-    return palette.find((c) => !usedColors.has(c)) ?? palette[Object.keys(skuColorMap).length % palette.length];
+    return (
+      palette.find((c) => !usedColors.has(c)) ??
+      palette[Object.keys(skuColorMap).length % palette.length]
+    );
   })();
 
   const editDefaults: Partial<AddBoxFormValues> = isEditing
@@ -340,11 +343,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
             name="isStackable"
             control={control}
             render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                className="scale-75"
-              />
+              <Switch checked={field.value} onCheckedChange={field.onChange} className="scale-75" />
             )}
           />
         </div>

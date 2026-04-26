@@ -64,15 +64,7 @@ const DOOR_EASING = 0.055;
 
 // Grid lines drawn flush on the outer face of a door panel.
 // sign=+1 → x runs 0…panelW (left door); sign=-1 → x runs 0…-panelW (right door).
-function DoorGrid({
-  panelW,
-  height,
-  sign,
-}: {
-  panelW: number;
-  height: number;
-  sign: 1 | -1;
-}) {
+function DoorGrid({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
     const z = -(DOOR_THICKNESS + 0.5);
@@ -97,24 +89,36 @@ function DoorGrid({
   );
 }
 
-function DoorFrame({
-  panelW,
-  height,
-  sign,
-}: {
-  panelW: number;
-  height: number;
-  sign: 1 | -1;
-}) {
+function DoorFrame({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const z = -(DOOR_THICKNESS + 0.5);
     const ex = sign * panelW;
     // Rectangle: bottom-left → bottom-right → top-right → top-left → back to start
     const pts = [
-      0, 0, z,  ex, 0, z,
-      ex, 0, z,  ex, height, z,
-      ex, height, z,  0, height, z,
-      0, height, z,  0, 0, z,
+      0,
+      0,
+      z,
+      ex,
+      0,
+      z,
+      ex,
+      0,
+      z,
+      ex,
+      height,
+      z,
+      ex,
+      height,
+      z,
+      0,
+      height,
+      z,
+      0,
+      height,
+      z,
+      0,
+      0,
+      z,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -128,15 +132,7 @@ function DoorFrame({
   );
 }
 
-function DoorPanel({
-  panelW,
-  height,
-  sign,
-}: {
-  panelW: number;
-  height: number;
-  sign: 1 | -1;
-}) {
+function DoorPanel({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   return (
     <group>
       <DoorGrid panelW={panelW} height={height} sign={sign} />

@@ -44,11 +44,11 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {[
-          { label: 'Uzunluk',   value: `${vehicle.length} cm` },
-          { label: 'Genişlik',  value: `${vehicle.width} cm`  },
+          { label: 'Uzunluk', value: `${vehicle.length} cm` },
+          { label: 'Genişlik', value: `${vehicle.width} cm` },
           { label: 'Yükseklik', value: `${vehicle.height} cm` },
-          { label: 'İç Hacim',  value: `${volumeM3} m³`       },
-          { label: 'Max Yük',   value: `${payloadTon} t`       },
+          { label: 'İç Hacim', value: `${volumeM3} m³` },
+          { label: 'Max Yük', value: `${payloadTon} t` },
         ].map((r) => (
           <div key={r.label} className="bg-zinc-50 rounded-lg px-2.5 py-2">
             <p className="text-xs text-zinc-400 mb-0.5">{r.label}</p>
@@ -60,8 +60,16 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
   );
 }
 
-function StatisticsCard({ volumePct, weightKg, weightPct, remainingM3 }: {
-  volumePct: number; weightKg: number; weightPct: number; remainingM3: number;
+function StatisticsCard({
+  volumePct,
+  weightKg,
+  weightPct,
+  remainingM3,
+}: {
+  volumePct: number;
+  weightKg: number;
+  weightPct: number;
+  remainingM3: number;
 }) {
   return (
     <div className="bg-white border border-zinc-200 rounded-xl p-4">
@@ -73,7 +81,10 @@ function StatisticsCard({ volumePct, weightKg, weightPct, remainingM3 }: {
       </div>
       <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden mb-3">
         <div
-          className={cn('h-full rounded-full transition-all duration-300', volumePct > 85 ? 'bg-rose-500' : 'bg-zinc-700')}
+          className={cn(
+            'h-full rounded-full transition-all duration-300',
+            volumePct > 85 ? 'bg-rose-500' : 'bg-zinc-700',
+          )}
           style={{ width: `${volumePct}%` }}
         />
       </div>
@@ -84,7 +95,10 @@ function StatisticsCard({ volumePct, weightKg, weightPct, remainingM3 }: {
       </div>
       <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden mb-3">
         <div
-          className={cn('h-full rounded-full transition-all duration-300', weightPct > 90 ? 'bg-rose-500' : 'bg-zinc-500')}
+          className={cn(
+            'h-full rounded-full transition-all duration-300',
+            weightPct > 90 ? 'bg-rose-500' : 'bg-zinc-500',
+          )}
           style={{ width: `${weightPct}%` }}
         />
       </div>
@@ -97,30 +111,45 @@ function StatisticsCard({ volumePct, weightKg, weightPct, remainingM3 }: {
   );
 }
 
-function SummaryCard({ placedCount, totalWeight, remainingM3, volumePct }: {
-  placedCount: number; totalWeight: number; remainingM3: number; volumePct: number;
+function SummaryCard({
+  placedCount,
+  totalWeight,
+  remainingM3,
+  volumePct,
+}: {
+  placedCount: number;
+  totalWeight: number;
+  remainingM3: number;
+  volumePct: number;
 }) {
   const statusOk = volumePct <= 100;
   return (
     <div className="bg-white border border-zinc-200 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs text-zinc-500">Plan Özeti</p>
-        <span className={cn(
-          'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border',
-          statusOk ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-rose-600 bg-rose-50 border-rose-200',
-        )}>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border',
+            statusOk
+              ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+              : 'text-rose-600 bg-rose-50 border-rose-200',
+          )}
+        >
           <CheckCircle2 className="w-3 h-3" />
           {statusOk ? 'Normal' : 'Kapasite Aşıldı'}
         </span>
       </div>
       <div className="flex flex-col gap-0">
         {[
-          { label: 'Yerleştirilen kutu',  value: `${placedCount} adet`                 },
+          { label: 'Yerleştirilen kutu', value: `${placedCount} adet` },
           { label: 'Toplam yük ağırlığı', value: `${(totalWeight / 1000).toFixed(2)} t` },
-          { label: 'Kalan boş alan',      value: `${remainingM3} m³`                   },
-          { label: 'Doluluk oranı',       value: `%${volumePct}`                        },
+          { label: 'Kalan boş alan', value: `${remainingM3} m³` },
+          { label: 'Doluluk oranı', value: `%${volumePct}` },
         ].map((r) => (
-          <div key={r.label} className="flex items-center justify-between py-1.5 border-b border-zinc-100 last:border-0">
+          <div
+            key={r.label}
+            className="flex items-center justify-between py-1.5 border-b border-zinc-100 last:border-0"
+          >
             <span className="text-xs text-zinc-400">{r.label}</span>
             <span className="text-sm text-zinc-600">{r.value}</span>
           </div>
@@ -138,8 +167,8 @@ interface StatsPanelProps {
 
 export function StatsPanel({ compact = false }: StatsPanelProps) {
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const placements      = usePlanStore((s) => s.placements);
-  const selectedItems   = usePlanStore((s) => s.selectedItems);
+  const placements = usePlanStore((s) => s.placements);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
 
   const weightMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -149,11 +178,15 @@ export function StatsPanel({ compact = false }: StatsPanelProps) {
 
   const stats = useMemo(() => {
     if (!selectedVehicle) return null;
-    const vehicleVol  = vehicleVolumeCm3(selectedVehicle);
+    const vehicleVol = vehicleVolumeCm3(selectedVehicle);
     const cargoVolCm3 = placements.reduce((sum, p) => sum + p.width * p.height * p.depth, 0);
     const totalWeight = placements.reduce((sum, p) => sum + (weightMap.get(p.itemId) ?? 0), 0);
-    const volumePct   = vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
-    const weightPct   = selectedVehicle.payload > 0 ? Math.min(100, Math.round((totalWeight / selectedVehicle.payload) * 100)) : 0;
+    const volumePct =
+      vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
+    const weightPct =
+      selectedVehicle.payload > 0
+        ? Math.min(100, Math.round((totalWeight / selectedVehicle.payload) * 100))
+        : 0;
     const remainingM3 = parseFloat(Math.max(0, cm3ToM3(vehicleVol - cargoVolCm3)).toFixed(2));
     return { volumePct, weightPct, totalWeight, remainingM3 };
   }, [placements, selectedVehicle, weightMap]);
@@ -175,16 +208,20 @@ export function StatsPanel({ compact = false }: StatsPanelProps) {
       {/* Şerit — her zaman görünür, ok ibaresi görsel gösterge */}
       <div className="bg-white border border-zinc-200 rounded-xl px-3 h-11 flex items-center gap-3">
         <div className="w-7 h-7 flex items-center justify-center shrink-0">
-          {compact
-            ? <ChevronUp   className="w-4 h-4 text-zinc-400" />
-            : <ChevronDown className="w-4 h-4 text-zinc-400" />}
+          {compact ? (
+            <ChevronUp className="w-4 h-4 text-zinc-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-zinc-400" />
+          )}
         </div>
 
         <div className="w-px h-4 bg-zinc-200 shrink-0" />
 
         <div className="flex items-center gap-2 shrink-0">
           <VehicleIcon className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
-          <span className="text-xs text-zinc-600 truncate max-w-[120px]">{selectedVehicle.name}</span>
+          <span className="text-xs text-zinc-600 truncate max-w-[120px]">
+            {selectedVehicle.name}
+          </span>
         </div>
 
         <div className="w-px h-4 bg-zinc-200 shrink-0" />
@@ -193,7 +230,10 @@ export function StatsPanel({ compact = false }: StatsPanelProps) {
           <span className="text-xs text-zinc-400">Hacim</span>
           <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all duration-300', stats.volumePct > 85 ? 'bg-rose-500' : 'bg-zinc-700')}
+              className={cn(
+                'h-full rounded-full transition-all duration-300',
+                stats.volumePct > 85 ? 'bg-rose-500' : 'bg-zinc-700',
+              )}
               style={{ width: `${stats.volumePct}%` }}
             />
           </div>
@@ -206,7 +246,10 @@ export function StatsPanel({ compact = false }: StatsPanelProps) {
           <span className="text-xs text-zinc-400">Ağırlık</span>
           <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all duration-300', stats.weightPct > 90 ? 'bg-rose-500' : 'bg-zinc-500')}
+              className={cn(
+                'h-full rounded-full transition-all duration-300',
+                stats.weightPct > 90 ? 'bg-rose-500' : 'bg-zinc-500',
+              )}
               style={{ width: `${stats.weightPct}%` }}
             />
           </div>

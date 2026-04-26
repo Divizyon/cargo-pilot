@@ -9,10 +9,10 @@ import { cn } from '@/lib/utils';
 
 export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
-  const [leftOpen, setLeftOpen]         = useState(true);
-  const [rightOpen, setRightOpen]       = useState(true);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
   const [statsExpanded, setStatsExpanded] = useState(false);
-  const [statsCompact, setStatsCompact]   = useState(true);
+  const [statsCompact, setStatsCompact] = useState(true);
 
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,10 +31,8 @@ export function NewPlanPage() {
 
   return (
     <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
-
       {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
       <div className="relative flex flex-1 min-h-0 overflow-hidden">
-
         {/* Sol ikon şeridi — tıklanabilir alan */}
         <div
           role="button"
@@ -48,16 +46,20 @@ export function NewPlanPage() {
             !leftOpen && 'hover:bg-zinc-50',
           )}
         >
-          <div className={cn(
-            'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-            leftOpen ? 'bg-zinc-900 text-white' : 'text-zinc-400',
-          )}>
+          <div
+            className={cn(
+              'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+              leftOpen ? 'bg-zinc-900 text-white' : 'text-zinc-400',
+            )}
+          >
             <Package2 className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 flex items-center justify-center">
-            {leftOpen
-              ? <ChevronLeft  className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
-              : <ChevronRight className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />}
+            {leftOpen ? (
+              <ChevronLeft className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
+            )}
           </div>
         </div>
 
@@ -109,19 +111,22 @@ export function NewPlanPage() {
             !rightOpen && 'hover:bg-zinc-50',
           )}
         >
-          <div className={cn(
-            'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-            rightOpen ? 'bg-zinc-900 text-white' : 'text-zinc-400',
-          )}>
+          <div
+            className={cn(
+              'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+              rightOpen ? 'bg-zinc-900 text-white' : 'text-zinc-400',
+            )}
+          >
             <Truck className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 flex items-center justify-center">
-            {rightOpen
-              ? <ChevronRight className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
-              : <ChevronLeft  className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />}
+            {rightOpen ? (
+              <ChevronRight className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
+            ) : (
+              <ChevronLeft className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
+            )}
           </div>
         </div>
-
       </div>
 
       {/* ── Alt satır: stats — tıklanabilir dış şerit + animasyonlu içerik ── */}
@@ -138,7 +143,6 @@ export function NewPlanPage() {
       >
         <StatsPanel compact={statsCompact} />
       </div>
-
     </div>
   );
 }

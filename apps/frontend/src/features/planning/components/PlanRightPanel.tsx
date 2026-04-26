@@ -40,9 +40,11 @@ function VehicleListItem({ vehicle, isSelected, onSelect, onDelete }: VehicleLis
         onClick={() => onSelect(vehicle)}
         className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
       >
-        {isContainer
-          ? <Package2 className={iconClass} strokeWidth={2} />
-          : <Truck className={iconClass} strokeWidth={2} />}
+        {isContainer ? (
+          <Package2 className={iconClass} strokeWidth={2} />
+        ) : (
+          <Truck className={iconClass} strokeWidth={2} />
+        )}
         <div className="flex-1 min-w-0">
           <p className={cn('text-sm truncate', isSelected ? 'text-white' : 'text-zinc-800')}>
             {vehicle.name}

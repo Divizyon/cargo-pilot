@@ -4,12 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ElementType } from 'react';
 import { AlertTriangle, Archive, Box, Layers, RotateCcw } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,9 +50,9 @@ const PRODUCT_TYPES: Array<{
   label: string;
   Icon: ElementType;
 }> = [
-  { value: 'koli',  label: 'Küp',   Icon: Box     },
-  { value: 'varil', label: 'Varil', Icon: Archive  },
-  { value: 'palet', label: 'Panel', Icon: Layers   },
+  { value: 'koli', label: 'Küp', Icon: Box },
+  { value: 'varil', label: 'Varil', Icon: Archive },
+  { value: 'palet', label: 'Panel', Icon: Layers },
 ];
 
 // ─── Constraint config ────────────────────────────────────────────────────────
@@ -67,9 +62,9 @@ const CONSTRAINTS: Array<{
   label: string;
   Icon: ElementType;
 }> = [
-  { name: 'isFragile',      label: 'Kırılabilir',  Icon: AlertTriangle },
-  { name: 'isNotStackable', label: 'İstiflenemez', Icon: Layers        },
-  { name: 'isNotRotatable', label: 'Döndürülemez', Icon: RotateCcw     },
+  { name: 'isFragile', label: 'Kırılabilir', Icon: AlertTriangle },
+  { name: 'isNotStackable', label: 'İstiflenemez', Icon: Layers },
+  { name: 'isNotRotatable', label: 'Döndürülemez', Icon: RotateCcw },
 ];
 
 // ─── AddItemModal ─────────────────────────────────────────────────────────────
@@ -87,18 +82,13 @@ interface AddItemModalProps {
   onSuccess?: () => void;
 }
 
-export function AddItemModal({
-  open,
-  onOpenChange,
-  editTarget,
-  onSuccess,
-}: AddItemModalProps) {
+export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddItemModalProps) {
   const addManualItem = usePlanStore((s) => s.addManualItem);
-  const updateItem    = usePlanStore((s) => s.updateItem);
-  const skuColorMap   = usePlanStore((s) => s.skuColorMap);
+  const updateItem = usePlanStore((s) => s.updateItem);
+  const skuColorMap = usePlanStore((s) => s.skuColorMap);
 
   const isEditing = editTarget !== undefined;
-  const palette   = SCENE.COLORS.SKU_PALETTE;
+  const palette = SCENE.COLORS.SKU_PALETTE;
 
   const {
     register,
@@ -115,34 +105,34 @@ export function AddItemModal({
     if (!open) return;
     if (isEditing) {
       reset({
-        productType:    editTarget.item.productType,
-        name:           editTarget.item.name,
-        width:          editTarget.item.width,
-        length:         editTarget.item.length,
-        height:         editTarget.item.height,
-        weight:         editTarget.item.weight,
-        quantity:       editTarget.quantity,
-        isFragile:      editTarget.item.fragility >= 1,
+        productType: editTarget.item.productType,
+        name: editTarget.item.name,
+        width: editTarget.item.width,
+        length: editTarget.item.length,
+        height: editTarget.item.height,
+        weight: editTarget.item.weight,
+        quantity: editTarget.quantity,
+        isFragile: editTarget.item.fragility >= 1,
         isNotStackable: !editTarget.item.isStackable,
         isNotRotatable: !editTarget.item.allowRotateY,
       });
     } else {
       reset(EMPTY_DEFAULTS);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const name          = useWatch({ control, name: 'name' });
-  const width         = useWatch({ control, name: 'width' });
-  const height        = useWatch({ control, name: 'height' });
-  const length        = useWatch({ control, name: 'length' });
-  const weight        = useWatch({ control, name: 'weight' });
-  const isFragile     = useWatch({ control, name: 'isFragile' });
-  const isNotStack    = useWatch({ control, name: 'isNotStackable' });
-  const isNotRotate   = useWatch({ control, name: 'isNotRotatable' });
+  const name = useWatch({ control, name: 'name' });
+  const width = useWatch({ control, name: 'width' });
+  const height = useWatch({ control, name: 'height' });
+  const length = useWatch({ control, name: 'length' });
+  const weight = useWatch({ control, name: 'weight' });
+  const isFragile = useWatch({ control, name: 'isFragile' });
+  const isNotStack = useWatch({ control, name: 'isNotStackable' });
+  const isNotRotate = useWatch({ control, name: 'isNotRotatable' });
 
   const activeConstraints: string[] = [];
-  if (isFragile)  activeConstraints.push('Kırılgan');
+  if (isFragile) activeConstraints.push('Kırılgan');
   if (isNotStack) activeConstraints.push('İstiflenmez');
   if (isNotRotate) activeConstraints.push('Döndürülemez');
 
@@ -154,20 +144,20 @@ export function AddItemModal({
     const sku = isEditing ? editTarget.item.sku : `ITEM-${crypto.randomUUID().slice(0, 8)}`;
 
     const item: Item = {
-      id:            isEditing ? editTarget.itemId : crypto.randomUUID(),
-      name:          data.name,
+      id: isEditing ? editTarget.itemId : crypto.randomUUID(),
+      name: data.name,
       sku,
-      productType:   data.productType,
-      width:         data.width,
-      height:        data.height,
-      length:        data.length,
-      weight:        data.weight,
-      isStackable:   !data.isNotStackable,
+      productType: data.productType,
+      width: data.width,
+      height: data.height,
+      length: data.length,
+      weight: data.weight,
+      isStackable: !data.isNotStackable,
       maxStackCount: data.isNotStackable ? 1 : 3,
-      fragility:     data.isFragile ? 1 : 0,
-      allowRotateX:  !data.isNotRotatable,
-      allowRotateY:  !data.isNotRotatable,
-      allowRotateZ:  !data.isNotRotatable,
+      fragility: data.isFragile ? 1 : 0,
+      allowRotateX: !data.isNotRotatable,
+      allowRotateY: !data.isNotRotatable,
+      allowRotateZ: !data.isNotRotatable,
     };
 
     if (isEditing) {
@@ -184,12 +174,8 @@ export function AddItemModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
         <div className="flex">
-
           {/* ── Left: Form ───────────────────────────────────────────────── */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex-1 flex flex-col gap-5 p-6"
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-5 p-6">
             <DialogHeader>
               <DialogTitle className="text-base font-semibold text-zinc-900">
                 {isEditing ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
@@ -234,14 +220,12 @@ export function AddItemModal({
                 className={cn('h-9', errors.name && 'border-rose-400')}
               />
               <div className="grid grid-cols-4 gap-2">
-                {(
-                  [
-                    { key: 'width'  as const, label: 'EN'            },
-                    { key: 'length' as const, label: 'BOY'           },
-                    { key: 'height' as const, label: 'YÜKSEKLİK'    },
-                    { key: 'weight' as const, label: 'AĞIRLIK (KG)'  },
-                  ]
-                ).map(({ key, label }) => (
+                {[
+                  { key: 'width' as const, label: 'EN' },
+                  { key: 'length' as const, label: 'BOY' },
+                  { key: 'height' as const, label: 'YÜKSEKLİK' },
+                  { key: 'weight' as const, label: 'AĞIRLIK (KG)' },
+                ].map(({ key, label }) => (
                   <div key={key} className="flex flex-col gap-1">
                     <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
                       {label}
@@ -309,10 +293,7 @@ export function AddItemModal({
               >
                 İptal
               </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700"
-              >
+              <Button type="submit" className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700">
                 {isEditing ? 'Güncelle' : 'Kaydet'}
               </Button>
             </div>
@@ -361,7 +342,6 @@ export function AddItemModal({
               </div>
             </div>
           </div>
-
         </div>
       </DialogContent>
     </Dialog>
