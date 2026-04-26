@@ -35,7 +35,6 @@ export function SceneControls() {
     camera.position.set(cx + dist * 0.55, cy + dist * 0.5, cz + dist * 0.9);
     orbit.target.set(cx, cy, cz);
     orbit.update();
-    orbit.autoRotate = true;
   }, [vehicle, camera]);
 
   return (
@@ -43,13 +42,8 @@ export function SceneControls() {
       ref={orbitRef}
       enableDamping
       dampingFactor={SCENE.ORBIT_DAMPING_FACTOR}
-      autoRotate
-      autoRotateSpeed={SCENE.ORBIT_AUTO_ROTATE_SPEED}
       minDistance={SCENE.ORBIT_MIN_DISTANCE}
       maxDistance={SCENE.ORBIT_MAX_DISTANCE}
-      onStart={() => {
-        if (orbitRef.current) orbitRef.current.autoRotate = false;
-      }}
     />
   );
 }

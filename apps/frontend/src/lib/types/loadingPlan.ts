@@ -24,6 +24,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   width: z.number().positive(),
   height: z.number().positive(),
   depth: z.number().positive(),
+  color: z.string().optional(),
 });
 
 export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;

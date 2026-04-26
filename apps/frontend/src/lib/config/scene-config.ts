@@ -37,6 +37,11 @@ export const SCENE = {
       C: 0xf59e0b,
       D: 0x22c55e,
     },
+    SKU_PALETTE: [
+      '#6366f1', '#0ea5e9', '#f59e0b', '#f43f5e',
+      '#8b5cf6', '#fb923c', '#22c55e', '#3b82f6',
+      '#ef4444', '#14b8a6', '#ec4899', '#84cc16',
+    ] as string[],
   },
 
   INSTANCED_THRESHOLD: 50,

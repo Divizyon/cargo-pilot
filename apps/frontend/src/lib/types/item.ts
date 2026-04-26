@@ -1,9 +1,18 @@
 import { z } from 'zod';
 
+export const ProductType = {
+  Koli: 'koli',
+  Varil: 'varil',
+  Palet: 'palet',
+} as const;
+
+export type ProductType = (typeof ProductType)[keyof typeof ProductType];
+
 export const itemSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
   sku: z.string(),
+  productType: z.enum(['koli', 'varil', 'palet']).default('koli'),
   width: z.number().positive(),
   height: z.number().positive(),
   length: z.number().positive(),
