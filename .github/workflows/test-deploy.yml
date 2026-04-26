@@ -314,7 +314,8 @@ jobs:
             cd /opt/cargo-pilot
 
             echo "==> Test branch güncelleniyor..."
-            git fetch origin
+            git remote prune origin
+            git fetch --prune origin
             git checkout test
             git reset --hard origin/test
 
