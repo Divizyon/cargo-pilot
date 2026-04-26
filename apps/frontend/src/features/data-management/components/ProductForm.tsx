@@ -501,7 +501,13 @@ export function ProductForm({
                   <span className="block text-xs uppercase tracking-wide text-muted-foreground">
                     {t('forms.product.volume')}
                   </span>
-                  <span className="mt-1 block text-lg font-semibold text-foreground">
+                  <span
+                    key={volumeCm3 > 0 ? Math.round(volumeCm3 * 100) : 'empty'}
+                    className={cn(
+                      'mt-1 block text-lg font-semibold text-foreground',
+                      volumeCm3 > 0 && 'animate-volume-flash',
+                    )}
+                  >
                     {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
                   </span>
                 </div>
