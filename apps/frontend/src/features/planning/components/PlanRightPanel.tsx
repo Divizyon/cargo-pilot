@@ -9,10 +9,6 @@ import { AddVehicleModal } from './AddVehicleModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function resolveIcon(name: string) {
-  return name.toLowerCase().includes('konteyner') ? Package2 : Truck;
-}
-
 function resolveTypeBadge(name: string): string {
   const n = name.toLowerCase();
   if (n.includes('konteyner')) return 'Konteyner';
@@ -30,7 +26,8 @@ interface VehicleListItemProps {
 }
 
 function VehicleListItem({ vehicle, isSelected, onSelect, onDelete }: VehicleListItemProps) {
-  const Icon = resolveIcon(vehicle.name);
+  const isContainer = vehicle.name.toLowerCase().includes('konteyner');
+  const iconClass = cn('w-4 h-4 shrink-0', isSelected ? 'text-white' : 'text-zinc-500');
 
   return (
     <div
@@ -43,10 +40,9 @@ function VehicleListItem({ vehicle, isSelected, onSelect, onDelete }: VehicleLis
         onClick={() => onSelect(vehicle)}
         className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
       >
-        <Icon
-          className={cn('w-4 h-4 shrink-0', isSelected ? 'text-white' : 'text-zinc-500')}
-          strokeWidth={2}
-        />
+        {isContainer
+          ? <Package2 className={iconClass} strokeWidth={2} />
+          : <Truck className={iconClass} strokeWidth={2} />}
         <div className="flex-1 min-w-0">
           <p className={cn('text-sm truncate', isSelected ? 'text-white' : 'text-zinc-800')}>
             {vehicle.name}

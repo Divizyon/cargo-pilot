@@ -151,7 +151,7 @@ export function AddItemModal({
     const color =
       palette.find((c) => !usedColors.has(c)) ??
       palette[Object.keys(skuColorMap).length % palette.length];
-    const sku = isEditing ? editTarget.item.sku : `ITEM-${Date.now()}`;
+    const sku = isEditing ? editTarget.item.sku : `ITEM-${crypto.randomUUID().slice(0, 8)}`;
 
     const item: Item = {
       id:            isEditing ? editTarget.itemId : crypto.randomUUID(),
