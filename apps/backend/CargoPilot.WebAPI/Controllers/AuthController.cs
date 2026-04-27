@@ -1,13 +1,19 @@
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Application.Features.Auth.DTOs;
+using CargoPilot.Application.Features.Auth.OAuthLogin;
 using CargoPilot.Application.Features.Auth.Register;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CargoPilot.WebAPI.Controllers;
+
+/// <summary>OAuth login isteği — frontend ID token'ı POST eder.</summary>
+/// <param name="IdToken">Google One Tap / MSAL'dan alınan ID token.</param>
+public sealed record OAuthLoginRequest(string IdToken);
 
 /// <summary>
 /// Kimlik doğrulama ve oturum yönetimi endpoint'leri.
@@ -84,6 +90,52 @@ public sealed class AuthController : BaseController
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _authService.LoginAsync(request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Google ID token ile giriş / kayıt.
+    /// Frontend, Google One Tap'tan aldığı credential'ı bu endpoint'e POST eder.
+    /// </summary>
+    /// <response code="200">Başarılı — JWT access + refresh token döner.</response>
+    /// <response code="401">Geçersiz veya süresi dolmuş Google token.</response>
+    [HttpPost("google")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GoogleLogin(
+        [FromBody] OAuthLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new OAuthLoginCommand(
+            request.IdToken,
+            AuthProvider.Google,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Microsoft ID token ile giriş / kayıt.
+    /// Frontend, MSAL'dan aldığı token'ı bu endpoint'e POST eder.
+    /// </summary>
+    /// <response code="200">Başarılı — JWT access + refresh token döner.</response>
+    /// <response code="401">Geçersiz veya süresi dolmuş Microsoft token.</response>
+    [HttpPost("microsoft")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> MicrosoftLogin(
+        [FromBody] OAuthLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new OAuthLoginCommand(
+            request.IdToken,
+            AuthProvider.Microsoft,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
 }
