@@ -12,8 +12,8 @@ infra/env/.env.prod
 .env.*
 !.env.*.example
 !infra/env/.env.*.example
-# Frontend: sadece örnek env dosyası commit edilir; gerçek değerler .env.development.example'dan kopyalanır
-!apps/frontend/.env.development.example
+# Frontend: .env.example ve .env.*.example şablonları yukarıdaki genel kural ile kapsanır.
+# .env.example özel olarak re-include edilir (.env.*.example kuralı onu kapsamaz).
 !apps/frontend/.env.example
 
 # --------------------------------------------
