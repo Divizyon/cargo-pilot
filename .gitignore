@@ -12,9 +12,7 @@ infra/env/.env.prod
 .env.*
 !.env.*.example
 !infra/env/.env.*.example
-# Frontend: .env.example ve .env.*.example şablonları yukarıdaki genel kural ile kapsanır.
-# .env.example özel olarak re-include edilir (.env.*.example kuralı onu kapsamaz).
-!apps/frontend/.env.example
+# Frontend: .env.*.example şablonları yukarıdaki !.env.*.example genel kuralı ile kapsanır.
 
 # --------------------------------------------
 # .NET / Backend
