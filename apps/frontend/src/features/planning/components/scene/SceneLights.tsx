@@ -13,6 +13,7 @@ export function SceneLights() {
         position={SCENE.RIM_POSITION}
         intensity={SCENE.RIM_INTENSITY}
         color={SCENE.RIM_COLOR}
+        decay={0}
       />
     </>
   );

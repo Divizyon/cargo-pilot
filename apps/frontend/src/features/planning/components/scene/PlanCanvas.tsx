@@ -61,6 +61,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
         shadows
         style={{ width: '100%', height: '100%' }}
       >
+        <color attach="background" args={[SCENE.BACKGROUND_COLOR]} />
         <SceneDisposer />
         <SnapshotBridge snapshotRef={snapshotRef} />
         <Suspense fallback={<SceneLoader />}>
