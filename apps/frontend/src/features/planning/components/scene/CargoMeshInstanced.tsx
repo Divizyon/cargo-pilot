@@ -51,10 +51,11 @@ function InstancedBoxes() {
         p.positionY + p.height / 2,
         p.positionZ + p.depth / 2,
       );
-      // Scale to 0 to hide — avoids destroying instance index order
-      const scale = isHidden
-        ? new THREE.Vector3(0, 0, 0)
-        : new THREE.Vector3(p.width, p.height, p.depth);
+      // Scale to 0: hidden items AND selected items (selected rendered as BoxWrapper with emissive glow)
+      const scale =
+        isHidden || isSelected
+          ? new THREE.Vector3(0, 0, 0)
+          : new THREE.Vector3(p.width, p.height, p.depth);
       matrix.compose(position, quaternion, scale);
 
       meshRef.current!.setMatrixAt(i, matrix);
@@ -81,6 +82,11 @@ function InstancedBoxes() {
     }
   }, [placements, selectedItemId, hiddenItemIds]);
 
+  const selectedPlacements = useMemo(
+    () => placements.filter((p) => p.itemId === selectedItemId),
+    [placements, selectedItemId],
+  );
+
   return (
     <>
       <instancedMesh
@@ -103,6 +109,21 @@ function InstancedBoxes() {
       <instancedMesh ref={edgeMeshRef} args={[edgesGeo, undefined, placements.length]}>
         <lineBasicMaterial color="#000000" />
       </instancedMesh>
+      {selectedPlacements.map((p, idx) => (
+        <BoxWrapper
+          key={`glow-${p.itemId}-${idx}`}
+          width={p.width}
+          height={p.height}
+          depth={p.depth}
+          positionX={p.positionX}
+          positionY={p.positionY}
+          positionZ={p.positionZ}
+          color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
+          itemId={p.itemId}
+          isSelected={true}
+          onClick={(id) => setSelectedItemId(id === selectedItemId ? null : id)}
+        />
+      ))}
     </>
   );
 }

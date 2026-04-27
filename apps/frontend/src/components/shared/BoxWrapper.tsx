@@ -61,15 +61,15 @@ export function BoxWrapper({
       <mesh>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial
-          color={isSelected ? '#fbbf24' : color}
+          color={color}
           transparent
           opacity={isSelected ? 0.95 : opacity}
-          emissive={isSelected ? '#fbbf24' : '#000000'}
-          emissiveIntensity={isSelected ? 0.3 : 0}
+          emissive={isSelected ? color : '#000000'}
+          emissiveIntensity={isSelected ? 0.25 : 0}
         />
       </mesh>
       <lineSegments geometry={edgesGeo}>
-        <lineBasicMaterial color={isSelected ? '#f59e0b' : '#000000'} />
+        <lineBasicMaterial color={isSelected ? color : '#000000'} />
       </lineSegments>
     </group>
   );
