@@ -1,4 +1,4 @@
-import { type ElementType, useState } from 'react';
+import { type ElementType, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -20,6 +20,9 @@ import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUIStore } from '@/lib/store/useUIStore';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+/** Below this width the sidebar auto-collapses to icon-only mode. */
+const ICON_ONLY_BREAKPOINT = 1280;
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -274,6 +277,15 @@ function Topbar({ onMenuToggle }: TopbarProps) {
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
+
+  useEffect(() => {
+    function syncCollapse() {
+      setIsCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
+    }
+    syncCollapse();
+    window.addEventListener('resize', syncCollapse);
+    return () => window.removeEventListener('resize', syncCollapse);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
