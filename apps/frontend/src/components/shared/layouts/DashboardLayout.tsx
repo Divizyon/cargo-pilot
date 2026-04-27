@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  DatabaseZap,
   LayoutDashboard,
   Link2,
   LogOut,
@@ -47,6 +48,7 @@ const MAIN_NAV: NavItemDef[] = [
   { icon: Truck, label: 'Araç Yönetimi', path: '/vehicles', end: false },
   { icon: BarChart3, label: 'Raporlama', path: '/reports', end: false },
   { icon: Link2, label: 'Entegrasyonlar', path: '/integrations', end: false },
+  { icon: DatabaseZap, label: 'ERP Yönetimi', path: '/erp', end: false },
 ];
 
 const BOTTOM_NAV: NavItemDef[] = [
@@ -69,9 +71,7 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
 
   return (
     <div className="relative">
-      {isActive && (
-        <div className="absolute left-0 top-1.5 h-6 w-0.5 rounded-r-full bg-primary" />
-      )}
+      {isActive && <div className="absolute left-0 top-1.5 h-6 w-0.5 rounded-r-full bg-primary" />}
       <NavLink
         to={item.path}
         end={item.end}
@@ -183,7 +183,9 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>Yükleme Planı Oluştur</span>
+          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>
+            Yükleme Planı Oluştur
+          </span>
         </button>
 
         {/* Main nav */}
