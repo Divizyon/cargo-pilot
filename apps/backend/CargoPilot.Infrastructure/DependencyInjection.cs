@@ -30,6 +30,7 @@ public static class DependencyInjection {
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IItemRepository, ItemRepository>();
 
 
         if (!useInMemoryRepository) {
