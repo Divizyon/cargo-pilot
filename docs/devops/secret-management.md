@@ -55,7 +55,10 @@ Gerçek local SA parolasını buraya **yazma**. Bunun yerine iki yöntemden biri
 cat > appsettings.Development.Local.json << 'EOF'
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost,1434;Database=CargoPilotTest;User Id=sa;Password=GERCEK_PAROLAYI_BURAYA_YAZ;TrustServerCertificate=True;Encrypt=False"
+    "DefaultConnection": "Server=localhost,1434;Database=CargoPilotTest;User Id=sa;Password=GERCEK_SA_PAROLASI;TrustServerCertificate=True;Encrypt=False"
+  },
+  "Seed": {
+    "DefaultAdminPassword": "GERCEK_ADMIN_PAROLASI"
   }
 }
 EOF
