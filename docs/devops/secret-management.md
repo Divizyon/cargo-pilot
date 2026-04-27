@@ -91,13 +91,15 @@ ASP.NET Core ortam değişkenlerini `appsettings.json`'ın üstüne otomatik uyg
 |--------|-----------------|
 | `TEST_SSH_HOST` | test-deploy.yml — sunucu IP |
 | `TEST_SSH_PRIVATE_KEY` | test-deploy.yml — SSH deploy key |
-| `TEST_MSSQL_SA_PASSWORD` | test-deploy.yml — test DB parolası |
-| `TEST_MINIO_ROOT_USER` | test-deploy.yml — test MinIO kullanıcısı |
-| `TEST_MINIO_ROOT_PASSWORD` | test-deploy.yml — test MinIO parolası |
-| `SEED_DEFAULT_ADMIN_PASSWORD` | test-deploy.yml — seed admin parolası |
+| `JWT_SECRET` | test-deploy.yml — JWT imzalama anahtarı |
+| `TEST_GHCR_PAT` | test-deploy.yml — GHCR'dan image pull için classic PAT (`read:packages` scope) |
+| `TEST_GHCR_USER` | test-deploy.yml — `TEST_GHCR_PAT`'ı oluşturan GitHub kullanıcı adı |
+
+> **US-D27-I:** Image'lar artık CI'da GHCR'a push edilir (`ghcr.io/divizyon/cargo-pilot-*:test`),
+> sunucu build yapmaz, yalnızca pull eder. `TEST_GHCR_PAT` classic PAT olmalı;
+> fine-grained token GHCR ile çalışmaz.
 
 GitHub → Settings → Secrets and variables → Actions altında yönetilir.
-CI secret yoksa fallback değerler devreye girer (sadece CI ortamı için geçerli, prod için kullanılmaz).
 
 ---
 
