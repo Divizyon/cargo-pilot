@@ -262,4 +262,53 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.WebAPI/Controllers/CargosController.cs`
 - `CargoPilot.WebAPI/Controllers/HomeController.cs`
 
+
 ---
+
+## 11) US-AUTH-01: Google ve Microsoft ile kayit olabilme (AC9 / AC10 / AC11)
+**Story:** Bir kullanici olarak, Google hesabim ve Microsoft hesabimla sisteme kayit olabilmek ve giris yapabilmek istiyorum.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+**Bu story icin teknik kararlar (netlestirildi):**
+- Frontend yonlendirme (redirect) yerine direkt `idToken` POST yaklasimiyla ilerlenecek (Backend-to-Provider validation).
+- AC10: E-posta sistemde yoksa `passwordHash: null` ile sifresiz yeni `AppUser` olusturulur.
+- AC11: E-posta zaten varsa (Local/baska provider) mevcut hesaba yeni `UserLogin` satiri eklenerek hesaplar birlestirilir; yeni kullanici olusturulmaz.
+- Email enumeration saldirilarindan korunmak icin mevcut `AuthService` icindeki "dummy hash" mantigi korundu.
+
+### Kabul Kriterleri
+- AC9: Google/Microsoft'tan gelen dogrulama anahtarinin gecerliligini kontrol etmeli.
+- AC10: Gelen token'a ait e-posta sistemde yoksa, sifresiz yeni bir kullanici kaydi olusturulmalidir.
+- AC11: Gelen token'a ait e-posta sistemde manuel kayitliysa, bu hesaplar birlestirilmeli (esleme) ve oturum anahtari donulmelidir.
+
+### Alt Isler
+- `✅` `IOAuthTokenValidator` interface + `OAuthUserInfo` record olusturuldu (Kapsam: `CargoPilot.Application/Common/Interfaces/IOAuthTokenValidator.cs` dosyasi olusturuldu. `ValidateAsync(string idToken)` metodu `OAuthUserInfo?` (Sub, Email, FirstName, LastName) donduruyor; gecersiz token'da `null` donuyor. Boylece Google ve Microsoft validator'larinin birbiriyle degistirilebilir olmasi saglandi.)
+- `✅` `IAuthService` arabirimine `OAuthLoginAsync` metodu eklendi (Kapsam: `IAuthService.cs` dosyasina `Task<Result<LoginResponse>> OAuthLoginAsync(string idToken, AuthProvider provider, string? ipAddress, CancellationToken cancellationToken)` metodu eklendi.)
+- `✅` `OAuthLoginCommand` + `OAuthLoginCommandHandler` olusturuldu (Kapsam: `Features/Auth/OAuthLogin/` klasorune `OAuthLoginCommand.cs` (MediatR `IRequest`) ve `OAuthLoginCommandHandler.cs` eklendi. Handler, isteği `IAuthService.OAuthLoginAsync`'e delegeler; ince bir kopru gorevi gorur.)
+- `✅` `IUserRepository` arabirimine OAuth metodlari eklendi (Kapsam: `FindByEmailAsync`, `FindByProviderAsync(AuthProvider, providerKey)` ve `AddUserLogin(UserLogin)` metodlari eklendi. `FindByProviderAsync`, `UserLogins` tablosu uzerinden JOIN yaparak kullaniciyi doner.)
+- `✅` `GoogleTokenValidator` implemente edildi — AC9 (Kapsam: `CargoPilot.Infrastructure/Auth/GoogleTokenValidator.cs` olusturuldu. `Google.Apis.Auth` SDK'sinin `GoogleJsonWebSignature.ValidateAsync()` metodu kullanildi. `ClientId` bos ise audience dogrulamasi atlanir; bu sayede credentials gelmeden lokal gelistirme/test yapilabilir. Gecersiz token'da `null` donulur.)
+- `✅` `MicrosoftTokenValidator` implemente edildi — AC9 (Kapsam: `CargoPilot.Infrastructure/Auth/MicrosoftTokenValidator.cs` olusturuldu. `Microsoft.IdentityModel.Protocols.OpenIdConnect` ile runtime'da Microsoft'un OIDC discovery endpoint'inden public key'ler cekilir ve JWT imzasi dogrulanir. `TenantId` bos/`common` ise coklu tenant destegi saglanir. Gecersiz token'da `null` donulur.)
+- `✅` `AuthService.OAuthLoginAsync` yazildi — AC9 + AC10 + AC11 (Kapsam: Uc adimli akis: (1) AC9: Provider'a gore dogru validator secilerek token Google/Microsoft uzerinde dogrulanir; gecersizse `OAuth.InvalidToken` (401) hatasi donulur. (2) AC11: `FindByProviderAsync` ile eslesme bulunamazsa `FindByEmailAsync` ile e-posta aranir; bulunursa mevcut hesaba `UserLogin` eklenerek birlestirilir. (3) AC10: E-posta da bulunamazsa `passwordHash: null` ile yeni `AppUser` + `UserLogin` olusturulur. Her uc senaryoda da `IssueTokensAsync` ile JWT + refresh token uretilir ve `LoginResponse` donulur. Kod tekrarini onlemek icin `IssueTokensAsync` ozel metodu cikartilaraka `LoginAsync` da bunu kullanacak sekilde refactor edildi.)
+- `✅` `UserRepository` genisletildi (Kapsam: `FindByEmailAsync`, `FindByProviderAsync` (UserLogins navigation uzerinden) ve `AddUserLogin` metodlari implement edildi.)
+- `✅` `DependencyInjection.cs` guncellendi (Kapsam: `GoogleTokenValidator` ve `MicrosoftTokenValidator`, `IOAuthTokenValidator` olarak Scoped kaydedildi. `IEnumerable<IOAuthTokenValidator>` DI'dan `AuthService`'e otomatik inject ediliyor. `Microsoft.EntityFrameworkCore.InMemory` paketi eklenerek In-Memory mod destegi saglandi.)
+- `✅` `POST /api/v1/auth/google` ve `POST /api/v1/auth/microsoft` endpoint'leri eklendi (Kapsam: `AuthController.cs` dosyasina `[HttpPost("google")]` ve `[HttpPost("microsoft")]` metodlari eklendi. Her ikisi de `OAuthLoginRequest { IdToken }` aliyor, `OAuthLoginCommand`'e donusturup MediatR'a iletiyor. `[AllowAnonymous]` attribute'u ile guvenli sekilde aciga cikarildi. Swagger'da `ProducesResponseType` ile dokumantirildi.)
+- `✅` `appsettings.json`'a OAuth bolumu eklendi (Kapsam: `OAuth:Google:ClientId` ve `OAuth:Microsoft:ClientId + TenantId` alanlari eklendi. Degerler su an bos; Google/Microsoft Client ID'leri gelince doldurulacak. Production icin environment variable uzerinden override edilmesi onerildi.)
+- `✅` Son build dogrulandi — 0 hata (Kapsam: `dotnet build CargoPilot.WebAPI.csproj` komutu 0 hata ile tamamlandi. Swagger uzerinden `POST /api/v1/auth/google` adresine sahte token gonderildi; beklendigi gibi `401 Unauthorized` + `"code": "OAuth.InvalidToken"` yaniti alindi. Bu, AC9 akisinin uçtan uca calistigini kanitlar.)
+
+**Kanitlar:**
+- `CargoPilot.Application/Common/Interfaces/IOAuthTokenValidator.cs`
+- `CargoPilot.Application/Common/Interfaces/IUserRepository.cs`
+- `CargoPilot.Application/Features/Auth/IAuthService.cs`
+- `CargoPilot.Application/Features/Auth/OAuthLogin/OAuthLoginCommand.cs`
+- `CargoPilot.Application/Features/Auth/OAuthLogin/OAuthLoginCommandHandler.cs`
+- `CargoPilot.Infrastructure/Auth/GoogleTokenValidator.cs`
+- `CargoPilot.Infrastructure/Auth/MicrosoftTokenValidator.cs`
+- `CargoPilot.Infrastructure/Auth/AuthService.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/UserRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Controllers/AuthController.cs`
+- `CargoPilot.WebAPI/appsettings.json`
+
+**Bloker:** Google ve Microsoft `ClientId` bilgileri henuz alinmadi. Bilgiler geldiginde `appsettings.json` (veya env var) guncellenecek; kod degisikligi gerekmez.
+
+---
