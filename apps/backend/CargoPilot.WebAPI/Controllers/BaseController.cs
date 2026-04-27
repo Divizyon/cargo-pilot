@@ -13,7 +13,7 @@ public abstract class BaseController : ControllerBase
             return Ok(result);
         }
 
-        var statusCode = result.Error.Type switch
+        var statusCode = result.Error?.Type switch
         {
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,

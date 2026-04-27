@@ -57,12 +57,12 @@ public sealed class DbInitializer {
 
             var adminUser = new AppUser(
                 id: Guid.NewGuid(),
-                companyId: company.Id,
+                companyId: null,
                 firstName: "System",
                 lastName: "Admin",
                 email: DefaultAdminEmail,
                 passwordHash: _passwordHasher.HashPassword(defaultAdminPassword),
-                userType: UserType.CompanyAdmin,
+                userType: UserType.SuperAdmin,
                 externalSystemId: null,
                 authProvider: AuthProvider.Local);
 

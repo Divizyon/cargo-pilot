@@ -1,6 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { ProductTable } from '@/features/data-management/components/ProductTable';
 
 export function ProductsPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -9,7 +12,8 @@ export function ProductsPage() {
           Yükleme planında kullanılacak tüm birimlerin teknik verilerinin yönetildiği merkezdir.
         </p>
       </div>
-      <ProductTable />
+
+      <ProductTable onCreateClick={() => navigate('/products/new')} />
     </div>
   );
 }

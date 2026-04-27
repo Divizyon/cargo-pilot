@@ -12,9 +12,7 @@ infra/env/.env.prod
 .env.*
 !.env.*.example
 !infra/env/.env.*.example
-# Frontend: geliştirme ve örnek env dosyaları commit edilebilir
-!apps/frontend/.env.development
-!apps/frontend/.env.example
+# Frontend: .env.*.example şablonları yukarıdaki !.env.*.example genel kuralı ile kapsanır.
 
 # --------------------------------------------
 # .NET / Backend
@@ -114,3 +112,6 @@ minio-data/
 *.mdf
 *.ldf
 *.bak
+
+# Claude Code local settings (içinde hassas token olabilir)
+.claude/settings.local.json
