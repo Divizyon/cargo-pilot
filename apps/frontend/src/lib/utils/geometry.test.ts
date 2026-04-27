@@ -76,10 +76,7 @@ describe('boxesIntersect', () => {
 
 describe('computeViolations', () => {
   it('marks both boxes as violations when they intersect', () => {
-    const placements = [
-      box(0, 0, 0, 10, 10, 10),
-      box(5, 5, 5, 10, 10, 10),
-    ];
+    const placements = [box(0, 0, 0, 10, 10, 10), box(5, 5, 5, 10, 10, 10)];
     const result = computeViolations(placements);
     expect(result[0].isViolation).toBe(true);
     expect(result[1].isViolation).toBe(true);
@@ -97,8 +94,8 @@ describe('computeViolations', () => {
 
   it('only marks the overlapping pair, not an adjacent clean box', () => {
     const placements = [
-      box(0, 0, 0, 10, 10, 10),   // intersects with [1]
-      box(5, 5, 5, 10, 10, 10),   // intersects with [0]
+      box(0, 0, 0, 10, 10, 10), // intersects with [1]
+      box(5, 5, 5, 10, 10, 10), // intersects with [0]
       box(50, 50, 50, 10, 10, 10), // isolated — no violation
     ];
     const result = computeViolations(placements);
@@ -118,10 +115,7 @@ describe('computeViolations', () => {
   });
 
   it('returns same reference when nothing changed (no violations, no mutation needed)', () => {
-    const placements = [
-      box(0, 0, 0, 10, 10, 10),
-      box(20, 0, 0, 10, 10, 10),
-    ];
+    const placements = [box(0, 0, 0, 10, 10, 10), box(20, 0, 0, 10, 10, 10)];
     const result = computeViolations(placements);
     expect(result).toBe(placements); // referential equality — no unnecessary re-render
   });

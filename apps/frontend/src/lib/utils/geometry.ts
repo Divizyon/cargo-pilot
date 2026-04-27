@@ -6,10 +6,7 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
  * Positions are bottom-left-rear corners in centimeters (scene contract).
  * Two boxes that only share a face (touching but not overlapping) return false.
  */
-export function boxesIntersect(
-  a: PlacementWithDimensions,
-  b: PlacementWithDimensions,
-): boolean {
+export function boxesIntersect(a: PlacementWithDimensions, b: PlacementWithDimensions): boolean {
   return (
     a.positionX < b.positionX + b.width &&
     b.positionX < a.positionX + a.width &&
