@@ -1,8 +1,10 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
+import { ContainerBody } from './ContainerBody';
 
 // ─── ContainerEdges ────────────────────────────────────────────────────────────
 
@@ -180,10 +182,18 @@ export function ContainerMesh() {
 
   return (
     <group>
+      <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
       <ContainerGrid width={width} length={length} />
       {/* key resets door animation when vehicle changes */}
       <ContainerDoors key={vehicle.id} width={width} height={height} />
+      <ContactShadows
+        position={[width / 2, -0.5, length / 2]}
+        scale={Math.max(width, length) * SCENE.CONTACT_SHADOW_SCALE_FACTOR}
+        blur={SCENE.CONTACT_SHADOW_BLUR}
+        opacity={SCENE.CONTACT_SHADOW_OPACITY}
+        far={height * 1.2}
+      />
     </group>
   );
 }
