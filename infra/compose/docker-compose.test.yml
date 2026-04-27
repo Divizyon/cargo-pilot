@@ -3,6 +3,10 @@ name: cargo-pilot-test
 services:
   backend:
     # US-D27-I: Image GHCR'dan çekilir; build yalnızca local geliştirme için.
+    # Opsiyonel override:
+    # - GHCR_OWNER: varsayılan `divizyon`
+    # - IMAGE_TAG: varsayılan `test`
+    # Bu değerleri `.env`/env dosyasında veya shell environment'ta tanımlayarak override edebilirsiniz.
     image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-backend:${IMAGE_TAG:-test}
     build:
       context: ../../apps/backend
