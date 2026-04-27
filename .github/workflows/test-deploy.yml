@@ -342,12 +342,12 @@ jobs:
 
     steps:
       # US-D27-I: Sunucu artık build yapmıyor; GHCR'dan pull edilen image'ı kullanıyor.
-      # Gerekli GitHub Secret: TEST_GHCR_PAT (read:packages scope'lu PAT)
+      # Gerekli GitHub Secret'lar: TEST_GHCR_PAT (read:packages scope'lu PAT), TEST_GHCR_USER (PAT sahibi kullanıcı adı)
       - name: Sunucuya bağlan ve test stack'ini güncelle
         uses: appleboy/ssh-action@v1.0.3
         env:
           GHCR_PAT: ${{ secrets.TEST_GHCR_PAT }}
-          GHCR_USER: ${{ github.actor }}
+          GHCR_USER: ${{ secrets.TEST_GHCR_USER }}
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: root
