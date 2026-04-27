@@ -50,8 +50,8 @@ RAM kullanımı:
   ├── Monitoring (Prometheus + Grafana + Loki + Promtail + cAdvisor + node_exporter) ~1.5 GB
   └── Toplam tahmini       ≈ 6.9 GB / 16 GB (%43)
 
-  ⚠️ Docker image build sırasında .NET + node peak RAM kullanımı +3-5 GB ekler.
-     Build adımları sırayla yapılmalı (backend önce, frontend sonra).
+  ✅ US-D27-I sonrası image build sunucuda yapılmıyor; CI'da GHCR'a push edilip
+     sunucuya pull ediliyor. Build sırasındaki +3-5 GB RAM baskısı ortadan kalktı.
 
 Disk kullanımı:
   ├── OS + Docker images    ~23 GB (2026-04-25 itibarıyla)
@@ -62,7 +62,7 @@ Disk kullanımı:
 
 ### Sonuç: ✅ Yeterli
 Mevcut sunucu kapasitesi prod + test + monitoring stack'i aynı anda çalıştırmaya yeterli.
-Build sırasında paralel image build yapılmamalı (OOM riski).
+Image build CI'da yapıldığından sunucuda OOM riski ortadan kalktı.
 
 ---
 
