@@ -12,8 +12,8 @@ infra/env/.env.prod
 .env.*
 !.env.*.example
 !infra/env/.env.*.example
-# Frontend: geliştirme ve örnek env dosyaları commit edilebilir
-!apps/frontend/.env.development
+# Frontend: sadece örnek env dosyası commit edilir; gerçek değerler .env.development.example'dan kopyalanır
+!apps/frontend/.env.development.example
 !apps/frontend/.env.example
 
 # --------------------------------------------
