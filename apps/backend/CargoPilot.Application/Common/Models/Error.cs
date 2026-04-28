@@ -19,7 +19,8 @@ public record Error(
     ErrorType Type,
     string Code,
     string Description,
-    IReadOnlyList<ValidationFailure>? ValidationErrors = null)
+    IReadOnlyList<ValidationFailure>? ValidationErrors = null,
+    IReadOnlyDictionary<string, object>? Metadata = null)
 {
     public static readonly Error None = new(ErrorType.None, string.Empty, string.Empty);
 }

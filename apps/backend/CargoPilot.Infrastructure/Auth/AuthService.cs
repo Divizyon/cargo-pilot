@@ -54,19 +54,50 @@ internal sealed class AuthService : IAuthService
         if (user is null)
             return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
 
+        // AC3: IP-based lockout check
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            var ipAttempt = await _context.IpLoginAttempts
+                .FirstOrDefaultAsync(x => x.IpAddress == ipAddress, cancellationToken);
+
+            if (ipAttempt is not null && ipAttempt.IsLockedOut())
+            {
+                var ipRemaining = (int)Math.Ceiling((ipAttempt.LockoutEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
+                return Result<LoginResponse>.Failure(AuthErrors.IpLocked(ipRemaining));
+            }
+        }
+
+        // AC1: User-based lockout check
         if (user.IsLockedOut())
         {
-            var remaining = (int)Math.Ceiling((user.LockoutEndUtc!.Value - DateTime.UtcNow).TotalMinutes);
-            return Result<LoginResponse>.Failure(AuthErrors.AccountLocked(remaining));
+            var remainingSeconds = (int)Math.Ceiling((user.LockoutEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
+            return Result<LoginResponse>.Failure(AuthErrors.AccountLocked(remainingSeconds));
         }
 
         if (!passwordValid)
         {
+            // AC1 + AC3: record failed attempt for both user and IP
             user.RecordFailedLogin();
+
+            if (!string.IsNullOrEmpty(ipAddress))
+            {
+                var ipAttempt = await _context.IpLoginAttempts
+                    .FirstOrDefaultAsync(x => x.IpAddress == ipAddress, cancellationToken);
+
+                if (ipAttempt is null)
+                {
+                    ipAttempt = new IpLoginAttempt(ipAddress);
+                    _context.IpLoginAttempts.Add(ipAttempt);
+                }
+
+                ipAttempt.RecordFailedAttempt();
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
             return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
         }
 
+        // AC4: reset on successful login
         user.ResetLoginAttempts();
 
         var now = DateTime.UtcNow;

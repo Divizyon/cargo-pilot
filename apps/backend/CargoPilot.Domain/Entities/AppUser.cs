@@ -4,7 +4,7 @@ namespace CargoPilot.Domain.Entities;
 
 public sealed class AppUser : BaseEntity {
     private const int _maxFailedAttempts = 5;
-    private const int _lockoutDurationMinutes = 15;
+    private static readonly int[] _lockoutDurationsMinutes = [2, 5, 10];
 
     public Guid? CompanyId { get; private set; }
     public string FirstName { get; private set; } = null!;
@@ -15,6 +15,7 @@ public sealed class AppUser : BaseEntity {
     public string? ExternalSystemId { get; private set; }
     public AuthProvider AuthProvider { get; private set; }
     public int FailedLoginAttempts { get; private set; }
+    public int LockoutCount { get; private set; }
     public DateTime? LockoutEndUtc { get; private set; }
 
     // EF Core sets navigation properties via materialization.
@@ -51,12 +52,17 @@ public sealed class AppUser : BaseEntity {
 
     public void RecordFailedLogin() {
         FailedLoginAttempts++;
-        if (FailedLoginAttempts >= _maxFailedAttempts)
-            LockoutEndUtc = DateTime.UtcNow.AddMinutes(_lockoutDurationMinutes);
+        if (FailedLoginAttempts >= _maxFailedAttempts) {
+            var durationIndex = Math.Min(LockoutCount, _lockoutDurationsMinutes.Length - 1);
+            LockoutEndUtc = DateTime.UtcNow.AddMinutes(_lockoutDurationsMinutes[durationIndex]);
+            LockoutCount++;
+            FailedLoginAttempts = 0;
+        }
     }
 
     public void ResetLoginAttempts() {
         FailedLoginAttempts = 0;
+        LockoutCount = 0;
         LockoutEndUtc = null;
     }
 }

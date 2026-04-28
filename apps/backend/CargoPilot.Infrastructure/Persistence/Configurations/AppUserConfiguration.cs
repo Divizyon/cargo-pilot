@@ -58,6 +58,10 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser> {
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(user => user.LockoutCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.Property(user => user.LockoutEndUtc);
 
         builder.HasIndex(user => user.Email)

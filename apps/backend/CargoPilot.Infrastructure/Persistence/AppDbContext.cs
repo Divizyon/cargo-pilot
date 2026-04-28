@@ -19,6 +19,7 @@ public class AppDbContext : DbContext {
     public DbSet<UserLogin> UserLogins => Set<UserLogin>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<IpLoginAttempt> IpLoginAttempts => Set<IpLoginAttempt>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -37,6 +38,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new UserLoginConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
+        modelBuilder.ApplyConfiguration(new IpLoginAttemptConfiguration());
     }
 
     private void ApplyAuditFields() {
