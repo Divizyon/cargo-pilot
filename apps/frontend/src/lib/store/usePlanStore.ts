@@ -4,6 +4,8 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
 import { computeViolations } from '@/lib/utils/geometry';
+import { rotatedDimensions, type OrientationIndex } from '@/lib/utils/boxOrientations';
+import { applyContainerOverflow } from '@/lib/utils/checkOrientationFit';
 
 export function assignSkuColor(
   sku: string,
@@ -29,7 +31,7 @@ function buildPlacements(
     positionX: 0,
     positionY: 0,
     positionZ: startZ + i * item.length,
-    rotation: 0,
+    orientationIndex: 0,
     layer: 1,
     isViolation: false,
     width: item.width,
@@ -70,6 +72,11 @@ interface PlanStore {
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
+  /**
+   * Seçili instance için yeni face-down orientation uygular.
+   * Effective W/H/L yeniden hesaplanır, violation pipeline tetiklenir.
+   */
+  setOrientation: (instanceId: number, idx: OrientationIndex) => void;
   reset: () => void;
 }
 
@@ -153,6 +160,31 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+
+  setOrientation: (instanceId, idx) =>
+    set((s) => {
+      const target = s.placements[instanceId];
+      if (!target) return {};
+      // rotatedDimensions involutory: ilk uygulama base'i geri verir, ikincisi yeni effective'i.
+      const base = rotatedDimensions(
+        target.width,
+        target.height,
+        target.depth,
+        target.orientationIndex,
+      );
+      const next = rotatedDimensions(base.width, base.height, base.depth, idx);
+      const updated: PlacementWithDimensions = {
+        ...target,
+        orientationIndex: idx,
+        width: next.width,
+        height: next.height,
+        depth: next.depth,
+      };
+      const placements = s.placements.map((p, i) => (i === instanceId ? updated : p));
+      const collisionChecked = computeViolations(placements);
+      return { placements: applyContainerOverflow(collisionChecked, s.selectedVehicle) };
+    }),
+
   reset: () =>
     set({ selectedVehicle: null, selectedItems: [], skuColorMap: {}, criteria: 0, placements: [] }),
 }));

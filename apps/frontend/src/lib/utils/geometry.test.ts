@@ -18,7 +18,7 @@ function box(
     width,
     height,
     depth,
-    rotation: 0,
+    orientationIndex: 0,
     layer: 1,
     isViolation: false,
   };

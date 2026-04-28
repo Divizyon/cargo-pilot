@@ -4,6 +4,7 @@ import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { BoxWrapper } from '@/components/shared/BoxWrapper';
 import { SCENE } from '@/lib/config/scene-config';
+import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOrientations';
 
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = SCENE.COLORS.VIOLATION;
@@ -19,8 +20,10 @@ function InstancedBoxes() {
   const edgeMeshRef = useRef<THREE.InstancedMesh>(null);
   const placements = usePlanStore((s) => s.placements);
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
+  const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
 
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -41,27 +44,33 @@ function InstancedBoxes() {
     const matrix = new THREE.Matrix4();
     const color = new THREE.Color();
     const quaternion = new THREE.Quaternion();
+    const position = new THREE.Vector3();
+    const scale = new THREE.Vector3();
 
     placements.forEach((p, i) => {
       const isHidden = hiddenItemIds.includes(p.itemId);
-      const isSelected = p.itemId === selectedItemId;
+      const isInstanceSelected = selectedInstanceId === i;
+      const isItemSelected = p.itemId === selectedItemId;
 
-      const position = new THREE.Vector3(
+      // Effective dims (rotated) zaten p.width/height/depth'te. Base'i türetip scale'e veriyoruz —
+      // scale → rotate sıralamasında base dims rotate edilince effective bounding box çıkar.
+      const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+
+      position.set(
         p.positionX + p.width / 2,
         p.positionY + p.height / 2,
         p.positionZ + p.depth / 2,
       );
-      // Scale to 0: hidden items AND selected items (selected rendered as BoxWrapper with emissive glow)
-      const scale =
-        isHidden || isSelected
-          ? new THREE.Vector3(0, 0, 0)
-          : new THREE.Vector3(p.width, p.height, p.depth);
+      // Glow için seçili instance'ı InstancedMesh'ten gizle, BoxWrapper olarak ayrı render et.
+      const visible = !isHidden && !isInstanceSelected && !isItemSelected;
+      scale.set(visible ? base.width : 0, visible ? base.height : 0, visible ? base.depth : 0);
+      applyOrientationQuaternion(quaternion, p.orientationIndex);
       matrix.compose(position, quaternion, scale);
 
       meshRef.current!.setMatrixAt(i, matrix);
       meshRef.current!.setColorAt(
         i,
-        isSelected
+        isInstanceSelected || isItemSelected
           ? color.setHex(COLOR_SELECTED)
           : p.isViolation
             ? color.setHex(COLOR_VIOLATION)
@@ -80,11 +89,18 @@ function InstancedBoxes() {
     if (edgeMeshRef.current) {
       edgeMeshRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [placements, selectedItemId, hiddenItemIds]);
+  }, [placements, selectedItemId, selectedInstanceId, hiddenItemIds]);
 
   const selectedPlacements = useMemo(
-    () => placements.filter((p) => p.itemId === selectedItemId),
-    [placements, selectedItemId],
+    () =>
+      placements
+        .map((p, idx) => ({ p, idx }))
+        .filter(
+          ({ p, idx }) =>
+            (selectedInstanceId !== null && idx === selectedInstanceId) ||
+            (selectedInstanceId === null && p.itemId === selectedItemId),
+        ),
+    [placements, selectedItemId, selectedInstanceId],
   );
 
   return (
@@ -100,7 +116,9 @@ function InstancedBoxes() {
           if (instanceId === undefined) return;
           const p = placements[instanceId];
           if (!p) return;
-          setSelectedItemId(p.itemId === selectedItemId ? null : p.itemId);
+          // Manuel müdahale instance bazlı; item-level highlight'ı temizliyoruz.
+          setSelectedItemId(null);
+          setSelectedInstanceId(selectedInstanceId === instanceId ? null : instanceId);
         }}
       >
         <boxGeometry args={[1, 1, 1]} />
@@ -109,9 +127,9 @@ function InstancedBoxes() {
       <instancedMesh ref={edgeMeshRef} args={[edgesGeo, undefined, placements.length]}>
         <lineBasicMaterial color="#000000" />
       </instancedMesh>
-      {selectedPlacements.map((p, idx) => (
+      {selectedPlacements.map(({ p, idx }) => (
         <BoxWrapper
-          key={`glow-${p.itemId}-${idx}`}
+          key={`glow-${idx}`}
           width={p.width}
           height={p.height}
           depth={p.depth}
@@ -121,7 +139,10 @@ function InstancedBoxes() {
           color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
           itemId={p.itemId}
           isSelected={true}
-          onClick={(id) => setSelectedItemId(id === selectedItemId ? null : id)}
+          onClick={() => {
+            setSelectedItemId(null);
+            setSelectedInstanceId(selectedInstanceId === idx ? null : idx);
+          }}
         />
       ))}
     </>
@@ -131,32 +152,41 @@ function InstancedBoxes() {
 export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
   const placements = usePlanStore((s) => s.placements);
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
+  const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
 
   if (placements.length === 0) return null;
 
   if (placements.length < INSTANCED_THRESHOLD) {
     return (
       <>
-        {placements.map((p, i) => (
-          <BoxWrapper
-            key={`${p.itemId}-${i}`}
-            width={p.width}
-            height={p.height}
-            depth={p.depth}
-            positionX={p.positionX}
-            positionY={p.positionY}
-            positionZ={p.positionZ}
-            color={
-              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
-            }
-            itemId={p.itemId}
-            isSelected={p.itemId === selectedItemId}
-            isHidden={hiddenItemIds.includes(p.itemId)}
-            onClick={(id) => setSelectedItemId(id === selectedItemId ? null : id)}
-          />
-        ))}
+        {placements.map((p, i) => {
+          const isInstanceSelected = selectedInstanceId === i;
+          const isItemSelected = p.itemId === selectedItemId;
+          return (
+            <BoxWrapper
+              key={`${p.itemId}-${i}`}
+              width={p.width}
+              height={p.height}
+              depth={p.depth}
+              positionX={p.positionX}
+              positionY={p.positionY}
+              positionZ={p.positionZ}
+              color={
+                p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+              }
+              itemId={p.itemId}
+              isSelected={isInstanceSelected || isItemSelected}
+              isHidden={hiddenItemIds.includes(p.itemId)}
+              onClick={() => {
+                setSelectedItemId(null);
+                setSelectedInstanceId(selectedInstanceId === i ? null : i);
+              }}
+            />
+          );
+        })}
       </>
     );
   }
