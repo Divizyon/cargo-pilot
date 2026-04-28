@@ -1,4 +1,5 @@
 using CargoPilot.Application.Features.Items.CreateItem;
+using CargoPilot.Application.Features.Items.GetItems;
 using CargoPilot.Application.Features.Items.SearchItems;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -64,4 +65,21 @@ public sealed class ItemsController : BaseController
 
         return HandleResult(result);
     }
+    /// <summary>
+    /// Ürün havuzunu listeler (Read-Only).
+    /// </summary>
+    [HttpGet("all")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetItems(
+        [FromQuery] Guid? companyId,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetItemsQuery(companyId, search, page, pageSize);
+        var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
 }
