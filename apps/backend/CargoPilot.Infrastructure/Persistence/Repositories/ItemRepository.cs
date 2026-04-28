@@ -14,10 +14,22 @@ internal sealed class ItemRepository : IItemRepository
         _dbContext = dbContext;
     }
 
+    public Task<Item?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Items
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+    }
+
     public Task<bool> ExistsBySkuAsync(string sku, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
             .AnyAsync(i => i.SKU == sku, cancellationToken);
+    }
+
+    public Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default)
+    {
+        // Loading plan entity henüz implement edilmedi; ilerleyen aşamada doldurulacak.
+        return Task.FromResult(false);
     }
 
     public async Task<PagedResult<Item>> SearchAsync(
