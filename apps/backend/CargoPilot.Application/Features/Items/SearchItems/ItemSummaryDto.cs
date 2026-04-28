@@ -12,6 +12,11 @@ public sealed record ItemSummaryDto(
     decimal Width,
     decimal Height,
     decimal Length,
+    decimal? Diameter,
     decimal Weight,
     FragilityType FragilityType,
-    bool IsStackable);
+    bool IsStackable,
+    int MaxStackCount,
+    decimal MaxWeightOnTop,
+    AllowedRotations AllowedRotations,
+    string? ImageUrl);
