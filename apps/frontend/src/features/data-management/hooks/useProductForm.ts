@@ -39,9 +39,9 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
     resolver,
     defaultValues: {
       productType: 'box',
-      widthUnit: 'mm',
-      heightUnit: 'mm',
-      lengthUnit: 'mm',
+      widthUnit: 'cm',
+      heightUnit: 'cm',
+      lengthUnit: 'cm',
       weightUnit: 'kg',
       isStackable: false,
       maxStackCount: 1,

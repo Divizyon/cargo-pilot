@@ -305,6 +305,7 @@ export function ProductForm({
   });
 
   const isNonStackable = !maxStackCount || maxStackCount <= 1;
+  const isZLocked = (fragility ?? 0) >= 1;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
@@ -395,6 +396,9 @@ export function ProductForm({
                           if (num === FRAGILITY_LEVELS.NonFragile) {
                             form.setValue('maxStackCount', 1, { shouldValidate: false });
                             form.setValue('isStackable', false, { shouldValidate: false });
+                          }
+                          if (num >= 1) {
+                            form.setValue('allowRotateZ', false, { shouldValidate: false });
                           }
                         }}
                         className="flex flex-wrap"
@@ -578,39 +582,48 @@ export function ProductForm({
               />
 
               {/* X / Y / Z eksen kartları — kart kendisi toggle */}
-              {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => (
-                <FormField
-                  key={axisFieldName}
-                  control={form.control}
-                  name={axisFieldName}
-                  render={({ field }) => (
-                    <FormItem className="m-0 space-y-0">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            aria-pressed={field.value}
-                            aria-label={t(tooltipKey)}
-                            onClick={() => field.onChange(!field.value)}
-                            className={cn(
-                              'flex w-full flex-col items-center justify-center gap-2 rounded-md border p-3 text-center transition-colors',
-                              field.value
-                                ? 'border-primary bg-primary/5 text-primary'
-                                : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60',
-                            )}
-                          >
-                            <span className="text-sm font-medium text-foreground">
-                              {t(labelKey)}
-                            </span>
-                            <AxisBoxIllustration axis={axis} active={field.value} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{t(tooltipKey)}</TooltipContent>
-                      </Tooltip>
-                    </FormItem>
-                  )}
-                />
-              ))}
+              {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => {
+                const isDisabled = axisFieldName === 'allowRotateZ' && isZLocked;
+                return (
+                  <FormField
+                    key={axisFieldName}
+                    control={form.control}
+                    name={axisFieldName}
+                    render={({ field }) => (
+                      <FormItem className="m-0 space-y-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              aria-pressed={field.value}
+                              aria-label={
+                                isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)
+                              }
+                              disabled={isDisabled}
+                              onClick={() => field.onChange(!field.value)}
+                              className={cn(
+                                'flex w-full flex-col items-center justify-center gap-2 rounded-md border p-3 text-center transition-colors',
+                                field.value
+                                  ? 'border-primary bg-primary/5 text-primary'
+                                  : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60',
+                                isDisabled && 'cursor-not-allowed opacity-50 hover:bg-muted/30',
+                              )}
+                            >
+                              <span className="text-sm font-medium text-foreground">
+                                {t(labelKey)}
+                              </span>
+                              <AxisBoxIllustration axis={axis} active={field.value} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)}
+                          </TooltipContent>
+                        </Tooltip>
+                      </FormItem>
+                    )}
+                  />
+                );
+              })}
             </div>
           </section>
 
