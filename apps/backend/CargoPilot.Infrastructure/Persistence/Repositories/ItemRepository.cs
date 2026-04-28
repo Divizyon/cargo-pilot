@@ -26,6 +26,12 @@ internal sealed class ItemRepository : IItemRepository
             .AnyAsync(i => i.SKU == sku, cancellationToken);
     }
 
+    public Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Items
+            .AnyAsync(i => i.SKU == sku && i.Id != excludeItemId, cancellationToken);
+    }
+
     public Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default)
     {
         // Loading plan entity henüz implement edilmedi; ilerleyen aşamada doldurulacak.
@@ -60,6 +66,11 @@ internal sealed class ItemRepository : IItemRepository
     public void Add(Item item)
     {
         _dbContext.Items.Add(item);
+    }
+
+    public void Update(Item item)
+    {
+        _dbContext.Items.Update(item);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
