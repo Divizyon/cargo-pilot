@@ -22,4 +22,9 @@ public abstract class BaseEntity {
 
         Id = id;
     }
+
+    public void MarkAsDeleted() {
+        IsDeleted = true;
+        IsActive = false;
+    }
 }
