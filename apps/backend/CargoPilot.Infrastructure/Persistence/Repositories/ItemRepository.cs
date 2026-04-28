@@ -13,6 +13,40 @@ internal sealed class ItemRepository : IItemRepository
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<Item>> GetAllAsync(
+        Guid? companyId,
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Items.AsQueryable();
+
+
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(i => i.Name.Contains(search) || i.SKU.Contains(search));
+
+        return await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> CountAsync(
+        Guid? companyId,
+        string? search,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Items.AsQueryable();
+
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(i => i.Name.Contains(search) || i.SKU.Contains(search));
+
+        return await query.CountAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsBySkuAsync(string sku, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
