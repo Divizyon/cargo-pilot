@@ -3,9 +3,11 @@ import { Box, ChevronRight, Package2, Plus, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { STANDARD_VEHICLES } from '@/lib/config/vehicles';
 import { AddVehicleModal } from './AddVehicleModal';
+import { SelectedBoxPanel } from './SelectedBoxPanel';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -108,6 +110,7 @@ interface PlanRightPanelProps {
 export function PlanRightPanel({ onClose }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>(STANDARD_VEHICLES);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
@@ -163,21 +166,27 @@ export function PlanRightPanel({ onClose }: PlanRightPanelProps) {
 
       <div className="border-t border-zinc-100 shrink-0" />
 
-      {/* Vehicle details */}
-      <div className="overflow-y-auto px-3 py-3" style={{ maxHeight: 200 }}>
-        {selectedVehicle ? (
-          <VehicleDetails vehicle={selectedVehicle} />
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-2 text-center py-4">
-            <Box className="w-8 h-8 text-zinc-200" />
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Yükleme alanını görmek için
-              <br />
-              bir araç seçin
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Selected box panel önceliklenir; yoksa vehicle details. */}
+      {selectedInstanceId !== null ? (
+        <div className="overflow-y-auto" style={{ maxHeight: 320 }}>
+          <SelectedBoxPanel />
+        </div>
+      ) : (
+        <div className="overflow-y-auto px-3 py-3" style={{ maxHeight: 200 }}>
+          {selectedVehicle ? (
+            <VehicleDetails vehicle={selectedVehicle} />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 text-center py-4">
+              <Box className="w-8 h-8 text-zinc-200" />
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Yükleme alanını görmek için
+                <br />
+                bir araç seçin
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bottom action */}
       <div className="px-3 py-3 border-t border-zinc-100 shrink-0">

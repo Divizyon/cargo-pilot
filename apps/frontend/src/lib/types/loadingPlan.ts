@@ -1,11 +1,22 @@
 import { z } from 'zod';
 
+// 0: alt yüz · 1: üst yüz · 2: ön yüz · 3: arka yüz · 4: sol yüz · 5: sağ yüz altta.
+// Detay: lib/utils/boxOrientations.ts → BOX_ORIENTATIONS
+export const orientationIndexSchema = z.union([
+  z.literal(0),
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+]);
+
 export const placementSchema = z.object({
   itemId: z.string().uuid(),
   positionX: z.number(),
   positionY: z.number(),
   positionZ: z.number(),
-  rotation: z.number(),
+  orientationIndex: orientationIndexSchema.default(0),
   layer: z.number().int().min(1),
   isViolation: z.boolean(),
 });
