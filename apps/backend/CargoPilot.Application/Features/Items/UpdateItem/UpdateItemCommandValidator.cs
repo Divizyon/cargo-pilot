@@ -103,9 +103,9 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
                 .WithMessage("Stack group en fazla 100 karakter olabilir.");
 
         RuleFor(x => x.SpecialNotes)
-            .MaximumLength(1000)
+            .MaximumLength(500)
                 .WithErrorCode("ITEM_VAL_SPECIALNOTES_TOO_LONG")
-                .WithMessage("Ozel notlar en fazla 1000 karakter olabilir.");
+                .WithMessage("Ozel notlar en fazla 500 karakter olabilir.");
 
         RuleFor(x => x.MaxStackCount)
             .Equal(0)

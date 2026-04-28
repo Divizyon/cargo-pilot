@@ -85,7 +85,7 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
             .HasMaxLength(100);
 
         builder.Property(item => item.SpecialNotes)
-            .HasMaxLength(1000);
+            .HasMaxLength(500);
 
         builder.HasIndex(item => item.SKU)
             .IsUnique()
