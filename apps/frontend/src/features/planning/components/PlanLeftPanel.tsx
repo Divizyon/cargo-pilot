@@ -360,6 +360,8 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
   const removeItem = usePlanStore((s) => s.removeItem);
   const togglePlacement = usePlanStore((s) => s.togglePlacement);
   const initItems = usePlanStore((s) => s.initItems);
+  const mockPlacements = usePlanStore((s) => s.mockPlacements);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
 
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
@@ -565,6 +567,34 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
           )}
         </div>
       </ScrollArea>
+
+      {/* Dev-only stres testi (US-OPT-14): InstancedMesh render path FPS ölçümü için. */}
+      {import.meta.env.DEV && (
+        <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex-1 h-7 text-xs"
+            onClick={() => mockPlacements(500)}
+            title="500 random kutu enjekte et (yalnızca dev)"
+          >
+            Stres Testi (500)
+          </Button>
+          {placements.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-zinc-500"
+              onClick={() => setPlacements([])}
+              title="Tüm placements'ları temizle"
+            >
+              Temizle
+            </Button>
+          )}
+        </div>
+      )}
 
       <AddItemModal
         open={showItemModal}

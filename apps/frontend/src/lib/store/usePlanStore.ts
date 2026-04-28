@@ -77,6 +77,12 @@ interface PlanStore {
    * Effective W/H/L yeniden hesaplanır, violation pipeline tetiklenir.
    */
   setOrientation: (instanceId: number, idx: OrientationIndex) => void;
+  /**
+   * Dev-only: 500+ kutuyu sahneye enjekte eder (US-OPT-14 stres testi).
+   * Optimizasyon algoritmasını bypass eder, sadece render yükü oluşturur.
+   * Gereksinim: en az 1 selectedItem ve selectedVehicle olmalı.
+   */
+  mockPlacements: (count: number) => void;
   reset: () => void;
 }
 
@@ -160,6 +166,37 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+
+  mockPlacements: (count) =>
+    set((s) => {
+      const v = s.selectedVehicle;
+      const items = s.selectedItems;
+      if (!v || items.length === 0) return {};
+      const placements: PlacementWithDimensions[] = [];
+      for (let i = 0; i < count; i++) {
+        const entry = items[i % items.length];
+        const item = entry.item;
+        const color = s.skuColorMap[item.sku] ?? SCENE.COLORS.NORMAL_STR;
+        // Pseudo-random pozisyon — overlap normal, isViolation pipeline yakalar.
+        const x = Math.random() * Math.max(0, v.width - item.width);
+        const y = Math.random() * Math.max(0, v.height - item.height);
+        const z = Math.random() * Math.max(0, v.length - item.length);
+        placements.push({
+          itemId: item.id,
+          positionX: x,
+          positionY: y,
+          positionZ: z,
+          orientationIndex: 0,
+          layer: 1,
+          isViolation: false,
+          width: item.width,
+          height: item.height,
+          depth: item.length,
+          color,
+        });
+      }
+      return { placements };
+    }),
 
   setOrientation: (instanceId, idx) =>
     set((s) => {
