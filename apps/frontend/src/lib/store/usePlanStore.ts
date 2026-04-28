@@ -83,6 +83,7 @@ interface PlanStore {
    * Gereksinim: en az 1 selectedItem ve selectedVehicle olmalı.
    */
   mockPlacements: (count: number) => void;
+  updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
   reset: () => void;
 }
 
@@ -167,6 +168,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
 
+
   mockPlacements: (count) =>
     set((s) => {
       const v = s.selectedVehicle;
@@ -220,6 +222,14 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const placements = s.placements.map((p, i) => (i === instanceId ? updated : p));
       const collisionChecked = computeViolations(placements);
       return { placements: applyContainerOverflow(collisionChecked, s.selectedVehicle) };
+    }),
+
+  updatePlacementPosition: (idx, x, y, z) =>
+    set((s) => {
+      const next = s.placements.map((p, i) =>
+        i === idx ? { ...p, positionX: x, positionY: y, positionZ: z } : p,
+      );
+      return { placements: computeViolations(next) };
     }),
 
   reset: () =>

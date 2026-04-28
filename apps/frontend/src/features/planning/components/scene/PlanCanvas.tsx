@@ -7,6 +7,7 @@ import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMe
 import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { SCENE } from '@/lib/config/scene-config';
+import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
 
 interface PlanCanvasProps {
   className?: string;
@@ -49,7 +50,7 @@ function SnapshotBridge({
 
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
   return (
-    <div className={className} style={{ width: '100%', height: '100%' }}>
+    <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
         camera={{
           position: SCENE.CAMERA_POSITION,
@@ -72,6 +73,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
           <CargoMeshInstanced planId={planId} />
         </Suspense>
       </Canvas>
+      <SelectedBoxCoords />
     </div>
   );
 }

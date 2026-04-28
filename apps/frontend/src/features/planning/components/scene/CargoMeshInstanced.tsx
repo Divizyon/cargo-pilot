@@ -1,10 +1,12 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { BoxWrapper } from '@/components/shared/BoxWrapper';
 import { SCENE } from '@/lib/config/scene-config';
 import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOrientations';
+import { useDragBox } from '@/features/planning/components/scene/useDragBox';
+import type { DragState } from '@/features/planning/components/scene/useDragBox';
 
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = SCENE.COLORS.VIOLATION;
@@ -19,11 +21,14 @@ function InstancedBoxes() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const edgeMeshRef = useRef<THREE.InstancedMesh>(null);
   const placements = usePlanStore((s) => s.placements);
+  const vehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
+  const { startDrag } = useDragBox();
+  const [dragState, setDragState] = useState<DragState | null>(null);
 
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -66,15 +71,15 @@ function InstancedBoxes() {
       const isInstanceSelected = selectedInstanceId === i;
       const isItemSelected = p.itemId === selectedItemId;
 
-      // Effective dims (rotated) zaten p.width/height/depth'te. Base'i türetip scale'e veriyoruz —
-      // scale → rotate sıralamasında base dims rotate edilince effective bounding box çıkar.
+      // Drag sırasında live pozisyon kullan
+      const px = dragState?.idx === i ? dragState.x : p.positionX;
+      const py = dragState?.idx === i ? dragState.y : p.positionY;
+      const pz = dragState?.idx === i ? dragState.z : p.positionZ;
+
+      // Effective dims (rotated) zaten p.width/height/depth'te. Base'i türetip scale'e veriyoruz.
       const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
 
-      position.set(
-        p.positionX + p.width / 2,
-        p.positionY + p.height / 2,
-        p.positionZ + p.depth / 2,
-      );
+      position.set(px + p.width / 2, py + p.height / 2, pz + p.depth / 2);
       // Glow için seçili instance'ı InstancedMesh'ten gizle, BoxWrapper olarak ayrı render et.
       const visible = !isHidden && !isInstanceSelected && !isItemSelected;
       scale.set(visible ? base.width : 0, visible ? base.height : 0, visible ? base.depth : 0);
@@ -103,7 +108,7 @@ function InstancedBoxes() {
     if (edgeMeshRef.current) {
       edgeMeshRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [placements, selectedItemId, selectedInstanceId, hiddenItemIds]);
+  }, [placements, selectedItemId, selectedInstanceId, hiddenItemIds, dragState]);
 
   const selectedPlacements = useMemo(
     () =>
@@ -130,9 +135,16 @@ function InstancedBoxes() {
           if (instanceId === undefined) return;
           const p = placements[instanceId];
           if (!p) return;
-          // Manuel müdahale instance bazlı; item-level highlight'ı temizliyoruz.
           setSelectedItemId(null);
           setSelectedInstanceId(selectedInstanceId === instanceId ? null : instanceId);
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          const instanceId = e.instanceId;
+          if (instanceId === undefined || !vehicle) return;
+          setSelectedItemId(null);
+          setSelectedInstanceId(instanceId);
+          startDrag(instanceId, placements, vehicle, setDragState, e);
         }}
       >
         <boxGeometry args={[1, 1, 1]} />
@@ -141,35 +153,48 @@ function InstancedBoxes() {
       <instancedMesh ref={edgeMeshRef} args={[edgesGeo, undefined, placements.length]}>
         <lineBasicMaterial color="#000000" />
       </instancedMesh>
-      {selectedPlacements.map(({ p, idx }) => (
-        <BoxWrapper
-          key={`glow-${idx}`}
-          width={p.width}
-          height={p.height}
-          depth={p.depth}
-          positionX={p.positionX}
-          positionY={p.positionY}
-          positionZ={p.positionZ}
-          color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
-          itemId={p.itemId}
-          isSelected={true}
-          onClick={() => {
-            setSelectedItemId(null);
-            setSelectedInstanceId(selectedInstanceId === idx ? null : idx);
-          }}
-        />
-      ))}
+      {selectedPlacements.map(({ p, idx }) => {
+        const ds = dragState?.idx === idx ? dragState : null;
+        const px = ds ? ds.x : p.positionX;
+        const py = ds ? ds.y : p.positionY;
+        const pz = ds ? ds.z : p.positionZ;
+        return (
+          <BoxWrapper
+            key={`glow-${idx}`}
+            width={p.width}
+            height={p.height}
+            depth={p.depth}
+            positionX={px}
+            positionY={py}
+            positionZ={pz}
+            color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
+            itemId={p.itemId}
+            isSelected={true}
+            onClick={() => {
+              setSelectedItemId(null);
+              setSelectedInstanceId(selectedInstanceId === idx ? null : idx);
+            }}
+            onPointerDown={(e) => {
+              if (!vehicle) return;
+              startDrag(idx, placements, vehicle, setDragState, e);
+            }}
+          />
+        );
+      })}
     </>
   );
 }
 
 export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
   const placements = usePlanStore((s) => s.placements);
+  const vehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
+  const { startDrag } = useDragBox();
+  const [dragState, setDragState] = useState<DragState | null>(null);
 
   if (placements.length === 0) return null;
 
@@ -179,15 +204,19 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
         {placements.map((p, i) => {
           const isInstanceSelected = selectedInstanceId === i;
           const isItemSelected = p.itemId === selectedItemId;
+          const ds = dragState?.idx === i ? dragState : null;
+          const px = ds ? ds.x : p.positionX;
+          const py = ds ? ds.y : p.positionY;
+          const pz = ds ? ds.z : p.positionZ;
           return (
             <BoxWrapper
               key={`${p.itemId}-${i}`}
               width={p.width}
               height={p.height}
               depth={p.depth}
-              positionX={p.positionX}
-              positionY={p.positionY}
-              positionZ={p.positionZ}
+              positionX={px}
+              positionY={py}
+              positionZ={pz}
               color={
                 p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
               }
@@ -197,6 +226,12 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
               onClick={() => {
                 setSelectedItemId(null);
                 setSelectedInstanceId(selectedInstanceId === i ? null : i);
+              }}
+              onPointerDown={(e) => {
+                if (!vehicle) return;
+                setSelectedItemId(null);
+                setSelectedInstanceId(i);
+                startDrag(i, placements, vehicle, setDragState, e);
               }}
             />
           );

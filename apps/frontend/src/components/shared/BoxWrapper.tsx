@@ -1,5 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
 
 interface BoxWrapperProps {
   width: number;
@@ -11,6 +12,7 @@ interface BoxWrapperProps {
   color?: string;
   opacity?: number;
   onClick?: (id: string) => void;
+  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
   itemId?: string;
   isSelected?: boolean;
   isHidden?: boolean;
@@ -26,6 +28,7 @@ export function BoxWrapper({
   color = '#2563EB',
   opacity = 0.85,
   onClick,
+  onPointerDown,
   itemId,
   isSelected = false,
   isHidden = false,
@@ -56,6 +59,10 @@ export function BoxWrapper({
       onClick={(e) => {
         e.stopPropagation();
         if (itemId !== undefined) onClick?.(itemId);
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onPointerDown?.(e);
       }}
     >
       <mesh>

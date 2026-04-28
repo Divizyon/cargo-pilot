@@ -18,6 +18,7 @@ export function SceneControls() {
   const vehicle = usePlanStore((s) => s.selectedVehicle);
   const cameraPreset = useSceneStore((s) => s.cameraPreset);
   const setCameraPreset = useSceneStore((s) => s.setCameraPreset);
+  const isDragging = useSceneStore((s) => s.isDragging);
 
   useEffect(() => {
     const orbit = orbitRef.current;
@@ -83,6 +84,7 @@ export function SceneControls() {
   return (
     <OrbitControls
       ref={orbitRef}
+      enabled={!isDragging}
       enableDamping
       dampingFactor={SCENE.ORBIT_DAMPING_FACTOR}
       minDistance={SCENE.ORBIT_MIN_DISTANCE}

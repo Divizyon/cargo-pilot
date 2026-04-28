@@ -11,6 +11,8 @@ interface SceneStore {
   hiddenItemIds: string[];
   displayMode: DisplayMode;
   cameraPreset: CameraPreset | null;
+  isDragging: boolean;
+  dragLivePosition: { x: number; y: number; z: number } | null;
   setActiveLayer: (layer: number) => void;
   setSelectedBoxId: (id: string | null) => void;
   setSelectedItemId: (id: string | null) => void;
@@ -19,6 +21,8 @@ interface SceneStore {
   setDisplayMode: (mode: DisplayMode) => void;
   toggleDisplayMode: () => void;
   setCameraPreset: (preset: CameraPreset | null) => void;
+  setIsDragging: (v: boolean) => void;
+  setDragLivePosition: (pos: { x: number; y: number; z: number } | null) => void;
   reset: () => void;
 }
 
@@ -30,6 +34,8 @@ const initialState = {
   hiddenItemIds: [] as string[],
   displayMode: 'solid' as DisplayMode,
   cameraPreset: null as CameraPreset | null,
+  isDragging: false,
+  dragLivePosition: null as { x: number; y: number; z: number } | null,
 };
 
 export const useSceneStore = create<SceneStore>((set) => ({
@@ -48,5 +54,7 @@ export const useSceneStore = create<SceneStore>((set) => ({
   toggleDisplayMode: () =>
     set((s) => ({ displayMode: s.displayMode === 'solid' ? 'wireframe' : 'solid' })),
   setCameraPreset: (preset) => set({ cameraPreset: preset }),
+  setIsDragging: (v) => set({ isDragging: v }),
+  setDragLivePosition: (pos) => set({ dragLivePosition: pos }),
   reset: () => set(initialState),
 }));
