@@ -26,18 +26,12 @@ internal sealed class ItemRepository : IItemRepository
             .AnyAsync(i => i.SKU == sku, cancellationToken);
     }
 
-<<<<<<< HEAD
     public Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
             .AnyAsync(i => i.SKU == sku && i.Id != excludeItemId, cancellationToken);
     }
 
-    public Task<Item?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return _dbContext.Items
-            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
-=======
     public Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default)
     {
         // Loading plan entity henüz implement edilmedi; ilerleyen aşamada doldurulacak.
@@ -67,7 +61,6 @@ internal sealed class ItemRepository : IItemRepository
             .ToListAsync(cancellationToken);
 
         return new PagedResult<Item>(items, totalCount, page, pageSize);
->>>>>>> 99ec28b2d9685439061df885d57ddd1280c76cbb
     }
 
     public void Add(Item item)
