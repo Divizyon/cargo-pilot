@@ -1,10 +1,7 @@
 using CargoPilot.Application.Features.Items.CreateItem;
-<<<<<<< HEAD
-using CargoPilot.Application.Features.Items.UpdateItem;
-=======
 using CargoPilot.Application.Features.Items.DeleteItem;
 using CargoPilot.Application.Features.Items.SearchItems;
->>>>>>> 99ec28b2d9685439061df885d57ddd1280c76cbb
+using CargoPilot.Application.Features.Items.UpdateItem;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -71,7 +68,24 @@ public sealed class ItemsController : BaseController
     }
 
     /// <summary>
-<<<<<<< HEAD
+    /// Ürünü siler (soft delete). Aktif bir sevkiyat planında kullanılan ürünler silinemez.
+    /// </summary>
+    /// <response code="200">Ürün başarıyla silindi.</response>
+    /// <response code="404">Ürün bulunamadı.</response>
+    /// <response code="409">Ürün aktif bir sevkiyat planında kullanıldığı için silinemez.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteItem(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DeleteItemCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Ürünü günceller.
     /// </summary>
     /// <param name="id">Güncellenecek ürünün ID'si.</param>
@@ -93,22 +107,6 @@ public sealed class ItemsController : BaseController
     {
         var commandWithId = command with { Id = id };
         var result = await _mediator.Send(commandWithId, cancellationToken);
-=======
-    /// Ürünü siler (soft delete). Aktif bir sevkiyat planında kullanılan ürünler silinemez.
-    /// </summary>
-    /// <response code="200">Ürün başarıyla silindi.</response>
-    /// <response code="404">Ürün bulunamadı.</response>
-    /// <response code="409">Ürün aktif bir sevkiyat planında kullanıldığı için silinemez.</response>
-    [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteItem(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new DeleteItemCommand(id), cancellationToken);
->>>>>>> 99ec28b2d9685439061df885d57ddd1280c76cbb
         return HandleResult(result);
     }
 }
