@@ -1,4 +1,5 @@
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -61,6 +62,18 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.Weight)
             .IsRequired()
             .HasPrecision(12, 3);
+
+        builder.Property(item => item.DimensionUnit)
+            .IsRequired()
+            .HasDefaultValue(DimensionUnit.Cm);
+
+        builder.Property(item => item.WeightUnit)
+            .IsRequired()
+            .HasDefaultValue(WeightUnit.Kg);
+
+        builder.Property(item => item.StockStatus)
+            .IsRequired()
+            .HasDefaultValue(StockStatus.InStock);
 
         builder.Property(item => item.FragilityType)
             .IsRequired();

@@ -13,6 +13,9 @@ public sealed class Item : BaseEntity {
     public decimal Length { get; private set; }
     public decimal? Diameter { get; private set; }
     public decimal Weight { get; private set; }
+    public DimensionUnit DimensionUnit { get; private set; }
+    public WeightUnit WeightUnit { get; private set; }
+    public StockStatus StockStatus { get; private set; }
     public FragilityType FragilityType { get; private set; }
     public bool IsStackable { get; private set; }
     public int MaxStackCount { get; private set; }
@@ -34,6 +37,9 @@ public sealed class Item : BaseEntity {
         decimal height,
         decimal length,
         decimal weight,
+        DimensionUnit dimensionUnit,
+        WeightUnit weightUnit,
+        StockStatus stockStatus,
         FragilityType fragilityType,
         bool isStackable,
         int maxStackCount,
@@ -54,6 +60,9 @@ public sealed class Item : BaseEntity {
         Length = length;
         Diameter = diameter;
         Weight = weight;
+        DimensionUnit = dimensionUnit;
+        WeightUnit = weightUnit;
+        StockStatus = stockStatus;
         FragilityType = fragilityType;
         IsStackable = isStackable;
         MaxStackCount = maxStackCount;
