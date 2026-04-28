@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,29 @@ internal sealed class ItemRepository : IItemRepository
     {
         return _dbContext.Items
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+    public async Task<PagedResult<Item>> SearchAsync(
+        string? searchTerm,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Items.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim();
+            query = query.Where(i => i.Name.Contains(term) || i.SKU.Contains(term));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderBy(i => i.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<Item>(items, totalCount, page, pageSize);
     }
 
     public void Add(Item item)
