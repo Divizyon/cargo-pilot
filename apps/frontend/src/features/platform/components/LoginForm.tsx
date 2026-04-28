@@ -1,9 +1,9 @@
 // src/features/platform/components/LoginForm.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -56,13 +56,35 @@ function MicrosoftIcon() {
   );
 }
 
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s} saniye`;
+}
+
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [lockoutEndsAt, setLockoutEndsAt] = useState<number | null>(null);
+  const [lockoutSecondsLeft, setLockoutSecondsLeft] = useState(0);
   const navigate = useNavigate();
   const { mutate: login, isPending, error: loginError } = useLogin();
 
-  // AC4: hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
-  const accountNotFound = loginError != null && isLoginNotFound(loginError);
+  const isLocked = lockoutSecondsLeft > 0;
+
+  // hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
+  const accountNotFound = !isLocked && loginError != null && isLoginNotFound(loginError);
+
+  useEffect(() => {
+    if (lockoutEndsAt === null) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((lockoutEndsAt - Date.now()) / 1000));
+      setLockoutSecondsLeft(remaining);
+      if (remaining === 0) setLockoutEndsAt(null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [lockoutEndsAt]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -70,15 +92,29 @@ export function LoginForm() {
   });
 
   function onSubmit(values: LoginFormValues) {
+    if (isLocked) return;
     login(values, {
       onError: (err) => {
-        if (err.response?.status !== 401) {
+        const status = err.response?.status;
+
+        if (status === 423 || status === 429) {
+          // AC2: hesap kilitli — retryAfterSeconds response body veya Retry-After header'dan okunur
+          const bodySeconds =
+            (err.response?.data as { error?: { retryAfterSeconds?: number } } | undefined)
+              ?.error?.retryAfterSeconds;
+          const headerRetry = err.response?.headers?.['retry-after'];
+          const seconds = bodySeconds ?? (headerRetry ? parseInt(String(headerRetry), 10) : 120);
+          setLockoutEndsAt(Date.now() + seconds * 1000);
+          return;
+        }
+
+        if (status !== 401) {
           toast.error('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.', {
             position: 'bottom-right',
           });
           return;
         }
-        // AC3: 401'de her zaman generic mesaj (hesap bulunamadı durumu inline gösterilir)
+        // 401'de her zaman generic mesaj (hesap bulunamadı durumu inline gösterilir)
         if (!isLoginNotFound(err)) {
           toast.error('E-posta adresi veya şifre hatalıdır.', { position: 'bottom-right' });
         }
@@ -102,7 +138,19 @@ export function LoginForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* AC4: Hesap bulunamadı inline banner */}
+          {/* AC2: Hesap kilitli banner + geri sayım */}
+          {isLocked && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Hesabınız güvenlik nedeniyle geçici olarak kilitlenmiştir.{' '}
+                <span className="font-semibold tabular-nums">{formatCountdown(lockoutSecondsLeft)}</span>{' '}
+                sonra tekrar deneyiniz.
+              </span>
+            </div>
+          )}
+
+          {/* Hesap bulunamadı inline banner */}
           {accountNotFound && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -133,6 +181,7 @@ export function LoginForm() {
                       type="email"
                       placeholder="ornek@sirket.com"
                       className="pl-10"
+                      disabled={isLocked}
                       {...field}
                     />
                   </div>
@@ -166,6 +215,7 @@ export function LoginForm() {
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       className="pl-10 pr-10"
+                      disabled={isLocked}
                       {...field}
                     />
                     <Button
@@ -191,7 +241,7 @@ export function LoginForm() {
           />
 
           {/* Giriş Yap */}
-          <Button type="submit" disabled={isPending} size="lg" className="w-full">
+          <Button type="submit" disabled={isPending || isLocked} size="lg" className="w-full">
             {isPending ? (
               <>
                 <Loader2 className="animate-spin" />
