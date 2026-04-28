@@ -1,5 +1,6 @@
 using CargoPilot.Application.Features.Items.CreateItem;
 using CargoPilot.Application.Features.Items.SearchItems;
+using CargoPilot.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,7 @@ public sealed class ItemsController : BaseController
     /// Ürünleri arar ve sayfalı döndürür.
     /// </summary>
     /// <param name="searchTerm">Ürün adı veya SKU arama terimi (opsiyonel).</param>
+    /// <param name="category">Ürün kategorisi filtresi: 0=Package, 1=Pallet, 2=Box (opsiyonel).</param>
     /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
     /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20).</param>
     /// <param name="cancellationToken">İptal token'ı.</param>
@@ -35,11 +37,12 @@ public sealed class ItemsController : BaseController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Search(
         [FromQuery] string? searchTerm,
+        [FromQuery] ItemCategory? category,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new SearchItemsQuery(searchTerm, page, pageSize);
+        var query = new SearchItemsQuery(searchTerm, category, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

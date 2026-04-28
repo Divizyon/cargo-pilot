@@ -1,6 +1,7 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence.Repositories;
@@ -22,6 +23,7 @@ internal sealed class ItemRepository : IItemRepository
 
     public async Task<PagedResult<Item>> SearchAsync(
         string? searchTerm,
+        ItemCategory? category,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -33,6 +35,9 @@ internal sealed class ItemRepository : IItemRepository
             var term = searchTerm.Trim();
             query = query.Where(i => i.Name.Contains(term) || i.SKU.Contains(term));
         }
+
+        if (category.HasValue)
+            query = query.Where(i => i.Category == category.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

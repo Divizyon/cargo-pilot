@@ -67,6 +67,21 @@ public sealed class CreateItemCommandValidator : AbstractValidator<CreateItemCom
                 .WithErrorCode("ITEM_VAL_WEIGHT_POSITIVE")
                 .WithMessage("Agirlik 0'dan buyuk olmali.");
 
+        RuleFor(x => x.DimensionUnit)
+            .IsInEnum()
+                .WithErrorCode("ITEM_VAL_DIMENSIONUNIT_INVALID")
+                .WithMessage("Gecersiz boyut birimi.");
+
+        RuleFor(x => x.WeightUnit)
+            .IsInEnum()
+                .WithErrorCode("ITEM_VAL_WEIGHTUNIT_INVALID")
+                .WithMessage("Gecersiz agirlik birimi.");
+
+        RuleFor(x => x.StockStatus)
+            .IsInEnum()
+                .WithErrorCode("ITEM_VAL_STOCKSTATUS_INVALID")
+                .WithMessage("Gecersiz stok durumu.");
+
         RuleFor(x => x.FragilityType)
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_FRAGILITY_INVALID")

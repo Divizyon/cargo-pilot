@@ -19,5 +19,11 @@ public sealed class SearchItemsQueryValidator : AbstractValidator<SearchItemsQue
                 .WithErrorCode("ITEM_SEARCH_TERM_TOO_LONG")
                 .WithMessage("Arama terimi en fazla 200 karakter olabilir.")
             .When(x => x.SearchTerm is not null);
+
+        RuleFor(x => x.Category)
+            .IsInEnum()
+                .WithErrorCode("ITEM_SEARCH_CATEGORY_INVALID")
+                .WithMessage("Gecersiz urun kategorisi.")
+            .When(x => x.Category.HasValue);
     }
 }

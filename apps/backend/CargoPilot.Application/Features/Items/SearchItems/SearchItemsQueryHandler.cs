@@ -1,5 +1,6 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Utils;
 using FluentValidation;
 using MediatR;
 
@@ -34,6 +35,7 @@ public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, 
 
         var pagedItems = await _itemRepository.SearchAsync(
             request.SearchTerm,
+            request.Category,
             request.Page,
             request.PageSize,
             cancellationToken);
@@ -46,15 +48,18 @@ public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, 
                 i.Name,
                 i.ProductType,
                 i.Category,
-                i.Width,
-                i.Height,
-                i.Length,
-                i.Diameter,
-                i.Weight,
+                UnitConverter.ToCm(i.Width, i.DimensionUnit),
+                UnitConverter.ToCm(i.Height, i.DimensionUnit),
+                UnitConverter.ToCm(i.Length, i.DimensionUnit),
+                i.Diameter.HasValue ? UnitConverter.ToCm(i.Diameter.Value, i.DimensionUnit) : null,
+                UnitConverter.ToKg(i.Weight, i.WeightUnit),
+                i.DimensionUnit,
+                i.WeightUnit,
+                i.StockStatus,
                 i.FragilityType,
                 i.IsStackable,
                 i.MaxStackCount,
-                i.MaxWeightOnTop,
+                UnitConverter.ToKg(i.MaxWeightOnTop, i.WeightUnit),
                 i.AllowedRotations,
                 i.ImageUrl)).ToList(),
             pagedItems.TotalCount,
