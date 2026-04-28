@@ -13,12 +13,10 @@ namespace CargoPilot.WebAPI.Controllers;
 [Route("api/v1/items")]
 [Tags("Items")]
 [Authorize]
-public sealed class ItemsController : BaseController
-{
+public sealed class ItemsController : BaseController {
     private readonly IMediator _mediator;
 
-    public ItemsController(IMediator mediator)
-    {
+    public ItemsController(IMediator mediator) {
         _mediator = mediator;
     }
 
@@ -40,8 +38,7 @@ public sealed class ItemsController : BaseController
         [FromQuery] ItemCategory? category,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         var query = new SearchItemsQuery(searchTerm, category, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
@@ -59,8 +56,7 @@ public sealed class ItemsController : BaseController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateItem(
         [FromBody] CreateItemCommand command,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
