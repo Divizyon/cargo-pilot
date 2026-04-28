@@ -34,7 +34,6 @@ internal sealed class ItemRepository : IItemRepository
 
     public Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default)
     {
-        // Loading plan entity henüz implement edilmedi; ilerleyen aşamada doldurulacak.
         return Task.FromResult(false);
     }
 
