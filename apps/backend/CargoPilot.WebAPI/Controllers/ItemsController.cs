@@ -1,5 +1,7 @@
 using CargoPilot.Application.Features.Items.CreateItem;
+using CargoPilot.Application.Features.Items.DeleteItem;
 using CargoPilot.Application.Features.Items.SearchItems;
+using CargoPilot.Application.Features.Items.UpdateItem;
 using CargoPilot.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -61,6 +63,49 @@ public sealed class ItemsController : BaseController {
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
 
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Ürünü siler (soft delete). Aktif bir sevkiyat planında kullanılan ürünler silinemez.
+    /// </summary>
+    /// <response code="200">Ürün başarıyla silindi.</response>
+    /// <response code="404">Ürün bulunamadı.</response>
+    /// <response code="409">Ürün aktif bir sevkiyat planında kullanıldığı için silinemez.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteItem(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DeleteItemCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Ürünü günceller.
+    /// </summary>
+    /// <param name="id">Güncellenecek ürünün ID'si.</param>
+    /// <param name="command">Güncellenmiş ürün verileri.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Ürün başarıyla güncellendi; ürünün Id'si döner.</response>
+    /// <response code="400">Doğrulama hatası (sayısal değerler pozitif değil vb.).</response>
+    /// <response code="404">Ürün bulunamadı.</response>
+    /// <response code="409">Bu SKU başka bir üründe zaten kullanılıyor.</response>
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateItem(
+        Guid id,
+        [FromBody] UpdateItemCommand command,
+        CancellationToken cancellationToken)
+    {
+        var commandWithId = command with { Id = id };
+        var result = await _mediator.Send(commandWithId, cancellationToken);
         return HandleResult(result);
     }
 }

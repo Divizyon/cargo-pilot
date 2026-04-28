@@ -25,52 +25,49 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
         RuleFor(x => x.Name)
             .NotEmpty()
                 .WithErrorCode("ITEM_VAL_NAME_REQUIRED")
-                .WithMessage("Urun adi zorunludur.")
+                .WithMessage("Ürün adı zorunludur.")
             .MaximumLength(200)
                 .WithErrorCode("ITEM_VAL_NAME_TOO_LONG")
-                .WithMessage("Urun adi en fazla 200 karakter olabilir.");
+                .WithMessage("Ürün adı en fazla 200 karakter olabilir.");
 
         RuleFor(x => x.ProductType)
             .NotEmpty()
                 .WithErrorCode("ITEM_VAL_PRODUCTTYPE_REQUIRED")
-                .WithMessage("Urun tipi zorunludur.")
-            .Must(value => !string.IsNullOrWhiteSpace(value))
-                .WithErrorCode("ITEM_VAL_PRODUCTTYPE_WHITESPACE")
-                .WithMessage("Urun tipi bosluk olamaz.")
+                .WithMessage("Ürün tipi zorunludur.")
             .MaximumLength(100)
                 .WithErrorCode("ITEM_VAL_PRODUCTTYPE_TOO_LONG")
-                .WithMessage("Urun tipi en fazla 100 karakter olabilir.");
+                .WithMessage("Ürün tipi en fazla 100 karakter olabilir.");
 
         RuleFor(x => x.Category)
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_CATEGORY_INVALID")
-                .WithMessage("Gecersiz urun kategorisi.");
+                .WithMessage("Geçersiz ürün kategorisi.");
 
         RuleFor(x => x.Width)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_WIDTH_POSITIVE")
-                .WithMessage("Genislik 0'dan buyuk olmali.");
+                .WithMessage("Genişlik 0'dan büyük olmalı.");
 
         RuleFor(x => x.Height)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_HEIGHT_POSITIVE")
-                .WithMessage("Yukseklik 0'dan buyuk olmali.");
+                .WithMessage("Yükseklik 0'dan büyük olmalı.");
 
         RuleFor(x => x.Length)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_LENGTH_POSITIVE")
-                .WithMessage("Uzunluk 0'dan buyuk olmali.");
+                .WithMessage("Uzunluk 0'dan büyük olmalı.");
 
         RuleFor(x => x.Diameter)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_DIAMETER_POSITIVE")
-                .WithMessage("Cap degeri 0'dan buyuk olmali.")
+                .WithMessage("Çap değeri 0'dan büyük olmalı.")
             .When(x => x.Diameter.HasValue);
 
         RuleFor(x => x.Weight)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_WEIGHT_POSITIVE")
-                .WithMessage("Agirlik 0'dan buyuk olmali.");
+                .WithMessage("Ağırlık 0'dan büyük olmalı.");
 
         RuleFor(x => x.DimensionUnit)
             .IsInEnum()
@@ -90,7 +87,7 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
         RuleFor(x => x.FragilityType)
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_FRAGILITY_INVALID")
-                .WithMessage("Gecersiz fragility tipi.");
+                .WithMessage("Geçersiz kırılganlık tipi.");
 
         RuleFor(x => x.MaxStackCount)
             .GreaterThanOrEqualTo(0)
@@ -100,17 +97,17 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
         RuleFor(x => x.MaxWeightOnTop)
             .GreaterThanOrEqualTo(0)
                 .WithErrorCode("ITEM_VAL_MAXWEIGHTONTOP_MIN")
-                .WithMessage("Uzerine binecek agirlik limiti negatif olamaz.");
+                .WithMessage("Üzerine binecek ağırlık limiti negatif olamaz.");
 
         RuleFor(x => x.AllowedRotations)
             .IsInEnum()
                 .WithErrorCode("ITEM_VAL_ALLOWEDROTATIONS_INVALID")
-                .WithMessage("Gecersiz donus tipi.");
+                .WithMessage("Geçersiz dönüş tipi.");
 
         RuleFor(x => x.ImageUrl)
             .MaximumLength(500)
                 .WithErrorCode("ITEM_VAL_IMAGEURL_TOO_LONG")
-                .WithMessage("Gorsel linki en fazla 500 karakter olabilir.");
+                .WithMessage("Görsel linki en fazla 500 karakter olabilir.");
 
         RuleFor(x => x.StackGroup)
             .MaximumLength(100)
@@ -120,30 +117,30 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
         RuleFor(x => x.SpecialNotes)
             .MaximumLength(1000)
                 .WithErrorCode("ITEM_VAL_SPECIALNOTES_TOO_LONG")
-                .WithMessage("Ozel notlar en fazla 1000 karakter olabilir.");
+                .WithMessage("Özel notlar en fazla 1000 karakter olabilir.");
 
         RuleFor(x => x.MaxStackCount)
             .Equal(0)
                 .WithErrorCode("ITEM_VAL_MAXSTACKCOUNT_WHEN_NOT_STACKABLE")
-                .WithMessage("Istiflenemez urunde maksimum istif adedi 0 olmali.")
+                .WithMessage("İstiflenemez üründe maksimum istif adedi 0 olmalı.")
             .When(x => !x.IsStackable);
 
         RuleFor(x => x.MaxWeightOnTop)
             .Equal(0)
                 .WithErrorCode("ITEM_VAL_MAXWEIGHTONTOP_WHEN_NOT_STACKABLE")
-                .WithMessage("Istiflenemez urunde ust agirlik limiti 0 olmali.")
+                .WithMessage("İstiflenemez üründe üst ağırlık limiti 0 olmalı.")
             .When(x => !x.IsStackable);
 
         RuleFor(x => x.MaxStackCount)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_MAXSTACKCOUNT_WHEN_STACKABLE")
-                .WithMessage("Istiflenebilir urunde maksimum istif adedi 0'dan buyuk olmali.")
+                .WithMessage("İstiflenebilir üründe maksimum istif adedi 0'dan büyük olmalı.")
             .When(x => x.IsStackable);
 
         RuleFor(x => x.MaxWeightOnTop)
             .GreaterThan(0)
                 .WithErrorCode("ITEM_VAL_MAXWEIGHTONTOP_WHEN_STACKABLE")
-                .WithMessage("Istiflenebilir urunde ust agirlik limiti 0'dan buyuk olmali.")
+                .WithMessage("İstiflenebilir üründe üst ağırlık limiti 0'dan büyük olmalı.")
             .When(x => x.IsStackable);
     }
 }
