@@ -66,7 +66,6 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
             stackGroup: request.StackGroup,
             specialNotes: request.SpecialNotes);
 
-        _itemRepository.Update(item);
         await _itemRepository.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(item.Id);
