@@ -19,9 +19,26 @@ internal sealed class ItemRepository : IItemRepository
             .AnyAsync(i => i.SKU == sku, cancellationToken);
     }
 
+    public Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Items
+            .AnyAsync(i => i.SKU == sku && i.Id != excludeItemId, cancellationToken);
+    }
+
+    public Task<Item?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Items
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+    }
+
     public void Add(Item item)
     {
         _dbContext.Items.Add(item);
+    }
+
+    public void Update(Item item)
+    {
+        _dbContext.Items.Update(item);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
