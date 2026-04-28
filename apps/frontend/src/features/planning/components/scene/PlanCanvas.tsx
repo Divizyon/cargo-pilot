@@ -1,6 +1,6 @@
 import { Suspense, useEffect, type MutableRefObject } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Html, useProgress } from '@react-three/drei';
+import { Html, Stats, useProgress } from '@react-three/drei';
 import { SceneLights } from '@/features/planning/components/scene/SceneLights';
 import { SceneControls } from '@/features/planning/components/scene/SceneControls';
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
@@ -62,6 +62,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
         style={{ width: '100%', height: '100%' }}
       >
         <color attach="background" args={[SCENE.BACKGROUND_COLOR]} />
+        {import.meta.env.DEV && <Stats />}
         <SceneDisposer />
         <SnapshotBridge snapshotRef={snapshotRef} />
         <Suspense fallback={<SceneLoader />}>

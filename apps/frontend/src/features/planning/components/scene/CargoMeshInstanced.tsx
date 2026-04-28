@@ -39,6 +39,20 @@ function InstancedBoxes() {
     [edgesGeo],
   );
 
+  // US-OPT-14: InstancedMesh tek bir draw call — frustum culling avantaj sağlamaz, ama
+  // unit-cube bounding sphere yüzünden kamera off-axis olunca tüm sahne kaybolma riski var.
+  // matrixAutoUpdate=false: root mesh statik, dünya matrisinin her frame yeniden hesaplanması gereksiz.
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.frustumCulled = false;
+      meshRef.current.matrixAutoUpdate = false;
+    }
+    if (edgeMeshRef.current) {
+      edgeMeshRef.current.frustumCulled = false;
+      edgeMeshRef.current.matrixAutoUpdate = false;
+    }
+  }, []);
+
   useEffect(() => {
     if (!meshRef.current) return;
     const matrix = new THREE.Matrix4();
