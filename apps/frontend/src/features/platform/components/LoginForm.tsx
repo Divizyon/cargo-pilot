@@ -63,9 +63,10 @@ export function LoginForm() {
   const { mutate: login, isPending, error: loginError } = useLogin();
 
   // AC4: hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
-  const accountNotFound   = loginError != null && isLoginNotFound(loginError);
+  const accountNotFound = loginError != null && isLoginNotFound(loginError);
   // AC3: yanlış şifre/e-posta — 401 ama "not found" değilse inline banner göster
-  const wrongCredentials  = loginError != null && !isLoginNotFound(loginError) && loginError.response?.status === 401;
+  const wrongCredentials =
+    loginError != null && !isLoginNotFound(loginError) && loginError.response?.status === 401;
 
   const formRef = useRef<HTMLFormElement>(null);
 
