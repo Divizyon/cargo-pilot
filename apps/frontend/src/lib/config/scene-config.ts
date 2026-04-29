@@ -31,6 +31,8 @@ export const SCENE = {
     VIOLATION_STR: '#dc2626',
     SELECTED: 0xfbbf24,
     SELECTED_STR: '#fbbf24',
+    COG_NORMAL: 0xfbbf24,
+    COG_WARNING: 0xdc2626,
     NORMAL: 0x2563eb,
     NORMAL_STR: '#2563eb',
     CONTAINER_EDGE: '#334155',
@@ -61,6 +63,7 @@ export const SCENE = {
 
   INSTANCED_THRESHOLD: 50,
   GRID_STEP_CM: 50,
+  LEVEL_FILTER_STEP_CM: 10,
   DRAG_SNAP_THRESHOLD_CM: 15,
 
   CAMERA_TRANSITION_S: 0.8,

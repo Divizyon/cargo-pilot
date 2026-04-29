@@ -5,9 +5,11 @@ import { SceneLights } from '@/features/planning/components/scene/SceneLights';
 import { SceneControls } from '@/features/planning/components/scene/SceneControls';
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
 import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
+import { CogMarker } from '@/features/planning/components/scene/CogMarker';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { SCENE } from '@/lib/config/scene-config';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
+import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 
 interface PlanCanvasProps {
   className?: string;
@@ -71,9 +73,11 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
           <SceneControls />
           <ContainerMesh />
           <CargoMeshInstanced planId={planId} />
+          <CogMarker />
         </Suspense>
       </Canvas>
       <SelectedBoxCoords />
+      <BalancePanel />
     </div>
   );
 }
