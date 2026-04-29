@@ -82,8 +82,8 @@ axiosInstance.interceptors.response.use(
           { baseURL: API_BASE_URL, withCredentials: true },
         );
         useAuthStore.getState().setAccessToken(data.data.accessToken);
-        processQueue(null, data.accessToken);
-        config.headers.Authorization = `Bearer ${data.accessToken}`;
+        processQueue(null, data.data.accessToken);
+        config.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return axiosInstance(config);
       } catch (refreshError: unknown) {
         processQueue(refreshError, null);
