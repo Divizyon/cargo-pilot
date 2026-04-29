@@ -12,6 +12,11 @@ interface QueueEntry {
   reject: (error: unknown) => void;
 }
 
+interface RefreshApiResponse {
+  isSuccess: boolean;
+  data: { accessToken: string; accessTokenExpiresAt: string };
+}
+
 let isRefreshing = false;
 let failedQueue: QueueEntry[] = [];
 
@@ -39,12 +44,22 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
+const AUTH_PASSTHROUGH_URLS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+];
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const config = error.config as RetryableConfig | undefined;
 
-    if (error.response?.status === 401 && config && !config._retry) {
+    const isAuthEndpoint = AUTH_PASSTHROUGH_URLS.some((u) => config?.url?.includes(u));
+
+    if (error.response?.status === 401 && config && !config._retry && !isAuthEndpoint) {
       config._retry = true;
 
       if (isRefreshing) {
@@ -61,14 +76,14 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post<{ accessToken: string }>(
-          '/api/v1/auth/refresh',
+        const { data } = await axios.post<RefreshApiResponse>(
+          '/api/auth/refresh',
           {},
           { baseURL: API_BASE_URL, withCredentials: true },
         );
-        useAuthStore.getState().setAccessToken(data.accessToken);
-        processQueue(null, data.accessToken);
-        config.headers.Authorization = `Bearer ${data.accessToken}`;
+        useAuthStore.getState().setAccessToken(data.data.accessToken);
+        processQueue(null, data.data.accessToken);
+        config.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return axiosInstance(config);
       } catch (refreshError: unknown) {
         processQueue(refreshError, null);
