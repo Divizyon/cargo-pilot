@@ -33,15 +33,16 @@ export function ProductEditPage() {
   return (
     <div className="flex w-full flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Ürünü Düzenle</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {item.name} — fiziksel özelliklerini ve kısıtlarını güncelleyin.
+          {item.name} — fiziksel özelliklerini ve kısıtlarını görüntüleyin veya güncelleyin.
         </p>
       </div>
 
       <ProductForm
         defaultValues={itemToFormValues(item)}
         isSubmitting={updateItem.isPending}
+        disableSubmitWhenPristine
         onCancel={() => navigate('/products')}
         onSubmit={(values) =>
           updateItem.mutate({ id: item.id, values }, { onSuccess: () => navigate('/products') })
