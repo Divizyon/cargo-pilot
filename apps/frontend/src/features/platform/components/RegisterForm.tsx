@@ -1,5 +1,5 @@
 // src/features/platform/components/RegisterForm.tsx
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
