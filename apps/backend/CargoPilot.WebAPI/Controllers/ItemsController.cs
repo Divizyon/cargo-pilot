@@ -1,5 +1,6 @@
 using CargoPilot.Application.Features.Items.CreateItem;
 using CargoPilot.Application.Features.Items.DeleteItem;
+using CargoPilot.Application.Features.Items.GetItemById;
 using CargoPilot.Application.Features.Items.SearchItems;
 using CargoPilot.Application.Features.Items.UpdateItem;
 using MediatR;
@@ -43,6 +44,24 @@ public sealed class ItemsController : BaseController
     {
         var query = new SearchItemsQuery(searchTerm, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// ID ile tek bir ürünü getirir.
+    /// </summary>
+    /// <param name="id">Getirilecek ürünün ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Ürün detayları döner.</response>
+    /// <response code="404">Ürün bulunamadı.</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetItemByIdQuery(id), cancellationToken);
         return HandleResult(result);
     }
 
