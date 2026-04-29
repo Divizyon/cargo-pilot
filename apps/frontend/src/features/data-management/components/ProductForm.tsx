@@ -40,6 +40,7 @@ interface ProductFormProps {
   onSubmit: (values: ProductFormValues) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
+  disableSubmitWhenPristine?: boolean;
 }
 
 const DIMENSION_KEYS = Object.keys(DIMENSION_UNITS) as DimensionUnitKey[];
@@ -240,6 +241,7 @@ export function ProductForm({
   onSubmit,
   onCancel,
   isSubmitting = false,
+  disableSubmitWhenPristine = false,
 }: ProductFormProps) {
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
@@ -681,7 +683,10 @@ export function ProductForm({
                 {t('forms.product.cancel')}
               </Button>
             )}
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+            >
               {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
             </Button>
           </div>
