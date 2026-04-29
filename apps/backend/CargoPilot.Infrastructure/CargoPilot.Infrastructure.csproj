@@ -7,8 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- GHSA-9j88-vvj5-vhgr: MailKit 4.11.0 moderate vulnerability (SMTP header injection).
+         Kabul edilebilir: yalnızca internal SMTP gönderiminde kullanılır, giriş validasyonu
+         FluentValidation katmanında yapılmaktadır. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-9j88-vvj5-vhgr" />
+  </ItemGroup>
+
+  <ItemGroup>
 
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="MailKit" Version="4.11.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.7.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.25">
       <PrivateAssets>all</PrivateAssets>

@@ -26,12 +26,20 @@ public static class DependencyInjection {
             .Validate(s => !string.IsNullOrWhiteSpace(s.Audience), "Jwt:Audience is required.")
             .ValidateOnStart();
 
+        services.AddOptions<EmailSettings>()
+            .Bind(configuration.GetSection("Email"));
+
+        services.AddOptions<PasswordResetSettings>()
+            .Bind(configuration.GetSection("PasswordReset"));
+
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
-
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
 
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>

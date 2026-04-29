@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Errors;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -5,8 +8,10 @@ using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Application.Features.Auth.DTOs;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CargoPilot.Infrastructure.Auth;
@@ -21,21 +26,45 @@ internal sealed class AuthService : IAuthService
         BCrypt.Net.BCrypt.HashPassword("__timing_protection__", workFactor: 11);
 #pragma warning restore S2068
 
+    private static readonly Action<ILogger, Guid, string, Exception?> _logResetLink =
+        LoggerMessage.Define<Guid, string>(
+            LogLevel.Information,
+            new EventId(1, "PasswordResetLinkGenerated"),
+            "Şifre sıfırlama linki üretildi. UserId={UserId} Link={ResetLink}");
+
     private readonly AppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly JwtSettings _jwtSettings;
+    private readonly IUserRepository _userRepository;
+    private readonly IPasswordResetTokenRepository _resetTokenRepository;
+    private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
+    private readonly IEmailService _emailService;
+    private readonly PasswordResetSettings _passwordResetSettings;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         AppDbContext context,
         IPasswordHasher passwordHasher,
         IJwtTokenService jwtTokenService,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        IUserRepository userRepository,
+        IPasswordResetTokenRepository resetTokenRepository,
+        IUserPasswordHistoryRepository passwordHistoryRepository,
+        IEmailService emailService,
+        IOptions<PasswordResetSettings> passwordResetSettings,
+        ILogger<AuthService> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtTokenService = jwtTokenService;
         _jwtSettings = jwtSettings.Value;
+        _userRepository = userRepository;
+        _resetTokenRepository = resetTokenRepository;
+        _passwordHistoryRepository = passwordHistoryRepository;
+        _emailService = emailService;
+        _passwordResetSettings = passwordResetSettings.Value;
+        _logger = logger;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
@@ -43,8 +72,9 @@ internal sealed class AuthService : IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
 
         // Always run BCrypt regardless of whether the user was found to prevent
         // timing-based email enumeration attacks.
@@ -141,5 +171,97 @@ internal sealed class AuthService : IAuthService
             RefreshToken         = newRefreshToken,
             RefreshTokenExpiresAt = sessionExpiry,
         });
+    }
+
+    public async Task<Result<bool>> RequestPasswordResetAsync(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+
+        // Account enumeration önleme: kullanıcı yok veya sosyal hesap olsa bile success dön (AC3)
+        if (user is null || user.AuthProvider != AuthProvider.Local)
+            return Result<bool>.Success(true);
+
+        await _resetTokenRepository.InvalidateAllForUserAsync(user.Id, cancellationToken);
+
+        var rawTokenBytes = RandomNumberGenerator.GetBytes(32);
+        var rawToken = Convert.ToBase64String(rawTokenBytes)
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+
+        var resetToken = new PasswordResetToken(
+            id: Guid.NewGuid(),
+            userId: user.Id,
+            tokenHash: tokenHash,
+            expiresAt: DateTime.UtcNow.AddMinutes(_passwordResetSettings.TokenExpiryMinutes));
+
+        _resetTokenRepository.Add(resetToken);
+        await _resetTokenRepository.SaveChangesAsync(cancellationToken);
+
+        var resetLink = $"{_passwordResetSettings.FrontendResetUrl}?token={rawToken}";
+
+        _logResetLink(_logger, user.Id, resetLink, null);
+
+        await _emailService.SendPasswordResetEmailAsync(
+            user.Email,
+            $"{user.FirstName} {user.LastName}",
+            resetLink,
+            cancellationToken);
+
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<bool>> ResetPasswordAsync(
+        string token,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+        var resetToken = await _resetTokenRepository.GetActiveByTokenHashAsync(tokenHash, cancellationToken);
+
+        if (resetToken is null || resetToken.ExpiresAt <= DateTime.UtcNow)
+            return Result<bool>.Failure(AuthErrors.InvalidResetToken);
+
+        var user = await _userRepository.GetByIdAsync(resetToken.UserId, cancellationToken);
+        if (user is null)
+            return Result<bool>.Failure(AuthErrors.InvalidResetToken);
+
+        // Mevcut şifre kontrolü
+        if (user.PasswordHash is not null && _passwordHasher.VerifyPassword(newPassword, user.PasswordHash))
+            return Result<bool>.Failure(AuthErrors.PasswordAlreadyUsed);
+
+        // Son 3 şifre geçmişi kontrolü (AC3)
+        var recentHashes = await _passwordHistoryRepository.GetLastHashesAsync(user.Id, 3, cancellationToken);
+        if (recentHashes.Any(h => _passwordHasher.VerifyPassword(newPassword, h)))
+            return Result<bool>.Failure(AuthErrors.PasswordAlreadyUsed);
+
+        // Eski şifreyi geçmişe ekle
+        if (user.PasswordHash is not null)
+        {
+            _passwordHistoryRepository.Add(new UserPasswordHistory(
+                id: Guid.NewGuid(),
+                userId: user.Id,
+                passwordHash: user.PasswordHash));
+        }
+
+        user.SetPassword(_passwordHasher.HashPassword(newPassword));
+        resetToken.MarkAsUsed();
+
+        // Tüm aktif oturumları iptal et (AC4)
+        var activeSessions = await _context.UserSessions
+            .Where(s => s.UserId == user.Id && !s.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in activeSessions)
+            session.Revoke();
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<bool>.Success(true);
     }
 }
