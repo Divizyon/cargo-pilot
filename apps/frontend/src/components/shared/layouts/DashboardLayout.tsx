@@ -1,13 +1,15 @@
-import { type ElementType, useState } from 'react';
+import { type ElementType, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
+  Bell,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  DatabaseZap,
   LayoutDashboard,
+  Link2,
   LogOut,
-  Menu,
   Package,
   Plus,
   Settings,
@@ -21,6 +23,9 @@ import { useUIStore } from '@/lib/store/useUIStore';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+/** Below this width the sidebar auto-collapses to icon-only mode. */
+const ICON_ONLY_BREAKPOINT = 1280;
+
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   manager: 'Yönetici',
@@ -32,17 +37,21 @@ interface NavItemDef {
   label: string;
   path: string;
   end: boolean;
+  badge?: number;
 }
 
 const MAIN_NAV: NavItemDef[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', end: true },
-  { icon: Package, label: 'Ürünler', path: '/products', end: false },
-  { icon: Truck, label: 'Araçlar', path: '/vehicles', end: false },
-  { icon: ClipboardList, label: 'Planlama', path: '/planning', end: false },
-  { icon: BarChart3, label: 'Raporlar', path: '/reports', end: false },
+  { icon: LayoutDashboard, label: 'Genel Bakış', path: '/dashboard', end: true },
+  { icon: ClipboardList, label: 'Yükleme Planları', path: '/planning', end: false },
+  { icon: Package, label: 'Ürün Yönetimi', path: '/products', end: false },
+  { icon: Truck, label: 'Araç Yönetimi', path: '/vehicles', end: false },
+  { icon: BarChart3, label: 'Raporlama', path: '/reports', end: false },
+  { icon: Link2, label: 'Entegrasyonlar', path: '/integrations', end: false },
+  { icon: DatabaseZap, label: 'ERP Yönetimi', path: '/erp', end: false },
 ];
 
 const BOTTOM_NAV: NavItemDef[] = [
+  { icon: Bell, label: 'Bildirimler', path: '/notifications', end: false, badge: 3 },
   { icon: Settings, label: 'Ayarlar', path: '/settings', end: false },
 ];
 
@@ -60,27 +69,40 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
     : pathname === item.path || pathname.startsWith(item.path + '/');
 
   return (
-    <NavLink
-      to={item.path}
-      end={item.end}
-      title={isCollapsed ? item.label : undefined}
-      className={cn(
-        'flex h-9 items-center gap-3 rounded-lg text-sm font-medium transition-colors',
-        isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
-        isActive
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-      )}
-    >
-      <item.icon
+    <div className="relative">
+      {isActive && <div className="absolute left-0 top-1.5 h-6 w-0.5 rounded-r-full bg-primary" />}
+      <NavLink
+        to={item.path}
+        end={item.end}
+        title={isCollapsed ? item.label : undefined}
         className={cn(
-          'h-4 w-4 shrink-0',
-          isActive ? 'text-accent-foreground' : 'text-muted-foreground',
+          'flex h-9 items-center gap-3 rounded-lg text-sm font-medium transition-colors',
+          isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
-        strokeWidth={isActive ? 2.5 : 2}
-      />
-      <span className={cn('flex-1', isCollapsed && 'lg:hidden')}>{item.label}</span>
-    </NavLink>
+      >
+        <item.icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            isActive ? 'text-accent-foreground' : 'text-muted-foreground',
+          )}
+          strokeWidth={isActive ? 2.5 : 2}
+        />
+        <span className={cn('flex-1', isCollapsed && 'lg:hidden')}>{item.label}</span>
+        {item.badge !== undefined && (
+          <span
+            className={cn(
+              'flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground',
+              isCollapsed && 'lg:hidden',
+            )}
+          >
+            {item.badge}
+          </span>
+        )}
+      </NavLink>
+    </div>
   );
 }
 
@@ -123,9 +145,10 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
       </button>
 
       {/* Brand */}
-      <div
+      <NavLink
+        to="/dashboard"
         className={cn(
-          'flex items-center border-b border-sidebar-border px-3 py-5',
+          'flex items-center border-b border-sidebar-border px-3 py-5 transition-opacity hover:opacity-80',
           isCollapsed ? 'lg:justify-center' : 'gap-3',
         )}
       >
@@ -140,7 +163,7 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
             Lojistik Platformu
           </span>
         </div>
-      </div>
+      </NavLink>
 
       {/* Navigation */}
       <nav
@@ -159,7 +182,9 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>Yeni Plan</span>
+          <span className={cn('flex-1 text-left', isCollapsed && 'lg:hidden')}>
+            Yükleme Planı Oluştur
+          </span>
         </button>
 
         {/* Main nav */}
@@ -169,7 +194,7 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
           ))}
         </div>
 
-        {/* Bottom nav */}
+        {/* Bottom nav — above user profile */}
         <div className="mt-auto space-y-0.5">
           {BOTTOM_NAV.map((item) => (
             <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
@@ -221,59 +246,20 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
   );
 }
 
-// ─── Topbar ───────────────────────────────────────────────────────────────────
-
-interface TopbarProps {
-  onMenuToggle: () => void;
-}
-
-function Topbar({ onMenuToggle }: TopbarProps) {
-  const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
-
-  return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
-      {/* Mobile hamburger */}
-      <button
-        onClick={onMenuToggle}
-        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
-        title="Menüyü Aç"
-      >
-        <Menu className="h-4 w-4" />
-      </button>
-
-      {/* Right side: user info + logout */}
-      <div className="ml-auto flex items-center gap-3">
-        <div className="hidden text-right sm:block">
-          <p className="text-sm font-medium leading-none text-foreground">
-            {user?.fullName ?? '—'}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {user ? (ROLE_LABELS[user.role] ?? user.role) : ''}
-          </p>
-        </div>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground sm:hidden">
-          {user ? getInitials(user.fullName) : '?'}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearAuth}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="ml-2 hidden sm:inline">Çıkış</span>
-        </Button>
-      </div>
-    </header>
-  );
-}
-
 // ─── DashboardLayout ──────────────────────────────────────────────────────────
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
+  const { isSidebarOpen, setSidebarOpen } = useUIStore();
+
+  useEffect(() => {
+    function syncCollapse() {
+      setIsCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
+    }
+    syncCollapse();
+    window.addEventListener('resize', syncCollapse);
+    return () => window.removeEventListener('resize', syncCollapse);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -298,8 +284,7 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar onMenuToggle={toggleSidebar} />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto bg-page-background p-6">
           <Outlet />
         </main>
       </div>

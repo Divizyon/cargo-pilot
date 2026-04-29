@@ -9,6 +9,7 @@ public sealed class Company : BaseEntity {
     public SubscriptionType SubscriptionType { get; private set; }
     public int MaxUserCount { get; private set; }
     public ICollection<AppUser> Users { get; } = [];
+    public ICollection<Vehicle> Vehicles { get; } = [];
 
     private Company() { }
 

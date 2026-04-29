@@ -32,7 +32,7 @@
       "width": "Width",
       "height": "Height",
       "length": "Length",
-      "weight": "Weight (kg)",
+      "weight": "Weight",
       "fragility": "Fragility Level",
       "fragilityNonFragile": "Non-Fragile",
       "fragilityFragile": "Fragile",
@@ -77,7 +77,8 @@
       "notesPlaceholder": "e.g. Forklift only, keep away from sunlight.",
       "notesHelper": "Use this to communicate constraints beyond the standard ones to handling teams.",
       "notesCounter": "{{count}} / {{max}}",
-      "notesSummaryLabel": "Note"
+      "notesSummaryLabel": "Note",
+      "previewPlaceholder": "Three.js scene will be integrated here"
     },
     "vehicle": {
       "title": "Vehicle Definition",
