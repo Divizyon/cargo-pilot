@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Link2,
   LogOut,
-  Menu,
   Package,
   Plus,
   Settings,
@@ -247,59 +246,11 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
   );
 }
 
-// ─── Topbar ───────────────────────────────────────────────────────────────────
-
-interface TopbarProps {
-  onMenuToggle: () => void;
-}
-
-function Topbar({ onMenuToggle }: TopbarProps) {
-  const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
-
-  return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
-      {/* Mobile hamburger */}
-      <button
-        onClick={onMenuToggle}
-        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
-        title="Menüyü Aç"
-      >
-        <Menu className="h-4 w-4" />
-      </button>
-
-      {/* Right side: user info + logout */}
-      <div className="ml-auto flex items-center gap-3">
-        <div className="hidden text-right sm:block">
-          <p className="text-sm font-medium leading-none text-foreground">
-            {user?.fullName ?? '—'}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {user ? (ROLE_LABELS[user.role] ?? user.role) : ''}
-          </p>
-        </div>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground sm:hidden">
-          {user ? getInitials(user.fullName) : '?'}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearAuth}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="ml-2 hidden sm:inline">Çıkış</span>
-        </Button>
-      </div>
-    </header>
-  );
-}
-
 // ─── DashboardLayout ──────────────────────────────────────────────────────────
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
+  const { isSidebarOpen, setSidebarOpen } = useUIStore();
 
   useEffect(() => {
     function syncCollapse() {
@@ -333,8 +284,7 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar onMenuToggle={toggleSidebar} />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto bg-page-background p-6">
           <Outlet />
         </main>
       </div>
