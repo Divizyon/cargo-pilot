@@ -42,6 +42,7 @@ export default {
           DEFAULT:    "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+        "page-background":   "hsl(var(--page-background))",
         "input-background": "hsl(var(--input-background))",
         "switch-background": "hsl(var(--switch-background))",
         sidebar: {
