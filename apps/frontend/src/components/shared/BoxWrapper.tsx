@@ -16,6 +16,7 @@ interface BoxWrapperProps {
   itemId?: string;
   isSelected?: boolean;
   isHidden?: boolean;
+  isGhosted?: boolean;
 }
 
 export function BoxWrapper({
@@ -32,6 +33,7 @@ export function BoxWrapper({
   itemId,
   isSelected = false,
   isHidden = false,
+  isGhosted = false,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
@@ -70,7 +72,8 @@ export function BoxWrapper({
         <meshStandardMaterial
           color={color}
           transparent
-          opacity={isSelected ? 0.95 : opacity}
+          opacity={isGhosted ? 0.1 : isSelected ? 0.95 : opacity}
+          depthWrite={!isGhosted}
           emissive={isSelected ? color : '#000000'}
           emissiveIntensity={isSelected ? 0.25 : 0}
         />

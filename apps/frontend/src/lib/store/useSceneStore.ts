@@ -31,7 +31,7 @@ interface SceneStore {
 }
 
 const initialState = {
-  activeLayer: Number.POSITIVE_INFINITY,
+  activeLayer: 0,
   selectedBoxId: null,
   selectedItemId: null,
   selectedInstanceId: null as number | null,
