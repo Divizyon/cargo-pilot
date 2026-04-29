@@ -98,4 +98,48 @@ internal sealed class AuthService : IAuthService
             RefreshTokenExpiresAt = sessionExpiry,
         });
     }
+
+    public async Task<Result<RefreshResponse>> RefreshTokenAsync(
+        string refreshToken,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Gelen token ile oturumu ve sahibi kullanıcıyı birlikte çek
+        var session = await _context.UserSessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
+
+        // 2. Token yoksa, süresi geçmişse veya iptal edildiyse → 401
+        if (session is null || session.IsRevoked || session.ExpiresAt <= DateTime.UtcNow)
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
+        // 3. Eski session'ı iptal et (Token Rotation — kullanılan token bir daha geçerli olmaz)
+        session.Revoke();
+
+        // 4. Yeni token çifti üret
+        var now = DateTime.UtcNow;
+        var newAccessToken  = _jwtTokenService.GenerateAccessToken(session.User);
+        var newRefreshToken = _jwtTokenService.GenerateRefreshToken();
+        var sessionExpiry   = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes);
+
+        // 5. Yeni session'ı kaydet
+        var newSession = new UserSession(
+            id: Guid.NewGuid(),
+            userId: session.UserId,
+            token: newRefreshToken,
+            expiresAt: sessionExpiry,
+            lastUsedAt: now,
+            createdByIp: ipAddress);
+
+        _context.UserSessions.Add(newSession);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<RefreshResponse>.Success(new RefreshResponse
+        {
+            AccessToken          = newAccessToken,
+            AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+            RefreshToken         = newRefreshToken,
+            RefreshTokenExpiresAt = sessionExpiry,
+        });
+    }
 }

@@ -13,4 +13,9 @@ public static class AuthErrors
         ErrorType.Unauthorized,
         "AUTH_ACCOUNT_LOCKED",
         $"Hesabınız çok fazla hatalı giriş denemesi nedeniyle geçici olarak kilitlendi. Lütfen {minutesRemaining} dakika sonra tekrar deneyin.");
+
+    public static readonly Error InvalidToken = new(
+        ErrorType.Unauthorized,
+        "AUTH_INVALID_TOKEN",
+        "Refresh token geçersiz, süresi dolmuş veya iptal edilmiş.");
 }
