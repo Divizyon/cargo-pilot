@@ -284,6 +284,7 @@ export function ProductForm({
   });
 
   const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
+  const isZLocked = (fragility ?? 0) >= 1;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
@@ -385,6 +386,9 @@ export function ProductForm({
                               if (num === FRAGILITY_LEVELS.NonFragile) {
                                 form.setValue('maxStackCount', 1, { shouldValidate: false });
                                 form.setValue('isStackable', false, { shouldValidate: false });
+                              }
+                              if (num >= FRAGILITY_LEVELS.Fragile) {
+                                form.setValue('allowRotateZ', false, { shouldValidate: false });
                               }
                             }}
                             className="flex flex-wrap"
@@ -547,39 +551,52 @@ export function ProductForm({
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => (
-                    <FormField
-                      key={axisFieldName}
-                      control={form.control}
-                      name={axisFieldName}
-                      render={({ field }) => (
-                        <FormItem className="m-0 space-y-0">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                aria-pressed={field.value}
-                                aria-label={t(tooltipKey)}
-                                onClick={() => field.onChange(!field.value)}
-                                className={cn(
-                                  'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
-                                  field.value
-                                    ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
-                                    : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
-                                )}
-                              >
-                                <AxisBoxIllustration axis={axis} active={field.value} />
-                                <span className="text-xs font-medium leading-none text-foreground">
-                                  {t(labelKey)}
-                                </span>
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{t(tooltipKey)}</TooltipContent>
-                          </Tooltip>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
+                  {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => {
+                    const isDisabled = axisFieldName === 'allowRotateZ' && isZLocked;
+                    return (
+                      <FormField
+                        key={axisFieldName}
+                        control={form.control}
+                        name={axisFieldName}
+                        render={({ field }) => (
+                          <FormItem className="m-0 space-y-0">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-pressed={field.value}
+                                  aria-label={
+                                    isDisabled
+                                      ? t('forms.product.rotateZLockedWarning')
+                                      : t(tooltipKey)
+                                  }
+                                  disabled={isDisabled}
+                                  onClick={() => field.onChange(!field.value)}
+                                  className={cn(
+                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
+                                    field.value
+                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
+                                      : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
+                                    isDisabled && 'cursor-not-allowed opacity-50',
+                                  )}
+                                >
+                                  <AxisBoxIllustration axis={axis} active={field.value} />
+                                  <span className="text-xs font-medium leading-none text-foreground">
+                                    {t(labelKey)}
+                                  </span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isDisabled
+                                  ? t('forms.product.rotateZLockedWarning')
+                                  : t(tooltipKey)}
+                              </TooltipContent>
+                            </Tooltip>
+                          </FormItem>
+                        )}
+                      />
+                    );
+                  })}
                 </div>
               </section>
 
