@@ -1,14 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { itemSchema } from '@/lib/types/item';
-import {
-  toCentimeters,
-  type ProductFormValues,
-  DIMENSION_UNITS,
-  WEIGHT_UNITS,
-} from '@/features/data-management/schemas/productSchema';
+import type { ProductFormValues } from '@/features/data-management/schemas/productSchema';
+import { axiosInstance } from './axiosInstance';
 import { apiFetch } from './fetcher';
+import { buildCreateItemPayload } from './itemMappers';
+
+const ITEMS_ENDPOINT = '/api/v1/items';
+
+interface ProblemDetails {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+}
+
+interface CreateItemResponse {
+  isSuccess?: boolean;
+  message?: string;
+  data?: { id: string };
+}
 
 interface ItemFilters {
   search?: string;
@@ -36,44 +50,38 @@ export function useItem(id: string) {
   });
 }
 
-const createItemResponseSchema = itemSchema.partial({ id: true });
-
-function buildCreateItemPayload(values: ProductFormValues) {
-  return {
-    name: values.name,
-    sku: values.sku,
-    productType: values.productType,
-    width: toCentimeters(values.width, values.widthUnit),
-    widthUnitId: DIMENSION_UNITS[values.widthUnit],
-    height: toCentimeters(values.height, values.heightUnit),
-    heightUnitId: DIMENSION_UNITS[values.heightUnit],
-    length: toCentimeters(values.length, values.lengthUnit),
-    lengthUnitId: DIMENSION_UNITS[values.lengthUnit],
-    weight: values.weight,
-    weightUnitId: WEIGHT_UNITS[values.weightUnit],
-    fragility: values.fragility,
-    isStackable: values.isStackable,
-    maxStackCount: values.maxStackCount ?? null,
-    allowRotateX: values.allowRotateX,
-    allowRotateY: values.allowRotateY,
-    allowRotateZ: values.allowRotateZ,
-  };
-}
-
 export function useCreateItem() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (values: ProductFormValues) =>
-      apiFetch('/items', createItemResponseSchema, {
-        method: 'POST',
-        body: JSON.stringify(buildCreateItemPayload(values)),
-      }),
+
+  return useMutation<CreateItemResponse, AxiosError<ProblemDetails>, ProductFormValues>({
+    mutationFn: (values) =>
+      axiosInstance
+        .post<CreateItemResponse>(ITEMS_ENDPOINT, buildCreateItemPayload(values))
+        .then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success('Ürün başarıyla eklendi');
+      toast.success('Ürün başarıyla eklendi', { position: 'bottom-right' });
     },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Ürün eklenemedi');
+    onError: (error) => {
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+
+      if (status === 409) {
+        toast.error('Bu SKU zaten kullanılıyor.', { position: 'bottom-right' });
+        return;
+      }
+
+      if (status === 400) {
+        toast.error(detail ?? 'Doğrulama hatası. Lütfen alanları kontrol edin.', {
+          position: 'bottom-right',
+        });
+        return;
+      }
+
+      // 401, 5xx ve network hataları zaten axiosInstance interceptor'ında toast'lanıyor.
+      if (status && status !== 401 && status < 500) {
+        toast.error(detail ?? 'Ürün eklenemedi.', { position: 'bottom-right' });
+      }
     },
   });
 }
