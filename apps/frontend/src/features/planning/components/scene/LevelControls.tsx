@@ -69,7 +69,7 @@ export function LevelControls({ className }: LevelControlsProps) {
             max={max}
             step={SCENE.LEVEL_FILTER_STEP_CM}
             value={[sliderValue]}
-            onValueChange={(values) => {
+            onValueChange={(values: number[]) => {
               const next = values[0];
               // Slider tavanda → +Infinity (default); altındaysa kullanıcı limit koymuş.
               setActiveLayer(next >= max ? Number.POSITIVE_INFINITY : next);
