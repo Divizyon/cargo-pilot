@@ -167,7 +167,9 @@ function InstancedBoxes() {
             positionX={px}
             positionY={py}
             positionZ={pz}
-            color={p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)}
+            color={
+              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+            }
             itemId={p.itemId}
             isSelected={true}
             onClick={() => {
