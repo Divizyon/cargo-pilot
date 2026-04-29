@@ -43,6 +43,20 @@ internal sealed class AuthService : IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
+        // AC3: IP lockout check runs before user lookup so unknown-email attempts are also counted.
+        IpLoginAttempt? ipAttempt = null;
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            ipAttempt = await _context.IpLoginAttempts
+                .FirstOrDefaultAsync(x => x.IpAddress == ipAddress, cancellationToken);
+
+            if (ipAttempt is not null && ipAttempt.IsLockedOut())
+            {
+                var ipRemaining = (int)Math.Ceiling((ipAttempt.LockoutEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
+                return Result<LoginResponse>.Failure(AuthErrors.IpLocked(ipRemaining));
+            }
+        }
+
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
 
@@ -52,19 +66,20 @@ internal sealed class AuthService : IAuthService
         var passwordValid = _passwordHasher.VerifyPassword(request.Password, hashToVerify);
 
         if (user is null)
-            return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
-
-        // AC3: IP-based lockout check
-        if (!string.IsNullOrEmpty(ipAddress))
         {
-            var ipAttempt = await _context.IpLoginAttempts
-                .FirstOrDefaultAsync(x => x.IpAddress == ipAddress, cancellationToken);
-
-            if (ipAttempt is not null && ipAttempt.IsLockedOut())
+            // Still record the IP failed attempt so unknown-email brute-force triggers IP lockout.
+            if (!string.IsNullOrEmpty(ipAddress))
             {
-                var ipRemaining = (int)Math.Ceiling((ipAttempt.LockoutEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
-                return Result<LoginResponse>.Failure(AuthErrors.IpLocked(ipRemaining));
+                if (ipAttempt is null)
+                {
+                    ipAttempt = new IpLoginAttempt(ipAddress);
+                    _context.IpLoginAttempts.Add(ipAttempt);
+                }
+                ipAttempt.RecordFailedAttempt();
+                await _context.SaveChangesAsync(cancellationToken);
             }
+
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
         }
 
         // AC1: User-based lockout check
@@ -76,24 +91,27 @@ internal sealed class AuthService : IAuthService
 
         if (!passwordValid)
         {
-            // AC1 + AC3: record failed attempt for both user and IP
             user.RecordFailedLogin();
 
             if (!string.IsNullOrEmpty(ipAddress))
             {
-                var ipAttempt = await _context.IpLoginAttempts
-                    .FirstOrDefaultAsync(x => x.IpAddress == ipAddress, cancellationToken);
-
                 if (ipAttempt is null)
                 {
                     ipAttempt = new IpLoginAttempt(ipAddress);
                     _context.IpLoginAttempts.Add(ipAttempt);
                 }
-
                 ipAttempt.RecordFailedAttempt();
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Return lock message immediately on the attempt that triggers lockout (AC2).
+            if (user.IsLockedOut())
+            {
+                var remainingSeconds = (int)Math.Ceiling((user.LockoutEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
+                return Result<LoginResponse>.Failure(AuthErrors.AccountLocked(remainingSeconds));
+            }
+
             return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
         }
 
