@@ -63,6 +63,8 @@
     /* ------------------------------------------------------------------ */
     /* Sidebar                                                              */
     /* ------------------------------------------------------------------ */
+    --page-background: 240 5% 96%; /* #F3F4F6 — sidebar dışı sayfa zemini */
+
     --sidebar: 0 0% 100%;
     --sidebar-foreground: 240 10% 3.9%;
     --sidebar-primary: 244 81% 4.1%;
@@ -105,6 +107,8 @@
     --switch-background: 0 0% 40%;
 
     --surface-overlay: 0 0% 0% / 0.2;
+
+    --page-background: 240 10% 8%;
 
     --sidebar: 0 0% 20.5%;
     --sidebar-foreground: 0 0% 98%;

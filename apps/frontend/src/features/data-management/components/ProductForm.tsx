@@ -284,6 +284,7 @@ export function ProductForm({
   });
 
   const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
+
   const isZLocked = (fragility ?? 0) >= 1;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
@@ -325,6 +326,7 @@ export function ProductForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('forms.product.sku')}</FormLabel>
+
                         <FormControl>
                           <Input
                             className={COMPACT_INPUT}

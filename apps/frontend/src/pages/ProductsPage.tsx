@@ -1,8 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { ProductTable } from '@/features/data-management/components/ProductTable';
+import type { Item } from '@/lib/types/item';
 
 export function ProductsPage() {
   const navigate = useNavigate();
+
+  function handleEdit(item: Item) {
+    navigate(`/products/${item.id}/edit`);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -13,7 +18,7 @@ export function ProductsPage() {
         </p>
       </div>
 
-      <ProductTable onCreateClick={() => navigate('/products/new')} />
+      <ProductTable onEdit={handleEdit} onCreateClick={() => navigate('/products/new')} />
     </div>
   );
 }
