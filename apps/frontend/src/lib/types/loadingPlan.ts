@@ -35,6 +35,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   width: z.number().positive(),
   height: z.number().positive(),
   depth: z.number().positive(),
+  weight: z.number().nonnegative().default(0),
   color: z.string().optional(),
 });
 

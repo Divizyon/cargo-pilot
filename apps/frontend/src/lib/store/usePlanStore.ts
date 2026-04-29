@@ -37,6 +37,7 @@ function buildPlacements(
     width: item.width,
     height: item.height,
     depth: item.length,
+    weight: item.weight,
     color,
   }));
 }
@@ -168,7 +169,6 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
 
-
   mockPlacements: (count) =>
     set((s) => {
       const v = s.selectedVehicle;
@@ -194,6 +194,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
           width: item.width,
           height: item.height,
           depth: item.length,
+          weight: item.weight,
           color,
         });
       }

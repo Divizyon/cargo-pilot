@@ -24,14 +24,30 @@ function snapXZ(
 
   for (const o of others) {
     // dragged {left,right} aligns with other {left,right} → 4 X candidates
-    for (const cx of [o.positionX, o.positionX + o.width - w, o.positionX + o.width, o.positionX - w]) {
+    for (const cx of [
+      o.positionX,
+      o.positionX + o.width - w,
+      o.positionX + o.width,
+      o.positionX - w,
+    ]) {
       const dx = Math.abs(rawX - cx);
-      if (dx < minDX) { minDX = dx; bestX = cx; }
+      if (dx < minDX) {
+        minDX = dx;
+        bestX = cx;
+      }
     }
     // dragged {front,back} aligns with other {front,back} → 4 Z candidates
-    for (const cz of [o.positionZ, o.positionZ + o.depth - d, o.positionZ + o.depth, o.positionZ - d]) {
+    for (const cz of [
+      o.positionZ,
+      o.positionZ + o.depth - d,
+      o.positionZ + o.depth,
+      o.positionZ - d,
+    ]) {
       const dz = Math.abs(rawZ - cz);
-      if (dz < minDZ) { minDZ = dz; bestZ = cz; }
+      if (dz < minDZ) {
+        minDZ = dz;
+        bestZ = cz;
+      }
     }
   }
 
@@ -112,7 +128,14 @@ export function useDragBox() {
         const clampedZ = Math.max(0, Math.min(rawZ, vehicle.length - p.depth));
 
         const others = snap.filter((_, i) => i !== idx);
-        const snapped = snapXZ(clampedX, clampedZ, p.width, p.depth, others, SCENE.DRAG_SNAP_THRESHOLD_CM);
+        const snapped = snapXZ(
+          clampedX,
+          clampedZ,
+          p.width,
+          p.depth,
+          others,
+          SCENE.DRAG_SNAP_THRESHOLD_CM,
+        );
         const finalX = Math.max(0, Math.min(snapped.x, vehicle.width - p.width));
         const finalZ = Math.max(0, Math.min(snapped.z, vehicle.length - p.depth));
         const gy = gravityY(finalX, finalZ, p.width, p.depth, others);
@@ -153,7 +176,16 @@ export function useDragBox() {
       canvas.addEventListener('pointermove', onMove);
       canvas.addEventListener('pointerup', onUp);
     },
-    [gl, camera, raycaster, floorPlane, hitPoint, updatePlacementPosition, setIsDragging, setDragLivePosition],
+    [
+      gl,
+      camera,
+      raycaster,
+      floorPlane,
+      hitPoint,
+      updatePlacementPosition,
+      setIsDragging,
+      setDragLivePosition,
+    ],
   );
 
   return { startDrag };

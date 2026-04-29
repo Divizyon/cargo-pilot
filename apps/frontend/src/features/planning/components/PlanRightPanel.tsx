@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, ChevronRight, Package2, Plus, Truck, X } from 'lucide-react';
+import { Box, ChevronRight, Package2, Plus, Crosshair, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -111,6 +111,8 @@ export function PlanRightPanel({ onClose }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+  const showCog = useSceneStore((s) => s.showCog);
+  const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>(STANDARD_VEHICLES);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
@@ -189,7 +191,26 @@ export function PlanRightPanel({ onClose }: PlanRightPanelProps) {
       )}
 
       {/* Bottom action */}
-      <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
+      <div className="px-3 py-3 border-t border-zinc-100 shrink-0 flex flex-col gap-2">
+        <button
+          onClick={toggleShowCog}
+          className={cn(
+            'w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors border',
+            showCog
+              ? 'bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-700'
+              : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
+          )}
+        >
+          <span className="flex items-center gap-2">
+            <Crosshair className="w-3.5 h-3.5" />
+            Ağırlık Merkezi
+          </span>
+          <span
+            className={cn('text-[10px] font-semibold', showCog ? 'text-zinc-300' : 'text-zinc-400')}
+          >
+            {showCog ? 'AÇIK' : 'KAPALI'}
+          </span>
+        </button>
         <Button
           className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
           disabled={!selectedVehicle}
