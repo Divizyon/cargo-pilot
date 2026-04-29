@@ -1,5 +1,5 @@
 // src/features/platform/components/LoginForm.tsx
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { USER_ROLES, useAuthStore } from '@/lib/store/useAuthStore';
 import { useLogin, isLoginNotFound } from '@/lib/api/useAuth';
 import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
@@ -62,12 +63,23 @@ export function LoginForm() {
   const { mutate: login, isPending, error: loginError } = useLogin();
 
   // AC4: hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
-  const accountNotFound = loginError != null && isLoginNotFound(loginError);
+  const accountNotFound   = loginError != null && isLoginNotFound(loginError);
+  // AC3: yanlış şifre/e-posta — 401 ama "not found" değilse inline banner göster
+  const wrongCredentials  = loginError != null && !isLoginNotFound(loginError) && loginError.response?.status === 401;
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
   });
+
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (formRef.current && !formRef.current.reportValidity()) return;
+    form.handleSubmit(onSubmit)(e);
+  }
 
   function onSubmit(values: LoginFormValues) {
     login(values, {
@@ -76,12 +88,8 @@ export function LoginForm() {
           toast.error('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.', {
             position: 'bottom-right',
           });
-          return;
         }
-        // AC3: 401'de her zaman generic mesaj (hesap bulunamadı durumu inline gösterilir)
-        if (!isLoginNotFound(err)) {
-          toast.error('E-posta adresi veya şifre hatalıdır.', { position: 'bottom-right' });
-        }
+        // 401 hataları (yanlış şifre + hesap bulunamadı) inline banner ile gösterilir
       },
     });
   }
@@ -101,7 +109,7 @@ export function LoginForm() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-4" noValidate>
           {/* AC4: Hesap bulunamadı inline banner */}
           {accountNotFound && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
@@ -119,6 +127,14 @@ export function LoginForm() {
             </div>
           )}
 
+          {/* AC3: Yanlış e-posta/şifre inline banner */}
+          {wrongCredentials && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive dark:text-red-400">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>E-posta adresi veya şifre hatalıdır.</span>
+            </div>
+          )}
+
           {/* E-posta */}
           <FormField
             control={form.control}
@@ -132,7 +148,11 @@ export function LoginForm() {
                     <Input
                       type="email"
                       placeholder="ornek@sirket.com"
-                      className="pl-10"
+                      className={cn(
+                        'pl-10',
+                        form.formState.errors.email &&
+                          'border-2 border-[#E24B4A] bg-[#E24B4A]/5 focus-visible:ring-0 focus-visible:border-[#E24B4A]',
+                      )}
                       {...field}
                     />
                   </div>
@@ -204,21 +224,7 @@ export function LoginForm() {
 
           {/* Onay metni */}
           <p className="text-xs text-muted-foreground text-center px-2">
-            Devam ederek{' '}
-            <span
-              className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors"
-              onClick={() => window.open('/kvkk', '_blank')}
-            >
-              Gizlilik Politikası
-            </span>{' '}
-            ve{' '}
-            <span
-              className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors"
-              onClick={() => window.open('/kullanim-kosullari', '_blank')}
-            >
-              Kullanım Koşulları
-            </span>
-            'nı kabul etmiş olursunuz.
+            Devam ederek Gizlilik Politikası ve Kullanım Koşulları'nı kabul etmiş olursunuz.
           </p>
         </form>
       </Form>
@@ -259,7 +265,7 @@ export function LoginForm() {
         Hesabın yok mu?{' '}
         <Link
           to="/auth/register"
-          className="font-semibold text-foreground underline-offset-4 hover:underline"
+          className="text-base font-bold text-foreground underline-offset-4 hover:underline"
         >
           Kayıt ol
         </Link>

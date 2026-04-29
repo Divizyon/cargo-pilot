@@ -1,5 +1,5 @@
 // src/features/platform/components/RegisterForm.tsx
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
@@ -14,6 +14,7 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useRegister } from '@/lib/api/useAuth';
+import { useRegister, isEmailDuplicate } from '@/lib/api/useAuth';
 import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
 import { registerSchema } from '@/features/platform/schemas/registerSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
@@ -41,10 +42,10 @@ const PASSWORD_RULES = [
 ];
 
 const STRENGTH = {
-  0: { label: 'Zayıf', value: 25, color: '[&>*]:bg-destructive' },
-  1: { label: 'Zayıf', value: 25, color: '[&>*]:bg-destructive' },
-  2: { label: 'Orta', value: 50, color: '[&>*]:bg-yellow-500' },
-  3: { label: 'İyi', value: 75, color: '[&>*]:bg-blue-500' },
+  0: { label: 'Zayıf', value: 25,  color: '[&>*]:bg-destructive' },
+  1: { label: 'Zayıf', value: 25,  color: '[&>*]:bg-destructive' },
+  2: { label: 'Orta',  value: 50,  color: '[&>*]:bg-yellow-500' },
+  3: { label: 'Orta',  value: 65,  color: '[&>*]:bg-yellow-500' },
   4: { label: 'Güçlü', value: 100, color: '[&>*]:bg-green-500' },
 } as const;
 
@@ -85,12 +86,15 @@ function MicrosoftIcon() {
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { mutate: register, isPending } = useRegister();
+  const { mutate: register, isPending, error: registerError } = useRegister();
+  const emailDuplicate = registerError != null && isEmailDuplicate(registerError);
 
   function handleOAuth(url: string | undefined) {
     if (!url) return;
     window.location.href = url;
   }
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -102,11 +106,18 @@ export function RegisterForm() {
       password: '',
       confirmPassword: '',
     },
+    mode: 'onBlur',
   });
 
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (formRef.current && !formRef.current.reportValidity()) return;
+    form.handleSubmit(onSubmit)(e);
+  }
+
   const password = useWatch({ control: form.control, name: 'password' }) ?? '';
-  const passedCount = PASSWORD_RULES.filter((r) => r.test(password)).length;
-  const strength = STRENGTH[passedCount as keyof typeof STRENGTH];
+  const passedCount = PASSWORD_RULES.filter((r) => r.test(password)).length as 0 | 1 | 2 | 3 | 4;
+  const strength = STRENGTH[passedCount];
 
   function onSubmit(values: RegisterFormValues) {
     register(values);
@@ -122,7 +133,15 @@ export function RegisterForm() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-4" noValidate>
+          {/* AC5: E-posta zaten kullanılıyor inline banner */}
+          {emailDuplicate && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive dark:text-red-400">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Bu e-posta adresi zaten kullanılıyor.</span>
+            </div>
+          )}
+
           {/* Ad / Soyad */}
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
             <FormField
@@ -172,7 +191,11 @@ export function RegisterForm() {
                     <Input
                       type="email"
                       placeholder="ornek@sirket.com"
-                      className="pl-10"
+                      className={cn(
+                        'pl-10',
+                        form.formState.errors.email &&
+                          'border-2 border-[#E24B4A] bg-[#E24B4A]/5 focus-visible:ring-0 focus-visible:border-[#E24B4A]',
+                      )}
                       {...field}
                     />
                   </div>
@@ -247,9 +270,8 @@ export function RegisterForm() {
                         className={cn(
                           'font-medium',
                           passedCount <= 1 && 'text-destructive',
-                          passedCount === 2 && 'text-yellow-500',
-                          passedCount === 3 && 'text-blue-500',
-                          passedCount === 4 && 'text-green-600',
+                          passedCount >= 2 && passedCount <= 3 && 'text-yellow-500',
+                          passedCount >= 4 && 'text-green-600',
                         )}
                       >
                         {strength.label}
@@ -325,7 +347,7 @@ export function RegisterForm() {
           />
 
           {/* Kayıt Ol */}
-          <Button type="submit" disabled={isPending} size="lg" className="w-full">
+          <Button type="submit" disabled={isPending} size="lg" className="w-full text-[18px] font-bold">
             {isPending ? (
               <>
                 <Loader2 className="animate-spin" />
@@ -338,21 +360,7 @@ export function RegisterForm() {
 
           {/* Onay metni */}
           <p className="text-xs text-muted-foreground text-center px-2">
-            Devam ederek{' '}
-            <span
-              className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors"
-              onClick={() => window.open('/kvkk', '_blank')}
-            >
-              Gizlilik Politikası
-            </span>{' '}
-            ve{' '}
-            <span
-              className="underline underline-offset-2 cursor-pointer hover:text-foreground transition-colors"
-              onClick={() => window.open('/kullanim-kosullari', '_blank')}
-            >
-              Kullanım Koşulları
-            </span>
-            'nı kabul etmiş olursunuz.
+            Devam ederek Gizlilik Politikası ve Kullanım Koşulları'nı kabul etmiş olursunuz.
           </p>
         </form>
       </Form>
@@ -393,7 +401,7 @@ export function RegisterForm() {
         Zaten hesabın var mı?{' '}
         <Link
           to="/auth/login"
-          className="font-semibold text-foreground underline-offset-4 hover:underline"
+          className="text-base font-bold text-foreground underline-offset-4 hover:underline"
         >
           Giriş yap
         </Link>

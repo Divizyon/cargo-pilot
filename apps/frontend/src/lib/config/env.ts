@@ -9,8 +9,8 @@ const envSchema = z.object({
   VITE_APP_ENV: z.enum(['development', 'test', 'production'], {
     error: 'VITE_APP_ENV yalnızca development | test | production olabilir',
   }),
-  VITE_OAUTH_GOOGLE_URL: z.string().url().optional(),
-  VITE_OAUTH_MICROSOFT_URL: z.string().url().optional(),
+  VITE_OAUTH_GOOGLE_URL: z.string().optional(),
+  VITE_OAUTH_MICROSOFT_URL: z.string().optional(),
 });
 
 const _result = envSchema.safeParse({
