@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
-import { isAboveActiveLayer, isPlacementVisible } from './sceneFilter';
+import { isGhosted, isPlacementVisible } from './sceneFilter';
 
 function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): PlacementWithDimensions {
   return {
@@ -14,36 +14,42 @@ function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): Placem
     width: 50,
     height: 50,
     depth: 50,
+    weight: 10,
     ...overrides,
   };
 }
 
 const EMPTY_STATE = {
-  activeLayer: Number.POSITIVE_INFINITY,
   selectedInstanceId: null,
   selectedItemId: null,
   hiddenItemIds: [] as string[],
 };
 
-describe('isAboveActiveLayer', () => {
-  it('+Infinity activeLayer → hiçbir kutu üstte değil', () => {
-    expect(isAboveActiveLayer({ positionY: 100, height: 50 }, Number.POSITIVE_INFINITY)).toBe(
-      false,
-    );
+describe('isGhosted', () => {
+  it('activeLayer = 0 (default) → hiçbir kutu ghost değil', () => {
+    expect(isGhosted({ positionZ: 0, depth: 50 }, 0)).toBe(false);
+    expect(isGhosted({ positionZ: 500, depth: 50 }, 0)).toBe(false);
   });
 
-  it('kutunun tavanı tam activeLayer hizasında ise üstte sayılmaz', () => {
-    // y=100, h=50 → tavan = 150. activeLayer = 150 → 150 > 150 false → görünür.
-    expect(isAboveActiveLayer({ positionY: 100, height: 50 }, 150)).toBe(false);
+  it('positionZ < activeLayer → ghost', () => {
+    expect(isGhosted({ positionZ: 100, depth: 50 }, 200)).toBe(true);
   });
 
-  it('kutunun tavanı activeLayer üstündeyse üstte', () => {
-    // tavan = 150, activeLayer = 149 → 150 > 149 → gizli.
-    expect(isAboveActiveLayer({ positionY: 100, height: 50 }, 149)).toBe(true);
+  it('positionZ === activeLayer → ghost değil (tam sınırda normal)', () => {
+    expect(isGhosted({ positionZ: 200, depth: 50 }, 200)).toBe(false);
   });
 
-  it('activeLayer = 0 ise yere oturmuş kutu bile gizlenir', () => {
-    expect(isAboveActiveLayer({ positionY: 0, height: 50 }, 0)).toBe(true);
+  it('positionZ > activeLayer → ghost değil', () => {
+    expect(isGhosted({ positionZ: 300, depth: 50 }, 200)).toBe(false);
+  });
+
+  it('negatif activeLayer → hiçbir kutu ghost değil', () => {
+    expect(isGhosted({ positionZ: 0, depth: 50 }, -1)).toBe(false);
+  });
+
+  it('slider max (vehicle.length) → tüm kutular ghost', () => {
+    expect(isGhosted({ positionZ: 0, depth: 50 }, 600)).toBe(true);
+    expect(isGhosted({ positionZ: 550, depth: 50 }, 600)).toBe(true);
   });
 });
 
@@ -78,7 +84,6 @@ describe('isPlacementVisible', () => {
 
   it('selectedInstanceId aktifse selectedItemId override edilir (sadece o instance gizli)', () => {
     const p = makePlacement({ itemId: 'sku-x' });
-    // index 0, selectedInstanceId 5 — kutu görünür kalmalı (selectedItemId match'ine rağmen)
     expect(
       isPlacementVisible(p, 0, {
         ...EMPTY_STATE,
@@ -88,13 +93,8 @@ describe('isPlacementVisible', () => {
     ).toBe(true);
   });
 
-  it('activeLayer üstündeki kutu gizlenir', () => {
-    const p = makePlacement({ positionY: 200, height: 50 });
-    expect(isPlacementVisible(p, 0, { ...EMPTY_STATE, activeLayer: 100 })).toBe(false);
-  });
-
-  it('activeLayer altındaki kutu görünür', () => {
-    const p = makePlacement({ positionY: 0, height: 50 });
-    expect(isPlacementVisible(p, 0, { ...EMPTY_STATE, activeLayer: 100 })).toBe(true);
+  it('activeLayer ghost mode isPlacementVisible etkilemez — ghost ayrı mesh, gizleme değil', () => {
+    const p = makePlacement({ positionZ: 0, depth: 50 });
+    expect(isPlacementVisible(p, 0, EMPTY_STATE)).toBe(true);
   });
 });

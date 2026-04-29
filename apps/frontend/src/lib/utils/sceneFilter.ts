@@ -1,35 +1,37 @@
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
 interface PositionedBox {
-  positionY: number;
-  height: number;
+  positionZ: number;
+  depth: number;
 }
 
 /**
- * Aktif katman üstünde kalan kutuları filtreler — kutunun TAVANI activeLayer'ı geçiyorsa gizli.
+ * Ghost mode filtresi — kutunun ön yüzü (positionZ) activeLayer'dan küçükse ghost olur.
  *
- * AC1 (US-OPT-10): Y eksenindeki "level filter" mantığı.
- * activeLayer = +Infinity (default) → tüm kutular görünür.
+ * AC2 (US-OPT-10): Slider sağa çekildikçe activeLayer artar; kapıya yakın (küçük Z) kutular
+ * şeffaflaşır, operatör konteynerin içine "süzülür".
+ * activeLayer = 0 (default) → hiçbir kutu ghost değil, hepsi normal.
  */
-export function isAboveActiveLayer(box: PositionedBox, activeLayer: number): boolean {
-  if (!Number.isFinite(activeLayer)) return false;
-  return box.positionY + box.height > activeLayer;
+export function isGhosted(box: PositionedBox, activeLayer: number): boolean {
+  if (activeLayer <= 0) return false;
+  return box.positionZ < activeLayer;
 }
 
 /**
- * Bir placement'ın InstancedMesh'te `scale=0` ile gizlenip gizlenmeyeceğini hesaplar.
+ * Bir placement'ın InstancedMesh'te scale=0 ile tamamen gizlenip gizlenmeyeceğini hesaplar.
  *
  * Gizleme nedenleri:
  *  - hiddenItemIds: kullanıcı SKU bazında gizledi
  *  - selectedInstanceId: glow için BoxWrapper olarak ayrı render edilecek
  *  - selectedItemId: aynı SKU'nun tüm instance'ları glow'a düşer
- *  - activeLayer üstünde kalmak (level filter)
+ *
+ * NOT: Ghost mode (activeLayer) burada kontrol edilmez — ghost kutular hâlâ
+ * sahneye render edilir, sadece ghost InstancedMesh'e taşınır.
  */
 export function isPlacementVisible(
   p: PlacementWithDimensions,
   index: number,
   state: {
-    activeLayer: number;
     selectedInstanceId: number | null;
     selectedItemId: string | null;
     hiddenItemIds: readonly string[];
@@ -38,6 +40,5 @@ export function isPlacementVisible(
   if (state.hiddenItemIds.includes(p.itemId)) return false;
   if (state.selectedInstanceId === index) return false;
   if (state.selectedInstanceId === null && state.selectedItemId === p.itemId) return false;
-  if (isAboveActiveLayer(p, state.activeLayer)) return false;
   return true;
 }
