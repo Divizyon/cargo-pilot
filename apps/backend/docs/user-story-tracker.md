@@ -263,3 +263,24 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.WebAPI/Controllers/HomeController.cs`
 
 ---
+
+## 11) US-AUTH-09: Refresh Token Endpoint (Token Rotation)
+**Story:** Backend Chapter Lead olarak, oturumun guvenli bir sekilde yenilenmesi icin POST /api/v1/auth/refresh endpoint'inin eklenmesini, refresh token'larin DB'de saklanmasini ve rotation + revoke kontrollerinin uygulanmasini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt Isler
+- `✅` Refresh Token'in HttpOnly Cookie ile dondurulmesi (Kapsam: Login endpoint'i refresh token'i artik response body'ye degil, `HttpOnly=true, Secure=true, SameSite=None` Cookie olarak yazar. Bu sayede JS ortami token'a erisemez.)
+- `✅` `POST /api/v1/auth/refresh` endpoint'inin eklenmesi (Kapsam: `AuthController`'a `[HttpPost("refresh")]` eklendi. Cookie'den token okunur, eksikse 401 doner.)
+- `✅` `RefreshTokenAsync` servisi ile Token Rotation mekanizmasinin implementasyonu (Kapsam: `IAuthService` ve `AuthService`'e `RefreshTokenAsync` eklendi. Eski session `Revoke()` ile iptal edilir, yeni access+refresh token cifti uretilip yeni `UserSession` DB'ye yazilir.)
+- `✅` `UserSession.Revoke()` domain metodu eklenmesi (Kapsam: Encapsulation kurali geregi `IsRevoked` sadece `Revoke()` metodu uzerinden `true` yapilabilir.)
+- `✅` `AuthErrors.InvalidToken` hata taniminin eklenmesi (Kapsam: Suresi dolmus, iptal edilmis veya bulunamayan token'lar icin standart hata kodu: `AUTH_INVALID_TOKEN`.)
+- `✅` `RefreshResponse` ve `LoginResponse` DTO'larinda guvenlik sikilasmasi (Kapsam: `RefreshToken` ve `RefreshTokenExpiresAt` alanlarina `[JsonIgnore]` eklendi; bu alanlar JSON body'ye yazilmaz, yalnizca controller'in cookie set etmesi icin DTO icerisinde tasinir.)
+
+**Kanitlar:**
+- `CargoPilot.Domain/Entities/UserSession.cs`
+- `CargoPilot.Application/Features/Auth/IAuthService.cs`
+- `CargoPilot.Application/Features/Auth/DTOs/RefreshResponse.cs`
+- `CargoPilot.Application/Common/Errors/AuthErrors.cs`
+- `CargoPilot.Infrastructure/Auth/AuthService.cs`
+- `CargoPilot.WebAPI/Controllers/AuthController.cs`
