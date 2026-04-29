@@ -10,6 +10,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { ProductCreatePage } from '@/pages/ProductCreatePage';
+import { ProductEditPage } from '@/pages/ProductEditPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/products', element: <ProductsPage /> },
           { path: '/products/new', element: <ProductCreatePage /> },
+          { path: '/products/:id/edit', element: <ProductEditPage /> },
           { path: '/vehicles', element: <DashboardPage /> },
           { path: '/planning', element: <DashboardPage /> },
           { path: '/reports', element: <DashboardPage /> },

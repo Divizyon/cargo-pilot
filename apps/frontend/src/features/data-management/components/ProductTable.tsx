@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Download, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useItems } from '@/lib/api/useItems';
+import { useDeleteItem, useItems } from '@/lib/api/useItems';
 import type { Item } from '@/lib/types/item';
 import {
   calcVolume,
@@ -210,21 +210,38 @@ function ProductRow({ item, unit, searchTerm, onEdit, onDelete }: ProductRowProp
 
 interface ProductTableProps {
   onEdit?: (item: Item) => void;
-  onDelete?: (item: Item) => void;
   onCreateClick?: () => void;
 }
 
-export function ProductTable({ onEdit, onDelete, onCreateClick }: ProductTableProps) {
+type CategoryFilter = 'all' | 'koli' | 'varil';
+
+const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
+  { value: 'all', label: 'Tümü' },
+  { value: 'koli', label: 'Koli' },
+  { value: 'varil', label: 'Varil' },
+];
+
+export function ProductTable({ onEdit, onCreateClick }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [unit, setUnit] = useState<DimensionUnit>('cm');
+  const [category, setCategory] = useState<CategoryFilter>('all');
+  const unit: DimensionUnit = 'cm';
 
   const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
+  const deleteItem = useDeleteItem();
 
   const {
     data: items,
     isLoading,
     isFetching,
   } = useItems(searchTerm ? { search: searchTerm } : undefined);
+
+  const handleDelete = useCallback(
+    (item: Item) => {
+      if (!window.confirm(`"${item.name}" ürününü silmek istediğinizden emin misiniz?`)) return;
+      deleteItem.mutate(item.id);
+    },
+    [deleteItem],
+  );
 
   const showSkeleton = isLoading || isFetching;
   const isEmpty = !showSkeleton && items?.length === 0 && !searchTerm;
@@ -233,29 +250,54 @@ export function ProductTable({ onEdit, onDelete, onCreateClick }: ProductTablePr
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-2.5">
-        {/* Search input — debounce + X button inside (AC1, AC2, AC6) */}
-        <SearchInput onSearch={handleSearch} />
-
-        {/* Unit toggle (cm / inch) */}
+      <div className="flex items-center gap-2">
+        {/* Category tabs */}
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {(['cm', 'inch'] as const).map((u) => (
+          {CATEGORY_TABS.map((tab) => (
             <button
-              key={u}
-              onClick={() => setUnit(u)}
+              key={tab.value}
+              onClick={() => setCategory(tab.value)}
               className={cn(
                 'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                unit === u
+                category === tab.value
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
-              {u}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        <Button size="sm" className="shrink-0 gap-2 text-xs" onClick={onCreateClick}>
+        {/* Search input */}
+        <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+
+        {/* Filtrele */}
+        <Button variant="outline" size="sm" className="shrink-0 gap-1.5 text-xs">
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filtrele
+          <ChevronDown className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Dışa Aktar */}
+        <Button variant="outline" size="sm" className="shrink-0 gap-1.5 text-xs">
+          <Download className="h-3.5 w-3.5" />
+          Dışa Aktar
+        </Button>
+
+        {/* Toplu Ürün Ekle */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5 text-xs"
+          onClick={onCreateClick}
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Toplu Ürün Ekle
+        </Button>
+
+        {/* Yeni Ürün Ekle */}
+        <Button size="sm" className="shrink-0 gap-1.5 text-xs" onClick={onCreateClick}>
           <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
           Yeni Ürün Ekle
         </Button>
@@ -320,7 +362,7 @@ export function ProductTable({ onEdit, onDelete, onCreateClick }: ProductTablePr
                   unit={unit}
                   searchTerm={searchTerm}
                   onEdit={onEdit}
-                  onDelete={onDelete}
+                  onDelete={handleDelete}
                 />
               ))}
             </TableBody>
