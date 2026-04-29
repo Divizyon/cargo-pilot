@@ -1,25 +1,7 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import {
-  ArrowLeftRight,
-  ArrowUpDown,
-  Ban,
-  Box,
-  Cylinder,
-  Droplets,
-  HelpCircle,
-  Layers,
-  Move3d,
-  Package,
-  PackageOpen,
-  Ruler,
-  ShieldOff,
-  StickyNote,
-  Tag,
-  Weight,
-  Wine,
-} from 'lucide-react';
+import { Ban, Box, Cylinder, Droplets, HelpCircle, Move3d, Package, Wine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Form,
@@ -46,7 +28,6 @@ import {
   DIMENSION_UNITS,
   FRAGILITY_LEVELS,
   NOTES_MAX_LENGTH,
-  NOTES_PREVIEW_LENGTH,
   WEIGHT_UNITS,
   toCentimeters,
   type DimensionUnitKey,
@@ -92,6 +73,11 @@ const ROTATION_AXES = [
     axis: 'z' as AxisKey,
   },
 ] as const;
+
+const COMPACT_INPUT = 'h-9 border-zinc-200 bg-zinc-50';
+const COMPACT_INPUT_WITH_UNIT = 'h-9 border-zinc-200 bg-zinc-50 pr-16';
+const UNIT_TRIGGER =
+  'absolute right-1 top-1/2 h-7 w-14 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0';
 
 interface NonStackableIconProps {
   className?: string;
@@ -149,7 +135,6 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
   if (type === 'pallet') {
     return (
       <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
-        {/* üstteki koli */}
         <path
           d="M30 20 L70 8 L110 20 L110 60 L70 72 L30 60 Z"
           stroke={stroke}
@@ -159,7 +144,6 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
         />
         <path d="M30 20 L70 32 L110 20" stroke={stroke} strokeWidth="1.5" />
         <path d="M70 32 L70 72" stroke={stroke} strokeWidth="1.5" />
-        {/* palet üst plaka */}
         <path
           d="M14 76 L70 92 L126 76 L126 84 L70 100 L14 84 Z"
           stroke={stroke}
@@ -167,7 +151,6 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
           strokeLinejoin="round"
           fill="none"
         />
-        {/* palet ayakları */}
         <path d="M22 86 L22 102 L50 110 L50 94" stroke={stroke} strokeWidth="1.5" fill="none" />
         <path d="M70 100 L70 116" stroke={stroke} strokeWidth="1.5" />
         <path d="M118 86 L118 102 L90 110 L90 94" stroke={stroke} strokeWidth="1.5" fill="none" />
@@ -175,7 +158,6 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
     );
   }
 
-  // box (default)
   return (
     <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
       <path
@@ -203,13 +185,12 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
   return (
     <div className="relative">
       <svg
-        width="48"
-        height="44"
+        width="32"
+        height="28"
         viewBox="0 0 72 64"
         fill="none"
         className={cn('transition-opacity', active ? 'opacity-100' : 'opacity-40')}
       >
-        {/* 2D perspektif kutu */}
         <path
           d="M14 22 L36 12 L58 22 L58 46 L36 56 L14 46 Z"
           stroke={stroke}
@@ -219,8 +200,6 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         />
         <path d="M14 22 L36 32 L58 22" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
         <path d="M36 32 L36 56" stroke={stroke} strokeWidth="1.5" />
-
-        {/* Eksen oku */}
         {axis === 'x' && (
           <>
             <path d="M2 34 L70 34" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
@@ -244,7 +223,7 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
       </svg>
       {!active && (
-        <Ban className="absolute inset-0 m-auto h-7 w-7 text-red-500" strokeWidth={2} aria-hidden />
+        <Ban className="absolute inset-0 m-auto h-5 w-5 text-red-500" strokeWidth={2} aria-hidden />
       )}
     </div>
   );
@@ -304,7 +283,8 @@ export function ProductForm({
     ],
   });
 
-  const isNonStackable = !maxStackCount || maxStackCount <= 1;
+  const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
+
   const isZLocked = (fragility ?? 0) >= 1;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
@@ -315,399 +295,393 @@ export function ProductForm({
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Bölüm 1 — Kimlik */}
-          <section className="space-y-4">
-            <SectionTitle icon={Tag}>{t('forms.product.sectionIdentity')}</SectionTitle>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('forms.product.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('forms.product.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="sku"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('forms.product.sku')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('forms.product.skuPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </section>
-
-          {/* Bölüm 2 — Ürün Tipi + Kırılganlık */}
-          <section className="space-y-4">
-            <SectionTitle icon={PackageOpen}>{t('forms.product.sectionType')}</SectionTitle>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="productType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="block">{t('forms.product.sectionType')}</FormLabel>
-                    <FormControl>
-                      <ToggleGroup
-                        type="single"
-                        value={field.value}
-                        onValueChange={(value) => value && field.onChange(value)}
-                        className="flex flex-wrap"
-                      >
-                        {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-                          <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
-                            <Icon className="h-6 w-6" strokeWidth={1.5} />
-                            <span className="text-xs">{t(labelKey)}</span>
-                          </ToggleGroupItem>
-                        ))}
-                      </ToggleGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="fragility"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
-                    <FormControl>
-                      <ToggleGroup
-                        type="single"
-                        value={String(field.value)}
-                        onValueChange={(value) => {
-                          if (value === '') return;
-                          const num = Number(value);
-                          field.onChange(num);
-                          if (num === FRAGILITY_LEVELS.NonFragile) {
-                            form.setValue('maxStackCount', 1, { shouldValidate: false });
-                            form.setValue('isStackable', false, { shouldValidate: false });
-                          }
-                          if (num >= 1) {
-                            form.setValue('allowRotateZ', false, { shouldValidate: false });
-                          }
-                        }}
-                        className="flex flex-wrap"
-                      >
-                        <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
-                          <NonStackableIcon className="h-6 w-6" />
-                          <span className="text-xs">{t('forms.product.fragilityNonFragile')}</span>
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
-                          <Wine className="h-6 w-6 text-amber-500" strokeWidth={1.5} />
-                          <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
-                          <Droplets className="h-6 w-6 text-blue-500" strokeWidth={1.5} />
-                          <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </section>
-
-          {/* Bölüm 3 — Fiziksel Özellikler */}
-          <section className="space-y-4">
-            <SectionTitle icon={Ruler}>{t('forms.product.sectionPhysical')}</SectionTitle>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* Sol: alt alta input'lar */}
-              <div className="space-y-4">
-                <DimensionField
-                  form={form}
-                  name="width"
-                  unitName="widthUnit"
-                  labelKey="forms.product.width"
-                />
-                <DimensionField
-                  form={form}
-                  name="height"
-                  unitName="heightUnit"
-                  labelKey="forms.product.height"
-                />
-                <DimensionField
-                  form={form}
-                  name="length"
-                  unitName="lengthUnit"
-                  labelKey="forms.product.length"
-                />
-                <FormField
-                  control={form.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('forms.product.weight')}</FormLabel>
-                      <div className="relative">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+            {/* SOL — Form alanları */}
+            <div className="space-y-8">
+              {/* Kimlik */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.product.name')}</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            step="0.1"
-                            min={0}
-                            className="pr-20"
+                            className={COMPACT_INPUT}
+                            placeholder={t('forms.product.namePlaceholder')}
                             {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === '' ? undefined : e.target.valueAsNumber,
-                              )
-                            }
                           />
                         </FormControl>
-                        <Controller
-                          control={form.control}
-                          name="weightUnit"
-                          render={({ field: unitField }) => (
-                            <Select value={unitField.value} onValueChange={unitField.onChange}>
-                              <SelectTrigger className="absolute inset-y-1 right-1 h-auto w-16 border-0 bg-transparent text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {WEIGHT_KEYS.map((unit) => (
-                                  <SelectItem key={unit} value={unit}>
-                                    {unit}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Sağ: ürün illustrasyonu (hacim içinde) — yalnızca md+ */}
-              <div
-                aria-live="polite"
-                className="relative hidden min-h-[200px] flex-col items-center justify-center gap-3 rounded-md border bg-muted/30 p-6 text-muted-foreground md:flex"
-              >
-                <ProductTypeIllustration type={productType ?? 'box'} />
-                <div className="text-center">
-                  <span className="block text-xs uppercase tracking-wide text-muted-foreground">
-                    {t('forms.product.volume')}
-                  </span>
-                  <span className="mt-1 block text-lg font-semibold text-foreground">
-                    {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Bölüm 4 — Kısıtlar */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <SectionTitle icon={ShieldOff}>{t('forms.product.sectionConstraints')}</SectionTitle>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={t('forms.product.axisGuideAria')}
-                    className="ml-2"
-                  >
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="space-y-1">
-                    <p className="font-medium">{t('forms.product.axisGuideTitle')}</p>
-                    <p>{t('forms.product.axisXTooltip')}</p>
-                    <p>{t('forms.product.axisYTooltip')}</p>
-                    <p>{t('forms.product.axisZTooltip')}</p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-              {/* Katman Sayısı */}
-              <FormField
-                control={form.control}
-                name="maxStackCount"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col rounded-md border p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <FormLabel className="m-0 flex items-center gap-1.5 text-sm font-medium">
-                        <Layers className="h-4 w-4 text-muted-foreground" />
-                        {t('forms.product.layerCount')}
-                      </FormLabel>
-                      {isNonStackable && (
-                        <Badge
-                          variant="outline"
-                          className="h-5 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] text-amber-800"
-                        >
-                          <NonStackableIcon className="h-3 w-3" />
-                          {t('forms.product.nonStackable')}
-                        </Badge>
-                      )}
-                    </div>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        step={1}
-                        placeholder="1"
-                        className="mt-auto"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
-                          field.onChange(value);
-                          form.setValue('isStackable', value > 1, { shouldValidate: false });
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* X / Y / Z eksen kartları — kart kendisi toggle */}
-              {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => {
-                const isDisabled = axisFieldName === 'allowRotateZ' && isZLocked;
-                return (
-                  <FormField
-                    key={axisFieldName}
-                    control={form.control}
-                    name={axisFieldName}
-                    render={({ field }) => (
-                      <FormItem className="m-0 space-y-0">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              aria-pressed={field.value}
-                              aria-label={
-                                isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)
-                              }
-                              disabled={isDisabled}
-                              onClick={() => field.onChange(!field.value)}
-                              className={cn(
-                                'flex w-full flex-col items-center justify-center gap-2 rounded-md border p-3 text-center transition-colors',
-                                field.value
-                                  ? 'border-primary bg-primary/5 text-primary'
-                                  : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60',
-                                isDisabled && 'cursor-not-allowed opacity-50 hover:bg-muted/30',
-                              )}
-                            >
-                              <span className="text-sm font-medium text-foreground">
-                                {t(labelKey)}
-                              </span>
-                              <AxisBoxIllustration axis={axis} active={field.value} />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)}
-                          </TooltipContent>
-                        </Tooltip>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                );
-              })}
-            </div>
-          </section>
+                  <FormField
+                    control={form.control}
+                    name="sku"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.product.sku')}</FormLabel>
 
-          {/* Bölüm 5 — Özel Taşıma Notları */}
-          <section className="space-y-4">
-            <SectionTitle icon={StickyNote}>{t('forms.product.sectionNotes')}</SectionTitle>
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => {
-                const value = field.value ?? '';
-                const length = value.length;
-                const isOverLimit = length >= NOTES_MAX_LENGTH;
-                return (
-                  <FormItem>
-                    <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={4}
-                        maxLength={NOTES_MAX_LENGTH}
-                        placeholder={t('forms.product.notesPlaceholder')}
-                        className="resize-y transition-shadow focus-visible:ring-2 focus-visible:ring-primary/40"
-                        {...field}
-                        value={value}
-                        onChange={(e) => {
-                          const next = e.target.value.slice(0, NOTES_MAX_LENGTH);
-                          field.onChange(next);
-                        }}
-                      />
-                    </FormControl>
-                    <div className="mt-1 flex items-start justify-between gap-3 text-xs">
-                      <p className="text-muted-foreground">{t('forms.product.notesHelper')}</p>
-                      <span
-                        aria-live="polite"
-                        className={cn(
-                          'shrink-0 tabular-nums',
-                          isOverLimit ? 'font-semibold text-red-600' : 'text-muted-foreground',
+                        <FormControl>
+                          <Input
+                            className={COMPACT_INPUT}
+                            placeholder={t('forms.product.skuPlaceholder')}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </section>
+
+              {/* Ürün Tipi & Hassasiyet */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="productType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="block">{t('forms.product.sectionType')}</FormLabel>
+                        <FormControl>
+                          <ToggleGroup
+                            type="single"
+                            value={field.value}
+                            onValueChange={(value) => value && field.onChange(value)}
+                            className="flex flex-wrap"
+                          >
+                            {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
+                              <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
+                                <Icon className="h-5 w-5" strokeWidth={1.5} />
+                                <span className="text-xs">{t(labelKey)}</span>
+                              </ToggleGroupItem>
+                            ))}
+                          </ToggleGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="fragility"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
+                        <FormControl>
+                          <ToggleGroup
+                            type="single"
+                            value={String(field.value)}
+                            onValueChange={(value) => {
+                              if (value === '') return;
+                              const num = Number(value);
+                              field.onChange(num);
+                              if (num === FRAGILITY_LEVELS.NonFragile) {
+                                form.setValue('maxStackCount', 1, { shouldValidate: false });
+                                form.setValue('isStackable', false, { shouldValidate: false });
+                              }
+                              if (num >= FRAGILITY_LEVELS.Fragile) {
+                                form.setValue('allowRotateZ', false, { shouldValidate: false });
+                              }
+                            }}
+                            className="flex flex-wrap"
+                          >
+                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
+                              <NonStackableIcon className="h-5 w-5" />
+                              <span className="text-xs">
+                                {t('forms.product.fragilityNonFragile')}
+                              </span>
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
+                              <Wine className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
+                              <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
+                              <Droplets className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+                              <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </section>
+
+              {/* Fiziksel Özellikler — Genişlik / Yükseklik / Uzunluk / Ağırlık / Katman Sayısı */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+                  <DimensionField
+                    form={form}
+                    name="width"
+                    unitName="widthUnit"
+                    labelKey="forms.product.width"
+                  />
+                  <DimensionField
+                    form={form}
+                    name="height"
+                    unitName="heightUnit"
+                    labelKey="forms.product.height"
+                  />
+                  <DimensionField
+                    form={form}
+                    name="length"
+                    unitName="lengthUnit"
+                    labelKey="forms.product.length"
+                  />
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.product.weight')}</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min={0}
+                              className={COMPACT_INPUT_WITH_UNIT}
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === '' ? undefined : e.target.valueAsNumber,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <Controller
+                            control={form.control}
+                            name="weightUnit"
+                            render={({ field: unitField }) => (
+                              <Select value={unitField.value} onValueChange={unitField.onChange}>
+                                <SelectTrigger className={UNIT_TRIGGER}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {WEIGHT_KEYS.map((unit) => (
+                                    <SelectItem key={unit} value={unit}>
+                                      {unit}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="maxStackCount"
+                    render={({ field }) => {
+                      const lockToOne = fragility === FRAGILITY_LEVELS.NonFragile;
+                      return (
+                        <FormItem>
+                          <div className="flex items-center justify-between gap-2">
+                            <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
+                            <Badge
+                              variant="outline"
+                              aria-hidden={!isNonStackableSelected}
+                              className={cn(
+                                'h-5 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] text-amber-800',
+                                !isNonStackableSelected && 'invisible',
+                              )}
+                            >
+                              {t('forms.product.nonStackable')}
+                            </Badge>
+                          </div>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              step={1}
+                              placeholder="1"
+                              disabled={lockToOne}
+                              className={cn(COMPACT_INPUT, lockToOne && 'cursor-not-allowed')}
+                              {...field}
+                              value={lockToOne ? 1 : (field.value ?? '')}
+                              onChange={(e) => {
+                                if (lockToOne) return;
+                                const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
+                                field.onChange(value);
+                                form.setValue('isStackable', value > 1, { shouldValidate: false });
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+              </section>
+
+              {/* Kısıtlar — sadece eksen rotasyonu */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" aria-label={t('forms.product.axisGuideAria')}>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        <p className="font-medium">{t('forms.product.axisGuideTitle')}</p>
+                        <p>{t('forms.product.axisXTooltip')}</p>
+                        <p>{t('forms.product.axisYTooltip')}</p>
+                        <p>{t('forms.product.axisZTooltip')}</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => {
+                    const isDisabled = axisFieldName === 'allowRotateZ' && isZLocked;
+                    return (
+                      <FormField
+                        key={axisFieldName}
+                        control={form.control}
+                        name={axisFieldName}
+                        render={({ field }) => (
+                          <FormItem className="m-0 space-y-0">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-pressed={field.value}
+                                  aria-label={
+                                    isDisabled
+                                      ? t('forms.product.rotateZLockedWarning')
+                                      : t(tooltipKey)
+                                  }
+                                  disabled={isDisabled}
+                                  onClick={() => field.onChange(!field.value)}
+                                  className={cn(
+                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
+                                    field.value
+                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
+                                      : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
+                                    isDisabled && 'cursor-not-allowed opacity-50',
+                                  )}
+                                >
+                                  <AxisBoxIllustration axis={axis} active={field.value} />
+                                  <span className="text-xs font-medium leading-none text-foreground">
+                                    {t(labelKey)}
+                                  </span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isDisabled
+                                  ? t('forms.product.rotateZLockedWarning')
+                                  : t(tooltipKey)}
+                              </TooltipContent>
+                            </Tooltip>
+                          </FormItem>
                         )}
-                      >
-                        {t('forms.product.notesCounter', {
-                          count: length,
-                          max: NOTES_MAX_LENGTH,
-                        })}
-                      </span>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Özel Taşıma Notları */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => {
+                    const value = field.value ?? '';
+                    const length = value.length;
+                    const isOverLimit = length >= NOTES_MAX_LENGTH;
+                    return (
+                      <FormItem>
+                        <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            rows={3}
+                            maxLength={NOTES_MAX_LENGTH}
+                            placeholder={t('forms.product.notesPlaceholder')}
+                            className="resize-none overflow-y-auto border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary/40"
+                            {...field}
+                            value={value}
+                            onChange={(e) => {
+                              const next = e.target.value.slice(0, NOTES_MAX_LENGTH);
+                              field.onChange(next);
+                            }}
+                          />
+                        </FormControl>
+                        <div className="mt-1 flex items-start justify-between gap-3 text-xs">
+                          <p className="text-muted-foreground">{t('forms.product.notesHelper')}</p>
+                          <span
+                            aria-live="polite"
+                            className={cn(
+                              'shrink-0 tabular-nums',
+                              isOverLimit ? 'font-semibold text-red-600' : 'text-muted-foreground',
+                            )}
+                          >
+                            {t('forms.product.notesCounter', {
+                              count: length,
+                              max: NOTES_MAX_LENGTH,
+                            })}
+                          </span>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </section>
+            </div>
+
+            {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
+            <PreviewPanel
+              name={name}
+              productType={productType ?? 'box'}
+              length={length}
+              lengthUnit={lengthUnit}
+              width={width}
+              widthUnit={widthUnit}
+              height={height}
+              heightUnit={heightUnit}
+              weight={weight}
+              weightUnit={weightUnit}
+              volumeCm3={volumeCm3}
+              maxStackCount={maxStackCount ?? 1}
+              fragility={fragility ?? 0}
+              allowRotateX={allowRotateX}
+              allowRotateY={allowRotateY}
+              allowRotateZ={allowRotateZ}
+              notes={notes}
             />
-          </section>
+          </div>
 
-          {/* Ürün Özet Kartı */}
-          <ProductSummaryCard
-            name={name}
-            productType={productType ?? 'box'}
-            length={length}
-            lengthUnit={lengthUnit}
-            width={width}
-            widthUnit={widthUnit}
-            height={height}
-            heightUnit={heightUnit}
-            weight={weight}
-            weightUnit={weightUnit}
-            volumeCm3={volumeCm3}
-            maxStackCount={maxStackCount ?? 1}
-            fragility={fragility ?? 0}
-            allowRotateX={allowRotateX}
-            allowRotateY={allowRotateY}
-            allowRotateZ={allowRotateZ}
-            notes={notes}
-          />
-
+          {/* Aksiyonlar — sayfa genişliği boyunca, en sağda */}
           <div className="flex justify-end gap-3 border-t pt-4">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                 {t('forms.product.cancel')}
               </Button>
             )}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-black text-white hover:bg-black/90"
-            >
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
             </Button>
           </div>
@@ -717,7 +691,7 @@ export function ProductForm({
   );
 }
 
-interface ProductSummaryCardProps {
+interface PreviewPanelProps {
   name?: string;
   productType: 'box' | 'barrel' | 'pallet';
   length?: number;
@@ -737,26 +711,27 @@ interface ProductSummaryCardProps {
   notes?: string;
 }
 
-function ProductSummaryCard({
-  name,
-  productType,
-  length,
-  lengthUnit,
-  width,
-  widthUnit,
-  height,
-  heightUnit,
-  weight,
-  weightUnit,
-  volumeCm3,
-  maxStackCount,
-  fragility,
-  allowRotateX,
-  allowRotateY,
-  allowRotateZ,
-  notes,
-}: ProductSummaryCardProps) {
+function PreviewPanel(props: PreviewPanelProps) {
   const { t } = useTranslation();
+  const {
+    name,
+    productType,
+    length,
+    lengthUnit,
+    width,
+    widthUnit,
+    height,
+    heightUnit,
+    weight,
+    weightUnit,
+    volumeCm3,
+    maxStackCount,
+    fragility,
+    allowRotateX,
+    allowRotateY,
+    allowRotateZ,
+    notes,
+  } = props;
 
   const fmt = (val?: number, unit?: string) =>
     val !== undefined && Number.isFinite(val) && unit ? `${val} ${unit}` : '—';
@@ -768,176 +743,100 @@ function ProductSummaryCard({
         ? t('forms.product.fragilityFragile')
         : t('forms.product.fragilityNonFragile');
 
-  const FragilityIcon =
-    fragility === FRAGILITY_LEVELS.Liquid
-      ? Droplets
-      : fragility === FRAGILITY_LEVELS.Fragile
-        ? Wine
-        : NonStackableIcon;
-
-  const isStackable = maxStackCount > 1;
-  const allRotationsFree = allowRotateX && allowRotateY && allowRotateZ;
   const lockedAxes: string[] = [];
   if (!allowRotateX) lockedAxes.push('X');
   if (!allowRotateY) lockedAxes.push('Y');
   if (!allowRotateZ) lockedAxes.push('Z');
+  const allRotationsFree = lockedAxes.length === 0;
 
   return (
-    <div className="rounded-2xl border bg-background p-6">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center">
-        {/* Ürün illustrasyonu */}
-        <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
-          <div className="[&_svg]:h-20 [&_svg]:w-20">
-            <ProductTypeIllustration type={productType} />
-          </div>
-        </div>
-
-        {/* Ad + İstif Sayısı */}
-        <div className="flex min-w-[140px] flex-col gap-3 md:border-r md:pr-6">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              {t('forms.product.name')}
-            </p>
-            <p className="mt-0.5 text-lg font-bold text-foreground">{name || '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              {t('forms.product.layerCount')}
-            </p>
-            <p className="mt-0.5 inline-flex items-center gap-1.5 text-base font-semibold text-foreground">
-              <Layers className="h-4 w-4 text-muted-foreground" />
-              {maxStackCount}
+    <aside className="lg:sticky lg:top-6 lg:self-start">
+      <div className="flex flex-col gap-4">
+        {/* 3D placeholder kutusu */}
+        <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
+          <div className="flex flex-col items-center gap-3 text-zinc-400">
+            <div className="text-zinc-500">
+              <ProductTypeIllustration type={productType} />
+            </div>
+            <p className="px-6 text-center text-xs uppercase tracking-wide">
+              {t('forms.product.previewPlaceholder')}
             </p>
           </div>
         </div>
 
-        {/* Ölçü metrikleri */}
-        <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-          <SummaryMetric
-            label={t('forms.product.length')}
-            icon={ArrowLeftRight}
-            value={fmt(length, lengthUnit)}
-          />
-          <SummaryMetric
-            label={t('forms.product.width')}
-            icon={ArrowLeftRight}
-            value={fmt(width, widthUnit)}
-          />
-          <SummaryMetric
-            label={t('forms.product.height')}
-            icon={ArrowUpDown}
-            value={fmt(height, heightUnit)}
-          />
-          <SummaryMetric
-            label={t('forms.product.weight')}
-            icon={Weight}
-            value={fmt(weight, weightUnit)}
-          />
-          <SummaryMetric
-            label={t('forms.product.volume')}
-            icon={Box}
-            value={volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
-            className="col-span-2 sm:col-span-1"
-          />
-        </div>
-      </div>
-
-      {/* Kısıtlar */}
-      <div className="mt-6 border-t pt-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t('forms.product.sectionConstraints')}
-        </p>
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
-          <span className="inline-flex items-center gap-2 font-medium text-foreground">
-            <FragilityIcon
-              className={cn(
-                'h-5 w-5',
-                fragility === FRAGILITY_LEVELS.Liquid
-                  ? 'text-blue-500'
-                  : fragility === FRAGILITY_LEVELS.Fragile
-                    ? 'text-amber-500'
-                    : 'text-muted-foreground',
-              )}
-            />
-            {fragilityLabel}
+        {/* Anlık Hacim — 3D placeholder hemen altı */}
+        <div className="flex items-baseline justify-between rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('forms.product.volume')}
           </span>
-          <span className="inline-flex items-center gap-2 font-medium text-foreground">
-            <Layers
-              className={cn('h-5 w-5', isStackable ? 'text-foreground' : 'text-muted-foreground')}
-            />
-            {isStackable
-              ? t('forms.product.summaryStackable')
-              : t('forms.product.summaryNonStackable')}
-          </span>
-          <span className="inline-flex items-center gap-2 font-medium text-foreground">
-            <Move3d
-              className={cn(
-                'h-5 w-5',
-                allRotationsFree ? 'text-foreground' : 'text-muted-foreground',
-              )}
-            />
-            {allRotationsFree
-              ? t('forms.product.summaryRotationFree')
-              : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })}
+          <span className="text-lg font-semibold tabular-nums text-foreground">
+            {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
           </span>
         </div>
-      </div>
 
-      {/* Özel Taşıma Notu — kart alt bandı */}
-      {notes && notes.trim().length > 0 && (
-        <div className="mt-4 flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-sm text-foreground">
-          <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {/* Canlı veri özeti */}
+        <dl className="space-y-2 text-sm">
+          <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
+          <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
+          <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
+          <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
+          <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
+          <PreviewRow label={t('forms.product.fragility')} value={fragilityLabel} />
+          <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
+          <PreviewRow
+            label={<Move3d className="h-4 w-4" aria-hidden />}
+            value={
+              allRotationsFree
+                ? t('forms.product.summaryRotationFree')
+                : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
+            }
+          />
+        </dl>
+
+        {notes && notes.trim().length > 0 && (
+          <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-foreground">
+            <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
               {t('forms.product.notesSummaryLabel')}
             </p>
-            <p className="mt-0.5 truncate">
-              {notes.length > NOTES_PREVIEW_LENGTH
-                ? `${notes.slice(0, NOTES_PREVIEW_LENGTH).trimEnd()}…`
-                : notes}
-            </p>
+            <p className="whitespace-pre-wrap break-words">{notes}</p>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </aside>
   );
 }
 
-interface SummaryMetricProps {
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  value: string;
-  className?: string;
+interface PreviewRowProps {
+  label: ReactNode;
+  value: ReactNode;
+  emphasize?: boolean;
 }
 
-function SummaryMetric({ label, icon: Icon, value, className }: SummaryMetricProps) {
+function PreviewRow({ label, value, emphasize = false }: PreviewRowProps) {
   return (
-    <div
-      className={cn(
-        'flex min-w-0 flex-col items-center justify-between gap-1 text-center',
-        className,
-      )}
-    >
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-      <Icon className="h-5 w-5 text-muted-foreground" />
-      <span className="truncate text-sm font-semibold text-foreground">{value}</span>
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          'truncate text-right',
+          emphasize ? 'text-base font-semibold text-foreground' : 'text-sm text-foreground',
+        )}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
 
 interface SectionTitleProps {
   children: ReactNode;
-  icon?: ComponentType<{ className?: string }>;
 }
 
-function SectionTitle({ children, icon: Icon }: SectionTitleProps) {
+function SectionTitle({ children }: SectionTitleProps) {
   return (
-    <div className="flex items-center gap-2 border-b pb-2">
-      {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
-      <h3 className={cn('text-sm font-semibold uppercase tracking-wide text-muted-foreground')}>
-        {children}
-      </h3>
-    </div>
+    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </h3>
   );
 }
 
@@ -963,7 +862,7 @@ function DimensionField({ form, name, unitName, labelKey }: DimensionFieldProps)
                 type="number"
                 step="0.1"
                 min={0}
-                className="pr-20"
+                className={COMPACT_INPUT_WITH_UNIT}
                 {...field}
                 value={field.value ?? ''}
                 onChange={(e) =>
@@ -976,7 +875,7 @@ function DimensionField({ form, name, unitName, labelKey }: DimensionFieldProps)
               name={unitName}
               render={({ field: unitField }) => (
                 <Select value={unitField.value} onValueChange={unitField.onChange}>
-                  <SelectTrigger className="absolute inset-y-1 right-1 h-auto w-16 border-0 bg-transparent text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0">
+                  <SelectTrigger className={UNIT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -10,7 +10,7 @@ interface SearchInputProps {
 
 export function SearchInput({
   onSearch,
-  placeholder = 'Ürün adı veya SKU ara…',
+  placeholder = 'SKU kodu veya ürün adı ile ara...',
 }: SearchInputProps) {
   const [rawValue, setRawValue] = useState('');
   const debouncedValue = useDebounce(rawValue, 350);
