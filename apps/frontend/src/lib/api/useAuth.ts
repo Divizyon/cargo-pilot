@@ -91,7 +91,9 @@ export function isEmailDuplicate(error: AxiosError<RegisterErrorBody>): boolean 
 export function isPasswordReused(error: AxiosError<ResetPasswordErrorBody>): boolean {
   if (error.response?.status !== 400) return false;
   const code = error.response?.data?.error?.code ?? '';
-  return /password.*reuse|previously.*used|password.*histor|PasswordHistory|PasswordPrevious/i.test(code);
+  return /password.*reuse|previously.*used|password.*histor|PasswordHistory|PasswordPrevious/i.test(
+    code,
+  );
 }
 
 /** Sıfırlama token'ı geçersiz veya süresi dolmuşsa true döner (400 / 422). Parola geçmişi 400'ünü dışlar. */

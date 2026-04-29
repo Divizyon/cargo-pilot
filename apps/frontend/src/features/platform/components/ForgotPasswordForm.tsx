@@ -49,8 +49,8 @@ export function ForgotPasswordForm() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">E-posta Gönderildi</h1>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-            Eğer bu e-posta adresiyle kayıtlı bir hesap varsa şifre sıfırlama bağlantısı
-            gönderildi. Gelen kutunuzu ve spam klasörünüzü kontrol edin.
+            Eğer bu e-posta adresiyle kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi.
+            Gelen kutunuzu ve spam klasörünüzü kontrol edin.
           </p>
         </div>
 

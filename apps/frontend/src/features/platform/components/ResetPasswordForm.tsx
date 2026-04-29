@@ -37,10 +37,10 @@ const PASSWORD_RULES = [
 ];
 
 const STRENGTH = {
-  0: { label: 'Zayıf', value: 25,  color: '[&>*]:bg-destructive' },
-  1: { label: 'Zayıf', value: 25,  color: '[&>*]:bg-destructive' },
-  2: { label: 'Orta',  value: 50,  color: '[&>*]:bg-yellow-500' },
-  3: { label: 'Orta',  value: 65,  color: '[&>*]:bg-yellow-500' },
+  0: { label: 'Zayıf', value: 25, color: '[&>*]:bg-destructive' },
+  1: { label: 'Zayıf', value: 25, color: '[&>*]:bg-destructive' },
+  2: { label: 'Orta', value: 50, color: '[&>*]:bg-yellow-500' },
+  3: { label: 'Orta', value: 65, color: '[&>*]:bg-yellow-500' },
   4: { label: 'Güçlü', value: 100, color: '[&>*]:bg-green-500' },
 } as const;
 
@@ -190,7 +190,10 @@ export function ResetPasswordForm() {
                             {passed ? (
                               <CheckCircle2 className="size-3 shrink-0" aria-hidden="true" />
                             ) : (
-                              <XCircle className="size-3 shrink-0 text-destructive" aria-hidden="true" />
+                              <XCircle
+                                className="size-3 shrink-0 text-destructive"
+                                aria-hidden="true"
+                              />
                             )}
                             {rule.label}
                           </div>
