@@ -1,16 +1,7 @@
 import type { ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import {
-  Ban,
-  Box,
-  Cylinder,
-  Droplets,
-  HelpCircle,
-  Move3d,
-  Package,
-  Wine,
-} from 'lucide-react';
+import { Ban, Box, Cylinder, Droplets, HelpCircle, Move3d, Package, Wine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Form,
@@ -304,365 +295,364 @@ export function ProductForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-          {/* SOL — Form alanları */}
-          <div className="space-y-8">
-            {/* Kimlik */}
-            <section className="space-y-3">
-              <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('forms.product.name')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          className={COMPACT_INPUT}
-                          placeholder={t('forms.product.namePlaceholder')}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('forms.product.sku')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          className={COMPACT_INPUT}
-                          placeholder={t('forms.product.skuPlaceholder')}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </section>
-
-            {/* Ürün Tipi & Hassasiyet */}
-            <section className="space-y-3">
-              <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="productType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="block">{t('forms.product.sectionType')}</FormLabel>
-                      <FormControl>
-                        <ToggleGroup
-                          type="single"
-                          value={field.value}
-                          onValueChange={(value) => value && field.onChange(value)}
-                          className="flex flex-wrap"
-                        >
-                          {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-                            <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
-                              <Icon className="h-5 w-5" strokeWidth={1.5} />
-                              <span className="text-xs">{t(labelKey)}</span>
-                            </ToggleGroupItem>
-                          ))}
-                        </ToggleGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="fragility"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
-                      <FormControl>
-                        <ToggleGroup
-                          type="single"
-                          value={String(field.value)}
-                          onValueChange={(value) => {
-                            if (value === '') return;
-                            const num = Number(value);
-                            field.onChange(num);
-                            if (num === FRAGILITY_LEVELS.NonFragile) {
-                              form.setValue('maxStackCount', 1, { shouldValidate: false });
-                              form.setValue('isStackable', false, { shouldValidate: false });
-                            }
-                          }}
-                          className="flex flex-wrap"
-                        >
-                          <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
-                            <NonStackableIcon className="h-5 w-5" />
-                            <span className="text-xs">{t('forms.product.fragilityNonFragile')}</span>
-                          </ToggleGroupItem>
-                          <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
-                            <Wine className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
-                            <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
-                          </ToggleGroupItem>
-                          <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
-                            <Droplets className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
-                            <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </section>
-
-            {/* Fiziksel Özellikler — Genişlik / Yükseklik / Uzunluk / Ağırlık / Katman Sayısı */}
-            <section className="space-y-3">
-              <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <DimensionField
-                  form={form}
-                  name="width"
-                  unitName="widthUnit"
-                  labelKey="forms.product.width"
-                />
-                <DimensionField
-                  form={form}
-                  name="height"
-                  unitName="heightUnit"
-                  labelKey="forms.product.height"
-                />
-                <DimensionField
-                  form={form}
-                  name="length"
-                  unitName="lengthUnit"
-                  labelKey="forms.product.length"
-                />
-                <FormField
-                  control={form.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('forms.product.weight')}</FormLabel>
-                      <div className="relative">
+            {/* SOL — Form alanları */}
+            <div className="space-y-8">
+              {/* Kimlik */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.product.name')}</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            step="0.1"
-                            min={0}
-                            className={COMPACT_INPUT_WITH_UNIT}
+                            className={COMPACT_INPUT}
+                            placeholder={t('forms.product.namePlaceholder')}
                             {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === '' ? undefined : e.target.valueAsNumber,
-                              )
-                            }
                           />
                         </FormControl>
-                        <Controller
-                          control={form.control}
-                          name="weightUnit"
-                          render={({ field: unitField }) => (
-                            <Select value={unitField.value} onValueChange={unitField.onChange}>
-                              <SelectTrigger className={UNIT_TRIGGER}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {WEIGHT_KEYS.map((unit) => (
-                                  <SelectItem key={unit} value={unit}>
-                                    {unit}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="maxStackCount"
-                  render={({ field }) => {
-                    const lockToOne = fragility === FRAGILITY_LEVELS.NonFragile;
-                    return (
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sku"
+                    render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center justify-between gap-2">
-                          <FormLabel className="m-0">
-                            {t('forms.product.layerCount')}
-                          </FormLabel>
-                          <Badge
-                            variant="outline"
-                            aria-hidden={!isNonStackableSelected}
-                            className={cn(
-                              'h-5 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] text-amber-800',
-                              !isNonStackableSelected && 'invisible',
-                            )}
-                          >
-                            {t('forms.product.nonStackable')}
-                          </Badge>
-                        </div>
+                        <FormLabel>{t('forms.product.sku')}</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            min={1}
-                            step={1}
-                            placeholder="1"
-                            disabled={lockToOne}
-                            className={cn(COMPACT_INPUT, lockToOne && 'cursor-not-allowed')}
+                            className={COMPACT_INPUT}
+                            placeholder={t('forms.product.skuPlaceholder')}
                             {...field}
-                            value={lockToOne ? 1 : (field.value ?? '')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </section>
+
+              {/* Ürün Tipi & Hassasiyet */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="productType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="block">{t('forms.product.sectionType')}</FormLabel>
+                        <FormControl>
+                          <ToggleGroup
+                            type="single"
+                            value={field.value}
+                            onValueChange={(value) => value && field.onChange(value)}
+                            className="flex flex-wrap"
+                          >
+                            {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
+                              <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
+                                <Icon className="h-5 w-5" strokeWidth={1.5} />
+                                <span className="text-xs">{t(labelKey)}</span>
+                              </ToggleGroupItem>
+                            ))}
+                          </ToggleGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="fragility"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
+                        <FormControl>
+                          <ToggleGroup
+                            type="single"
+                            value={String(field.value)}
+                            onValueChange={(value) => {
+                              if (value === '') return;
+                              const num = Number(value);
+                              field.onChange(num);
+                              if (num === FRAGILITY_LEVELS.NonFragile) {
+                                form.setValue('maxStackCount', 1, { shouldValidate: false });
+                                form.setValue('isStackable', false, { shouldValidate: false });
+                              }
+                            }}
+                            className="flex flex-wrap"
+                          >
+                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
+                              <NonStackableIcon className="h-5 w-5" />
+                              <span className="text-xs">
+                                {t('forms.product.fragilityNonFragile')}
+                              </span>
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
+                              <Wine className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
+                              <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
+                              <Droplets className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+                              <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </section>
+
+              {/* Fiziksel Özellikler — Genişlik / Yükseklik / Uzunluk / Ağırlık / Katman Sayısı */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+                  <DimensionField
+                    form={form}
+                    name="width"
+                    unitName="widthUnit"
+                    labelKey="forms.product.width"
+                  />
+                  <DimensionField
+                    form={form}
+                    name="height"
+                    unitName="heightUnit"
+                    labelKey="forms.product.height"
+                  />
+                  <DimensionField
+                    form={form}
+                    name="length"
+                    unitName="lengthUnit"
+                    labelKey="forms.product.length"
+                  />
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.product.weight')}</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min={0}
+                              className={COMPACT_INPUT_WITH_UNIT}
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === '' ? undefined : e.target.valueAsNumber,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <Controller
+                            control={form.control}
+                            name="weightUnit"
+                            render={({ field: unitField }) => (
+                              <Select value={unitField.value} onValueChange={unitField.onChange}>
+                                <SelectTrigger className={UNIT_TRIGGER}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {WEIGHT_KEYS.map((unit) => (
+                                    <SelectItem key={unit} value={unit}>
+                                      {unit}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="maxStackCount"
+                    render={({ field }) => {
+                      const lockToOne = fragility === FRAGILITY_LEVELS.NonFragile;
+                      return (
+                        <FormItem>
+                          <div className="flex items-center justify-between gap-2">
+                            <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
+                            <Badge
+                              variant="outline"
+                              aria-hidden={!isNonStackableSelected}
+                              className={cn(
+                                'h-5 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] text-amber-800',
+                                !isNonStackableSelected && 'invisible',
+                              )}
+                            >
+                              {t('forms.product.nonStackable')}
+                            </Badge>
+                          </div>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              step={1}
+                              placeholder="1"
+                              disabled={lockToOne}
+                              className={cn(COMPACT_INPUT, lockToOne && 'cursor-not-allowed')}
+                              {...field}
+                              value={lockToOne ? 1 : (field.value ?? '')}
+                              onChange={(e) => {
+                                if (lockToOne) return;
+                                const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
+                                field.onChange(value);
+                                form.setValue('isStackable', value > 1, { shouldValidate: false });
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+              </section>
+
+              {/* Kısıtlar — sadece eksen rotasyonu */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" aria-label={t('forms.product.axisGuideAria')}>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        <p className="font-medium">{t('forms.product.axisGuideTitle')}</p>
+                        <p>{t('forms.product.axisXTooltip')}</p>
+                        <p>{t('forms.product.axisYTooltip')}</p>
+                        <p>{t('forms.product.axisZTooltip')}</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => (
+                    <FormField
+                      key={axisFieldName}
+                      control={form.control}
+                      name={axisFieldName}
+                      render={({ field }) => (
+                        <FormItem className="m-0 space-y-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                aria-pressed={field.value}
+                                aria-label={t(tooltipKey)}
+                                onClick={() => field.onChange(!field.value)}
+                                className={cn(
+                                  'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
+                                  field.value
+                                    ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
+                                    : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
+                                )}
+                              >
+                                <AxisBoxIllustration axis={axis} active={field.value} />
+                                <span className="text-xs font-medium leading-none text-foreground">
+                                  {t(labelKey)}
+                                </span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t(tooltipKey)}</TooltipContent>
+                          </Tooltip>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              {/* Özel Taşıma Notları */}
+              <section className="space-y-3">
+                <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => {
+                    const value = field.value ?? '';
+                    const length = value.length;
+                    const isOverLimit = length >= NOTES_MAX_LENGTH;
+                    return (
+                      <FormItem>
+                        <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            rows={3}
+                            maxLength={NOTES_MAX_LENGTH}
+                            placeholder={t('forms.product.notesPlaceholder')}
+                            className="resize-none overflow-y-auto border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary/40"
+                            {...field}
+                            value={value}
                             onChange={(e) => {
-                              if (lockToOne) return;
-                              const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
-                              field.onChange(value);
-                              form.setValue('isStackable', value > 1, { shouldValidate: false });
+                              const next = e.target.value.slice(0, NOTES_MAX_LENGTH);
+                              field.onChange(next);
                             }}
                           />
                         </FormControl>
+                        <div className="mt-1 flex items-start justify-between gap-3 text-xs">
+                          <p className="text-muted-foreground">{t('forms.product.notesHelper')}</p>
+                          <span
+                            aria-live="polite"
+                            className={cn(
+                              'shrink-0 tabular-nums',
+                              isOverLimit ? 'font-semibold text-red-600' : 'text-muted-foreground',
+                            )}
+                          >
+                            {t('forms.product.notesCounter', {
+                              count: length,
+                              max: NOTES_MAX_LENGTH,
+                            })}
+                          </span>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     );
                   }}
                 />
-              </div>
-            </section>
+              </section>
+            </div>
 
-            {/* Kısıtlar — sadece eksen rotasyonu */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" aria-label={t('forms.product.axisGuideAria')}>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="space-y-1">
-                      <p className="font-medium">{t('forms.product.axisGuideTitle')}</p>
-                      <p>{t('forms.product.axisXTooltip')}</p>
-                      <p>{t('forms.product.axisYTooltip')}</p>
-                      <p>{t('forms.product.axisZTooltip')}</p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => (
-                  <FormField
-                    key={axisFieldName}
-                    control={form.control}
-                    name={axisFieldName}
-                    render={({ field }) => (
-                      <FormItem className="m-0 space-y-0">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              aria-pressed={field.value}
-                              aria-label={t(tooltipKey)}
-                              onClick={() => field.onChange(!field.value)}
-                              className={cn(
-                                'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
-                                field.value
-                                  ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
-                                  : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
-                              )}
-                            >
-                              <AxisBoxIllustration axis={axis} active={field.value} />
-                              <span className="text-xs font-medium leading-none text-foreground">
-                                {t(labelKey)}
-                              </span>
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{t(tooltipKey)}</TooltipContent>
-                        </Tooltip>
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* Özel Taşıma Notları */}
-            <section className="space-y-3">
-              <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => {
-                  const value = field.value ?? '';
-                  const length = value.length;
-                  const isOverLimit = length >= NOTES_MAX_LENGTH;
-                  return (
-                    <FormItem>
-                      <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={3}
-                          maxLength={NOTES_MAX_LENGTH}
-                          placeholder={t('forms.product.notesPlaceholder')}
-                          className="resize-none overflow-y-auto border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary/40"
-                          {...field}
-                          value={value}
-                          onChange={(e) => {
-                            const next = e.target.value.slice(0, NOTES_MAX_LENGTH);
-                            field.onChange(next);
-                          }}
-                        />
-                      </FormControl>
-                      <div className="mt-1 flex items-start justify-between gap-3 text-xs">
-                        <p className="text-muted-foreground">{t('forms.product.notesHelper')}</p>
-                        <span
-                          aria-live="polite"
-                          className={cn(
-                            'shrink-0 tabular-nums',
-                            isOverLimit ? 'font-semibold text-red-600' : 'text-muted-foreground',
-                          )}
-                        >
-                          {t('forms.product.notesCounter', {
-                            count: length,
-                            max: NOTES_MAX_LENGTH,
-                          })}
-                        </span>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </section>
-
-          </div>
-
-          {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
-          <PreviewPanel
-            name={name}
-            productType={productType ?? 'box'}
-            length={length}
-            lengthUnit={lengthUnit}
-            width={width}
-            widthUnit={widthUnit}
-            height={height}
-            heightUnit={heightUnit}
-            weight={weight}
-            weightUnit={weightUnit}
-            volumeCm3={volumeCm3}
-            maxStackCount={maxStackCount ?? 1}
-            fragility={fragility ?? 0}
-            allowRotateX={allowRotateX}
-            allowRotateY={allowRotateY}
-            allowRotateZ={allowRotateZ}
-            notes={notes}
-          />
+            {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
+            <PreviewPanel
+              name={name}
+              productType={productType ?? 'box'}
+              length={length}
+              lengthUnit={lengthUnit}
+              width={width}
+              widthUnit={widthUnit}
+              height={height}
+              heightUnit={heightUnit}
+              weight={weight}
+              weightUnit={weightUnit}
+              volumeCm3={volumeCm3}
+              maxStackCount={maxStackCount ?? 1}
+              fragility={fragility ?? 0}
+              allowRotateX={allowRotateX}
+              allowRotateY={allowRotateY}
+              allowRotateZ={allowRotateZ}
+              notes={notes}
+            />
           </div>
 
           {/* Aksiyonlar — sayfa genişliği boyunca, en sağda */}
@@ -768,27 +758,12 @@ function PreviewPanel(props: PreviewPanelProps) {
         {/* Canlı veri özeti */}
         <dl className="space-y-2 text-sm">
           <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
-          <PreviewRow
-            label={t('forms.product.width')}
-            value={fmt(width, widthUnit)}
-          />
-          <PreviewRow
-            label={t('forms.product.height')}
-            value={fmt(height, heightUnit)}
-          />
-          <PreviewRow
-            label={t('forms.product.length')}
-            value={fmt(length, lengthUnit)}
-          />
-          <PreviewRow
-            label={t('forms.product.weight')}
-            value={fmt(weight, weightUnit)}
-          />
+          <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
+          <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
+          <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
+          <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
           <PreviewRow label={t('forms.product.fragility')} value={fragilityLabel} />
-          <PreviewRow
-            label={t('forms.product.layerCount')}
-            value={String(maxStackCount)}
-          />
+          <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
           <PreviewRow
             label={<Move3d className="h-4 w-4" aria-hidden />}
             value={
