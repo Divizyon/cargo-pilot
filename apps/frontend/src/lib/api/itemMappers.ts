@@ -108,6 +108,12 @@ export const itemApiResponseSchema = z.object({
 
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
+function fromCategory(category: number): 'box' | 'barrel' | 'pallet' {
+  if (category === ITEM_CATEGORY.Pallet) return 'pallet';
+  if (category === ITEM_CATEGORY.Box) return 'box';
+  return 'barrel';
+}
+
 function fromAllowedRotations(v: number): {
   allowRotateX: boolean;
   allowRotateY: boolean;
@@ -125,6 +131,7 @@ export function fromApiItem(api: ItemApi): Item {
     id: api.id,
     name: api.name,
     sku: api.sku,
+    productType: fromCategory(api.category),
     width: api.width,
     height: api.height,
     length: api.length,
@@ -132,6 +139,7 @@ export function fromApiItem(api: ItemApi): Item {
     fragility: api.fragilityType,
     isStackable: api.isStackable,
     maxStackCount: api.maxStackCount,
+    maxWeightOnTop: api.maxWeightOnTop ?? null,
     ...fromAllowedRotations(api.allowedRotations),
   };
 }
@@ -140,6 +148,7 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
   return {
     name: item.name,
     sku: item.sku,
+    productType: item.productType,
     width: item.width,
     widthUnit: 'cm',
     height: item.height,

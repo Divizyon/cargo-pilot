@@ -1,5 +1,14 @@
 import { useCallback, useState } from 'react';
-import { ChevronDown, Download, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import {
+  Box,
+  ChevronDown,
+  Cylinder,
+  Download,
+  Package,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +32,12 @@ import {
 } from '@/lib/utils/calcVolume';
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from './SearchInput';
+
+const PRODUCT_TYPE_ICON = {
+  box: { Icon: Box, label: 'Koli' },
+  barrel: { Icon: Cylinder, label: 'Varil' },
+  pallet: { Icon: Package, label: 'Palet' },
+} as const;
 
 // ─── Text highlight (AC3) ─────────────────────────────────────────────────────
 
@@ -55,7 +70,19 @@ function HighlightText({ text, query }: HighlightTextProps) {
 
 // ─── Skeleton rows ────────────────────────────────────────────────────────────
 
-const SKELETON_COL_WIDTHS = ['w-44', 'w-24', 'w-52', 'w-24', 'w-20', 'w-20', 'w-28', 'w-20'];
+const SKELETON_COL_WIDTHS = [
+  'w-44',
+  'w-16',
+  'w-24',
+  'w-16',
+  'w-16',
+  'w-16',
+  'w-24',
+  'w-20',
+  'w-20',
+  'w-28',
+  'w-20',
+];
 
 function ProductTableSkeleton() {
   return (
@@ -71,36 +98,42 @@ function ProductTableSkeleton() {
       </TableHeader>
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
-          <TableRow key={i} className="hover:bg-transparent">
-            <TableCell>
-              <Skeleton className="h-4 w-36" />
+          <TableRow key={i} className="h-12 hover:bg-transparent">
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-36" />
             </TableCell>
-            <TableCell>
-              <Skeleton className="h-4 w-20" />
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-12" />
             </TableCell>
-            <TableCell>
-              <Skeleton className="h-4 w-40" />
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-20" />
             </TableCell>
-            <TableCell>
-              <Skeleton className="h-4 w-16" />
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell>
-              <Skeleton className="h-4 w-14" />
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell>
-              <Skeleton className="h-4 w-12" />
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-16" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
               <div className="flex gap-1">
-                <Skeleton className="h-6 w-6 rounded-md" />
-                <Skeleton className="h-6 w-6 rounded-md" />
+                <Skeleton className="h-5 w-5 rounded-md" />
+                <Skeleton className="h-5 w-5 rounded-md" />
               </div>
             </TableCell>
-            <TableCell>
-              <div className="flex gap-1">
-                <Skeleton className="h-7 w-7 rounded-lg" />
-                <Skeleton className="h-7 w-7 rounded-lg" />
-              </div>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-6 w-6 rounded-lg" />
             </TableCell>
           </TableRow>
         ))}
@@ -115,61 +148,98 @@ interface ProductRowProps {
   item: Item;
   unit: DimensionUnit;
   searchTerm: string;
-  onEdit?: (item: Item) => void;
+  onRowClick?: (item: Item) => void;
   onDelete?: (item: Item) => void;
 }
 
-function ProductRow({ item, unit, searchTerm, onEdit, onDelete }: ProductRowProps) {
+function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
-  const dimStr = [
-    formatDimension(item.length, unit),
-    formatDimension(item.width, unit),
-    formatDimension(item.height, unit),
-  ].join(' × ');
+  const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
+
+  const cell = 'py-0 px-3';
 
   return (
-    <TableRow>
-      {/* Ürün adı — highlight (AC3) */}
-      <TableCell className="max-w-[176px]">
-        <span className="block truncate text-sm text-muted-foreground" title={item.name}>
+    <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
+      {/* Ürün adı */}
+      <TableCell className={cn(cell, 'max-w-[176px]')}>
+        <span className="block truncate text-xs text-muted-foreground" title={item.name}>
           <HighlightText text={item.name} query={searchTerm} />
         </span>
       </TableCell>
 
-      {/* SKU — highlight (AC3) */}
-      <TableCell>
+      {/* Tip */}
+      <TableCell className={cell}>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <TypeIcon className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+          <span className="text-xs">{typeLabel}</span>
+        </div>
+      </TableCell>
+
+      {/* SKU */}
+      <TableCell className={cell}>
         <span className="font-mono text-xs text-muted-foreground">
           <HighlightText text={item.sku} query={searchTerm} />
         </span>
       </TableCell>
 
-      {/* Boyutlar L × G × Y + unit badge (AC4) */}
-      <TableCell>
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-xs text-foreground">{dimStr}</span>
-          <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+      {/* Genişlik */}
+      <TableCell className={cell}>
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-xs text-foreground">
+            {formatDimension(item.width, unit)}
+          </span>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
             {unit}
           </Badge>
         </div>
       </TableCell>
 
-      {/* Hacim — auto-calculated, updates with unit (AC2) */}
-      <TableCell>
-        <span className="text-xs font-medium text-foreground">{formatVolume(volume, unit)}</span>
+      {/* Yükseklik */}
+      <TableCell className={cell}>
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-xs text-foreground">
+            {formatDimension(item.height, unit)}
+          </span>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
+            {unit}
+          </Badge>
+        </div>
+      </TableCell>
+
+      {/* Uzunluk */}
+      <TableCell className={cell}>
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-xs text-foreground">
+            {formatDimension(item.length, unit)}
+          </span>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
+            {unit}
+          </Badge>
+        </div>
+      </TableCell>
+
+      {/* Hacim */}
+      <TableCell className={cell}>
+        <span className="text-xs text-foreground">{formatVolume(volume, unit)}</span>
       </TableCell>
 
       {/* Ağırlık */}
-      <TableCell>
+      <TableCell className={cell}>
         <span className="text-xs text-foreground">{item.weight} kg</span>
       </TableCell>
 
-      {/* Maks. istif */}
-      <TableCell>
-        <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
+      {/* Katman Sayısı */}
+      <TableCell className={cell}>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
+          {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
+            <span className="text-[10px] text-muted-foreground">maks {item.maxWeightOnTop} kg</span>
+          )}
+        </div>
       </TableCell>
 
-      {/* Kısıtlar (AC1) */}
-      <TableCell>
+      {/* Kısıtlar */}
+      <TableCell className={cell}>
         <ConstraintIcons
           fragility={item.fragility}
           isStackable={item.isStackable}
@@ -179,28 +249,20 @@ function ProductRow({ item, unit, searchTerm, onEdit, onDelete }: ProductRowProp
         />
       </TableCell>
 
-      {/* İşlemler — far right, after constraints (AC5) */}
-      <TableCell>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Düzenle"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={() => onEdit?.(item)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Sil"
-            className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-destructive"
-            onClick={() => onDelete?.(item)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+      {/* İşlem */}
+      <TableCell className={cell}>
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Sil"
+          className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete?.(item);
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
       </TableCell>
     </TableRow>
   );
@@ -209,19 +271,29 @@ function ProductRow({ item, unit, searchTerm, onEdit, onDelete }: ProductRowProp
 // ─── ProductTable ─────────────────────────────────────────────────────────────
 
 interface ProductTableProps {
-  onEdit?: (item: Item) => void;
+  onRowClick?: (item: Item) => void;
   onCreateClick?: () => void;
 }
 
-type CategoryFilter = 'all' | 'koli' | 'varil';
+type CategoryFilter = 'all' | 'koli' | 'varil' | 'palet';
 
 const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'Tümü' },
   { value: 'koli', label: 'Koli' },
   { value: 'varil', label: 'Varil' },
+  { value: 'palet', label: 'Palet' },
 ];
 
-export function ProductTable({ onEdit, onCreateClick }: ProductTableProps) {
+const CATEGORY_TO_PRODUCT_TYPE: Record<
+  Exclude<CategoryFilter, 'all'>,
+  'box' | 'barrel' | 'pallet'
+> = {
+  koli: 'box',
+  varil: 'barrel',
+  palet: 'pallet',
+};
+
+export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
   const unit: DimensionUnit = 'cm';
@@ -243,9 +315,14 @@ export function ProductTable({ onEdit, onCreateClick }: ProductTableProps) {
     [deleteItem],
   );
 
+  const filteredItems =
+    category === 'all'
+      ? items
+      : items?.filter((item) => item.productType === CATEGORY_TO_PRODUCT_TYPE[category]);
+
   const showSkeleton = isLoading || isFetching;
-  const isEmpty = !showSkeleton && items?.length === 0 && !searchTerm;
-  const noResults = !showSkeleton && items?.length === 0 && Boolean(searchTerm);
+  const isEmpty = !showSkeleton && filteredItems?.length === 0 && !searchTerm;
+  const noResults = !showSkeleton && filteredItems?.length === 0 && Boolean(searchTerm);
 
   return (
     <div className="flex flex-col gap-4">
@@ -315,31 +392,40 @@ export function ProductTable({ onEdit, onCreateClick }: ProductTableProps) {
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
-          <Table className="min-w-[860px]">
+          <Table className="min-w-[1100px]">
             <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-44 text-[10px] font-semibold uppercase tracking-widest">
+              <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün
                 </TableHead>
-                <TableHead className="w-24 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Tip
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   SKU
                 </TableHead>
-                <TableHead className="w-52 text-[10px] font-semibold uppercase tracking-widest">
-                  Boyutlar (L × G × Y)
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Genişlik
                 </TableHead>
-                <TableHead className="w-24 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Yükseklik
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Uzunluk
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim
                 </TableHead>
-                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ağırlık
                 </TableHead>
-                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">
-                  Maks. İstif
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Katman Sayısı
                 </TableHead>
-                <TableHead className="w-32 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Kısıtlar
                 </TableHead>
-                <TableHead className="w-20 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-16 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   İşlem
                 </TableHead>
               </TableRow>
@@ -348,20 +434,20 @@ export function ProductTable({ onEdit, onCreateClick }: ProductTableProps) {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={8}
+                    colSpan={11}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     Henüz ürün eklenmemiş.
                   </TableCell>
                 </TableRow>
               )}
-              {items?.map((item) => (
+              {filteredItems?.map((item) => (
                 <ProductRow
                   key={item.id}
                   item={item}
                   unit={unit}
                   searchTerm={searchTerm}
-                  onEdit={onEdit}
+                  onRowClick={onRowClick}
                   onDelete={handleDelete}
                 />
               ))}

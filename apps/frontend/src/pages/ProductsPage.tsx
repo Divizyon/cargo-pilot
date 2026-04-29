@@ -5,8 +5,8 @@ import type { Item } from '@/lib/types/item';
 export function ProductsPage() {
   const navigate = useNavigate();
 
-  function handleEdit(item: Item) {
-    navigate(`/products/${item.id}/edit`);
+  function handleRowClick(item: Item) {
+    navigate(`/products/${item.id}`);
   }
 
   return (
@@ -18,7 +18,7 @@ export function ProductsPage() {
         </p>
       </div>
 
-      <ProductTable onEdit={handleEdit} onCreateClick={() => navigate('/products/new')} />
+      <ProductTable onRowClick={handleRowClick} onCreateClick={() => navigate('/products/new')} />
     </div>
   );
 }
