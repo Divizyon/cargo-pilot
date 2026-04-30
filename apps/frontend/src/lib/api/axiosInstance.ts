@@ -36,14 +36,6 @@ const axiosInstance = axios.create({
   },
 });
 
-axiosInstance.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 const AUTH_PASSTHROUGH_URLS = [
   '/api/v1/auth/login',
   '/api/v1/auth/logout',
@@ -52,6 +44,18 @@ const AUTH_PASSTHROUGH_URLS = [
   '/api/v1/auth/forgot-password',
   '/api/v1/auth/reset-password',
 ];
+
+axiosInstance.interceptors.request.use((config) => {
+  const { accessToken, updateActivity } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+    const isPassthrough = AUTH_PASSTHROUGH_URLS.some((u) => config.url?.includes(u));
+    if (!isPassthrough) {
+      updateActivity();
+    }
+  }
+  return config;
+});
 
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -89,6 +93,7 @@ axiosInstance.interceptors.response.use(
       } catch (refreshError: unknown) {
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
+        sessionStorage.setItem('logout_reason', 'token_expired');
         window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       } finally {
