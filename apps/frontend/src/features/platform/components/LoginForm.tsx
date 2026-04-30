@@ -79,14 +79,18 @@ export function LoginForm() {
       return;
     }
     const minutes = getLockedMinutesRemaining(loginError);
-    setSecondsLeft(minutes * 60);
-    const id = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev === null || prev <= 1) return 0;
-        return prev - 1;
-      });
-    }, 1000);
+    const expiresAt = Date.now() + minutes * 60 * 1000;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+      setSecondsLeft(remaining > 0 ? remaining : null);
+    };
+
+    const initId = window.setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+
     return () => {
+      window.clearTimeout(initId);
       clearInterval(id);
       setSecondsLeft(null);
     };
