@@ -1,9 +1,9 @@
 // src/features/platform/components/LoginForm.tsx
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +18,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { USER_ROLES, useAuthStore } from '@/lib/store/useAuthStore';
-import { useLogin, isLoginNotFound } from '@/lib/api/useAuth';
+import {
+  useLogin,
+  isLoginNotFound,
+  isAccountLocked,
+  getLockedMinutesRemaining,
+} from '@/lib/api/useAuth';
 import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
 import { loginSchema } from '@/features/platform/schemas/loginSchema';
 import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
@@ -62,11 +67,41 @@ export function LoginForm() {
   const navigate = useNavigate();
   const { mutate: login, isPending, error: loginError } = useLogin();
 
-  // AC4: hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
+  // Hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
   const accountNotFound = loginError != null && isLoginNotFound(loginError);
-  // AC3: yanlış şifre/e-posta — 401 ama "not found" değilse inline banner göster
+  // Yanlış şifre/e-posta — 401 ama "not found" veya "locked" değilse inline banner göster
+  const accountLocked = loginError != null && isAccountLocked(loginError);
   const wrongCredentials =
-    loginError != null && !isLoginNotFound(loginError) && loginError.response?.status === 401;
+    loginError != null &&
+    !isLoginNotFound(loginError) &&
+    !accountLocked &&
+    loginError.response?.status === 401;
+
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!accountLocked || loginError == null) {
+      return;
+    }
+    const minutes = getLockedMinutesRemaining(loginError);
+    const expiresAt = Date.now() + minutes * 60 * 1000;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+      setSecondsLeft(remaining > 0 ? remaining : null);
+    };
+
+    const initId = window.setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+
+    return () => {
+      window.clearTimeout(initId);
+      clearInterval(id);
+      setSecondsLeft(null);
+    };
+  }, [accountLocked, loginError]);
+
+  const isLocked = accountLocked && secondsLeft !== null && secondsLeft > 0;
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -111,7 +146,19 @@ export function LoginForm() {
 
       <Form {...form}>
         <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-4" noValidate>
-          {/* AC4: Hesap bulunamadı inline banner */}
+          {/* AC2: Hesap kilitli inline banner + geri sayım */}
+          {isLocked && secondsLeft !== null && (
+            <div className="flex items-start gap-2 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-700 dark:text-orange-400">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Hesabınız güvenlik nedeniyle geçici olarak kilitlenmiştir.{' '}
+                <span className="font-semibold tabular-nums">{formatCountdown(secondsLeft)}</span>{' '}
+                sonra tekrar deneyiniz.
+              </span>
+            </div>
+          )}
+
+          {/* Hesap bulunamadı inline banner */}
           {accountNotFound && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -212,7 +259,7 @@ export function LoginForm() {
           />
 
           {/* Giriş Yap */}
-          <Button type="submit" disabled={isPending} size="lg" className="w-full">
+          <Button type="submit" disabled={isPending || isLocked} size="lg" className="w-full">
             {isPending ? (
               <>
                 <Loader2 className="animate-spin" />
@@ -275,6 +322,12 @@ export function LoginForm() {
       {import.meta.env.DEV && <DevBypass />}
     </div>
   );
+}
+
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 function DevBypass() {
