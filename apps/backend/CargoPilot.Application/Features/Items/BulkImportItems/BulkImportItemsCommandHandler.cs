@@ -334,6 +334,58 @@ public sealed class BulkImportItemsCommandHandler
         return false;
     }
 
+    // Türkçe karşılıklar — büyük/küçük harf duyarsız
+    private static readonly Dictionary<string, FragilityType> FragilityTypeAliases =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Kırılmaz",       FragilityType.NonFragile },
+            { "Kirilmaz",       FragilityType.NonFragile },
+            { "Kırılgan",       FragilityType.Fragile },
+            { "Kirilgan",       FragilityType.Fragile },
+            { "Sıvı Kimyasal",  FragilityType.LiquidChemical },
+            { "Sivi Kimyasal",  FragilityType.LiquidChemical },
+            { "Kimyasal",       FragilityType.LiquidChemical },
+            { "Yanıcı",         FragilityType.Flammable },
+            { "Yanici",         FragilityType.Flammable },
+            { "Oksitleyici",    FragilityType.Oxidizing },
+        };
+
+    private static readonly Dictionary<string, ItemCategory> ItemCategoryAliases =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Paket",  ItemCategory.Package },
+            { "Palet",  ItemCategory.Pallet },
+            { "Kutu",   ItemCategory.Box },
+        };
+
+    private static readonly Dictionary<string, AllowedRotations> AllowedRotationsAliases =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Tümü",       AllowedRotations.All },
+            { "Hepsi",      AllowedRotations.All },
+            { "Tumu",       AllowedRotations.All },
+            { "Dikey Yok",  AllowedRotations.NoVertical },
+            { "Sabit",      AllowedRotations.Fixed },
+        };
+
+    private static bool TryParseEnumAlias<T>(string raw, out T result) where T : struct, Enum
+    {
+        if (typeof(T) == typeof(FragilityType) &&
+            FragilityTypeAliases.TryGetValue(raw, out var ft))
+        { result = (T)(object)ft; return true; }
+
+        if (typeof(T) == typeof(ItemCategory) &&
+            ItemCategoryAliases.TryGetValue(raw, out var ic))
+        { result = (T)(object)ic; return true; }
+
+        if (typeof(T) == typeof(AllowedRotations) &&
+            AllowedRotationsAliases.TryGetValue(raw, out var ar))
+        { result = (T)(object)ar; return true; }
+
+        result = default;
+        return false;
+    }
+
     private static T ParseEnum<T>(
         IXLWorksheet ws, int row, Dictionary<string, int> idx,
         string field, List<string> errors, string displayName) where T : struct, Enum
@@ -341,6 +393,7 @@ public sealed class BulkImportItemsCommandHandler
         var raw = GetCell(ws, row, idx, field);
         if (raw is null) { errors.Add($"{displayName} zorunludur"); return default; }
         if (Enum.TryParse<T>(raw, ignoreCase: true, out var value)) return value;
+        if (TryParseEnumAlias<T>(raw, out var alias)) return alias;
         if (int.TryParse(raw, out var intVal) && Enum.IsDefined(typeof(T), intVal))
             return (T)(object)intVal;
         errors.Add($"{displayName} geçersiz değer: '{raw}'");
@@ -354,6 +407,7 @@ public sealed class BulkImportItemsCommandHandler
         var raw = GetCell(ws, row, idx, field);
         if (raw is null) return null;
         if (Enum.TryParse<T>(raw, ignoreCase: true, out var value)) return value;
+        if (TryParseEnumAlias<T>(raw, out var alias)) return alias;
         if (int.TryParse(raw, out var intVal) && Enum.IsDefined(typeof(T), intVal))
             return (T)(object)intVal;
         errors.Add($"{displayName} geçersiz değer: '{raw}'");
