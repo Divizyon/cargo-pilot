@@ -1,16 +1,6 @@
-/**
- * BoxWrapper — Tekil kutu render'ları için zorunlu soyutlama.
- *
- * Backend'in Sol-Alt-Arka (LBR) pivot'unu Three.js'in merkez pivot'una
- * dönüştürür (cx = positionX + width/2, vb.). Tüm tekil `<mesh>` kutu
- * render'ları bu bileşen üzerinden yapılmalıdır.
- *
- * KULLANMA: 50+ kutu senaryosu — performans için `InstancedMesh`
- * kullanılmalıdır. BoxWrapper her kutu için ayrı `<mesh>` yaratır ve
- * bu ölçekte draw-call sayısı patlar.
- *
- * Bkz. apps/frontend/.claude/CLAUDE.md → "3D Sahne: R3F ve Three.js Standartları"
- */
+import { useMemo, useEffect } from 'react';
+import * as THREE from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
 
 interface BoxWrapperProps {
   width: number;
@@ -22,7 +12,11 @@ interface BoxWrapperProps {
   color?: string;
   opacity?: number;
   onClick?: (id: string) => void;
+  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
   itemId?: string;
+  isSelected?: boolean;
+  isHidden?: boolean;
+  isGhosted?: boolean;
 }
 
 export function BoxWrapper({
@@ -35,22 +29,63 @@ export function BoxWrapper({
   color = '#2563EB',
   opacity = 0.85,
   onClick,
+  onPointerDown,
   itemId,
+  isSelected = false,
+  isHidden = false,
+  isGhosted = false,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
   const cz = positionZ + depth / 2;
 
+  const edgesGeo = useMemo(() => {
+    const box = new THREE.BoxGeometry(width, height, depth);
+    const edges = new THREE.EdgesGeometry(box);
+    box.dispose();
+    return edges;
+  }, [width, height, depth]);
+
+  useEffect(
+    () => () => {
+      edgesGeo.dispose();
+    },
+    [edgesGeo],
+  );
+
+  if (isHidden) return null;
+
   return (
-    <mesh
+    <group
       position={[cx, cy, cz]}
       onClick={(e) => {
         e.stopPropagation();
         if (itemId !== undefined) onClick?.(itemId);
       }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onPointerDown?.(e);
+      }}
     >
-      <boxGeometry args={[width, height, depth]} />
-      <meshStandardMaterial color={color} transparent opacity={opacity} />
-    </mesh>
+      {!isGhosted && (
+        <mesh>
+          <boxGeometry args={[width, height, depth]} />
+          <meshStandardMaterial
+            color={color}
+            transparent
+            opacity={isSelected ? 0.95 : opacity}
+            emissive={isSelected ? color : '#000000'}
+            emissiveIntensity={isSelected ? 0.25 : 0}
+          />
+        </mesh>
+      )}
+      <lineSegments geometry={edgesGeo}>
+        <lineBasicMaterial
+          color={isGhosted ? '#94a3b8' : isSelected ? color : '#000000'}
+          transparent={isGhosted}
+          opacity={isGhosted ? 0.4 : 1}
+        />
+      </lineSegments>
+    </group>
   );
 }

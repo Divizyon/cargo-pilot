@@ -34,9 +34,9 @@ import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from './SearchInput';
 
 const PRODUCT_TYPE_ICON = {
-  box: { Icon: Box, label: 'Koli' },
-  barrel: { Icon: Cylinder, label: 'Varil' },
-  pallet: { Icon: Package, label: 'Palet' },
+  koli: { Icon: Box, label: 'Koli' },
+  varil: { Icon: Cylinder, label: 'Varil' },
+  palet: { Icon: Package, label: 'Palet' },
 } as const;
 
 // ─── Text highlight (AC3) ─────────────────────────────────────────────────────
@@ -286,11 +286,11 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<
   Exclude<CategoryFilter, 'all'>,
-  'box' | 'barrel' | 'pallet'
+  'koli' | 'varil' | 'palet'
 > = {
-  koli: 'box',
-  varil: 'barrel',
-  palet: 'pallet',
+  koli: 'koli',
+  varil: 'varil',
+  palet: 'palet',
 };
 
 export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {

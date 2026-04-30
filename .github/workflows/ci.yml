@@ -97,27 +97,27 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@v4
 
-      - name: Docker Buildx kur
-        uses: docker/setup-buildx-action@v3
-
       - name: Backend Docker image build
-        uses: docker/build-push-action@v5
-        with:
-          context: ./apps/backend
-          file: ./apps/backend/Dockerfile
-          push: false
-          tags: cargo-pilot-backend:ci
-          cache-from: type=gha,scope=backend-ci
-          cache-to: type=gha,mode=max,scope=backend-ci
+        run: |
+          for attempt in 1 2 3; do
+            echo "==> Backend build, deneme $attempt/3"
+            if docker build -t cargo-pilot-backend:ci ./apps/backend/; then
+              echo "Build başarılı"; break
+            fi
+            [ $attempt -lt 3 ] && { echo "Başarısız, 20s bekleniyor..."; sleep 20; } \
+              || { echo "3 denemede build başarısız"; exit 1; }
+          done
 
       - name: Frontend Docker image build
-        uses: docker/build-push-action@v5
-        with:
-          context: ./apps/frontend
-          file: ./apps/frontend/Dockerfile
-          push: false
-          tags: cargo-pilot-frontend:ci
-          build-args: |
-            VITE_API_BASE_URL=http://localhost:8080/api/v1
-          cache-from: type=gha,scope=frontend-ci
-          cache-to: type=gha,mode=max,scope=frontend-ci
+        run: |
+          for attempt in 1 2 3; do
+            echo "==> Frontend build, deneme $attempt/3"
+            if docker build \
+              --build-arg VITE_API_BASE_URL=http://localhost:8080/api/v1 \
+              -t cargo-pilot-frontend:ci \
+              ./apps/frontend/; then
+              echo "Build başarılı"; break
+            fi
+            [ $attempt -lt 3 ] && { echo "Başarısız, 20s bekleniyor..."; sleep 20; } \
+              || { echo "3 denemede build başarısız"; exit 1; }
+          done
