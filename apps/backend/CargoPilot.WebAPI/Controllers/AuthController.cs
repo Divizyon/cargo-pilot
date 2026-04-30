@@ -6,6 +6,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CargoPilot.WebAPI.Controllers;
 
@@ -18,16 +19,22 @@ public sealed class AuthController : BaseController
 {
     private readonly IMediator _mediator;
     private readonly IAuthService _authService;
-    private readonly IValidator<LoginRequest> _validator;
+    private readonly IValidator<LoginRequest> _loginValidator;
+    private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
+    private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
 
     public AuthController(
         IMediator mediator,
         IAuthService authService,
-        IValidator<LoginRequest> validator)
+        IValidator<LoginRequest> loginValidator,
+        IValidator<RequestPasswordResetRequest> requestResetValidator,
+        IValidator<ResetPasswordRequest> resetPasswordValidator)
     {
         _mediator = mediator;
         _authService = authService;
-        _validator = validator;
+        _loginValidator = loginValidator;
+        _requestResetValidator = requestResetValidator;
+        _resetPasswordValidator = resetPasswordValidator;
     }
 
     /// <summary>
@@ -42,6 +49,7 @@ public sealed class AuthController : BaseController
     /// <response code="409">Bu e-posta adresi zaten kayıtlı.</response>
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("register")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -65,6 +73,7 @@ public sealed class AuthController : BaseController
     /// <response code="401">Email veya şifre hatalı / hesap kilitli.</response>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
@@ -72,7 +81,7 @@ public sealed class AuthController : BaseController
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
     {
-        var validation = await _validator.ValidateAsync(request, cancellationToken);
+        var validation = await _loginValidator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
         {
             var validationError = new Error(
@@ -114,6 +123,69 @@ public sealed class AuthController : BaseController
         if (result.IsSuccess)
             SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
 
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Şifre sıfırlama e-postası gönderir. Hesap enumeration saldırılarını önlemek için
+    /// e-posta kayıtlı olsun ya da olmasın aynı yanıt döner.
+    /// </summary>
+    /// <response code="200">İstek alındı; e-posta kayıtlıysa sıfırlama bağlantısı gönderildi.</response>
+    /// <response code="400">E-posta formatı geçersiz.</response>
+    [HttpPost("request-password-reset")]
+    [AllowAnonymous]
+    [EnableRateLimiting("password-reset")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RequestPasswordReset(
+        [FromBody] RequestPasswordResetRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validation = await _requestResetValidator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            var validationError = new Error(
+                ErrorType.Validation,
+                "VALIDATION_FAILED",
+                string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
+
+            return HandleResult(Result<bool>.Failure(validationError));
+        }
+
+        var result = await _authService.RequestPasswordResetAsync(request.Email, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Şifre sıfırlama tokenı ile yeni şifre belirler. Başarı durumunda tüm aktif oturumlar iptal edilir.
+    /// </summary>
+    /// <response code="200">Şifre başarıyla güncellendi.</response>
+    /// <response code="400">Doğrulama hatası (eksik alan, şifre kuralı ihlali vb.).</response>
+    /// <response code="401">Token geçersiz veya süresi dolmuş.</response>
+    /// <response code="422">Daha önce kullanılmış bir şifre girildi.</response>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("password-reset")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validation = await _resetPasswordValidator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            var validationError = new Error(
+                ErrorType.Validation,
+                "VALIDATION_FAILED",
+                string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
+
+            return HandleResult(Result<bool>.Failure(validationError));
+        }
+
+        var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword, cancellationToken);
         return HandleResult(result);
     }
 

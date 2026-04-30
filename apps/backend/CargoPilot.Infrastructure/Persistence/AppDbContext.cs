@@ -17,6 +17,8 @@ public class AppDbContext : DbContext {
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<UserLogin> UserLogins => Set<UserLogin>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<UserPasswordHistory> UserPasswordHistory => Set<UserPasswordHistory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
@@ -35,6 +37,8 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new AppUserConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
         modelBuilder.ApplyConfiguration(new UserLoginConfiguration());
+        modelBuilder.ApplyConfiguration(new PasswordResetTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new UserPasswordHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
     }
