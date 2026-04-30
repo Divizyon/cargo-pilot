@@ -25,6 +25,10 @@ services:
       Jwt__Secret: ${JWT_SECRET}
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Resend__ApiKey: ${RESEND_API_KEY:-}
+      Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
+      Resend__FromName: ${RESEND_FROM_NAME:-}
+      Resend__PasswordResetFrontendUrl: ${PASSWORD_RESET_FRONTEND_URL:-}
     ports:
       - "${BACKEND_PORT}:8080"
     depends_on:
