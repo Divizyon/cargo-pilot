@@ -108,10 +108,10 @@ export const itemApiResponseSchema = z.object({
 
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
-function fromCategory(category: number): 'box' | 'barrel' | 'pallet' {
-  if (category === ITEM_CATEGORY.Pallet) return 'pallet';
-  if (category === ITEM_CATEGORY.Box) return 'box';
-  return 'barrel';
+function fromCategory(category: number): 'koli' | 'varil' | 'palet' {
+  if (category === ITEM_CATEGORY.Pallet) return 'palet';
+  if (category === ITEM_CATEGORY.Box) return 'koli';
+  return 'varil';
 }
 
 function fromAllowedRotations(v: number): {
@@ -141,14 +141,26 @@ export function fromApiItem(api: ItemApi): Item {
     maxStackCount: api.maxStackCount,
     maxWeightOnTop: api.maxWeightOnTop ?? null,
     ...fromAllowedRotations(api.allowedRotations),
+    allowFaceBottom: true,
+    allowFaceTop: true,
+    allowFaceFront: true,
+    allowFaceBack: true,
+    allowFaceLeft: true,
+    allowFaceRight: true,
   };
+}
+
+function toProductType(pt: 'koli' | 'varil' | 'palet'): 'box' | 'barrel' | 'pallet' {
+  if (pt === 'palet') return 'pallet';
+  if (pt === 'varil') return 'barrel';
+  return 'box';
 }
 
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
   return {
     name: item.name,
     sku: item.sku,
-    productType: item.productType,
+    productType: toProductType(item.productType),
     width: item.width,
     widthUnit: 'cm',
     height: item.height,

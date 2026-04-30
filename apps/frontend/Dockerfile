@@ -2,7 +2,7 @@ FROM node:20-slim AS deps
 WORKDIR /app
 RUN npm install -g npm@11.6.1
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts --no-audit --no-fund
 
 FROM node:20-slim AS build
 WORKDIR /app

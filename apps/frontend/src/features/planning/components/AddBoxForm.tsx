@@ -175,6 +175,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       weight: data.weight,
       isStackable: data.isStackable,
       maxStackCount: data.maxStackCount ?? 1,
+      maxWeightOnTop: null,
       fragility: data.fragility as 0 | 1 | 2,
       allowRotateX: data.allowRotateX,
       allowRotateY: data.allowRotateY,

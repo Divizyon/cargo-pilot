@@ -154,6 +154,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
       weight: data.weight,
       isStackable: !data.isNotStackable,
       maxStackCount: data.isNotStackable ? 1 : 3,
+      maxWeightOnTop: null,
       fragility: data.isFragile ? 1 : 0,
       allowRotateX: !data.isNotRotatable,
       allowRotateY: !data.isNotRotatable,

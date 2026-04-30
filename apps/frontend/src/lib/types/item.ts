@@ -13,7 +13,7 @@ export const itemSchema = z.object({
   name: z.string().min(1),
   sku: z.string(),
 
-  productType: z.enum(['box', 'barrel', 'pallet']).default('box'),
+  productType: z.enum(['koli', 'varil', 'palet']).default('koli'),
   width: z.number().positive(),
   height: z.number().positive(),
   length: z.number().positive(),
