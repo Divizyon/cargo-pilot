@@ -11,7 +11,6 @@ using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CargoPilot.Infrastructure.Auth;
@@ -26,12 +25,6 @@ internal sealed class AuthService : IAuthService
         BCrypt.Net.BCrypt.HashPassword("__timing_protection__", workFactor: 11);
 #pragma warning restore S2068
 
-    private static readonly Action<ILogger, Guid, string, Exception?> _logResetLink =
-        LoggerMessage.Define<Guid, string>(
-            LogLevel.Information,
-            new EventId(1, "PasswordResetLinkGenerated"),
-            "Şifre sıfırlama linki üretildi. UserId={UserId} Link={ResetLink}");
-
     private readonly AppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
@@ -41,7 +34,6 @@ internal sealed class AuthService : IAuthService
     private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
     private readonly IEmailService _emailService;
     private readonly PasswordResetSettings _passwordResetSettings;
-    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         AppDbContext context,
@@ -52,8 +44,7 @@ internal sealed class AuthService : IAuthService
         IPasswordResetTokenRepository resetTokenRepository,
         IUserPasswordHistoryRepository passwordHistoryRepository,
         IEmailService emailService,
-        IOptions<PasswordResetSettings> passwordResetSettings,
-        ILogger<AuthService> logger)
+        IOptions<PasswordResetSettings> passwordResetSettings)
     {
         _context = context;
         _passwordHasher = passwordHasher;
@@ -64,7 +55,6 @@ internal sealed class AuthService : IAuthService
         _passwordHistoryRepository = passwordHistoryRepository;
         _emailService = emailService;
         _passwordResetSettings = passwordResetSettings.Value;
-        _logger = logger;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
@@ -204,8 +194,6 @@ internal sealed class AuthService : IAuthService
 
         var resetLink = $"{_passwordResetSettings.FrontendResetUrl}?token={rawToken}";
 
-        _logResetLink(_logger, user.Id, resetLink, null);
-
         await _emailService.SendPasswordResetEmailAsync(
             user.Email,
             $"{user.FirstName} {user.LastName}",
@@ -222,12 +210,12 @@ internal sealed class AuthService : IAuthService
     {
         var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
-        var resetToken = await _resetTokenRepository.GetActiveByTokenHashAsync(tokenHash, cancellationToken);
-
-        if (resetToken is null || resetToken.ExpiresAt <= DateTime.UtcNow)
+        var now = DateTime.UtcNow;
+        var userId = await _resetTokenRepository.TryConsumeActiveTokenAsync(tokenHash, now, cancellationToken);
+        if (userId is null)
             return Result<bool>.Failure(AuthErrors.InvalidResetToken);
 
-        var user = await _userRepository.GetByIdAsync(resetToken.UserId, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
         if (user is null)
             return Result<bool>.Failure(AuthErrors.InvalidResetToken);
 
@@ -250,7 +238,6 @@ internal sealed class AuthService : IAuthService
         }
 
         user.SetPassword(_passwordHasher.HashPassword(newPassword));
-        resetToken.MarkAsUsed();
 
         // Tüm aktif oturumları iptal et (AC4)
         var activeSessions = await _context.UserSessions

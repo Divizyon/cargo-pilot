@@ -11,11 +11,23 @@ internal sealed class PasswordResetTokenRepository : IPasswordResetTokenReposito
         _dbContext = dbContext;
     }
 
-    public Task<PasswordResetToken?> GetActiveByTokenHashAsync(
+    public async Task<Guid?> TryConsumeActiveTokenAsync(
         string tokenHash,
+        DateTime utcNow,
         CancellationToken cancellationToken = default) {
-        return _dbContext.PasswordResetTokens
-            .FirstOrDefaultAsync(t => t.TokenHash == tokenHash && !t.IsUsed, cancellationToken);
+        var candidate = await _dbContext.PasswordResetTokens
+            .Where(t => t.TokenHash == tokenHash && !t.IsUsed && t.ExpiresAt > utcNow)
+            .Select(t => new { t.Id, t.UserId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (candidate is null)
+            return null;
+
+        var affectedRows = await _dbContext.PasswordResetTokens
+            .Where(t => t.Id == candidate.Id && !t.IsUsed && t.ExpiresAt > utcNow)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsUsed, true), cancellationToken);
+
+        return affectedRows == 1 ? candidate.UserId : null;
     }
 
     public async Task InvalidateAllForUserAsync(
