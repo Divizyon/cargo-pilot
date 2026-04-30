@@ -10,6 +10,7 @@ import type { RegisterFormValues } from '@/features/platform/schemas/registerSch
 
 const AUTH_ENDPOINTS = {
   login: '/api/v1/auth/login',
+  logout: '/api/v1/auth/logout',
   register: '/api/v1/auth/register',
   refresh: '/api/v1/auth/refresh',
   forgotPassword: '/api/v1/auth/forgot-password',
@@ -82,6 +83,19 @@ export function isLoginNotFound(error: AxiosError<LoginErrorBody>): boolean {
   return /not.?found|user.?not.?exist/i.test(code);
 }
 
+/** Hesap kilitliyse true döner (AUTH_ACCOUNT_LOCKED kodu). */
+export function isAccountLocked(error: AxiosError<LoginErrorBody>): boolean {
+  if (error.response?.status !== 401) return false;
+  return error.response?.data?.error?.code === 'AUTH_ACCOUNT_LOCKED';
+}
+
+/** Kilitli hesabın kalan süresini dakika cinsinden döner; description'dan parse edilir. */
+export function getLockedMinutesRemaining(error: AxiosError<LoginErrorBody>): number {
+  const description = error.response?.data?.error?.description ?? '';
+  const match = description.match(/(\d+) dakika/);
+  return match ? parseInt(match[1], 10) : 2;
+}
+
 /** AC5: 409 → e-posta zaten kullanılıyor; component inline banner gösterir. */
 export function isEmailDuplicate(error: AxiosError<RegisterErrorBody>): boolean {
   return error.response?.status === 409;
@@ -105,6 +119,24 @@ export function isResetTokenInvalid(error: AxiosError<ResetPasswordErrorBody>): 
 }
 
 // --- Hooks ---
+
+export function useLogout() {
+  const navigate = useNavigate();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AxiosError>({
+    mutationFn: () =>
+      axiosInstance
+        .post<void>(AUTH_ENDPOINTS.logout, {}, { withCredentials: true })
+        .then((r) => r.data),
+    onSettled: () => {
+      clearAuth();
+      queryClient.clear();
+      navigate('/auth/login', { replace: true });
+    },
+  });
+}
 
 export function useLogin() {
   const navigate = useNavigate();
