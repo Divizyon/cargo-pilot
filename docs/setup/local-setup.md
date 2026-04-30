@@ -13,8 +13,9 @@ Projeyi local ortamda çalıştırmadan önce aşağıdaki araçların makinede 
 - Git
 - Docker
 - Docker Compose
-- Node.js (frontend tarafında local geliştirme yapılacaksa)
+- Node.js + npm (frontend tarafında local geliştirme yapılacaksa)
 - .NET SDK (backend tarafında container dışı geliştirme yapılacaksa)
+- [GitHub CLI (`gh`)](https://cli.github.com/) — PR açmak ve CI takibi için önerilir
 
 > Not: Docker tabanlı akış tercih edildiği için temel çalışma modeli container üzerinden ilerler.
 
@@ -62,6 +63,10 @@ cp infra/env/.env.test.example infra/env/.env.test
 
 Gerekli alanlar ekipte belirlenen değerlere göre güncellenmelidir.
 
+> **Not:** `<CHANGE_ME_...>` ile işaretlenmiş alanlar gerçek değerlerle değiştirilmelidir.
+> Gerçek secret değerleri için ekip liderinden ya da sunucudaki `.env.test` dosyasından alınabilir.
+> Secret yönetimi için bkz. [Secret Yönetimi](../devops/secret-management.md).
+
 ---
 
 ## 4. Projeyi Ayağa Kaldırma
@@ -96,6 +101,15 @@ docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.en
 Eğer proje kökünde compose dosyası varsa doğrudan `docker compose up -d` yeterlidir.
 
 > Not: Compose dosyalarının güncel konumu için `infra/compose/` klasörünü kontrol edin.
+
+> **GHCR Image Notu:** Docker Compose, image'ları GHCR'dan çeker:
+> `ghcr.io/divizyon/cargo-pilot-backend:test` ve `ghcr.io/divizyon/cargo-pilot-frontend:test`.
+> Image'ları çekebilmek için önce GHCR'a giriş yapılmalıdır:
+> ```bash
+> echo "<GHCR_PAT>" | docker login ghcr.io -u <github-kullanici-adi> --password-stdin
+> ```
+> `<GHCR_PAT>`: `read:packages` scope'una sahip GitHub classic PAT.
+> Local build için `docker compose ... up --build -d` kullanılabilir (bkz. Bölüm 7).
 
 Container'ların durumunu kontrol etmek için:
 
@@ -241,14 +255,14 @@ Aşağıdakiler kontrol edilmelidir:
 Local geliştirme sırasında önerilen temel akış:
 
 1. `git fetch origin` ile remote güncellenir
-2. `git checkout -b feature/US-XXX-description origin/main` ile yeni branch açılır
+2. `git checkout --no-track -b feature/US-XXX-description origin/dev` ile yeni branch açılır
 3. Gerekli geliştirme yapılır
 4. Local ortamda test edilir
 5. Gerekirse migration / seed uygulanır
 6. Commit atılır
-7. `git pull origin main` ile son değişiklikler alınır
+7. `git pull origin dev` ile son değişiklikler alınır
 8. `git push origin feature/US-XXX-description` ile push yapılır
-9. Pull Request açılır
+9. Pull Request açılır (önce `dev` hedefli, ardından `test` hedefli)
 
 Branch ve commit kuralları için ilgili dokümanlara bakılmalıdır.
 
@@ -258,3 +272,5 @@ Branch ve commit kuralları için ilgili dokümanlara bakılmalıdır.
 
 * [Branching Strategy](../conventions/BRANCHING.md) — Branch yönetimi ve PR kuralları
 * [Commit Kuralları](../conventions/COMMITS.md) — Commit yazım kuralları
+* [Secret Yönetimi](../devops/secret-management.md) — Ortam değişkenleri ve gizli anahtarlar
+* [Bilinen Sorunlar](../devops/known-issues.md) — Açık sorunlar ve geçici çözümler
