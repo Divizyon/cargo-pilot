@@ -254,7 +254,8 @@ public sealed class BulkImportItemsCommandHandler
             {
                 var header = worksheet.Cell(row, col).GetString()?.Trim();
                 if (string.IsNullOrWhiteSpace(header)) continue;
-                if (ColumnMap.TryGetValue(header, out var fieldName))
+                // ToLowerInvariant: Türkçe "İ" (U+0130) → "i" dönüşümünü doğru yapar
+                if (ColumnMap.TryGetValue(header.ToLowerInvariant(), out var fieldName))
                     index.TryAdd(fieldName, col);
             }
 
