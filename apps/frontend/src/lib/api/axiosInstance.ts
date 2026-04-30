@@ -41,7 +41,7 @@ const AUTH_PASSTHROUGH_URLS = [
   '/api/v1/auth/logout',
   '/api/v1/auth/register',
   '/api/v1/auth/refresh',
-  '/api/v1/auth/forgot-password',
+  '/api/v1/auth/request-password-reset',
   '/api/v1/auth/reset-password',
 ];
 
