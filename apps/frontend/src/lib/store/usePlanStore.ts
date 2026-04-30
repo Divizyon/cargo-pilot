@@ -163,7 +163,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
         const entry = s.selectedItems.find((si) => si.item.id === itemId);
         if (!entry) continue;
         const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-        rebuilt = [...rebuilt, ...buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt)];
+        rebuilt = [
+          ...rebuilt,
+          ...buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt),
+        ];
       }
       return { selectedVehicle: vehicle, placements: computeViolations(rebuilt) };
     }),
@@ -177,7 +180,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   addManualItem: (item, qty, color) =>
     set((s) => {
-      if (!s.selectedVehicle) return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
+      if (!s.selectedVehicle)
+        return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
       const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, s.placements);
       const next = [...s.placements, ...newBoxes];
@@ -227,7 +231,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const newBoxes = buildPlacements(entry.item, entry.quantity, color, s.selectedVehicle, s.placements);
+      const newBoxes = buildPlacements(
+        entry.item,
+        entry.quantity,
+        color,
+        s.selectedVehicle,
+        s.placements,
+      );
       const next = [...s.placements, ...newBoxes];
       return { placements: computeViolations(next) };
     }),

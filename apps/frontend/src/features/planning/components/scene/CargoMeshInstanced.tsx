@@ -146,7 +146,6 @@ function InstancedBoxes() {
     dragState,
   ]);
 
-
   const selectedPlacements = useMemo(
     () =>
       placements
@@ -189,12 +188,15 @@ function InstancedBoxes() {
       </instancedMesh>
 
       {/* Ghost wireframe mesh — grup dışı kutular sadece çerçeve olarak görünür */}
-      <instancedMesh
-        ref={ghostWireRef}
-        args={[undefined, undefined, placements.length]}
-      >
+      <instancedMesh ref={ghostWireRef} args={[undefined, undefined, placements.length]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="#94a3b8" wireframe transparent opacity={0.35} depthWrite={false} />
+        <meshBasicMaterial
+          color="#94a3b8"
+          wireframe
+          transparent
+          opacity={0.35}
+          depthWrite={false}
+        />
       </instancedMesh>
 
       {/* Violation wireframe — xRayMode'da ihlaller her zaman görünür */}
