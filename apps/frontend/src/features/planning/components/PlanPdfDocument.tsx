@@ -177,16 +177,31 @@ export function PlanPdfDocument({
               <Text style={[styles.tableCell, { width: '34%' }]}>Ürün Adı</Text>
               <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>Adet</Text>
               <Text style={[styles.tableCell, { width: '24%' }]}>Boyutlar (cm)</Text>
-              <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>Ağırlık (kg)</Text>
+              <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
+                Ağırlık (kg)
+              </Text>
               <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>İhlal</Text>
             </View>
             {groupedRows.map((row, idx) => (
-              <View key={idx} style={[styles.tableRow, { backgroundColor: idx % 2 === 1 ? '#f9fafb' : '#ffffff' }]}>
+              <View
+                key={idx}
+                style={[
+                  styles.tableRow,
+                  { backgroundColor: idx % 2 === 1 ? '#f9fafb' : '#ffffff' },
+                ]}
+              >
                 <Text style={[styles.tableCell, { width: '34%' }]}>{row.name}</Text>
-                <Text style={[styles.tableCell, { width: '12%', textAlign: 'center', fontWeight: 'bold' }]}>
+                <Text
+                  style={[
+                    styles.tableCell,
+                    { width: '12%', textAlign: 'center', fontWeight: 'bold' },
+                  ]}
+                >
                   {row.count}
                 </Text>
-                <Text style={[styles.tableCell, { width: '24%', color: '#6b7280' }]}>{row.dims}</Text>
+                <Text style={[styles.tableCell, { width: '24%', color: '#6b7280' }]}>
+                  {row.dims}
+                </Text>
                 <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
                   {(row.weight * row.count).toFixed(1)}
                 </Text>
