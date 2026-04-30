@@ -10,7 +10,9 @@ public interface IItemRepository
     Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, CancellationToken cancellationToken = default);
     Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default);
     Task<PagedResult<Item>> SearchAsync(string? searchTerm, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, Item>> GetItemsBySkusAsync(IEnumerable<string> skus, CancellationToken cancellationToken = default);
     void Add(Item item);
+    void AddRange(IEnumerable<Item> items);
     void Update(Item item);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

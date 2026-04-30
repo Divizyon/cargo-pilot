@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Items.BulkImportItems;
 using CargoPilot.Application.Features.Items.CreateItem;
 using CargoPilot.Application.Features.Items.DeleteItem;
 using CargoPilot.Application.Features.Items.GetItemById;
@@ -101,6 +102,32 @@ public sealed class ItemsController : BaseController
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new DeleteItemCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Excel (.xlsx) dosyasından toplu ürün içe aktarır.
+    /// </summary>
+    /// <param name="file">.xlsx formatında ürün listesi dosyası.</param>
+    /// <param name="updateExisting">true ise mevcut SKU'lar güncellenir; false ise atlanır (varsayılan: false).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">İçe aktarma tamamlandı; başarı ve hata detayları döner.</response>
+    /// <response code="400">Dosya .xlsx değil veya zorunlu kolonlar eksik.</response>
+    [HttpPost("bulk-import")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(BulkImportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkImport(
+        IFormFile file,
+        [FromQuery] bool updateExisting = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || !file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Yalnızca .xlsx uzantılı dosyalar kabul edilmektedir.");
+
+        await using var stream = file.OpenReadStream();
+        var command = new BulkImportItemsCommand(stream, updateExisting);
+        var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
 

@@ -63,9 +63,25 @@ internal sealed class ItemRepository : IItemRepository
         return new PagedResult<Item>(items, totalCount, page, pageSize);
     }
 
+    public async Task<Dictionary<string, Item>> GetItemsBySkusAsync(
+        IEnumerable<string> skus,
+        CancellationToken cancellationToken = default)
+    {
+        var skuList = skus.ToList();
+        var items = await _dbContext.Items
+            .Where(i => skuList.Contains(i.SKU))
+            .ToListAsync(cancellationToken);
+        return items.ToDictionary(i => i.SKU, StringComparer.OrdinalIgnoreCase);
+    }
+
     public void Add(Item item)
     {
         _dbContext.Items.Add(item);
+    }
+
+    public void AddRange(IEnumerable<Item> items)
+    {
+        _dbContext.Items.AddRange(items);
     }
 
     public void Update(Item item)
