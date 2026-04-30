@@ -116,6 +116,7 @@ public sealed class ItemsController : BaseController
     [HttpPost("bulk-import")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(BulkImportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BulkImportResultDto), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> BulkImport(
         IFormFile file,
@@ -128,7 +129,16 @@ public sealed class ItemsController : BaseController
         await using var stream = file.OpenReadStream();
         var command = new BulkImportItemsCommand(stream, updateExisting);
         var result = await _mediator.Send(command, cancellationToken);
-        return HandleResult(result);
+
+        if (!result.IsSuccess)
+            return HandleResult(result);
+
+        var dto = result.Data!;
+
+        if (dto.SuccessCount == 0 && dto.ErrorCount > 0)
+            return UnprocessableEntity(result);   // 422 — hiçbir satır kaydedilemedi
+
+        return Ok(result);   // 200 — tam veya kısmi başarı
     }
 
     /// <summary>
