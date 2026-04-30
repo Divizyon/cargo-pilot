@@ -16,12 +16,10 @@ namespace CargoPilot.WebAPI.Controllers;
 [Route("api/v1/items")]
 [Tags("Items")]
 [Authorize]
-public sealed class ItemsController : BaseController
-{
+public sealed class ItemsController : BaseController {
     private readonly IMediator _mediator;
 
-    public ItemsController(IMediator mediator)
-    {
+    public ItemsController(IMediator mediator) {
         _mediator = mediator;
     }
 
@@ -41,8 +39,7 @@ public sealed class ItemsController : BaseController
         [FromQuery] string? searchTerm,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         var query = new SearchItemsQuery(searchTerm, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
@@ -60,8 +57,7 @@ public sealed class ItemsController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         var result = await _mediator.Send(new GetItemByIdQuery(id), cancellationToken);
         return HandleResult(result);
     }
@@ -78,8 +74,7 @@ public sealed class ItemsController : BaseController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateItem(
         [FromBody] CreateItemCommand command,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
@@ -99,8 +94,7 @@ public sealed class ItemsController : BaseController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteItem(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var result = await _mediator.Send(new DeleteItemCommand(id), cancellationToken);
         return HandleResult(result);
     }
@@ -121,8 +115,7 @@ public sealed class ItemsController : BaseController
     public async Task<IActionResult> BulkImport(
         IFormFile file,
         [FromQuery] bool updateExisting = false,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         if (file is null || !file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
             return BadRequest("Yalnızca .xlsx uzantılı dosyalar kabul edilmektedir.");
 
@@ -159,8 +152,7 @@ public sealed class ItemsController : BaseController
     public async Task<IActionResult> UpdateItem(
         Guid id,
         [FromBody] UpdateItemCommand command,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var commandWithId = command with { Id = id };
         var result = await _mediator.Send(commandWithId, cancellationToken);
         return HandleResult(result);
