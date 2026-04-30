@@ -9,6 +9,7 @@ import {
   DatabaseZap,
   LayoutDashboard,
   Link2,
+  Loader2,
   LogOut,
   Package,
   Plus,
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { useLogout } from '@/lib/api/useAuth';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -125,7 +127,7 @@ function getInitials(name: string): string {
 function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
   return (
     <aside
@@ -231,14 +233,19 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={clearAuth}
+            onClick={() => logout()}
+            disabled={isLoggingOut}
             title="Çıkış Yap"
             className={cn(
               'h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground',
               isCollapsed && 'lg:hidden',
             )}
           >
-            <LogOut className="h-3.5 w-3.5" />
+            {isLoggingOut ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogOut className="h-3.5 w-3.5" />
+            )}
           </Button>
         </div>
       </div>
