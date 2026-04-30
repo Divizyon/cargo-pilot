@@ -27,11 +27,33 @@ const ALL_INDICES: readonly OrientationIndex[] = [0, 1, 2, 3, 4, 5] as const;
 
 type RotateConstraints = Pick<Item, 'allowRotateX' | 'allowRotateZ'>;
 
-export function isOrientationAllowed(item: RotateConstraints, idx: OrientationIndex): boolean {
+// allowFace* alanları opsiyonel — mevcut eski item'larda olmayabilir, yoksa true kabul edilir.
+type FaceConstraints = {
+  allowFaceBottom?: boolean;
+  allowFaceTop?: boolean;
+  allowFaceFront?: boolean;
+  allowFaceBack?: boolean;
+  allowFaceLeft?: boolean;
+  allowFaceRight?: boolean;
+};
+
+const FACE_KEYS: readonly (keyof FaceConstraints)[] = [
+  'allowFaceBottom',
+  'allowFaceTop',
+  'allowFaceFront',
+  'allowFaceBack',
+  'allowFaceLeft',
+  'allowFaceRight',
+] as const;
+
+export function isOrientationAllowed(
+  item: RotateConstraints & FaceConstraints,
+  idx: OrientationIndex,
+): boolean {
   const def = BOX_ORIENTATIONS[idx];
-  if (def.requiredAxis === null) return true;
-  if (def.requiredAxis === 'x') return item.allowRotateX;
-  return item.allowRotateZ;
+  if (def.requiredAxis === 'x' && !item.allowRotateX) return false;
+  if (def.requiredAxis === 'z' && !item.allowRotateZ) return false;
+  return item[FACE_KEYS[idx]] !== false;
 }
 
 export function allowedOrientations(item: RotateConstraints): OrientationIndex[] {

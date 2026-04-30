@@ -4,8 +4,13 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
 import { computeViolations } from '@/lib/utils/geometry';
-import { rotatedDimensions, type OrientationIndex } from '@/lib/utils/boxOrientations';
+import {
+  rotatedDimensions,
+  isOrientationAllowed,
+  type OrientationIndex,
+} from '@/lib/utils/boxOrientations';
 import { applyContainerOverflow } from '@/lib/utils/checkOrientationFit';
+import { useUIStore } from '@/lib/store/useUIStore';
 
 export function assignSkuColor(
   sku: string,
@@ -18,6 +23,23 @@ export function assignSkuColor(
     palette.find((c) => !usedColors.has(c)) ??
     palette[Object.keys(currentMap).length % palette.length];
   return { ...currentMap, [sku]: nextColor };
+}
+
+function applySurfaceViolations(
+  placements: PlacementWithDimensions[],
+  items: Array<{ item: Item; quantity: number }>,
+): { result: PlacementWithDimensions[]; violatingNames: string[] } {
+  const violatingNames: string[] = [];
+  const result = placements.map((p) => {
+    const entry = items.find((si) => si.item.id === p.itemId);
+    if (!entry) return p;
+    if (!isOrientationAllowed(entry.item, p.orientationIndex as OrientationIndex)) {
+      if (!p.isViolation) violatingNames.push(entry.item.name);
+      return { ...p, isViolation: true };
+    }
+    return p;
+  });
+  return { result, violatingNames };
 }
 
 function buildPlacements(
@@ -208,10 +230,21 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const otherPlacements = s.placements.filter((p) => p.itemId !== itemId);
       const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, otherPlacements);
       const next = [...otherPlacements, ...newBoxes];
+      const withCollisions = computeViolations(next);
+      const { result: withSurface, violatingNames } = applySurfaceViolations(
+        withCollisions,
+        updatedItems,
+      );
+      if (violatingNames.length > 0) {
+        useUIStore.getState().addNotification({
+          variant: 'warning',
+          message: `${violatingNames[0]} için yüzey kısıtı ihlali: izin verilmeyen yüzey üzerinde.`,
+        });
+      }
       return {
         selectedItems: updatedItems,
         skuColorMap: updatedColorMap,
-        placements: computeViolations(next),
+        placements: withSurface,
       };
     }),
 

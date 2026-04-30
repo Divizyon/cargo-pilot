@@ -158,6 +158,12 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
       allowRotateX: !data.isNotRotatable,
       allowRotateY: !data.isNotRotatable,
       allowRotateZ: !data.isNotRotatable,
+      allowFaceBottom: true,
+      allowFaceTop: !data.isNotRotatable,
+      allowFaceFront: !data.isNotRotatable,
+      allowFaceBack: !data.isNotRotatable,
+      allowFaceLeft: !data.isNotRotatable,
+      allowFaceRight: !data.isNotRotatable,
     };
 
     if (isEditing) {

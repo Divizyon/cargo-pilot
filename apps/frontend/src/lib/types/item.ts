@@ -24,6 +24,13 @@ export const itemSchema = z.object({
   allowRotateX: z.boolean().default(true),
   allowRotateY: z.boolean().default(true),
   allowRotateZ: z.boolean().default(true),
+  // Hangi yüz altta olabilir (idx 0–5 → BOX_ORIENTATIONS sırası)
+  allowFaceBottom: z.boolean().default(true),
+  allowFaceTop: z.boolean().default(true),
+  allowFaceFront: z.boolean().default(true),
+  allowFaceBack: z.boolean().default(true),
+  allowFaceLeft: z.boolean().default(true),
+  allowFaceRight: z.boolean().default(true),
 });
 
 export type Item = z.infer<typeof itemSchema>;

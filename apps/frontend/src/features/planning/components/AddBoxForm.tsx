@@ -36,6 +36,12 @@ const addBoxSchema = z
     allowRotateX: z.boolean(),
     allowRotateY: z.boolean(),
     allowRotateZ: z.boolean(),
+    allowFaceBottom: z.boolean(),
+    allowFaceTop: z.boolean(),
+    allowFaceFront: z.boolean(),
+    allowFaceBack: z.boolean(),
+    allowFaceLeft: z.boolean(),
+    allowFaceRight: z.boolean(),
     color: z.string(),
   })
   .refine((d) => !d.isStackable || (d.maxStackCount !== undefined && d.maxStackCount >= 1), {
@@ -52,6 +58,15 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   varil: 'Varil',
   palet: 'Palet',
 };
+
+const FACE_FIELDS = [
+  { key: 'allowFaceBottom' as const, label: 'Alt' },
+  { key: 'allowFaceTop' as const, label: 'Üst' },
+  { key: 'allowFaceFront' as const, label: 'Ön' },
+  { key: 'allowFaceBack' as const, label: 'Arka' },
+  { key: 'allowFaceLeft' as const, label: 'Sol' },
+  { key: 'allowFaceRight' as const, label: 'Sağ' },
+];
 
 const FRAGILITY_LABELS: Record<string, string> = {
   '0': 'Normal',
@@ -107,6 +122,12 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         allowRotateX: editTarget.item.allowRotateX,
         allowRotateY: editTarget.item.allowRotateY,
         allowRotateZ: editTarget.item.allowRotateZ,
+        allowFaceBottom: editTarget.item.allowFaceBottom,
+        allowFaceTop: editTarget.item.allowFaceTop,
+        allowFaceFront: editTarget.item.allowFaceFront,
+        allowFaceBack: editTarget.item.allowFaceBack,
+        allowFaceLeft: editTarget.item.allowFaceLeft,
+        allowFaceRight: editTarget.item.allowFaceRight,
         color: initialColor,
       }
     : {};
@@ -127,6 +148,12 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       allowRotateX: true,
       allowRotateY: true,
       allowRotateZ: true,
+      allowFaceBottom: true,
+      allowFaceTop: true,
+      allowFaceFront: true,
+      allowFaceBack: true,
+      allowFaceLeft: true,
+      allowFaceRight: true,
       color: initialColor,
       ...editDefaults,
     },
@@ -152,6 +179,12 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       allowRotateX: data.allowRotateX,
       allowRotateY: data.allowRotateY,
       allowRotateZ: data.allowRotateZ,
+      allowFaceBottom: data.allowFaceBottom,
+      allowFaceTop: data.allowFaceTop,
+      allowFaceFront: data.allowFaceFront,
+      allowFaceBack: data.allowFaceBack,
+      allowFaceLeft: data.allowFaceLeft,
+      allowFaceRight: data.allowFaceRight,
     };
 
     if (isEditing) {
@@ -393,6 +426,34 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
               />
             );
           })}
+        </div>
+      </div>
+
+      {/* Yüzey Kısıtları */}
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs text-zinc-500">Desteklenebilir Yüzey</Label>
+        <div className="grid grid-cols-3 gap-1">
+          {FACE_FIELDS.map(({ key, label }) => (
+            <Controller
+              key={key}
+              name={key}
+              control={control}
+              render={({ field }) => (
+                <button
+                  type="button"
+                  onClick={() => field.onChange(!field.value)}
+                  className={cn(
+                    'h-6 rounded text-xs font-medium transition-colors border',
+                    field.value
+                      ? 'bg-zinc-900 text-white border-zinc-900'
+                      : 'bg-white text-zinc-400 border-zinc-200',
+                  )}
+                >
+                  {label}
+                </button>
+              )}
+            />
+          ))}
         </div>
       </div>
 
