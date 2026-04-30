@@ -94,7 +94,10 @@ export function NewPlanPage() {
           )}
         >
           <div className="h-full bg-white border-l border-zinc-200 shadow-[-4px_0_20px_rgba(0,0,0,0.07)]">
-            <PlanRightPanel onClose={() => setRightOpen(false)} />
+            <PlanRightPanel
+              onClose={() => setRightOpen(false)}
+              getSnapshot={() => snapshotRef.current?.() ?? ''}
+            />
           </div>
         </div>
 

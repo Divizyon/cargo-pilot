@@ -62,10 +62,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tableRow: {
-    margin: 'auto',
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    width: '100%',
   },
   tableHeader: {
     backgroundColor: '#f3f4f6',
@@ -120,6 +120,31 @@ export function PlanPdfDocument({
   const fillRate = calculateFillRate();
   const totalWeight = calculateTotalWeight();
 
+  // Aynı ürünleri grupla
+  const grouped = placements.reduce<
+    Map<string, { name: string; count: number; weight: number; violations: number; dims: string }>
+  >((acc, p) => {
+    const item = items.find((i) => i.id === p.itemId);
+    const key = p.itemId;
+    const existing = acc.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.weight += item?.weight ?? 0;
+      if (p.isViolation) existing.violations += 1;
+    } else {
+      acc.set(key, {
+        name: item?.name ?? '-',
+        count: 1,
+        weight: item?.weight ?? 0,
+        violations: p.isViolation ? 1 : 0,
+        dims: `${p.width}×${p.height}×${p.depth}`,
+      });
+    }
+    return acc;
+  }, new Map());
+
+  const groupedRows = Array.from(grouped.values());
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -149,36 +174,33 @@ export function PlanPdfDocument({
           <Text style={styles.sectionTitle}>Yükleme Listesi</Text>
           <View style={styles.table}>
             <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.tableCell, { flex: 2 }]}>Ürün Adı</Text>
-              <Text style={styles.tableCell}>Konum X</Text>
-              <Text style={styles.tableCell}>Konum Y</Text>
-              <Text style={styles.tableCell}>Konum Z</Text>
-              <Text style={[styles.tableCell, { flex: 1.5 }]}>Boyutlar</Text>
-              <Text style={[styles.tableCell, { flex: 1 }]}>Durum</Text>
+              <Text style={[styles.tableCell, { width: '34%' }]}>Ürün Adı</Text>
+              <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>Adet</Text>
+              <Text style={[styles.tableCell, { width: '24%' }]}>Boyutlar (cm)</Text>
+              <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>Ağırlık (kg)</Text>
+              <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>İhlal</Text>
             </View>
-            {placements.map((placement, idx) => {
-              const item = items.find((i) => i.id === placement.itemId);
-              return (
-                <View key={idx} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{item?.name ?? '-'}</Text>
-                  <Text style={styles.tableCell}>{placement.positionX}</Text>
-                  <Text style={styles.tableCell}>{placement.positionY}</Text>
-                  <Text style={styles.tableCell}>{placement.positionZ}</Text>
-                  <Text style={[styles.tableCell, { flex: 1.5 }]}>
-                    {placement.width}×{placement.height}×{placement.depth}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.tableCell,
-                      { flex: 1 },
-                      ...(placement.isViolation ? [styles.violationCell] : []),
-                    ]}
-                  >
-                    {placement.isViolation ? 'İhlal' : 'Uygun'}
-                  </Text>
-                </View>
-              );
-            })}
+            {groupedRows.map((row, idx) => (
+              <View key={idx} style={[styles.tableRow, { backgroundColor: idx % 2 === 1 ? '#f9fafb' : '#ffffff' }]}>
+                <Text style={[styles.tableCell, { width: '34%' }]}>{row.name}</Text>
+                <Text style={[styles.tableCell, { width: '12%', textAlign: 'center', fontWeight: 'bold' }]}>
+                  {row.count}
+                </Text>
+                <Text style={[styles.tableCell, { width: '24%', color: '#6b7280' }]}>{row.dims}</Text>
+                <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
+                  {(row.weight * row.count).toFixed(1)}
+                </Text>
+                <Text
+                  style={[
+                    styles.tableCell,
+                    { width: '12%', textAlign: 'center' },
+                    row.violations > 0 ? styles.violationCell : { color: '#16a34a' },
+                  ]}
+                >
+                  {row.violations > 0 ? row.violations : '—'}
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
 

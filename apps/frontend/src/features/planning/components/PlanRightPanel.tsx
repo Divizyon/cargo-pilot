@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Box, ChevronRight, Package2, Plus, Crosshair, Truck, X } from 'lucide-react';
+import { Box, ChevronRight, Download, Loader2, Package2, Plus, Crosshair, Truck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { STANDARD_VEHICLES } from '@/lib/config/vehicles';
+import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 
@@ -105,17 +106,37 @@ function VehicleDetails({ vehicle }: { vehicle: Vehicle }) {
 
 interface PlanRightPanelProps {
   onClose?: () => void;
+  getSnapshot?: () => string;
 }
 
-export function PlanRightPanel({ onClose }: PlanRightPanelProps) {
+export function PlanRightPanel({ onClose, getSnapshot }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const placements = usePlanStore((s) => s.placements);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const showCog = useSceneStore((s) => s.showCog);
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>(STANDARD_VEHICLES);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  async function handlePdfExport() {
+    try {
+      setIsPdfLoading(true);
+      const snapshotDataUrl = getSnapshot?.();
+      await exportPlanToPdf({
+        planId: crypto.randomUUID(),
+        placements,
+        items: selectedItems.map((si) => si.item),
+        vehicle: selectedVehicle,
+        snapshotDataUrl,
+      });
+    } finally {
+      setIsPdfLoading(false);
+    }
+  }
 
   function handleAddVehicle(v: Vehicle) {
     setVehicles((prev) => [...prev, v]);
@@ -216,6 +237,19 @@ export function PlanRightPanel({ onClose }: PlanRightPanelProps) {
           disabled={!selectedVehicle}
         >
           Optimizasyonu Başlat
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          disabled={isPdfLoading || placements.length === 0}
+          onClick={handlePdfExport}
+        >
+          {isPdfLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          PDF Al
         </Button>
       </div>
 
