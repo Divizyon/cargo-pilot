@@ -24,22 +24,79 @@ function buildPlacements(
   item: Item,
   qty: number,
   color: string,
-  startZ: number,
+  vehicle: Vehicle,
+  existingPlacements: PlacementWithDimensions[],
 ): PlacementWithDimensions[] {
-  return Array.from({ length: qty }, (_, i) => ({
-    itemId: item.id,
-    positionX: 0,
-    positionY: 0,
-    positionZ: startZ + i * item.length,
-    orientationIndex: 0,
-    layer: 1,
-    isViolation: false,
-    width: item.width,
-    height: item.height,
-    depth: item.length,
-    weight: item.weight,
-    color,
-  }));
+  const w = item.width;
+  const h = item.height;
+  const d = item.length;
+
+  // Start cursor after the last occupied Z in existing placements
+  let curX = 0;
+  let curY = 0;
+  let curZ =
+    existingPlacements.length > 0
+      ? Math.max(...existingPlacements.map((p) => p.positionZ + p.depth))
+      : 0;
+  let rowMaxDepth = d;
+
+  const result: PlacementWithDimensions[] = [];
+
+  for (let i = 0; i < qty; i++) {
+    // X overflow → wrap to next row
+    if (curX + w > vehicle.width) {
+      curX = 0;
+      curZ += rowMaxDepth;
+      rowMaxDepth = d;
+    }
+
+    // Z overflow → new layer (only if stackable)
+    if (curZ + d > vehicle.length) {
+      if (!item.isStackable || curY + h * 2 > vehicle.height) {
+        // No space left: mark remaining as violations placed at origin
+        result.push({
+          itemId: item.id,
+          positionX: 0,
+          positionY: 0,
+          positionZ: 0,
+          orientationIndex: 0,
+          layer: 1,
+          isViolation: true,
+          width: w,
+          height: h,
+          depth: d,
+          weight: item.weight,
+          color,
+        });
+        continue;
+      }
+      curY += h;
+      curX = 0;
+      curZ = 0;
+      rowMaxDepth = d;
+    }
+
+    rowMaxDepth = Math.max(rowMaxDepth, d);
+
+    result.push({
+      itemId: item.id,
+      positionX: curX,
+      positionY: curY,
+      positionZ: curZ,
+      orientationIndex: 0,
+      layer: Math.round(curY / h) + 1,
+      isViolation: false,
+      width: w,
+      height: h,
+      depth: d,
+      weight: item.weight,
+      color,
+    });
+
+    curX += w;
+  }
+
+  return result;
 }
 
 interface PlanStore {
@@ -95,7 +152,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
   criteria: 0,
   placements: [],
 
-  setVehicle: (vehicle) => set({ selectedVehicle: vehicle }),
+  setVehicle: (vehicle) =>
+    set((s) => {
+      if (!vehicle) return { selectedVehicle: null, placements: [] };
+      // Araç değişince tüm placed item'ları yeni araç boyutlarına göre yeniden yerleştir
+      const placedItemIds = [...new Set(s.placements.map((p) => p.itemId))];
+      if (placedItemIds.length === 0) return { selectedVehicle: vehicle };
+      let rebuilt: PlacementWithDimensions[] = [];
+      for (const itemId of placedItemIds) {
+        const entry = s.selectedItems.find((si) => si.item.id === itemId);
+        if (!entry) continue;
+        const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+        rebuilt = [
+          ...rebuilt,
+          ...buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt),
+        ];
+      }
+      return { selectedVehicle: vehicle, placements: computeViolations(rebuilt) };
+    }),
 
   initItems: (items, colorMap) => set({ selectedItems: items, skuColorMap: colorMap }),
 
@@ -106,10 +180,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   addManualItem: (item, qty, color) =>
     set((s) => {
+      if (!s.selectedVehicle)
+        return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
-      const maxZ =
-        s.placements.length > 0 ? Math.max(...s.placements.map((p) => p.positionZ + p.depth)) : 0;
-      const next = [...s.placements, ...buildPlacements(item, qty, color, maxZ)];
+      const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, s.placements);
+      const next = [...s.placements, ...newBoxes];
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],
         skuColorMap: updatedColorMap,
@@ -126,16 +201,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
         si.item.id === itemId ? { item, quantity: qty } : si,
       );
 
-      if (!hasExistingPlacements) {
+      if (!hasExistingPlacements || !s.selectedVehicle) {
         return { selectedItems: updatedItems, skuColorMap: updatedColorMap };
       }
 
       const otherPlacements = s.placements.filter((p) => p.itemId !== itemId);
-      const maxZ =
-        otherPlacements.length > 0
-          ? Math.max(...otherPlacements.map((p) => p.positionZ + p.depth))
-          : 0;
-      const next = [...otherPlacements, ...buildPlacements(item, qty, color, maxZ)];
+      const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, otherPlacements);
+      const next = [...otherPlacements, ...newBoxes];
       return {
         selectedItems: updatedItems,
         skuColorMap: updatedColorMap,
@@ -155,12 +227,18 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (alreadyPlaced) {
         return { placements: s.placements.filter((p) => p.itemId !== itemId) };
       }
+      if (!s.selectedVehicle) return {};
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const maxZ =
-        s.placements.length > 0 ? Math.max(...s.placements.map((p) => p.positionZ + p.depth)) : 0;
-      const next = [...s.placements, ...buildPlacements(entry.item, entry.quantity, color, maxZ)];
+      const newBoxes = buildPlacements(
+        entry.item,
+        entry.quantity,
+        color,
+        s.selectedVehicle,
+        s.placements,
+      );
+      const next = [...s.placements, ...newBoxes];
       return { placements: computeViolations(next) };
     }),
 

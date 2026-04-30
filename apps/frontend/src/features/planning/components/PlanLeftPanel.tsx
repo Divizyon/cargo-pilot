@@ -194,6 +194,7 @@ interface StoreItemRowProps {
   isPlaced: boolean;
   isSelected: boolean;
   isHidden: boolean;
+  canPlace: boolean;
   indent?: boolean;
   onTogglePlace: () => void;
   onSelect: () => void;
@@ -208,6 +209,7 @@ function StoreItemRow({
   isPlaced,
   isSelected,
   isHidden,
+  canPlace,
   indent = false,
   onTogglePlace,
   onSelect,
@@ -217,19 +219,25 @@ function StoreItemRow({
 }: StoreItemRowProps) {
   const { item, quantity } = storeEntry;
   const kisitlar = getConstraints(item);
+  const clickable = isPlaced || canPlace;
 
   return (
     <div
+      title={!canPlace && !isPlaced ? 'Yük eklemek için önce bir konteyner seçin' : undefined}
       className={cn(
-        'flex items-start gap-2 px-2 py-2 rounded-lg transition-colors group/item cursor-pointer',
+        'flex items-start gap-2 px-2 py-2 rounded-lg transition-colors group/item',
+        clickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
         isSelected
           ? 'bg-amber-50 ring-1 ring-amber-300'
           : isPlaced
             ? 'bg-zinc-50 hover:bg-zinc-100'
-            : 'hover:bg-zinc-50',
+            : clickable
+              ? 'hover:bg-zinc-50'
+              : '',
         indent && 'ml-5',
       )}
       onClick={() => {
+        if (!clickable) return;
         onSelect();
         if (!isPlaced) onTogglePlace();
       }}
@@ -354,6 +362,7 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
   const placements = usePlanStore((s) => s.placements);
@@ -363,10 +372,14 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
 
+  const canPlace = !!selectedVehicle;
+
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
+  const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
+  const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
 
   const placedIds = new Set(placements.map((p) => p.itemId));
 
@@ -396,8 +409,14 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
     return selectedItems.find((si) => si.item.id === id);
   }
 
-  function toggleGroup(id: string) {
-    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, acik: !g.acik } : g)));
+  function toggleGroup(groupId: string, itemIds: string[]) {
+    setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, acik: !g.acik } : g)));
+    // Aynı grup zaten fokuslanmışsa fokus kaldır, değilse bu grubu fokusla
+    const isSameFocus =
+      focusedGroupItemIds !== null &&
+      focusedGroupItemIds.length === itemIds.length &&
+      itemIds.every((id) => focusedGroupItemIds.includes(id));
+    setFocusedGroupItemIds(isSameFocus ? null : itemIds);
   }
 
   function handleDelete(itemId: string) {
@@ -465,21 +484,41 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
               .map(lookupEntry)
               .filter((e): e is { item: Item; quantity: number } => e !== undefined);
             const groupTotal = groupEntries.reduce((s, e) => s + e.quantity, 0);
+            const isFocused =
+              focusedGroupItemIds !== null &&
+              g.itemIdler.length === focusedGroupItemIds.length &&
+              g.itemIdler.every((id) => focusedGroupItemIds.includes(id));
 
             return (
               <div key={g.id} className="flex flex-col gap-0.5">
                 <button
-                  onClick={() => toggleGroup(g.id)}
-                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-zinc-50 transition-colors"
+                  onClick={() => toggleGroup(g.id, g.itemIdler)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors',
+                    isFocused
+                      ? 'bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-100'
+                      : 'hover:bg-zinc-50',
+                  )}
                 >
                   <ChevronRight
                     className={cn(
-                      'w-3.5 h-3.5 text-zinc-400 transition-transform duration-150',
+                      'w-3.5 h-3.5 transition-transform duration-150',
+                      isFocused ? 'text-amber-500' : 'text-zinc-400',
                       g.acik && 'rotate-90',
                     )}
                   />
-                  <Layers className="w-4 h-4 text-zinc-400" strokeWidth={2} />
-                  <span className="text-sm text-zinc-700 flex-1 text-left">{g.ad}</span>
+                  <Layers
+                    className={cn('w-4 h-4', isFocused ? 'text-amber-500' : 'text-zinc-400')}
+                    strokeWidth={2}
+                  />
+                  <span
+                    className={cn(
+                      'text-sm flex-1 text-left',
+                      isFocused ? 'text-amber-700 font-medium' : 'text-zinc-700',
+                    )}
+                  >
+                    {g.ad}
+                  </span>
                   <span className="text-xs text-zinc-400">{groupTotal} kalem</span>
                 </button>
 
@@ -495,6 +534,7 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                         isPlaced={placedIds.has(id)}
                         isSelected={selectedItemId === id}
                         isHidden={hiddenItemIds.includes(id)}
+                        canPlace={canPlace}
                         indent
                         onTogglePlace={() => togglePlacement(id)}
                         onSelect={() => setSelectedItemId(selectedItemId === id ? null : id)}
@@ -527,6 +567,7 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                     isPlaced={placedIds.has(id)}
                     isSelected={selectedItemId === id}
                     isHidden={hiddenItemIds.includes(id)}
+                    canPlace={canPlace}
                     onTogglePlace={() => togglePlacement(id)}
                     onSelect={() => setSelectedItemId(selectedItemId === id ? null : id)}
                     onToggleHide={() => toggleHiddenItem(id)}
@@ -554,6 +595,7 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
                   isPlaced={placedIds.has(si.item.id)}
                   isSelected={selectedItemId === si.item.id}
                   isHidden={hiddenItemIds.includes(si.item.id)}
+                  canPlace={canPlace}
                   onTogglePlace={() => togglePlacement(si.item.id)}
                   onSelect={() =>
                     setSelectedItemId(selectedItemId === si.item.id ? null : si.item.id)

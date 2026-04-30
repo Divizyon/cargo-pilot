@@ -3,16 +3,25 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 interface PositionedBox {
   positionZ: number;
   depth: number;
+  itemId: string;
 }
 
 /**
- * Ghost mode filtresi — kutunun ön yüzü (positionZ) activeLayer'dan küçükse ghost olur.
+ * Ghost mode filtresi — iki ayrı koşuldan biri ghost'u tetikler:
  *
- * AC2 (US-OPT-10): Slider sağa çekildikçe activeLayer artar; kapıya yakın (küçük Z) kutular
- * şeffaflaşır, operatör konteynerin içine "süzülür".
- * activeLayer = 0 (default) → hiçbir kutu ghost değil, hepsi normal.
+ * 1. Grup fokus: focusedGroupItemIds dolu ise, grupta olmayan kutular ghost olur.
+ * 2. Layer filtresi: activeLayer > 0 ise, positionZ < activeLayer olan kutular ghost olur.
+ *
+ * Grup fokus, layer filtresinden önce değerlendirilir.
  */
-export function isGhosted(box: PositionedBox, activeLayer: number): boolean {
+export function isGhosted(
+  box: PositionedBox,
+  activeLayer: number,
+  focusedGroupItemIds: string[] | null = null,
+): boolean {
+  if (focusedGroupItemIds !== null) {
+    return !focusedGroupItemIds.includes(box.itemId);
+  }
   if (activeLayer <= 0) return false;
   return box.positionZ < activeLayer;
 }

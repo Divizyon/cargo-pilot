@@ -67,19 +67,24 @@ export function BoxWrapper({
         onPointerDown?.(e);
       }}
     >
-      <mesh>
-        <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial
-          color={color}
-          transparent
-          opacity={isGhosted ? 0.1 : isSelected ? 0.95 : opacity}
-          depthWrite={!isGhosted}
-          emissive={isSelected ? color : '#000000'}
-          emissiveIntensity={isSelected ? 0.25 : 0}
-        />
-      </mesh>
+      {!isGhosted && (
+        <mesh>
+          <boxGeometry args={[width, height, depth]} />
+          <meshStandardMaterial
+            color={color}
+            transparent
+            opacity={isSelected ? 0.95 : opacity}
+            emissive={isSelected ? color : '#000000'}
+            emissiveIntensity={isSelected ? 0.25 : 0}
+          />
+        </mesh>
+      )}
       <lineSegments geometry={edgesGeo}>
-        <lineBasicMaterial color={isSelected ? color : '#000000'} />
+        <lineBasicMaterial
+          color={isGhosted ? '#94a3b8' : isSelected ? color : '#000000'}
+          transparent={isGhosted}
+          opacity={isGhosted ? 0.4 : 1}
+        />
       </lineSegments>
     </group>
   );
