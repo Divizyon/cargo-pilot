@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using CargoPilot.Application.Abstractions;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
@@ -27,6 +28,55 @@ public static class DependencyInjection {
         IConfiguration configuration,
         bool useInMemoryRepository = false)
     {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, ct) =>
+            {
+                context.HttpContext.Response.ContentType = "application/json";
+                await context.HttpContext.Response.WriteAsync(
+                    """{"isSuccess":false,"data":null,"error":{"code":"AUTH_RATE_LIMIT_EXCEEDED","description":"Çok fazla istek gönderildi. Lütfen bekleyin."}}""",
+                    ct);
+            };
+
+            // Login: 10 istek / 1 dk / IP
+            options.AddPolicy("login", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 10,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
+
+            // Register: 5 istek / 1 dk / IP
+            options.AddPolicy("register", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
+
+            // Password reset: 5 istek / 15 dk / IP
+            options.AddPolicy("password-reset", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(15),
+                        SegmentsPerWindow = 3,
+                        QueueLimit        = 0,
+                    }));
+        });
+
         services.AddTransient<GlobalExceptionMiddleware>();
 
         // Override Infrastructure's AnonymousCurrentUserService with the JWT-aware implementation.
@@ -123,6 +173,7 @@ public static class DependencyInjection {
 
     public static WebApplication UsePresentation(this WebApplication app)
     {
+        app.UseRateLimiter();
         app.UseMiddleware<GlobalExceptionMiddleware>();
 
         if (!app.Environment.IsProduction())

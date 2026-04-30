@@ -26,12 +26,39 @@ public static class DependencyInjection {
             .Validate(s => !string.IsNullOrWhiteSpace(s.Audience), "Jwt:Audience is required.")
             .ValidateOnStart();
 
+        services.AddOptions<ResendSettings>()
+            .Bind(configuration.GetSection("Resend"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.BaseUrl), "Resend:BaseUrl is required.")
+            .Validate(s => !string.IsNullOrWhiteSpace(s.ApiKey), "Resend:ApiKey is required.")
+            .Validate(s => !string.IsNullOrWhiteSpace(s.FromEmail), "Resend:FromEmail is required.")
+            .ValidateOnStart();
+
+        services.AddOptions<PasswordResetSettings>()
+            .Bind(configuration.GetSection("PasswordReset"))
+            .PostConfigure(settings =>
+            {
+                // Temporary backward compatibility: some deployments still provide
+                // Resend:PasswordResetFrontendUrl instead of PasswordReset:FrontendResetUrl.
+                if (string.IsNullOrWhiteSpace(settings.FrontendResetUrl))
+                {
+                    settings.FrontendResetUrl = configuration["Resend:PasswordResetFrontendUrl"] ?? string.Empty;
+                }
+            })
+            .Validate(s => !string.IsNullOrWhiteSpace(s.FrontendResetUrl), "PasswordReset:FrontendResetUrl is required.")
+            .Validate(s => s.TokenExpiryMinutes > 0, "PasswordReset:TokenExpiryMinutes must be greater than 0.")
+            .ValidateOnStart();
+
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
-
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
+        services.AddHttpClient<IEmailService, ResendEmailService>(client =>
+        {
+            // BaseAddress constructor'da options üzerinden set ediliyor.
+        });
 
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>
