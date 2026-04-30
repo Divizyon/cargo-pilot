@@ -1,10 +1,10 @@
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
-RUN npm install -g npm@11
+RUN npm install -g npm@11.6.1
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts --no-audit --no-fund
 
-FROM node:20-alpine AS build
+FROM node:20-slim AS build
 WORKDIR /app
 ARG VITE_API_BASE_URL
 ARG VITE_APP_VERSION=dev

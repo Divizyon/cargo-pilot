@@ -1,10 +1,17 @@
 import { Suspense, useEffect, type MutableRefObject } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Html, useProgress } from '@react-three/drei';
+import { Html, Stats, useProgress } from '@react-three/drei';
 import { SceneLights } from '@/features/planning/components/scene/SceneLights';
 import { SceneControls } from '@/features/planning/components/scene/SceneControls';
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
+import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
+import { CogMarker } from '@/features/planning/components/scene/CogMarker';
+import { LevelControls } from '@/features/planning/components/scene/LevelControls';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
+import { SCENE } from '@/lib/config/scene-config';
+import { usePlanStore } from '@/lib/store/usePlanStore';
+import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
+import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 
 interface PlanCanvasProps {
   className?: string;
@@ -46,22 +53,38 @@ function SnapshotBridge({
 }
 
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
+  const vehicleId = usePlanStore((s) => s.selectedVehicle?.id);
+
   return (
-    <div className={className} style={{ width: '100%', height: '100%' }}>
+    <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
-        camera={{ position: [0, 8, 14], fov: 50 }}
+        camera={{
+          position: SCENE.CAMERA_POSITION,
+          fov: SCENE.CAMERA_FOV,
+          near: SCENE.CAMERA_NEAR,
+          far: SCENE.CAMERA_FAR,
+        }}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows
         style={{ width: '100%', height: '100%' }}
       >
+        <color attach="background" args={[SCENE.BACKGROUND_COLOR]} />
+        {import.meta.env.DEV && <Stats />}
         <SceneDisposer />
         <SnapshotBridge snapshotRef={snapshotRef} />
         <Suspense fallback={<SceneLoader />}>
           <SceneLights />
           <SceneControls />
+          <ContainerMesh />
           <CargoMeshInstanced planId={planId} />
+          <CogMarker />
         </Suspense>
       </Canvas>
+      <SelectedBoxCoords />
+      <BalancePanel />
+      <div className="absolute bottom-4 left-4 pointer-events-auto">
+        <LevelControls key={vehicleId} />
+      </div>
     </div>
   );
 }
