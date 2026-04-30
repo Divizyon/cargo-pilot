@@ -71,8 +71,10 @@ export const SCENE = {
 
   CAMERA_PRESETS: {
     TOP: { dir: [0, 1, 0.001] as const, label: 'Üstten' },
-    FRONT: { dir: [0, 0.25, 1] as const, label: 'Önden' },
-    SIDE: { dir: [1, 0.25, 0] as const, label: 'Yandan' },
+    FRONT: { dir: [0, 0.25, -1] as const, label: 'Önden' },
+    BACK: { dir: [0, 0.25, 1] as const, label: 'Arkadan' },
+    SIDE_RIGHT: { dir: [1, 0.25, 0] as const, label: 'Sağ Yan' },
+    SIDE_LEFT: { dir: [-1, 0.25, 0] as const, label: 'Sol Yan' },
     ISO: { dir: [0.55, 0.5, 0.9] as const, label: 'İzometrik' },
   },
 } as const;

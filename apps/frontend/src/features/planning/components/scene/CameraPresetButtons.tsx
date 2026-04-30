@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Box, MoveRight, Square } from 'lucide-react';
+import { ArrowDownToLine, Box, MoveLeft, MoveRight, DoorOpen, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE, type CameraPreset } from '@/lib/config/scene-config';
@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 
 const PRESETS: { key: CameraPreset; icon: typeof Box }[] = [
   { key: 'TOP', icon: ArrowDownToLine },
-  { key: 'FRONT', icon: Square },
-  { key: 'SIDE', icon: MoveRight },
+  { key: 'FRONT', icon: DoorOpen },
+  { key: 'BACK', icon: Undo2 },
+  { key: 'SIDE_RIGHT', icon: MoveRight },
+  { key: 'SIDE_LEFT', icon: MoveLeft },
   { key: 'ISO', icon: Box },
 ];
 

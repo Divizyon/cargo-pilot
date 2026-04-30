@@ -15,6 +15,7 @@ interface SceneStore {
   dragLivePosition: { x: number; y: number; z: number } | null;
   showCog: boolean;
   xRayMode: boolean;
+  focusedGroupItemIds: string[] | null;
   setActiveLayer: (layer: number) => void;
   setSelectedBoxId: (id: string | null) => void;
   setSelectedItemId: (id: string | null) => void;
@@ -27,6 +28,7 @@ interface SceneStore {
   setDragLivePosition: (pos: { x: number; y: number; z: number } | null) => void;
   toggleShowCog: () => void;
   toggleXRayMode: () => void;
+  setFocusedGroupItemIds: (ids: string[] | null) => void;
   reset: () => void;
 }
 
@@ -42,6 +44,7 @@ const initialState = {
   dragLivePosition: null as { x: number; y: number; z: number } | null,
   showCog: true,
   xRayMode: false,
+  focusedGroupItemIds: null as string[] | null,
 };
 
 export const useSceneStore = create<SceneStore>((set) => ({
@@ -64,5 +67,6 @@ export const useSceneStore = create<SceneStore>((set) => ({
   setDragLivePosition: (pos) => set({ dragLivePosition: pos }),
   toggleShowCog: () => set((s) => ({ showCog: !s.showCog })),
   toggleXRayMode: () => set((s) => ({ xRayMode: !s.xRayMode })),
+  setFocusedGroupItemIds: (ids) => set({ focusedGroupItemIds: ids }),
   reset: () => set(initialState),
 }));
