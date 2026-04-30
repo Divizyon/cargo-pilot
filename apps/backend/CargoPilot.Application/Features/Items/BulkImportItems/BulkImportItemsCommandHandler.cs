@@ -64,7 +64,7 @@ public sealed class BulkImportItemsCommandHandler
         using var workbook = new XLWorkbook(request.FileStream);
         var worksheet = workbook.Worksheets.First();
 
-        var columnIndex = BuildColumnIndex(worksheet);
+        var (columnIndex, headerRow) = BuildColumnIndex(worksheet);
 
         var missingColumns = RequiredColumns
             .Where(c => !columnIndex.ContainsKey(c))
@@ -78,14 +78,15 @@ public sealed class BulkImportItemsCommandHandler
                 $"Zorunlu kolonlar eksik: {string.Join(", ", missingColumns)}"));
         }
 
-        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-        var dataRows = lastRow - 1; // başlık satırı hariç
+        var firstDataRow = headerRow + 1;
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? headerRow;
+        var dataRows = lastRow - headerRow; // başlık satırı hariç
 
         var errors = new List<RowErrorDto>();
         var itemsToAdd = new List<Item>();
 
         // Tüm SKU'ları tek sorguda çek — N+1'den kaçın
-        var rawSkus = Enumerable.Range(2, dataRows)
+        var rawSkus = Enumerable.Range(firstDataRow, Math.Max(0, lastRow - headerRow))
             .Select(r => GetCell(worksheet, r, columnIndex, "SKU")?.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s!)
@@ -96,7 +97,7 @@ public sealed class BulkImportItemsCommandHandler
         // Dosya içindeki tekrar eden SKU'ları takip et
         var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        for (var rowNumber = 2; rowNumber <= lastRow; rowNumber++)
+        for (var rowNumber = firstDataRow; rowNumber <= lastRow; rowNumber++)
         {
             var rowErrors = new List<string>();
 
@@ -238,20 +239,30 @@ public sealed class BulkImportItemsCommandHandler
             Errors: errors));
     }
 
-    private static Dictionary<string, int> BuildColumnIndex(IXLWorksheet worksheet)
+    // İlk 5 satırı tarayarak "SKU" kolonunu içeren başlık satırını bulur.
+    // Böylece açıklama satırı olan şablonlar da sorunsuz çalışır.
+    private static (Dictionary<string, int> Index, int HeaderRow) BuildColumnIndex(IXLWorksheet worksheet)
     {
-        var index = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var lastCol = worksheet.LastColumnUsed()?.ColumnNumber() ?? 0;
+        var scanLimit = Math.Min(5, worksheet.LastRowUsed()?.RowNumber() ?? 1);
 
-        for (var col = 1; col <= lastCol; col++)
+        for (var row = 1; row <= scanLimit; row++)
         {
-            var header = worksheet.Cell(1, col).GetString()?.Trim();
-            if (string.IsNullOrWhiteSpace(header)) continue;
-            if (ColumnMap.TryGetValue(header, out var fieldName))
-                index.TryAdd(fieldName, col);
+            var index = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            for (var col = 1; col <= lastCol; col++)
+            {
+                var header = worksheet.Cell(row, col).GetString()?.Trim();
+                if (string.IsNullOrWhiteSpace(header)) continue;
+                if (ColumnMap.TryGetValue(header, out var fieldName))
+                    index.TryAdd(fieldName, col);
+            }
+
+            if (index.ContainsKey("SKU"))
+                return (index, row);
         }
 
-        return index;
+        return (new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase), 1);
     }
 
     private static string? GetCell(
