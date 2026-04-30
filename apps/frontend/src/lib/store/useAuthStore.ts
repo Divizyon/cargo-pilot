@@ -21,9 +21,11 @@ interface AuthStore {
   accessToken: string | null;
   isAuthenticated: boolean;
   role: UserRole | null;
+  lastActivityAt: number | null;
   setAuth: (user: AuthUser, accessToken: string) => void;
   setAccessToken: (token: string) => void;
   clearAuth: () => void;
+  updateActivity: () => void;
   logout: (queryClient: QueryClient) => void;
 }
 
@@ -32,10 +34,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   accessToken: null,
   isAuthenticated: false,
   role: null,
+  lastActivityAt: null,
   setAuth: (user, accessToken) =>
-    set({ user, accessToken, isAuthenticated: true, role: user.role }),
+    set({ user, accessToken, isAuthenticated: true, role: user.role, lastActivityAt: Date.now() }),
   setAccessToken: (accessToken) => set({ accessToken }),
-  clearAuth: () => set({ user: null, accessToken: null, isAuthenticated: false, role: null }),
+  clearAuth: () =>
+    set({
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+      role: null,
+      lastActivityAt: null,
+    }),
+  updateActivity: () => set({ lastActivityAt: Date.now() }),
   logout: (queryClient) => {
     get().clearAuth();
     queryClient.clear();

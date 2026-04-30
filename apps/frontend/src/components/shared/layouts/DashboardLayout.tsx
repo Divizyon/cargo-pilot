@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useLogout } from '@/lib/api/useAuth';
+import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
+import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -258,6 +260,7 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
+  const { showWarning, countdown, extendSession } = useSessionTimeout();
 
   useEffect(() => {
     function syncCollapse() {
@@ -295,6 +298,8 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      <SessionTimeoutDialog open={showWarning} countdown={countdown} onExtend={extendSession} />
     </div>
   );
 }
