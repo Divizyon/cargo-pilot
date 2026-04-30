@@ -9,11 +9,11 @@ import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
 
 const AUTH_ENDPOINTS = {
-  login: '/api/auth/login',
-  register: '/api/auth/register',
-  refresh: '/api/auth/refresh',
-  forgotPassword: '/api/auth/forgot-password',
-  resetPassword: '/api/auth/reset-password',
+  login: '/api/v1/auth/login',
+  register: '/api/v1/auth/register',
+  refresh: '/api/v1/auth/refresh',
+  forgotPassword: '/api/v1/auth/forgot-password',
+  resetPassword: '/api/v1/auth/reset-password',
 } as const;
 
 // --- Login types (Result<T> wrapper) ---

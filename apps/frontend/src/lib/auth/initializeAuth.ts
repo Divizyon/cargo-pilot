@@ -11,7 +11,7 @@ interface RefreshResponse {
 export async function initializeAuth(): Promise<void> {
   try {
     const { data } = await axios.post<RefreshResponse>(
-      `${API_BASE_URL}/api/auth/refresh`,
+      `${API_BASE_URL}/api/v1/auth/refresh`,
       {},
       { withCredentials: true },
     );
