@@ -3,7 +3,17 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  Loader2,
+  AlertCircle,
+  ShieldAlert,
+  TimerOff,
+  ShieldOff,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -66,6 +76,13 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { mutate: login, isPending, error: loginError } = useLogin();
+
+  const [logoutReason] = useState<'idle' | 'token_expired' | null>(() => {
+    const reason = sessionStorage.getItem('logout_reason');
+    sessionStorage.removeItem('logout_reason');
+    if (reason === 'idle' || reason === 'token_expired') return reason;
+    return null;
+  });
 
   // Hesap bulunamadı tespiti — backend "not found" kodu dönerse inline banner göster
   const accountNotFound = loginError != null && isLoginNotFound(loginError);
@@ -146,6 +163,22 @@ export function LoginForm() {
 
       <Form {...form}>
         <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-4" noValidate>
+          {/* US-AUTH-07: Hareketsizlik nedeniyle oturum sonlandı */}
+          {logoutReason === 'idle' && (
+            <div className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-700 dark:text-blue-400">
+              <TimerOff className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Hareketsizlik nedeniyle oturumunuz sonlandırılmıştır.</span>
+            </div>
+          )}
+
+          {/* US-AUTH-08: Token süresi doldu veya geçersiz token */}
+          {logoutReason === 'token_expired' && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+              <ShieldOff className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Oturumunuz sona ermiştir. Lütfen tekrar giriş yapın.</span>
+            </div>
+          )}
+
           {/* AC2: Hesap kilitli inline banner + geri sayım */}
           {isLocked && secondsLeft !== null && (
             <div className="flex items-start gap-2 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-700 dark:text-orange-400">
