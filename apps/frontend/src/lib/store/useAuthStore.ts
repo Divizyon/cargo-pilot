@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { QueryClient } from '@tanstack/react-query';
 
 export const USER_ROLES = {
@@ -29,27 +30,43 @@ interface AuthStore {
   logout: (queryClient: QueryClient) => void;
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
-  role: null,
-  lastActivityAt: null,
-  setAuth: (user, accessToken) =>
-    set({ user, accessToken, isAuthenticated: true, role: user.role, lastActivityAt: Date.now() }),
-  setAccessToken: (accessToken) => set({ accessToken }),
-  clearAuth: () =>
-    set({
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
       role: null,
       lastActivityAt: null,
+      setAuth: (user, accessToken) =>
+        set({
+          user,
+          accessToken,
+          isAuthenticated: true,
+          role: user.role,
+          lastActivityAt: Date.now(),
+        }),
+      setAccessToken: (accessToken) => set({ accessToken }),
+      clearAuth: () =>
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+          role: null,
+          lastActivityAt: null,
+        }),
+      updateActivity: () => set({ lastActivityAt: Date.now() }),
+      logout: (queryClient) => {
+        get().clearAuth();
+        queryClient.clear();
+        window.location.href = '/auth/login';
+      },
     }),
-  updateActivity: () => set({ lastActivityAt: Date.now() }),
-  logout: (queryClient) => {
-    get().clearAuth();
-    queryClient.clear();
-    window.location.href = '/auth/login';
-  },
-}));
+    {
+      name: 'cargo-pilot-auth',
+      storage: createJSONStorage(() => sessionStorage),
+      // Yalnızca user ve role persist edilir — accessToken asla storage'a yazılmaz
+      partialize: (state) => ({ user: state.user, role: state.role }),
+    },
+  ),
+);
