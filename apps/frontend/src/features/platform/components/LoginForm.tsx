@@ -76,7 +76,6 @@ export function LoginForm() {
 
   useEffect(() => {
     if (!accountLocked || loginError == null) {
-      setSecondsLeft(null);
       return;
     }
     const minutes = getLockedMinutesRemaining(loginError);
@@ -87,8 +86,11 @@ export function LoginForm() {
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(id);
-  }, [loginError]);
+    return () => {
+      clearInterval(id);
+      setSecondsLeft(null);
+    };
+  }, [accountLocked, loginError]);
 
   const isLocked = accountLocked && secondsLeft !== null && secondsLeft > 0;
 
