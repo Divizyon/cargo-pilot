@@ -32,7 +32,7 @@
       "width": "Genişlik",
       "height": "Yükseklik",
       "length": "Uzunluk",
-      "weight": "Ağırlık (kg)",
+      "weight": "Ağırlık",
       "fragility": "Kısıtlar",
       "fragilityNonFragile": "İstiflenemez",
       "fragilityFragile": "Kırılgan",
@@ -77,7 +77,8 @@
       "notesPlaceholder": "Örn: Sadece forklift ile taşınabilir, güneş ışığından uzak tutun.",
       "notesHelper": "Standart kısıtların dışında kalan spesifik uyarıları taşıma ekiplerine iletmek için kullanın.",
       "notesCounter": "{{count}} / {{max}}",
-      "notesSummaryLabel": "Not"
+      "notesSummaryLabel": "Not",
+      "previewPlaceholder": "Buraya Three.js sahnesi entegre edilecek"
     },
     "vehicle": {
       "title": "Araç Tanımlama",

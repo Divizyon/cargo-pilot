@@ -59,4 +59,6 @@ public sealed class AppUser : BaseEntity {
         FailedLoginAttempts = 0;
         LockoutEndUtc = null;
     }
+
+    public void SetPassword(string passwordHash) => PasswordHash = passwordHash;
 }

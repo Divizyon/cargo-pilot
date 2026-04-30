@@ -91,17 +91,49 @@ ASP.NET Core ortam değişkenlerini `appsettings.json`'ın üstüne otomatik uyg
 |--------|-----------------|
 | `TEST_SSH_HOST` | test-deploy.yml — sunucu IP |
 | `TEST_SSH_PRIVATE_KEY` | test-deploy.yml — SSH deploy key |
-| `TEST_MSSQL_SA_PASSWORD` | test-deploy.yml — test DB parolası |
-| `TEST_MINIO_ROOT_USER` | test-deploy.yml — test MinIO kullanıcısı |
-| `TEST_MINIO_ROOT_PASSWORD` | test-deploy.yml — test MinIO parolası |
-| `SEED_DEFAULT_ADMIN_PASSWORD` | test-deploy.yml — seed admin parolası |
+| `JWT_SECRET` | test-deploy.yml — JWT imzalama anahtarı |
+| `TEST_GHCR_PAT` | test-deploy.yml — GHCR'dan image pull için classic PAT (`read:packages` scope) |
+| `TEST_GHCR_USER` | test-deploy.yml — `TEST_GHCR_PAT`'ı oluşturan GitHub kullanıcı adı |
+
+> **US-D27-I:** Image'lar artık CI'da GHCR'a push edilir (`ghcr.io/divizyon/cargo-pilot-*:test`),
+> sunucu build yapmaz, yalnızca pull eder. `TEST_GHCR_PAT` classic PAT olmalı;
+> fine-grained token GHCR ile çalışmaz.
 
 GitHub → Settings → Secrets and variables → Actions altında yönetilir.
-CI secret yoksa fallback değerler devreye girer (sadece CI ortamı için geçerli, prod için kullanılmaz).
 
 ---
 
-## 5. Güvenlik İhlali Durumunda
+## 5. Google OAuth ve Resend Yapılandırması
+
+### Google OAuth (US-D32-C)
+
+| Değişken | Kapsam | Açıklama |
+|----------|--------|----------|
+| `GOOGLE_CLIENT_ID` | Backend runtime | Google Cloud Console → OAuth 2.0 Client ID |
+| `GOOGLE_CLIENT_SECRET` | Backend runtime | Google Cloud Console → OAuth 2.0 Client Secret |
+| `VITE_OAUTH_GOOGLE_URL` | Frontend build-time | Frontend'de Google butonu için OAuth başlatma URL'si |
+
+- `GOOGLE_CLIENT_ID` ve `GOOGLE_CLIENT_SECRET` sunucudaki `.env.test` / `.env.prod` dosyalarında tutulur.
+- `VITE_OAUTH_GOOGLE_URL` de aynı env dosyasında tanımlanır; frontend image build sırasında baked-in olur.
+- Tanımlanmazsa login ekranındaki Google butonu pasif kalır (`opacity-50`, tıklanamaz).
+- Değerler repoya commit edilmez.
+
+### Resend E-posta (US-D33)
+
+| Değişken | Kapsam | Açıklama |
+|----------|--------|----------|
+| `RESEND_API_KEY` | Backend runtime | resend.com → API Keys |
+| `RESEND_FROM_EMAIL` | Backend runtime | Gönderici e-posta adresi |
+| `RESEND_FROM_NAME` | Backend runtime | Gönderici görünen adı |
+| `PASSWORD_RESET_FRONTEND_URL` | Backend runtime | Şifre sıfırlama e-postasındaki link |
+
+- `RESEND_API_KEY` sunucudaki `.env.*` dosyalarında tutulur; repoya commit edilmez.
+- Domain doğrulanana kadar `RESEND_FROM_EMAIL` olarak yalnızca `onboarding@resend.dev` kullanılabilir ve yalnızca hesap sahibinin e-posta adresine gönderim yapılabilir.
+- Domain doğrulandıktan sonra gerçek gönderici adresi (`noreply@cargopilot.divizyon.org` vb.) kullanılabilir.
+
+---
+
+## 6. Güvenlik İhlali Durumunda
 
 Bir secret repoya commit edildiyse:
 
@@ -114,7 +146,7 @@ Bir secret repoya commit edildiyse:
 
 ---
 
-## 6. Mevcut Durum (2026-04-25)
+## 7. Mevcut Durum (2026-04-30)
 
 | Bulgu | Durum |
 |-------|-------|
@@ -122,3 +154,6 @@ Bir secret repoya commit edildiyse:
 | `appsettings.Development.json` — Seed parolası `Admin123!` commit edilmişti | ✅ Belgelenmiş default `Admin@CargoPilot1!` ile değiştirildi |
 | `.env.monitoring.test` — Grafana parolası repoya girmedi | ✅ `.gitignore` kapsamında |
 | Sunucudaki SA parolası | ⚠️ Döndürülmesi önerilir (git geçmişinde görünür) |
+| Google OAuth CLIENT_ID / CLIENT_SECRET | ✅ Sunucudaki `.env.test`'e eklendi; repoya girmedi |
+| Resend API Key | ✅ Sunucudaki `.env.test`'e eklendi; repoya girmedi |
+| Resend domain doğrulaması | ⚠️ Henüz yapılmadı; `onboarding@resend.dev` ile sınırlı gönderim |

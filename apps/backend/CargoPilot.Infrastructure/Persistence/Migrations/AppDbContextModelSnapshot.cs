@@ -44,6 +44,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -125,6 +128,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -192,6 +198,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal?>("Diameter")
                         .HasPrecision(12, 3)
@@ -280,6 +289,42 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.ToTable("Items", (string)null);
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.PasswordResetToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PasswordResetTokens", (string)null);
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.UserLogin", b =>
                 {
                     b.Property<Guid>("Id")
@@ -310,6 +355,32 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("UserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("CargoPilot.Domain.Entities.UserPasswordHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserPasswordHistory", (string)null);
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.UserSession", b =>
@@ -355,6 +426,110 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.ToTable("UserSessions", (string)null);
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.Vehicle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("InternalHeight")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("InternalLength")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("InternalWidth")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("LayerCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LoadingType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MaxWeightCapacity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("PlateNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("VehicleName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("VehicleType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Volume")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)")
+                        .HasComputedColumnSql("(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0", true);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_Vehicles_CompanyId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Vehicles_IsDeleted");
+
+                    b.HasIndex("CompanyId", "PlateNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Vehicles_CompanyId_PlateNumber")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("Vehicles", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[InternalHeight] > 0");
+
+                            t.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[InternalLength] > 0");
+
+                            t.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[InternalWidth] > 0");
+
+                            t.HasCheckConstraint("CK_Vehicles_LayerCount_Min1", "[LayerCount] >= 1");
+
+                            t.HasCheckConstraint("CK_Vehicles_MaxWeightCapacity_Positive", "[MaxWeightCapacity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.AppUser", b =>
                 {
                     b.HasOne("CargoPilot.Domain.Entities.Company", "Company")
@@ -365,10 +540,32 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.PasswordResetToken", b =>
+                {
+                    b.HasOne("CargoPilot.Domain.Entities.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.UserLogin", b =>
                 {
                     b.HasOne("CargoPilot.Domain.Entities.AppUser", "User")
                         .WithMany("UserLogins")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CargoPilot.Domain.Entities.UserPasswordHistory", b =>
+                {
+                    b.HasOne("CargoPilot.Domain.Entities.AppUser", "User")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -387,6 +584,16 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.Vehicle", b =>
+                {
+                    b.HasOne("CargoPilot.Domain.Entities.Company", "Company")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.AppUser", b =>
                 {
                     b.Navigation("UserLogins");
@@ -397,6 +604,8 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CargoPilot.Domain.Entities.Company", b =>
                 {
                     b.Navigation("Users");
+
+                    b.Navigation("Vehicles");
                 });
 #pragma warning restore 612, 618
         }

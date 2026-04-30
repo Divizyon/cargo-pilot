@@ -14,6 +14,11 @@ public sealed class UserSession {
 
     private UserSession() { }
 
+    /// <summary>
+    /// Bu oturumu iptal eder. Token rotation sırasında eski session geçersiz kılınır.
+    /// </summary>
+    public void Revoke() => IsRevoked = true;
+
     public UserSession(
         Guid id,
         Guid userId,

@@ -7,6 +7,7 @@ public abstract class BaseEntity {
 #pragma warning disable S1144
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? UpdatedAtUtc { get; private set; }
+    public DateTime? DeletedAtUtc { get; private set; }
     public bool IsDeleted { get; private set; }
     public bool IsActive { get; private set; }
     public Guid? CreatedBy { get; private set; }
@@ -21,5 +22,10 @@ public abstract class BaseEntity {
         }
 
         Id = id;
+    }
+
+    public void MarkAsDeleted() {
+        IsDeleted = true;
+        IsActive = false;
     }
 }

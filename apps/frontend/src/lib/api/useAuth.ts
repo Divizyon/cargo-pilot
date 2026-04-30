@@ -1,5 +1,5 @@
 // src/lib/api/useAuth.ts
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
@@ -8,10 +8,12 @@ import { useAuthStore, type AuthUser, type UserRole } from '@/lib/store/useAuthS
 import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
 
-// baseURL = http://104.247.163.42:8081, so full paths needed
 const AUTH_ENDPOINTS = {
   login: '/api/v1/auth/login',
   register: '/api/v1/auth/register',
+  refresh: '/api/v1/auth/refresh',
+  forgotPassword: '/api/v1/auth/forgot-password',
+  resetPassword: '/api/v1/auth/reset-password',
 } as const;
 
 // --- Login types (Result<T> wrapper) ---
@@ -30,9 +32,8 @@ interface LoginData {
   role: string;
   companyId: string;
   accessToken: string;
-  refreshToken: string;
   accessTokenExpiresAt: string;
-  refreshTokenExpiresAt: string;
+  // refreshToken is delivered as an HttpOnly Cookie by the server — not in the response body
 }
 
 interface LoginApiResponse {
@@ -56,6 +57,22 @@ interface RegisterErrorBody {
   detail?: string;
 }
 
+// --- Forgot / Reset Password types ---
+
+interface ForgotPasswordPayload {
+  email: string;
+}
+
+interface ResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
+interface ResetPasswordErrorBody {
+  isSuccess?: false;
+  error?: BackendError;
+}
+
 // --- Error extractors ---
 
 /** AC3: 401'de her zaman generic mesaj. AC4: "not found" kodu varsa true döner. */
@@ -65,9 +82,26 @@ export function isLoginNotFound(error: AxiosError<LoginErrorBody>): boolean {
   return /not.?found|user.?not.?exist/i.test(code);
 }
 
-function extractRegisterError(error: AxiosError<RegisterErrorBody>, fallback: string): string {
-  if (error.response?.status === 409) return 'Bu e-posta adresi zaten kayıtlı.';
-  return error.response?.data?.detail || fallback;
+/** AC5: 409 → e-posta zaten kullanılıyor; component inline banner gösterir. */
+export function isEmailDuplicate(error: AxiosError<RegisterErrorBody>): boolean {
+  return error.response?.status === 409;
+}
+
+/** AC3 (reset): 400 ve backend'in parola geçmişi kodu varsa true döner. */
+export function isPasswordReused(error: AxiosError<ResetPasswordErrorBody>): boolean {
+  if (error.response?.status !== 400) return false;
+  const code = error.response?.data?.error?.code ?? '';
+  return /password.*reuse|previously.*used|password.*histor|PasswordHistory|PasswordPrevious/i.test(
+    code,
+  );
+}
+
+/** Sıfırlama token'ı geçersiz veya süresi dolmuşsa true döner (400 / 422). Parola geçmişi 400'ünü dışlar. */
+export function isResetTokenInvalid(error: AxiosError<ResetPasswordErrorBody>): boolean {
+  const status = error.response?.status ?? 0;
+  if (status === 422) return true;
+  if (status === 400) return !isPasswordReused(error);
+  return false;
 }
 
 // --- Hooks ---
@@ -78,7 +112,9 @@ export function useLogin() {
 
   return useMutation<LoginApiResponse, AxiosError<LoginErrorBody>, LoginFormValues>({
     mutationFn: (data) =>
-      axiosInstance.post<LoginApiResponse>(AUTH_ENDPOINTS.login, data).then((r) => r.data),
+      axiosInstance
+        .post<LoginApiResponse>(AUTH_ENDPOINTS.login, data, { withCredentials: true })
+        .then((r) => r.data),
     onSuccess: (res) => {
       const user: AuthUser = {
         id: res.data.userId,
@@ -90,6 +126,33 @@ export function useLogin() {
       navigate('/dashboard', { replace: true });
     },
     // onError: component handles it (AC3/AC4 ayrımı için)
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation<void, AxiosError, ForgotPasswordPayload>({
+    mutationFn: (data) =>
+      axiosInstance.post<void>(AUTH_ENDPOINTS.forgotPassword, data).then((r) => r.data),
+    // onError: component, AC3 gereği 4xx'i de başarı gibi gösterir
+  });
+}
+
+export function useResetPassword() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AxiosError<ResetPasswordErrorBody>, ResetPasswordPayload>({
+    mutationFn: (data) =>
+      axiosInstance.post<void>(AUTH_ENDPOINTS.resetPassword, data).then((r) => r.data),
+    onSuccess: () => {
+      // AC4: yeni şifre sonrası mevcut oturumu ve cache'i temizle
+      useAuthStore.getState().clearAuth();
+      queryClient.clear();
+      toast.success('Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz.', {
+        position: 'bottom-right',
+      });
+      navigate('/auth/login', { replace: true });
+    },
   });
 }
 
@@ -113,7 +176,8 @@ export function useRegister() {
       navigate('/auth/login', { replace: true });
     },
     onError: (error) => {
-      const message = extractRegisterError(error, 'Kayıt başarısız. Lütfen tekrar deneyin.');
+      if (error.response?.status === 409) return; // inline banner via RegisterForm
+      const message = error.response?.data?.detail ?? 'Kayıt başarısız. Lütfen tekrar deneyin.';
       toast.error(message, { position: 'bottom-right' });
     },
   });
