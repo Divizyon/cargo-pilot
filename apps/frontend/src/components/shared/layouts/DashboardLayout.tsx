@@ -299,11 +299,7 @@ export function DashboardLayout() {
         </main>
       </div>
 
-      <SessionTimeoutDialog
-        open={showWarning}
-        countdown={countdown}
-        onExtend={extendSession}
-      />
+      <SessionTimeoutDialog open={showWarning} countdown={countdown} onExtend={extendSession} />
     </div>
   );
 }

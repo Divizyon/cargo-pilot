@@ -39,7 +39,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ user, accessToken, isAuthenticated: true, role: user.role, lastActivityAt: Date.now() }),
   setAccessToken: (accessToken) => set({ accessToken }),
   clearAuth: () =>
-    set({ user: null, accessToken: null, isAuthenticated: false, role: null, lastActivityAt: null }),
+    set({
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+      role: null,
+      lastActivityAt: null,
+    }),
   updateActivity: () => set({ lastActivityAt: Date.now() }),
   logout: (queryClient) => {
     get().clearAuth();
