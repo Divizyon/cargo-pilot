@@ -17,7 +17,10 @@ public class AppDbContext : DbContext {
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<UserLogin> UserLogins => Set<UserLogin>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<UserPasswordHistory> UserPasswordHistory => Set<UserPasswordHistory>();
     public DbSet<Item> Items => Set<Item>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -34,7 +37,10 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new AppUserConfiguration());
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
         modelBuilder.ApplyConfiguration(new UserLoginConfiguration());
+        modelBuilder.ApplyConfiguration(new PasswordResetTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new UserPasswordHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
+        modelBuilder.ApplyConfiguration(new VehicleConfiguration());
     }
 
     private void ApplyAuditFields() {
@@ -45,6 +51,7 @@ public class AppDbContext : DbContext {
             if (entry.State == EntityState.Added) {
                 entry.Property(x => x.CreatedAtUtc).CurrentValue = now;
                 entry.Property(x => x.UpdatedAtUtc).CurrentValue = null;
+                entry.Property(x => x.DeletedAtUtc).CurrentValue = null;
                 entry.Property(x => x.CreatedBy).CurrentValue = userId;
                 entry.Property(x => x.UpdatedBy).CurrentValue = userId;
                 entry.Property(x => x.IsDeleted).CurrentValue = false;
@@ -53,6 +60,15 @@ public class AppDbContext : DbContext {
             else if (entry.State == EntityState.Modified) {
                 entry.Property(x => x.UpdatedAtUtc).CurrentValue = now;
                 entry.Property(x => x.UpdatedBy).CurrentValue = userId;
+                var originalIsDeleted = entry.Property(x => x.IsDeleted).OriginalValue;
+                var currentIsDeleted = entry.Property(x => x.IsDeleted).CurrentValue;
+
+                if (!originalIsDeleted && currentIsDeleted) {
+                    entry.Property(x => x.DeletedAtUtc).CurrentValue = now;
+                }
+                else if (originalIsDeleted && !currentIsDeleted) {
+                    entry.Property(x => x.DeletedAtUtc).CurrentValue = null;
+                }
             }
         }
     }

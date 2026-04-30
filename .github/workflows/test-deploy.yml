@@ -129,6 +129,7 @@ jobs:
           echo "Migration kontrolü geçti: bekleyen model değişikliği yok."
 
   # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
+  # US-D27-I: test branch push'ta image'lar GHCR'a push edilir.
   build:
     name: Image Build
     runs-on: ubuntu-latest
@@ -141,12 +142,26 @@ jobs:
         (github.event_name == 'push' && github.ref == 'refs/heads/test')
       )
 
+    # packages: write — GHCR'a push edebilmek için gerekli
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Kodu al
         uses: actions/checkout@v4
 
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@v3
+
+      # Sadece test branch'e push'ta GHCR'a login olunur (PR'larda push yapılmaz)
+      - name: GHCR'a giriş yap
+        if: github.event_name == 'push' && github.ref == 'refs/heads/test'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: .NET base image önceden çek (MCR rate limit koruması)
         run: |
@@ -157,23 +172,24 @@ jobs:
             sleep 15
           done
 
-      - name: Backend image build
+      # push: PR'larda false, test branch push'ta true
+      - name: Backend image build ve GHCR push
         uses: docker/build-push-action@v5
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
-          push: false
-          tags: cargo-pilot-backend:test
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
+          tags: ghcr.io/divizyon/cargo-pilot-backend:test
           cache-from: type=gha,scope=backend-test
           cache-to: type=gha,mode=max,scope=backend-test
 
-      - name: Frontend image build
+      - name: Frontend image build ve GHCR push
         uses: docker/build-push-action@v5
         with:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
-          push: false
-          tags: cargo-pilot-frontend:test
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
+          tags: ghcr.io/divizyon/cargo-pilot-frontend:test
           cache-from: type=gha,scope=frontend-test
           cache-to: type=gha,mode=max,scope=frontend-test
 
@@ -208,6 +224,11 @@ jobs:
       Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
       # JWT secret — en az 32 karakter olmalı
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-at-least-32-chars-long!' }}
+      # Resend — CI'da dummy değerler; gerçek değerler sunucudaki .env.test'te
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'ci-resend-api-key-placeholder' }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL || 'ci@example.com' }}
+      RESEND_FROM_NAME: ${{ secrets.RESEND_FROM_NAME || 'Cargo Pilot CI' }}
+      PASSWORD_RESET_FRONTEND_URL: ${{ secrets.PASSWORD_RESET_FRONTEND_URL || 'http://localhost:3001/auth/reset-password' }}
 
     steps:
       - name: Kodu al
@@ -227,6 +248,8 @@ jobs:
             sleep 15
           done
 
+      # Tag'ler docker-compose.test.yml'deki image: alanlarıyla eşleşmeli.
+      # load: true → image'ı local Docker daemon'a yükle (no push)
       - name: Backend image build (deploy için)
         uses: docker/build-push-action@v5
         with:
@@ -234,7 +257,7 @@ jobs:
           file: ./apps/backend/Dockerfile
           push: false
           load: true
-          tags: cargo-pilot-backend:test
+          tags: ghcr.io/divizyon/cargo-pilot-backend:test
           cache-from: type=gha,scope=backend-test
           cache-to: type=gha,mode=max,scope=backend-test
 
@@ -245,7 +268,7 @@ jobs:
           file: ./apps/frontend/Dockerfile
           push: false
           load: true
-          tags: cargo-pilot-frontend:test
+          tags: ghcr.io/divizyon/cargo-pilot-frontend:test
           cache-from: type=gha,scope=frontend-test
           cache-to: type=gha,mode=max,scope=frontend-test
 
@@ -323,12 +346,18 @@ jobs:
       github.ref == 'refs/heads/test'
 
     steps:
+      # US-D27-I: Sunucu artık build yapmıyor; GHCR'dan pull edilen image'ı kullanıyor.
+      # Gerekli GitHub Secret'lar: TEST_GHCR_PAT (read:packages scope'lu PAT), TEST_GHCR_USER (PAT sahibi kullanıcı adı)
       - name: Sunucuya bağlan ve test stack'ini güncelle
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_PAT: ${{ secrets.TEST_GHCR_PAT }}
+          GHCR_USER: ${{ secrets.TEST_GHCR_USER }}
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: root
           key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          envs: GHCR_PAT,GHCR_USER
           script: |
             set -e
             cd /opt/cargo-pilot
@@ -339,15 +368,14 @@ jobs:
             git checkout test
             git reset --hard origin/test
 
-            echo "==> Image'lar sırayla build ediliyor (paralel build OOM riskini önler)..."
+            echo "==> GHCR'a giriş yapılıyor..."
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            echo "==> Image'lar GHCR'dan çekiliyor (build yok)..."
             docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
-              build --no-cache backend
-            docker compose \
-              -f infra/compose/docker-compose.test.yml \
-              --env-file infra/env/.env.test \
-              build --no-cache frontend
+              pull backend frontend
 
             echo "==> Eski stack temizleniyor..."
             docker compose \
@@ -355,13 +383,13 @@ jobs:
               --env-file infra/env/.env.test \
               down --remove-orphans 2>/dev/null || true
 
-            echo "==> Stack ayağa kaldırılıyor (build yok, image hazır)..."
+            echo "==> Stack ayağa kaldırılıyor..."
             docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
               up -d --no-build
 
-            echo "==> Eski image'lar temizleniyor..."
+            echo "==> Kullanılmayan eski image'lar temizleniyor..."
             docker image prune -f
 
       - name: Test backend health check

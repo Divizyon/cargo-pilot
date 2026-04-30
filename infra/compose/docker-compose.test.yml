@@ -2,7 +2,8 @@ name: cargo-pilot-test
 
 services:
   backend:
-    image: cargo-pilot-backend:test
+    # US-D27-I: Image GHCR'dan çekilir; build yalnızca local geliştirme için.
+    image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-backend:${IMAGE_TAG:-test}
     build:
       context: ../../apps/backend
       dockerfile: Dockerfile
@@ -22,6 +23,12 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
       Jwt__Secret: ${JWT_SECRET}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Resend__ApiKey: ${RESEND_API_KEY:-}
+      Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
+      Resend__FromName: ${RESEND_FROM_NAME:-}
+      PasswordReset__FrontendResetUrl: ${PASSWORD_RESET_FRONTEND_URL:-}
     ports:
       - "${BACKEND_PORT}:8080"
     depends_on:
@@ -40,7 +47,8 @@ services:
       - cargo-pilot-test
 
   frontend:
-    image: cargo-pilot-frontend:test
+    # US-D27-I: Image GHCR'dan çekilir; build yalnızca local geliştirme için.
+    image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-frontend:${IMAGE_TAG:-test}
     build:
       context: ../../apps/frontend
       dockerfile: Dockerfile

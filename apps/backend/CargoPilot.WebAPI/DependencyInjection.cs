@@ -1,15 +1,17 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using CargoPilot.Application.Abstractions;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
+using CargoPilot.WebAPI.Swagger;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 using Prometheus;
 
 namespace CargoPilot.WebAPI;
@@ -21,12 +23,60 @@ public static class DependencyInjection {
         WriteIndented          = false,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
-
     public static IServiceCollection AddPresentation(
         this IServiceCollection services,
         IConfiguration configuration,
         bool useInMemoryRepository = false)
     {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, ct) =>
+            {
+                context.HttpContext.Response.ContentType = "application/json";
+                await context.HttpContext.Response.WriteAsync(
+                    """{"isSuccess":false,"data":null,"error":{"code":"AUTH_RATE_LIMIT_EXCEEDED","description":"Çok fazla istek gönderildi. Lütfen bekleyin."}}""",
+                    ct);
+            };
+
+            // Login: 10 istek / 1 dk / IP
+            options.AddPolicy("login", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 10,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
+
+            // Register: 5 istek / 1 dk / IP
+            options.AddPolicy("register", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
+
+            // Password reset: 5 istek / 15 dk / IP
+            options.AddPolicy("password-reset", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(15),
+                        SegmentsPerWindow = 3,
+                        QueueLimit        = 0,
+                    }));
+        });
+
         services.AddTransient<GlobalExceptionMiddleware>();
 
         // Override Infrastructure's AnonymousCurrentUserService with the JWT-aware implementation.
@@ -58,6 +108,7 @@ public static class DependencyInjection {
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
+            options.OperationFilter<AuthorizeOperationFilter>();
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "CargoPilot API",
@@ -74,16 +125,23 @@ public static class DependencyInjection {
             {
                 Name = "Authorization",
                 Type = SecuritySchemeType.Http,
-                Scheme = "Bearer",
+                Scheme = "bearer",
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
                 Description = "JWT token girin. Örnek: Bearer {token}"
             });
 
-            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
                 {
-                    new OpenApiSecuritySchemeReference("Bearer"),
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
                     new List<string>()
                 }
             });
@@ -115,6 +173,7 @@ public static class DependencyInjection {
 
     public static WebApplication UsePresentation(this WebApplication app)
     {
+        app.UseRateLimiter();
         app.UseMiddleware<GlobalExceptionMiddleware>();
 
         if (!app.Environment.IsProduction())

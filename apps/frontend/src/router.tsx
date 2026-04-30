@@ -5,10 +5,13 @@ import { FocusModeLayout } from '@/components/shared/layouts/FocusModeLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { NewPlanPage } from '@/pages/NewPlanPage';
 import { ProductCreatePage } from '@/pages/ProductCreatePage';
+import { ProductEditPage } from '@/pages/ProductEditPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 
@@ -30,6 +33,14 @@ export const router = createBrowserRouter([
     element: <AuthCallbackPage />,
   },
   {
+    path: '/auth/forgot-password',
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: '/auth/reset-password',
+    element: <ResetPasswordPage />,
+  },
+  {
     path: '/share/:token',
     element: <SharePage />,
   },
@@ -46,9 +57,14 @@ export const router = createBrowserRouter([
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/products', element: <ProductsPage /> },
           { path: '/products/new', element: <ProductCreatePage /> },
+          { path: '/products/:id', element: <ProductEditPage /> },
           { path: '/vehicles', element: <DashboardPage /> },
           { path: '/planning', element: <DashboardPage /> },
           { path: '/reports', element: <DashboardPage /> },
+          { path: '/integrations', element: <DashboardPage /> },
+          { path: '/erp', element: <DashboardPage /> },
+          { path: '/notifications', element: <DashboardPage /> },
+          { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <DashboardPage /> },
         ],
       },

@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Errors;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -5,6 +8,7 @@ using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Application.Features.Auth.DTOs;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -25,17 +29,32 @@ internal sealed class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly JwtSettings _jwtSettings;
+    private readonly IUserRepository _userRepository;
+    private readonly IPasswordResetTokenRepository _resetTokenRepository;
+    private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
+    private readonly IEmailService _emailService;
+    private readonly PasswordResetSettings _passwordResetSettings;
 
     public AuthService(
         AppDbContext context,
         IPasswordHasher passwordHasher,
         IJwtTokenService jwtTokenService,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        IUserRepository userRepository,
+        IPasswordResetTokenRepository resetTokenRepository,
+        IUserPasswordHistoryRepository passwordHistoryRepository,
+        IEmailService emailService,
+        IOptions<PasswordResetSettings> passwordResetSettings)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtTokenService = jwtTokenService;
         _jwtSettings = jwtSettings.Value;
+        _userRepository = userRepository;
+        _resetTokenRepository = resetTokenRepository;
+        _passwordHistoryRepository = passwordHistoryRepository;
+        _emailService = emailService;
+        _passwordResetSettings = passwordResetSettings.Value;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
@@ -43,8 +62,9 @@ internal sealed class AuthService : IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
 
         // Always run BCrypt regardless of whether the user was found to prevent
         // timing-based email enumeration attacks.
@@ -97,5 +117,138 @@ internal sealed class AuthService : IAuthService
             AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
             RefreshTokenExpiresAt = sessionExpiry,
         });
+    }
+
+    public async Task<Result<RefreshResponse>> RefreshTokenAsync(
+        string refreshToken,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Gelen token ile oturumu ve sahibi kullanıcıyı birlikte çek
+        var session = await _context.UserSessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
+
+        // 2. Token yoksa, süresi geçmişse veya iptal edildiyse → 401
+        if (session is null || session.IsRevoked || session.ExpiresAt <= DateTime.UtcNow)
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
+        // 3. Eski session'ı iptal et (Token Rotation — kullanılan token bir daha geçerli olmaz)
+        session.Revoke();
+
+        // 4. Yeni token çifti üret
+        var now = DateTime.UtcNow;
+        var newAccessToken  = _jwtTokenService.GenerateAccessToken(session.User);
+        var newRefreshToken = _jwtTokenService.GenerateRefreshToken();
+        var sessionExpiry   = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes);
+
+        // 5. Yeni session'ı kaydet
+        var newSession = new UserSession(
+            id: Guid.NewGuid(),
+            userId: session.UserId,
+            token: newRefreshToken,
+            expiresAt: sessionExpiry,
+            lastUsedAt: now,
+            createdByIp: ipAddress);
+
+        _context.UserSessions.Add(newSession);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<RefreshResponse>.Success(new RefreshResponse
+        {
+            AccessToken          = newAccessToken,
+            AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+            RefreshToken         = newRefreshToken,
+            RefreshTokenExpiresAt = sessionExpiry,
+        });
+    }
+
+    public async Task<Result<bool>> RequestPasswordResetAsync(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+
+        // Account enumeration önleme: kullanıcı yok veya sosyal hesap olsa bile success dön (AC3)
+        if (user is null || user.AuthProvider != AuthProvider.Local)
+            return Result<bool>.Success(true);
+
+        await _resetTokenRepository.InvalidateAllForUserAsync(user.Id, cancellationToken);
+
+        var rawTokenBytes = RandomNumberGenerator.GetBytes(32);
+        var rawToken = Convert.ToBase64String(rawTokenBytes)
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+
+        var resetToken = new PasswordResetToken(
+            id: Guid.NewGuid(),
+            userId: user.Id,
+            tokenHash: tokenHash,
+            expiresAt: DateTime.UtcNow.AddMinutes(_passwordResetSettings.TokenExpiryMinutes));
+
+        _resetTokenRepository.Add(resetToken);
+        await _resetTokenRepository.SaveChangesAsync(cancellationToken);
+
+        var resetLink = $"{_passwordResetSettings.FrontendResetUrl}?token={rawToken}";
+
+        await _emailService.SendPasswordResetEmailAsync(
+            user.Email,
+            $"{user.FirstName} {user.LastName}",
+            resetLink,
+            cancellationToken);
+
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<bool>> ResetPasswordAsync(
+        string token,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+        var now = DateTime.UtcNow;
+        var userId = await _resetTokenRepository.TryConsumeActiveTokenAsync(tokenHash, now, cancellationToken);
+        if (userId is null)
+            return Result<bool>.Failure(AuthErrors.InvalidResetToken);
+
+        var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
+        if (user is null)
+            return Result<bool>.Failure(AuthErrors.InvalidResetToken);
+
+        // Mevcut şifre kontrolü
+        if (user.PasswordHash is not null && _passwordHasher.VerifyPassword(newPassword, user.PasswordHash))
+            return Result<bool>.Failure(AuthErrors.PasswordAlreadyUsed);
+
+        // Son 3 şifre geçmişi kontrolü (AC3)
+        var recentHashes = await _passwordHistoryRepository.GetLastHashesAsync(user.Id, 3, cancellationToken);
+        if (recentHashes.Any(h => _passwordHasher.VerifyPassword(newPassword, h)))
+            return Result<bool>.Failure(AuthErrors.PasswordAlreadyUsed);
+
+        // Eski şifreyi geçmişe ekle
+        if (user.PasswordHash is not null)
+        {
+            _passwordHistoryRepository.Add(new UserPasswordHistory(
+                id: Guid.NewGuid(),
+                userId: user.Id,
+                passwordHash: user.PasswordHash));
+        }
+
+        user.SetPassword(_passwordHasher.HashPassword(newPassword));
+
+        // Tüm aktif oturumları iptal et (AC4)
+        var activeSessions = await _context.UserSessions
+            .Where(s => s.UserId == user.Id && !s.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in activeSessions)
+            session.Revoke();
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<bool>.Success(true);
     }
 }
