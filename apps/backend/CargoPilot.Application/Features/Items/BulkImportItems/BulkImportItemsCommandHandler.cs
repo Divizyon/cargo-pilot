@@ -26,8 +26,8 @@ public sealed class BulkImportItemsCommandHandler
             { "ağırlık", "Weight" }, { "agirlik", "Weight" }, { "weight", "Weight" },
             { "hassasiyet türü", "FragilityType" }, { "hassasiyet turu", "FragilityType" },
             { "fragility", "FragilityType" }, { "fragilitytype", "FragilityType" },
-            { "istiflenebilir", "IsStackable" }, { "stackable", "IsStackable" },
-            { "is stackable", "IsStackable" }, { "isstackable", "IsStackable" },
+            { "istiflenebilir", "IsStackable" }, { "İstiflenebilir", "IsStackable" },
+            { "stackable", "IsStackable" }, { "is stackable", "IsStackable" }, { "isstackable", "IsStackable" },
             { "barkod", "Barcode" }, { "barcode", "Barcode" },
             { "kategori", "Category" }, { "category", "Category" },
             { "çap", "Diameter" }, { "cap", "Diameter" }, { "diameter", "Diameter" },
@@ -35,12 +35,12 @@ public sealed class BulkImportItemsCommandHandler
             { "max stack count", "MaxStackCount" }, { "maxstackcount", "MaxStackCount" },
             { "max ağırlık üstünde", "MaxWeightOnTop" }, { "max agirlik ustunde", "MaxWeightOnTop" },
             { "max weight on top", "MaxWeightOnTop" }, { "maxweightontop", "MaxWeightOnTop" },
-            { "izin verilen rotasyonlar", "AllowedRotations" },
+            { "izin verilen rotasyonlar", "AllowedRotations" }, { "İzin Verilen Rotasyonlar", "AllowedRotations" },
             { "allowed rotations", "AllowedRotations" }, { "allowedrotations", "AllowedRotations" },
             // AC5: "Boyut Birimi" ve "Ağırlık Birimi" kolonları eklenerek değerler
             //      UnitConverter ile cm/kg'a dönüştürülmelidir. Şu an değerler ham kaydedilmektedir.
             { "resim url", "ImageUrl" }, { "image url", "ImageUrl" }, { "imageurl", "ImageUrl" },
-            { "istif grubu", "StackGroup" }, { "stack group", "StackGroup" }, { "stackgroup", "StackGroup" },
+            { "istif grubu", "StackGroup" }, { "İstif Grubu", "StackGroup" }, { "stack group", "StackGroup" }, { "stackgroup", "StackGroup" },
             { "özel notlar", "SpecialNotes" }, { "ozel notlar", "SpecialNotes" },
             { "special notes", "SpecialNotes" }, { "specialnotes", "SpecialNotes" },
         };
