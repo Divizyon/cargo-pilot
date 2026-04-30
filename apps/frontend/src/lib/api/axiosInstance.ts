@@ -45,11 +45,11 @@ axiosInstance.interceptors.request.use((config) => {
 });
 
 const AUTH_PASSTHROUGH_URLS = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/refresh',
-  '/api/auth/forgot-password',
-  '/api/auth/reset-password',
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
+  '/api/v1/auth/refresh',
+  '/api/v1/auth/forgot-password',
+  '/api/v1/auth/reset-password',
 ];
 
 axiosInstance.interceptors.response.use(
@@ -77,7 +77,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         const { data } = await axios.post<RefreshApiResponse>(
-          '/api/auth/refresh',
+          '/api/v1/auth/refresh',
           {},
           { baseURL: API_BASE_URL, withCredentials: true },
         );
