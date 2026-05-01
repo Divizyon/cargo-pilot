@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Domain.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -19,6 +20,7 @@ internal sealed class MicrosoftTokenValidator : IOAuthTokenValidator
     private readonly string _tenantId;
     private readonly ConfigurationManager<OpenIdConnectConfiguration> _configManager;
     private static readonly JwtSecurityTokenHandler _tokenHandler = new();
+    public AuthProvider Provider => AuthProvider.Microsoft;
 
     public MicrosoftTokenValidator(IConfiguration configuration)
     {
@@ -63,6 +65,7 @@ internal sealed class MicrosoftTokenValidator : IOAuthTokenValidator
             return new OAuthUserInfo(
                 Sub: sub,
                 Email: email,
+                EmailVerified: true,
                 FirstName: GetClaim(principal, "given_name")  ?? GetClaim(principal, ClaimTypes.GivenName),
                 LastName:  GetClaim(principal, "family_name") ?? GetClaim(principal, ClaimTypes.Surname));
         }

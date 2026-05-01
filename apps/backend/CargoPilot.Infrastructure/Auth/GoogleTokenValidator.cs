@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Domain.Enums;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
 
@@ -11,6 +12,7 @@ namespace CargoPilot.Infrastructure.Auth;
 internal sealed class GoogleTokenValidator : IOAuthTokenValidator
 {
     private readonly string? _clientId;
+    public AuthProvider Provider => AuthProvider.Google;
 
     public GoogleTokenValidator(IConfiguration configuration)
     {
@@ -33,6 +35,7 @@ internal sealed class GoogleTokenValidator : IOAuthTokenValidator
             return new OAuthUserInfo(
                 Sub: payload.Subject,
                 Email: payload.Email,
+                EmailVerified: payload.EmailVerified,
                 FirstName: payload.GivenName,
                 LastName: payload.FamilyName);
         }
