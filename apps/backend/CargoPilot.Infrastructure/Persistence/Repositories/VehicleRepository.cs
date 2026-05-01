@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence.Repositories;
 
-public sealed class VehicleRepository : IVehicleRepository {
+internal sealed class VehicleRepository : IVehicleRepository {
     private readonly AppDbContext _context;
 
     public VehicleRepository(AppDbContext context) {
@@ -23,9 +23,10 @@ public sealed class VehicleRepository : IVehicleRepository {
         var query = _context.Vehicles.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(searchTerm)) {
+            var term = searchTerm.Trim();
             query = query.Where(v =>
-                v.VehicleName.Contains(searchTerm) ||
-                v.PlateNumber.Contains(searchTerm));
+                v.VehicleName.Contains(term) ||
+                v.PlateNumber.Contains(term));
         }
 
         if (vehicleType.HasValue) {
