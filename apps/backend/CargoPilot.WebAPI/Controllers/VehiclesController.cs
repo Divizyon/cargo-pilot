@@ -1,4 +1,6 @@
 using CargoPilot.Application.Features.Vehicles.GetVehicleById;
+using CargoPilot.Application.Features.Vehicles.SearchVehicles;
+using CargoPilot.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CargoPilot.WebAPI.Controllers;
 
 /// <summary>
-/// Araç (vehicle) yönetimi endpoint'leri.
+/// Araç yönetimi endpoint'leri.
 /// </summary>
 [Route("api/v1/vehicles")]
 [Tags("Vehicles")]
@@ -18,6 +20,25 @@ public sealed class VehiclesController : BaseController
     public VehiclesController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    /// <summary>
+    /// Araçları arar ve sayfalı döndürür.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? searchTerm,
+        [FromQuery] VehicleType? vehicleType,
+        [FromQuery] bool? isActive,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new SearchVehiclesQuery(searchTerm, vehicleType, isActive, page, pageSize);
+        var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
     }
 
     /// <summary>
