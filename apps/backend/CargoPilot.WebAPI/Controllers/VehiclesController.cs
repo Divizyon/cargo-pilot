@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 using CargoPilot.Application.Features.Vehicles.SearchVehicles;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -42,6 +43,32 @@ public sealed class VehiclesController : BaseController {
         CancellationToken cancellationToken = default) {
         var query = new SearchVehiclesQuery(searchTerm, vehicleType, isActive, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Mevcut bir aracı kopyalar; benzersiz alanlar (araç adı ve plaka) zorunlu olarak yeniden girilir.
+    /// </summary>
+    /// <param name="id">Kopyalanacak araç ID'si.</param>
+    /// <param name="command">Yeni araç adı ve plakası.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="201">Yeni araç oluşturuldu; ID döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Kaynak araç bulunamadı.</response>
+    /// <response code="409">Plaka zaten kullanımda.</response>
+    [HttpPost("{id:guid}/duplicate")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Duplicate(
+        [FromRoute] Guid id,
+        [FromBody] DuplicateVehicleCommand command,
+        CancellationToken cancellationToken = default) {
+        var commandWithId = command with { Id = id };
+        var result = await _mediator.Send(commandWithId, cancellationToken);
+        if (result.IsSuccess)
+            return StatusCode(StatusCodes.Status201Created, result);
         return HandleResult(result);
     }
 }
