@@ -1,7 +1,9 @@
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Application.Features.Auth.DTOs;
+using CargoPilot.Application.Features.Auth.OAuthLogin;
 using CargoPilot.Application.Features.Auth.Register;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +11,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace CargoPilot.WebAPI.Controllers;
+
+/// <summary>OAuth login isteği — frontend ID token'ı POST eder.</summary>
+/// <param name="IdToken">Google One Tap / MSAL'dan alınan ID token.</param>
+public sealed record OAuthLoginRequest(string IdToken);
 
 /// <summary>
 /// Kimlik doğrulama ve oturum yönetimi endpoint'leri.
@@ -22,34 +28,20 @@ public sealed class AuthController : BaseController
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
-    private readonly IValidator<GoogleAuthRequest> _googleAuthValidator;
-
     public AuthController(
         IMediator mediator,
         IAuthService authService,
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
-        IValidator<ResetPasswordRequest> resetPasswordValidator,
-        IValidator<GoogleAuthRequest> googleAuthValidator)
+        IValidator<ResetPasswordRequest> resetPasswordValidator)
     {
         _mediator = mediator;
         _authService = authService;
         _loginValidator = loginValidator;
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
-        _googleAuthValidator = googleAuthValidator;
     }
 
-    /// <summary>
-    /// Yeni kullanıcı kaydı oluşturur.
-    /// </summary>
-    /// <remarks>
-    /// Başarılı kayıt sonrası kullanıcı /auth/login sayfasına yönlendirilmelidir.
-    /// Şifre sunucuda BCrypt ile hashlenir; düz metin asla saklanmaz.
-    /// </remarks>
-    /// <response code="201">Kayıt başarılı; userId, firstName, lastName, email döner.</response>
-    /// <response code="400">Doğrulama hatası (eksik alan, hatalı e-posta formatı, kısa şifre vb.).</response>
-    /// <response code="409">Bu e-posta adresi zaten kayıtlı.</response>
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("register")]
@@ -67,13 +59,6 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Kullanıcı girişi yapar. Başarılı girişte JWT access token döner;
-    /// refresh token güvenli HttpOnly Cookie olarak tarayıcıya yazılır.
-    /// </summary>
-    /// <response code="200">Giriş başarılı — access token döndü, refresh token Cookie'de.</response>
-    /// <response code="400">Model doğrulama hatası (eksik email veya şifre).</response>
-    /// <response code="401">Email veya şifre hatalı / hesap kilitli.</response>
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("login")]
@@ -104,12 +89,48 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Geçerli refresh token ile yeni bir access token üretir (Token Rotation).
-    /// Refresh token HttpOnly Cookie olarak okunur ve güncellenir.
-    /// </summary>
-    /// <response code="200">Yeni access token döndü; güncellenmiş refresh token Cookie'de.</response>
-    /// <response code="401">Refresh token eksik, geçersiz, süresi dolmuş veya daha önce kullanılmış.</response>
+    [HttpPost("google")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GoogleLogin(
+        [FromBody] OAuthLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new OAuthLoginCommand(
+            request.IdToken,
+            AuthProvider.Google,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+            SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
+
+        return HandleResult(result);
+    }
+
+    [HttpPost("microsoft")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> MicrosoftLogin(
+        [FromBody] OAuthLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new OAuthLoginCommand(
+            request.IdToken,
+            AuthProvider.Microsoft,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+            SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
+
+        return HandleResult(result);
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(Result<RefreshResponse>), StatusCodes.Status200OK)]
@@ -129,12 +150,6 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Şifre sıfırlama e-postası gönderir. Hesap enumeration saldırılarını önlemek için
-    /// e-posta kayıtlı olsun ya da olmasın aynı yanıt döner.
-    /// </summary>
-    /// <response code="200">İstek alındı; e-posta kayıtlıysa sıfırlama bağlantısı gönderildi.</response>
-    /// <response code="400">E-posta formatı geçersiz.</response>
     [HttpPost("request-password-reset")]
     [AllowAnonymous]
     [EnableRateLimiting("password-reset")]
@@ -159,13 +174,6 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Şifre sıfırlama tokenı ile yeni şifre belirler. Başarı durumunda tüm aktif oturumlar iptal edilir.
-    /// </summary>
-    /// <response code="200">Şifre başarıyla güncellendi.</response>
-    /// <response code="400">Doğrulama hatası (eksik alan, şifre kuralı ihlali vb.).</response>
-    /// <response code="401">Token geçersiz veya süresi dolmuş.</response>
-    /// <response code="422">Daha önce kullanılmış bir şifre girildi.</response>
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [EnableRateLimiting("password-reset")]
@@ -192,44 +200,6 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Google ID token ile giriş yapar veya yeni kullanıcı oluşturur.
-    /// Frontend Google One Tap / OAuth akışından aldığı credential'ı gönderir;
-    /// backend doğrular, kullanıcıyı bulur/oluşturur ve standart JWT oturumu döndürür.
-    /// </summary>
-    /// <response code="200">Giriş başarılı — access token döndü, refresh token Cookie'de.</response>
-    /// <response code="400">IdToken alanı eksik.</response>
-    /// <response code="401">Google token geçersiz veya e-posta doğrulanmamış.</response>
-    [HttpPost("google")]
-    [AllowAnonymous]
-    [EnableRateLimiting("social-auth")]
-    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GoogleLogin(
-        [FromBody] GoogleAuthRequest request,
-        CancellationToken cancellationToken)
-    {
-        var validation = await _googleAuthValidator.ValidateAsync(request, cancellationToken);
-        if (!validation.IsValid)
-        {
-            var validationError = new Error(
-                ErrorType.Validation,
-                "VALIDATION_FAILED",
-                string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
-
-            return HandleResult(Result<LoginResponse>.Failure(validationError));
-        }
-
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var result = await _authService.LoginWithGoogleAsync(request.IdToken, ipAddress, cancellationToken);
-
-        if (result.IsSuccess)
-            SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
-
-        return HandleResult(result);
-    }
-
     // ─── Yardımcılar ────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -239,11 +209,11 @@ public sealed class AuthController : BaseController
     {
         Response.Cookies.Append("refreshToken", token, new CookieOptions
         {
-            HttpOnly  = true,           // JS erişemez (XSS koruması)
-            Secure    = true,           // Yalnızca HTTPS üzerinden gönderilir
-            SameSite  = SameSiteMode.None, // Cross-origin isteklere izin ver (SPA + API ayrı origin)
-            Expires   = expiresAt,
-            Path      = "/api/v1/auth" // Cookie sadece auth endpoint'lerine gönderilir
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Expires = expiresAt,
+            Path = "/api/v1/auth"
         });
     }
-}
+}
