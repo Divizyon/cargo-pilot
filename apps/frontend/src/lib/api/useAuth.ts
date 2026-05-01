@@ -1,12 +1,34 @@
 // src/lib/api/useAuth.ts
+import { useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
+import { PublicClientApplication } from '@azure/msal-browser';
 import { axiosInstance } from '@/lib/api/axiosInstance';
 import { useAuthStore, type AuthUser, type UserRole } from '@/lib/store/useAuthStore';
+import { GOOGLE_CLIENT_ID, MICROSOFT_CLIENT_ID } from '@/lib/config/env';
 import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+          }) => void;
+          prompt: () => void;
+          disableAutoSelect: () => void;
+        };
+      };
+    };
+  }
+}
 
 const AUTH_ENDPOINTS = {
   login: '/api/v1/auth/login',
@@ -209,4 +231,104 @@ export function useRegister() {
       toast.error(message, { position: 'bottom-right' });
     },
   });
+}
+
+// --- OAuth hooks ---
+
+export function useGoogleOAuth() {
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  const { mutate, isPending } = useMutation<LoginApiResponse, AxiosError, { idToken: string }>({
+    mutationFn: ({ idToken }) =>
+      axiosInstance
+        .post<LoginApiResponse>('/api/v1/auth/google', { idToken }, { withCredentials: true })
+        .then((r) => r.data),
+    onSuccess: (res) => {
+      if (!res.isSuccess || !res.data) return;
+      const user: AuthUser = {
+        id: res.data.userId,
+        email: res.data.email,
+        fullName: res.data.fullName,
+        role: res.data.role as UserRole,
+      };
+      setAuth(user, res.data.accessToken);
+      navigate('/dashboard', { replace: true });
+    },
+    onError: () => {
+      toast.error('Google ile giriş başarısız. Lütfen tekrar deneyin.', {
+        position: 'bottom-right',
+      });
+    },
+  });
+
+  const trigger = useCallback(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    window.google?.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (response) => {
+        mutate({ idToken: response.credential });
+      },
+      cancel_on_tap_outside: true,
+    });
+    window.google?.accounts.id.prompt();
+  }, [mutate]);
+
+  return { trigger, isPending };
+}
+
+export function useMicrosoftOAuth() {
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const msalRef = useRef<PublicClientApplication | null>(null);
+
+  const { mutate, isPending } = useMutation<LoginApiResponse, AxiosError, { idToken: string }>({
+    mutationFn: ({ idToken }) =>
+      axiosInstance
+        .post<LoginApiResponse>('/api/v1/auth/microsoft', { idToken }, { withCredentials: true })
+        .then((r) => r.data),
+    onSuccess: (res) => {
+      if (!res.isSuccess || !res.data) return;
+      const user: AuthUser = {
+        id: res.data.userId,
+        email: res.data.email,
+        fullName: res.data.fullName,
+        role: res.data.role as UserRole,
+      };
+      setAuth(user, res.data.accessToken);
+      navigate('/dashboard', { replace: true });
+    },
+    onError: () => {
+      toast.error('Microsoft ile giriş başarısız. Lütfen tekrar deneyin.', {
+        position: 'bottom-right',
+      });
+    },
+  });
+
+  const trigger = useCallback(async () => {
+    if (!MICROSOFT_CLIENT_ID) return;
+    try {
+      if (!msalRef.current) {
+        msalRef.current = new PublicClientApplication({
+          auth: {
+            clientId: MICROSOFT_CLIENT_ID,
+            authority: 'https://login.microsoftonline.com/common',
+            redirectUri: window.location.origin,
+          },
+          cache: { cacheLocation: 'sessionStorage' },
+        });
+        await msalRef.current.initialize();
+      }
+      const response = await msalRef.current.loginPopup({
+        scopes: ['openid', 'email', 'profile'],
+      });
+      if (response.idToken) {
+        mutate({ idToken: response.idToken });
+      }
+    } catch {
+      // Kullanıcı popup'ı kapattı veya izin vermedi
+    }
+  }, [mutate]);
+
+  return { trigger, isPending };
 }

@@ -9,16 +9,16 @@ const envSchema = z.object({
   VITE_APP_ENV: z.enum(['development', 'test', 'production'], {
     error: 'VITE_APP_ENV yalnızca development | test | production olabilir',
   }),
-  VITE_OAUTH_GOOGLE_URL: z.string().optional(),
-  VITE_OAUTH_MICROSOFT_URL: z.string().optional(),
+  VITE_GOOGLE_CLIENT_ID: z.string().optional(),
+  VITE_MICROSOFT_CLIENT_ID: z.string().optional(),
 });
 
 const _result = envSchema.safeParse({
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
   VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION,
   VITE_APP_ENV: import.meta.env.VITE_APP_ENV,
-  VITE_OAUTH_GOOGLE_URL: import.meta.env.VITE_OAUTH_GOOGLE_URL,
-  VITE_OAUTH_MICROSOFT_URL: import.meta.env.VITE_OAUTH_MICROSOFT_URL,
+  VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+  VITE_MICROSOFT_CLIENT_ID: import.meta.env.VITE_MICROSOFT_CLIENT_ID,
 });
 
 if (!_result.success) {
@@ -30,5 +30,5 @@ const _env = _result.data;
 export const API_BASE_URL = _env.VITE_API_BASE_URL;
 export const APP_VERSION = _env.VITE_APP_VERSION;
 export const APP_ENV = _env.VITE_APP_ENV;
-export const OAUTH_GOOGLE_URL = _env.VITE_OAUTH_GOOGLE_URL;
-export const OAUTH_MICROSOFT_URL = _env.VITE_OAUTH_MICROSOFT_URL;
+export const GOOGLE_CLIENT_ID = _env.VITE_GOOGLE_CLIENT_ID;
+export const MICROSOFT_CLIENT_ID = _env.VITE_MICROSOFT_CLIENT_ID;
