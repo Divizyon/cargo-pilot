@@ -23,8 +23,8 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
       Jwt__Secret: ${JWT_SECRET}
-      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
-      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      OAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       Resend__ApiKey: ${RESEND_API_KEY:-}
       Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
       Resend__FromName: ${RESEND_FROM_NAME:-}
