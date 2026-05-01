@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Items.BulkCreateItems;
 using CargoPilot.Application.Features.Items.CreateItem;
 using CargoPilot.Application.Features.Items.DeleteItem;
 using CargoPilot.Application.Features.Items.GetItemById;
@@ -101,6 +102,25 @@ public sealed class ItemsController : BaseController
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new DeleteItemCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Birden fazla ürünü tek seferde oluşturur. Herhangi bir satırda hata varsa hiçbir kayıt eklenmez.
+    /// </summary>
+    /// <response code="201">Tüm ürünler oluşturuldu; eklenen kayıt sayısı döner.</response>
+    /// <response code="400">Bir veya daha fazla satırda doğrulama hatası; hangi satırda ne hatası olduğu liste halinde döner.</response>
+    [HttpPost("bulk")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkCreateItems(
+        [FromBody] BulkCreateItemsCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        if (result.IsSuccess)
+            return StatusCode(StatusCodes.Status201Created, result);
+
         return HandleResult(result);
     }
 
