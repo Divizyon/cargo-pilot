@@ -25,6 +25,7 @@ services:
       Jwt__Secret: ${JWT_SECRET}
       OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       OAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      OAuth__Microsoft__ClientId: ${MICROSOFT_CLIENT_ID:-}
       Resend__ApiKey: ${RESEND_API_KEY:-}
       Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
       Resend__FromName: ${RESEND_FROM_NAME:-}
