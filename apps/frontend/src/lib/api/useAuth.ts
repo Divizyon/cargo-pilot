@@ -184,6 +184,50 @@ export function useResetPassword() {
   });
 }
 
+// --- Profile types ---
+
+interface UpdateProfilePayload {
+  firstName: string;
+  lastName: string;
+  companyName?: string;
+  phone?: string;
+}
+
+interface UpdateProfileResponse {
+  isSuccess: boolean;
+  message: string;
+  data: {
+    userId: string;
+    email: string;
+    fullName: string;
+    role: string;
+  };
+}
+
+export function useUpdateProfile() {
+  const updateUser = useAuthStore((s) => s.updateUser);
+
+  return useMutation<UpdateProfileResponse, AxiosError, UpdateProfilePayload>({
+    mutationFn: (payload) =>
+      axiosInstance
+        .patch<UpdateProfileResponse>('/api/v1/users/me', payload)
+        .then((r) => r.data),
+    onSuccess: (res) => {
+      if (res.isSuccess && res.data?.fullName) {
+        updateUser({ fullName: res.data.fullName });
+      }
+      toast.success('Profil bilgileriniz başarıyla güncellendi.', {
+        position: 'bottom-right',
+      });
+    },
+    onError: () => {
+      toast.error('Profil güncellenirken bir hata oluştu. Lütfen tekrar deneyin.', {
+        position: 'bottom-right',
+      });
+    },
+  });
+}
+
 export function useRegister() {
   const navigate = useNavigate();
 
