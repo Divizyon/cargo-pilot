@@ -75,6 +75,18 @@ public static class DependencyInjection {
                         SegmentsPerWindow = 3,
                         QueueLimit        = 0,
                     }));
+
+            // Social auth (Google): 5 istek / 1 dk / IP
+            options.AddPolicy("social-auth", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
         });
 
         services.AddTransient<GlobalExceptionMiddleware>();

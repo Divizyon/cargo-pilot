@@ -22,19 +22,22 @@ public sealed class AuthController : BaseController
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
+    private readonly IValidator<GoogleAuthRequest> _googleAuthValidator;
 
     public AuthController(
         IMediator mediator,
         IAuthService authService,
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
-        IValidator<ResetPasswordRequest> resetPasswordValidator)
+        IValidator<ResetPasswordRequest> resetPasswordValidator,
+        IValidator<GoogleAuthRequest> googleAuthValidator)
     {
         _mediator = mediator;
         _authService = authService;
         _loginValidator = loginValidator;
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
+        _googleAuthValidator = googleAuthValidator;
     }
 
     /// <summary>
@@ -186,6 +189,44 @@ public sealed class AuthController : BaseController
         }
 
         var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Google ID token ile giriş yapar veya yeni kullanıcı oluşturur.
+    /// Frontend Google One Tap / OAuth akışından aldığı credential'ı gönderir;
+    /// backend doğrular, kullanıcıyı bulur/oluşturur ve standart JWT oturumu döndürür.
+    /// </summary>
+    /// <response code="200">Giriş başarılı — access token döndü, refresh token Cookie'de.</response>
+    /// <response code="400">IdToken alanı eksik.</response>
+    /// <response code="401">Google token geçersiz veya e-posta doğrulanmamış.</response>
+    [HttpPost("google")]
+    [AllowAnonymous]
+    [EnableRateLimiting("social-auth")]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GoogleLogin(
+        [FromBody] GoogleAuthRequest request,
+        CancellationToken cancellationToken)
+    {
+        var validation = await _googleAuthValidator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            var validationError = new Error(
+                ErrorType.Validation,
+                "VALIDATION_FAILED",
+                string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
+
+            return HandleResult(Result<LoginResponse>.Failure(validationError));
+        }
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _authService.LoginWithGoogleAsync(request.IdToken, ipAddress, cancellationToken);
+
+        if (result.IsSuccess)
+            SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
+
         return HandleResult(result);
     }
 
