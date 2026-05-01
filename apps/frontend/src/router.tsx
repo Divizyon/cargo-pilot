@@ -14,6 +14,7 @@ import { ProductCreatePage } from '@/pages/ProductCreatePage';
 import { ProductEditPage } from '@/pages/ProductEditPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
+import { ProfilePage } from '@/pages/ProfilePage';
 
 export const router = createBrowserRouter([
   {
@@ -66,6 +67,7 @@ export const router = createBrowserRouter([
           { path: '/notifications', element: <DashboardPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <DashboardPage /> },
+          { path: '/profile', element: <ProfilePage /> },
         ],
       },
       {
