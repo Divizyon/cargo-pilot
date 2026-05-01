@@ -284,3 +284,49 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Application/Common/Errors/AuthErrors.cs`
 - `CargoPilot.Infrastructure/Auth/AuthService.cs`
 - `CargoPilot.WebAPI/Controllers/AuthController.cs`
+
+---
+
+## 12) US-AUTH-01: Google ile Kayit ve Giris (Social Login)
+**Story:** Backend Chapter Lead olarak, kullanicilarin Google hesaplariyla kayit olabilmesi ve giris yapabilmesi icin Google OAuth entegrasyonunun eklenmesini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+**Kapsam notu:** Microsoft OAuth enum degeri altyapida korundu (`AuthProvider.Microsoft = 2`), ancak endpoint implemente edilmedi — migration bozulmasin diye enum deger silinmedi.
+
+### Kabul Kriterleri
+- **AC9 (Token Dogrulama):** `✅ Tamamlandi` — `GoogleJsonWebSignature.ValidateAsync` ile audience kontrolu yapilir; gecersiz token `AUTH_GOOGLE_TOKEN_INVALID`, dogrulanmamis e-posta `AUTH_GOOGLE_EMAIL_NOT_VERIFIED` hatasi doner.
+- **AC10 (Yeni Kullanici Olusturma):** `✅ Tamamlandi` — Google e-postasi sistemde yoksa yeni `AppUser` olusturulur (`passwordHash: null`, `authProvider: Google`) ve `UserLogins` tablosuna baglanti kaydedilir.
+- **AC11 (Mevcut Kullanici Eslestirme):** `✅ Tamamlandi` — Google e-postasi sistemde varsa yeni AppUser olusturulmaz; yalnizca `UserLogins` tablosuna Google baglantisi eklenir (account linking).
+
+### Alt Isler
+- `✅` `GoogleAuthSettings` sinifi olusturuldu (`Application/Common/Settings/`)
+- `✅` `GoogleAuthRequest` DTO olusturuldu (`Application/Features/Auth/DTOs/`)
+- `✅` `GoogleAuthRequestValidator` FluentValidation validator olusturuldu (assembly scan ile otomatik kayit)
+- `✅` `GoogleUserInfo` internal DTO olusturuldu (`Infrastructure/Auth/`)
+- `✅` `GoogleAuthMappingConfig` Mapster konfigurasyonu olusturuldu (`Payload` → `GoogleUserInfo`)
+- `✅` `IAuthService.LoginWithGoogleAsync` metodu tanimlandi
+- `✅` `AuthService.LoginWithGoogleAsync` implemente edildi (AC9 + AC10 + AC11 akisi)
+- `✅` `AuthErrors.InvalidGoogleToken` ve `AuthErrors.GoogleEmailNotVerified` hata kodlari eklendi
+- `✅` `DependencyInjection.cs` icine `GoogleAuthSettings` IOptions kaydı ve `GoogleAuthMappingConfig.Register()` cagrisi eklendi
+- `✅` `social-auth` rate limit policy'si eklendi (5 istek/1 dk/IP, sliding window)
+- `✅` `POST /api/v1/auth/google` endpoint'i eklendi (`AuthController`)
+- `✅` `appsettings.json` icine `Authentication:Google:ClientId` bolumu eklendi
+- `✅` `appsettings.Development.json` icine lokal ClientId eklendi (startup validator icin)
+- `✅` `Google.Apis.Auth 1.68.0` ve `Mapster 7.4.0` NuGet paketleri eklendi
+- `✅` AC10 ve AC11 senaryolari lokal ortamda manuel olarak test edildi ve dogrulandi
+
+**Kanitlar:**
+- `CargoPilot.Application/Common/Settings/GoogleAuthSettings.cs`
+- `CargoPilot.Application/Features/Auth/DTOs/GoogleAuthRequest.cs`
+- `CargoPilot.Application/Features/Auth/Validators/GoogleAuthRequestValidator.cs`
+- `CargoPilot.Application/Features/Auth/IAuthService.cs`
+- `CargoPilot.Application/Common/Errors/AuthErrors.cs`
+- `CargoPilot.Infrastructure/Auth/GoogleUserInfo.cs`
+- `CargoPilot.Infrastructure/Auth/GoogleAuthMappingConfig.cs`
+- `CargoPilot.Infrastructure/Auth/AuthService.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Controllers/AuthController.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/appsettings.json`
+- `CargoPilot.WebAPI/appsettings.Development.json`

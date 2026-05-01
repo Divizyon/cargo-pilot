@@ -48,6 +48,14 @@ public static class DependencyInjection {
             .Validate(s => s.TokenExpiryMinutes > 0, "PasswordReset:TokenExpiryMinutes must be greater than 0.")
             .ValidateOnStart();
 
+        // Authentication:Google:ClientId — docker-compose'da Authentication__Google__ClientId env var'ı üzerinden gelir.
+        services.AddOptions<GoogleAuthSettings>()
+            .Bind(configuration.GetSection("Authentication:Google"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.ClientId), "Authentication:Google:ClientId is required.")
+            .ValidateOnStart();
+
+        GoogleAuthMappingConfig.Register();
+
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();

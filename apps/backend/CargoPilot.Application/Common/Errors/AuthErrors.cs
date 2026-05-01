@@ -28,4 +28,14 @@ public static class AuthErrors
         ErrorType.BusinessRule,
         "AUTH_PASSWORD_ALREADY_USED",
         "Daha önce kullandığınız bir şifreyi kullanamazsınız.");
+
+    public static readonly Error InvalidGoogleToken = new(
+        ErrorType.Unauthorized,
+        "AUTH_GOOGLE_TOKEN_INVALID",
+        "Google kimlik doğrulama tokeni geçersiz veya süresi dolmuş.");
+
+    public static readonly Error GoogleEmailNotVerified = new(
+        ErrorType.Unauthorized,
+        "AUTH_GOOGLE_EMAIL_NOT_VERIFIED",
+        "Google hesabınızın e-posta adresi doğrulanmamış.");
 }

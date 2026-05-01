@@ -5,6 +5,15 @@ namespace CargoPilot.Application.Features.Auth;
 
 public interface IAuthService
 {
+    /// <summary>
+    /// Google ID token doğrulanır, kullanıcı bulunur veya oluşturulur,
+    /// UserLogin bağlantısı kurulur ve standart JWT oturumu döndürülür.
+    /// </summary>
+    Task<Result<LoginResponse>> LoginWithGoogleAsync(
+        string idToken,
+        string? ipAddress,
+        CancellationToken cancellationToken = default);
+
     Task<Result<LoginResponse>> LoginAsync(
         LoginRequest request,
         string? ipAddress,

@@ -10,6 +10,8 @@ using CargoPilot.Application.Features.Auth.DTOs;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
+using Google.Apis.Auth;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -34,6 +36,7 @@ internal sealed class AuthService : IAuthService
     private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
     private readonly IEmailService _emailService;
     private readonly PasswordResetSettings _passwordResetSettings;
+    private readonly GoogleAuthSettings _googleSettings;
 
     public AuthService(
         AppDbContext context,
@@ -44,7 +47,8 @@ internal sealed class AuthService : IAuthService
         IPasswordResetTokenRepository resetTokenRepository,
         IUserPasswordHistoryRepository passwordHistoryRepository,
         IEmailService emailService,
-        IOptions<PasswordResetSettings> passwordResetSettings)
+        IOptions<PasswordResetSettings> passwordResetSettings,
+        IOptions<GoogleAuthSettings> googleSettings)
     {
         _context = context;
         _passwordHasher = passwordHasher;
@@ -55,6 +59,115 @@ internal sealed class AuthService : IAuthService
         _passwordHistoryRepository = passwordHistoryRepository;
         _emailService = emailService;
         _passwordResetSettings = passwordResetSettings.Value;
+        _googleSettings = googleSettings.Value;
+    }
+
+    public async Task<Result<LoginResponse>> LoginWithGoogleAsync(
+        string idToken,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Google ID token doğrula
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = [_googleSettings.ClientId]
+            };
+            payload = await GoogleJsonWebSignature.ValidateAsync(idToken, validationSettings);
+        }
+        catch (InvalidJwtException)
+        {
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidGoogleToken);
+        }
+
+        // 2. E-posta doğrulanmış mı?
+        if (!payload.EmailVerified)
+            return Result<LoginResponse>.Failure(AuthErrors.GoogleEmailNotVerified);
+
+        // 3. Mapster ile payload → GoogleUserInfo
+        var userInfo = payload.Adapt<GoogleUserInfo>();
+
+        // 4. Mevcut UserLogin kaydını ara (sağlayıcı bağlantısı)
+        var existingLogin = await _context.UserLogins
+            .Include(ul => ul.User)
+            .FirstOrDefaultAsync(
+                ul => ul.LoginProvider == AuthProvider.Google && ul.ProviderKey == userInfo.GoogleId,
+                cancellationToken);
+
+        AppUser user;
+
+        if (existingLogin is not null)
+        {
+            // Kayıtlı Google kullanıcısı — doğrudan oturum aç
+            user = existingLogin.User;
+        }
+        else
+        {
+            // UserLogin yok — e-posta ile kullanıcı ara (account linking veya yeni kayıt)
+            var normalizedEmail = userInfo.Email.Trim().ToLowerInvariant();
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
+
+            if (existingUser is not null)
+            {
+                // Mevcut kullanıcıya Google hesabını bağla
+                user = existingUser;
+            }
+            else
+            {
+                // Yeni kullanıcı oluştur
+                user = new AppUser(
+                    id: Guid.NewGuid(),
+                    companyId: null,
+                    firstName: string.IsNullOrEmpty(userInfo.FirstName) ? "Google" : userInfo.FirstName,
+                    lastName: string.IsNullOrEmpty(userInfo.LastName) ? "User" : userInfo.LastName,
+                    email: normalizedEmail,
+                    passwordHash: null,
+                    userType: UserType.CompanyWorker,
+                    externalSystemId: userInfo.GoogleId,
+                    authProvider: AuthProvider.Google);
+
+                _context.Users.Add(user);
+            }
+
+            // Her iki yolda da Google bağlantısını oluştur
+            _context.UserLogins.Add(new UserLogin(
+                id: Guid.NewGuid(),
+                loginProvider: AuthProvider.Google,
+                providerKey: userInfo.GoogleId,
+                userId: user.Id));
+        }
+
+        // 5. JWT + refresh token üret ve oturumu kaydet
+        var now = DateTime.UtcNow;
+        var accessToken = _jwtTokenService.GenerateAccessToken(user);
+        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+        var sessionExpiry = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes);
+
+        _context.UserSessions.Add(new UserSession(
+            id: Guid.NewGuid(),
+            userId: user.Id,
+            token: refreshToken,
+            expiresAt: sessionExpiry,
+            lastUsedAt: now,
+            createdByIp: ipAddress));
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<LoginResponse>.Success(new LoginResponse
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            FullName = $"{user.FirstName} {user.LastName}",
+            Role = user.UserType.ToString(),
+            CompanyId = user.CompanyId,
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+            RefreshTokenExpiresAt = sessionExpiry,
+        });
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
