@@ -30,6 +30,7 @@ internal sealed class AuthService : IAuthService
     private readonly IJwtTokenService _jwtTokenService;
     private readonly JwtSettings _jwtSettings;
     private readonly IUserRepository _userRepository;
+    private readonly IEnumerable<IOAuthTokenValidator> _oauthValidators;
     private readonly IPasswordResetTokenRepository _resetTokenRepository;
     private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
     private readonly IEmailService _emailService;
@@ -41,6 +42,7 @@ internal sealed class AuthService : IAuthService
         IJwtTokenService jwtTokenService,
         IOptions<JwtSettings> jwtSettings,
         IUserRepository userRepository,
+        IEnumerable<IOAuthTokenValidator> oauthValidators,
         IPasswordResetTokenRepository resetTokenRepository,
         IUserPasswordHistoryRepository passwordHistoryRepository,
         IEmailService emailService,
@@ -51,6 +53,7 @@ internal sealed class AuthService : IAuthService
         _jwtTokenService = jwtTokenService;
         _jwtSettings = jwtSettings.Value;
         _userRepository = userRepository;
+        _oauthValidators = oauthValidators;
         _resetTokenRepository = resetTokenRepository;
         _passwordHistoryRepository = passwordHistoryRepository;
         _emailService = emailService;
@@ -89,6 +92,103 @@ internal sealed class AuthService : IAuthService
 
         user.ResetLoginAttempts();
 
+        return await IssueTokensAsync(user, ipAddress, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task<Result<LoginResponse>> OAuthLoginAsync(
+        string idToken,
+        AuthProvider provider,
+        string? ipAddress,
+        CancellationToken cancellationToken = default)
+    {
+        var validator = _oauthValidators.FirstOrDefault(v => v.Supports(provider));
+        if (validator is null)
+            return Result<LoginResponse>.Failure(
+                new Error(ErrorType.Validation, "OAuth.UnsupportedProvider",
+                    $"'{provider}' sağlayıcısı desteklenmiyor."));
+
+        OAuthUserInfo? userInfo;
+        try
+        {
+            userInfo = await validator.ValidateAsync(idToken, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return Result<LoginResponse>.Failure(
+                new Error(ErrorType.Unexpected, "OAuth.ProviderUnavailable",
+                    "Kimlik sağlayıcısına ulaşılamıyor. Lütfen tekrar deneyin."));
+        }
+
+        if (userInfo is null)
+            return Result<LoginResponse>.Failure(
+                new Error(ErrorType.Unauthorized, "OAuth.InvalidToken",
+                    "Kimlik doğrulama token'ı geçersiz veya süresi dolmuş."));
+
+        if (!userInfo.EmailVerified)
+            return Result<LoginResponse>.Failure(
+                new Error(ErrorType.Unauthorized, "OAuth.EmailNotVerified",
+                    "E-posta adresi sağlayıcı tarafından doğrulanmamış."));
+
+        var emailNormalized = userInfo.Email.Trim().ToLowerInvariant();
+
+        var user = await _userRepository.FindByProviderAsync(provider, userInfo.Sub, cancellationToken);
+
+        if (user is null)
+        {
+            var existingUser = await _userRepository.FindByEmailAsync(emailNormalized, cancellationToken);
+            if (existingUser is not null)
+            {
+                var mergeLogin = new UserLogin(
+                    id: Guid.NewGuid(),
+                    loginProvider: provider,
+                    providerKey: userInfo.Sub,
+                    userId: existingUser.Id);
+
+                _userRepository.AddUserLogin(mergeLogin);
+                await _userRepository.SaveChangesAsync(cancellationToken);
+
+                user = existingUser;
+            }
+            else
+            {
+                var firstName = userInfo.FirstName?.Trim() ?? emailNormalized.Split('@')[0];
+                var lastName = userInfo.LastName?.Trim() ?? string.Empty;
+
+                var newUser = new AppUser(
+                    id: Guid.NewGuid(),
+                    companyId: null,
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: emailNormalized,
+                    passwordHash: null,
+                    userType: UserType.Individual,
+                    externalSystemId: userInfo.Sub,
+                    authProvider: provider);
+
+                var newLogin = new UserLogin(
+                    id: Guid.NewGuid(),
+                    loginProvider: provider,
+                    providerKey: userInfo.Sub,
+                    userId: newUser.Id);
+
+                _userRepository.Add(newUser);
+                _userRepository.AddUserLogin(newLogin);
+                await _userRepository.SaveChangesAsync(cancellationToken);
+
+                user = newUser;
+            }
+        }
+
+        return await IssueTokensAsync(user, ipAddress, cancellationToken);
+    }
+
+    /// <summary>Kullanıcı için JWT + refresh token üretir ve oturum kaydeder.</summary>
+    private async Task<Result<LoginResponse>> IssueTokensAsync(
+        AppUser user,
+        string? ipAddress,
+        CancellationToken cancellationToken)
+    {
         var now = DateTime.UtcNow;
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var refreshToken = _jwtTokenService.GenerateRefreshToken();
@@ -124,25 +224,20 @@ internal sealed class AuthService : IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
-        // 1. Gelen token ile oturumu ve sahibi kullanıcıyı birlikte çek
         var session = await _context.UserSessions
             .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
 
-        // 2. Token yoksa, süresi geçmişse veya iptal edildiyse → 401
         if (session is null || session.IsRevoked || session.ExpiresAt <= DateTime.UtcNow)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
 
-        // 3. Eski session'ı iptal et (Token Rotation — kullanılan token bir daha geçerli olmaz)
         session.Revoke();
 
-        // 4. Yeni token çifti üret
         var now = DateTime.UtcNow;
-        var newAccessToken  = _jwtTokenService.GenerateAccessToken(session.User);
+        var newAccessToken = _jwtTokenService.GenerateAccessToken(session.User);
         var newRefreshToken = _jwtTokenService.GenerateRefreshToken();
-        var sessionExpiry   = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes);
+        var sessionExpiry = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes);
 
-        // 5. Yeni session'ı kaydet
         var newSession = new UserSession(
             id: Guid.NewGuid(),
             userId: session.UserId,
@@ -156,9 +251,9 @@ internal sealed class AuthService : IAuthService
 
         return Result<RefreshResponse>.Success(new RefreshResponse
         {
-            AccessToken          = newAccessToken,
+            AccessToken = newAccessToken,
             AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
-            RefreshToken         = newRefreshToken,
+            RefreshToken = newRefreshToken,
             RefreshTokenExpiresAt = sessionExpiry,
         });
     }
@@ -171,7 +266,6 @@ internal sealed class AuthService : IAuthService
 
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
 
-        // Account enumeration önleme: kullanıcı yok veya sosyal hesap olsa bile success dön (AC3)
         if (user is null || user.AuthProvider != AuthProvider.Local)
             return Result<bool>.Success(true);
 
@@ -219,16 +313,13 @@ internal sealed class AuthService : IAuthService
         if (user is null)
             return Result<bool>.Failure(AuthErrors.InvalidResetToken);
 
-        // Mevcut şifre kontrolü
         if (user.PasswordHash is not null && _passwordHasher.VerifyPassword(newPassword, user.PasswordHash))
             return Result<bool>.Failure(AuthErrors.PasswordAlreadyUsed);
 
-        // Son 3 şifre geçmişi kontrolü (AC3)
         var recentHashes = await _passwordHistoryRepository.GetLastHashesAsync(user.Id, 3, cancellationToken);
         if (recentHashes.Any(h => _passwordHasher.VerifyPassword(newPassword, h)))
             return Result<bool>.Failure(AuthErrors.PasswordAlreadyUsed);
 
-        // Eski şifreyi geçmişe ekle
         if (user.PasswordHash is not null)
         {
             _passwordHistoryRepository.Add(new UserPasswordHistory(
@@ -239,7 +330,6 @@ internal sealed class AuthService : IAuthService
 
         user.SetPassword(_passwordHasher.HashPassword(newPassword));
 
-        // Tüm aktif oturumları iptal et (AC4)
         var activeSessions = await _context.UserSessions
             .Where(s => s.UserId == user.Id && !s.IsRevoked)
             .ToListAsync(cancellationToken);
