@@ -9,6 +9,7 @@ import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProductsPage } from '@/pages/ProductsPage';
+import { NewPlanPage } from '@/pages/NewPlanPage';
 import { ProductCreatePage } from '@/pages/ProductCreatePage';
 import { ProductEditPage } from '@/pages/ProductEditPage';
 import { ErrorPage } from '@/pages/ErrorPage';
@@ -69,9 +70,7 @@ export const router = createBrowserRouter([
       },
       {
         element: <FocusModeLayout />,
-        children: [
-          // Squad 2: /plan/new, /plan/:id vb. buraya eklenir
-        ],
+        children: [{ path: '/planning/new', element: <NewPlanPage /> }],
       },
     ],
   },

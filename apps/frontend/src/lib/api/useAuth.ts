@@ -10,9 +10,10 @@ import type { RegisterFormValues } from '@/features/platform/schemas/registerSch
 
 const AUTH_ENDPOINTS = {
   login: '/api/v1/auth/login',
+  logout: '/api/v1/auth/logout',
   register: '/api/v1/auth/register',
   refresh: '/api/v1/auth/refresh',
-  forgotPassword: '/api/v1/auth/forgot-password',
+  forgotPassword: '/api/v1/auth/request-password-reset',
   resetPassword: '/api/v1/auth/reset-password',
 } as const;
 
@@ -82,29 +83,54 @@ export function isLoginNotFound(error: AxiosError<LoginErrorBody>): boolean {
   return /not.?found|user.?not.?exist/i.test(code);
 }
 
+/** Hesap kilitliyse true döner (AUTH_ACCOUNT_LOCKED kodu). */
+export function isAccountLocked(error: AxiosError<LoginErrorBody>): boolean {
+  if (error.response?.status !== 401) return false;
+  return error.response?.data?.error?.code === 'AUTH_ACCOUNT_LOCKED';
+}
+
+/** Kilitli hesabın kalan süresini dakika cinsinden döner; description'dan parse edilir. */
+export function getLockedMinutesRemaining(error: AxiosError<LoginErrorBody>): number {
+  const description = error.response?.data?.error?.description ?? '';
+  const match = description.match(/(\d+) dakika/);
+  return match ? parseInt(match[1], 10) : 2;
+}
+
 /** AC5: 409 → e-posta zaten kullanılıyor; component inline banner gösterir. */
 export function isEmailDuplicate(error: AxiosError<RegisterErrorBody>): boolean {
   return error.response?.status === 409;
 }
 
-/** AC3 (reset): 400 ve backend'in parola geçmişi kodu varsa true döner. */
+/** 422 → daha önce kullanılmış şifre (backend spec). */
 export function isPasswordReused(error: AxiosError<ResetPasswordErrorBody>): boolean {
-  if (error.response?.status !== 400) return false;
-  const code = error.response?.data?.error?.code ?? '';
-  return /password.*reuse|previously.*used|password.*histor|PasswordHistory|PasswordPrevious/i.test(
-    code,
-  );
+  return error.response?.status === 422;
 }
 
-/** Sıfırlama token'ı geçersiz veya süresi dolmuşsa true döner (400 / 422). Parola geçmişi 400'ünü dışlar. */
+/** 401 → token geçersiz/süresi dolmuş; 400 → doğrulama hatası. */
 export function isResetTokenInvalid(error: AxiosError<ResetPasswordErrorBody>): boolean {
   const status = error.response?.status ?? 0;
-  if (status === 422) return true;
-  if (status === 400) return !isPasswordReused(error);
-  return false;
+  return status === 401 || status === 400;
 }
 
 // --- Hooks ---
+
+export function useLogout() {
+  const navigate = useNavigate();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AxiosError>({
+    mutationFn: () =>
+      axiosInstance
+        .post<void>(AUTH_ENDPOINTS.logout, {}, { withCredentials: true })
+        .then((r) => r.data),
+    onSettled: () => {
+      clearAuth();
+      queryClient.clear();
+      navigate('/auth/login', { replace: true });
+    },
+  });
+}
 
 export function useLogin() {
   const navigate = useNavigate();
@@ -142,8 +168,10 @@ export function useResetPassword() {
   const queryClient = useQueryClient();
 
   return useMutation<void, AxiosError<ResetPasswordErrorBody>, ResetPasswordPayload>({
-    mutationFn: (data) =>
-      axiosInstance.post<void>(AUTH_ENDPOINTS.resetPassword, data).then((r) => r.data),
+    mutationFn: ({ token, password }) =>
+      axiosInstance
+        .post<void>(AUTH_ENDPOINTS.resetPassword, { token, newPassword: password })
+        .then((r) => r.data),
     onSuccess: () => {
       // AC4: yeni şifre sonrası mevcut oturumu ve cache'i temizle
       useAuthStore.getState().clearAuth();

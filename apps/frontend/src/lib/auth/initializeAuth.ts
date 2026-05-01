@@ -1,22 +1,33 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/config/env';
 import { useAuthStore } from '@/lib/store/useAuthStore';
-import type { AuthUser } from '@/lib/store/useAuthStore';
 
-interface RefreshResponse {
-  accessToken: string;
-  user: AuthUser;
+interface RefreshApiResponse {
+  isSuccess: boolean;
+  data: {
+    accessToken: string;
+    accessTokenExpiresAt: string;
+  };
 }
 
 export async function initializeAuth(): Promise<void> {
   try {
-    const { data } = await axios.post<RefreshResponse>(
+    const { data } = await axios.post<RefreshApiResponse>(
       `${API_BASE_URL}/api/v1/auth/refresh`,
       {},
       { withCredentials: true },
     );
-    useAuthStore.getState().setAuth(data.user, data.accessToken);
+    if (data.isSuccess && data.data?.accessToken) {
+      const { user } = useAuthStore.getState();
+      if (user) {
+        // sessionStorage'dan gelen user + yeni token → tam oturum restore
+        useAuthStore.getState().setAuth(user, data.data.accessToken);
+      } else {
+        useAuthStore.getState().setAccessToken(data.data.accessToken);
+      }
+    }
   } catch {
     // Oturum yoksa veya token süresi dolmuşsa sessizce geç
+    useAuthStore.getState().clearAuth();
   }
 }

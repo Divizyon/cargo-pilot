@@ -36,7 +36,7 @@ describe('exportPlanToExcel', () => {
     positionX: 0,
     positionY: 0,
     positionZ: 0,
-    rotation: 0,
+    orientationIndex: 0,
     layer: 1,
     isViolation: false,
     width: 10,
