@@ -20,14 +20,14 @@ export async function initializeAuth(): Promise<void> {
     if (data.isSuccess && data.data?.accessToken) {
       const { user } = useAuthStore.getState();
       if (user) {
-        // sessionStorage'dan gelen user + yeni token → tam oturum restore
         useAuthStore.getState().setAuth(user, data.data.accessToken);
       } else {
         useAuthStore.getState().setAccessToken(data.data.accessToken);
       }
     }
   } catch {
-    // Oturum yoksa veya token süresi dolmuşsa sessizce geç
     useAuthStore.getState().clearAuth();
+  } finally {
+    useAuthStore.getState().setInitialized();
   }
 }
