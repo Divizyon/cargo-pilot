@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Ban, Box, Cylinder, Droplets, HelpCircle, Move3d, Package, Wine } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import {
   Form,
   FormControl,
@@ -285,8 +284,6 @@ export function ProductForm({
     ],
   });
 
-  const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
-
   const isPallet = productType === 'palet';
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
@@ -401,10 +398,6 @@ export function ProductForm({
                               if (value === '') return;
                               const num = Number(value);
                               field.onChange(num);
-                              if (num === FRAGILITY_LEVELS.NonFragile) {
-                                form.setValue('maxStackCount', 1, { shouldValidate: false });
-                                form.setValue('isStackable', false, { shouldValidate: false });
-                              }
                               if (num >= FRAGILITY_LEVELS.Fragile) {
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
                               }
@@ -504,45 +497,28 @@ export function ProductForm({
                   <FormField
                     control={form.control}
                     name="maxStackCount"
-                    render={({ field }) => {
-                      const lockToOne = fragility === FRAGILITY_LEVELS.NonFragile;
-                      return (
-                        <FormItem>
-                          <div className="flex items-center justify-between gap-2">
-                            <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
-                            <Badge
-                              variant="outline"
-                              aria-hidden={!isNonStackableSelected}
-                              className={cn(
-                                'h-5 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] text-amber-800',
-                                !isNonStackableSelected && 'invisible',
-                              )}
-                            >
-                              {t('forms.product.nonStackable')}
-                            </Badge>
-                          </div>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={1}
-                              step={1}
-                              placeholder="1"
-                              disabled={lockToOne}
-                              className={cn(COMPACT_INPUT, lockToOne && 'cursor-not-allowed')}
-                              {...field}
-                              value={lockToOne ? 1 : (field.value ?? '')}
-                              onChange={(e) => {
-                                if (lockToOne) return;
-                                const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
-                                field.onChange(value);
-                                form.setValue('isStackable', value > 1, { shouldValidate: false });
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            placeholder="1"
+                            className={COMPACT_INPUT}
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
+                              field.onChange(value);
+                              form.setValue('isStackable', value > 1, { shouldValidate: false });
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
               </section>
