@@ -8,6 +8,7 @@ using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
 using CargoPilot.WebAPI.Swagger;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -75,6 +76,18 @@ public static class DependencyInjection {
                         SegmentsPerWindow = 3,
                         QueueLimit        = 0,
                     }));
+
+            // Profile update: 10 istek / 1 dk / IP
+            options.AddPolicy("profile-update", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 10,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
         });
 
         services.AddTransient<GlobalExceptionMiddleware>();
@@ -105,6 +118,39 @@ public static class DependencyInjection {
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         });
+
+        // Model binding hatalarını Result<T> contract'ına uygun döndür
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var errors = context.ModelState
+                    .Where(e => e.Value?.Errors.Count > 0)
+                    .SelectMany(e => e.Value!.Errors.Select(err => new
+                    {
+                        field   = e.Key,
+                        message = string.IsNullOrWhiteSpace(err.ErrorMessage)
+                            ? "Geçersiz değer."
+                            : err.ErrorMessage
+                    }))
+                    .ToList();
+
+                var response = new
+                {
+                    isSuccess = false,
+                    data      = (object?)null,
+                    error     = new
+                    {
+                        code             = "Validation.Failed",
+                        description      = "Doğrulama hatası.",
+                        validationErrors = errors
+                    }
+                };
+
+                return new BadRequestObjectResult(response);
+            };
+        });
+
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
@@ -173,6 +219,7 @@ public static class DependencyInjection {
 
     public static WebApplication UsePresentation(this WebApplication app)
     {
+        app.UseRouting();
         app.UseRateLimiter();
         app.UseMiddleware<GlobalExceptionMiddleware>();
 

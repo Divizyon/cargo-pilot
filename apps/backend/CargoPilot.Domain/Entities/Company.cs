@@ -26,4 +26,6 @@ public sealed class Company : BaseEntity {
         SubscriptionType = subscriptionType;
         MaxUserCount = maxUserCount;
     }
+
+    public void UpdateName(string name) => Name = name.Trim();
 }

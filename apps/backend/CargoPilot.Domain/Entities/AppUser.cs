@@ -61,4 +61,9 @@ public sealed class AppUser : BaseEntity {
     }
 
     public void SetPassword(string passwordHash) => PasswordHash = passwordHash;
+
+    public void UpdateProfile(string firstName, string lastName) {
+        FirstName = firstName.Trim();
+        LastName = lastName.Trim();
+    }
 }
