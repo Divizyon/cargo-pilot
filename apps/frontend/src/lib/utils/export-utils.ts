@@ -28,7 +28,6 @@ export function exportItemsToExcel(items: Item[]): void {
 export function downloadItemImportTemplate(): void {
   const headers = [
     'SKU',
-
     'Ürün Adı',
     'Tip (koli/varil/palet)',
     'Genişlik(cm)',

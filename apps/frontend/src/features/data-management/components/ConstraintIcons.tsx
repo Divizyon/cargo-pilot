@@ -1,4 +1,3 @@
-
 import { Droplets, Move3d, Wine } from 'lucide-react';
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
@@ -73,7 +72,6 @@ function buildConstraints({
 
   if (!allowRotateX || !allowRotateY || !allowRotateZ) {
     defs.push({
-
       icon: Move3d,
       label: 'Rotasyon Kısıtlı',
       className: 'border-border bg-muted text-muted-foreground',

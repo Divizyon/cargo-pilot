@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-
 import { CheckCircle2, Download, FileUp, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,6 @@ interface ParsedRow {
   'Özel Notlar'?: string;
 }
 
-
 interface ParsedError {
   row: string;
   message: string;
@@ -64,11 +62,11 @@ function parseTipToCategory(
   return ITEM_CATEGORY.Package;
 }
 
-
 function parseErrorEntry(err: string): ParsedError {
   const match = err.match(/^Satır (\d+): (.+)$/);
   return match ? { row: match[1], message: match[2] } : { row: '—', message: err };
 }
+
 function parseRows(rows: ParsedRow[]): { items: CreateItemRequest[]; errors: string[] } {
   const items: CreateItemRequest[] = [];
   const errors: string[] = [];
@@ -144,7 +142,6 @@ function parseRows(rows: ParsedRow[]): { items: CreateItemRequest[]; errors: str
 
 export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
@@ -160,7 +157,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     setImportResult(null);
     setShowResult(false);
 
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       const data = ev.target?.result;
@@ -171,7 +167,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       setParseErrors(errors);
       setParsedItems(items);
     };
-
     reader.onerror = () => {
       toast.error('Dosya okunamadı veya sunucuya erişilemiyor', { position: 'bottom-right' });
     };
@@ -200,13 +195,11 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     if (file) processFile(file);
   }
 
-
   function handleImport() {
     if (parsedItems.length === 0) return;
     bulkCreate.mutate(
       { items: parsedItems },
       {
-
         onSuccess: (data) => {
           const count = data?.data?.count ?? parsedItems.length;
           setImportResult({ count });
@@ -237,7 +230,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
   const hasErrors = parseErrors.length > 0;
   const canImport = parsedItems.length > 0 && !hasErrors && !bulkCreate.isPending && !importResult;
 
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
@@ -262,7 +254,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             Şablonu İndir
           </Button>
 
-
           {/* Drop Zone */}
           <div
             className={cn(
@@ -286,7 +277,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                 : fileName
                   ? fileName
                   : 'Excel veya CSV dosyası seçin ya da sürükleyin'}
-
             </p>
             {parsedItems.length > 0 && !hasErrors && (
               <p className="text-xs font-medium text-green-600">{parsedItems.length} ürün hazır</p>
@@ -300,7 +290,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             className="hidden"
             onChange={handleFileChange}
           />
-
 
           {/* Progress bar */}
           {bulkCreate.isPending && (
@@ -327,7 +316,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
           {hasErrors && (
             <div className="rounded-md border border-destructive/30 bg-destructive/5">
               <div className="flex items-center justify-between border-b border-destructive/20 px-3 py-2">
-
                 <p className="text-xs font-semibold text-destructive">
                   {parseErrors.length} hata bulundu
                 </p>
@@ -339,7 +327,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-
               <div className="max-h-48 overflow-y-auto">
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-destructive/5">
@@ -364,7 +351,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                   </tbody>
                 </table>
               </div>
-
             </div>
           )}
 
@@ -373,9 +359,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               İptal
             </Button>
             <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
-
               {parsedItems.length > 0 ? `${parsedItems.length} Ürün Ekle` : 'Dosya Ekle'}
-
             </Button>
           </div>
         </div>

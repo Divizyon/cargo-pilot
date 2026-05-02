@@ -284,7 +284,6 @@ export function ProductForm({
     ],
   });
 
-
   const isPallet = productType === 'palet';
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
@@ -360,7 +359,6 @@ export function ProductForm({
                             onValueChange={(value) => {
                               if (!value) return;
                               field.onChange(value);
-
                               if (value === 'palet') {
                                 form.setValue('allowRotateY', false, { shouldValidate: false });
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
