@@ -19,4 +19,6 @@ public interface IUserRepository
 
     /// <summary>Kullanıcıya yeni bir UserLogin kaydı ekler (hesap birleştirme — AC11).</summary>
     void AddUserLogin(UserLogin userLogin);
+
+    Task<IReadOnlyDictionary<Guid, AppUser>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
 }
