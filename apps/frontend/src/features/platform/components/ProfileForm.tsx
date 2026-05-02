@@ -14,28 +14,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store/useAuthStore';
-import { useUpdateProfile } from '@/lib/api/useAuth';
+import { useProfile, useUpdateProfile } from '@/lib/api/useAuth';
 import { profileSchema } from '@/features/platform/schemas/profileSchema';
 import type { ProfileFormValues } from '@/features/platform/schemas/profileSchema';
 
-function splitFullName(fullName: string): { firstName: string; lastName: string } {
-  const parts = fullName.trim().split(/\s+/);
-  const firstName = parts[0] ?? '';
-  const lastName = parts.slice(1).join(' ');
-  return { firstName, lastName };
-}
-
 export function ProfileForm() {
   const user = useAuthStore((s) => s.user);
+  const { data: profile } = useProfile();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
-
-  const { firstName, lastName } = splitFullName(user?.fullName ?? '');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName,
-      lastName,
+      firstName: '',
+      lastName: '',
       companyName: '',
       phone: '',
     },
@@ -43,10 +35,9 @@ export function ProfileForm() {
   });
 
   useEffect(() => {
-    if (!user) return;
-    const { firstName: fn, lastName: ln } = splitFullName(user.fullName);
-    form.reset({ firstName: fn, lastName: ln, companyName: '', phone: '' });
-  }, [user, form]);
+    if (!profile) return;
+    form.reset({ firstName: profile.firstName, lastName: profile.lastName, companyName: '', phone: '' });
+  }, [profile, form]);
 
   function onSubmit(values: ProfileFormValues) {
     updateProfile({
