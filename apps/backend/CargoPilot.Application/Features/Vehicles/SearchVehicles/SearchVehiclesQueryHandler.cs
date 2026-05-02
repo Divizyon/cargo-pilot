@@ -1,5 +1,6 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Entities;
 using FluentValidation;
 using MediatR;
 
@@ -7,12 +8,15 @@ namespace CargoPilot.Application.Features.Vehicles.SearchVehicles;
 
 public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQuery, Result<PagedResult<VehicleSummaryDto>>> {
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IValidator<SearchVehiclesQuery> _validator;
 
     public SearchVehiclesQueryHandler(
         IVehicleRepository vehicleRepository,
+        IUserRepository userRepository,
         IValidator<SearchVehiclesQuery> validator) {
         _vehicleRepository = vehicleRepository;
+        _userRepository = userRepository;
         _validator = validator;
     }
 
@@ -36,6 +40,14 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             request.PageSize,
             cancellationToken);
 
+        var userIds = pagedVehicles.Items
+            .Select(v => v.UpdatedBy ?? v.CreatedBy)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct();
+
+        var userMap = await _userRepository.GetByIdsAsync(userIds, cancellationToken);
+
         var dtos = pagedVehicles.Items
             .Select(v => new VehicleSummaryDto(
                 v.Id,
@@ -50,7 +62,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 v.LoadingType,
                 v.Volume,
                 v.IsActive,
-                v.CompanyId))
+                v.CompanyId,
+                ResolveAuditUser(v, userMap)))
             .ToList();
 
         var result = new PagedResult<VehicleSummaryDto>(
@@ -60,5 +73,15 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             pagedVehicles.PageSize);
 
         return Result<PagedResult<VehicleSummaryDto>>.Success(result);
+    }
+
+    private static AuditUserDto? ResolveAuditUser(
+        Vehicle v,
+        IReadOnlyDictionary<Guid, AppUser> userMap) {
+        var userId = v.UpdatedBy ?? v.CreatedBy;
+        if (userId is null || !userMap.TryGetValue(userId.Value, out var user))
+            return null;
+
+        return new AuditUserDto($"{user.FirstName} {user.LastName}".Trim(), user.Email);
     }
 }
