@@ -7,7 +7,6 @@ import {
   Cylinder,
   Download,
   Layers,
-
   Package,
   Plus,
   RotateCcw,
@@ -53,7 +52,6 @@ const PRODUCT_TYPE_ICON = {
 // ─── Constraint filter types ──────────────────────────────────────────────────
 
 type ConstraintFilter = 'fragile' | 'liquid' | 'stackable' | 'rotationLocked';
-
 
 import type { LucideProps } from 'lucide-react';
 type LucideIcon = ForwardRefExoticComponent<
@@ -437,7 +435,6 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
             className={cn(
               'gap-1.5 text-xs',
               hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
-
             )}
             onClick={() => setShowFilterPanel((v) => !v)}
           >

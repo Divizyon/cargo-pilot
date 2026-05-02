@@ -361,7 +361,6 @@ export function ProductForm({
                               if (!value) return;
                               field.onChange(value);
                               if (value === 'pallet') {
-
                                 form.setValue('allowRotateY', false, { shouldValidate: false });
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
                               } else {

@@ -36,7 +36,6 @@ interface ParsedRow {
   'Özel Notlar'?: string;
 }
 
-
 function parseBoolCell(v: unknown, fallback = true): boolean {
   if (typeof v === 'boolean') return v;
   if (typeof v === 'number') return v !== 0;
@@ -55,7 +54,6 @@ function parseTipToCategory(
   if (t === 'koli' || t === 'box') return ITEM_CATEGORY.Box;
   return ITEM_CATEGORY.Package;
 }
-
 
 function parseRows(rows: ParsedRow[]): { items: CreateItemRequest[]; errors: string[] } {
   const items: CreateItemRequest[] = [];
@@ -144,7 +142,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     setParseErrors([]);
     setParsedItems([]);
 
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       const data = ev.target?.result;
@@ -157,7 +154,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     };
     reader.readAsArrayBuffer(file);
   }
-
 
   function handleImport() {
     if (parsedItems.length === 0) return;
@@ -185,7 +181,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
 
   const hasErrors = parseErrors.length > 0;
   const canImport = parsedItems.length > 0 && !hasErrors && !bulkCreate.isPending;
-
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -218,7 +213,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             <FileUp className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               {fileName ? fileName : 'Excel veya CSV dosyası seçin'}
-
             </p>
             {parsedItems.length > 0 && !hasErrors && (
               <p className="text-xs font-medium text-green-600">{parsedItems.length} ürün hazır</p>
@@ -236,7 +230,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
           {hasErrors && (
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-3">
               <div className="mb-1 flex items-center justify-between">
-
                 <p className="text-xs font-semibold text-destructive">
                   {parseErrors.length} hata bulundu
                 </p>
@@ -253,7 +246,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                   {err}
                 </p>
               ))}
-
             </div>
           )}
 
@@ -263,7 +255,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             </Button>
             <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
               {bulkCreate.isPending ? 'Yükleniyor...' : `${parsedItems.length} Ürün Ekle`}
-
             </Button>
           </div>
         </div>
