@@ -3,8 +3,10 @@ import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
 import { VehicleIdentityFields } from './VehicleIdentityFields';
+import { VehiclePlateOrSerialField } from './VehiclePlateOrSerialField';
 import { useVehicleForm } from '@/features/data-management/hooks/useVehicleForm';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import { VehicleType } from '@/lib/types/vehicle';
 
 interface VehicleFormProps {
   defaultValues?: Partial<VehicleFormValues>;
@@ -25,7 +27,19 @@ export function VehicleForm({ defaultValues, onSubmit, onCancel, isSubmitting }:
             control={form.control}
             name="vehicleType"
             render={({ field }) => (
-              <VehicleTypeSelector value={field.value} onChange={field.onChange} />
+              <VehicleTypeSelector
+                value={field.value}
+                onChange={(val) => {
+                  field.onChange(val);
+                  if (val === VehicleType.Konteyner) {
+                    form.setValue('plate', '');
+                    form.clearErrors('plate');
+                  } else {
+                    form.setValue('serialNumber', '');
+                    form.clearErrors('serialNumber');
+                  }
+                }}
+              />
             )}
           />
           {form.formState.errors.vehicleType && (
@@ -38,6 +52,11 @@ export function VehicleForm({ defaultValues, onSubmit, onCancel, isSubmitting }:
         <div className="flex flex-col gap-3">
           <h2 className="text-base font-semibold">Kimlik Bilgileri</h2>
           <VehicleIdentityFields form={form} />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-base font-semibold">Plaka / Seri No</h2>
+          <VehiclePlateOrSerialField form={form} />
         </div>
 
         <div className="flex justify-end gap-3 border-t pt-4">

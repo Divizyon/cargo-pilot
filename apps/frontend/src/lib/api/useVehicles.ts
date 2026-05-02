@@ -48,3 +48,21 @@ export function useVehicleDuplicateCheck(name: string) {
     enabled: name.trim().length > 0,
   });
 }
+
+export function useVehiclePlateCheck(plate: string) {
+  return useQuery({
+    queryKey: ['vehicles', 'plate-check', plate] as const,
+    queryFn: () =>
+      apiFetch(`/vehicles/check-plate?plate=${encodeURIComponent(plate)}`, duplicateCheckSchema),
+    enabled: plate.trim().length > 0,
+  });
+}
+
+export function useVehicleSerialCheck(serial: string) {
+  return useQuery({
+    queryKey: ['vehicles', 'serial-check', serial] as const,
+    queryFn: () =>
+      apiFetch(`/vehicles/check-serial?serial=${encodeURIComponent(serial)}`, duplicateCheckSchema),
+    enabled: serial.trim().length > 0,
+  });
+}
