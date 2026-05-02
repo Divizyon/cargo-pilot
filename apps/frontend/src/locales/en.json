@@ -11,7 +11,7 @@
       "maxStackMin": "Max stack count must be at least 1",
       "fragilityRange": "Fragility must be between 0 and 2",
       "typeRequired": "Product type is required",
-      "notesTooLong": "Note must be at most 500 characters"
+      "notesTooLong": "Note must be at most 1000 characters"
     },
     "vehicle": {
       "nameRequired": "Vehicle name is required",

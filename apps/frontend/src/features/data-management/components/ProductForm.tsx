@@ -47,9 +47,9 @@ const DIMENSION_KEYS = Object.keys(DIMENSION_UNITS) as DimensionUnitKey[];
 const WEIGHT_KEYS = Object.keys(WEIGHT_UNITS) as Array<keyof typeof WEIGHT_UNITS>;
 
 const PRODUCT_TYPE_OPTIONS = [
-  { value: 'box', labelKey: 'forms.product.typeBox', Icon: Box },
-  { value: 'barrel', labelKey: 'forms.product.typeBarrel', Icon: Cylinder },
-  { value: 'pallet', labelKey: 'forms.product.typePallet', Icon: Package },
+  { value: 'koli', labelKey: 'forms.product.typeBox', Icon: Box },
+  { value: 'varil', labelKey: 'forms.product.typeBarrel', Icon: Cylinder },
+  { value: 'palet', labelKey: 'forms.product.typePallet', Icon: Package },
 ] as const;
 
 type AxisKey = 'x' | 'y' | 'z';
@@ -107,13 +107,13 @@ function NonStackableIcon({ className }: NonStackableIconProps) {
 }
 
 interface ProductTypeIllustrationProps {
-  type: 'box' | 'barrel' | 'pallet';
+  type: 'koli' | 'varil' | 'palet';
 }
 
 function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
   const stroke = 'currentColor';
 
-  if (type === 'barrel') {
+  if (type === 'varil') {
     return (
       <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
         <ellipse cx="60" cy="22" rx="36" ry="10" stroke={stroke} strokeWidth="1.5" />
@@ -133,7 +133,7 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
     );
   }
 
-  if (type === 'pallet') {
+  if (type === 'palet') {
     return (
       <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
         <path
@@ -287,7 +287,7 @@ export function ProductForm({
 
   const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
 
-  const isPallet = productType === 'pallet';
+  const isPallet = productType === 'palet';
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
 
@@ -362,7 +362,7 @@ export function ProductForm({
                             onValueChange={(value) => {
                               if (!value) return;
                               field.onChange(value);
-                              if (value === 'pallet') {
+                              if (value === 'palet') {
                                 form.setValue('allowRotateY', false, { shouldValidate: false });
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
                               } else {
@@ -673,7 +673,7 @@ export function ProductForm({
             {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
             <PreviewPanel
               name={name}
-              productType={productType ?? 'box'}
+              productType={productType ?? 'koli'}
               length={length}
               lengthUnit={lengthUnit}
               width={width}
@@ -714,7 +714,7 @@ export function ProductForm({
 
 interface PreviewPanelProps {
   name?: string;
-  productType: 'box' | 'barrel' | 'pallet';
+  productType: 'koli' | 'varil' | 'palet';
   length?: number;
   lengthUnit?: DimensionUnitKey;
   width?: number;

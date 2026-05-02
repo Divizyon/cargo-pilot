@@ -8,7 +8,7 @@ export const FRAGILITY_LEVELS = {
 
 export type FragilityLevel = (typeof FRAGILITY_LEVELS)[keyof typeof FRAGILITY_LEVELS];
 
-export const PRODUCT_TYPES = ['box', 'barrel', 'pallet'] as const;
+export const PRODUCT_TYPES = ['koli', 'varil', 'palet'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
 export const DIMENSION_UNITS = {
@@ -74,4 +74,14 @@ const TO_CM: Record<DimensionUnitKey, number> = {
 
 export function toCentimeters(value: number, unit: DimensionUnitKey): number {
   return value * TO_CM[unit];
+}
+
+const TO_KG: Record<WeightUnitKey, number> = {
+  kg: 1,
+  g: 0.001,
+  lb: 0.45359237,
+};
+
+export function toKilograms(value: number, unit: WeightUnitKey): number {
+  return value * TO_KG[unit];
 }
