@@ -284,7 +284,7 @@ export function ProductForm({
     ],
   });
 
-  const isPallet = productType === 'pallet';
+  const isPallet = productType === 'palet';
 
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
