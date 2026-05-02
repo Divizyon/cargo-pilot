@@ -359,7 +359,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               İptal
             </Button>
             <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
-              {parsedItems.length > 0 ? `${parsedItems.length} Ürün Ekle` : 'Ürün Ekle'}
+              {parsedItems.length > 0 ? `${parsedItems.length} Ürün Ekle` : 'Dosya Ekle'}
             </Button>
           </div>
         </div>
