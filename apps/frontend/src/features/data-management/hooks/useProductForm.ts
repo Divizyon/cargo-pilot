@@ -38,10 +38,10 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
   return useForm<ProductFormValues>({
     resolver,
     defaultValues: {
-      productType: 'box',
-      widthUnit: 'cm',
-      heightUnit: 'cm',
-      lengthUnit: 'cm',
+      productType: 'koli',
+      widthUnit: 'mm',
+      heightUnit: 'mm',
+      lengthUnit: 'mm',
       weightUnit: 'kg',
       isStackable: false,
       maxStackCount: 1,
