@@ -31,7 +31,7 @@ export const WEIGHT_UNITS = {
 export type WeightUnitKey = keyof typeof WEIGHT_UNITS;
 export type WeightUnitId = (typeof WEIGHT_UNITS)[WeightUnitKey];
 
-export const NOTES_MAX_LENGTH = 500;
+export const NOTES_MAX_LENGTH = 1000;
 export const NOTES_PREVIEW_LENGTH = 50;
 
 const numField = (msgKey: string) => z.number({ message: msgKey }).positive(msgKey);
