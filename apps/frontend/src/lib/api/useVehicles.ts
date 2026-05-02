@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { vehicleSchema } from '@/lib/types/vehicle';
+import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { apiFetch } from './fetcher';
 
 interface VehicleFilters {
@@ -20,6 +21,20 @@ export function useVehicle(id: string) {
     queryKey: ['vehicles', id] as const,
     queryFn: () => apiFetch(`/vehicles/${id}`, vehicleSchema),
     enabled: Boolean(id),
+  });
+}
+
+export function useCreateVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VehicleFormValues) =>
+      apiFetch('/vehicles', vehicleSchema, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
   });
 }
 
