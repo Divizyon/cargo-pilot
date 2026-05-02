@@ -86,7 +86,12 @@ const CONSTRAINT_FILTER_OPTIONS: {
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
   { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
-  { value: 'nonStackable', label: 'İstiflenemez', Icon: NonStackableFilterIcon, className: 'text-muted-foreground' },
+  {
+    value: 'nonStackable',
+    label: 'İstiflenemez',
+    Icon: NonStackableFilterIcon,
+    className: 'text-muted-foreground',
+  },
   {
     value: 'rotationLocked',
     label: 'Rotasyon Kısıtlı',
@@ -452,7 +457,8 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
             size="sm"
             className={cn(
               'gap-1.5 text-xs',
-              (hasActiveFilters || showFilterPanel) && 'border-primary text-primary ring-1 ring-primary/30',
+              (hasActiveFilters || showFilterPanel) &&
+                'border-primary text-primary ring-1 ring-primary/30',
             )}
             onClick={() => setShowFilterPanel((v) => !v)}
           >
