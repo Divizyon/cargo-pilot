@@ -4,8 +4,7 @@ import { useDashboardStats } from '@/lib/api/useDashboardStats';
 import { StatSummaryCard } from './StatSummaryCard';
 import { WeeklyTrendChart } from './WeeklyTrendChart';
 
-const ciroFormat = (v: number) =>
-  `₺${new Intl.NumberFormat('tr-TR').format(v)}`;
+const ciroFormat = (v: number) => `₺${new Intl.NumberFormat('tr-TR').format(v)}`;
 
 export function DashboardStatsCards() {
   const { data, isLoading, isError } = useDashboardStats();
@@ -51,9 +50,7 @@ export function DashboardStatsCards() {
         />
       </div>
 
-      {!isError && (
-        <WeeklyTrendChart data={data?.weeklyTrend ?? []} />
-      )}
+      {!isError && <WeeklyTrendChart data={data?.weeklyTrend ?? []} />}
     </div>
   );
 }

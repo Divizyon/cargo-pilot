@@ -46,9 +46,7 @@ export function PlanWizardStepper() {
                 </div>
               </div>
 
-              {!isLast && (
-                <div className="h-px flex-1 bg-[var(--border)] mx-2 mt-[-18px]" />
-              )}
+              {!isLast && <div className="h-px flex-1 bg-[var(--border)] mx-2 mt-[-18px]" />}
             </div>
           );
         })}

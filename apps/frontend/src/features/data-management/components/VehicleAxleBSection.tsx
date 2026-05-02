@@ -91,7 +91,10 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
       </div>
       {totalTare > 0 && (
         <p className="text-sm text-muted-foreground">
-          Toplam boş ağırlık: <span className="font-medium">{totalTare.toLocaleString('tr-TR')} {WEIGHT_UNIT}</span>
+          Toplam boş ağırlık:{' '}
+          <span className="font-medium">
+            {totalTare.toLocaleString('tr-TR')} {WEIGHT_UNIT}
+          </span>
         </p>
       )}
     </div>

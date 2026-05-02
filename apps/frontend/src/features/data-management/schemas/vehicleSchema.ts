@@ -5,10 +5,11 @@ import { DIMENSION_MAX, KINGPIN_LEGAL_MAX_LOAD } from '@/lib/config/vehicle-conf
 const VEHICLE_TYPE_VALUES = Object.values(VehicleType) as [VehicleTypeValue, ...VehicleTypeValue[]];
 
 const numField = (msg: string) =>
-  z.number({ error: msg }).positive(`${msg.replace('giriniz', '').trim()} sıfırdan büyük olmalıdır`);
+  z
+    .number({ error: msg })
+    .positive(`${msg.replace('giriniz', '').trim()} sıfırdan büyük olmalıdır`);
 
-const nonnegField = (msg: string) =>
-  z.number({ error: msg }).min(0, 'Değer negatif olamaz');
+const nonnegField = (msg: string) => z.number({ error: msg }).min(0, 'Değer negatif olamaz');
 
 const axleEntrySchema = z.object({
   distance: numField('Geçerli bir uzaklık giriniz'),

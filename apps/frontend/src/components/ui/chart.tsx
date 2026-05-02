@@ -49,9 +49,7 @@ export function ChartContainer({
   );
 }
 
-export function ChartTooltip(
-  props: React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
-) {
+export function ChartTooltip(props: React.ComponentProps<typeof RechartsPrimitive.Tooltip>) {
   return <RechartsPrimitive.Tooltip {...props} />;
 }
 
@@ -80,13 +78,17 @@ export function ChartTooltipContent({
   const { config } = useChart();
   if (!active || !payload?.length) return null;
   return (
-    <div className={cn('min-w-[8rem] rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl', className)}>
-      {!hideLabel && label && (
-        <p className="mb-1 font-medium">{label}</p>
+    <div
+      className={cn(
+        'min-w-[8rem] rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl',
+        className,
       )}
+    >
+      {!hideLabel && label && <p className="mb-1 font-medium">{label}</p>}
       <div className="grid gap-1">
         {payload.map((item, i) => {
-          const key = nameKey ?? (typeof item.dataKey === 'string' ? item.dataKey : String(item.name ?? ''));
+          const key =
+            nameKey ?? (typeof item.dataKey === 'string' ? item.dataKey : String(item.name ?? ''));
           const cfg = config[key];
           return (
             <div key={i} className="flex items-center gap-2">

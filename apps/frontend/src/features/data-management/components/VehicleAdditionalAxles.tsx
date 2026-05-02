@@ -115,8 +115,8 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
       {showDistanceWarning && (
         <Alert variant="warning">
           <AlertDescription>
-            Aks mesafeleri toplamı ({distanceSum} {DIMENSION_UNIT}) araç uzunluğunu (
-            {vehicleLength} {DIMENSION_UNIT}) aşıyor.
+            Aks mesafeleri toplamı ({distanceSum} {DIMENSION_UNIT}) araç uzunluğunu ({vehicleLength}{' '}
+            {DIMENSION_UNIT}) aşıyor.
           </AlertDescription>
         </Alert>
       )}

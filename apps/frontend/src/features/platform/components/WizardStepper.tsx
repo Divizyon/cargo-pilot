@@ -31,7 +31,9 @@ export function WizardStepper({ steps, activeStep = 0, onStepClick }: Props) {
                   'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors shrink-0',
                   isCompleted && 'bg-primary text-primary-foreground',
                   isActive && 'bg-primary text-primary-foreground',
-                  !isCompleted && !isActive && 'bg-muted text-muted-foreground border border-border',
+                  !isCompleted &&
+                    !isActive &&
+                    'bg-muted text-muted-foreground border border-border',
                 )}
               >
                 {isCompleted ? <Check size={14} /> : s.step}
@@ -41,9 +43,7 @@ export function WizardStepper({ steps, activeStep = 0, onStepClick }: Props) {
               </span>
             </div>
 
-            {!isLast && (
-              <div className="flex-1 h-px bg-border mx-2 mt-[-14px] shrink" />
-            )}
+            {!isLast && <div className="flex-1 h-px bg-border mx-2 mt-[-14px] shrink" />}
           </div>
         );
       })}

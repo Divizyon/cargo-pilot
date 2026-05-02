@@ -25,11 +25,5 @@ export function PlanSnapshotPanel() {
     );
   }
 
-  return (
-    <img
-      src={plan.snapshotUrl}
-      alt="Plan görünümü"
-      className="w-full h-auto object-cover"
-    />
-  );
+  return <img src={plan.snapshotUrl} alt="Plan görünümü" className="w-full h-auto object-cover" />;
 }

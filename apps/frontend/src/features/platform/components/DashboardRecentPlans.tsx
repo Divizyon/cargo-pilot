@@ -46,11 +46,7 @@ export function DashboardRecentPlans() {
           ) : (
             <ul>
               {data.map((plan) => (
-                <RecentPlanRow
-                  key={plan.id}
-                  plan={plan}
-                  isSelected={plan.id === selectedId}
-                />
+                <RecentPlanRow key={plan.id} plan={plan} isSelected={plan.id === selectedId} />
               ))}
             </ul>
           )}

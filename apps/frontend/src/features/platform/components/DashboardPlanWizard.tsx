@@ -22,10 +22,7 @@ export function DashboardPlanWizard() {
           <ArrowRight size={15} className="ml-1.5" />
         </Button>
       </div>
-      <WizardStepper
-        steps={STEPS}
-        onStepClick={() => navigate(ROUTES.PLANNING_NEW)}
-      />
+      <WizardStepper steps={STEPS} onStepClick={() => navigate(ROUTES.PLANNING_NEW)} />
     </div>
   );
 }

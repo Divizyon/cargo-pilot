@@ -78,8 +78,9 @@ export function useUpdateVehicle() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['vehicles'] });
       const previous = queryClient.getQueryData<Vehicle[]>(['vehicles']);
-      queryClient.setQueryData<Vehicle[]>(['vehicles'], (old) =>
-        old?.map((v) => (v.id === id ? { ...v, ...data } : v)) ?? [],
+      queryClient.setQueryData<Vehicle[]>(
+        ['vehicles'],
+        (old) => old?.map((v) => (v.id === id ? { ...v, ...data } : v)) ?? [],
       );
       return { previous };
     },
