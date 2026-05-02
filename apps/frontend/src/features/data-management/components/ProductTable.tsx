@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ForwardRefExoticComponent, RefAttributes } from 'react';
+
 import {
   Box,
   ChevronDown,
   Cylinder,
   Download,
   Layers,
+
   Package,
   Plus,
   RotateCcw,
@@ -52,6 +54,7 @@ const PRODUCT_TYPE_ICON = {
 
 type ConstraintFilter = 'fragile' | 'liquid' | 'stackable' | 'rotationLocked';
 
+
 import type { LucideProps } from 'lucide-react';
 type LucideIcon = ForwardRefExoticComponent<
   Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
@@ -60,6 +63,7 @@ const CONSTRAINT_FILTER_OPTIONS: {
   value: ConstraintFilter;
   label: string;
   Icon: LucideIcon;
+
   className: string;
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
@@ -69,6 +73,7 @@ const CONSTRAINT_FILTER_OPTIONS: {
     value: 'rotationLocked',
     label: 'Rotasyon Kısıtlı',
     Icon: RotateCcw,
+
     className: 'text-muted-foreground',
   },
 ];
@@ -81,6 +86,7 @@ function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean 
       return item.fragility === 2;
     case 'stackable':
       return item.isStackable;
+
     case 'rotationLocked':
       return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
   }
@@ -431,6 +437,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
             className={cn(
               'gap-1.5 text-xs',
               hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
+
             )}
             onClick={() => setShowFilterPanel((v) => !v)}
           >

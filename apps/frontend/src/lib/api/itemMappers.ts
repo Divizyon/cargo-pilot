@@ -42,8 +42,8 @@ export interface CreateItemRequest {
 }
 
 export function toCategory(productType: ProductType): ItemCategoryValue {
-  if (productType === 'pallet') return ITEM_CATEGORY.Pallet;
-  if (productType === 'box') return ITEM_CATEGORY.Box;
+  if (productType === 'palet') return ITEM_CATEGORY.Pallet;
+  if (productType === 'koli') return ITEM_CATEGORY.Box;
   return ITEM_CATEGORY.Package;
 }
 
@@ -150,17 +150,11 @@ export function fromApiItem(api: ItemApi): Item {
   };
 }
 
-function toProductType(pt: 'koli' | 'varil' | 'palet'): 'box' | 'barrel' | 'pallet' {
-  if (pt === 'palet') return 'pallet';
-  if (pt === 'varil') return 'barrel';
-  return 'box';
-}
-
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
   return {
     name: item.name,
     sku: item.sku,
-    productType: toProductType(item.productType),
+    productType: item.productType,
     width: item.width,
     widthUnit: 'cm',
     height: item.height,

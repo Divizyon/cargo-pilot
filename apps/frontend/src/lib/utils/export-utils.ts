@@ -4,6 +4,7 @@ import type { Item } from '@/lib/types/item';
 
 export function exportItemsToExcel(items: Item[]): void {
   const rows = items.map((item) => ({
+
     'Ürün Adı': item.name,
     SKU: item.sku,
     Tip: item.productType,
@@ -18,6 +19,7 @@ export function exportItemsToExcel(items: Item[]): void {
     'X Dönüşümü': item.allowRotateX ? 'true' : 'false',
     'Y Dönüşümü': item.allowRotateY ? 'true' : 'false',
     'Z Dönüşümü': item.allowRotateZ ? 'true' : 'false',
+
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -30,6 +32,7 @@ export function downloadItemImportTemplate(): void {
   const headers = [
     'SKU',
     'Barkod',
+
     'Ürün Adı',
     'Tip (koli/varil/palet)',
     'Genişlik(cm)',
@@ -46,7 +49,6 @@ export function downloadItemImportTemplate(): void {
   ];
   const example = [
     'SKU001',
-    '',
     'Örnek Koli',
     'koli',
     '30',
