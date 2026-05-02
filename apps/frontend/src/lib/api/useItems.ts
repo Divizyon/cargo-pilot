@@ -10,7 +10,6 @@ import {
   fromApiItem,
   itemApiResponseSchema,
   paginatedItemsApiSchema,
-  type CreateItemRequest,
 } from './itemMappers';
 
 const ITEMS_ENDPOINT = '/api/v1/items';
@@ -27,16 +26,6 @@ interface CreateItemResponse {
   isSuccess?: boolean;
   message?: string;
   data?: { id: string };
-}
-
-export interface BulkCreateItemsPayload {
-  items: CreateItemRequest[];
-}
-
-interface BulkCreateItemsResponse {
-  isSuccess?: boolean;
-  message?: string;
-  data?: { count: number };
 }
 
 export interface ItemFilters {
@@ -135,40 +124,6 @@ export function useDeleteItem() {
 
       if (status && status !== 401 && status < 500) {
         toast.error(detail ?? 'Ürün silinemedi.', { position: 'bottom-right' });
-      }
-    },
-  });
-}
-
-export function useBulkCreateItems() {
-  const queryClient = useQueryClient();
-
-  return useMutation<BulkCreateItemsResponse, AxiosError<ProblemDetails>, BulkCreateItemsPayload>({
-    mutationFn: (payload) =>
-      axiosInstance
-        .post<BulkCreateItemsResponse>(`${ITEMS_ENDPOINT}/bulk`, payload)
-        .then((r) => r.data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      const count = data?.data?.count;
-      toast.success(
-        count != null ? `${count} ürün başarıyla eklendi` : 'Ürünler başarıyla eklendi',
-        { position: 'bottom-right' },
-      );
-    },
-    onError: (error) => {
-      const status = error.response?.status;
-      const detail = error.response?.data?.detail;
-
-      if (status === 400) {
-        toast.error(detail ?? 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.', {
-          position: 'bottom-right',
-        });
-        return;
-      }
-
-      if (status && status !== 401 && status < 500) {
-        toast.error(detail ?? 'Toplu ürün eklenemedi.', { position: 'bottom-right' });
       }
     },
   });

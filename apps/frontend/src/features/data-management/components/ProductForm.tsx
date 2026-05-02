@@ -287,9 +287,7 @@ export function ProductForm({
 
   const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
 
-  const isPallet = productType === 'pallet';
-  const isZLocked = (fragility ?? 0) >= 1 || isPallet;
-  const isYLocked = isPallet;
+  const isZLocked = (fragility ?? 0) >= 1;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
@@ -359,19 +357,7 @@ export function ProductForm({
                           <ToggleGroup
                             type="single"
                             value={field.value}
-                            onValueChange={(value) => {
-                              if (!value) return;
-                              field.onChange(value);
-                              if (value === 'pallet') {
-                                form.setValue('allowRotateY', false, { shouldValidate: false });
-                                form.setValue('allowRotateZ', false, { shouldValidate: false });
-                              } else {
-                                form.setValue('allowRotateY', true, { shouldValidate: false });
-                                if ((form.getValues('fragility') ?? 0) < 1) {
-                                  form.setValue('allowRotateZ', true, { shouldValidate: false });
-                                }
-                              }
-                            }}
+                            onValueChange={(value) => value && field.onChange(value)}
                             className="flex flex-wrap"
                           >
                             {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
@@ -570,9 +556,7 @@ export function ProductForm({
 
                 <div className="grid grid-cols-3 gap-2">
                   {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => {
-                    const isDisabled =
-                      (axisFieldName === 'allowRotateZ' && isZLocked) ||
-                      (axisFieldName === 'allowRotateY' && isYLocked);
+                    const isDisabled = axisFieldName === 'allowRotateZ' && isZLocked;
                     return (
                       <FormField
                         key={axisFieldName}

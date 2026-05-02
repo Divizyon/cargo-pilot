@@ -1,7 +1,6 @@
-export type DimensionUnit = 'cm' | 'mm' | 'inch';
+export type DimensionUnit = 'cm' | 'inch';
 
 const CM_TO_INCH = 1 / 2.54;
-const CM_TO_MM = 10;
 
 export function calcVolume(lengthCm: number, widthCm: number, heightCm: number): number {
   return lengthCm * widthCm * heightCm;
@@ -9,7 +8,6 @@ export function calcVolume(lengthCm: number, widthCm: number, heightCm: number):
 
 export function formatDimension(valueCm: number, unit: DimensionUnit): string {
   if (unit === 'inch') return (valueCm * CM_TO_INCH).toFixed(1);
-  if (unit === 'mm') return String(Math.round(valueCm * CM_TO_MM));
   return String(valueCm);
 }
 
