@@ -6,10 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence.Repositories;
 
-internal sealed class VehicleRepository : IVehicleRepository {
+internal sealed class VehicleRepository : IVehicleRepository
+{
     private readonly AppDbContext _context;
 
-    public VehicleRepository(AppDbContext context) {
+    public VehicleRepository(AppDbContext context)
+    {
         _context = context;
     }
 
@@ -19,23 +21,23 @@ internal sealed class VehicleRepository : IVehicleRepository {
         bool? isActive,
         int page,
         int pageSize,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var query = _context.Vehicles.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(searchTerm)) {
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
             var term = searchTerm.Trim();
             query = query.Where(v =>
                 v.VehicleName.Contains(term) ||
                 v.PlateNumber.Contains(term));
         }
 
-        if (vehicleType.HasValue) {
+        if (vehicleType.HasValue)
             query = query.Where(v => v.VehicleType == vehicleType.Value);
-        }
 
-        if (isActive.HasValue) {
+        if (isActive.HasValue)
             query = query.Where(v => v.IsActive == isActive.Value);
-        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -48,21 +50,25 @@ internal sealed class VehicleRepository : IVehicleRepository {
         return new PagedResult<Vehicle>(items, totalCount, page, pageSize);
     }
 
-    public async Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) {
+    public async Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
         return await _context.Vehicles
             .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 
-    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {
+    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default)
+    {
         return await _context.Vehicles
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId, cancellationToken);
     }
 
-    public void Add(Vehicle vehicle) {
+    public void Add(Vehicle vehicle)
+    {
         _context.Vehicles.Add(vehicle);
     }
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default) {
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
         await _context.SaveChangesAsync(cancellationToken);
     }
 }
