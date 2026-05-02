@@ -54,10 +54,7 @@ export function VehicleForm({ defaultValues, onSubmit, onCancel, isSubmitting }:
           <VehicleIdentityFields form={form} />
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold">Plaka / Seri No</h2>
-          <VehiclePlateOrSerialField form={form} />
-        </div>
+        <VehiclePlateOrSerialField form={form} />
 
         <div className="flex justify-end gap-3 border-t pt-4">
           {onCancel && (

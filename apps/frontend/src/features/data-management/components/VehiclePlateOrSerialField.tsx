@@ -36,26 +36,26 @@ export function VehiclePlateOrSerialField({ form }: VehiclePlateOrSerialFieldPro
 
   if (!vehicleType) return null;
 
-  if (vehicleType === VehicleType.Konteyner) {
-    return (
+  const field =
+    vehicleType === VehicleType.Konteyner ? (
       <FormField
         control={form.control}
         name="serialNumber"
-        render={({ field }) => (
+        render={({ field: f }) => (
           <FormItem>
             <FormLabel>Seri Numarası</FormLabel>
             <FormControl>
               <Input
-                {...field}
-                value={field.value ?? ''}
+                {...f}
+                value={f.value ?? ''}
                 onBlur={(e) => {
-                  field.onBlur();
+                  f.onBlur();
                   const trimmed = e.target.value.trim();
                   form.setValue('serialNumber', trimmed);
                   if (trimmed) setSerialToCheck(trimmed);
                 }}
                 onChange={(e) => {
-                  field.onChange(e);
+                  f.onChange(e);
                   form.clearErrors('serialNumber');
                 }}
               />
@@ -64,35 +64,39 @@ export function VehiclePlateOrSerialField({ form }: VehiclePlateOrSerialFieldPro
           </FormItem>
         )}
       />
+    ) : (
+      <FormField
+        control={form.control}
+        name="plate"
+        render={({ field: f }) => (
+          <FormItem>
+            <FormLabel>Plaka</FormLabel>
+            <FormControl>
+              <Input
+                {...f}
+                value={f.value ?? ''}
+                onBlur={(e) => {
+                  f.onBlur();
+                  const trimmed = e.target.value.trim();
+                  form.setValue('plate', trimmed);
+                  if (trimmed) setPlateToCheck(trimmed);
+                }}
+                onChange={(e) => {
+                  f.onChange(e);
+                  form.clearErrors('plate');
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     );
-  }
 
   return (
-    <FormField
-      control={form.control}
-      name="plate"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Plaka</FormLabel>
-          <FormControl>
-            <Input
-              {...field}
-              value={field.value ?? ''}
-              onBlur={(e) => {
-                field.onBlur();
-                const trimmed = e.target.value.trim();
-                form.setValue('plate', trimmed);
-                if (trimmed) setPlateToCheck(trimmed);
-              }}
-              onChange={(e) => {
-                field.onChange(e);
-                form.clearErrors('plate');
-              }}
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+    <div className="flex flex-col gap-3">
+      <h2 className="text-base font-semibold">Plaka / Seri No</h2>
+      {field}
+    </div>
   );
 }
