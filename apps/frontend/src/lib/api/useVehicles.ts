@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { vehicleSchema } from '@/lib/types/vehicle';
+import { vehicleSchema, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { apiFetch } from './fetcher';
 
@@ -64,5 +64,31 @@ export function useVehicleSerialCheck(serial: string) {
     queryFn: () =>
       apiFetch(`/vehicles/check-serial?serial=${encodeURIComponent(serial)}`, duplicateCheckSchema),
     enabled: serial.trim().length > 0,
+  });
+}
+
+export function useUpdateVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<VehicleFormValues> }) =>
+      apiFetch(`/vehicles/${id}`, vehicleSchema, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['vehicles'] });
+      const previous = queryClient.getQueryData<Vehicle[]>(['vehicles']);
+      queryClient.setQueryData<Vehicle[]>(
+        ['vehicles'],
+        (old) => old?.map((v) => (v.id === id ? { ...v, ...data } : v)) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      queryClient.setQueryData(['vehicles'], context?.previous);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
   });
 }

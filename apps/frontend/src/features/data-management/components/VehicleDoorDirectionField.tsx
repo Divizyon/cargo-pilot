@@ -1,0 +1,90 @@
+import { useWatch } from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
+import { FormItem, FormLabel } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { DoorDirection } from '@/lib/types/vehicle';
+import type { VehicleFormValues } from '../schemas/vehicleSchema';
+
+interface VehicleDoorDirectionFieldProps {
+  form: UseFormReturn<VehicleFormValues>;
+}
+
+const DIRECTION_LABELS: Record<string, string> = {
+  rear: 'Arka',
+  side: 'Yan',
+  top: 'Üst',
+};
+
+export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldProps) {
+  const doorDirection = useWatch({ control: form.control, name: 'doorDirection' });
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className="text-base font-semibold">Kapı Yönü</h2>
+      <Controller
+        control={form.control}
+        name="doorDirection"
+        render={({ field, fieldState }) => (
+          <FormItem>
+            <ToggleGroup
+              type="single"
+              value={field.value}
+              onValueChange={(val) => {
+                if (val) {
+                  field.onChange(val);
+                  form.clearErrors('doorDirection');
+                  if (val !== DoorDirection.Side) {
+                    form.setValue('doorSide', undefined);
+                    form.clearErrors('doorSide');
+                  }
+                }
+              }}
+              className="justify-start"
+            >
+              {Object.values(DoorDirection).map((dir) => (
+                <ToggleGroupItem key={dir} value={dir}>
+                  {DIRECTION_LABELS[dir]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            {fieldState.error && (
+              <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
+            )}
+          </FormItem>
+        )}
+      />
+
+      {doorDirection === DoorDirection.Side && (
+        <Controller
+          control={form.control}
+          name="doorSide"
+          render={({ field, fieldState }) => (
+            <FormItem>
+              <FormLabel>Kapı Tarafı</FormLabel>
+              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Seçiniz" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="right">Sağ</SelectItem>
+                  <SelectItem value="left">Sol</SelectItem>
+                </SelectContent>
+              </Select>
+              {fieldState.error && (
+                <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
+              )}
+            </FormItem>
+          )}
+        />
+      )}
+    </div>
+  );
+}
