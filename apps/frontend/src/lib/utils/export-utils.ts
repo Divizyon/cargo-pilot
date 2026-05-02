@@ -4,19 +4,22 @@ import type { Item } from '@/lib/types/item';
 
 export function exportItemsToExcel(items: Item[]): void {
   const rows = items.map((item) => ({
-    SKU: item.sku,
+
     'Ürün Adı': item.name,
-    'Tip (koli/varil/palet)': item.productType,
-    'Genişlik(cm)': item.width,
-    'Yükseklik(cm)': item.height,
-    'Uzunluk(cm)': item.length,
-    'Ağırlık(kg)': item.weight,
-    'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)': item.fragility,
-    'İstiflenebilir (true/false)': item.isStackable ? 'true' : 'false',
+    SKU: item.sku,
+    Tip: item.productType,
+    'Genişlik (cm)': item.width,
+    'Yükseklik (cm)': item.height,
+    'Uzunluk (cm)': item.length,
+    'Ağırlık (kg)': item.weight,
+    Kırılganlık:
+      item.fragility === 2 ? 'Sıvı (2)' : item.fragility === 1 ? 'Kırılgan (1)' : 'Normal (0)',
+    İstiflenebilir: item.isStackable ? 'true' : 'false',
     'Maks Kat': item.maxStackCount,
-    'X Dönüşümü (true/false)': item.allowRotateX ? 'true' : 'false',
-    'Y Dönüşümü (true/false)': item.allowRotateY ? 'true' : 'false',
-    'Z Dönüşümü (true/false)': item.allowRotateZ ? 'true' : 'false',
+    'X Dönüşümü': item.allowRotateX ? 'true' : 'false',
+    'Y Dönüşümü': item.allowRotateY ? 'true' : 'false',
+    'Z Dönüşümü': item.allowRotateZ ? 'true' : 'false',
+
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -28,6 +31,8 @@ export function exportItemsToExcel(items: Item[]): void {
 export function downloadItemImportTemplate(): void {
   const headers = [
     'SKU',
+    'Barkod',
+
     'Ürün Adı',
     'Tip (koli/varil/palet)',
     'Genişlik(cm)',
