@@ -34,7 +34,7 @@ internal sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByI
         {
             var user = await _userRepository.GetByIdAsync(vehicle.CreatedBy.Value, cancellationToken);
             if (user is not null)
-                createdBy = new AuditUserDto(user.Id, $"{user.FirstName} {user.LastName}", user.Email);
+                createdBy = new AuditUserDto(user.Id, $"{user.FirstName} {user.LastName}");
         }
 
         AuditUserDto? updatedBy = null;
@@ -42,7 +42,7 @@ internal sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByI
         {
             var user = await _userRepository.GetByIdAsync(vehicle.UpdatedBy.Value, cancellationToken);
             if (user is not null)
-                updatedBy = new AuditUserDto(user.Id, $"{user.FirstName} {user.LastName}", user.Email);
+                updatedBy = new AuditUserDto(user.Id, $"{user.FirstName} {user.LastName}");
         }
 
         var dto = new VehicleDetailDto(

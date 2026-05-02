@@ -63,6 +63,12 @@ internal sealed class VehicleRepository : IVehicleRepository
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId, cancellationToken);
     }
 
+    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Vehicles
+            .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId && v.Id != excludeId, cancellationToken);
+    }
+
     public void Add(Vehicle vehicle)
     {
         _context.Vehicles.Add(vehicle);

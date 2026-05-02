@@ -7,8 +7,7 @@ public sealed record GetVehicleByIdQuery(Guid Id) : IRequest<Result<VehicleDetai
 
 public sealed record AuditUserDto(
     Guid Id,
-    string FullName,
-    string Email);
+    string FullName);
 
 public sealed record VehicleDetailDto(
     Guid Id,
