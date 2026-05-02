@@ -33,6 +33,45 @@ public sealed class Vehicle : BaseEntity {
 
     private Vehicle() { }
 
+    public void Update(
+        string vehicleName,
+        VehicleType vehicleType,
+        string plateNumber,
+        decimal internalWidth,
+        decimal internalHeight,
+        decimal internalLength,
+        decimal maxWeightCapacity,
+        decimal? kingPinDistanceMm,
+        decimal? kingPinTareWeightKg,
+        decimal? kingPinMaxLoadKg,
+        decimal? mainAxleDistanceMm,
+        decimal? mainAxleTareWeightKg,
+        decimal? mainAxleMaxLoadKg,
+        decimal? additionalAxleDistanceMm,
+        decimal? additionalAxleTareWeightKg,
+        decimal? additionalAxleMaxLoadKg,
+        int layerCount,
+        LoadingType loadingType) {
+        VehicleName = vehicleName;
+        VehicleType = vehicleType;
+        PlateNumber = plateNumber;
+        InternalWidth = internalWidth;
+        InternalHeight = internalHeight;
+        InternalLength = internalLength;
+        MaxWeightCapacity = maxWeightCapacity;
+        KingPinDistanceMm = kingPinDistanceMm;
+        KingPinTareWeightKg = kingPinTareWeightKg;
+        KingPinMaxLoadKg = kingPinMaxLoadKg;
+        MainAxleDistanceMm = mainAxleDistanceMm;
+        MainAxleTareWeightKg = mainAxleTareWeightKg;
+        MainAxleMaxLoadKg = mainAxleMaxLoadKg;
+        AdditionalAxleDistanceMm = additionalAxleDistanceMm;
+        AdditionalAxleTareWeightKg = additionalAxleTareWeightKg;
+        AdditionalAxleMaxLoadKg = additionalAxleMaxLoadKg;
+        LayerCount = layerCount;
+        LoadingType = loadingType;
+    }
+
     public Vehicle(
         Guid id,
         string vehicleName,
