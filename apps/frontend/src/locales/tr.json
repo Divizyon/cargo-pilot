@@ -11,7 +11,7 @@
       "maxStackMin": "Maksimum istif sayısı en az 1 olmalıdır",
       "fragilityRange": "Kırılganlık değeri 0-2 arasında olmalıdır",
       "typeRequired": "Ürün tipi seçilmelidir",
-      "notesTooLong": "Not en fazla 500 karakter olabilir"
+      "notesTooLong": "Not en fazla 1000 karakter olabilir"
     },
     "vehicle": {
       "nameRequired": "Araç adı zorunludur",

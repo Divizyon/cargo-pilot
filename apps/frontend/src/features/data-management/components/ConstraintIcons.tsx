@@ -1,4 +1,4 @@
-import { AlertTriangle, Droplets, Layers, RotateCcw } from 'lucide-react';
+import { Droplets, Move3d, Wine } from 'lucide-react';
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,28 @@ interface ConstraintDef {
   icon: ElementType;
   label: string;
   className: string;
+}
+
+function NonStackableIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="18" height="15" rx="2" />
+      <path d="M9 15 V8" />
+      <path d="M6 11 L9 8 L12 11" />
+      <path d="M15 15 V8" />
+      <path d="M12 11 L15 8 L18 11" />
+      <line x1="2" y1="21" x2="22" y2="21" />
+    </svg>
+  );
 }
 
 function buildConstraints({
@@ -34,24 +56,24 @@ function buildConstraints({
     });
   } else if (fragility === 1) {
     defs.push({
-      icon: AlertTriangle,
+      icon: Wine,
       label: 'Kırılgan',
       className: 'border-amber-200 bg-amber-50 text-amber-600',
     });
   }
 
-  if (isStackable) {
+  if (!isStackable) {
     defs.push({
-      icon: Layers,
-      label: 'İstiflenebilir',
+      icon: NonStackableIcon,
+      label: 'İstiflenemez',
       className: 'border-border bg-muted text-muted-foreground',
     });
   }
 
-  if (allowRotateX || allowRotateY || allowRotateZ) {
+  if (!allowRotateX || !allowRotateY || !allowRotateZ) {
     defs.push({
-      icon: RotateCcw,
-      label: 'Döndürülebilir',
+      icon: Move3d,
+      label: 'Rotasyon Kısıtlı',
       className: 'border-border bg-muted text-muted-foreground',
     });
   }
