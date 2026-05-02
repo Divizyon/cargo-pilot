@@ -2,8 +2,10 @@ using FluentValidation;
 
 namespace CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 
-public sealed class DuplicateVehicleCommandValidator : AbstractValidator<DuplicateVehicleCommand> {
-    public DuplicateVehicleCommandValidator() {
+public sealed class DuplicateVehicleCommandValidator : AbstractValidator<DuplicateVehicleCommand>
+{
+    public DuplicateVehicleCommandValidator()
+    {
         RuleFor(x => x.Id)
             .NotEmpty()
             .WithMessage("Kaynak araç ID'si zorunludur.");
