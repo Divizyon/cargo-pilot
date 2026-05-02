@@ -1,4 +1,4 @@
-import { AlertTriangle, Droplets, Layers, RotateCcw } from 'lucide-react';
+import { Droplets, Layers, RotateCcw, Wine } from 'lucide-react';
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,7 @@ function buildConstraints({
     });
   } else if (fragility === 1) {
     defs.push({
-      icon: AlertTriangle,
+      icon: Wine,
       label: 'Kırılgan',
       className: 'border-amber-200 bg-amber-50 text-amber-600',
     });
@@ -48,10 +48,10 @@ function buildConstraints({
     });
   }
 
-  if (allowRotateX || allowRotateY || allowRotateZ) {
+  if (!allowRotateX || !allowRotateY || !allowRotateZ) {
     defs.push({
       icon: RotateCcw,
-      label: 'Döndürülebilir',
+      label: 'Rotasyon Kısıtlı',
       className: 'border-border bg-muted text-muted-foreground',
     });
   }
