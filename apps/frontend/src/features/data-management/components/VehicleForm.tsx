@@ -1,9 +1,11 @@
 import { Controller } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
 import { VehicleIdentityFields } from './VehicleIdentityFields';
 import { VehiclePlateOrSerialField } from './VehiclePlateOrSerialField';
+import { VehicleFormLayout } from './VehicleFormLayout';
+import { VehicleFormActions } from './VehicleFormActions';
+import { VehiclePreviewCanvas } from './VehiclePreviewCanvas';
 import { useVehicleForm } from '@/features/data-management/hooks/useVehicleForm';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { VehicleType } from '@/lib/types/vehicle';
@@ -11,11 +13,18 @@ import { VehicleType } from '@/lib/types/vehicle';
 interface VehicleFormProps {
   defaultValues?: Partial<VehicleFormValues>;
   onSubmit: (values: VehicleFormValues) => void;
+  onDraftSubmit?: (values: Partial<VehicleFormValues>) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
 }
 
-export function VehicleForm({ defaultValues, onSubmit, onCancel, isSubmitting }: VehicleFormProps) {
+export function VehicleForm({
+  defaultValues,
+  onSubmit,
+  onDraftSubmit,
+  onCancel,
+  isSubmitting,
+}: VehicleFormProps) {
   const form = useVehicleForm(defaultValues);
 
   return (
@@ -56,16 +65,16 @@ export function VehicleForm({ defaultValues, onSubmit, onCancel, isSubmitting }:
 
         <VehiclePlateOrSerialField form={form} />
 
-        <div className="flex justify-end gap-3 border-t pt-4">
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-              İptal
-            </Button>
-          )}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
-          </Button>
-        </div>
+        <VehicleFormLayout form={form} />
+
+        <VehiclePreviewCanvas control={form.control} />
+
+        <VehicleFormActions
+          form={form}
+          isSubmitting={isSubmitting}
+          onCancel={onCancel}
+          onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+        />
       </form>
     </Form>
   );
