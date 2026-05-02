@@ -50,7 +50,7 @@ public sealed class VehiclesController : BaseController {
     /// Mevcut bir aracı kopyalar; benzersiz alanlar (araç adı ve plaka) zorunlu olarak yeniden girilir.
     /// </summary>
     /// <param name="id">Kopyalanacak araç ID'si.</param>
-    /// <param name="command">Yeni araç adı ve plakası.</param>
+    /// <param name="request">Yeni araç adı ve plakası.</param>
     /// <param name="cancellationToken">İptal token'ı.</param>
     /// <response code="201">Yeni araç oluşturuldu; ID döner.</response>
     /// <response code="400">Doğrulama hatası.</response>
@@ -63,10 +63,10 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Duplicate(
         [FromRoute] Guid id,
-        [FromBody] DuplicateVehicleCommand command,
+        [FromBody] DuplicateVehicleRequest request,
         CancellationToken cancellationToken = default) {
-        var commandWithId = command with { Id = id };
-        var result = await _mediator.Send(commandWithId, cancellationToken);
+        var command = new DuplicateVehicleCommand(id, request.VehicleName, request.PlateNumber);
+        var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
         return HandleResult(result);
