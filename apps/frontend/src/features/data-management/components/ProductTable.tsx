@@ -1,18 +1,25 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ForwardRefExoticComponent, RefAttributes } from 'react';
 import {
   Box,
   ChevronDown,
   Cylinder,
   Download,
+  Layers,
   Package,
   Plus,
+  RotateCcw,
   SlidersHorizontal,
   Trash2,
+  Upload,
+  Wine,
+  Droplets,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -30,6 +37,8 @@ import {
   formatVolume,
   type DimensionUnit,
 } from '@/lib/utils/calcVolume';
+import { exportItemsToExcel } from '@/lib/utils/export-utils';
+import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from './SearchInput';
 
@@ -39,7 +48,45 @@ const PRODUCT_TYPE_ICON = {
   palet: { Icon: Package, label: 'Palet' },
 } as const;
 
-// ─── Text highlight (AC3) ─────────────────────────────────────────────────────
+// ─── Constraint filter types ──────────────────────────────────────────────────
+
+type ConstraintFilter = 'fragile' | 'liquid' | 'stackable' | 'rotationLocked';
+
+import type { LucideProps } from 'lucide-react';
+type LucideIcon = ForwardRefExoticComponent<
+  Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
+>;
+const CONSTRAINT_FILTER_OPTIONS: {
+  value: ConstraintFilter;
+  label: string;
+  Icon: LucideIcon;
+  className: string;
+}[] = [
+  { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
+  { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
+  { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
+  {
+    value: 'rotationLocked',
+    label: 'Rotasyon Kısıtlı',
+    Icon: RotateCcw,
+    className: 'text-muted-foreground',
+  },
+];
+
+function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean {
+  switch (filter) {
+    case 'fragile':
+      return item.fragility === 1;
+    case 'liquid':
+      return item.fragility === 2;
+    case 'stackable':
+      return item.isStackable;
+    case 'rotationLocked':
+      return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
+  }
+}
+
+// ─── Text highlight ───────────────────────────────────────────────────────────
 
 interface HighlightTextProps {
   text: string;
@@ -160,14 +207,12 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
 
   return (
     <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
-      {/* Ürün adı */}
       <TableCell className={cn(cell, 'max-w-[176px]')}>
         <span className="block truncate text-xs text-muted-foreground" title={item.name}>
           <HighlightText text={item.name} query={searchTerm} />
         </span>
       </TableCell>
 
-      {/* Tip */}
       <TableCell className={cell}>
         <div className="flex items-center gap-1 text-muted-foreground">
           <TypeIcon className="h-3 w-3 shrink-0" strokeWidth={1.5} />
@@ -175,14 +220,12 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         </div>
       </TableCell>
 
-      {/* SKU */}
       <TableCell className={cell}>
         <span className="font-mono text-xs text-muted-foreground">
           <HighlightText text={item.sku} query={searchTerm} />
         </span>
       </TableCell>
 
-      {/* Genişlik */}
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs text-foreground">
@@ -194,7 +237,6 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         </div>
       </TableCell>
 
-      {/* Yükseklik */}
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs text-foreground">
@@ -206,7 +248,6 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         </div>
       </TableCell>
 
-      {/* Uzunluk */}
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs text-foreground">
@@ -218,17 +259,14 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         </div>
       </TableCell>
 
-      {/* Hacim */}
       <TableCell className={cell}>
         <span className="text-xs text-foreground">{formatVolume(volume, unit)}</span>
       </TableCell>
 
-      {/* Ağırlık */}
       <TableCell className={cell}>
         <span className="text-xs text-foreground">{item.weight} kg</span>
       </TableCell>
 
-      {/* Katman Sayısı */}
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
           <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
@@ -238,7 +276,6 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         </div>
       </TableCell>
 
-      {/* Kısıtlar */}
       <TableCell className={cell}>
         <ConstraintIcons
           fragility={item.fragility}
@@ -249,7 +286,6 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         />
       </TableCell>
 
-      {/* İşlem */}
       <TableCell className={cell}>
         <Button
           variant="ghost"
@@ -296,7 +332,12 @@ const CATEGORY_TO_PRODUCT_TYPE: Record<
 export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
-  const unit: DimensionUnit = 'cm';
+  const [constraintFilters, setConstraintFilters] = useState<Set<ConstraintFilter>>(new Set());
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  const unit: DimensionUnit = 'mm';
 
   const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
   const deleteItem = useDeleteItem();
@@ -307,6 +348,18 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     isFetching,
   } = useItems(searchTerm ? { search: searchTerm } : undefined);
 
+  // Close filter panel on outside click
+  useEffect(() => {
+    if (!showFilterPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilterPanel]);
+
   const handleDelete = useCallback(
     (item: Item) => {
       if (!window.confirm(`"${item.name}" ürününü silmek istediğinizden emin misiniz?`)) return;
@@ -315,19 +368,40 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     [deleteItem],
   );
 
-  const filteredItems =
+  function toggleConstraintFilter(value: ConstraintFilter) {
+    setConstraintFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  }
+
+  const categoryFiltered =
     category === 'all'
       ? items
       : items?.filter((item) => item.productType === CATEGORY_TO_PRODUCT_TYPE[category]);
 
+  const filteredItems =
+    constraintFilters.size === 0
+      ? categoryFiltered
+      : categoryFiltered?.filter((item) =>
+          [...constraintFilters].some((f) => matchesConstraintFilter(item, f)),
+        );
+
   const showSkeleton = isLoading || isFetching;
-  const isEmpty = !showSkeleton && filteredItems?.length === 0 && !searchTerm;
-  const noResults = !showSkeleton && filteredItems?.length === 0 && Boolean(searchTerm);
+  const isEmpty =
+    !showSkeleton && filteredItems?.length === 0 && !searchTerm && constraintFilters.size === 0;
+  const noResults =
+    !showSkeleton &&
+    filteredItems?.length === 0 &&
+    (Boolean(searchTerm) || constraintFilters.size > 0);
+  const hasActiveFilters = constraintFilters.size > 0;
 
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {/* Category tabs */}
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
           {CATEGORY_TABS.map((tab) => (
@@ -350,27 +424,84 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
 
         {/* Filtrele */}
-        <Button variant="outline" size="sm" className="shrink-0 gap-1.5 text-xs">
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filtrele
-          <ChevronDown className="h-3.5 w-3.5" />
-        </Button>
+        <div ref={filterRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'gap-1.5 text-xs',
+              hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowFilterPanel((v) => !v)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filtrele
+            {hasActiveFilters && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {constraintFilters.size}
+              </span>
+            )}
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showFilterPanel && (
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Kısıt Filtresi
+                </p>
+                <div className="space-y-2">
+                  {CONSTRAINT_FILTER_OPTIONS.map(({ value, label, Icon, className }) => (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={constraintFilters.has(value)}
+                        onCheckedChange={() => toggleConstraintFilter(value)}
+                      />
+                      <Icon className={cn('h-3.5 w-3.5', className)} />
+                      <span className="text-xs">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="mt-3 text-[11px] text-muted-foreground underline hover:text-foreground"
+                    onClick={() => setConstraintFilters(new Set())}
+                  >
+                    Filtreleri temizle
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Dışa Aktar */}
-        <Button variant="outline" size="sm" className="shrink-0 gap-1.5 text-xs">
-          <Download className="h-3.5 w-3.5" />
-          Dışa Aktar
-        </Button>
-
-        {/* Toplu Ürün Ekle */}
         <Button
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
-          onClick={onCreateClick}
+          onClick={() => exportItemsToExcel(filteredItems ?? [])}
+          disabled={!filteredItems || filteredItems.length === 0}
         >
-          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-          Toplu Ürün Ekle
+          <Download className="h-3.5 w-3.5" />
+          Dışa Aktar
+        </Button>
+
+        {/* İçe Aktar / Toplu Ürün Ekle */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5 text-xs"
+          onClick={() => setShowBulkImport(true)}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          İçe Aktar
         </Button>
 
         {/* Yeni Ürün Ekle */}
@@ -380,7 +511,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         </Button>
       </div>
 
-      {/* No-results alert (AC5) */}
+      {/* No-results alert */}
       {noResults && (
         <Alert>
           <AlertDescription>Aradığınız kriterlere uygun ürün bulunamadı.</AlertDescription>
@@ -455,6 +586,8 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           </Table>
         )}
       </div>
+
+      <BulkImportDialog open={showBulkImport} onOpenChange={setShowBulkImport} />
     </div>
   );
 }
