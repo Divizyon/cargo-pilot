@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ComponentType, ForwardRefExoticComponent, RefAttributes } from 'react';
+import type { ForwardRefExoticComponent, RefAttributes } from 'react';
+
 import {
   Box,
   ChevronDown,
   Cylinder,
   Download,
-  Move3d,
+  Layers,
   Package,
   Plus,
+  RotateCcw,
   SlidersHorizontal,
   Trash2,
   Upload,
@@ -49,53 +51,27 @@ const PRODUCT_TYPE_ICON = {
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
 
-type ConstraintFilter = 'fragile' | 'liquid' | 'nonStackable' | 'rotationLocked';
+type ConstraintFilter = 'fragile' | 'liquid' | 'stackable' | 'rotationLocked';
 
 import type { LucideProps } from 'lucide-react';
 type LucideIcon = ForwardRefExoticComponent<
   Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
 >;
-
-function NonStackableFilterIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <rect x="3" y="3" width="18" height="15" rx="2" />
-      <path d="M9 15 V8" />
-      <path d="M6 11 L9 8 L12 11" />
-      <path d="M15 15 V8" />
-      <path d="M12 11 L15 8 L18 11" />
-      <line x1="2" y1="21" x2="22" y2="21" />
-    </svg>
-  );
-}
-
 const CONSTRAINT_FILTER_OPTIONS: {
   value: ConstraintFilter;
   label: string;
-  Icon: LucideIcon | ComponentType<{ className?: string }>;
+  Icon: LucideIcon;
+
   className: string;
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
   { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
-  {
-    value: 'nonStackable',
-    label: 'İstiflenemez',
-    Icon: NonStackableFilterIcon,
-    className: 'text-muted-foreground',
-  },
+  { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
   {
     value: 'rotationLocked',
     label: 'Rotasyon Kısıtlı',
-    Icon: Move3d,
+    Icon: RotateCcw,
+
     className: 'text-muted-foreground',
   },
 ];
@@ -106,8 +82,9 @@ function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean 
       return item.fragility === 1;
     case 'liquid':
       return item.fragility === 2;
-    case 'nonStackable':
-      return !item.isStackable;
+    case 'stackable':
+      return item.isStackable;
+
     case 'rotationLocked':
       return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
   }
@@ -457,8 +434,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
             size="sm"
             className={cn(
               'gap-1.5 text-xs',
-              (hasActiveFilters || showFilterPanel) &&
-                'border-primary text-primary ring-1 ring-primary/30',
+              hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
             )}
             onClick={() => setShowFilterPanel((v) => !v)}
           >

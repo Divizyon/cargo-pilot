@@ -59,5 +59,16 @@ internal sealed class UserRepository : IUserRepository {
         return _dbContext.Users
             .Include(u => u.Company)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+      }
+  
+    public async Task<IReadOnlyDictionary<Guid, AppUser>> GetByIdsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default) {
+        var idList = ids.Distinct().ToList();
+        var users = await _dbContext.Users
+            .AsNoTracking()
+            .Where(u => idList.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+        return users.ToDictionary(u => u.Id);
     }
 }

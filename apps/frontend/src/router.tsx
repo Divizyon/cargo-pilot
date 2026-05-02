@@ -12,8 +12,11 @@ import { ProductsPage } from '@/pages/ProductsPage';
 import { NewPlanPage } from '@/pages/NewPlanPage';
 import { ProductCreatePage } from '@/pages/ProductCreatePage';
 import { ProductEditPage } from '@/pages/ProductEditPage';
+import { VehiclesPage } from '@/pages/VehiclesPage';
+import { VehicleCreatePage } from '@/pages/VehicleCreatePage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
+import { ProfilePage } from '@/pages/ProfilePage';
 
 export const router = createBrowserRouter([
   {
@@ -58,7 +61,8 @@ export const router = createBrowserRouter([
           { path: '/products', element: <ProductsPage /> },
           { path: '/products/new', element: <ProductCreatePage /> },
           { path: '/products/:id', element: <ProductEditPage /> },
-          { path: '/vehicles', element: <DashboardPage /> },
+          { path: '/vehicles', element: <VehiclesPage /> },
+          { path: '/vehicles/new', element: <VehicleCreatePage /> },
           { path: '/planning', element: <DashboardPage /> },
           { path: '/reports', element: <DashboardPage /> },
           { path: '/integrations', element: <DashboardPage /> },
@@ -66,6 +70,7 @@ export const router = createBrowserRouter([
           { path: '/notifications', element: <DashboardPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <DashboardPage /> },
+          { path: '/profile', element: <ProfilePage /> },
         ],
       },
       {

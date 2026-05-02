@@ -220,6 +220,11 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
               ? 'lg:justify-center py-2'
               : 'gap-3 px-2 py-2.5 hover:bg-sidebar-accent cursor-pointer',
           )}
+          onClick={() => navigate('/profile')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/profile')}
+          title="Profili görüntüle"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
             {user ? getInitials(user.fullName) : '?'}
@@ -235,7 +240,10 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => logout()}
+            onClick={(e) => {
+              e.stopPropagation();
+              logout();
+            }}
             disabled={isLoggingOut}
             title="Çıkış Yap"
             className={cn(
