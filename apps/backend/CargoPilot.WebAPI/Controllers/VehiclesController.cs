@@ -1,5 +1,6 @@
 using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 using CargoPilot.Application.Features.Vehicles.SearchVehicles;
+using CargoPilot.Application.Features.Vehicles.UpdateVehicle;
 using CargoPilot.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +44,30 @@ public sealed class VehiclesController : BaseController {
         CancellationToken cancellationToken = default) {
         var query = new SearchVehiclesQuery(searchTerm, vehicleType, isActive, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Mevcut bir aracı günceller.
+    /// </summary>
+    /// <param name="id">Güncellenecek araç ID'si.</param>
+    /// <param name="command">Güncellenecek araç bilgileri.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç güncellendi; ID döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Araç bulunamadı.</response>
+    /// <response code="409">Plaka zaten kullanımda.</response>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(
+        [FromRoute] Guid id,
+        [FromBody] UpdateVehicleCommand command,
+        CancellationToken cancellationToken = default) {
+        var commandWithId = command with { Id = id };
+        var result = await _mediator.Send(commandWithId, cancellationToken);
         return HandleResult(result);
     }
 
