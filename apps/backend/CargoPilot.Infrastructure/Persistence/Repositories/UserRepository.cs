@@ -54,4 +54,10 @@ internal sealed class UserRepository : IUserRepository {
     public void AddUserLogin(UserLogin userLogin) {
         _dbContext.UserLogins.Add(userLogin);
     }
+
+    public Task<AppUser?> GetByIdWithCompanyAsync(Guid id, CancellationToken cancellationToken = default) {
+        return _dbContext.Users
+            .Include(u => u.Company)
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+    }
 }
