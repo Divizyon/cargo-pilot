@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ComponentType, ForwardRefExoticComponent, RefAttributes } from 'react';
+import type { LucideProps } from 'lucide-react';
 
 import {
   Box,
@@ -46,6 +47,10 @@ import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from './SearchInput';
 
+type LucideIcon = ForwardRefExoticComponent<
+  Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
+>;
+
 const PRODUCT_TYPE_ICON = {
   koli: { Icon: Box, label: 'Koli' },
   varil: { Icon: Cylinder, label: 'Varil' },
@@ -55,12 +60,6 @@ const PRODUCT_TYPE_ICON = {
 // ─── Constraint filter types ──────────────────────────────────────────────────
 
 type ConstraintFilter = 'fragile' | 'liquid' | 'nonStackable' | 'rotationLocked';
-
-
-import type { LucideProps } from 'lucide-react';
-type LucideIcon = ForwardRefExoticComponent<
-  Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
->;
 
 
 function NonStackableFilterIcon({ className }: { className?: string }) {
