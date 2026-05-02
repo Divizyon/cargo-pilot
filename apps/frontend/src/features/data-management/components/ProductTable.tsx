@@ -8,6 +8,7 @@ import {
   Move3d,
   Package,
   Plus,
+  RotateCcw,
   SlidersHorizontal,
   Trash2,
   Upload,
