@@ -54,7 +54,6 @@ const PRODUCT_TYPE_ICON = {
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
 
-=
 type ConstraintFilter = 'fragile' | 'liquid' | 'nonStackable' | 'rotationLocked';
 
 
