@@ -26,7 +26,8 @@ public sealed class VehiclesController : BaseController {
     /// <param name="vehicleType">Araç tipi filtresi (opsiyonel).</param>
     /// <param name="isActive">Aktif/arşivlenmiş filtresi (opsiyonel).</param>
     /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
-    /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20).</param>
+    /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20). isExport=true ise göz ardı edilir.</param>
+    /// <param name="isExport">Tüm kayıtları pagination olmadan döndürmek için true geçin.</param>
     /// <param name="cancellationToken">İptal token'ı.</param>
     /// <response code="200">Arama sonuçları sayfalı döner.</response>
     /// <response code="400">Doğrulama hatası.</response>
@@ -39,8 +40,9 @@ public sealed class VehiclesController : BaseController {
         [FromQuery] bool? isActive,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] bool isExport = false,
         CancellationToken cancellationToken = default) {
-        var query = new SearchVehiclesQuery(searchTerm, vehicleType, isActive, page, pageSize);
+        var query = new SearchVehiclesQuery(searchTerm, vehicleType, isActive, page, pageSize, isExport);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

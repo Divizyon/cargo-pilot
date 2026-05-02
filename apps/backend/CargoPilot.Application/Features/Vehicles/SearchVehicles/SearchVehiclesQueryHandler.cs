@@ -32,12 +32,14 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
+        var (page, pageSize) = request.IsExport ? (1, int.MaxValue) : (request.Page, request.PageSize);
+
         var pagedVehicles = await _vehicleRepository.SearchAsync(
             request.SearchTerm,
             request.VehicleType,
             request.IsActive,
-            request.Page,
-            request.PageSize,
+            page,
+            pageSize,
             cancellationToken);
 
         var userIds = pagedVehicles.Items
