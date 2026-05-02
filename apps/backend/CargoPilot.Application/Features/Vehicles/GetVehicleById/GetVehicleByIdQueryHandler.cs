@@ -7,10 +7,14 @@ namespace CargoPilot.Application.Features.Vehicles.GetVehicleById;
 internal sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQuery, Result<VehicleDetailDto>>
 {
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly IUserRepository _userRepository;
 
-    public GetVehicleByIdQueryHandler(IVehicleRepository vehicleRepository)
+    public GetVehicleByIdQueryHandler(
+        IVehicleRepository vehicleRepository,
+        IUserRepository userRepository)
     {
         _vehicleRepository = vehicleRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<Result<VehicleDetailDto>> Handle(
@@ -23,6 +27,22 @@ internal sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByI
         {
             return Result<VehicleDetailDto>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
+        }
+
+        AuditUserDto? createdBy = null;
+        if (vehicle.CreatedBy.HasValue)
+        {
+            var user = await _userRepository.GetByIdAsync(vehicle.CreatedBy.Value, cancellationToken);
+            if (user is not null)
+                createdBy = new AuditUserDto(user.Id, $"{user.FirstName} {user.LastName}", user.Email);
+        }
+
+        AuditUserDto? updatedBy = null;
+        if (vehicle.UpdatedBy.HasValue)
+        {
+            var user = await _userRepository.GetByIdAsync(vehicle.UpdatedBy.Value, cancellationToken);
+            if (user is not null)
+                updatedBy = new AuditUserDto(user.Id, $"{user.FirstName} {user.LastName}", user.Email);
         }
 
         var dto = new VehicleDetailDto(
@@ -47,10 +67,11 @@ internal sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByI
             vehicle.LoadingType.ToString(),
             vehicle.CompanyId,
             vehicle.Volume,
+            vehicle.IsActive,
             vehicle.CreatedAtUtc,
             vehicle.UpdatedAtUtc,
-            vehicle.CreatedBy,
-            vehicle.UpdatedBy);
+            createdBy,
+            updatedBy);
 
         return Result<VehicleDetailDto>.Success(dto);
     }

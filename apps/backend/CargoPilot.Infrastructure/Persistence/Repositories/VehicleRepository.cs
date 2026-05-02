@@ -53,6 +53,7 @@ internal sealed class VehicleRepository : IVehicleRepository
     public async Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Vehicles
+            .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 

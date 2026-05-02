@@ -5,6 +5,11 @@ namespace CargoPilot.Application.Features.Vehicles.GetVehicleById;
 
 public sealed record GetVehicleByIdQuery(Guid Id) : IRequest<Result<VehicleDetailDto>>;
 
+public sealed record AuditUserDto(
+    Guid Id,
+    string FullName,
+    string Email);
+
 public sealed record VehicleDetailDto(
     Guid Id,
     string VehicleName,
@@ -27,7 +32,8 @@ public sealed record VehicleDetailDto(
     string LoadingType,
     Guid? CompanyId,
     decimal Volume,
+    bool IsActive,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
-    Guid? CreatedBy,
-    Guid? UpdatedBy);
+    AuditUserDto? CreatedBy,
+    AuditUserDto? UpdatedBy);
