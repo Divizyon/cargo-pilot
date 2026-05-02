@@ -49,7 +49,11 @@ export function ChartContainer({
   );
 }
 
-export const ChartTooltip = RechartsPrimitive.Tooltip;
+export function ChartTooltip(
+  props: React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
+) {
+  return <RechartsPrimitive.Tooltip {...props} />;
+}
 
 interface TooltipPayloadItem {
   dataKey?: string | number;

@@ -1,3 +1,4 @@
+import { type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileDown, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,13 +28,13 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
     setSelectedSnapshotPlanId(plan.id);
   }
 
-  function handleReportDetail(e: React.MouseEvent) {
+  function handleReportDetail(e: MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
     setSelectedSnapshotPlanId(plan.id);
     navigate(`${ROUTES.REPORTS}?planId=${plan.id}`);
   }
 
-  function handleDownload(e: React.MouseEvent) {
+  function handleDownload(e: MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
     downloadPlanPdf(plan.id);
   }
