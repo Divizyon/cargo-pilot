@@ -33,6 +33,11 @@ public sealed class Vehicle : BaseEntity {
 
     private Vehicle() { }
 
+    public void SetStatus(bool isActive) {
+        if (isActive) Activate();
+        else Deactivate();
+    }
+
     public void Update(
         string vehicleName,
         VehicleType vehicleType,

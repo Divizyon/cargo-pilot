@@ -1,6 +1,7 @@
 using CargoPilot.Application.Features.Vehicles.CreateVehicle;
 using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 using CargoPilot.Application.Features.Vehicles.SearchVehicles;
+using CargoPilot.Application.Features.Vehicles.SetVehicleStatus;
 using CargoPilot.Application.Features.Vehicles.UpdateVehicle;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -127,6 +128,26 @@ public sealed class VehiclesController : BaseController {
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
             request.AdditionalAxleMaxLoadKg);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Aracın aktif/pasif durumunu değiştirir.
+    /// </summary>
+    /// <param name="id">Araç ID'si.</param>
+    /// <param name="isActive">true → aktif, false → pasif.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Durum güncellendi; araç ID'si döner.</response>
+    /// <response code="404">Araç bulunamadı.</response>
+    [HttpPatch("{id:guid}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetStatus(
+        [FromRoute] Guid id,
+        [FromQuery] bool isActive,
+        CancellationToken cancellationToken = default) {
+        var command = new SetVehicleStatusCommand(id, isActive);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

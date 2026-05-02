@@ -28,4 +28,7 @@ public abstract class BaseEntity {
         IsDeleted = true;
         IsActive = false;
     }
+
+    protected void Activate() => IsActive = true;
+    protected void Deactivate() => IsActive = false;
 }
