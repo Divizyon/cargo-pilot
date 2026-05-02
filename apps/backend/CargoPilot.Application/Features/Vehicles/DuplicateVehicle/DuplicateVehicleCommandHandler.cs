@@ -6,20 +6,24 @@ using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 
-public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVehicleCommand, Result<Guid>> {
+public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVehicleCommand, Result<Guid>>
+{
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IValidator<DuplicateVehicleCommand> _validator;
 
     public DuplicateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
-        IValidator<DuplicateVehicleCommand> validator) {
+        IValidator<DuplicateVehicleCommand> validator)
+    {
         _vehicleRepository = vehicleRepository;
         _validator = validator;
     }
 
-    public async Task<Result<Guid>> Handle(DuplicateVehicleCommand request, CancellationToken cancellationToken) {
+    public async Task<Result<Guid>> Handle(DuplicateVehicleCommand request, CancellationToken cancellationToken)
+    {
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid) {
+        if (!validationResult.IsValid)
+        {
             var failures = validationResult.Errors
                 .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
                 .ToList();
