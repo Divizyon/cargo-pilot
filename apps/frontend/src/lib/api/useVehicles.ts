@@ -22,3 +22,17 @@ export function useVehicle(id: string) {
     enabled: Boolean(id),
   });
 }
+
+const duplicateCheckSchema = z.object({ exists: z.boolean() });
+
+export function useVehicleDuplicateCheck(name: string) {
+  return useQuery({
+    queryKey: ['vehicles', 'duplicate-check', name] as const,
+    queryFn: () =>
+      apiFetch(
+        `/vehicles/check-name?name=${encodeURIComponent(name)}`,
+        duplicateCheckSchema,
+      ),
+    enabled: name.trim().length > 0,
+  });
+}
