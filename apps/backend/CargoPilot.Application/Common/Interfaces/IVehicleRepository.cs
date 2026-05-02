@@ -4,7 +4,8 @@ using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Interfaces;
 
-public interface IVehicleRepository {
+public interface IVehicleRepository
+{
     Task<PagedResult<Vehicle>> SearchAsync(
         string? searchTerm,
         VehicleType? vehicleType,
