@@ -25,6 +25,7 @@ interface AuthStore {
   lastActivityAt: number | null;
   setAuth: (user: AuthUser, accessToken: string) => void;
   setAccessToken: (token: string) => void;
+  updateUser: (partial: Partial<AuthUser>) => void;
   clearAuth: () => void;
   updateActivity: () => void;
   logout: (queryClient: QueryClient) => void;
@@ -47,6 +48,10 @@ export const useAuthStore = create<AuthStore>()(
           lastActivityAt: Date.now(),
         }),
       setAccessToken: (accessToken) => set({ accessToken }),
+      updateUser: (partial) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...partial } : state.user,
+        })),
       clearAuth: () =>
         set({
           user: null,

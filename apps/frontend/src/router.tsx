@@ -16,6 +16,7 @@ import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleCreatePage } from '@/pages/VehicleCreatePage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
+import { ProfilePage } from '@/pages/ProfilePage';
 
 export const router = createBrowserRouter([
   {
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
           { path: '/notifications', element: <DashboardPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <DashboardPage /> },
+          { path: '/profile', element: <ProfilePage /> },
         ],
       },
       {
