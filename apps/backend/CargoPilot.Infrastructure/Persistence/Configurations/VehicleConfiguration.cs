@@ -16,6 +16,33 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
                     "CK_Vehicles_MaxWeightCapacity_Positive",
                     "[MaxWeightCapacity] > 0");
                 tableBuilder.HasCheckConstraint("CK_Vehicles_LayerCount_Min1", "[LayerCount] >= 1");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_KingPinDistanceMm_Positive_WhenSet",
+                    "[KingPinDistanceMm] IS NULL OR [KingPinDistanceMm] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_KingPinTareWeightKg_Positive_WhenSet",
+                    "[KingPinTareWeightKg] IS NULL OR [KingPinTareWeightKg] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_KingPinMaxLoadKg_Positive_WhenSet",
+                    "[KingPinMaxLoadKg] IS NULL OR [KingPinMaxLoadKg] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_MainAxleDistanceMm_Positive_WhenSet",
+                    "[MainAxleDistanceMm] IS NULL OR [MainAxleDistanceMm] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_MainAxleTareWeightKg_Positive_WhenSet",
+                    "[MainAxleTareWeightKg] IS NULL OR [MainAxleTareWeightKg] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_MainAxleMaxLoadKg_Positive_WhenSet",
+                    "[MainAxleMaxLoadKg] IS NULL OR [MainAxleMaxLoadKg] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_AdditionalAxleDistanceMm_Positive_WhenSet",
+                    "[AdditionalAxleDistanceMm] IS NULL OR [AdditionalAxleDistanceMm] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_AdditionalAxleTareWeightKg_Positive_WhenSet",
+                    "[AdditionalAxleTareWeightKg] IS NULL OR [AdditionalAxleTareWeightKg] > 0");
+                tableBuilder.HasCheckConstraint(
+                    "CK_Vehicles_AdditionalAxleMaxLoadKg_Positive_WhenSet",
+                    "[AdditionalAxleMaxLoadKg] IS NULL OR [AdditionalAxleMaxLoadKg] > 0");
             });
         builder.HasKey(vehicle => vehicle.Id);
 
@@ -61,6 +88,33 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
 
         builder.Property(vehicle => vehicle.MaxWeightCapacity)
             .IsRequired()
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.KingPinDistanceMm)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.KingPinTareWeightKg)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.KingPinMaxLoadKg)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.MainAxleDistanceMm)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.MainAxleTareWeightKg)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.MainAxleMaxLoadKg)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.AdditionalAxleDistanceMm)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.AdditionalAxleTareWeightKg)
+            .HasPrecision(18, 4);
+
+        builder.Property(vehicle => vehicle.AdditionalAxleMaxLoadKg)
             .HasPrecision(18, 4);
 
         builder.Property(vehicle => vehicle.LayerCount)

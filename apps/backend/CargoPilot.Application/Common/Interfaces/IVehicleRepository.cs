@@ -1,14 +1,15 @@
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Interfaces;
 
-public interface IVehicleRepository
-{
+public interface IVehicleRepository {
     Task<PagedResult<Vehicle>> SearchAsync(
         string? searchTerm,
+        VehicleType? vehicleType,
+        bool? isActive,
         int page,
         int pageSize,
-        bool isExport,
         CancellationToken cancellationToken = default);
 }

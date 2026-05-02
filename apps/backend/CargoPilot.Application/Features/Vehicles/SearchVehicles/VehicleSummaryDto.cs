@@ -13,5 +13,7 @@ public sealed record VehicleSummaryDto(
     decimal MaxWeightCapacity,
     int LayerCount,
     LoadingType LoadingType,
+    decimal Volume,
+    bool IsActive,
     Guid? CompanyId,
-    decimal Volume);
+    AuditUserDto? LastModifiedBy);

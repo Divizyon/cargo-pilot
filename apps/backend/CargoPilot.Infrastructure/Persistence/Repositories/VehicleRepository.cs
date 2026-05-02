@@ -1,50 +1,50 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence.Repositories;
 
-internal sealed class VehicleRepository : IVehicleRepository
-{
-    private readonly AppDbContext _dbContext;
+internal sealed class VehicleRepository : IVehicleRepository {
+    private readonly AppDbContext _context;
 
-    public VehicleRepository(AppDbContext dbContext)
-    {
-        _dbContext = dbContext;
+    public VehicleRepository(AppDbContext context) {
+        _context = context;
     }
 
     public async Task<PagedResult<Vehicle>> SearchAsync(
         string? searchTerm,
+        VehicleType? vehicleType,
+        bool? isActive,
         int page,
         int pageSize,
-        bool isExport,
-        CancellationToken cancellationToken = default)
-    {
-        var query = _dbContext.Vehicles.AsNoTracking();
+        CancellationToken cancellationToken = default) {
+        var query = _context.Vehicles.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
+        if (!string.IsNullOrWhiteSpace(searchTerm)) {
             var term = searchTerm.Trim();
-            query = query.Where(v => v.VehicleName.Contains(term) || v.PlateNumber.Contains(term));
+            query = query.Where(v =>
+                v.VehicleName.Contains(term) ||
+                v.PlateNumber.Contains(term));
+        }
+
+        if (vehicleType.HasValue) {
+            query = query.Where(v => v.VehicleType == vehicleType.Value);
+        }
+
+        if (isActive.HasValue) {
+            query = query.Where(v => v.IsActive == isActive.Value);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        IQueryable<Vehicle> ordered = query.OrderBy(v => v.VehicleName);
-
-        List<Vehicle> vehicles;
-        if (isExport)
-        {
-            vehicles = await ordered.ToListAsync(cancellationToken);
-            return new PagedResult<Vehicle>(vehicles, totalCount, 1, totalCount == 0 ? 1 : totalCount);
-        }
-
-        vehicles = await ordered
+        var items = await query
+            .OrderBy(v => v.VehicleName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<Vehicle>(vehicles, totalCount, page, pageSize);
+        return new PagedResult<Vehicle>(items, totalCount, page, pageSize);
     }
 }
