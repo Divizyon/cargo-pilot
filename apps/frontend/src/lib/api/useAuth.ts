@@ -207,9 +207,7 @@ export function useProfile() {
   return useQuery<ProfileData>({
     queryKey: ['me', 'profile'],
     queryFn: () =>
-      axiosInstance
-        .get<ProfileApiResponse>('/api/v1/me/profile')
-        .then((r) => r.data.data),
+      axiosInstance.get<ProfileApiResponse>('/api/v1/me/profile').then((r) => r.data.data),
     enabled: isAuthenticated,
   });
 }
@@ -236,9 +234,7 @@ export function useUpdateProfile() {
 
   return useMutation<UpdateProfileResponse, AxiosError, UpdateProfilePayload>({
     mutationFn: (payload) =>
-      axiosInstance
-        .patch<UpdateProfileResponse>('/api/v1/users/me', payload)
-        .then((r) => r.data),
+      axiosInstance.patch<UpdateProfileResponse>('/api/v1/users/me', payload).then((r) => r.data),
     onSuccess: (res) => {
       if (res.isSuccess && res.data?.fullName) {
         updateUser({ fullName: res.data.fullName });
