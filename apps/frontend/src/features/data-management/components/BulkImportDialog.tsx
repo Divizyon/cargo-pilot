@@ -44,7 +44,6 @@ interface ParsedError {
   message: string;
 }
 
-
 function parseBoolCell(v: unknown, fallback = true): boolean {
   if (typeof v === 'boolean') return v;
   if (typeof v === 'number') return v !== 0;
@@ -68,7 +67,6 @@ function parseErrorEntry(err: string): ParsedError {
   const match = err.match(/^Satır (\d+): (.+)$/);
   return match ? { row: match[1], message: match[2] } : { row: '—', message: err };
 }
-
 
 function parseRows(rows: ParsedRow[]): { items: CreateItemRequest[]; errors: string[] } {
   const items: CreateItemRequest[] = [];
@@ -159,7 +157,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     setParsedItems([]);
     setImportResult(null);
     setShowResult(false);
-
 
     const reader = new FileReader();
     reader.onload = (ev) => {
