@@ -1,11 +1,8 @@
 import React, { useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { CheckCircle2, Download, FileUp, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { Download, FileUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
 
 import { useBulkCreateItems } from '@/lib/api/useItems';
 import {
@@ -39,11 +36,6 @@ interface ParsedRow {
   'Özel Notlar'?: string;
 }
 
-interface ParsedError {
-  row: string;
-  message: string;
-}
-
 function parseBoolCell(v: unknown, fallback = true): boolean {
   if (typeof v === 'boolean') return v;
   if (typeof v === 'number') return v !== 0;
@@ -61,11 +53,6 @@ function parseTipToCategory(
   if (t === 'palet' || t === 'pallet') return ITEM_CATEGORY.Pallet;
   if (t === 'koli' || t === 'box') return ITEM_CATEGORY.Box;
   return ITEM_CATEGORY.Package;
-}
-
-function parseErrorEntry(err: string): ParsedError {
-  const match = err.match(/^Satır (\d+): (.+)$/);
-  return match ? { row: match[1], message: match[2] } : { row: '—', message: err };
 }
 
 function parseRows(rows: ParsedRow[]): { items: CreateItemRequest[]; errors: string[] } {
@@ -143,20 +130,17 @@ function parseRows(rows: ParsedRow[]): { items: CreateItemRequest[]; errors: str
 
 export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [parsedItems, setParsedItems] = useState<CreateItemRequest[]>([]);
-  const [importResult, setImportResult] = useState<{ count: number } | null>(null);
-  const [showResult, setShowResult] = useState(false);
   const bulkCreate = useBulkCreateItems();
 
-  function processFile(file: File) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
     setFileName(file.name);
     setParseErrors([]);
     setParsedItems([]);
-    setImportResult(null);
-    setShowResult(false);
 
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -168,32 +152,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       setParseErrors(errors);
       setParsedItems(items);
     };
-    reader.onerror = () => {
-      toast.error('Dosya okunamadı veya sunucuya erişilemiyor', { position: 'bottom-right' });
-    };
     reader.readAsArrayBuffer(file);
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-  }
-
-  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setIsDragOver(true);
-  }
-
-  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setIsDragOver(false);
-  }
-
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setIsDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
   }
 
   function handleImport() {
@@ -201,35 +160,27 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     bulkCreate.mutate(
       { items: parsedItems },
       {
-        onSuccess: (data) => {
-          const count = data?.data?.count ?? parsedItems.length;
-          setImportResult({ count });
-          requestAnimationFrame(() => setShowResult(true));
-          setTimeout(() => {
-            onOpenChange(false);
-            resetState();
-          }, 2000);
+        onSuccess: () => {
+          onOpenChange(false);
+          setFileName(null);
+          setParsedItems([]);
+          setParseErrors([]);
+          if (fileInputRef.current) fileInputRef.current.value = '';
         },
       },
     );
   }
 
-  function resetState() {
+  function handleClose() {
+    onOpenChange(false);
     setFileName(null);
     setParsedItems([]);
     setParseErrors([]);
-    setImportResult(null);
-    setShowResult(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  function handleClose() {
-    onOpenChange(false);
-    resetState();
-  }
-
   const hasErrors = parseErrors.length > 0;
-  const canImport = parsedItems.length > 0 && !hasErrors && !bulkCreate.isPending && !importResult;
+  const canImport = parsedItems.length > 0 && !hasErrors && !bulkCreate.isPending;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -255,29 +206,13 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             Şablonu İndir
           </Button>
 
-          {/* Drop Zone */}
           <div
-            className={cn(
-              'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 transition-colors',
-              isDragOver
-                ? 'border-primary bg-primary/10'
-                : 'border-border bg-muted/30 hover:bg-muted/50',
-            )}
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
           >
-            <FileUp
-              className={cn('h-8 w-8', isDragOver ? 'text-primary' : 'text-muted-foreground')}
-            />
-            <p className={cn('text-sm', isDragOver ? 'text-primary' : 'text-muted-foreground')}>
-              {isDragOver
-                ? 'Dosyayı bırakın'
-                : fileName
-                  ? fileName
-                  : 'Excel veya CSV dosyası seçin ya da sürükleyin'}
+            <FileUp className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {fileName ? fileName : 'Excel veya CSV dosyası seçin'}
             </p>
             {parsedItems.length > 0 && !hasErrors && (
               <p className="text-xs font-medium text-green-600">{parsedItems.length} ürün hazır</p>
@@ -292,31 +227,9 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             onChange={handleFileChange}
           />
 
-          {/* Progress bar */}
-          {bulkCreate.isPending && (
-            <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">Yükleniyor...</p>
-              <Progress value={undefined} className="h-1.5 animate-pulse" />
-            </div>
-          )}
-
-          {/* Fade-in sonuç paneli */}
-          {importResult && (
-            <div
-              className={cn(
-                'flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-700 transition-opacity duration-300',
-                showResult ? 'opacity-100' : 'opacity-0',
-              )}
-            >
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>{importResult.count} ürün başarıyla eklendi</span>
-            </div>
-          )}
-
-          {/* Hata tablosu */}
           {hasErrors && (
-            <div className="rounded-md border border-destructive/30 bg-destructive/5">
-              <div className="flex items-center justify-between border-b border-destructive/20 px-3 py-2">
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-3">
+              <div className="mb-1 flex items-center justify-between">
                 <p className="text-xs font-semibold text-destructive">
                   {parseErrors.length} hata bulundu
                 </p>
@@ -328,30 +241,11 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="max-h-48 overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-destructive/5">
-                    <tr className="border-b border-destructive/20 text-left text-destructive/70">
-                      <th className="w-20 px-3 py-1.5 font-medium">Satır</th>
-                      <th className="px-3 py-1.5 font-medium">Hata Açıklaması</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {parseErrors.map((err, i) => {
-                      const { row, message } = parseErrorEntry(err);
-                      return (
-                        <tr
-                          key={i}
-                          className="border-b border-destructive/10 last:border-0 hover:bg-destructive/10"
-                        >
-                          <td className="px-3 py-1.5 font-mono text-destructive">{row}</td>
-                          <td className="px-3 py-1.5 text-destructive">{message}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {parseErrors.map((err, i) => (
+                <p key={i} className="text-xs text-destructive">
+                  {err}
+                </p>
+              ))}
             </div>
           )}
 
@@ -360,7 +254,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               İptal
             </Button>
             <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
-              {parsedItems.length > 0 ? `${parsedItems.length} Ürün Ekle` : 'Dosya Ekle'}
+              {bulkCreate.isPending ? 'Yükleniyor...' : `${parsedItems.length} Ürün Ekle`}
             </Button>
           </div>
         </div>
