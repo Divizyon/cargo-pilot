@@ -47,4 +47,22 @@ internal sealed class VehicleRepository : IVehicleRepository {
 
         return new PagedResult<Vehicle>(items, totalCount, page, pageSize);
     }
+
+    public async Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) {
+        return await _context.Vehicles
+            .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {
+        return await _context.Vehicles
+            .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId, cancellationToken);
+    }
+
+    public void Add(Vehicle vehicle) {
+        _context.Vehicles.Add(vehicle);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default) {
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

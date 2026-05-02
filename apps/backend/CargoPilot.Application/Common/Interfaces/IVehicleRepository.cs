@@ -12,4 +12,12 @@ public interface IVehicleRepository {
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
+
+    Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default);
+
+    void Add(Vehicle vehicle);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
