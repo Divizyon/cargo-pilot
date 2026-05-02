@@ -1,5 +1,22 @@
 import { z } from 'zod';
 
+export const VehicleType = {
+  Tir: 'Tir',
+  Kamyon: 'Kamyon',
+  Romork: 'Romork',
+  Konteyner: 'Konteyner',
+} as const;
+
+export type VehicleType = (typeof VehicleType)[keyof typeof VehicleType];
+
+export const DoorDirection = {
+  Rear: 'rear',
+  Side: 'side',
+  Top: 'top',
+} as const;
+
+export type DoorDirection = (typeof DoorDirection)[keyof typeof DoorDirection];
+
 export const vehicleSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),

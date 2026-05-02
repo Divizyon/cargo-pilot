@@ -1,5 +1,5 @@
 // src/lib/api/useAuth.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
@@ -180,6 +180,73 @@ export function useResetPassword() {
         position: 'bottom-right',
       });
       navigate('/auth/login', { replace: true });
+    },
+  });
+}
+
+// --- Profile types ---
+
+interface ProfileData {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+}
+
+interface ProfileApiResponse {
+  isSuccess: boolean;
+  message: string;
+  data: ProfileData;
+  error?: BackendError;
+}
+
+export function useProfile() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  return useQuery<ProfileData>({
+    queryKey: ['me', 'profile'],
+    queryFn: () =>
+      axiosInstance.get<ProfileApiResponse>('/api/v1/me/profile').then((r) => r.data.data),
+    enabled: isAuthenticated,
+  });
+}
+
+interface UpdateProfilePayload {
+  firstName: string;
+  lastName: string;
+  companyName?: string;
+}
+
+interface UpdateProfileResponse {
+  isSuccess: boolean;
+  message: string;
+  data: {
+    userId: string;
+    email: string;
+    fullName: string;
+    role: string;
+  };
+}
+
+export function useUpdateProfile() {
+  const updateUser = useAuthStore((s) => s.updateUser);
+
+  return useMutation<UpdateProfileResponse, AxiosError, UpdateProfilePayload>({
+    mutationFn: (payload) =>
+      axiosInstance.patch<UpdateProfileResponse>('/api/v1/users/me', payload).then((r) => r.data),
+    onSuccess: (res) => {
+      if (res.isSuccess && res.data?.fullName) {
+        updateUser({ fullName: res.data.fullName });
+      }
+      toast.success('Profil bilgileriniz başarıyla güncellendi.', {
+        position: 'bottom-right',
+      });
+    },
+    onError: () => {
+      toast.error('Profil güncellenirken bir hata oluştu. Lütfen tekrar deneyin.', {
+        position: 'bottom-right',
+      });
     },
   });
 }
