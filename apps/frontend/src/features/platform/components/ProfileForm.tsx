@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Info, Loader2, Lock, Mail, Phone, User } from 'lucide-react';
+import { Building2, Info, Loader2, Lock, Mail, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -29,14 +29,13 @@ export function ProfileForm() {
       firstName: '',
       lastName: '',
       companyName: '',
-      phone: '',
     },
     mode: 'onBlur',
   });
 
   useEffect(() => {
     if (!profile) return;
-    form.reset({ firstName: profile.firstName, lastName: profile.lastName, companyName: '', phone: '' });
+    form.reset({ firstName: profile.firstName, lastName: profile.lastName, companyName: '' });
   }, [profile, form]);
 
   function onSubmit(values: ProfileFormValues) {
@@ -44,7 +43,6 @@ export function ProfileForm() {
       firstName: values.firstName,
       lastName: values.lastName,
       companyName: values.companyName || undefined,
-      phone: values.phone || undefined,
     });
   }
 
@@ -115,46 +113,25 @@ export function ProfileForm() {
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             İletişim
           </h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Firma Adı{' '}
-                    <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input placeholder="Firma adı" className="pl-10" {...field} />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Telefon{' '}
-                    <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input placeholder="+90 5xx xxx xx xx" className="pl-10" {...field} />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="companyName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Firma Adı{' '}
+                  <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input placeholder="Firma adı" className="pl-10" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <div className="space-y-1.5">
             <p className="text-sm font-medium leading-none text-foreground">E-posta</p>

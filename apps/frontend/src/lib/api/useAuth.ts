@@ -218,7 +218,6 @@ interface UpdateProfilePayload {
   firstName: string;
   lastName: string;
   companyName?: string;
-  phone?: string;
 }
 
 interface UpdateProfileResponse {
