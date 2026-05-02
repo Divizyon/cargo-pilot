@@ -44,10 +44,7 @@ export function useVehicleDuplicateCheck(name: string) {
   return useQuery({
     queryKey: ['vehicles', 'duplicate-check', name] as const,
     queryFn: () =>
-      apiFetch(
-        `/vehicles/check-name?name=${encodeURIComponent(name)}`,
-        duplicateCheckSchema,
-      ),
+      apiFetch(`/vehicles/check-name?name=${encodeURIComponent(name)}`, duplicateCheckSchema),
     enabled: name.trim().length > 0,
   });
 }
