@@ -284,8 +284,6 @@ export function ProductForm({
     ],
   });
 
-  const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
-
   const isPallet = productType === 'pallet';
 
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;

@@ -1,4 +1,4 @@
-import { Droplets, Layers, RotateCcw, Wine } from 'lucide-react';
+import { Droplets, RotateCcw, Wine } from 'lucide-react';
 
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
