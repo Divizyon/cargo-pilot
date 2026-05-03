@@ -28,7 +28,7 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
   const Icon = type === 'Konteyner' ? Package2 : Truck;
   const iconClass = type === 'Konteyner' ? 'text-sky-500' : 'text-zinc-600';
   const volumeM3 = cm3ToM3(vehicleVolumeCm3(vehicle)).toFixed(1);
-  const payloadTon = (vehicle.payload / 1000).toFixed(1);
+  const payloadTon = ((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1);
 
   return (
     <div className="bg-white border border-zinc-200 rounded-xl p-4">
@@ -183,9 +183,10 @@ export function StatsPanel({ compact = false }: StatsPanelProps) {
     const totalWeight = placements.reduce((sum, p) => sum + (weightMap.get(p.itemId) ?? 0), 0);
     const volumePct =
       vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
+    const effectivePayload = selectedVehicle.payload ?? selectedVehicle.maxCargoWeight;
     const weightPct =
-      selectedVehicle.payload > 0
-        ? Math.min(100, Math.round((totalWeight / selectedVehicle.payload) * 100))
+      effectivePayload > 0
+        ? Math.min(100, Math.round((totalWeight / effectivePayload) * 100))
         : 0;
     const remainingM3 = parseFloat(Math.max(0, cm3ToM3(vehicleVol - cargoVolCm3)).toFixed(2));
     return { volumePct, weightPct, totalWeight, remainingM3 };

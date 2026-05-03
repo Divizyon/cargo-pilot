@@ -94,18 +94,18 @@ interface VehicleTypeSelectorProps {
 
 export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {VEHICLE_OPTIONS.map(({ value: optionValue, label, icon: Icon }) => (
         <Card
           key={optionValue}
           className={cn(
-            'cursor-pointer flex flex-col items-center justify-center gap-2 p-4 transition-colors hover:bg-muted/50',
+            'cursor-pointer flex flex-col items-center justify-center gap-2 p-2.5 transition-colors hover:bg-muted/50',
             value === optionValue && 'ring-2 ring-primary',
           )}
           onClick={() => onChange(optionValue)}
         >
-          <Icon className="h-10 w-10" />
-          <span className="text-sm font-medium">{label}</span>
+          <Icon className="h-7 w-7" />
+          <span className="text-xs font-medium">{label}</span>
         </Card>
       ))}
     </div>

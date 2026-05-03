@@ -25,7 +25,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">Fiziksel İç Ölçüler</h2>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Fiziksel İç Ölçüler</h3>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}

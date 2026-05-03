@@ -8,9 +8,10 @@ import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleLayerCountFieldProps {
   form: UseFormReturn<VehicleFormValues>;
+  hideHeading?: boolean;
 }
 
-export function VehicleLayerCountField({ form }: VehicleLayerCountFieldProps) {
+export function VehicleLayerCountField({ form, hideHeading }: VehicleLayerCountFieldProps) {
   const [unlimited, setUnlimited] = useState(false);
 
   function handleUnlimitedChange(checked: boolean) {
@@ -22,15 +23,17 @@ export function VehicleLayerCountField({ form }: VehicleLayerCountFieldProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">Maksimum İstif Katmanı</h2>
-      <div className="flex items-end gap-4">
+    <div className="flex flex-col gap-2">
+      {!hideHeading && (
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Maksimum İstif Katmanı</h3>
+      )}
+      <div className="flex items-end gap-3">
         <FormField
           control={form.control}
           name="maxLayerCount"
           render={({ field }) => (
             <FormItem className="flex-1">
-              <FormLabel>Katman Sayısı</FormLabel>
+              <FormLabel>{hideHeading ? 'Maks. İstif Katmanı' : 'Katman Sayısı'}</FormLabel>
               <FormControl>
                 <Input
                   type="number"
