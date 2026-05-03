@@ -21,6 +21,7 @@ public class AppDbContext : DbContext {
     public DbSet<UserPasswordHistory> UserPasswordHistory => Set<UserPasswordHistory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<UserVehicleFavorite> UserVehicleFavorites => Set<UserVehicleFavorite>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -41,6 +42,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new UserPasswordHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
+        modelBuilder.ApplyConfiguration(new UserVehicleFavoriteConfiguration());
     }
 
     private void ApplyAuditFields() {
