@@ -38,7 +38,7 @@ export function LevelControls({ className }: LevelControlsProps) {
     <TooltipProvider delayDuration={120}>
       <div
         className={cn(
-          'pointer-events-auto flex items-center gap-3 rounded-lg border border-zinc-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur',
+          'pointer-events-auto flex items-center gap-3 rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur',
           className,
         )}
       >

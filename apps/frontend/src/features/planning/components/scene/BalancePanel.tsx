@@ -31,10 +31,10 @@ export function BalancePanel() {
   const hasWarning = isLateralWarning || isLongitudinalWarning;
 
   return (
-    <div className="absolute top-16 right-4 pointer-events-none">
+    <div>
       <div
         className={cn(
-          'rounded-lg px-4 py-3 text-xs font-mono backdrop-blur-sm min-w-[180px]',
+          'rounded-xl px-3 py-2.5 text-xs font-mono backdrop-blur-sm min-w-[180px]',
           hasWarning ? 'bg-red-600/80 text-white' : 'bg-black/60 text-white',
         )}
       >

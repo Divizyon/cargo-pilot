@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, type ElementType } from 'react';
+import { LevelControls } from '@/features/planning/components/scene/LevelControls';
 import {
   AlertTriangle,
   ArrowDownToLine,
-  ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
@@ -392,11 +392,7 @@ function StoreItemRow({
 
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
-interface PlanLeftPanelProps {
-  onClose?: () => void;
-}
-
-export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
+export function PlanLeftPanel() {
   const [groups, setGroups] = useState(INITIAL_GROUPS);
   const [ungroupedIds, setUngroupedIds] = useState<string[]>(INITIAL_UNGROUPED);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -414,6 +410,7 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
 
+  const vehicleId = selectedVehicle?.id;
   const canPlace = !!selectedVehicle;
 
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
@@ -479,19 +476,10 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
     : undefined;
 
   return (
-    <div className="h-full bg-white border border-zinc-200 rounded-xl flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 flex items-center justify-between shrink-0 border-b border-zinc-100">
+      <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-zinc-100">
         <div className="flex items-center gap-2">
-          {onClose && (
-            <button
-              title="Kapat"
-              onClick={onClose}
-              className="w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-          )}
           <span className="text-sm text-zinc-800">Ürünler</span>
         </div>
         <div className="flex items-center gap-1">
@@ -651,6 +639,11 @@ export function PlanLeftPanel({ onClose }: PlanLeftPanelProps) {
           )}
         </div>
       </ScrollArea>
+
+      {/* X-Ray / Derinlik filtresi */}
+      <div className="shrink-0 border-t border-zinc-100 px-3 py-2">
+        <LevelControls key={vehicleId} />
+      </div>
 
       {/* Dev-only stres testi (US-OPT-14): InstancedMesh render path FPS ölçümü için. */}
       {import.meta.env.DEV && (

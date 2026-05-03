@@ -1,16 +1,5 @@
 import { useState } from 'react';
-import {
-  Box,
-  ChevronRight,
-  Download,
-  Loader2,
-  Package2,
-  Plus,
-  Crosshair,
-  Truck,
-  X,
-  Info,
-} from 'lucide-react';
+import { Box, Download, Loader2, Package2, Plus, Crosshair, Truck, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -116,11 +105,10 @@ function VehicleDetails({ vehicle }: { vehicle: Vehicle }) {
 // ─── PlanRightPanel ───────────────────────────────────────────────────────────
 
 interface PlanRightPanelProps {
-  onClose?: () => void;
   getSnapshot?: () => string;
 }
 
-export function PlanRightPanel({ onClose, getSnapshot }: PlanRightPanelProps) {
+export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const placements = usePlanStore((s) => s.placements);
@@ -162,7 +150,7 @@ export function PlanRightPanel({ onClose, getSnapshot }: PlanRightPanelProps) {
   return (
     <div className="h-full bg-white flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 flex items-center justify-between shrink-0 border-b border-zinc-100">
+      <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-zinc-100">
         <span className="text-sm text-zinc-800">Araçlar</span>
         <div className="flex items-center gap-1">
           <Button
@@ -173,15 +161,6 @@ export function PlanRightPanel({ onClose, getSnapshot }: PlanRightPanelProps) {
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
-          {onClose && (
-            <button
-              title="Kapat"
-              onClick={onClose}
-              className="w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </div>
 
