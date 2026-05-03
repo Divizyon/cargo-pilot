@@ -16,4 +16,5 @@ public sealed record VehicleSummaryDto(
     decimal Volume,
     bool IsActive,
     Guid? CompanyId,
-    AuditUserDto? LastModifiedBy);
+    AuditUserDto? LastModifiedBy,
+    bool IsFavorite);

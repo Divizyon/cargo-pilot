@@ -17,6 +17,8 @@ internal sealed class VehicleRepository : IVehicleRepository {
         string? searchTerm,
         VehicleType? vehicleType,
         bool? isActive,
+        bool? onlyFavorites,
+        IReadOnlyList<Guid>? favoriteIds,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default) {
@@ -35,10 +37,19 @@ internal sealed class VehicleRepository : IVehicleRepository {
 
         query = query.Where(v => v.IsActive == (isActive ?? true));
 
+        if (onlyFavorites == true && favoriteIds is not null) {
+            query = query.Where(v => favoriteIds.Contains(v.Id));
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await query
-            .OrderBy(v => v.VehicleName)
+        IOrderedQueryable<Vehicle> orderedQuery = favoriteIds is { Count: > 0 }
+            ? query
+                .OrderByDescending(v => favoriteIds.Contains(v.Id))
+                .ThenBy(v => v.VehicleName)
+            : query.OrderBy(v => v.VehicleName);
+
+        var items = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
