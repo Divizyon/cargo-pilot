@@ -100,10 +100,18 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
     const vehicle: Vehicle = {
       id: crypto.randomUUID(),
       name: data.name,
+      vehicleType: 'Kamyon',
       length: data.length,
       width: data.width,
       height: data.height,
+      maxCargoWeight: data.payload,
       payload: data.payload,
+      doorDirection: 'rear',
+      isFavorite: false,
+      isActive: true,
+      isDeleted: false,
+      createdAt: new Date().toISOString(),
+      createdBy: { id: '', fullName: '' },
     };
     onAdd(vehicle);
     onOpenChange(false);

@@ -15,6 +15,7 @@ import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleDoorDirectionFieldProps {
   form: UseFormReturn<VehicleFormValues>;
+  hideHeading?: boolean;
 }
 
 const DIRECTION_LABELS: Record<string, string> = {
@@ -23,12 +24,20 @@ const DIRECTION_LABELS: Record<string, string> = {
   top: 'Üst',
 };
 
-export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldProps) {
+export function VehicleDoorDirectionField({ form, hideHeading }: VehicleDoorDirectionFieldProps) {
   const doorDirection = useWatch({ control: form.control, name: 'doorDirection' });
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">Kapı Yönü</h2>
+      {hideHeading ? (
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Kapı Yönü
+        </span>
+      ) : (
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Kapı Yönü
+        </h3>
+      )}
       <Controller
         control={form.control}
         name="doorDirection"

@@ -5,11 +5,9 @@ import { useVehicleFormVisibility } from '../hooks/useVehicleFormVisibility';
 import { VehicleDimensionsFields } from './VehicleDimensionsFields';
 import { VehicleLayerCountField } from './VehicleLayerCountField';
 import { VehicleWeightFields } from './VehicleWeightFields';
-import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleKingpinSection } from './VehicleKingpinSection';
 import { VehicleAxleBSection } from './VehicleAxleBSection';
 import { VehicleAdditionalAxles } from './VehicleAdditionalAxles';
-import { VehicleStatusToggle } from './VehicleStatusToggle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleFormLayoutProps {
@@ -31,10 +29,11 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
 
   return (
     <>
-      <VehicleDimensionsFields form={form} />
-      <VehicleLayerCountField form={form} />
+      <div className="flex flex-col gap-2">
+        <VehicleDimensionsFields form={form} />
+        <VehicleLayerCountField form={form} hideHeading />
+      </div>
       <VehicleWeightFields form={form} />
-      <VehicleDoorDirectionField form={form} />
       {showKingpinSection && <VehicleKingpinSection form={form} />}
       {showAxleSection && (
         <>
@@ -42,7 +41,6 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
           <VehicleAdditionalAxles form={form} />
         </>
       )}
-      <VehicleStatusToggle form={form} />
     </>
   );
 }
