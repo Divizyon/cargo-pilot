@@ -8,6 +8,7 @@ import { ContainerMesh } from '@/features/planning/components/scene/ContainerMes
 import { CogMarker } from '@/features/planning/components/scene/CogMarker';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { SCENE } from '@/lib/config/scene-config';
+import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
 
