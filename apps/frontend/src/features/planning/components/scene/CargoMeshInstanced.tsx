@@ -42,7 +42,14 @@ function buildEdgesGeometry(
     dragState: DragState | null;
   },
 ): THREE.BufferGeometry {
-  const { selectedInstanceId, selectedItemId, hiddenItemIds, activeLayer, focusedGroupItemIds, dragState } = opts;
+  const {
+    selectedInstanceId,
+    selectedItemId,
+    hiddenItemIds,
+    activeLayer,
+    focusedGroupItemIds,
+    dragState,
+  } = opts;
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const position = new THREE.Vector3();
@@ -206,7 +213,15 @@ function InstancedBoxes() {
       focusedGroupItemIds,
       dragState,
     });
-  }, [placements, selectedInstanceId, selectedItemId, hiddenItemIds, activeLayer, focusedGroupItemIds, dragState]);
+  }, [
+    placements,
+    selectedInstanceId,
+    selectedItemId,
+    hiddenItemIds,
+    activeLayer,
+    focusedGroupItemIds,
+    dragState,
+  ]);
 
   useEffect(() => () => edgesLineGeo.dispose(), [edgesLineGeo]);
 

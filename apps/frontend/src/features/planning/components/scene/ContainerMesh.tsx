@@ -92,19 +92,36 @@ function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number
   );
 }
 
-function RearDoorFrame({
-  panelW,
-  height,
-  sign,
-}: {
-  panelW: number;
-  height: number;
-  sign: 1 | -1;
-}) {
+function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const z = -(DOOR_THICKNESS + 0.5);
     const ex = sign * panelW;
-    const pts = [0, 0, z, ex, 0, z, ex, 0, z, ex, height, z, ex, height, z, 0, height, z, 0, height, z, 0, 0, z];
+    const pts = [
+      0,
+      0,
+      z,
+      ex,
+      0,
+      z,
+      ex,
+      0,
+      z,
+      ex,
+      height,
+      z,
+      ex,
+      height,
+      z,
+      0,
+      height,
+      z,
+      0,
+      height,
+      z,
+      0,
+      0,
+      z,
+    ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
     return geo;
@@ -166,7 +183,15 @@ function RearDoors({ width, height }: { width: number; height: number }) {
 const SIDE_DOOR_PANEL_W = 15; // cm – box depth in X, makes edges clearly visible
 const SIDE_DOOR_OPEN_ANGLE = Math.PI * 0.055; // ≈10° – stays in viewport
 
-function SideHalfDoorEdges({ panelL, height, sign }: { panelL: number; height: number; sign: 1 | -1 }) {
+function SideHalfDoorEdges({
+  panelL,
+  height,
+  sign,
+}: {
+  panelL: number;
+  height: number;
+  sign: 1 | -1;
+}) {
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(SIDE_DOOR_PANEL_W, height, panelL);
     const edges = new THREE.EdgesGeometry(box);
@@ -232,10 +257,30 @@ function TopOpeningIndicator({
 }) {
   const geometry = useMemo(() => {
     const pts = [
-      0, height, 0, width, height, 0,
-      width, height, 0, width, height, length,
-      width, height, length, 0, height, length,
-      0, height, length, 0, height, 0,
+      0,
+      height,
+      0,
+      width,
+      height,
+      0,
+      width,
+      height,
+      0,
+      width,
+      height,
+      length,
+      width,
+      height,
+      length,
+      0,
+      height,
+      length,
+      0,
+      height,
+      length,
+      0,
+      height,
+      0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
