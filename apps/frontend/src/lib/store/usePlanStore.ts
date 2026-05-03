@@ -371,7 +371,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
         if (qty > existing.length) {
           previewBoxes = [
             ...previewBoxes,
-            ...buildPlacements(item, qty - existing.length, color, s.selectedVehicle, [...others, ...previewBoxes]),
+            ...buildPlacements(item, qty - existing.length, color, s.selectedVehicle, [
+              ...others,
+              ...previewBoxes,
+            ]),
           ];
         }
       } else {

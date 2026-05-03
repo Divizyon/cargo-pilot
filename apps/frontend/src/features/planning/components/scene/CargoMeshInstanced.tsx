@@ -33,10 +33,7 @@ function InstancedBoxes() {
   const placements = useMemo(
     () =>
       previewItemId
-        ? [
-            ...rawPlacements.filter((p) => p.itemId !== previewItemId),
-            ...previewPlacements,
-          ]
+        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
         : rawPlacements,
     [rawPlacements, previewItemId, previewPlacements],
   );
@@ -176,7 +173,11 @@ function InstancedBoxes() {
       </instancedMesh>
 
       {/* Ghost wireframe mesh — grup dışı kutular sadece çerçeve olarak görünür */}
-      <instancedMesh key={`ghost-${placements.length}`} ref={ghostWireRef} args={[undefined, undefined, placements.length]}>
+      <instancedMesh
+        key={`ghost-${placements.length}`}
+        ref={ghostWireRef}
+        args={[undefined, undefined, placements.length]}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial
           color="#94a3b8"
@@ -188,7 +189,11 @@ function InstancedBoxes() {
       </instancedMesh>
 
       {/* Violation wireframe — xRayMode'da ihlaller her zaman görünür */}
-      <instancedMesh key={`violation-${placements.length}`} ref={violationRef} args={[undefined, undefined, placements.length]}>
+      <instancedMesh
+        key={`violation-${placements.length}`}
+        ref={violationRef}
+        args={[undefined, undefined, placements.length]}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial
           color={SCENE.COLORS.VIOLATION}
@@ -245,10 +250,7 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
   const placements = useMemo(
     () =>
       previewItemId
-        ? [
-            ...rawPlacements.filter((p) => p.itemId !== previewItemId),
-            ...previewPlacements,
-          ]
+        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
         : rawPlacements,
     [rawPlacements, previewItemId, previewPlacements],
   );

@@ -87,12 +87,30 @@ function BoxPreview({ w, h, d, color }: { w: number; h: number; d: number; color
       <svg viewBox={`0 0 ${vw} ${vh}`} width={vw * 2.4} height={vh * 2.4}>
         <polygon
           points={`1,${oy + 1} ${ox + 1},1 ${fw + ox + 1},1 ${fw + 1},${oy + 1}`}
-          fill={c} fillOpacity={0.45} stroke={c} strokeOpacity={0.7} strokeWidth="0.6"
+          fill={c}
+          fillOpacity={0.45}
+          stroke={c}
+          strokeOpacity={0.7}
+          strokeWidth="0.6"
         />
-        <rect x={1} y={oy + 1} width={fw} height={fh} fill={c} fillOpacity={0.65} stroke={c} strokeOpacity={0.7} strokeWidth="0.6" />
+        <rect
+          x={1}
+          y={oy + 1}
+          width={fw}
+          height={fh}
+          fill={c}
+          fillOpacity={0.65}
+          stroke={c}
+          strokeOpacity={0.7}
+          strokeWidth="0.6"
+        />
         <polygon
           points={`${fw + 1},${oy + 1} ${fw + ox + 1},1 ${fw + ox + 1},${fh + 1} ${fw + 1},${fh + oy + 1}`}
-          fill={c} fillOpacity={0.85} stroke={c} strokeOpacity={0.7} strokeWidth="0.6"
+          fill={c}
+          fillOpacity={0.85}
+          stroke={c}
+          strokeOpacity={0.7}
+          strokeWidth="0.6"
         />
       </svg>
     </div>
@@ -187,9 +205,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
   const exceedsVehicle = Boolean(
     selectedVehicle &&
-      ((width && width > selectedVehicle.width) ||
-        (height && height > selectedVehicle.height) ||
-        (length && length > selectedVehicle.length)),
+    ((width && width > selectedVehicle.width) ||
+      (height && height > selectedVehicle.height) ||
+      (length && length > selectedVehicle.length)),
   );
 
   useEffect(() => {
