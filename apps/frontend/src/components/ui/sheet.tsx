@@ -8,7 +8,10 @@ const SheetTrigger = SheetPrimitive.Trigger;
 const SheetClose = SheetPrimitive.Close;
 const SheetPortal = SheetPrimitive.Portal;
 
-function SheetOverlay({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+function SheetOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
   return (
     <SheetPrimitive.Overlay
       className={cn('fixed inset-0 z-50 bg-black/50', className)}
@@ -17,7 +20,11 @@ function SheetOverlay({ className, ...props }: React.ComponentProps<typeof Sheet
   );
 }
 
-function SheetContent({ className, children, ...props }: React.ComponentProps<typeof SheetPrimitive.Content>) {
+function SheetContent({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Content>) {
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -55,7 +62,10 @@ function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPr
   );
 }
 
-function SheetDescription({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Description>) {
+function SheetDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Description>) {
   return (
     <SheetPrimitive.Description
       className={cn('text-sm text-muted-foreground', className)}
@@ -65,6 +75,13 @@ function SheetDescription({ className, ...props }: React.ComponentProps<typeof S
 }
 
 export {
-  Sheet, SheetTrigger, SheetClose, SheetPortal, SheetContent,
-  SheetHeader, SheetFooter, SheetTitle, SheetDescription,
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetPortal,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
 };

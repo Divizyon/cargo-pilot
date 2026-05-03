@@ -25,7 +25,9 @@ export function VehicleLayerCountField({ form, hideHeading }: VehicleLayerCountF
   return (
     <div className="flex flex-col gap-2">
       {!hideHeading && (
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Maksimum İstif Katmanı</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Maksimum İstif Katmanı
+        </h3>
       )}
       <div className="flex items-end gap-3">
         <FormField

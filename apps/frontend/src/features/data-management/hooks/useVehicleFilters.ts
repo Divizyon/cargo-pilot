@@ -39,12 +39,9 @@ export function useVehicleFilters() {
     if (key === 'page') setPage(1);
   }
 
-  const activeFilterCount = [
-    debouncedSearch,
-    vehicleType,
-    statusFilter,
-    favoritesOnly,
-  ].filter(Boolean).length;
+  const activeFilterCount = [debouncedSearch, vehicleType, statusFilter, favoritesOnly].filter(
+    Boolean,
+  ).length;
 
   return {
     searchQuery,

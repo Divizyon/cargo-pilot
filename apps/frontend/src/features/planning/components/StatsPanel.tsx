@@ -185,9 +185,7 @@ export function StatsPanel({ compact = false }: StatsPanelProps) {
       vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
     const effectivePayload = selectedVehicle.payload ?? selectedVehicle.maxCargoWeight;
     const weightPct =
-      effectivePayload > 0
-        ? Math.min(100, Math.round((totalWeight / effectivePayload) * 100))
-        : 0;
+      effectivePayload > 0 ? Math.min(100, Math.round((totalWeight / effectivePayload) * 100)) : 0;
     const remainingM3 = parseFloat(Math.max(0, cm3ToM3(vehicleVol - cargoVolCm3)).toFixed(2));
     return { volumePct, weightPct, totalWeight, remainingM3 };
   }, [placements, selectedVehicle, weightMap]);

@@ -29,7 +29,9 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ana Aks (Dingil B)</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Ana Aks (Dingil B)
+      </h3>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}

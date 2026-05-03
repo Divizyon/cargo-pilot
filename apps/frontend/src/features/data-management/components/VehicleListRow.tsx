@@ -28,10 +28,7 @@ interface Props {
 
 export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
   return (
-    <TableRow
-      className="cursor-pointer hover:bg-muted/50"
-      onClick={() => onDetail(vehicle)}
-    >
+    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => onDetail(vehicle)}>
       <TableCell onClick={(e) => e.stopPropagation()}>
         <VehicleFavoriteButton vehicleId={vehicle.id} isFavorite={vehicle.isFavorite} />
       </TableCell>

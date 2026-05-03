@@ -39,15 +39,9 @@ export function VehiclesPage() {
         onDetail={(v) => setDetailVehicleId(v.id)}
       />
 
-      <VehicleDeleteDialog
-        vehicle={vehicleToDelete}
-        onClose={() => setVehicleToDelete(null)}
-      />
+      <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
 
-      <VehicleDetailPanel
-        vehicleId={detailVehicleId}
-        onClose={() => setDetailVehicleId(null)}
-      />
+      <VehicleDetailPanel vehicleId={detailVehicleId} onClose={() => setDetailVehicleId(null)} />
     </div>
   );
 }

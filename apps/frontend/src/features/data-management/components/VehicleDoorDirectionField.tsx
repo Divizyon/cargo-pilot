@@ -30,9 +30,13 @@ export function VehicleDoorDirectionField({ form, hideHeading }: VehicleDoorDire
   return (
     <div className="flex flex-col gap-3">
       {hideHeading ? (
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kapı Yönü</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Kapı Yönü
+        </span>
       ) : (
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Kapı Yönü</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Kapı Yönü
+        </h3>
       )}
       <Controller
         control={form.control}

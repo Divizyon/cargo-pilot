@@ -176,10 +176,7 @@ export function useVehicleSerialCheck(serial: string) {
   return useQuery({
     queryKey: ['vehicles', 'serial-check', serial] as const,
     queryFn: () =>
-      apiFetch(
-        `/vehicles/check-serial?serial=${encodeURIComponent(serial)}`,
-        duplicateCheckSchema,
-      ),
+      apiFetch(`/vehicles/check-serial?serial=${encodeURIComponent(serial)}`, duplicateCheckSchema),
     enabled: serial.trim().length > 0,
   });
 }

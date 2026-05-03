@@ -1,11 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -66,7 +60,9 @@ export function VehicleDetailPanel({ vehicleId, onClose }: Props) {
               )}
 
               <dt className="text-muted-foreground">Kapı Yönü</dt>
-              <dd className="font-medium">{DOOR_LABELS[vehicle.doorDirection] ?? vehicle.doorDirection}</dd>
+              <dd className="font-medium">
+                {DOOR_LABELS[vehicle.doorDirection] ?? vehicle.doorDirection}
+              </dd>
 
               {vehicle.maxLayerCount && (
                 <>
@@ -104,7 +100,12 @@ export function VehicleDetailPanel({ vehicleId, onClose }: Props) {
             Kapat
           </Button>
           {vehicle && (
-            <Button onClick={() => { onClose(); navigate(`/vehicles/${vehicle.id}/edit`); }}>
+            <Button
+              onClick={() => {
+                onClose();
+                navigate(`/vehicles/${vehicle.id}/edit`);
+              }}
+            >
               Düzenle
             </Button>
           )}

@@ -30,7 +30,9 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">İlave Akslar</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          İlave Akslar
+        </h3>
         <Button
           type="button"
           variant="outline"

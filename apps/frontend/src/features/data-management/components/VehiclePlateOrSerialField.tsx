@@ -97,7 +97,9 @@ export function VehiclePlateOrSerialField({ form, hideHeading }: VehiclePlateOrS
   return (
     <div className="flex flex-col gap-3">
       {!hideHeading && (
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Plaka / Seri No</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Plaka / Seri No
+        </h3>
       )}
       {field}
     </div>

@@ -10,7 +10,9 @@ interface VehicleStatusToggleProps {
 export function VehicleStatusToggle({ form }: VehicleStatusToggleProps) {
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Operasyonel Durum</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Operasyonel Durum
+      </h3>
       <FormField
         control={form.control}
         name="isActive"

@@ -65,9 +65,7 @@ export function VehiclePreviewPanel({ form }: Props) {
 
   const dims = length && width && height ? `${length} × ${width} × ${height} cm` : '—';
 
-  const cargo = maxCargoWeight
-    ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg`
-    : '—';
+  const cargo = maxCargoWeight ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg` : '—';
 
   return (
     <aside className="lg:sticky lg:top-6 lg:self-start">
@@ -76,7 +74,7 @@ export function VehiclePreviewPanel({ form }: Props) {
 
         <VehiclePreviewCanvas control={control} />
 
-        {(length && width) ? (
+        {length && width ? (
           <div className="flex items-baseline justify-between rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               U × G × Y
