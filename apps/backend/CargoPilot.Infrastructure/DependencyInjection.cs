@@ -72,9 +72,7 @@ public static class DependencyInjection {
             services.AddScoped<DbInitializer>();
             services.AddScoped<IAuthService, AuthService>();
 
-            // OAuth token validator'ları — ClientId'ler gelince appsettings'e eklenir.
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
-            services.AddScoped<IOAuthTokenValidator, MicrosoftTokenValidator>();
         }
 
         return services;
