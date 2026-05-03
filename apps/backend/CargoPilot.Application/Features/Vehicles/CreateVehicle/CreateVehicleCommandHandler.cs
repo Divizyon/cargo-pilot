@@ -53,6 +53,7 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             id: Guid.NewGuid(),
             vehicleName: request.VehicleName,
             vehicleType: request.VehicleType,
+            description: request.Description,
             plateNumber: request.PlateNumber,
             internalWidth: request.InternalWidth,
             internalHeight: request.InternalHeight,

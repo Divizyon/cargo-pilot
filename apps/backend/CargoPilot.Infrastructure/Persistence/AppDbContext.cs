@@ -21,6 +21,10 @@ public class AppDbContext : DbContext {
     public DbSet<UserPasswordHistory> UserPasswordHistory => Set<UserPasswordHistory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<LoadingPlan> LoadingPlans => Set<LoadingPlan>();
+    public DbSet<LoadingPlanPlacement> LoadingPlanPlacements => Set<LoadingPlanPlacement>();
+    public DbSet<LoadingPlanUnplacedItem> LoadingPlanUnplacedItems => Set<LoadingPlanUnplacedItem>();
+    public DbSet<LoadingPlanWarning> LoadingPlanWarnings => Set<LoadingPlanWarning>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -41,6 +45,10 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new UserPasswordHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanPlacementConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanUnplacedItemConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanWarningConfiguration());
     }
 
     private void ApplyAuditFields() {

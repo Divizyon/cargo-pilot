@@ -8,6 +8,10 @@ public sealed class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehi
             .NotEmpty().WithMessage("Araç adı zorunludur.")
             .MaximumLength(200).WithMessage("Araç adı en fazla 200 karakter olabilir.");
 
+        RuleFor(x => x.Description)
+            .MaximumLength(500).WithMessage("Açıklama en fazla 500 karakter olabilir.")
+            .When(x => x.Description is not null);
+
         RuleFor(x => x.VehicleType)
             .IsInEnum().WithMessage("Geçersiz araç tipi.");
 
