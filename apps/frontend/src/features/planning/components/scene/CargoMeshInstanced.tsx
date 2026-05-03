@@ -24,10 +24,19 @@ function InstancedBoxes() {
   const opaqueRef = useRef<THREE.InstancedMesh>(null);
   const ghostWireRef = useRef<THREE.InstancedMesh>(null);
   const violationRef = useRef<THREE.InstancedMesh>(null);
-  const edgeMeshRef = useRef<THREE.InstancedMesh>(null);
 
-  const placements = usePlanStore((s) => s.placements);
+  const rawPlacements = usePlanStore((s) => s.placements);
+  const previewItemId = usePlanStore((s) => s.previewItemId);
+  const previewPlacements = usePlanStore((s) => s.previewPlacements);
   const vehicle = usePlanStore((s) => s.selectedVehicle);
+
+  const placements = useMemo(
+    () =>
+      previewItemId
+        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
+        : rawPlacements,
+    [rawPlacements, previewItemId, previewPlacements],
+  );
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
@@ -39,22 +48,8 @@ function InstancedBoxes() {
   const { startDrag } = useDragBox();
   const [dragState, setDragState] = useState<DragState | null>(null);
 
-  const edgesGeo = useMemo(() => {
-    const box = new THREE.BoxGeometry(1, 1, 1);
-    const edges = new THREE.EdgesGeometry(box);
-    box.dispose();
-    return edges;
-  }, []);
-
-  useEffect(
-    () => () => {
-      edgesGeo.dispose();
-    },
-    [edgesGeo],
-  );
-
   useEffect(() => {
-    for (const ref of [opaqueRef, ghostWireRef, violationRef, edgeMeshRef]) {
+    for (const ref of [opaqueRef, ghostWireRef, violationRef]) {
       if (ref.current) {
         ref.current.frustumCulled = false;
         ref.current.matrixAutoUpdate = false;
@@ -105,16 +100,6 @@ function InstancedBoxes() {
       matrix.compose(position, quaternion, scale);
       ghostWireRef.current!.setMatrixAt(i, matrix);
 
-      // Edge mesh: opaque ile aynı matrix (opaque'dan sonra, ghost'tan önce sakla)
-      // visible && !ghosted olanlar için scale doluydu, o matrix'i al
-      if (visible && !ghosted) {
-        scale.set(base.width, base.height, base.depth);
-      } else {
-        scale.copy(SCALE_ZERO);
-      }
-      matrix.compose(position, quaternion, scale);
-      edgeMeshRef.current?.setMatrixAt(i, matrix);
-
       // Violation wireframe: sadece xRayMode açıkken ihlal olan kutular
       if (xRayMode && p.isViolation && visible) {
         scale.set(base.width, base.height, base.depth);
@@ -132,7 +117,6 @@ function InstancedBoxes() {
     opaqueRef.current.instanceMatrix.needsUpdate = true;
     ghostWireRef.current.instanceMatrix.needsUpdate = true;
     violationRef.current.instanceMatrix.needsUpdate = true;
-    if (edgeMeshRef.current) edgeMeshRef.current.instanceMatrix.needsUpdate = true;
 
     if (opaqueRef.current.instanceColor) opaqueRef.current.instanceColor.needsUpdate = true;
   }, [
@@ -162,6 +146,7 @@ function InstancedBoxes() {
     <>
       {/* Opaque mesh — normal görünür kutular */}
       <instancedMesh
+        key={`opaque-${placements.length}`}
         ref={opaqueRef}
         args={[undefined, undefined, placements.length]}
         castShadow
@@ -188,7 +173,11 @@ function InstancedBoxes() {
       </instancedMesh>
 
       {/* Ghost wireframe mesh — grup dışı kutular sadece çerçeve olarak görünür */}
-      <instancedMesh ref={ghostWireRef} args={[undefined, undefined, placements.length]}>
+      <instancedMesh
+        key={`ghost-${placements.length}`}
+        ref={ghostWireRef}
+        args={[undefined, undefined, placements.length]}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial
           color="#94a3b8"
@@ -200,7 +189,11 @@ function InstancedBoxes() {
       </instancedMesh>
 
       {/* Violation wireframe — xRayMode'da ihlaller her zaman görünür */}
-      <instancedMesh ref={violationRef} args={[undefined, undefined, placements.length]}>
+      <instancedMesh
+        key={`violation-${placements.length}`}
+        ref={violationRef}
+        args={[undefined, undefined, placements.length]}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial
           color={SCENE.COLORS.VIOLATION}
@@ -209,11 +202,6 @@ function InstancedBoxes() {
           transparent
           opacity={0.9}
         />
-      </instancedMesh>
-
-      {/* Edge lines — opaque mesh ile senkron */}
-      <instancedMesh ref={edgeMeshRef} args={[edgesGeo, undefined, placements.length]}>
-        <lineBasicMaterial color="#000000" />
       </instancedMesh>
 
       {/* Selected box — BoxWrapper ile glow */}
@@ -254,8 +242,18 @@ function InstancedBoxes() {
 // ─── CargoMeshInstanced ────────────────────────────────────────────────────────
 
 export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
-  const placements = usePlanStore((s) => s.placements);
+  const rawPlacements = usePlanStore((s) => s.placements);
+  const previewItemId = usePlanStore((s) => s.previewItemId);
+  const previewPlacements = usePlanStore((s) => s.previewPlacements);
   const vehicle = usePlanStore((s) => s.selectedVehicle);
+
+  const placements = useMemo(
+    () =>
+      previewItemId
+        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
+        : rawPlacements,
+    [rawPlacements, previewItemId, previewPlacements],
+  );
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);

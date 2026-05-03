@@ -10,6 +10,7 @@ import { LevelControls } from '@/features/planning/components/scene/LevelControl
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { SCENE } from '@/lib/config/scene-config';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
 import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 
@@ -37,17 +38,26 @@ function SnapshotBridge({
   snapshotRef?: MutableRefObject<(() => string) | null>;
 }) {
   const gl = useThree((state) => state.gl);
+  const requestSnapshot = useSceneStore((s) => s.requestSnapshot);
+  const setSnapshotDataUrl = useSceneStore((s) => s.setSnapshotDataUrl);
 
   useEffect(() => {
     if (snapshotRef) {
       snapshotRef.current = () => gl.domElement.toDataURL('image/png');
     }
     return () => {
-      if (snapshotRef) {
-        snapshotRef.current = null;
-      }
+      if (snapshotRef) snapshotRef.current = null;
     };
   }, [gl, snapshotRef]);
+
+  useEffect(() => {
+    if (!requestSnapshot) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setSnapshotDataUrl(gl.domElement.toDataURL('image/png'));
+      });
+    });
+  }, [requestSnapshot, gl, setSnapshotDataUrl]);
 
   return null;
 }
