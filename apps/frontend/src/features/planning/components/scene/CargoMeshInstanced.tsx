@@ -8,11 +8,75 @@ import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOr
 import { isGhosted, isPlacementVisible } from '@/lib/utils/sceneFilter';
 import { useDragBox } from '@/features/planning/components/scene/useDragBox';
 import type { DragState } from '@/features/planning/components/scene/useDragBox';
+import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = new THREE.Color(SCENE.COLORS.VIOLATION);
 const COLOR_NORMAL = new THREE.Color(SCENE.COLORS.NORMAL);
 const SCALE_ZERO = new THREE.Vector3(0, 0, 0);
+
+// Unit cube edges centered at origin, 12 edges × 2 endpoints each
+const UNIT_EDGES: ReadonlyArray<readonly [number, number, number, number, number, number]> = [
+  [-0.5, -0.5, -0.5, 0.5, -0.5, -0.5],
+  [0.5, -0.5, -0.5, 0.5, -0.5, 0.5],
+  [0.5, -0.5, 0.5, -0.5, -0.5, 0.5],
+  [-0.5, -0.5, 0.5, -0.5, -0.5, -0.5],
+  [-0.5, 0.5, -0.5, 0.5, 0.5, -0.5],
+  [0.5, 0.5, -0.5, 0.5, 0.5, 0.5],
+  [0.5, 0.5, 0.5, -0.5, 0.5, 0.5],
+  [-0.5, 0.5, 0.5, -0.5, 0.5, -0.5],
+  [-0.5, -0.5, -0.5, -0.5, 0.5, -0.5],
+  [0.5, -0.5, -0.5, 0.5, 0.5, -0.5],
+  [0.5, -0.5, 0.5, 0.5, 0.5, 0.5],
+  [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5],
+] as const;
+
+function buildEdgesGeometry(
+  placements: PlacementWithDimensions[],
+  opts: {
+    selectedInstanceId: number | null;
+    selectedItemId: string | null;
+    hiddenItemIds: string[];
+    activeLayer: number;
+    focusedGroupItemIds: string[] | null;
+    dragState: DragState | null;
+  },
+): THREE.BufferGeometry {
+  const { selectedInstanceId, selectedItemId, hiddenItemIds, activeLayer, focusedGroupItemIds, dragState } = opts;
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const position = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+  const point = new THREE.Vector3();
+  const positions: number[] = [];
+
+  placements.forEach((p, i) => {
+    const visible = isPlacementVisible(p, i, { selectedInstanceId, selectedItemId, hiddenItemIds });
+    const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+    if (!visible || ghosted) return;
+
+    const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+    const px = dragState?.idx === i ? dragState.x : p.positionX;
+    const py = dragState?.idx === i ? dragState.y : p.positionY;
+    const pz = dragState?.idx === i ? dragState.z : p.positionZ;
+
+    applyOrientationQuaternion(quaternion, p.orientationIndex);
+    position.set(px + p.width / 2, py + p.height / 2, pz + p.depth / 2);
+    scale.set(base.width, base.height, base.depth);
+    matrix.compose(position, quaternion, scale);
+
+    for (const [x1, y1, z1, x2, y2, z2] of UNIT_EDGES) {
+      point.set(x1, y1, z1).applyMatrix4(matrix);
+      positions.push(point.x, point.y, point.z);
+      point.set(x2, y2, z2).applyMatrix4(matrix);
+      positions.push(point.x, point.y, point.z);
+    }
+  });
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  return geo;
+}
 
 interface CargoMeshInstancedProps {
   planId: string;
@@ -130,6 +194,22 @@ function InstancedBoxes() {
     dragState,
   ]);
 
+  // Build edge lineSegments geometry for all visible non-ghosted boxes.
+  // InstancedMesh cannot render EdgesGeometry (line primitives), so we build
+  // a single lineSegments with all box edges pre-transformed in world space.
+  const edgesLineGeo = useMemo(() => {
+    return buildEdgesGeometry(placements, {
+      selectedInstanceId,
+      selectedItemId,
+      hiddenItemIds,
+      activeLayer,
+      focusedGroupItemIds,
+      dragState,
+    });
+  }, [placements, selectedInstanceId, selectedItemId, hiddenItemIds, activeLayer, focusedGroupItemIds, dragState]);
+
+  useEffect(() => () => edgesLineGeo.dispose(), [edgesLineGeo]);
+
   const selectedPlacements = useMemo(
     () =>
       placements
@@ -203,6 +283,11 @@ function InstancedBoxes() {
           opacity={0.9}
         />
       </instancedMesh>
+
+      {/* Edge lines — tüm görünür kutular için tek lineSegments çizimi */}
+      <lineSegments geometry={edgesLineGeo}>
+        <lineBasicMaterial color="#000000" />
+      </lineSegments>
 
       {/* Selected box — BoxWrapper ile glow */}
       {selectedPlacements.map(({ p, idx }) => {

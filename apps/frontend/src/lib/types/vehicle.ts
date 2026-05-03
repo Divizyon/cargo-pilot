@@ -12,6 +12,7 @@ export const DoorDirection = {
   Rear: 'rear',
   Side: 'side',
   Top: 'top',
+  RearAndSide: 'rearAndSide',
 } as const;
 export type DoorDirection = (typeof DoorDirection)[keyof typeof DoorDirection];
 
