@@ -99,7 +99,7 @@ function VehicleSpec({ label, value }: { label: string; value: string }) {
 
 function VehicleDetails({ vehicle }: { vehicle: Vehicle }) {
   const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
-  const payloadTon = (vehicle.payload / 1000).toFixed(1);
+  const payloadTon = ((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1);
 
   return (
     <div>
