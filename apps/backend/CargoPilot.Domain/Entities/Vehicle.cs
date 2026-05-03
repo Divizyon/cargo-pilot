@@ -51,7 +51,8 @@ public sealed class Vehicle : BaseEntity {
         decimal? additionalAxleTareWeightKg,
         decimal? additionalAxleMaxLoadKg,
         int layerCount,
-        LoadingType loadingType) {
+        LoadingType loadingType,
+        bool isActive) {
         VehicleName = vehicleName;
         VehicleType = vehicleType;
         PlateNumber = plateNumber;
@@ -70,6 +71,7 @@ public sealed class Vehicle : BaseEntity {
         AdditionalAxleMaxLoadKg = additionalAxleMaxLoadKg;
         LayerCount = layerCount;
         LoadingType = loadingType;
+        SetIsActive(isActive);
     }
 
     public Vehicle(

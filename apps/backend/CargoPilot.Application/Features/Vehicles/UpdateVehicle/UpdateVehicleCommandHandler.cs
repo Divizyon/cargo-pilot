@@ -57,7 +57,8 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
             additionalAxleTareWeightKg: request.AdditionalAxleTareWeightKg,
             additionalAxleMaxLoadKg: request.AdditionalAxleMaxLoadKg,
             layerCount: request.LayerCount,
-            loadingType: request.LoadingType);
+            loadingType: request.LoadingType,
+            isActive: request.IsActive);
 
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 
