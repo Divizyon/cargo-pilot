@@ -4,6 +4,7 @@ using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503155038_AddLoadingPlanWarningsTable")]
+    partial class AddLoadingPlanWarningsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -444,9 +447,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("Id", "LoadingPlanId")
-                        .HasName("AK_LoadingPlanPlacements_Id_LoadingPlanId");
-
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_LoadingPlanPlacements_IsDeleted");
 
@@ -513,10 +513,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("LoadingPlanId")
                         .HasDatabaseName("IX_LoadingPlanUnplacedItems_LoadingPlanId");
 
-                    b.ToTable("LoadingPlanUnplacedItems", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_LoadingPlanUnplacedItems_Quantity_Positive", "[Quantity] > 0");
-                        });
+                    b.ToTable("LoadingPlanUnplacedItems", (string)null);
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanWarning", b =>
@@ -581,7 +578,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RelatedItemId");
 
-                    b.HasIndex("RelatedPlacementId", "LoadingPlanId");
+                    b.HasIndex("RelatedPlacementId");
 
                     b.ToTable("LoadingPlanWarnings", (string)null);
                 });
@@ -754,10 +751,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<decimal>("InternalHeight")
                         .HasPrecision(18, 4)
@@ -966,8 +959,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.HasOne("CargoPilot.Domain.Entities.LoadingPlanPlacement", "RelatedPlacement")
                         .WithMany()
-                        .HasForeignKey("RelatedPlacementId", "LoadingPlanId")
-                        .HasPrincipalKey("Id", "LoadingPlanId")
+                        .HasForeignKey("RelatedPlacementId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("LoadingPlan");
