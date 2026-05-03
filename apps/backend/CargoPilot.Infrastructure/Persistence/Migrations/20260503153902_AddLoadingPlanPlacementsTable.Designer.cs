@@ -4,6 +4,7 @@ using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503153902_AddLoadingPlanPlacementsTable")]
+    partial class AddLoadingPlanPlacementsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -444,9 +447,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("Id", "LoadingPlanId")
-                        .HasName("AK_LoadingPlanPlacements_Id_LoadingPlanId");
-
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_LoadingPlanPlacements_IsDeleted");
 
@@ -456,134 +456,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_LoadingPlanPlacements_LoadingPlanId");
 
                     b.ToTable("LoadingPlanPlacements", (string)null);
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanUnplacedItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("ItemId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("LoadingPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Reason")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted")
-                        .HasDatabaseName("IX_LoadingPlanUnplacedItems_IsDeleted");
-
-                    b.HasIndex("ItemId");
-
-                    b.HasIndex("LoadingPlanId")
-                        .HasDatabaseName("IX_LoadingPlanUnplacedItems_LoadingPlanId");
-
-                    b.ToTable("LoadingPlanUnplacedItems", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_LoadingPlanUnplacedItems_Quantity_Positive", "[Quantity] > 0");
-                        });
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanWarning", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("LoadingPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid?>("RelatedItemId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("RelatedPlacementId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted")
-                        .HasDatabaseName("IX_LoadingPlanWarnings_IsDeleted");
-
-                    b.HasIndex("LoadingPlanId")
-                        .HasDatabaseName("IX_LoadingPlanWarnings_LoadingPlanId");
-
-                    b.HasIndex("RelatedItemId");
-
-                    b.HasIndex("RelatedPlacementId", "LoadingPlanId");
-
-                    b.ToTable("LoadingPlanWarnings", (string)null);
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.PasswordResetToken", b =>
@@ -926,51 +798,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("Item");
 
                     b.Navigation("LoadingPlan");
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanUnplacedItem", b =>
-                {
-                    b.HasOne("CargoPilot.Domain.Entities.Item", "Item")
-                        .WithMany()
-                        .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", "LoadingPlan")
-                        .WithMany()
-                        .HasForeignKey("LoadingPlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Item");
-
-                    b.Navigation("LoadingPlan");
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanWarning", b =>
-                {
-                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", "LoadingPlan")
-                        .WithMany()
-                        .HasForeignKey("LoadingPlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CargoPilot.Domain.Entities.Item", "RelatedItem")
-                        .WithMany()
-                        .HasForeignKey("RelatedItemId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlanPlacement", "RelatedPlacement")
-                        .WithMany()
-                        .HasForeignKey("RelatedPlacementId", "LoadingPlanId")
-                        .HasPrincipalKey("Id", "LoadingPlanId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("LoadingPlan");
-
-                    b.Navigation("RelatedItem");
-
-                    b.Navigation("RelatedPlacement");
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.PasswordResetToken", b =>
