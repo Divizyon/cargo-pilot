@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace CargoPilot.WebAPI.Controllers;
 
 /// <summary>OAuth login isteği — frontend ID token'ı POST eder.</summary>
-/// <param name="IdToken">Google One Tap / MSAL'dan alınan ID token.</param>
+/// <param name="IdToken">Google One Tap'tan alınan ID token.</param>
 public sealed record OAuthLoginRequest(string IdToken);
 
 /// <summary>
@@ -101,27 +101,6 @@ public sealed class AuthController : BaseController
         var command = new OAuthLoginCommand(
             request.IdToken,
             AuthProvider.Google,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
-
-        var result = await _mediator.Send(command, cancellationToken);
-
-        if (result.IsSuccess)
-            SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
-
-        return HandleResult(result);
-    }
-
-    [HttpPost("microsoft")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Result<LoginResponse>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> MicrosoftLogin(
-        [FromBody] OAuthLoginRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new OAuthLoginCommand(
-            request.IdToken,
-            AuthProvider.Microsoft,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
         var result = await _mediator.Send(command, cancellationToken);
