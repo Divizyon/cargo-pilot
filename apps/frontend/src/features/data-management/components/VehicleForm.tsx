@@ -32,14 +32,14 @@ export function VehicleForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <form id="vehicle-form" onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           {/* Sol — Form alanları */}
-          <div className="space-y-5">
-            <section className="space-y-2">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="flex flex-col gap-5">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Araç Tipi
-              </h3>
+              </p>
               <Controller
                 control={form.control}
                 name="vehicleType"
@@ -60,38 +60,41 @@ export function VehicleForm({
                 )}
               />
               {form.formState.errors.vehicleType && (
-                <p className="text-sm font-medium text-destructive">
+                <p className="mt-2 text-sm font-medium text-destructive">
                   {form.formState.errors.vehicleType.message}
                 </p>
               )}
             </section>
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
+              <p className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Kimlik Bilgileri
-              </h3>
-              <VehicleIdentityFields form={form} />
+              </p>
+              <div className="flex flex-col gap-4">
+                <VehicleIdentityFields form={form} />
+                <div className="grid grid-cols-2 gap-4">
+                  <VehiclePlateOrSerialField form={form} hideHeading />
+                  <VehicleDoorDirectionField form={form} hideHeading />
+                </div>
+              </div>
             </section>
 
-            <div className="grid grid-cols-2 gap-4">
-              <VehiclePlateOrSerialField form={form} hideHeading />
-              <VehicleDoorDirectionField form={form} hideHeading />
+            <div className="rounded-xl border bg-card p-5 shadow-sm">
+              <VehicleFormLayout form={form} />
             </div>
 
-            <VehicleFormLayout form={form} />
+            <VehicleFormActions
+              form={form}
+              isSubmitting={isSubmitting}
+              onCancel={onCancel}
+              onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+              disableSubmitWhenPristine={disableSubmitWhenPristine}
+            />
           </div>
 
           {/* Sağ — Canlı önizleme */}
           <VehiclePreviewPanel form={form} />
         </div>
-
-        <VehicleFormActions
-          form={form}
-          isSubmitting={isSubmitting}
-          onCancel={onCancel}
-          onDraftSubmit={onDraftSubmit ?? (() => undefined)}
-          disableSubmitWhenPristine={disableSubmitWhenPristine}
-        />
       </form>
     </Form>
   );

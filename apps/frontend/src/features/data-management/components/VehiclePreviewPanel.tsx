@@ -32,12 +32,12 @@ function PreviewRow({
   emphasize?: boolean;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
+    <div className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0 last:pb-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd
         className={cn(
-          'truncate text-right',
-          emphasize ? 'text-base font-semibold text-foreground' : 'text-sm text-foreground',
+          'max-w-[60%] truncate text-right',
+          emphasize ? 'text-sm font-semibold text-foreground' : 'text-sm text-foreground',
         )}
       >
         {value}
@@ -63,30 +63,56 @@ export function VehiclePreviewPanel({ form }: Props) {
       ],
     });
 
-  const dims = length && width && height ? `${length} × ${width} × ${height} cm` : '—';
+  const volume =
+    length && width && height
+      ? (() => {
+          const v = length * width * height;
+          if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)} m³`;
+          if (v >= 1_000) return `${(v / 1_000).toFixed(1)} dm³`;
+          return `${v} cm³`;
+        })()
+      : '0.00 m³';
 
   const cargo = maxCargoWeight ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg` : '—';
 
   return (
-    <aside className="lg:sticky lg:top-6 lg:self-start">
-      <div className="flex flex-col gap-4">
-        <VehicleStatusToggle form={form} />
+    <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+      {/* Operasyonel Durum */}
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Operasyonel Durum
+        </p>
+        <VehicleStatusToggle form={form} compact />
+      </div>
 
-        <VehiclePreviewCanvas control={control} />
+      {/* Kargo Hacmi Önizleme — dark card */}
+      <div className="rounded-xl bg-gray-900 p-4 text-white">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            Kargo Hacmi Önizleme
+          </p>
+          <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] font-semibold text-gray-300">
+            3D Önizleme
+          </span>
+        </div>
+        <div className="overflow-hidden rounded-lg bg-gray-800">
+          <VehiclePreviewCanvas control={control} />
+        </div>
+        <div className="mt-3 border-t border-gray-700 pt-3">
+          <p className="text-[10px] uppercase tracking-wider text-gray-500">Toplam Hacim</p>
+          <p className="mt-0.5 text-2xl font-bold tabular-nums">{volume}</p>
+        </div>
+      </div>
 
-        {length && width ? (
-          <div className="flex items-baseline justify-between rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              U × G × Y
-            </span>
-            <span className="text-lg font-semibold tabular-nums text-foreground">{dims}</span>
-          </div>
-        ) : null}
-
-        <dl className="space-y-2 text-sm">
+      {/* Araç Özeti */}
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Araç Özeti
+        </p>
+        <dl className="flex flex-col">
           <PreviewRow label="Araç Adı" value={name || '—'} emphasize />
           <PreviewRow label="Tip" value={TYPE_LABELS[vehicleType] ?? vehicleType ?? '—'} />
-          <PreviewRow label="Maks Yük" value={cargo} />
+          <PreviewRow label="Maks. Yük" value={cargo} />
           <PreviewRow
             label="Kapı"
             value={doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—'}
@@ -94,11 +120,11 @@ export function VehiclePreviewPanel({ form }: Props) {
         </dl>
 
         {description && description.trim().length > 0 && (
-          <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-foreground">
-            <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="mt-3 rounded-lg border border-dashed bg-muted/40 p-3">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Açıklama
             </p>
-            <p className="whitespace-pre-wrap break-words">{description}</p>
+            <p className="text-xs text-foreground/80">{description}</p>
           </div>
         )}
       </div>

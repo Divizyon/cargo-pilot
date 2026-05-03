@@ -5,26 +5,35 @@ import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleStatusToggleProps {
   form: UseFormReturn<VehicleFormValues>;
+  compact?: boolean;
 }
 
-export function VehicleStatusToggle({ form }: VehicleStatusToggleProps) {
+export function VehicleStatusToggle({ form, compact }: VehicleStatusToggleProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Operasyonel Durum
-      </h3>
-      <FormField
-        control={form.control}
-        name="isActive"
-        render={({ field }) => (
-          <FormItem className="flex items-center gap-3">
-            <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
-            <FormLabel className="!mt-0">{field.value ? 'Aktif' : 'Pasif'}</FormLabel>
-          </FormItem>
-        )}
-      />
-    </div>
+    <FormField
+      control={form.control}
+      name="isActive"
+      render={({ field }) => (
+        <FormItem className="flex items-start justify-between gap-3">
+          {compact ? (
+            <div className="flex-1 space-y-0.5">
+              <FormLabel className="text-sm font-medium">
+                {field.value ? 'Aktif' : 'Pasif'}
+              </FormLabel>
+              <p className="text-xs text-muted-foreground">
+                {field.value
+                  ? 'Aktif durumdaki araçlar yükleme planlarında seçilebilir.'
+                  : 'Pasif araçlar planlama ekranında görünmez.'}
+              </p>
+            </div>
+          ) : (
+            <FormLabel className="!mt-0 flex-1">{field.value ? 'Aktif' : 'Pasif'}</FormLabel>
+          )}
+          <FormControl>
+            <Switch checked={field.value} onCheckedChange={field.onChange} />
+          </FormControl>
+        </FormItem>
+      )}
+    />
   );
 }
