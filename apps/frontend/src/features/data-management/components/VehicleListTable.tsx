@@ -19,26 +19,45 @@ interface Props {
 
 export function VehicleListTable({ vehicles, isLoading, onDelete, onDetail }: Props) {
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-xl border bg-white">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-10" />
-            <TableHead>İsim</TableHead>
-            <TableHead>Tip</TableHead>
-            <TableHead>Kapı Yönü</TableHead>
-            <TableHead>Boyutlar (U×G×Y)</TableHead>
-            <TableHead>Maks Kargo</TableHead>
-            <TableHead>Durum</TableHead>
-            <TableHead className="w-12" />
+          <TableRow className="border-b hover:bg-transparent">
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              İsim
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Tip
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Oluşturuldu
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Kapı Yönü
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Uzunluk
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Genişlik
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Yükseklik
+            </TableHead>
+            <TableHead className="py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Max Yük
+            </TableHead>
+            <TableHead className="w-20 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              İşlem
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 8 }).map((__, j) => (
-                  <TableCell key={j}>
+                {Array.from({ length: 9 }).map((__, j) => (
+                  <TableCell key={j} className="py-4">
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
                 ))}
@@ -46,7 +65,7 @@ export function VehicleListTable({ vehicles, isLoading, onDelete, onDetail }: Pr
             ))
           ) : vehicles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+              <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
                 Araç bulunamadı.
               </TableCell>
             </TableRow>

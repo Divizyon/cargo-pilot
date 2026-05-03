@@ -100,7 +100,7 @@ export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProp
           key={optionValue}
           className={cn(
             'cursor-pointer flex flex-col items-center justify-center gap-2 p-2.5 transition-colors hover:bg-muted/50',
-            value === optionValue && 'ring-2 ring-primary',
+            value === optionValue && 'ring-2 ring-foreground',
           )}
           onClick={() => onChange(optionValue)}
         >
