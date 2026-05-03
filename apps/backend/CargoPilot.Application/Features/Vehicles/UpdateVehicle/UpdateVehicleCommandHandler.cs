@@ -41,6 +41,7 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
 
         vehicle.Update(
             vehicleName: request.VehicleName,
+            description: request.Description,
             vehicleType: request.VehicleType,
             plateNumber: request.PlateNumber,
             internalWidth: request.InternalWidth,
