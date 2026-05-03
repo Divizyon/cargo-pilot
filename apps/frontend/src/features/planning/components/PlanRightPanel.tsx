@@ -8,6 +8,7 @@ import {
   Crosshair,
   Truck,
   X,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -231,6 +232,14 @@ export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
             {showCog ? 'AÇIK' : 'KAPALI'}
           </span>
         </button>
+        {placements.length > 0 && (
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+            <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 leading-snug">
+              Bu yerleşim tahminidir. Optimizasyon henüz çalıştırılmadı.
+            </p>
+          </div>
+        )}
         <Button
           className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
           disabled={!selectedVehicle}

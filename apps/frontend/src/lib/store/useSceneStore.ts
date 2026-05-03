@@ -16,6 +16,8 @@ interface SceneStore {
   showCog: boolean;
   xRayMode: boolean;
   focusedGroupItemIds: string[] | null;
+  requestSnapshot: boolean;
+  snapshotDataUrl: string | null;
   setActiveLayer: (layer: number) => void;
   setSelectedBoxId: (id: string | null) => void;
   setSelectedItemId: (id: string | null) => void;
@@ -29,6 +31,9 @@ interface SceneStore {
   toggleShowCog: () => void;
   toggleXRayMode: () => void;
   setFocusedGroupItemIds: (ids: string[] | null) => void;
+  triggerSnapshot: () => void;
+  setSnapshotDataUrl: (url: string | null) => void;
+  clearSnapshot: () => void;
   reset: () => void;
 }
 
@@ -45,6 +50,8 @@ const initialState = {
   showCog: true,
   xRayMode: false,
   focusedGroupItemIds: null as string[] | null,
+  requestSnapshot: false,
+  snapshotDataUrl: null as string | null,
 };
 
 export const useSceneStore = create<SceneStore>((set) => ({
@@ -68,5 +75,8 @@ export const useSceneStore = create<SceneStore>((set) => ({
   toggleShowCog: () => set((s) => ({ showCog: !s.showCog })),
   toggleXRayMode: () => set((s) => ({ xRayMode: !s.xRayMode })),
   setFocusedGroupItemIds: (ids) => set({ focusedGroupItemIds: ids }),
+  triggerSnapshot: () => set({ requestSnapshot: true }),
+  setSnapshotDataUrl: (url) => set({ requestSnapshot: false, snapshotDataUrl: url }),
+  clearSnapshot: () => set({ requestSnapshot: false, snapshotDataUrl: null }),
   reset: () => set(initialState),
 }));
