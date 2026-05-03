@@ -7,6 +7,7 @@ namespace CargoPilot.Application.Features.Vehicles.UpdateVehicle;
 public sealed record UpdateVehicleCommand(
     Guid Id,
     string VehicleName,
+    string? Description,
     VehicleType VehicleType,
     string PlateNumber,
     decimal InternalWidth,
