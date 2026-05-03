@@ -28,4 +28,8 @@ public abstract class BaseEntity {
         IsDeleted = true;
         IsActive = false;
     }
+
+    public void SetIsActive(bool isActive) {
+        IsActive = isActive;
+    }
 }

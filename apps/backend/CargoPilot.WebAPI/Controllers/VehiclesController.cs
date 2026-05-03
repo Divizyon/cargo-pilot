@@ -120,6 +120,7 @@ public sealed class VehiclesController : BaseController {
             request.MaxWeightCapacity,
             request.LayerCount,
             request.LoadingType,
+            request.IsActive,
             request.KingPinDistanceMm,
             request.KingPinTareWeightKg,
             request.KingPinMaxLoadKg,

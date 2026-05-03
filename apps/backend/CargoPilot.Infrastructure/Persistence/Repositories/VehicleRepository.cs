@@ -33,9 +33,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
             query = query.Where(v => v.VehicleType == vehicleType.Value);
         }
 
-        if (isActive.HasValue) {
-            query = query.Where(v => v.IsActive == isActive.Value);
-        }
+        query = query.Where(v => v.IsActive == (isActive ?? true));
 
         var totalCount = await query.CountAsync(cancellationToken);
 

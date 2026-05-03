@@ -15,6 +15,7 @@ public sealed record UpdateVehicleCommand(
     decimal MaxWeightCapacity,
     int LayerCount,
     LoadingType LoadingType,
+    bool IsActive,
     decimal? KingPinDistanceMm,
     decimal? KingPinTareWeightKg,
     decimal? KingPinMaxLoadKg,
