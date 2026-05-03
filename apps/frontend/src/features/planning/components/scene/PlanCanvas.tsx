@@ -11,6 +11,7 @@ import { SCENE } from '@/lib/config/scene-config';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
 
+
 interface PlanCanvasProps {
   className?: string;
   planId?: string;
