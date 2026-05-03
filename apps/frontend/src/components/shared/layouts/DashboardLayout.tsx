@@ -273,24 +273,21 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
 const FOCUS_ROUTES = ['/planning/new'];
 
 export function DashboardLayout() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [windowCollapsed, setWindowCollapsed] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { showWarning, countdown, extendSession } = useSessionTimeout();
   const { pathname } = useLocation();
   const isFocusRoute = FOCUS_ROUTES.some((r) => pathname.startsWith(r));
+  const isCollapsed = isFocusRoute || windowCollapsed;
 
   useEffect(() => {
     function syncCollapse() {
-      setIsCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
+      setWindowCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
     }
     syncCollapse();
     window.addEventListener('resize', syncCollapse);
     return () => window.removeEventListener('resize', syncCollapse);
   }, []);
-
-  useEffect(() => {
-    if (isFocusRoute) setIsCollapsed(true);
-  }, [isFocusRoute]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -310,7 +307,11 @@ export function DashboardLayout() {
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
-        <Sidebar isCollapsed={isCollapsed} onCollapsedChange={setIsCollapsed} toggleLocked={isFocusRoute} />
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onCollapsedChange={setWindowCollapsed}
+          toggleLocked={isFocusRoute}
+        />
       </div>
 
       {/* Main content */}
