@@ -15,4 +15,5 @@ public sealed record VehicleSummaryDto(
     LoadingType LoadingType,
     decimal Volume,
     bool IsActive,
-    Guid? CompanyId);
+    Guid? CompanyId,
+    AuditUserDto? LastModifiedBy);

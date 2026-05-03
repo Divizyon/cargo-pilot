@@ -9,4 +9,5 @@ public sealed record SearchVehiclesQuery(
     VehicleType? VehicleType,
     bool? IsActive,
     int Page = 1,
-    int PageSize = 20) : IRequest<Result<PagedResult<VehicleSummaryDto>>>;
+    int PageSize = 20,
+    bool IsExport = false) : IRequest<Result<PagedResult<VehicleSummaryDto>>>;

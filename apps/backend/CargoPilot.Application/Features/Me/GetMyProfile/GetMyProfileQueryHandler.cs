@@ -27,7 +27,7 @@ internal sealed class GetMyProfileQueryHandler
             return Result<GetMyProfileResponse>.Failure(
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));
 
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        var user = await _userRepository.GetByIdWithCompanyAsync(userId, cancellationToken);
         if (user is null)
             return Result<GetMyProfileResponse>.Failure(
                 new Error(ErrorType.NotFound, "USER_NOT_FOUND", "Kullanıcı bulunamadı."));
@@ -38,6 +38,7 @@ internal sealed class GetMyProfileQueryHandler
                 user.FirstName,
                 user.LastName,
                 $"{user.FirstName} {user.LastName}",
-                user.Email));
+                user.Email,
+                user.Company?.Name));
     }
 }
