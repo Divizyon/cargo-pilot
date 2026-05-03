@@ -7,6 +7,7 @@ interface VehicleFormActionsProps {
   isSubmitting?: boolean;
   onCancel?: () => void;
   onDraftSubmit: (values: Partial<VehicleFormValues>) => void;
+  disableSubmitWhenPristine?: boolean;
 }
 
 export function VehicleFormActions({
@@ -14,6 +15,7 @@ export function VehicleFormActions({
   isSubmitting,
   onCancel,
   onDraftSubmit,
+  disableSubmitWhenPristine,
 }: VehicleFormActionsProps) {
   async function handleDraftSubmit() {
     const valid = await form.trigger(['name', 'vehicleType']);
@@ -36,7 +38,10 @@ export function VehicleFormActions({
       >
         Taslak Olarak Kaydet
       </Button>
-      <Button type="submit" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+      >
         {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
       </Button>
     </div>

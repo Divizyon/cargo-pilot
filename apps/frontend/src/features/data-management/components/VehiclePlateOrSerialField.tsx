@@ -9,9 +9,10 @@ import { VehicleType } from '@/lib/types/vehicle';
 
 interface VehiclePlateOrSerialFieldProps {
   form: UseFormReturn<VehicleFormValues>;
+  hideHeading?: boolean;
 }
 
-export function VehiclePlateOrSerialField({ form }: VehiclePlateOrSerialFieldProps) {
+export function VehiclePlateOrSerialField({ form, hideHeading }: VehiclePlateOrSerialFieldProps) {
   const vehicleType = useWatch({ control: form.control, name: 'vehicleType' });
   const [plateToCheck, setPlateToCheck] = useState('');
   const [serialToCheck, setSerialToCheck] = useState('');
@@ -95,7 +96,11 @@ export function VehiclePlateOrSerialField({ form }: VehiclePlateOrSerialFieldPro
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">Plaka / Seri No</h2>
+      {!hideHeading && (
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Plaka / Seri No
+        </h3>
+      )}
       {field}
     </div>
   );
