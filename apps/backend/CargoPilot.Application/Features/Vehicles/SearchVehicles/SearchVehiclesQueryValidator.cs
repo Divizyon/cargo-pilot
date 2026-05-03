@@ -12,7 +12,8 @@ public sealed class SearchVehiclesQueryValidator : AbstractValidator<SearchVehic
         RuleFor(x => x.PageSize)
             .InclusiveBetween(1, 100)
                 .WithErrorCode("VEHICLE_VAL_PAGESIZE_RANGE")
-                .WithMessage("Sayfa boyutu 1 ile 100 arasında olmalıdır.");
+                .WithMessage("Sayfa boyutu 1 ile 100 arasında olmalıdır.")
+            .When(x => !x.IsExport);
 
         RuleFor(x => x.SearchTerm)
             .MaximumLength(200)

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Ban, Box, Cylinder, Droplets, HelpCircle, Move3d, Package, Wine } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import {
   Form,
   FormControl,
@@ -47,9 +46,9 @@ const DIMENSION_KEYS = Object.keys(DIMENSION_UNITS) as DimensionUnitKey[];
 const WEIGHT_KEYS = Object.keys(WEIGHT_UNITS) as Array<keyof typeof WEIGHT_UNITS>;
 
 const PRODUCT_TYPE_OPTIONS = [
-  { value: 'box', labelKey: 'forms.product.typeBox', Icon: Box },
-  { value: 'barrel', labelKey: 'forms.product.typeBarrel', Icon: Cylinder },
-  { value: 'pallet', labelKey: 'forms.product.typePallet', Icon: Package },
+  { value: 'koli', labelKey: 'forms.product.typeBox', Icon: Box },
+  { value: 'varil', labelKey: 'forms.product.typeBarrel', Icon: Cylinder },
+  { value: 'palet', labelKey: 'forms.product.typePallet', Icon: Package },
 ] as const;
 
 type AxisKey = 'x' | 'y' | 'z';
@@ -107,13 +106,13 @@ function NonStackableIcon({ className }: NonStackableIconProps) {
 }
 
 interface ProductTypeIllustrationProps {
-  type: 'box' | 'barrel' | 'pallet';
+  type: 'koli' | 'varil' | 'palet';
 }
 
 function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
   const stroke = 'currentColor';
 
-  if (type === 'barrel') {
+  if (type === 'varil') {
     return (
       <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
         <ellipse cx="60" cy="22" rx="36" ry="10" stroke={stroke} strokeWidth="1.5" />
@@ -133,7 +132,7 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
     );
   }
 
-  if (type === 'pallet') {
+  if (type === 'palet') {
     return (
       <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
         <path
@@ -285,9 +284,8 @@ export function ProductForm({
     ],
   });
 
-  const isNonStackableSelected = fragility === FRAGILITY_LEVELS.NonFragile;
+  const isPallet = productType === 'palet';
 
-  const isPallet = productType === 'pallet';
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
 
@@ -401,10 +399,6 @@ export function ProductForm({
                               if (value === '') return;
                               const num = Number(value);
                               field.onChange(num);
-                              if (num === FRAGILITY_LEVELS.NonFragile) {
-                                form.setValue('maxStackCount', 1, { shouldValidate: false });
-                                form.setValue('isStackable', false, { shouldValidate: false });
-                              }
                               if (num >= FRAGILITY_LEVELS.Fragile) {
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
                               }
@@ -504,45 +498,28 @@ export function ProductForm({
                   <FormField
                     control={form.control}
                     name="maxStackCount"
-                    render={({ field }) => {
-                      const lockToOne = fragility === FRAGILITY_LEVELS.NonFragile;
-                      return (
-                        <FormItem>
-                          <div className="flex items-center justify-between gap-2">
-                            <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
-                            <Badge
-                              variant="outline"
-                              aria-hidden={!isNonStackableSelected}
-                              className={cn(
-                                'h-5 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] text-amber-800',
-                                !isNonStackableSelected && 'invisible',
-                              )}
-                            >
-                              {t('forms.product.nonStackable')}
-                            </Badge>
-                          </div>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={1}
-                              step={1}
-                              placeholder="1"
-                              disabled={lockToOne}
-                              className={cn(COMPACT_INPUT, lockToOne && 'cursor-not-allowed')}
-                              {...field}
-                              value={lockToOne ? 1 : (field.value ?? '')}
-                              onChange={(e) => {
-                                if (lockToOne) return;
-                                const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
-                                field.onChange(value);
-                                form.setValue('isStackable', value > 1, { shouldValidate: false });
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            placeholder="1"
+                            className={COMPACT_INPUT}
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
+                              field.onChange(value);
+                              form.setValue('isStackable', value > 1, { shouldValidate: false });
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
               </section>
@@ -673,7 +650,7 @@ export function ProductForm({
             {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
             <PreviewPanel
               name={name}
-              productType={productType ?? 'box'}
+              productType={productType ?? 'koli'}
               length={length}
               lengthUnit={lengthUnit}
               width={width}
@@ -714,7 +691,7 @@ export function ProductForm({
 
 interface PreviewPanelProps {
   name?: string;
-  productType: 'box' | 'barrel' | 'pallet';
+  productType: 'koli' | 'varil' | 'palet';
   length?: number;
   lengthUnit?: DimensionUnitKey;
   width?: number;

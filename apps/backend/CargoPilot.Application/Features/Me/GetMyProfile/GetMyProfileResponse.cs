@@ -5,4 +5,5 @@ public sealed record GetMyProfileResponse(
     string FirstName,
     string LastName,
     string FullName,
-    string Email);
+    string Email,
+    string? CompanyName);

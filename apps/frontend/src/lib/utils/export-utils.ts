@@ -30,6 +30,7 @@ export function downloadItemImportTemplate(): void {
   const headers = [
     'SKU',
     'Barkod',
+
     'Ürün Adı',
     'Tip (koli/varil/palet)',
     'Genişlik(cm)',
@@ -46,7 +47,6 @@ export function downloadItemImportTemplate(): void {
   ];
   const example = [
     'SKU001',
-    '',
     'Örnek Koli',
     'koli',
     '30',

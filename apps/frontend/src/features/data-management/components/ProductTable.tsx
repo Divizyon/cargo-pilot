@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ForwardRefExoticComponent, RefAttributes } from 'react';
+
 import {
   Box,
   ChevronDown,
@@ -60,6 +61,7 @@ const CONSTRAINT_FILTER_OPTIONS: {
   value: ConstraintFilter;
   label: string;
   Icon: LucideIcon;
+
   className: string;
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
@@ -69,6 +71,7 @@ const CONSTRAINT_FILTER_OPTIONS: {
     value: 'rotationLocked',
     label: 'Rotasyon Kısıtlı',
     Icon: RotateCcw,
+
     className: 'text-muted-foreground',
   },
 ];
@@ -81,6 +84,7 @@ function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean 
       return item.fragility === 2;
     case 'stackable':
       return item.isStackable;
+
     case 'rotationLocked':
       return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
   }

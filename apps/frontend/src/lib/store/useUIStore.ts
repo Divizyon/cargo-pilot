@@ -14,6 +14,7 @@ interface UIStore {
   isSidebarOpen: boolean;
   isGlobalLoading: boolean;
   notifications: Notification[];
+  selectedSnapshotPlanId: string | null;
   setTheme: (theme: Theme) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -21,6 +22,7 @@ interface UIStore {
   addNotification: (notification: Omit<Notification, 'id'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+  setSelectedSnapshotPlanId: (id: string | null) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -28,6 +30,7 @@ export const useUIStore = create<UIStore>((set) => ({
   isSidebarOpen: true,
   isGlobalLoading: false,
   notifications: [],
+  selectedSnapshotPlanId: null,
   setTheme: (theme) => set({ theme }),
   toggleSidebar: () => set((s) => ({ isSidebarOpen: !s.isSidebarOpen })),
   setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
@@ -39,4 +42,5 @@ export const useUIStore = create<UIStore>((set) => ({
   removeNotification: (id) =>
     set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) })),
   clearNotifications: () => set({ notifications: [] }),
+  setSelectedSnapshotPlanId: (selectedSnapshotPlanId) => set({ selectedSnapshotPlanId }),
 }));

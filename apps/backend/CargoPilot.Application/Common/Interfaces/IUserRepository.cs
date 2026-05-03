@@ -19,4 +19,8 @@ public interface IUserRepository
 
     /// <summary>Kullanıcıya yeni bir UserLogin kaydı ekler (hesap birleştirme — AC11).</summary>
     void AddUserLogin(UserLogin userLogin);
+
+    /// <summary>Kullanıcıyı Company navigation ile birlikte getirir; yoksa null döner.</summary>
+    Task<AppUser?> GetByIdWithCompanyAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<Guid, AppUser>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
 }
