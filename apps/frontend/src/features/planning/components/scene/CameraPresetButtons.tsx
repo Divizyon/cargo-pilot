@@ -19,7 +19,7 @@ export function CameraPresetButtons({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn('flex gap-1.5 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur', className)}
+      className={cn('flex gap-1.5 rounded-lg bg-white/90 p-1 backdrop-blur border border-zinc-200', className)}
     >
       {PRESETS.map(({ key, icon: Icon }) => {
         const active = cameraPreset === key;
@@ -35,7 +35,6 @@ export function CameraPresetButtons({ className }: { className?: string }) {
             aria-pressed={active}
           >
             <Icon className="h-4 w-4" />
-            <span className="hidden text-xs sm:inline">{SCENE.CAMERA_PRESETS[key].label}</span>
           </Button>
         );
       })}

@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
-import { FocusModeLayout } from '@/components/shared/layouts/FocusModeLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
@@ -66,6 +65,7 @@ export const router = createBrowserRouter([
           { path: '/vehicles/new', element: <VehicleCreatePage /> },
           { path: '/vehicles/:id/edit', element: <VehicleEditPage /> },
           { path: '/planning', element: <DashboardPage /> },
+          { path: '/planning/new', element: <NewPlanPage /> },
           { path: '/reports', element: <DashboardPage /> },
           { path: '/integrations', element: <DashboardPage /> },
           { path: '/erp', element: <DashboardPage /> },
@@ -74,10 +74,6 @@ export const router = createBrowserRouter([
           { path: '/settings', element: <DashboardPage /> },
           { path: '/profile', element: <ProfilePage /> },
         ],
-      },
-      {
-        element: <FocusModeLayout />,
-        children: [{ path: '/planning/new', element: <NewPlanPage /> }],
       },
     ],
   },

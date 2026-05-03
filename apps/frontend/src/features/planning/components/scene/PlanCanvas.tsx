@@ -6,12 +6,9 @@ import { SceneControls } from '@/features/planning/components/scene/SceneControl
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
 import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
 import { CogMarker } from '@/features/planning/components/scene/CogMarker';
-import { LevelControls } from '@/features/planning/components/scene/LevelControls';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { SCENE } from '@/lib/config/scene-config';
-import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
-import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 
 interface PlanCanvasProps {
   className?: string;
@@ -53,8 +50,6 @@ function SnapshotBridge({
 }
 
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
-  const vehicleId = usePlanStore((s) => s.selectedVehicle?.id);
-
   return (
     <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
@@ -81,10 +76,6 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
         </Suspense>
       </Canvas>
       <SelectedBoxCoords />
-      <BalancePanel />
-      <div className="absolute bottom-4 left-4 pointer-events-auto">
-        <LevelControls key={vehicleId} />
-      </div>
     </div>
   );
 }
