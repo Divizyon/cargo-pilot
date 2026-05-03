@@ -21,8 +21,7 @@ export const itemSchema = z.object({
   isStackable: z.boolean(),
   maxStackCount: z.number().int().min(1),
   maxWeightOnTop: z.number().nonnegative().nullable(),
-  // 0 = normal, 1 = kırılgan, 2 = sıvı içerir
-  fragility: z.number().int().min(0).max(2).default(0),
+  fragilityTypes: z.array(z.number().int().min(0).max(9)).default([0]),
   allowRotateX: z.boolean().default(true),
   allowRotateY: z.boolean().default(true),
   allowRotateZ: z.boolean().default(true),

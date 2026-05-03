@@ -22,4 +22,6 @@ public sealed record CreateItemCommand(
     AllowedRotations AllowedRotations,
     string? ImageUrl,
     string? StackGroup,
-    string? SpecialNotes) : IRequest<Result<Guid>>;
+    string? SpecialNotes,
+    string? LoadCategory,
+    string? IncompatibleLoadGroups) : IRequest<Result<Guid>>;

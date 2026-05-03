@@ -11,7 +11,8 @@
       "maxStackMin": "Maksimum istif sayısı en az 1 olmalıdır",
       "fragilityRange": "Kırılganlık değeri 0-2 arasında olmalıdır",
       "typeRequired": "Ürün tipi seçilmelidir",
-      "notesTooLong": "Not en fazla 1000 karakter olabilir"
+      "notesTooLong": "Not en fazla 1000 karakter olabilir",
+      "loadCategoryRequired": "Yük grubu zorunludur"
     },
     "vehicle": {
       "nameRequired": "Araç adı zorunludur",
@@ -34,7 +35,7 @@
       "length": "Uzunluk",
       "weight": "Ağırlık",
       "fragility": "Kısıtlar",
-      "fragilityNonFragile": "İstiflenemez",
+      "fragilityNonFragile": "Kısıt Yok",
       "fragilityFragile": "Kırılgan",
       "fragilityLiquid": "Sıvı",
       "isStackable": "İstifleme İzni",
@@ -78,7 +79,21 @@
       "notesHelper": "Standart kısıtların dışında kalan spesifik uyarıları taşıma ekiplerine iletmek için kullanın.",
       "notesCounter": "{{count}} / {{max}}",
       "notesSummaryLabel": "Not",
-      "previewPlaceholder": "Buraya Three.js sahnesi entegre edilecek"
+      "previewPlaceholder": "Buraya Three.js sahnesi entegre edilecek",
+      "sectionLoadCategory": "Yük Kategorisi",
+      "loadCategory": "Yük Grubu",
+      "loadCategoryPlaceholder": "Yük grubunu seçin",
+      "incompatibleLoadGroups": "Uyumsuz Yük Grupları",
+      "incompatibleLoadGroupsHint": "Önce yük grubunu seçin",
+      "loadCat_Gıda": "Gıda",
+      "loadCat_Kimya": "Kimya",
+      "loadCat_Genel": "Genel",
+      "loadCat_Tehlikeli Madde": "Tehlikeli Madde",
+      "fragilityCorrosive": "Aşındırıcı",
+      "fragilityOdorSensitive": "Kokuya Hassas",
+      "fragilityFoodContact": "Gıda Teması",
+      "fragilityDry": "Kuru",
+      "fragilityChemical": "Kimyasal"
     },
     "vehicle": {
       "title": "Araç Tanımlama",

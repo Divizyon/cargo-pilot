@@ -1,11 +1,11 @@
-import { Droplets, RotateCcw, Wine } from 'lucide-react';
+import { Droplets, Flame, FlaskConical, RotateCcw, Sun, Utensils, Wind, Wine } from 'lucide-react';
 
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 interface ConstraintIconsProps {
-  fragility: number;
+  fragilityTypes: number[];
   isStackable: boolean;
   allowRotateX: boolean;
   allowRotateY: boolean;
@@ -40,8 +40,39 @@ function NonStackableIcon({ className }: { className?: string }) {
   );
 }
 
+const FRAGILITY_ICON_MAP: Record<number, { icon: ElementType; label: string; className: string }> =
+  {
+    1: { icon: Wine, label: 'Kırılgan', className: 'border-amber-200 bg-amber-50 text-amber-600' },
+    2: {
+      icon: Droplets,
+      label: 'Sıvı İçerir',
+      className: 'border-blue-200 bg-blue-50 text-blue-600',
+    },
+    3: {
+      icon: Flame,
+      label: 'Yanıcı',
+      className: 'border-orange-200 bg-orange-50 text-orange-600',
+    },
+    4: { icon: Wind, label: 'Koku Hassas', className: 'border-teal-200 bg-teal-50 text-teal-600' },
+    5: {
+      icon: Utensils,
+      label: 'Gıda Teması',
+      className: 'border-green-200 bg-green-50 text-green-600',
+    },
+    6: {
+      icon: Sun,
+      label: 'Kuru Tutulmalı',
+      className: 'border-yellow-200 bg-yellow-50 text-yellow-600',
+    },
+    7: {
+      icon: FlaskConical,
+      label: 'Kimyasal',
+      className: 'border-purple-200 bg-purple-50 text-purple-600',
+    },
+  };
+
 function buildConstraints({
-  fragility,
+  fragilityTypes,
   isStackable,
   allowRotateX,
   allowRotateY,
@@ -49,18 +80,9 @@ function buildConstraints({
 }: ConstraintIconsProps): ConstraintDef[] {
   const defs: ConstraintDef[] = [];
 
-  if (fragility === 2) {
-    defs.push({
-      icon: Droplets,
-      label: 'Sıvı İçerir',
-      className: 'border-blue-200 bg-blue-50 text-blue-600',
-    });
-  } else if (fragility === 1) {
-    defs.push({
-      icon: Wine,
-      label: 'Kırılgan',
-      className: 'border-amber-200 bg-amber-50 text-amber-600',
-    });
+  for (const f of fragilityTypes ?? []) {
+    const meta = FRAGILITY_ICON_MAP[f];
+    if (meta) defs.push(meta);
   }
 
   if (!isStackable) {
@@ -74,7 +96,6 @@ function buildConstraints({
   if (!allowRotateX || !allowRotateY || !allowRotateZ) {
     defs.push({
       icon: RotateCcw,
-
       label: 'Rotasyon Kısıtlı',
       className: 'border-border bg-muted text-muted-foreground',
     });

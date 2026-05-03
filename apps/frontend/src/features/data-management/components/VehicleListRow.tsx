@@ -19,7 +19,15 @@ const TYPE_LABELS: Record<VehicleType, string> = {
 
 function TirIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="1" y="5" width="6" height="11" rx="1" />
       <line x1="1" y1="9" x2="7" y2="9" />
       <rect x="7" y="3" width="16" height="13" rx="1" />
@@ -32,7 +40,15 @@ function TirIcon({ className }: { className?: string }) {
 
 function KamyonIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="2" y="4" width="20" height="13" rx="1" />
       <line x1="9" y1="4" x2="9" y2="17" />
       <circle cx="6" cy="19" r="1.8" />
@@ -43,7 +59,15 @@ function KamyonIcon({ className }: { className?: string }) {
 
 function RomorkIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="1" y="4" width="18" height="13" rx="1" />
       <line x1="19" y1="10" x2="23" y2="10" />
       <circle cx="6" cy="19" r="1.8" />
@@ -54,7 +78,15 @@ function RomorkIcon({ className }: { className?: string }) {
 
 function KonteynerIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="1" y="3" width="22" height="16" rx="1" />
       <line x1="7" y1="3" x2="7" y2="19" />
       <line x1="13" y1="3" x2="13" y2="19" />
@@ -95,13 +127,17 @@ interface Props {
   vehicle: Vehicle;
   onDelete: (vehicle: Vehicle) => void;
   onDetail: (vehicle: Vehicle) => void;
+  onEdit: (vehicle: Vehicle) => void;
 }
 
-export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
+export function VehicleListRow({ vehicle, onDelete, onDetail, onEdit }: Props) {
   const Icon = TYPE_ICONS[vehicle.vehicleType] ?? KamyonIcon;
   const colorClass = TYPE_COLORS[vehicle.vehicleType] ?? 'text-gray-500';
   const doorStyle = DOOR_STYLE[vehicle.doorDirection] ?? DOOR_STYLE.rear;
-  const tons = (vehicle.maxCargoWeight / 1000).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const tons = (vehicle.maxCargoWeight / 1000).toLocaleString('tr-TR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
   const kg = vehicle.maxCargoWeight.toLocaleString('tr-TR');
 
   return (
@@ -119,7 +155,7 @@ export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
       </TableCell>
 
       <TableCell className="py-4 text-sm text-muted-foreground">
-        {formatDate(vehicle.createdAt)}
+        {vehicle.createdAt ? formatDate(vehicle.createdAt) : '—'}
       </TableCell>
 
       <TableCell className="py-4">
@@ -141,14 +177,20 @@ export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
         <div className="flex items-center justify-end gap-2">
           <button
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            onClick={(e) => { e.stopPropagation(); onDetail(vehicle); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(vehicle);
+            }}
             aria-label="Düzenle"
           >
             <Pencil className="h-4 w-4" />
           </button>
           <button
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
-            onClick={(e) => { e.stopPropagation(); onDelete(vehicle); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(vehicle);
+            }}
             aria-label="Sil"
           >
             <Trash2 className="h-4 w-4" />

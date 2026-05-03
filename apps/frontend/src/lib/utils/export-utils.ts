@@ -11,8 +11,7 @@ export function exportItemsToExcel(items: Item[]): void {
     'Yükseklik (cm)': item.height,
     'Uzunluk (cm)': item.length,
     'Ağırlık (kg)': item.weight,
-    Kırılganlık:
-      item.fragility === 2 ? 'Sıvı (2)' : item.fragility === 1 ? 'Kırılgan (1)' : 'Normal (0)',
+    Kırılganlık: (item.fragilityTypes ?? [0]).map(String).join(', '),
     İstiflenebilir: item.isStackable ? 'true' : 'false',
     'Maks Kat': item.maxStackCount,
     'X Dönüşümü': item.allowRotateX ? 'true' : 'false',

@@ -112,7 +112,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
         height: editTarget.item.height,
         weight: editTarget.item.weight,
         quantity: editTarget.quantity,
-        isFragile: editTarget.item.fragility >= 1,
+        isFragile: (editTarget.item.fragilityTypes ?? []).some((f) => f >= 1),
         isNotStackable: !editTarget.item.isStackable,
         isNotRotatable: !editTarget.item.allowRotateY,
       });
@@ -155,7 +155,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
       isStackable: !data.isNotStackable,
       maxStackCount: data.isNotStackable ? 1 : 3,
       maxWeightOnTop: null,
-      fragility: data.isFragile ? 1 : 0,
+      fragilityTypes: data.isFragile ? [1] : [0],
       allowRotateX: !data.isNotRotatable,
       allowRotateY: !data.isNotRotatable,
       allowRotateZ: !data.isNotRotatable,

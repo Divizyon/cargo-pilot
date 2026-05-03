@@ -32,7 +32,7 @@ const addBoxSchema = z
     quantity: z.number().int().min(1, 'En az 1'),
     isStackable: z.boolean(),
     maxStackCount: z.number().int().min(1).optional(),
-    fragility: z.number().int().min(0).max(2),
+    fragilityTypes: z.array(z.number().int().min(0).max(9)).min(1),
     allowRotateX: z.boolean(),
     allowRotateY: z.boolean(),
     allowRotateZ: z.boolean(),
@@ -71,7 +71,12 @@ const FACE_FIELDS = [
 const FRAGILITY_LABELS: Record<string, string> = {
   '0': 'Normal',
   '1': 'Kırılgan',
-  '2': 'Sıvı İçerik',
+  '2': 'Sıvı',
+  '3': 'Yanıcı',
+  '4': 'Koku Hassas',
+  '5': 'Gıda Teması',
+  '6': 'Kuru Tut',
+  '7': 'Kimyasal',
 };
 
 // ─── AddBoxForm ───────────────────────────────────────────────────────────────
@@ -118,7 +123,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         quantity: editTarget.quantity,
         isStackable: editTarget.item.isStackable,
         maxStackCount: editTarget.item.isStackable ? editTarget.item.maxStackCount : undefined,
-        fragility: editTarget.item.fragility,
+        fragilityTypes: editTarget.item.fragilityTypes ?? [0],
         allowRotateX: editTarget.item.allowRotateX,
         allowRotateY: editTarget.item.allowRotateY,
         allowRotateZ: editTarget.item.allowRotateZ,
@@ -144,7 +149,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       productType: 'koli',
       quantity: 1,
       isStackable: false,
-      fragility: 0,
+      fragilityTypes: [0],
       allowRotateX: true,
       allowRotateY: true,
       allowRotateZ: true,
@@ -161,7 +166,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
 
   const watchedColor = useWatch({ control, name: 'color' }) ?? initialColor;
   const watchedStackable = useWatch({ control, name: 'isStackable' });
-  const watchedFragility = useWatch({ control, name: 'fragility' });
+  const watchedFragilityTypes = useWatch({ control, name: 'fragilityTypes' });
 
   function onSubmit(data: AddBoxFormValues) {
     const item: Item = {
@@ -176,7 +181,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       isStackable: data.isStackable,
       maxStackCount: data.maxStackCount ?? 1,
       maxWeightOnTop: null,
-      fragility: data.fragility as 0 | 1 | 2,
+      fragilityTypes: data.fragilityTypes,
       allowRotateX: data.allowRotateX,
       allowRotateY: data.allowRotateY,
       allowRotateZ: data.allowRotateZ,
@@ -343,29 +348,47 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       <div className="flex flex-col gap-1">
         <Label className="text-xs text-zinc-500">Hassasiyet</Label>
         <Controller
-          name="fragility"
+          name="fragilityTypes"
           control={control}
-          render={({ field }) => (
-            <Select
-              value={String(field.value)}
-              onValueChange={(v) => {
-                const n = Number(v);
-                field.onChange(n);
-                if (n >= 1) setValue('allowRotateZ', false);
-              }}
-            >
-              <SelectTrigger className="h-7 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(FRAGILITY_LABELS).map(([val, label]) => (
-                  <SelectItem key={val} value={val}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          render={({ field }) => {
+            const selected: number[] = field.value ?? [0];
+            const toggle = (val: number) => {
+              let next: number[];
+              if (val === 0) {
+                next = [0];
+              } else if (selected.includes(val)) {
+                next = selected.filter((v) => v !== val);
+                if (next.length === 0) next = [0];
+              } else {
+                next = selected.filter((v) => v !== 0).concat(val);
+              }
+              field.onChange(next);
+              if (next.some((v) => v >= 1)) setValue('allowRotateZ', false);
+            };
+            return (
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(FRAGILITY_LABELS).map(([val, label]) => {
+                  const n = Number(val);
+                  const isSelected = selected.includes(n);
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => toggle(n)}
+                      className={cn(
+                        'rounded border px-2 py-0.5 text-xs transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-zinc-200 bg-zinc-50 text-muted-foreground hover:border-zinc-300',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          }}
         />
       </div>
 
@@ -402,7 +425,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         <div className="flex items-center gap-2">
           {(['X', 'Y', 'Z'] as const).map((axis) => {
             const key = `allowRotate${axis}` as const;
-            const disabled = axis === 'Z' && watchedFragility >= 1;
+            const disabled = axis === 'Z' && (watchedFragilityTypes ?? []).some((f) => f >= 1);
             return (
               <Controller
                 key={axis}

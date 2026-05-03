@@ -85,22 +85,22 @@ export function VehiclePreviewPanel({ form }: Props) {
         <VehicleStatusToggle form={form} compact />
       </div>
 
-      {/* Kargo Hacmi Önizleme — dark card */}
-      <div className="rounded-xl bg-gray-900 p-4 text-white">
+      {/* Kargo Hacmi Önizleme */}
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Kargo Hacmi Önizleme
           </p>
-          <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] font-semibold text-gray-300">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
             3D Önizleme
           </span>
         </div>
-        <div className="overflow-hidden rounded-lg bg-gray-800">
+        <div className="overflow-hidden rounded-lg bg-muted/30">
           <VehiclePreviewCanvas control={control} />
         </div>
-        <div className="mt-3 border-t border-gray-700 pt-3">
-          <p className="text-[10px] uppercase tracking-wider text-gray-500">Toplam Hacim</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums">{volume}</p>
+        <div className="mt-3 border-t pt-3">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Toplam Hacim</p>
+          <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">{volume}</p>
         </div>
       </div>
 

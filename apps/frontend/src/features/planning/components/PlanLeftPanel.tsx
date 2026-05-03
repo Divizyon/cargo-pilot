@@ -61,7 +61,7 @@ const CATALOG_SEED: CatalogEntry[] = [
       isStackable: false,
       maxStackCount: 1,
       maxWeightOnTop: null,
-      fragility: 1,
+      fragilityTypes: [1],
       allowRotateX: true,
       allowRotateY: true,
       allowRotateZ: false,
@@ -88,7 +88,7 @@ const CATALOG_SEED: CatalogEntry[] = [
       isStackable: true,
       maxStackCount: 3,
       maxWeightOnTop: null,
-      fragility: 0,
+      fragilityTypes: [0],
       allowRotateX: true,
       allowRotateY: true,
       allowRotateZ: true,
@@ -115,7 +115,7 @@ const CATALOG_SEED: CatalogEntry[] = [
       isStackable: false,
       maxStackCount: 1,
       maxWeightOnTop: null,
-      fragility: 0,
+      fragilityTypes: [0],
       allowRotateX: true,
       allowRotateY: false,
       allowRotateZ: true,
@@ -142,7 +142,7 @@ const CATALOG_SEED: CatalogEntry[] = [
       isStackable: false,
       maxStackCount: 1,
       maxWeightOnTop: null,
-      fragility: 0,
+      fragilityTypes: [0],
       allowRotateX: false,
       allowRotateY: true,
       allowRotateZ: false,
@@ -169,7 +169,7 @@ const CATALOG_SEED: CatalogEntry[] = [
       isStackable: false,
       maxStackCount: 1,
       maxWeightOnTop: null,
-      fragility: 2,
+      fragilityTypes: [2],
       allowRotateX: false,
       allowRotateY: false,
       allowRotateZ: false,
@@ -196,7 +196,7 @@ const CATALOG_SEED: CatalogEntry[] = [
       isStackable: true,
       maxStackCount: 4,
       maxWeightOnTop: null,
-      fragility: 0,
+      fragilityTypes: [0],
       allowRotateX: true,
       allowRotateY: true,
       allowRotateZ: true,
@@ -223,8 +223,8 @@ const KISIT_META: Record<string, { icon: ElementType; label: string }> = {
 
 function getConstraints(item: Item): string[] {
   const k: string[] = [];
-  if (item.fragility === 1) k.push('fragile');
-  if (item.fragility === 2) k.push('hazmat');
+  if ((item.fragilityTypes ?? []).some((f) => f === 1)) k.push('fragile');
+  if ((item.fragilityTypes ?? []).some((f) => f === 2 || f === 3 || f === 7)) k.push('hazmat');
   return k;
 }
 

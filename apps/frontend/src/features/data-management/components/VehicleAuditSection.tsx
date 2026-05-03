@@ -6,8 +6,8 @@ interface AuditUser {
 }
 
 interface Props {
-  createdAt: string;
-  createdBy: AuditUser;
+  createdAt?: string;
+  createdBy?: AuditUser;
   updatedAt?: string;
   updatedBy?: AuditUser;
 }
@@ -16,8 +16,8 @@ export function VehicleAuditSection({ createdAt, createdBy, updatedAt, updatedBy
   return (
     <div className="space-y-1 text-sm text-muted-foreground">
       <p>
-        <span className="font-medium text-foreground">Oluşturan:</span> {createdBy.fullName} —{' '}
-        {formatAuditDate(createdAt, true)}
+        <span className="font-medium text-foreground">Oluşturan:</span> {createdBy?.fullName ?? '—'}
+        {createdAt ? ` — ${formatAuditDate(createdAt, true)}` : ''}
       </p>
       {updatedAt && updatedBy ? (
         <p>

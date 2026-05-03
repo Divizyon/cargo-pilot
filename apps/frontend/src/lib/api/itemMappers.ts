@@ -10,6 +10,7 @@ export const ITEM_CATEGORY = {
   Package: 0,
   Pallet: 1,
   Box: 2,
+  Drum: 3,
 } as const;
 export type ItemCategoryValue = (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY];
 
@@ -31,7 +32,7 @@ export interface CreateItemRequest {
   length: number;
   diameter?: number | null;
   weight: number;
-  fragilityType: 0 | 1 | 2 | 3 | 4;
+  fragilityType: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   isStackable: boolean;
   maxStackCount: number;
   maxWeightOnTop: number;
@@ -44,6 +45,7 @@ export interface CreateItemRequest {
 export function toCategory(productType: ProductType): ItemCategoryValue {
   if (productType === 'palet') return ITEM_CATEGORY.Pallet;
   if (productType === 'koli') return ITEM_CATEGORY.Box;
+  if (productType === 'varil') return ITEM_CATEGORY.Drum;
   return ITEM_CATEGORY.Package;
 }
 
@@ -63,8 +65,7 @@ export function toMaxWeightOnTop(
   maxStackCount: number,
 ): number {
   if (!isStackable) return 0;
-  const layersAbove = Math.max(maxStackCount - 1, 1);
-  return Math.max(weight * layersAbove, 1);
+  return Math.max(weight * maxStackCount, 1);
 }
 
 // ─── Backend response schema ──────────────────────────────────────────────────
@@ -111,7 +112,8 @@ export const itemApiResponseSchema = z.object({
 function fromCategory(category: number): 'koli' | 'varil' | 'palet' {
   if (category === ITEM_CATEGORY.Pallet) return 'palet';
   if (category === ITEM_CATEGORY.Box) return 'koli';
-  return 'varil';
+  if (category === ITEM_CATEGORY.Drum) return 'varil';
+  return 'koli';
 }
 
 function fromAllowedRotations(v: number): {
@@ -136,7 +138,7 @@ export function fromApiItem(api: ItemApi): Item {
     height: api.height,
     length: api.length,
     weight: api.weight,
-    fragility: api.fragilityType,
+    fragilityTypes: [api.fragilityType],
     isStackable: api.isStackable,
     maxStackCount: api.maxStackCount,
     maxWeightOnTop: api.maxWeightOnTop ?? null,
@@ -163,7 +165,7 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     lengthUnit: 'cm',
     weight: item.weight,
     weightUnit: 'kg',
-    fragility: item.fragility,
+    fragilityTypes: item.fragilityTypes,
     isStackable: item.isStackable,
     maxStackCount: item.maxStackCount,
     allowRotateX: item.allowRotateX,
@@ -186,7 +188,18 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     height: toCentimeters(values.height, values.heightUnit),
     length: toCentimeters(values.length, values.lengthUnit),
     weight: values.weight,
-    fragilityType: values.fragility as 0 | 1 | 2 | 3 | 4,
+    // Backend tek değer bekliyor; en yüksek öncelikli (max) değeri gönder
+    fragilityType: Math.max(...(values.fragilityTypes ?? [0])) as
+      | 0
+      | 1
+      | 2
+      | 3
+      | 4
+      | 5
+      | 6
+      | 7
+      | 8
+      | 9,
     isStackable,
     maxStackCount: isStackable ? maxStackCount : 0,
     maxWeightOnTop: toMaxWeightOnTop(values.weight, isStackable, maxStackCount),

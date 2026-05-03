@@ -254,7 +254,11 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               İptal
             </Button>
             <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
-              {bulkCreate.isPending ? 'Yükleniyor...' : `${parsedItems.length} Ürün Ekle`}
+              {bulkCreate.isPending
+                ? 'Yükleniyor...'
+                : parsedItems.length > 0
+                  ? `${parsedItems.length} Ürün Ekle`
+                  : 'İçe Aktar'}
             </Button>
           </div>
         </div>

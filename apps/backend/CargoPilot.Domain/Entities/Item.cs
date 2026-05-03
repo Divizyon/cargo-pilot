@@ -21,6 +21,8 @@ public sealed class Item : BaseEntity {
     public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
     public string? SpecialNotes { get; private set; }
+    public string? LoadCategory { get; private set; }
+    public string? IncompatibleLoadGroups { get; private set; }
 
     private Item() { }
 
@@ -43,7 +45,9 @@ public sealed class Item : BaseEntity {
         decimal? diameter = null,
         string? imageUrl = null,
         string? stackGroup = null,
-        string? specialNotes = null) : base(id) {
+        string? specialNotes = null,
+        string? loadCategory = null,
+        string? incompatibleLoadGroups = null) : base(id) {
         SKU = sku;
         Barcode = barcode;
         Name = name;
@@ -62,6 +66,8 @@ public sealed class Item : BaseEntity {
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
         SpecialNotes = specialNotes;
+        LoadCategory = loadCategory;
+        IncompatibleLoadGroups = incompatibleLoadGroups;
     }
 
     public void Update(
@@ -82,7 +88,9 @@ public sealed class Item : BaseEntity {
         AllowedRotations allowedRotations,
         string? imageUrl,
         string? stackGroup,
-        string? specialNotes) {
+        string? specialNotes,
+        string? loadCategory = null,
+        string? incompatibleLoadGroups = null) {
         SKU = sku;
         Barcode = barcode;
         Name = name;
@@ -101,5 +109,7 @@ public sealed class Item : BaseEntity {
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
         SpecialNotes = specialNotes;
+        LoadCategory = loadCategory;
+        IncompatibleLoadGroups = incompatibleLoadGroups;
     }
 }

@@ -58,11 +58,7 @@ export function VehicleCreatePage() {
           >
             İptal Et
           </Button>
-          <Button
-            type="submit"
-            form="vehicle-form"
-            disabled={createVehicle.isPending}
-          >
+          <Button type="submit" form="vehicle-form" disabled={createVehicle.isPending}>
             {createVehicle.isPending ? 'Kaydediliyor...' : 'Aracı Kaydet'}
           </Button>
         </div>

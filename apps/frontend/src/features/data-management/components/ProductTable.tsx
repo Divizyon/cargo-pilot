@@ -44,9 +44,9 @@ import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from './SearchInput';
 
 const PRODUCT_TYPE_ICON = {
-  koli: { Icon: Box, label: 'Koli' },
-  varil: { Icon: Cylinder, label: 'Varil' },
-  palet: { Icon: Package, label: 'Palet' },
+  koli: { Icon: Box, label: 'Koli', colorClass: 'text-amber-600' },
+  varil: { Icon: Cylinder, label: 'Varil', colorClass: 'text-blue-600' },
+  palet: { Icon: Package, label: 'Palet', colorClass: 'text-green-600' },
 } as const;
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
@@ -79,9 +79,9 @@ const CONSTRAINT_FILTER_OPTIONS: {
 function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean {
   switch (filter) {
     case 'fragile':
-      return item.fragility === 1;
+      return (item.fragilityTypes ?? []).includes(1);
     case 'liquid':
-      return item.fragility === 2;
+      return (item.fragilityTypes ?? []).includes(2);
     case 'stackable':
       return item.isStackable;
 
@@ -139,9 +139,9 @@ function ProductTableSkeleton() {
   return (
     <Table className="min-w-[860px]">
       <TableHeader>
-        <TableRow className="bg-muted/40 hover:bg-muted/40">
+        <TableRow className="border-b hover:bg-transparent">
           {SKELETON_COL_WIDTHS.map((w, i) => (
-            <TableHead key={i}>
+            <TableHead key={i} className="py-3">
               <Skeleton className={cn('h-3', w)} />
             </TableHead>
           ))}
@@ -149,41 +149,41 @@ function ProductTableSkeleton() {
       </TableHeader>
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
-          <TableRow key={i} className="h-12 hover:bg-transparent">
-            <TableCell className="py-0 px-3">
+          <TableRow key={i} className="border-b hover:bg-gray-50/60">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-36" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-12" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-20" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-16" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-14" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-3 w-20" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <div className="flex gap-1">
                 <Skeleton className="h-5 w-5 rounded-md" />
                 <Skeleton className="h-5 w-5 rounded-md" />
               </div>
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="py-4">
               <Skeleton className="h-6 w-6 rounded-lg" />
             </TableCell>
           </TableRow>
@@ -205,34 +205,37 @@ interface ProductRowProps {
 
 function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
-  const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
+  const { Icon: TypeIcon, label: typeLabel, colorClass } = PRODUCT_TYPE_ICON[item.productType];
 
-  const cell = 'py-0 px-3';
+  const cell = 'py-4';
 
   return (
-    <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
-      <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <span className="block truncate text-xs text-muted-foreground" title={item.name}>
+    <TableRow
+      className="border-b cursor-pointer hover:bg-gray-50/60"
+      onClick={() => onRowClick?.(item)}
+    >
+      <TableCell className={cn(cell, 'max-w-[176px] font-medium text-foreground')}>
+        <span className="block truncate text-sm" title={item.name}>
           <HighlightText text={item.name} query={searchTerm} />
         </span>
       </TableCell>
 
       <TableCell className={cell}>
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <TypeIcon className="h-3 w-3 shrink-0" strokeWidth={1.5} />
-          <span className="text-xs">{typeLabel}</span>
-        </div>
+        <span className={cn('flex items-center gap-1.5 text-sm font-medium', colorClass)}>
+          <TypeIcon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+          {typeLabel}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="font-mono text-sm text-muted-foreground">
           <HighlightText text={item.sku} query={searchTerm} />
         </span>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">
+          <span className="font-mono text-sm text-foreground">
             {formatDimension(item.width, unit)}
           </span>
           <Badge variant="secondary" className="px-1 py-0 text-[10px]">
@@ -243,7 +246,7 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
 
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">
+          <span className="font-mono text-sm text-foreground">
             {formatDimension(item.height, unit)}
           </span>
           <Badge variant="secondary" className="px-1 py-0 text-[10px]">
@@ -254,7 +257,7 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
 
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">
+          <span className="font-mono text-sm text-foreground">
             {formatDimension(item.length, unit)}
           </span>
           <Badge variant="secondary" className="px-1 py-0 text-[10px]">
@@ -264,25 +267,25 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolume(volume, unit)}</span>
+        <span className="text-sm text-foreground">{formatVolume(volume, unit)}</span>
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{item.weight} kg</span>
+        <p className="text-sm font-semibold text-foreground">{Math.round(item.weight)} kg</p>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
+          <span className="text-sm font-semibold text-foreground">{item.maxStackCount} kat</span>
           {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
-            <span className="text-[10px] text-muted-foreground">maks {item.maxWeightOnTop} kg</span>
+            <span className="text-xs text-muted-foreground">maks {item.maxWeightOnTop} kg</span>
           )}
         </div>
       </TableCell>
 
       <TableCell className={cell}>
         <ConstraintIcons
-          fragility={item.fragility}
+          fragilityTypes={item.fragilityTypes}
           isStackable={item.isStackable}
           allowRotateX={item.allowRotateX}
           allowRotateY={item.allowRotateY}
@@ -290,19 +293,19 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         />
       </TableCell>
 
-      <TableCell className={cell}>
-        <Button
-          variant="ghost"
-          size="icon"
-          title="Sil"
-          className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-destructive"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete?.(item);
-          }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+      <TableCell className={cell} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end">
+          <button
+            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(item);
+            }}
+            aria-label="Sil"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -405,18 +408,18 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         {/* Category tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
+        <div className="flex rounded-lg border bg-white p-0.5">
           {CATEGORY_TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setCategory(tab.value)}
               className={cn(
-                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                'rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors',
                 category === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {tab.label}
@@ -425,94 +428,99 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         </div>
 
         {/* Search input */}
-        <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+        <div className="relative flex-1 min-w-48 max-w-80">
+          <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+        </div>
 
-        {/* Filtrele */}
-        <div ref={filterRef} className="relative shrink-0">
+        <div className="ml-auto flex items-center gap-2">
+          {/* Filtrele */}
+          <div ref={filterRef} className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn('gap-1.5', hasActiveFilters && 'border-foreground')}
+              onClick={() => setShowFilterPanel((v) => !v)}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtrele
+              {hasActiveFilters && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                  {constraintFilters.size}
+                </span>
+              )}
+              <ChevronDown
+                className={cn('h-4 w-4 transition-transform', showFilterPanel && 'rotate-180')}
+              />
+            </Button>
+
+            {showFilterPanel && (
+              <div className="absolute right-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
+                <div className="p-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Kısıt Filtresi
+                  </p>
+                  <div className="space-y-2">
+                    {CONSTRAINT_FILTER_OPTIONS.map(({ value, label, Icon, className }) => (
+                      <label
+                        key={value}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={constraintFilters.has(value)}
+                          onCheckedChange={() => toggleConstraintFilter(value)}
+                        />
+                        <Icon className={cn('h-3.5 w-3.5', className)} />
+                        <span className="text-xs">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      className="mt-3 text-[11px] text-muted-foreground underline hover:text-foreground"
+                      onClick={() => setConstraintFilters(new Set())}
+                    >
+                      Filtreleri temizle
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Dışa Aktar */}
           <Button
             variant="outline"
             size="sm"
-            className={cn(
-              'gap-1.5 text-xs',
-              hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
-            )}
-            onClick={() => setShowFilterPanel((v) => !v)}
+            className="gap-1.5"
+            onClick={() => exportItemsToExcel(filteredItems ?? [])}
+            disabled={!filteredItems || filteredItems.length === 0}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filtrele
-            {hasActiveFilters && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {constraintFilters.size}
-              </span>
-            )}
-            <ChevronDown
-              className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
-            />
+            <Download className="h-4 w-4" />
+            Dışa Aktar
           </Button>
 
-          {showFilterPanel && (
-            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
-              <div className="p-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Kısıt Filtresi
-                </p>
-                <div className="space-y-2">
-                  {CONSTRAINT_FILTER_OPTIONS.map(({ value, label, Icon, className }) => (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
-                    >
-                      <Checkbox
-                        checked={constraintFilters.has(value)}
-                        onCheckedChange={() => toggleConstraintFilter(value)}
-                      />
-                      <Icon className={cn('h-3.5 w-3.5', className)} />
-                      <span className="text-xs">{label}</span>
-                    </label>
-                  ))}
-                </div>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    className="mt-3 text-[11px] text-muted-foreground underline hover:text-foreground"
-                    onClick={() => setConstraintFilters(new Set())}
-                  >
-                    Filtreleri temizle
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          {/* İçe Aktar */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setShowBulkImport(true)}
+          >
+            <Upload className="h-4 w-4" />
+            İçe Aktar
+          </Button>
+
+          {/* Yeni Ürün Ekle */}
+          <Button
+            size="sm"
+            className="gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+            onClick={onCreateClick}
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            Yeni Ürün Ekle
+          </Button>
         </div>
-
-        {/* Dışa Aktar */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 text-xs"
-          onClick={() => exportItemsToExcel(filteredItems ?? [])}
-          disabled={!filteredItems || filteredItems.length === 0}
-        >
-          <Download className="h-3.5 w-3.5" />
-          Dışa Aktar
-        </Button>
-
-        {/* İçe Aktar / Toplu Ürün Ekle */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 text-xs"
-          onClick={() => setShowBulkImport(true)}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          İçe Aktar
-        </Button>
-
-        {/* Yeni Ürün Ekle */}
-        <Button size="sm" className="shrink-0 gap-1.5 text-xs" onClick={onCreateClick}>
-          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-          Yeni Ürün Ekle
-        </Button>
       </div>
 
       {/* No-results alert */}
@@ -523,51 +531,51 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       )}
 
       {/* Table card */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-background">
+      <div className="overflow-x-auto rounded-xl border bg-white">
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
           <Table className="min-w-[1100px]">
             <TableHeader>
-              <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+              <TableRow className="border-b hover:bg-transparent">
+                <TableHead className="w-44 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Ürün
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-20 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Tip
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   SKU
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Genişlik
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Yükseklik
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Uzunluk
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Hacim
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-20 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Ağırlık
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-28 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Katman Sayısı
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-32 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Kısıtlar
                 </TableHead>
-                <TableHead className="w-16 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-16 whitespace-nowrap py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   İşlem
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isEmpty && (
-                <TableRow className="hover:bg-transparent">
+                <TableRow>
                   <TableCell
                     colSpan={11}
                     className="py-16 text-center text-sm text-muted-foreground"

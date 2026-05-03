@@ -15,9 +15,10 @@ interface Props {
   isLoading: boolean;
   onDelete: (vehicle: Vehicle) => void;
   onDetail: (vehicle: Vehicle) => void;
+  onEdit: (vehicle: Vehicle) => void;
 }
 
-export function VehicleListTable({ vehicles, isLoading, onDelete, onDetail }: Props) {
+export function VehicleListTable({ vehicles, isLoading, onDelete, onDetail, onEdit }: Props) {
   return (
     <div className="rounded-xl border bg-white">
       <Table>
@@ -71,7 +72,13 @@ export function VehicleListTable({ vehicles, isLoading, onDelete, onDetail }: Pr
             </TableRow>
           ) : (
             vehicles.map((v) => (
-              <VehicleListRow key={v.id} vehicle={v} onDelete={onDelete} onDetail={onDetail} />
+              <VehicleListRow
+                key={v.id}
+                vehicle={v}
+                onDelete={onDelete}
+                onDetail={onDetail}
+                onEdit={onEdit}
+              />
             ))
           )}
         </TableBody>

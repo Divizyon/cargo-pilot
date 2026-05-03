@@ -1,148 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useDeferredValue, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Download, SlidersHorizontal, Search } from 'lucide-react';
+import { Plus, Download, SlidersHorizontal, Search, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { VehicleListTable } from '@/features/data-management/components/VehicleListTable';
 import { VehicleDeleteDialog } from '@/features/data-management/components/VehicleDeleteDialog';
-import { VehicleDetailPanel } from '@/features/data-management/components/VehicleDetailPanel';
 import { cn } from '@/lib/utils';
+import { useVehicles } from '@/lib/api/useVehicles';
+import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
-
-const MOCK_VEHICLES: Vehicle[] = [
-  {
-    id: '11111111-0000-0000-0000-000000000001',
-    name: 'Volvo FH16',
-    vehicleType: 'Tir',
-    plate: '34 ABC 001',
-    length: 1360, width: 240, height: 270,
-    maxCargoWeight: 24000,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-01-12T09:00:00.000Z',
-    createdBy: { id: 'u1', fullName: 'Ahmet Yılmaz' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000002',
-    name: 'Mercedes Actros',
-    vehicleType: 'Kamyon',
-    plate: '34 DEF 002',
-    length: 720, width: 235, height: 250,
-    maxCargoWeight: 12000,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-02-18T09:00:00.000Z',
-    createdBy: { id: 'u1', fullName: 'Ahmet Yılmaz' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000003',
-    name: '20ft Standart',
-    vehicleType: 'Konteyner',
-    serialNumber: 'CSQU3054383',
-    length: 590, width: 235, height: 239,
-    maxCargoWeight: 21700,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-03-03T09:00:00.000Z',
-    createdBy: { id: 'u1', fullName: 'Ahmet Yılmaz' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000004',
-    name: '40ft Standart',
-    vehicleType: 'Konteyner',
-    serialNumber: 'MSCU1234567',
-    length: 1203, width: 235, height: 239,
-    maxCargoWeight: 26500,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-03-03T10:00:00.000Z',
-    createdBy: { id: 'u1', fullName: 'Ahmet Yılmaz' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000005',
-    name: 'Schmitz Cargobull',
-    vehicleType: 'Romork',
-    plate: '06 GHI 005',
-    length: 1360, width: 248, height: 270,
-    maxCargoWeight: 27000,
-    doorDirection: 'side',
-    doorSide: 'right',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-03-27T09:00:00.000Z',
-    createdBy: { id: 'u2', fullName: 'Sena Durmuş' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000006',
-    name: 'DAF XF 530',
-    vehicleType: 'Tir',
-    plate: '34 JKL 006',
-    length: 1360, width: 240, height: 270,
-    maxCargoWeight: 24000,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-04-10T09:00:00.000Z',
-    createdBy: { id: 'u2', fullName: 'Sena Durmuş' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000007',
-    name: 'MAN TGX 26.470',
-    vehicleType: 'Kamyon',
-    plate: '35 MNO 007',
-    length: 810, width: 240, height: 260,
-    maxCargoWeight: 15000,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-04-15T09:00:00.000Z',
-    createdBy: { id: 'u2', fullName: 'Sena Durmuş' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000008',
-    name: 'Krone Mega Liner',
-    vehicleType: 'Romork',
-    plate: '06 PQR 008',
-    length: 1360, width: 248, height: 300,
-    maxCargoWeight: 28000,
-    doorDirection: 'top',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-04-20T09:00:00.000Z',
-    createdBy: { id: 'u1', fullName: 'Ahmet Yılmaz' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000009',
-    name: 'Scania R500',
-    vehicleType: 'Tir',
-    plate: '34 STU 009',
-    length: 1360, width: 240, height: 270,
-    maxCargoWeight: 24000,
-    doorDirection: 'rear',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-05-17T09:00:00.000Z',
-    createdBy: { id: 'u1', fullName: 'Ahmet Yılmaz' },
-  },
-  {
-    id: '11111111-0000-0000-0000-000000000010',
-    name: 'Ford Cargo 3530',
-    vehicleType: 'Kamyon',
-    plate: '16 VWX 010',
-    length: 650, width: 235, height: 245,
-    maxCargoWeight: 10000,
-    doorDirection: 'side',
-    doorSide: 'left',
-    isFavorite: false, isActive: true, isDeleted: false,
-    status: 'active',
-    createdAt: '2025-05-18T09:00:00.000Z',
-    createdBy: { id: 'u2', fullName: 'Sena Durmuş' },
-  },
-];
 
 const TYPE_TABS: { label: string; value: VehicleType | 'all' }[] = [
   { label: 'Tümü', value: 'all' },
@@ -152,25 +20,66 @@ const TYPE_TABS: { label: string; value: VehicleType | 'all' }[] = [
   { label: 'Tır', value: 'Tir' },
 ];
 
+const DOOR_OPTIONS = [
+  { label: 'Arka', value: 'rear' },
+  { label: 'Yan', value: 'side' },
+  { label: 'Üst', value: 'top' },
+];
+
+const STATUS_OPTIONS = [
+  { label: 'Aktif', value: 'active' },
+  { label: 'Pasif', value: 'inactive' },
+];
+
+interface FilterState {
+  doorDirections: string[];
+  status: 'all' | 'active' | 'inactive';
+}
+
+const DEFAULT_FILTERS: FilterState = { doorDirections: [], status: 'all' };
+
+function activeFilterCount(f: FilterState) {
+  return f.doorDirections.length + (f.status !== 'all' ? 1 : 0);
+}
+
 export function VehiclesPage() {
   const navigate = useNavigate();
   const [activeType, setActiveType] = useState<VehicleType | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
-  const [detailVehicleId, setDetailVehicleId] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return MOCK_VEHICLES.filter((v) => {
-      const matchesType = activeType === 'all' || v.vehicleType === activeType;
-      const q = search.toLowerCase();
-      const matchesSearch =
-        !q ||
-        v.name.toLowerCase().includes(q) ||
-        (v.plate ?? '').toLowerCase().includes(q) ||
-        (v.serialNumber ?? '').toLowerCase().includes(q);
-      return matchesType && matchesSearch;
-    });
-  }, [activeType, search]);
+  const deferredSearch = useDeferredValue(search);
+
+  const isActive =
+    filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined;
+
+  const { data: raw = [], isLoading } = useVehicles({
+    search: deferredSearch || undefined,
+    vehicleType: activeType !== 'all' ? activeType : undefined,
+    isActive,
+  });
+
+  // Door direction is client-side filtered (backend doesn't support it)
+  const vehicles = useMemo(() => {
+    if (filters.doorDirections.length === 0) return raw;
+    return raw.filter((v) => filters.doorDirections.includes(v.doorDirection));
+  }, [raw, filters.doorDirections]);
+
+  function toggleDoor(value: string) {
+    setFilters((prev) => ({
+      ...prev,
+      doorDirections: prev.doorDirections.includes(value)
+        ? prev.doorDirections.filter((d) => d !== value)
+        : [...prev.doorDirections, value],
+    }));
+  }
+
+  function clearFilters() {
+    setFilters(DEFAULT_FILTERS);
+  }
+
+  const filterCount = activeFilterCount(filters);
 
   return (
     <div className="flex flex-col gap-6">
@@ -214,15 +123,105 @@ export function VehiclesPage() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <SlidersHorizontal className="h-4 w-4" />
-            Filtrele
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
+          {/* Filter popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn('gap-1.5', filterCount > 0 && 'border-foreground')}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtrele
+                {filterCount > 0 && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                    {filterCount}
+                  </span>
+                )}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold">Filtreler</p>
+                {filterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                    Temizle
+                  </button>
+                )}
+              </div>
+
+              {/* Kapı Yönü */}
+              <div className="mb-4">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Kapı Yönü
+                </p>
+                <div className="flex flex-col gap-2">
+                  {DOOR_OPTIONS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex cursor-pointer items-center gap-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={filters.doorDirections.includes(opt.value)}
+                        onCheckedChange={() => toggleDoor(opt.value)}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Durum */}
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Durum
+                </p>
+                <div className="flex flex-col gap-2">
+                  {STATUS_OPTIONS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex cursor-pointer items-center gap-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={filters.status === opt.value}
+                        onCheckedChange={() =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            status:
+                              prev.status === opt.value
+                                ? 'all'
+                                : (opt.value as 'active' | 'inactive'),
+                          }))
+                        }
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => exportVehiclesToExcel(vehicles)}
+            disabled={vehicles.length === 0}
+          >
             <Download className="h-4 w-4" />
             Dışa Aktar
           </Button>
-          <Button size="sm" className="gap-1.5 bg-foreground text-background hover:bg-foreground/90" onClick={() => navigate('/vehicles/new')}>
+          <Button
+            size="sm"
+            className="gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+            onClick={() => navigate('/vehicles/new')}
+          >
             <Plus className="h-4 w-4" />
             Yeni Araç Ekle
           </Button>
@@ -230,14 +229,14 @@ export function VehiclesPage() {
       </div>
 
       <VehicleListTable
-        vehicles={filtered}
-        isLoading={false}
+        vehicles={vehicles}
+        isLoading={isLoading}
         onDelete={setVehicleToDelete}
-        onDetail={(v) => setDetailVehicleId(v.id)}
+        onDetail={(v) => navigate(`/vehicles/${v.id}/edit`, { state: { vehicle: v } })}
+        onEdit={(v) => navigate(`/vehicles/${v.id}/edit`, { state: { vehicle: v } })}
       />
 
       <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
-      <VehicleDetailPanel vehicleId={detailVehicleId} onClose={() => setDetailVehicleId(null)} />
     </div>
   );
 }
