@@ -5,6 +5,7 @@ namespace CargoPilot.Domain.Entities;
 
 public sealed class Vehicle : BaseEntity {
     public string VehicleName { get; private set; } = null!;
+    public string? Description { get; private set; }
     public VehicleType VehicleType { get; private set; }
     public string PlateNumber { get; private set; } = null!;
     public decimal InternalWidth { get; private set; }
@@ -35,6 +36,7 @@ public sealed class Vehicle : BaseEntity {
 
     public void Update(
         string vehicleName,
+        string? description,
         VehicleType vehicleType,
         string plateNumber,
         decimal internalWidth,
@@ -51,8 +53,10 @@ public sealed class Vehicle : BaseEntity {
         decimal? additionalAxleTareWeightKg,
         decimal? additionalAxleMaxLoadKg,
         int layerCount,
-        LoadingType loadingType) {
+        LoadingType loadingType,
+        bool isActive) {
         VehicleName = vehicleName;
+        Description = description;
         VehicleType = vehicleType;
         PlateNumber = plateNumber;
         InternalWidth = internalWidth;
@@ -70,6 +74,7 @@ public sealed class Vehicle : BaseEntity {
         AdditionalAxleMaxLoadKg = additionalAxleMaxLoadKg;
         LayerCount = layerCount;
         LoadingType = loadingType;
+        SetIsActive(isActive);
     }
 
     public Vehicle(
@@ -125,8 +130,10 @@ public sealed class Vehicle : BaseEntity {
         decimal? additionalAxleMaxLoadKg,
         int layerCount,
         LoadingType loadingType,
-        Guid? companyId) : base(id) {
+        Guid? companyId,
+        string? description = null) : base(id) {
         VehicleName = vehicleName;
+        Description = description;
         VehicleType = vehicleType;
         PlateNumber = plateNumber;
         InternalWidth = internalWidth;

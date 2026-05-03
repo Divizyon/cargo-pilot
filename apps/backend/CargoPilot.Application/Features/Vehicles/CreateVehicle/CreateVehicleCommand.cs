@@ -6,6 +6,7 @@ namespace CargoPilot.Application.Features.Vehicles.CreateVehicle;
 
 public sealed record CreateVehicleCommand(
     string VehicleName,
+    string? Description,
     VehicleType VehicleType,
     string PlateNumber,
     decimal InternalWidth,
