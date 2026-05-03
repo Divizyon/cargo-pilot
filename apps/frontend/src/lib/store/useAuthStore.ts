@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  companyId?: string;
 }
 
 interface AuthStore {

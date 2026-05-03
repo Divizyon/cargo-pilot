@@ -14,6 +14,7 @@ import { ProductCreatePage } from '@/pages/ProductCreatePage';
 import { ProductEditPage } from '@/pages/ProductEditPage';
 import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleCreatePage } from '@/pages/VehicleCreatePage';
+import { VehicleEditPage } from '@/pages/VehicleEditPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 import { ProfilePage } from '@/pages/ProfilePage';
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
           { path: '/products/:id', element: <ProductEditPage /> },
           { path: '/vehicles', element: <VehiclesPage /> },
           { path: '/vehicles/new', element: <VehicleCreatePage /> },
+          { path: '/vehicles/:id/edit', element: <VehicleEditPage /> },
           { path: '/planning', element: <DashboardPage /> },
           { path: '/reports', element: <DashboardPage /> },
           { path: '/integrations', element: <DashboardPage /> },

@@ -49,6 +49,10 @@ axiosInstance.interceptors.request.use((config) => {
   const { accessToken, updateActivity } = useAuthStore.getState();
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
+    const { companyId } = useAuthStore.getState().user ?? {};
+    if (companyId) {
+      config.headers['X-Company-Id'] = companyId;
+    }
     const isPassthrough = AUTH_PASSTHROUGH_URLS.some((u) => config.url?.includes(u));
     if (!isPassthrough) {
       updateActivity();

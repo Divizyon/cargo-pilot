@@ -11,7 +11,9 @@ interface VehicleKingpinSectionProps {
 export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">King Pimi (Dingil A)</h2>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        King Pimi (Dingil A)
+      </h3>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}
