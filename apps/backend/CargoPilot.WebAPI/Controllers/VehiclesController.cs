@@ -1,5 +1,7 @@
+using CargoPilot.Application.Features.Vehicles.AddVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.CreateVehicle;
 using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
+using CargoPilot.Application.Features.Vehicles.RemoveVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.SearchVehicles;
 using CargoPilot.Application.Features.Vehicles.UpdateVehicle;
 using CargoPilot.Domain.Enums;
@@ -23,11 +25,12 @@ public sealed class VehiclesController : BaseController {
     }
 
     /// <summary>
-    /// Araçları arar ve sayfalı döndürür.
+    /// Araçları arar ve sayfalı döndürür. Favoriler listenin üstünde yer alır.
     /// </summary>
     /// <param name="searchTerm">Araç adı veya plaka arama terimi (opsiyonel).</param>
     /// <param name="vehicleType">Araç tipi filtresi (opsiyonel).</param>
     /// <param name="isActive">Aktif/arşivlenmiş filtresi (opsiyonel).</param>
+    /// <param name="onlyFavorites">Yalnızca favorileri döndürür (opsiyonel).</param>
     /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
     /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20). isExport=true ise göz ardı edilir.</param>
     /// <param name="isExport">Tüm kayıtları pagination olmadan döndürmek için true geçin.</param>
@@ -41,11 +44,19 @@ public sealed class VehiclesController : BaseController {
         [FromQuery] string? searchTerm,
         [FromQuery] VehicleType? vehicleType,
         [FromQuery] bool? isActive,
+        [FromQuery] bool? onlyFavorites,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] bool isExport = false,
         CancellationToken cancellationToken = default) {
-        var query = new SearchVehiclesQuery(searchTerm, vehicleType, isActive, page, pageSize, isExport);
+        var query = new SearchVehiclesQuery(
+            SearchTerm: searchTerm,
+            VehicleType: vehicleType,
+            IsActive: isActive,
+            OnlyFavorites: onlyFavorites,
+            Page: page,
+            PageSize: pageSize,
+            IsExport: isExport);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }
@@ -130,6 +141,44 @@ public sealed class VehiclesController : BaseController {
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
             request.AdditionalAxleMaxLoadKg);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Bir aracı favorilere ekler.
+    /// </summary>
+    /// <param name="id">Favoriye eklenecek araç ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç favorilere eklendi.</response>
+    /// <response code="404">Araç bulunamadı.</response>
+    /// <response code="409">Araç zaten favorilerde.</response>
+    [HttpPost("{id:guid}/favorite")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddFavorite(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default) {
+        var command = new AddVehicleFavoriteCommand(id);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Bir aracı favorilerden çıkarır.
+    /// </summary>
+    /// <param name="id">Favoriden çıkarılacak araç ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç favorilerden çıkarıldı.</response>
+    /// <response code="404">Araç favorilerde bulunamadı.</response>
+    [HttpDelete("{id:guid}/favorite")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveFavorite(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default) {
+        var command = new RemoveVehicleFavoriteCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
