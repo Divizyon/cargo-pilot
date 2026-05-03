@@ -100,7 +100,9 @@ function StatisticsCard({
       </div>
 
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-zinc-500">Ağırlık · {(weightKg / 1000).toFixed(2)} t</span>
+        <span className="text-[10px] text-zinc-500">
+          Ağırlık · {(weightKg / 1000).toFixed(2)} t
+        </span>
         <span className="text-xs text-zinc-800">%{weightPct}</span>
       </div>
       <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden mb-2">

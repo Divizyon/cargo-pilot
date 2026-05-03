@@ -19,7 +19,10 @@ export function CameraPresetButtons({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn('flex gap-1.5 rounded-lg bg-white/90 p-1 backdrop-blur border border-zinc-200', className)}
+      className={cn(
+        'flex gap-1.5 rounded-lg bg-white/90 p-1 backdrop-blur border border-zinc-200',
+        className,
+      )}
     >
       {PRESETS.map(({ key, icon: Icon }) => {
         const active = cameraPreset === key;

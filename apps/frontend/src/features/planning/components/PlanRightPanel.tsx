@@ -1,15 +1,5 @@
 import { useState } from 'react';
-import {
-  Box,
-  Download,
-  Loader2,
-  Package2,
-  Plus,
-  Crosshair,
-  Truck,
-  X,
-  Info,
-} from 'lucide-react';
+import { Box, Download, Loader2, Package2, Plus, Crosshair, Truck, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
