@@ -2,15 +2,25 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import type { LucideIcon } from 'lucide-react';
 import {
   Ban,
   Box,
   Cylinder,
+  Droplets,
+  Flame,
+  FlaskConical,
   HelpCircle,
+  Leaf,
   Minus,
   Move3d,
   Package,
   Plus,
+  ShieldOff,
+  Sun,
+  Utensils,
+  Wind,
+  Wine,
 } from 'lucide-react';
 import {
   Form,
@@ -46,8 +56,6 @@ import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 
 interface ProductFormProps {
-  formId?: string;
-  hideFooterActions?: boolean;
   defaultValues?: Partial<ProductFormValues>;
   onSubmit: (values: ProductFormValues) => void;
   onCancel?: () => void;
@@ -92,22 +100,26 @@ const COMPACT_INPUT_WITH_UNIT = 'h-9 border-zinc-200 bg-white pr-16';
 const UNIT_TRIGGER =
   'absolute right-1 top-1/2 h-7 w-14 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0';
 
+type ConstraintColor = 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
+
 type ConstraintOption = {
   value: string;
   label: string;
-  color: 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
-  disabled?: boolean;
+  color: ConstraintColor;
+  Icon: LucideIcon;
+  fragilityValue?: number;
 };
 
 const CONSTRAINT_OPTIONS: ConstraintOption[] = [
-  { value: String(FRAGILITY_LEVELS.NonFragile), label: 'Kısıt Yok', color: 'default' },
-  { value: String(FRAGILITY_LEVELS.Fragile), label: 'Kırılgan', color: 'amber' },
-  { value: String(FRAGILITY_LEVELS.Liquid), label: 'Sıvı', color: 'blue' },
-  { value: 'corrosive', label: 'Aşındırıcı', color: 'orange', disabled: true },
-  { value: 'odor', label: 'Kokuya Hassas', color: 'green', disabled: true },
-  { value: 'food', label: 'Gıda Teması', color: 'green', disabled: true },
-  { value: 'dry', label: 'Kuru', color: 'default', disabled: true },
-  { value: 'chemical', label: 'Kimyasal', color: 'purple', disabled: true },
+  { value: 'none', label: 'Kısıt Yok', color: 'default', Icon: ShieldOff, fragilityValue: FRAGILITY_LEVELS.NonFragile },
+  { value: 'fragile', label: 'Kırılgan', color: 'amber', Icon: Wine, fragilityValue: FRAGILITY_LEVELS.Fragile },
+  { value: 'liquid', label: 'Sıvı', color: 'blue', Icon: Droplets, fragilityValue: FRAGILITY_LEVELS.Liquid },
+  { value: 'corrosive', label: 'Aşındırıcı', color: 'orange', Icon: Flame },
+  { value: 'odor', label: 'Kokuya Hassas', color: 'green', Icon: Wind },
+  { value: 'food', label: 'Gıda Teması', color: 'green', Icon: Utensils },
+  { value: 'dry', label: 'Kuru', color: 'default', Icon: Sun },
+  { value: 'chemical', label: 'Kimyasal', color: 'purple', Icon: FlaskConical },
+  { value: 'organic', label: 'Organik', color: 'green', Icon: Leaf },
 ];
 
 const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
@@ -265,8 +277,6 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
 }
 
 export function ProductForm({
-  formId,
-  hideFooterActions = false,
   defaultValues,
   onSubmit,
   onCancel,
@@ -278,6 +288,7 @@ export function ProductForm({
 
   const [selectedCargoGroup, setSelectedCargoGroup] = useState<string>('');
   const [incompatibleGroups, setIncompatibleGroups] = useState<string[]>([]);
+  const [selectedConstraints, setSelectedConstraints] = useState<string[]>(['none']);
 
   const [
     width,
@@ -336,11 +347,7 @@ export function ProductForm({
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
-        <form
-          id={formId}
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-4"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
             {/* SOL — Form alanları */}
             <div className="space-y-4">
@@ -428,56 +435,56 @@ export function ProductForm({
                     )}
                   />
 
-                  {/* Kısıtlar — chip tabanlı */}
-                  <FormField
-                    control={form.control}
-                    name="fragility"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="block">KISITLAR</FormLabel>
-                        <div className="flex flex-wrap gap-1.5">
-                          {CONSTRAINT_OPTIONS.map((opt) => {
-                            const isActive =
-                              !opt.disabled && String(field.value) === opt.value;
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                disabled={opt.disabled}
-                                onClick={() => {
-                                  if (opt.disabled) return;
-                                  const num = Number(opt.value);
-                                  field.onChange(num);
-                                  if (num >= FRAGILITY_LEVELS.Fragile) {
-                                    form.setValue('allowRotateZ', false, {
-                                      shouldValidate: false,
-                                    });
-                                  } else {
-                                    if (!isPallet) {
-                                      form.setValue('allowRotateZ', true, {
-                                        shouldValidate: false,
-                                      });
-                                    }
-                                  }
-                                }}
-                                className={cn(
-                                  'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
-                                  isActive
-                                    ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-zinc-200 bg-white text-muted-foreground hover:border-zinc-300',
-                                  opt.disabled && 'cursor-not-allowed opacity-40',
-                                )}
-                              >
-                                <ConstraintDot color={opt.color} active={isActive} />
-                                {opt.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Kısıtlar — multi-select chip */}
+                  <div>
+                    <p className="mb-1.5 block text-sm font-medium leading-none">KISITLAR</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CONSTRAINT_OPTIONS.map((opt) => {
+                        const isActive = selectedConstraints.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              let next: string[];
+                              if (opt.value === 'none') {
+                                next = ['none'];
+                              } else {
+                                const without = selectedConstraints.filter(
+                                  (v) => v !== 'none',
+                                );
+                                next = isActive
+                                  ? without.filter((v) => v !== opt.value)
+                                  : [...without, opt.value];
+                                if (next.length === 0) next = ['none'];
+                              }
+                              setSelectedConstraints(next);
+                              // fragility field'ını seçili kısıtlardan türet
+                              const maxFragility = next.reduce((acc, v) => {
+                                const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
+                                return Math.max(acc, o?.fragilityValue ?? 0);
+                              }, 0);
+                              form.setValue('fragility', maxFragility, { shouldValidate: false });
+                              if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
+                                form.setValue('allowRotateZ', false, { shouldValidate: false });
+                              } else if (!isPallet) {
+                                form.setValue('allowRotateZ', true, { shouldValidate: false });
+                              }
+                            }}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
+                              isActive
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-zinc-200 bg-white text-muted-foreground hover:border-zinc-300',
+                            )}
+                          >
+                            <opt.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </SectionCard>
 
@@ -791,44 +798,25 @@ export function ProductForm({
             />
           </div>
 
-          {!hideFooterActions && (
-            <div className="flex justify-end gap-3 border-t pt-4">
-              {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                  {t('forms.product.cancel')}
-                </Button>
-              )}
-              <Button
-                type="submit"
-                disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
-              >
-                {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
+          <div className="flex justify-end gap-3 border-t pt-4">
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                {t('forms.product.cancel')}
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              type="submit"
+              disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+            >
+              {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
+            </Button>
+          </div>
         </form>
       </Form>
     </TooltipProvider>
   );
 }
 
-interface ConstraintDotProps {
-  color: 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
-  active: boolean;
-}
-
-function ConstraintDot({ color, active }: ConstraintDotProps) {
-  if (!active) return null;
-  const colorMap: Record<ConstraintDotProps['color'], string> = {
-    default: 'bg-zinc-400',
-    amber: 'bg-amber-400',
-    blue: 'bg-blue-400',
-    orange: 'bg-orange-400',
-    green: 'bg-green-400',
-    purple: 'bg-purple-400',
-  };
-  return <span className={cn('h-1.5 w-1.5 rounded-full', colorMap[color])} />;
-}
 
 interface PreviewPanelProps {
   name?: string;
