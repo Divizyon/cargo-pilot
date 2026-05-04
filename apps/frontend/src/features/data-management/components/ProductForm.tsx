@@ -111,9 +111,27 @@ type ConstraintOption = {
 };
 
 const CONSTRAINT_OPTIONS: ConstraintOption[] = [
-  { value: 'none', label: 'Kısıt Yok', color: 'default', Icon: ShieldOff, fragilityValue: FRAGILITY_LEVELS.NonFragile },
-  { value: 'fragile', label: 'Kırılgan', color: 'amber', Icon: Wine, fragilityValue: FRAGILITY_LEVELS.Fragile },
-  { value: 'liquid', label: 'Sıvı', color: 'blue', Icon: Droplets, fragilityValue: FRAGILITY_LEVELS.Liquid },
+  {
+    value: 'none',
+    label: 'Kısıt Yok',
+    color: 'default',
+    Icon: ShieldOff,
+    fragilityValue: FRAGILITY_LEVELS.NonFragile,
+  },
+  {
+    value: 'fragile',
+    label: 'Kırılgan',
+    color: 'amber',
+    Icon: Wine,
+    fragilityValue: FRAGILITY_LEVELS.Fragile,
+  },
+  {
+    value: 'liquid',
+    label: 'Sıvı',
+    color: 'blue',
+    Icon: Droplets,
+    fragilityValue: FRAGILITY_LEVELS.Liquid,
+  },
   { value: 'corrosive', label: 'Aşındırıcı', color: 'orange', Icon: Flame },
   { value: 'odor', label: 'Kokuya Hassas', color: 'green', Icon: Wind },
   { value: 'food', label: 'Gıda Teması', color: 'green', Icon: Utensils },
@@ -450,9 +468,7 @@ export function ProductForm({
                               if (opt.value === 'none') {
                                 next = ['none'];
                               } else {
-                                const without = selectedConstraints.filter(
-                                  (v) => v !== 'none',
-                                );
+                                const without = selectedConstraints.filter((v) => v !== 'none');
                                 next = isActive
                                   ? without.filter((v) => v !== opt.value)
                                   : [...without, opt.value];
@@ -816,7 +832,6 @@ export function ProductForm({
     </TooltipProvider>
   );
 }
-
 
 interface PreviewPanelProps {
   name?: string;
