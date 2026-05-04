@@ -7,10 +7,10 @@ export function useVehicleFormVisibility(control: Control<VehicleFormValues>) {
   const vehicleType = useWatch({ control, name: 'vehicleType' });
 
   const isContainer = vehicleType === VehicleType.Konteyner;
-  const isTirOrRomork = vehicleType === VehicleType.Tir || vehicleType === VehicleType.Romork;
+  const isTirOrKamposet = vehicleType === VehicleType.Tir || vehicleType === VehicleType.Kamposet;
 
   return {
     showAxleSection: !isContainer,
-    showKingpinSection: isTirOrRomork,
+    showKingpinSection: isTirOrKamposet,
   };
 }

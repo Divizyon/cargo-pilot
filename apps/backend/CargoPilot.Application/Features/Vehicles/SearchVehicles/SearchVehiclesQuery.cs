@@ -8,6 +8,7 @@ public sealed record SearchVehiclesQuery(
     string? SearchTerm,
     VehicleType? VehicleType,
     bool? IsActive,
+    bool? OnlyFavorites = null,
     int Page = 1,
     int PageSize = 20,
     bool IsExport = false) : IRequest<Result<PagedResult<VehicleSummaryDto>>>;

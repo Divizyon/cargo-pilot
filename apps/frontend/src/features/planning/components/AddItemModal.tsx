@@ -3,7 +3,8 @@ import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ElementType } from 'react';
-import { AlertTriangle, Archive, Box, Layers, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Archive, Box, Layers, Loader2, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
 import type { Item } from '@/lib/types/item';
+import { useCreatePlanItem } from '@/lib/api/useItems';
+import { toCategory, toMaxWeightOnTop, ALLOWED_ROTATIONS } from '@/lib/api/itemMappers';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -133,6 +136,7 @@ interface AddItemModalProps {
 }
 
 export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddItemModalProps) {
+  const createPlanItem = useCreatePlanItem();
   const addManualItem = usePlanStore((s) => s.addManualItem);
   const updateItem = usePlanStore((s) => s.updateItem);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
@@ -266,7 +270,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function onSubmit(data: ItemModalValues) {
+  async function onSubmit(data: ItemModalValues) {
     const sku = isEditing ? editTarget.item.sku : `ITEM-${crypto.randomUUID().slice(0, 8)}`;
     const color = isEditing
       ? (skuColorMap[sku] ?? SCENE.COLORS.NORMAL_STR)
@@ -278,34 +282,86 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
           );
         })();
 
-    const item: Item = {
-      id: isEditing ? editTarget.itemId : crypto.randomUUID(),
-      name: data.name,
-      sku,
-      productType: data.productType,
-      width: data.width,
-      height: data.height,
-      length: data.length,
-      weight: data.weight,
-      isStackable: !data.isNotStackable,
-      maxStackCount: data.isNotStackable ? 1 : 3,
-      maxWeightOnTop: null,
-      fragility: data.isFragile ? 1 : 0,
-      allowRotateX: !data.isNotRotatable,
-      allowRotateY: !data.isNotRotatable,
-      allowRotateZ: !data.isNotRotatable,
-      allowFaceBottom: true,
-      allowFaceTop: !data.isNotRotatable,
-      allowFaceFront: !data.isNotRotatable,
-      allowFaceBack: !data.isNotRotatable,
-      allowFaceLeft: !data.isNotRotatable,
-      allowFaceRight: !data.isNotRotatable,
-    };
+    const isStackable = !data.isNotStackable;
+    const maxStackCount = isStackable ? 3 : 0;
 
     if (isEditing) {
+      const item: Item = {
+        id: editTarget.itemId,
+        name: data.name,
+        sku,
+        productType: data.productType,
+        width: data.width,
+        height: data.height,
+        length: data.length,
+        weight: data.weight,
+        isStackable,
+        maxStackCount: isStackable ? 3 : 1,
+        maxWeightOnTop: null,
+        fragility: data.isFragile ? 1 : 0,
+        allowRotateX: !data.isNotRotatable,
+        allowRotateY: !data.isNotRotatable,
+        allowRotateZ: !data.isNotRotatable,
+        allowFaceBottom: true,
+        allowFaceTop: !data.isNotRotatable,
+        allowFaceFront: !data.isNotRotatable,
+        allowFaceBack: !data.isNotRotatable,
+        allowFaceLeft: !data.isNotRotatable,
+        allowFaceRight: !data.isNotRotatable,
+      };
       updateItem(editTarget.itemId, item, data.quantity, color);
     } else {
-      addManualItem(item, data.quantity, color);
+      try {
+        const newId = await createPlanItem.mutateAsync({
+          sku,
+          name: data.name,
+          productType: data.productType,
+          category: toCategory(data.productType),
+          width: data.width,
+          height: data.height,
+          length: data.length,
+          weight: data.weight,
+          fragilityType: data.isFragile ? 1 : 0,
+          isStackable,
+          maxStackCount,
+          maxWeightOnTop: toMaxWeightOnTop(data.weight, isStackable, maxStackCount),
+          allowedRotations: data.isNotRotatable ? ALLOWED_ROTATIONS.Fixed : ALLOWED_ROTATIONS.All,
+        });
+
+        const item: Item = {
+          id: newId ?? crypto.randomUUID(),
+          name: data.name,
+          sku,
+          productType: data.productType,
+          width: data.width,
+          height: data.height,
+          length: data.length,
+          weight: data.weight,
+          isStackable,
+          maxStackCount: isStackable ? 3 : 1,
+          maxWeightOnTop: null,
+          fragility: data.isFragile ? 1 : 0,
+          allowRotateX: !data.isNotRotatable,
+          allowRotateY: !data.isNotRotatable,
+          allowRotateZ: !data.isNotRotatable,
+          allowFaceBottom: true,
+          allowFaceTop: !data.isNotRotatable,
+          allowFaceFront: !data.isNotRotatable,
+          allowFaceBack: !data.isNotRotatable,
+          allowFaceLeft: !data.isNotRotatable,
+          allowFaceRight: !data.isNotRotatable,
+        };
+        addManualItem(item, data.quantity, color);
+        toast.success('Ürün eklendi.', { position: 'bottom-right' });
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };
+        const detail =
+          axiosErr?.response?.data?.detail ??
+          axiosErr?.response?.data?.title ??
+          'Ürün kaydedilemedi. Lütfen tekrar deneyin.';
+        toast.error(detail, { position: 'bottom-right' });
+        return;
+      }
     }
 
     onSuccess?.();
@@ -314,7 +370,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
         <div className="flex">
           {/* ── Left: Form ───────────────────────────────────────────────── */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-5 p-6">
@@ -432,6 +488,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
             </div>
 
             {/* Footer */}
+            {Object.keys(errors).length > 0 && (
+              <p className="text-xs text-rose-500 -mt-2">Tüm zorunlu alanları doğru doldurun.</p>
+            )}
             <div className="flex gap-2 mt-auto pt-2">
               <Button
                 type="button"
@@ -441,7 +500,14 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
               >
                 İptal
               </Button>
-              <Button type="submit" className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700">
+              <Button
+                type="submit"
+                disabled={createPlanItem.isPending}
+                className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
+              >
+                {createPlanItem.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
                 {isEditing ? 'Güncelle' : 'Kaydet'}
               </Button>
             </div>

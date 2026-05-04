@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const proxyTarget = env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_URL || 'http://localhost:8081';
+  const proxyTarget = env.VITE_DEV_PROXY_TARGET || 'http://localhost:8081';
 
   return {
     plugins: [react()],
@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      port: 3001,
       proxy: {
         '/api': {
           target: proxyTarget,

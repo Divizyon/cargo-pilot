@@ -22,10 +22,12 @@ interface AuthStore {
   user: AuthUser | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  isInitializing: boolean;
   role: UserRole | null;
   lastActivityAt: number | null;
   setAuth: (user: AuthUser, accessToken: string) => void;
   setAccessToken: (token: string) => void;
+  setInitialized: () => void;
   updateUser: (partial: Partial<AuthUser>) => void;
   clearAuth: () => void;
   updateActivity: () => void;
@@ -38,6 +40,7 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       accessToken: null,
       isAuthenticated: false,
+      isInitializing: true,
       role: null,
       lastActivityAt: null,
       setAuth: (user, accessToken) =>
@@ -45,10 +48,12 @@ export const useAuthStore = create<AuthStore>()(
           user,
           accessToken,
           isAuthenticated: true,
+          isInitializing: false,
           role: user.role,
           lastActivityAt: Date.now(),
         }),
       setAccessToken: (accessToken) => set({ accessToken }),
+      setInitialized: () => set({ isInitializing: false }),
       updateUser: (partial) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...partial } : state.user,
@@ -58,6 +63,7 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           accessToken: null,
           isAuthenticated: false,
+          isInitializing: false,
           role: null,
           lastActivityAt: null,
         }),

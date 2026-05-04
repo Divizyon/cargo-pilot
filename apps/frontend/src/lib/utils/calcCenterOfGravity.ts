@@ -17,6 +17,18 @@ export interface CogResult {
   totalWeight: number;
 }
 
+/** 4-level tolerance per PO spec: 0-5% ideal, 5-10% dikkat, 10-15% riskli, >15% kritik */
+export type BalanceLevel = 'ideal' | 'dikkat' | 'riskli' | 'kritik';
+
+export const COG_THRESHOLDS = {
+  DIKKAT: 0.05,
+  RISKLI: 0.1,
+  KRITIK: 0.15,
+} as const;
+
+/** Backward-compat alias — equals the kritik threshold */
+export const COG_BALANCE_THRESHOLD = COG_THRESHOLDS.KRITIK;
+
 export interface BalanceResult {
   cog: CogResult;
   /** CoG X offset from container center, as fraction of container width (−1..1) */
@@ -26,11 +38,11 @@ export interface BalanceResult {
   /** Front axle load share (0..1) — Z=0 is rear, Z=containerLength is front */
   frontAxleShare: number;
   rearAxleShare: number;
+  lateralLevel: BalanceLevel;
+  longitudinalLevel: BalanceLevel;
   isLateralWarning: boolean;
   isLongitudinalWarning: boolean;
 }
-
-export const COG_BALANCE_THRESHOLD = 0.2;
 
 /**
  * Calculates center of gravity from a list of placements with weight.
@@ -81,6 +93,13 @@ export function buildCogInputs(
   }));
 }
 
+function toBalanceLevel(absBias: number): BalanceLevel {
+  if (absBias <= COG_THRESHOLDS.DIKKAT) return 'ideal';
+  if (absBias <= COG_THRESHOLDS.RISKLI) return 'dikkat';
+  if (absBias <= COG_THRESHOLDS.KRITIK) return 'riskli';
+  return 'kritik';
+}
+
 /**
  * Computes full balance analysis for a given CoG and container dimensions.
  * containerLength: Z axis (rear=0, front=containerLength).
@@ -97,6 +116,9 @@ export function calcBalance(
   const lateralBias = containerWidth > 0 ? (cog.x - centerX) / containerWidth : 0;
   const longitudinalBias = containerLength > 0 ? (cog.z - centerZ) / containerLength : 0;
 
+  const lateralLevel = toBalanceLevel(Math.abs(lateralBias));
+  const longitudinalLevel = toBalanceLevel(Math.abs(longitudinalBias));
+
   // Moment-based axle shares: rear axle at Z=0, front axle at Z=containerLength
   const frontAxleShare = containerLength > 0 ? cog.z / containerLength : 0.5;
   const rearAxleShare = 1 - frontAxleShare;
@@ -107,7 +129,9 @@ export function calcBalance(
     longitudinalBias,
     frontAxleShare,
     rearAxleShare,
-    isLateralWarning: Math.abs(lateralBias) > COG_BALANCE_THRESHOLD,
-    isLongitudinalWarning: Math.abs(longitudinalBias) > COG_BALANCE_THRESHOLD,
+    lateralLevel,
+    longitudinalLevel,
+    isLateralWarning: lateralLevel !== 'ideal',
+    isLongitudinalWarning: longitudinalLevel !== 'ideal',
   };
 }
