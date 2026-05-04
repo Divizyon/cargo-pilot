@@ -1,12 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { vehicleSchema, VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
-import { apiFetch } from './fetcher';
 import { axiosInstance } from './axiosInstance';
+import {
+  vehicleApiSchema,
+  singleVehicleApiSchema,
+  fromApiVehicle,
+  buildCreateVehiclePayload,
+  buildUpdateVehiclePayload,
+  VEHICLE_TYPE_INT,
+} from './vehicleMappers';
 
-// ─── API response schema (actual shape returned by backend) ──────────────────
+// ─── List API response schema ─────────────────────────────────────────────────
 
 const vehicleListApiItemSchema = z.object({
   id: z.string().uuid(),
@@ -20,6 +27,7 @@ const vehicleListApiItemSchema = z.object({
   layerCount: z.number().int().nullable().optional(),
   loadingType: z.number().int().nullable().optional(),
   isActive: z.boolean().optional(),
+  isFavorite: z.boolean().optional(),
 });
 
 const vehicleListApiResponseSchema = z.object({
@@ -45,6 +53,7 @@ const LOADING_TYPE_MAP: Record<number, (typeof DoorDirection)[keyof typeof DoorD
   0: DoorDirection.Rear,
   1: DoorDirection.Side,
   2: DoorDirection.Top,
+  3: DoorDirection.RearAndSide,
 };
 
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
@@ -53,15 +62,13 @@ function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
     name: api.vehicleName,
     vehicleType: VEHICLE_TYPE_MAP[api.vehicleType] ?? VehicleType.Kamyon,
     plate: api.plateNumber ?? undefined,
-    // API returns mm; frontend uses cm
-    width: api.internalWidth / 10,
-    height: api.internalHeight / 10,
-    length: api.internalLength / 10,
-    // API returns grams; frontend uses kg
-    maxCargoWeight: api.maxWeightCapacity / 1000,
+    width: api.internalWidth,
+    height: api.internalHeight,
+    length: api.internalLength,
+    maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
     doorDirection: LOADING_TYPE_MAP[api.loadingType ?? 0] ?? DoorDirection.Rear,
-    isFavorite: false,
+    isFavorite: api.isFavorite ?? false,
     isActive: api.isActive ?? true,
     isDeleted: false,
     createdAt: new Date(0).toISOString(),
@@ -98,6 +105,24 @@ export function useVehicles(filters?: VehicleFilters) {
       if (mergedFilters.page !== undefined) params.set('page', String(mergedFilters.page));
       if (mergedFilters.pageSize !== undefined)
         params.set('pageSize', String(mergedFilters.pageSize));
+
+      // Vehicle type filter — convert string label to backend int
+      if (mergedFilters.vehicleType) {
+        const typeInt =
+          VEHICLE_TYPE_INT[mergedFilters.vehicleType as keyof typeof VEHICLE_TYPE_INT];
+        if (typeInt !== undefined) params.set('vehicleType', String(typeInt));
+      }
+
+      // Status filter
+      if (mergedFilters.status) {
+        params.set('isActive', String(mergedFilters.status === 'active'));
+      }
+
+      // Favorites filter
+      if (mergedFilters.favoritesOnly) {
+        params.set('isFavorite', 'true');
+      }
+
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles${qs ? `?${qs}` : ''}`);
       const parsed = vehicleListApiResponseSchema.parse(data);
@@ -113,11 +138,21 @@ export function useVehicles(filters?: VehicleFilters) {
   });
 }
 
-export function useVehicle(id: string) {
+export function useVehicle(id: string, initialData?: Vehicle) {
+  const queryClient = useQueryClient();
   const companyId = useCompanyId();
   return useQuery({
     queryKey: ['vehicles', companyId, id] as const,
-    queryFn: () => apiFetch(`/vehicles/${id}`, vehicleSchema),
+    queryFn: (): Vehicle => {
+      const caches = queryClient.getQueriesData<Vehicle[]>({ queryKey: ['vehicles', companyId] });
+      for (const [, data] of caches) {
+        if (!Array.isArray(data)) continue;
+        const found = data.find((v) => v.id === id);
+        if (found) return found;
+      }
+      throw new Error('Araç bulunamadı');
+    },
+    initialData,
     enabled: Boolean(id),
     staleTime: 2 * 60 * 1000,
   });
@@ -126,11 +161,12 @@ export function useVehicle(id: string) {
 export function useCreateVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: VehicleFormValues) =>
-      apiFetch('/vehicles', vehicleSchema, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async (data: VehicleFormValues) => {
+      const payload = buildCreateVehiclePayload(data);
+      const { data: res } = await axiosInstance.post<unknown>('/api/v1/vehicles', payload);
+      const parsed = singleVehicleApiSchema.safeParse(res);
+      return parsed.success ? fromApiVehicle(parsed.data.data) : null;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
@@ -140,11 +176,12 @@ export function useCreateVehicle() {
 export function useUpdateVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<VehicleFormValues> }) =>
-      apiFetch(`/vehicles/${id}`, vehicleSchema, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async ({ id, data }: { id: string; data: Partial<VehicleFormValues> }) => {
+      const { id: _id, ...payload } = buildUpdateVehiclePayload(id, data as VehicleFormValues);
+      const { data: res } = await axiosInstance.put<unknown>(`/api/v1/vehicles/${id}`, payload);
+      const parsed = singleVehicleApiSchema.safeParse(res);
+      return parsed.success ? fromApiVehicle(parsed.data.data) : null;
+    },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
@@ -154,8 +191,29 @@ export function useUpdateVehicle() {
 export function useDeleteVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch(`/vehicles/${id}`, z.object({ success: z.boolean() }), { method: 'DELETE' }),
+    mutationFn: async (vehicle: Vehicle) => {
+      const { id: _id, ...payload } = buildUpdateVehiclePayload(vehicle.id, {
+        vehicleType: vehicle.vehicleType,
+        name: vehicle.name,
+        description: vehicle.description ?? '',
+        plate: vehicle.plate ?? '',
+        serialNumber: vehicle.serialNumber ?? '',
+        length: vehicle.length,
+        width: vehicle.width,
+        height: vehicle.height,
+        maxCargoWeight: vehicle.maxCargoWeight,
+        grossWeight: vehicle.grossWeight,
+        tareWeight: vehicle.tareWeight,
+        maxLayerCount: vehicle.maxLayerCount,
+        doorDirection: vehicle.doorDirection,
+        isActive: vehicle.isActive ?? true,
+        status: vehicle.status,
+      } as VehicleFormValues);
+      await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, {
+        ...payload,
+        isDeleted: true,
+      });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
@@ -165,11 +223,26 @@ export function useDeleteVehicle() {
 export function useArchiveVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch(`/vehicles/${id}`, vehicleSchema, {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive: false }),
-      }),
+    mutationFn: async (vehicle: Vehicle) => {
+      const { id: _id, ...payload } = buildUpdateVehiclePayload(vehicle.id, {
+        vehicleType: vehicle.vehicleType,
+        name: vehicle.name,
+        description: vehicle.description ?? '',
+        plate: vehicle.plate ?? '',
+        serialNumber: vehicle.serialNumber ?? '',
+        length: vehicle.length,
+        width: vehicle.width,
+        height: vehicle.height,
+        maxCargoWeight: vehicle.maxCargoWeight,
+        grossWeight: vehicle.grossWeight,
+        tareWeight: vehicle.tareWeight,
+        maxLayerCount: vehicle.maxLayerCount,
+        doorDirection: vehicle.doorDirection,
+        isActive: false,
+        status: vehicle.status,
+      } as VehicleFormValues);
+      await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
@@ -180,11 +253,13 @@ export function useToggleFavorite() {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
   return useMutation({
-    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) =>
-      apiFetch(`/vehicles/${id}`, vehicleSchema, {
-        method: 'PATCH',
-        body: JSON.stringify({ isFavorite }),
-      }),
+    mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
+      if (isFavorite) {
+        await axiosInstance.post<unknown>(`/api/v1/vehicles/${id}/favorite`);
+      } else {
+        await axiosInstance.delete<unknown>(`/api/v1/vehicles/${id}/favorite`);
+      }
+    },
     onMutate: async ({ id, isFavorite }) => {
       await queryClient.cancelQueries({ queryKey: ['vehicles', companyId] });
       const keys = queryClient.getQueriesData<Vehicle[]>({ queryKey: ['vehicles', companyId] });
@@ -208,25 +283,37 @@ export function useToggleFavorite() {
   });
 }
 
+const plansItemSchema = z.object({ id: z.string(), name: z.string(), isActive: z.boolean() });
+const plansResponseSchema = z.union([
+  z.object({ data: z.array(plansItemSchema) }).transform((r) => r.data),
+  z.array(plansItemSchema),
+]);
+
 export function useVehiclePlans(vehicleId: string) {
   return useQuery({
     queryKey: ['vehicle-plans', vehicleId] as const,
-    queryFn: () =>
-      apiFetch(
-        `/vehicles/${vehicleId}/plans`,
-        z.array(z.object({ id: z.string(), name: z.string(), isActive: z.boolean() })),
-      ),
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles/${vehicleId}/plans`);
+      return plansResponseSchema.parse(data);
+    },
     enabled: Boolean(vehicleId),
   });
 }
 
-const duplicateCheckSchema = z.object({ exists: z.boolean() });
+const existsSchema = z.union([
+  z.object({ data: z.object({ exists: z.boolean() }) }).transform((r) => r.data),
+  z.object({ exists: z.boolean() }),
+]);
 
 export function useVehicleDuplicateCheck(name: string) {
   return useQuery({
     queryKey: ['vehicles', 'duplicate-check', name] as const,
-    queryFn: () =>
-      apiFetch(`/vehicles/check-name?name=${encodeURIComponent(name)}`, duplicateCheckSchema),
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<unknown>(
+        `/api/v1/vehicles/check-name?name=${encodeURIComponent(name)}`,
+      );
+      return existsSchema.parse(data);
+    },
     enabled: name.trim().length > 0,
   });
 }
@@ -234,8 +321,12 @@ export function useVehicleDuplicateCheck(name: string) {
 export function useVehiclePlateCheck(plate: string) {
   return useQuery({
     queryKey: ['vehicles', 'plate-check', plate] as const,
-    queryFn: () =>
-      apiFetch(`/vehicles/check-plate?plate=${encodeURIComponent(plate)}`, duplicateCheckSchema),
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<unknown>(
+        `/api/v1/vehicles/check-plate?plate=${encodeURIComponent(plate)}`,
+      );
+      return existsSchema.parse(data);
+    },
     enabled: plate.trim().length > 0,
   });
 }
@@ -243,15 +334,19 @@ export function useVehiclePlateCheck(plate: string) {
 export function useVehicleSerialCheck(serial: string) {
   return useQuery({
     queryKey: ['vehicles', 'serial-check', serial] as const,
-    queryFn: () =>
-      apiFetch(`/vehicles/check-serial?serial=${encodeURIComponent(serial)}`, duplicateCheckSchema),
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<unknown>(
+        `/api/v1/vehicles/check-serial?serial=${encodeURIComponent(serial)}`,
+      );
+      return existsSchema.parse(data);
+    },
     enabled: serial.trim().length > 0,
   });
 }
 
 // ─── Planning-context vehicle create ─────────────────────────────────────────
 
-const planVehicleCreatePayloadSchema = z.object({
+export const planVehicleCreatePayloadSchema = z.object({
   vehicleName: z.string(),
   plateNumber: z.string(),
   vehicleType: z.number().int(),
@@ -294,3 +389,6 @@ export function useCreatePlanVehicle() {
     },
   });
 }
+
+// Re-export schema for consumers that used the old apiFetch-based export
+export { vehicleApiSchema };
