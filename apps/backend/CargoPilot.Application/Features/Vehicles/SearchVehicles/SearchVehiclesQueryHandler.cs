@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -9,14 +10,20 @@ namespace CargoPilot.Application.Features.Vehicles.SearchVehicles;
 public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQuery, Result<PagedResult<VehicleSummaryDto>>> {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IUserVehicleFavoriteRepository _favoriteRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<SearchVehiclesQuery> _validator;
 
     public SearchVehiclesQueryHandler(
         IVehicleRepository vehicleRepository,
         IUserRepository userRepository,
+        IUserVehicleFavoriteRepository favoriteRepository,
+        ICurrentUserService currentUserService,
         IValidator<SearchVehiclesQuery> validator) {
         _vehicleRepository = vehicleRepository;
         _userRepository = userRepository;
+        _favoriteRepository = favoriteRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -34,10 +41,17 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
 
         var (page, pageSize) = request.IsExport ? (1, int.MaxValue) : (request.Page, request.PageSize);
 
+        IReadOnlyList<Guid>? favoriteIds = null;
+        if (_currentUserService.UserId is { } userId) {
+            favoriteIds = await _favoriteRepository.GetFavoriteVehicleIdsAsync(userId, cancellationToken);
+        }
+
         var pagedVehicles = await _vehicleRepository.SearchAsync(
             request.SearchTerm,
             request.VehicleType,
             request.IsActive,
+            request.OnlyFavorites,
+            favoriteIds,
             page,
             pageSize,
             cancellationToken);
@@ -49,6 +63,10 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             .Distinct();
 
         var userMap = await _userRepository.GetByIdsAsync(userIds, cancellationToken);
+
+        var favoriteSet = favoriteIds is not null
+            ? new HashSet<Guid>(favoriteIds)
+            : new HashSet<Guid>();
 
         var dtos = pagedVehicles.Items
             .Select(v => new VehicleSummaryDto(
@@ -65,7 +83,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 v.Volume,
                 v.IsActive,
                 v.CompanyId,
-                ResolveAuditUser(v, userMap)))
+                ResolveAuditUser(v, userMap),
+                favoriteSet.Contains(v.Id)))
             .ToList();
 
         var result = new PagedResult<VehicleSummaryDto>(
