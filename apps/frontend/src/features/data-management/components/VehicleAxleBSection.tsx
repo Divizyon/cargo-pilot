@@ -29,62 +29,62 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Ana Aks (Dingil B)
-      </h3>
-      <div className="grid grid-cols-3 gap-3">
-        <FormField
-          control={form.control}
-          name="axleB.distance"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Uzaklık ({DIMENSION_UNIT})</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="axleB.tareWeight"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Dara Ağırlığı ({WEIGHT_UNIT})</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min="0"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Aks Yönetimi
+        </h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">Ana Aks (Dingil B)</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <FormField
           control={form.control}
           name="axleB.maxLoad"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Maks. Yük ({WEIGHT_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Kapasite ({WEIGHT_UNIT})
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    kg
+                  </span>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="axleB.distance"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Mesafe ({DIMENSION_UNIT})
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    cm
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,9 +92,9 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
         />
       </div>
       {totalTare > 0 && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Toplam boş ağırlık:{' '}
-          <span className="font-medium">
+          <span className="font-semibold text-foreground">
             {totalTare.toLocaleString('tr-TR')} {WEIGHT_UNIT}
           </span>
         </p>

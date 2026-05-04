@@ -31,10 +31,14 @@ export function VehicleIdentityFields({ form }: VehicleIdentityFieldsProps) {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Araç Adı</FormLabel>
+            <FormLabel className="text-xs font-medium text-foreground">
+              Araç Adı <span className="text-destructive">*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 {...field}
+                className="h-9 border-zinc-200 bg-white"
+                placeholder="Örn: 34 ABC 123 veya Filo Tır 1"
                 onBlur={(e) => {
                   field.onBlur();
                   const trimmed = e.target.value.trim();
@@ -55,9 +59,17 @@ export function VehicleIdentityFields({ form }: VehicleIdentityFieldsProps) {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Açıklama</FormLabel>
+            <FormLabel className="text-xs font-medium text-foreground">
+              Açıklama <span className="text-xs font-normal text-muted-foreground">(Opsiyonel)</span>
+            </FormLabel>
             <FormControl>
-              <Textarea {...field} value={field.value ?? ''} />
+              <Textarea
+                {...field}
+                value={field.value ?? ''}
+                className="resize-none border-zinc-200 bg-white"
+                placeholder="Araç hakkında ek notlar..."
+                rows={3}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

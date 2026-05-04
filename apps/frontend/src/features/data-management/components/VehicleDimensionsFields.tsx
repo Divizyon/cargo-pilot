@@ -3,7 +3,6 @@ import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { calculateVolume } from '@/lib/utils/calculateVolume';
 import { DIMENSION_UNIT } from '@/lib/config/vehicle-config';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
@@ -25,7 +24,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         Fiziksel İç Ölçüler
       </h3>
       <div className="grid grid-cols-3 gap-3">
@@ -34,15 +33,23 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
           name="length"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Uzunluk ({DIMENSION_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Uzunluk ({DIMENSION_UNIT})
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    cm
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -53,15 +60,23 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
           name="width"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Genişlik ({DIMENSION_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Genişlik ({DIMENSION_UNIT})
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    cm
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -72,15 +87,23 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
           name="height"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Yükseklik ({DIMENSION_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Yükseklik ({DIMENSION_UNIT})
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    cm
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,16 +111,16 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
         />
       </div>
       {volume !== null && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Hesaplanan Hacim:</span>
-          <Badge variant="secondary">
+        <p className="text-xs text-muted-foreground">
+          Toplam Hacim:{' '}
+          <span className="font-semibold text-foreground">
             {volume >= 1_000_000
               ? `${(volume / 1_000_000).toFixed(2)} m³`
               : volume >= 1_000
                 ? `${(volume / 1_000).toFixed(1)} dm³`
                 : `${volume} cm³`}
-          </Badge>
-        </div>
+          </span>
+        </p>
       )}
     </div>
   );
