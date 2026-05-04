@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Controller } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
@@ -103,11 +104,11 @@ export function VehicleForm({
   );
 }
 
-function FormCard({ children }: { children: React.ReactNode }) {
+function FormCard({ children }: { children: ReactNode }) {
   return <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">{children}</div>;
 }
 
-function CardSectionTitle({ children }: { children: React.ReactNode }) {
+function CardSectionTitle({ children }: { children: ReactNode }) {
   return (
     <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
       {children}
