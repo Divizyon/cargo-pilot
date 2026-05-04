@@ -80,12 +80,24 @@ function ProductTypeShape({ type }: { type: string }) {
   const s = 'currentColor';
   if (type === 'varil') {
     return (
-      <svg width="28" height="28" viewBox="0 0 60 60" fill="none" className="shrink-0 text-zinc-400">
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 60 60"
+        fill="none"
+        className="shrink-0 text-zinc-400"
+      >
         <ellipse cx="30" cy="10" rx="18" ry="5" stroke={s} strokeWidth="1.5" />
         <line x1="12" y1="10" x2="12" y2="50" stroke={s} strokeWidth="1.5" />
         <line x1="48" y1="10" x2="48" y2="50" stroke={s} strokeWidth="1.5" />
         <path d="M12 50 A18 5 0 0 0 48 50" stroke={s} strokeWidth="1.5" fill="none" />
-        <path d="M12 50 A18 5 0 0 1 48 50" stroke={s} strokeWidth="0.8" strokeDasharray="2 2" fill="none" />
+        <path
+          d="M12 50 A18 5 0 0 1 48 50"
+          stroke={s}
+          strokeWidth="0.8"
+          strokeDasharray="2 2"
+          fill="none"
+        />
         <ellipse cx="30" cy="25" rx="18" ry="5" stroke={s} strokeWidth="1" opacity="0.4" />
         <ellipse cx="30" cy="38" rx="18" ry="5" stroke={s} strokeWidth="1" opacity="0.4" />
       </svg>
@@ -93,11 +105,29 @@ function ProductTypeShape({ type }: { type: string }) {
   }
   if (type === 'palet') {
     return (
-      <svg width="28" height="28" viewBox="0 0 60 60" fill="none" className="shrink-0 text-zinc-400">
-        <path d="M10 10 L30 4 L50 10 L50 30 L30 36 L10 30 Z" stroke={s} strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 60 60"
+        fill="none"
+        className="shrink-0 text-zinc-400"
+      >
+        <path
+          d="M10 10 L30 4 L50 10 L50 30 L30 36 L10 30 Z"
+          stroke={s}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          fill="none"
+        />
         <path d="M10 10 L30 16 L50 10" stroke={s} strokeWidth="1.5" />
         <path d="M30 16 L30 36" stroke={s} strokeWidth="1.5" />
-        <path d="M4 38 L30 46 L56 38 L56 44 L30 52 L4 44 Z" stroke={s} strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <path
+          d="M4 38 L30 46 L56 38 L56 44 L30 52 L4 44 Z"
+          stroke={s}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          fill="none"
+        />
         <line x1="12" y1="42" x2="12" y2="54" stroke={s} strokeWidth="1.5" />
         <line x1="30" y1="52" x2="30" y2="60" stroke={s} strokeWidth="1.5" />
         <line x1="48" y1="42" x2="48" y2="54" stroke={s} strokeWidth="1.5" />
@@ -106,7 +136,13 @@ function ProductTypeShape({ type }: { type: string }) {
   }
   return (
     <svg width="28" height="28" viewBox="0 0 60 60" fill="none" className="shrink-0 text-zinc-400">
-      <path d="M10 18 L30 8 L50 18 L50 44 L30 54 L10 44 Z" stroke={s} strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+      <path
+        d="M10 18 L30 8 L50 18 L50 44 L30 54 L10 44 Z"
+        stroke={s}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        fill="none"
+      />
       <path d="M10 18 L30 28 L50 18" stroke={s} strokeWidth="1.5" />
       <path d="M30 28 L30 54" stroke={s} strokeWidth="1.5" />
     </svg>

@@ -748,9 +748,12 @@ function PreviewPanel(props: PreviewPanelProps) {
   if (!allowRotateZ) lockedAxes.push('Z');
   const allRotationsFree = lockedAxes.length === 0;
 
-  const widthCm = Number.isFinite(width) && width !== undefined ? toCentimeters(width, widthUnit ?? 'cm') : 0;
-  const heightCm = Number.isFinite(height) && height !== undefined ? toCentimeters(height, heightUnit ?? 'cm') : 0;
-  const depthCm = Number.isFinite(length) && length !== undefined ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
+  const widthCm =
+    Number.isFinite(width) && width !== undefined ? toCentimeters(width, widthUnit ?? 'cm') : 0;
+  const heightCm =
+    Number.isFinite(height) && height !== undefined ? toCentimeters(height, heightUnit ?? 'cm') : 0;
+  const depthCm =
+    Number.isFinite(length) && length !== undefined ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
   const hasDimensions = widthCm > 0 && heightCm > 0 && depthCm > 0;
 
   return (
@@ -760,11 +763,11 @@ function PreviewPanel(props: PreviewPanelProps) {
         <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
           {hasDimensions ? (
             <ProductPreview3D
-                widthCm={widthCm}
-                heightCm={heightCm}
-                depthCm={depthCm}
-                productType={productType}
-              />
+              widthCm={widthCm}
+              heightCm={heightCm}
+              depthCm={depthCm}
+              productType={productType}
+            />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400">
               <div className="text-zinc-500">

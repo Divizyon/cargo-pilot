@@ -74,7 +74,12 @@ function KoliScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
     return edges;
   }, [widthCm, heightCm, depthCm]);
 
-  useEffect(() => () => { edgesGeo.dispose(); }, [edgesGeo]);
+  useEffect(
+    () => () => {
+      edgesGeo.dispose();
+    },
+    [edgesGeo],
+  );
 
   return (
     <>
@@ -103,7 +108,12 @@ function VarilScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
     return edges;
   }, [radius, heightCm]);
 
-  useEffect(() => () => { edgesGeo.dispose(); }, [edgesGeo]);
+  useEffect(
+    () => () => {
+      edgesGeo.dispose();
+    },
+    [edgesGeo],
+  );
 
   return (
     <>
