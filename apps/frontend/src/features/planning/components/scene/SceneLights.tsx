@@ -8,6 +8,14 @@ export function SceneLights() {
         position={SCENE.DIRECTIONAL_POSITION}
         intensity={SCENE.DIRECTIONAL_INTENSITY}
         castShadow
+        shadow-mapSize-width={SCENE.SHADOW_MAP_SIZE}
+        shadow-mapSize-height={SCENE.SHADOW_MAP_SIZE}
+        shadow-camera-near={SCENE.SHADOW_CAMERA_NEAR}
+        shadow-camera-far={SCENE.SHADOW_CAMERA_FAR}
+        shadow-camera-left={-SCENE.SHADOW_CAMERA_SIZE}
+        shadow-camera-right={SCENE.SHADOW_CAMERA_SIZE}
+        shadow-camera-top={SCENE.SHADOW_CAMERA_SIZE}
+        shadow-camera-bottom={-SCENE.SHADOW_CAMERA_SIZE}
       />
       <pointLight
         position={SCENE.RIM_POSITION}

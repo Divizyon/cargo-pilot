@@ -1,33 +1,41 @@
 import axios from 'axios';
+import { z } from 'zod';
 import { API_BASE_URL } from '@/lib/config/env';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 
-interface RefreshApiResponse {
-  isSuccess: boolean;
-  data: {
-    accessToken: string;
-    accessTokenExpiresAt: string;
-  };
-}
+const refreshApiResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.object({
+    accessToken: z.string(),
+    accessTokenExpiresAt: z.string(),
+  }),
+});
 
 export async function initializeAuth(): Promise<void> {
   try {
-    const { data } = await axios.post<RefreshApiResponse>(
+    const { data: raw } = await axios.post<unknown>(
       `${API_BASE_URL}/api/v1/auth/refresh`,
       {},
       { withCredentials: true },
     );
+    const parsed = refreshApiResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      useAuthStore.getState().clearAuth();
+      return;
+    }
+    const data = parsed.data;
     if (data.isSuccess && data.data?.accessToken) {
       const { user } = useAuthStore.getState();
       if (user) {
-        // sessionStorage'dan gelen user + yeni token → tam oturum restore
         useAuthStore.getState().setAuth(user, data.data.accessToken);
       } else {
         useAuthStore.getState().setAccessToken(data.data.accessToken);
+        useAuthStore.getState().setInitialized();
       }
+    } else {
+      useAuthStore.getState().clearAuth();
     }
   } catch {
-    // Oturum yoksa veya token süresi dolmuşsa sessizce geç
     useAuthStore.getState().clearAuth();
   }
 }

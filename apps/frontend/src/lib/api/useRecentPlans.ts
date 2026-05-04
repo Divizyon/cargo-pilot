@@ -25,10 +25,12 @@ async function fetchRecentPlans(): Promise<RecentPlan[]> {
 }
 
 export function useRecentPlans() {
-  const userId = useAuthStore((s) => s.user?.id ?? 'guest');
+  const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
     queryKey: ['plans', userId, { limit: 7, sort: 'createdAt:desc' }] as const,
     queryFn: fetchRecentPlans,
     staleTime: 2 * 60 * 1000,
+    retry: false,
+    enabled: false, // endpoint henüz backend'de yok
   });
 }
