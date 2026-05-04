@@ -45,6 +45,7 @@ const LOADING_TYPE_MAP: Record<number, (typeof DoorDirection)[keyof typeof DoorD
   0: DoorDirection.Rear,
   1: DoorDirection.Side,
   2: DoorDirection.Top,
+  3: DoorDirection.RearAndSide,
 };
 
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {

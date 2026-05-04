@@ -209,9 +209,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
   const exceedsVehicle = Boolean(
     selectedVehicle &&
-    ((width && width > selectedVehicle.width) ||
-      (height && height > selectedVehicle.height) ||
-      (length && length > selectedVehicle.length)),
+      ((width && width > selectedVehicle.width) ||
+        (height && height > selectedVehicle.height) ||
+        (length && length > selectedVehicle.length)),
   );
 
   useEffect(() => {
@@ -451,9 +451,15 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                 />
               </div>
               {exceedsVehicle && (
-                <p className="flex items-center gap-1.5 text-xs text-amber-600">
+                <p className="flex items-center gap-1.5 text-xs text-destructive">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  Boyutlar seçili aracın iç ölçülerini aşıyor
+                  {[
+                    selectedVehicle && width && width > selectedVehicle.width && `en (${width} cm > ${selectedVehicle.width} cm)`,
+                    selectedVehicle && length && length > selectedVehicle.length && `boy (${length} cm > ${selectedVehicle.length} cm)`,
+                    selectedVehicle && height && height > selectedVehicle.height && `yükseklik (${height} cm > ${selectedVehicle.height} cm)`,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')} aracı aşıyor — eklenemez.
                 </p>
               )}
             </div>
@@ -502,7 +508,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
               </Button>
               <Button
                 type="submit"
-                disabled={createPlanItem.isPending}
+                disabled={createPlanItem.isPending || exceedsVehicle}
                 className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
               >
                 {createPlanItem.isPending ? (
