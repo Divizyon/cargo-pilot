@@ -23,6 +23,9 @@ internal sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSe
         builder.Property(session => session.CreatedByIp)
             .HasMaxLength(50);
 
+        builder.Property(session => session.DeviceSummary)
+            .HasMaxLength(500);
+
         builder.Property(session => session.ExpiresAt)
             .IsRequired();
 

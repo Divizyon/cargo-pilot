@@ -9,6 +9,7 @@ public sealed class UserSession {
     public DateTime ExpiresAt { get; private set; }
     public DateTime LastUsedAt { get; private set; }
     public bool IsRevoked { get; private set; }
+    public string? DeviceSummary { get; private set; }
 
     public AppUser User { get; private set; } = null!;
 
@@ -25,7 +26,8 @@ public sealed class UserSession {
         string token,
         DateTime expiresAt,
         DateTime lastUsedAt,
-        string? createdByIp = null) {
+        string? createdByIp = null,
+        string? deviceSummary = null) {
         Id = id;
         CreatedAtUtc = DateTime.UtcNow;
         UserId = userId;
@@ -34,5 +36,6 @@ public sealed class UserSession {
         ExpiresAt = expiresAt;
         LastUsedAt = lastUsedAt;
         IsRevoked = false;
+        DeviceSummary = deviceSummary;
     }
 }
