@@ -51,9 +51,9 @@ export const vehicleApiSchema = z.object({
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
   status: z.string().optional().nullable(),
-  createdAt: z.string().datetime(),
-  createdBy: z.object({ id: z.string(), fullName: z.string() }),
-  updatedAt: z.string().datetime().optional().nullable(),
+  createdAt: z.string(),
+  createdBy: z.object({ id: z.string(), fullName: z.string() }).optional().nullable(),
+  updatedAt: z.string().optional().nullable(),
   updatedBy: z.object({ id: z.string(), fullName: z.string() }).optional().nullable(),
 });
 
@@ -95,7 +95,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     isDeleted: api.isDeleted,
     status: (api.status as 'active' | 'draft' | undefined) ?? undefined,
     createdAt: api.createdAt,
-    createdBy: api.createdBy,
+    createdBy: api.createdBy ?? { id: '', fullName: '' },
     updatedAt: api.updatedAt ?? undefined,
     updatedBy: api.updatedBy ?? undefined,
   };
