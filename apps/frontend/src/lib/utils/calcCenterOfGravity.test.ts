@@ -4,6 +4,7 @@ import {
   calcBalance,
   buildCogInputs,
   COG_BALANCE_THRESHOLD,
+  COG_THRESHOLDS,
   type CogInput,
 } from './calcCenterOfGravity';
 
@@ -76,30 +77,71 @@ describe('calcBalance', () => {
     expect(result.rearAxleShare).toBeCloseTo(0.5);
   });
 
-  it('issues lateral warning when bias exceeds threshold', () => {
-    // Container 200 cm wide, center at 100, CoG at X=160 → bias = (160-100)/200 = 0.3 > 0.2
+  it('issues lateral warning when bias exceeds dikkat threshold', () => {
+    // Container 200 cm wide, center at 100, CoG at X=160 → bias = (160-100)/200 = 0.3 > 0.15 → kritik
     const cog = { x: 160, y: 50, z: 200, totalWeight: 100 };
     const result = calcBalance(cog, 200, 400);
     expect(result.isLateralWarning).toBe(true);
     expect(result.lateralBias).toBeCloseTo(0.3);
+    expect(result.lateralLevel).toBe('kritik');
   });
 
-  it('issues longitudinal warning when bias exceeds threshold', () => {
-    // Container 400 cm long, center at 200, CoG at Z=290 → bias = (290-200)/400 = 0.225 > 0.2
-    const cog = { x: 100, y: 50, z: 290, totalWeight: 100 };
+  it('issues longitudinal warning when bias exceeds kritik threshold', () => {
+    // Container 400 cm long, center at 200, CoG at Z=270 → bias = 70/400 = 0.175 > 0.15 → kritik
+    const cog = { x: 100, y: 50, z: 270, totalWeight: 100 };
     const result = calcBalance(cog, 200, 400);
     expect(result.isLongitudinalWarning).toBe(true);
+    expect(result.longitudinalLevel).toBe('kritik');
   });
 
-  it('does not warn just below threshold', () => {
-    // bias = 0.19 < 0.2
-    const cog = { x: 100 + 200 * 0.19, y: 0, z: 200, totalWeight: 100 };
+  it('does not warn when bias is within ideal range', () => {
+    // bias = 0.04 < 0.05 → ideal
+    const cog = { x: 100 + 200 * 0.04, y: 0, z: 200, totalWeight: 100 };
     const result = calcBalance(cog, 200, 400);
     expect(result.isLateralWarning).toBe(false);
+    expect(result.lateralLevel).toBe('ideal');
   });
 
-  it('COG_BALANCE_THRESHOLD is 0.2', () => {
-    expect(COG_BALANCE_THRESHOLD).toBe(0.2);
+  it('COG_BALANCE_THRESHOLD equals kritik threshold (0.15)', () => {
+    expect(COG_BALANCE_THRESHOLD).toBe(0.15);
+    expect(COG_BALANCE_THRESHOLD).toBe(COG_THRESHOLDS.KRITIK);
+  });
+
+  it('classifies levels correctly per PO spec', () => {
+    const containerWidth = 200;
+    const containerLength = 400;
+    // ideal: bias 0.03 (3%)
+    expect(
+      calcBalance(
+        { x: 100 + 200 * 0.03, y: 0, z: 200, totalWeight: 10 },
+        containerWidth,
+        containerLength,
+      ).lateralLevel,
+    ).toBe('ideal');
+    // dikkat: bias 0.07 (7%)
+    expect(
+      calcBalance(
+        { x: 100 + 200 * 0.07, y: 0, z: 200, totalWeight: 10 },
+        containerWidth,
+        containerLength,
+      ).lateralLevel,
+    ).toBe('dikkat');
+    // riskli: bias 0.12 (12%)
+    expect(
+      calcBalance(
+        { x: 100 + 200 * 0.12, y: 0, z: 200, totalWeight: 10 },
+        containerWidth,
+        containerLength,
+      ).lateralLevel,
+    ).toBe('riskli');
+    // kritik: bias 0.20 (20%)
+    expect(
+      calcBalance(
+        { x: 100 + 200 * 0.2, y: 0, z: 200, totalWeight: 10 },
+        containerWidth,
+        containerLength,
+      ).lateralLevel,
+    ).toBe('kritik');
   });
 
   it('handles zero container dimensions without throwing', () => {
