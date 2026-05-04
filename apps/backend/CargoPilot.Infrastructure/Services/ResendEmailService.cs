@@ -1,5 +1,6 @@
-using System.Net.Http.Json;
+using System.Globalization;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Settings;
@@ -55,6 +56,63 @@ internal sealed class ResendEmailService : IEmailService
                 <p>— Cargo Pilot Ekibi</p>
                 """,
             Text = $"Şifrenizi sıfırlamak için bu bağlantıyı kullanın (10 dakika geçerli): {resetLink}"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public async Task SendNewDeviceWarningEmailAsync(
+        string toEmail,
+        string deviceSummary,
+        DateTime loginTime,
+        string secureAccountLink,
+        CancellationToken cancellationToken = default)
+    {
+        var formattedTime = loginTime.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture) + " UTC";
+
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — Hesabınıza Yeni Bir Cihazdan Giriş Yapıldı",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#d97706;">Hesabınıza Yeni Bir Cihazdan Giriş Yapıldı</h2>
+                  <p>Hesabınıza aşağıdaki cihaz/tarayıcı bilgileriyle giriş yapıldı:</p>
+                  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;width:140px;">Cihaz / Tarayıcı</td>
+                      <td style="padding:8px;background:#fafafa;">{deviceSummary}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;">Tarih ve Saat</td>
+                      <td style="padding:8px;background:#fafafa;">{formattedTime}</td>
+                    </tr>
+                  </table>
+                  <p>Bu girişi <strong>siz yaptıysanız</strong> bu e-postayı görmezden gelebilirsiniz.</p>
+                  <p>Bu giriş <strong>size ait değilse</strong> aşağıdaki butona tıklayarak tüm oturumlarınızı sonlandırın ve şifrenizi sıfırlayın.</p>
+                  <p style="text-align:center;margin:32px 0;">
+                    <a href="{secureAccountLink}"
+                       style="background-color:#dc2626;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
+                      Bu Giriş Benim Değil &mdash; Hesabımı Güvenceye Al
+                    </a>
+                  </p>
+                  <p style="font-size:12px;color:#666;">Bu bağlantı <strong>10 dakika</strong> geçerlidir.</p>
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Hesabınıza yeni bir cihazdan giriş yapıldı.\n" +
+                   $"Cihaz: {deviceSummary}\n" +
+                   $"Tarih: {formattedTime}\n\n" +
+                   $"Bu giriş size ait değilse hesabınızı güvenceye almak için şu bağlantıyı kullanın: {secureAccountLink}"
         };
 
         using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
