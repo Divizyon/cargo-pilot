@@ -87,70 +87,63 @@ export function VehiclePreviewPanel({ form }: Props) {
 
   const dimsRaw = length && width && height ? `${length} × ${width} × ${height} cm` : '—';
 
-  const cargo = maxCargoWeight
-    ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg`
-    : '—';
+  const cargo = maxCargoWeight ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg` : '—';
 
   const gross = grossWeight ? `${Number(grossWeight).toLocaleString('tr-TR')} kg` : '—';
   const tare = tareWeight ? `${Number(tareWeight).toLocaleString('tr-TR')} kg` : '—';
 
-  const axleCount = 1 + (axleB ? 1 : 0) + ((axles ?? []).length);
+  const axleCount = 1 + (axleB ? 1 : 0) + (axles ?? []).length;
 
   const volume =
     length && width && height ? ((length * width * height) / 1_000_000).toFixed(2) : null;
 
   return (
     <aside className="flex flex-1 flex-col gap-4">
-        {/* Operasyonel Durum */}
-        <VehicleStatusToggle form={form} />
+      {/* Operasyonel Durum */}
+      <VehicleStatusToggle form={form} />
 
-        {/* Kargo Hacmi Önizleme */}
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Kargo Hacmi Önizleme
-          </h3>
-          <div className="mt-3">
-            <VehiclePreviewCanvas control={control} />
+      {/* Kargo Hacmi Önizleme */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Kargo Hacmi Önizleme
+        </h3>
+        <div className="mt-3">
+          <VehiclePreviewCanvas control={control} />
+        </div>
+        {volume && (
+          <div className="mt-3 text-center">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Toplam Hacim
+            </p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">{volume} m³</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{dims}</p>
           </div>
-          {volume && (
-            <div className="mt-3 text-center">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Toplam Hacim
-              </p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">
-                {volume} m³
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{dims}</p>
-            </div>
-          )}
-        </div>
+        )}
+      </div>
 
-        {/* Araç Özeti */}
-        <div className="flex flex-1 flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Araç Özeti
-          </h3>
-          <dl className="mt-2 divide-y divide-zinc-100 ">
-            <PreviewRow label="Araç Adı" value={name || '—'} emphasize />
-            <PreviewRow label="Tip" value={TYPE_LABELS[vehicleType] ?? vehicleType ?? '—'} />
-            <PreviewRow
-              label="Kapı Yönleri"
-              value={doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—'}
-            />
-            <PreviewRow label="Fiziksel Ölçüler" value={dimsRaw} />
-            <PreviewRow label="Maks. Kargo Yükü" value={cargo} />
-            <PreviewRow label="Brüt Ağırlık" value={gross} />
-            <PreviewRow label="Dara Ağırlığı" value={tare} />
-            <PreviewRow
-              label="Aks Sayısı"
-              value={axleCount > 1 ? `${axleCount} Adet` : '—'}
-            />
-            <PreviewRow
-              label="Açıklama"
-              value={description && description.trim() ? description : '—'}
-            />
-          </dl>
-        </div>
+      {/* Araç Özeti */}
+      <div className="flex flex-1 flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Araç Özeti
+        </h3>
+        <dl className="mt-2 divide-y divide-zinc-100 ">
+          <PreviewRow label="Araç Adı" value={name || '—'} emphasize />
+          <PreviewRow label="Tip" value={TYPE_LABELS[vehicleType] ?? vehicleType ?? '—'} />
+          <PreviewRow
+            label="Kapı Yönleri"
+            value={doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—'}
+          />
+          <PreviewRow label="Fiziksel Ölçüler" value={dimsRaw} />
+          <PreviewRow label="Maks. Kargo Yükü" value={cargo} />
+          <PreviewRow label="Brüt Ağırlık" value={gross} />
+          <PreviewRow label="Dara Ağırlığı" value={tare} />
+          <PreviewRow label="Aks Sayısı" value={axleCount > 1 ? `${axleCount} Adet` : '—'} />
+          <PreviewRow
+            label="Açıklama"
+            value={description && description.trim() ? description : '—'}
+          />
+        </dl>
+      </div>
     </aside>
   );
 }

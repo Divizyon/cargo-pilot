@@ -1,14 +1,7 @@
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ChevronDown,
-  Download,
-  Pencil,
-  Plus,
-  SlidersHorizontal,
-  Trash2,
-} from 'lucide-react';
+import { ChevronDown, Download, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +27,15 @@ import { VehicleDetailPanel } from './VehicleDetailPanel';
 
 function TirIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="1" y="5" width="6" height="11" rx="1" />
       <line x1="1" y1="9" x2="7" y2="9" />
       <rect x="7" y="3" width="16" height="13" rx="1" />
@@ -47,7 +48,15 @@ function TirIcon({ className }: { className?: string }) {
 
 function KamyonIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="2" y="4" width="20" height="13" rx="1" />
       <line x1="9" y1="4" x2="9" y2="17" />
       <circle cx="6" cy="19" r="1.8" />
@@ -58,7 +67,15 @@ function KamyonIcon({ className }: { className?: string }) {
 
 function RomorkIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="1" y="4" width="18" height="13" rx="1" />
       <line x1="19" y1="10" x2="23" y2="10" />
       <circle cx="6" cy="19" r="1.8" />
@@ -69,7 +86,15 @@ function RomorkIcon({ className }: { className?: string }) {
 
 function KonteynerIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="1" y="3" width="22" height="16" rx="1" />
       <line x1="7" y1="3" x2="7" y2="19" />
       <line x1="13" y1="3" x2="13" y2="19" />
@@ -78,11 +103,34 @@ function KonteynerIcon({ className }: { className?: string }) {
   );
 }
 
-const TYPE_CONFIG: Record<VehicleType, { Icon: ({ className }: { className?: string }) => ReactElement; label: string; iconClass: string; textClass: string }> = {
+const TYPE_CONFIG: Record<
+  VehicleType,
+  {
+    Icon: ({ className }: { className?: string }) => ReactElement;
+    label: string;
+    iconClass: string;
+    textClass: string;
+  }
+> = {
   Tir: { Icon: TirIcon, label: 'Tır', iconClass: 'text-blue-500', textClass: 'text-blue-600' },
-  Kamyon: { Icon: KamyonIcon, label: 'Kamyon', iconClass: 'text-zinc-500', textClass: 'text-zinc-600' },
-  Kamposet: { Icon: RomorkIcon, label: 'Römork', iconClass: 'text-orange-500', textClass: 'text-orange-600' },
-  Konteyner: { Icon: KonteynerIcon, label: 'Konteyner', iconClass: 'text-teal-500', textClass: 'text-teal-600' },
+  Kamyon: {
+    Icon: KamyonIcon,
+    label: 'Kamyon',
+    iconClass: 'text-zinc-500',
+    textClass: 'text-zinc-600',
+  },
+  Kamposet: {
+    Icon: RomorkIcon,
+    label: 'Römork',
+    iconClass: 'text-orange-500',
+    textClass: 'text-orange-600',
+  },
+  Konteyner: {
+    Icon: KonteynerIcon,
+    label: 'Konteyner',
+    iconClass: 'text-teal-500',
+    textClass: 'text-teal-600',
+  },
 };
 
 // ─── Door direction config ────────────────────────────────────────────────────
@@ -137,22 +185,42 @@ function VehicleTableSkeleton() {
       <TableHeader>
         <TableRow className="bg-muted/40 hover:bg-muted/40">
           {['w-40', 'w-24', 'w-24', 'w-20', 'w-20', 'w-20', 'w-20', 'w-24', 'w-16'].map((w, i) => (
-            <TableHead key={i}><Skeleton className={cn('h-3', w)} /></TableHead>
+            <TableHead key={i}>
+              <Skeleton className={cn('h-3', w)} />
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-32" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-16" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-20" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-14" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-14" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-14" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-3 w-16" /></TableCell>
-            <TableCell className="py-0 px-3"><Skeleton className="h-6 w-14 rounded-lg" /></TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-32" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-16" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-5 w-12 rounded-full" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-16" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-6 w-14 rounded-lg" />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -171,7 +239,10 @@ interface VehicleRowProps {
 function VehicleRow({ vehicle, onRowClick, onDelete }: VehicleRowProps) {
   const navigate = useNavigate();
   const cfg = TYPE_CONFIG[vehicle.vehicleType];
-  const door = DOOR_CONFIG[vehicle.doorDirection] ?? { label: vehicle.doorDirection, className: 'bg-zinc-100 text-zinc-600' };
+  const door = DOOR_CONFIG[vehicle.doorDirection] ?? {
+    label: vehicle.doorDirection,
+    className: 'bg-zinc-100 text-zinc-600',
+  };
   const weightTon = (vehicle.maxCargoWeight / 1000).toFixed(1);
   const weightKg = vehicle.maxCargoWeight.toLocaleString('tr-TR');
   const cell = 'py-0 px-3';
@@ -196,7 +267,12 @@ function VehicleRow({ vehicle, onRowClick, onDelete }: VehicleRowProps) {
       </TableCell>
 
       <TableCell className={cell}>
-        <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium', door.className)}>
+        <span
+          className={cn(
+            'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
+            door.className,
+          )}
+        >
           {door.label}
         </span>
       </TableCell>
@@ -204,21 +280,27 @@ function VehicleRow({ vehicle, onRowClick, onDelete }: VehicleRowProps) {
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs text-foreground">{formatDim(vehicle.length)}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">m</Badge>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
+            m
+          </Badge>
         </div>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs text-foreground">{formatDim(vehicle.width)}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">m</Badge>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
+            m
+          </Badge>
         </div>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs text-foreground">{formatDim(vehicle.height)}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">m</Badge>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
+            m
+          </Badge>
         </div>
       </TableCell>
 
@@ -272,9 +354,11 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
 
   const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
 
-  const { data: vehicles = [], isLoading, isFetching } = useVehicles(
-    searchTerm ? { search: searchTerm } : undefined,
-  );
+  const {
+    data: vehicles = [],
+    isLoading,
+    isFetching,
+  } = useVehicles(searchTerm ? { search: searchTerm } : undefined);
 
   useEffect(() => {
     if (!showFilterPanel) return;
@@ -297,9 +381,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   }
 
   const categoryFiltered =
-    category === 'all'
-      ? vehicles
-      : vehicles.filter((v) => v.vehicleType === category);
+    category === 'all' ? vehicles : vehicles.filter((v) => v.vehicleType === category);
 
   const filteredVehicles =
     doorFilters.size === 0
@@ -307,8 +389,10 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       : categoryFiltered.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
 
   const showSkeleton = isLoading || isFetching;
-  const isEmpty = !showSkeleton && filteredVehicles.length === 0 && !searchTerm && doorFilters.size === 0;
-  const noResults = !showSkeleton && filteredVehicles.length === 0 && (Boolean(searchTerm) || doorFilters.size > 0);
+  const isEmpty =
+    !showSkeleton && filteredVehicles.length === 0 && !searchTerm && doorFilters.size === 0;
+  const noResults =
+    !showSkeleton && filteredVehicles.length === 0 && (Boolean(searchTerm) || doorFilters.size > 0);
   const hasActiveFilters = doorFilters.size > 0;
 
   return (
@@ -355,7 +439,9 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                 {doorFilters.size}
               </span>
             )}
-            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')} />
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
+            />
           </Button>
 
           {showFilterPanel && (
@@ -374,11 +460,13 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                         checked={doorFilters.has(value)}
                         onCheckedChange={() => toggleDoorFilter(value)}
                       />
-                      <span className={cn('inline-block h-2 w-2 rounded-full', {
-                        'bg-zinc-400': value === 'rear' || value === 'rearAndSide',
-                        'bg-teal-500': value === 'side',
-                        'bg-violet-500': value === 'top',
-                      })} />
+                      <span
+                        className={cn('inline-block h-2 w-2 rounded-full', {
+                          'bg-zinc-400': value === 'rear' || value === 'rearAndSide',
+                          'bg-teal-500': value === 'side',
+                          'bg-violet-500': value === 'top',
+                        })}
+                      />
                       <span className="text-xs">{label}</span>
                     </label>
                   ))}
@@ -431,21 +519,42 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           <Table className="min-w-[1000px]">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Araç</TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Tip</TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Oluşturuldu</TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Kapı Yönü</TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Uzunluk</TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Genişlik</TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Yükseklik</TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Max Yük</TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">İşlem</TableHead>
+                <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Araç
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Tip
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Oluşturuldu
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Kapı Yönü
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Uzunluk
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Genişlik
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Yükseklik
+                </TableHead>
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Max Yük
+                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  İşlem
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={9}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
                     Henüz araç eklenmemiş.
                   </TableCell>
                 </TableRow>

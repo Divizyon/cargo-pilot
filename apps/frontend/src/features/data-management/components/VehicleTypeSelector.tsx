@@ -121,10 +121,10 @@ export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProp
                 </svg>
               </span>
             )}
-            <Icon
-              className={cn('h-8 w-8', isSelected ? 'text-foreground' : 'text-zinc-400')}
-            />
-            <span className={cn('text-xs', isSelected ? 'text-foreground' : 'text-muted-foreground')}>
+            <Icon className={cn('h-8 w-8', isSelected ? 'text-foreground' : 'text-zinc-400')} />
+            <span
+              className={cn('text-xs', isSelected ? 'text-foreground' : 'text-muted-foreground')}
+            >
               {label}
             </span>
           </button>
