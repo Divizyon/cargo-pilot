@@ -3,23 +3,26 @@ import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ElementType } from 'react';
-import { Car, Package2, Truck } from 'lucide-react';
+import { Car, Loader2, Package2, Truck } from 'lucide-react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import type { Vehicle } from '@/lib/types/vehicle';
+import { useCreatePlanVehicle } from '@/lib/api/useVehicles';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const vehicleModalSchema = z.object({
   vehicleType: z.enum(['tir', 'kamyon', 'kamposet', 'konteyner']),
   name: z.string().min(1, 'Zorunlu'),
+  plateNumber: z.string().min(1, 'Zorunlu'),
   payload: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   length: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  layerCount: z.number({ error: 'Sayı giriniz' }).int().min(1, 'En az 1'),
   loadingArea: z.enum(['arka', 'yan', 'arka-yan']),
 });
 
@@ -28,10 +31,12 @@ type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
 const EMPTY_DEFAULTS: VehicleModalValues = {
   vehicleType: 'kamyon',
   name: '',
-  payload: 0,
-  length: 0,
-  width: 0,
-  height: 0,
+  plateNumber: '',
+  payload: 24000,
+  length: 1360,
+  width: 248,
+  height: 270,
+  layerCount: 3,
   loadingArea: 'arka',
 };
 
@@ -64,16 +69,31 @@ const LOADING_AREAS: Array<{
 interface AddVehicleModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (vehicle: Vehicle) => void;
+  onCreated: (id: string | null) => void;
 }
 
-export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalProps) {
+const FORM_VEHICLE_TYPE_INT: Record<string, number> = {
+  tir: 0,
+  kamyon: 1,
+  kamposet: 2,
+  konteyner: 3,
+};
+
+const LOADING_AREA_INT: Record<string, number> = {
+  arka: 0,
+  yan: 1,
+  'arka-yan': 0,
+};
+
+export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleModalProps) {
+  const createVehicle = useCreatePlanVehicle();
+
   const {
     register,
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<VehicleModalValues>({
     resolver: zodResolver(vehicleModalSchema),
     defaultValues: EMPTY_DEFAULTS,
@@ -96,30 +116,36 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
 
   const loadingLabel = LOADING_AREAS.find((a) => a.value === loadingArea)?.label ?? '';
 
-  function onSubmit(data: VehicleModalValues) {
-    const vehicle: Vehicle = {
-      id: crypto.randomUUID(),
-      name: data.name,
-      vehicleType: 'Kamyon',
-      length: data.length,
-      width: data.width,
-      height: data.height,
-      maxCargoWeight: data.payload,
-      payload: data.payload,
-      doorDirection: 'rear',
-      isFavorite: false,
-      isActive: true,
-      isDeleted: false,
-      createdAt: new Date().toISOString(),
-      createdBy: { id: '', fullName: '' },
-    };
-    onAdd(vehicle);
-    onOpenChange(false);
+  async function onSubmit(data: VehicleModalValues) {
+    try {
+      const newId = await createVehicle.mutateAsync({
+        vehicleName: data.name,
+        plateNumber: data.plateNumber,
+        vehicleType: FORM_VEHICLE_TYPE_INT[data.vehicleType] ?? 1,
+        internalWidth: Math.round(data.width * 10),
+        internalHeight: Math.round(data.height * 10),
+        internalLength: Math.round(data.length * 10),
+        maxWeightCapacity: Math.round(data.payload * 1000),
+        layerCount: data.layerCount,
+        loadingType: LOADING_AREA_INT[data.loadingArea] ?? 0,
+      });
+
+      onCreated(newId);
+      onOpenChange(false);
+      toast.success('Araç kaydedildi.', { position: 'bottom-right' });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };
+      const detail =
+        axiosErr?.response?.data?.detail ??
+        axiosErr?.response?.data?.title ??
+        'Araç kaydedilemedi. Lütfen tekrar deneyin.';
+      toast.error(detail, { position: 'bottom-right' });
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
         <div className="flex">
           {/* ── Left: Form ───────────────────────────────────────────────── */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-5 p-6">
@@ -161,12 +187,19 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
             {/* 2. Kapasite ve Boyutlar */}
             <div className="flex flex-col gap-3">
               <span className="text-xs font-medium text-zinc-500">2. Kapasite ve Boyutlar</span>
-              <Input
-                {...register('name')}
-                placeholder="Araç Modeli (Örn: Volvo FH16 - 6x4)"
-                className={cn('h-9', errors.name && 'border-rose-400')}
-              />
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  {...register('name')}
+                  placeholder="Araç Modeli (Örn: Volvo FH16)"
+                  className={cn('h-9', errors.name && 'border-rose-400')}
+                />
+                <Input
+                  {...register('plateNumber')}
+                  placeholder="Plaka (Örn: 34 CP 001)"
+                  className={cn('h-9', errors.plateNumber && 'border-rose-400')}
+                />
+              </div>
+              <div className="grid grid-cols-4 gap-2">
                 <div className="flex flex-col gap-1">
                   <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
                     KAPASİTE (KG)
@@ -175,9 +208,20 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
                     type="number"
                     min="1"
                     step="1"
-                    placeholder="0"
                     {...register('payload', { valueAsNumber: true })}
                     className={cn('h-8 text-sm', errors.payload && 'border-rose-400')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
+                    KAT SAYISI
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    {...register('layerCount', { valueAsNumber: true })}
+                    className={cn('h-8 text-sm', errors.layerCount && 'border-rose-400')}
                   />
                 </div>
                 <div className="flex flex-col gap-1 col-span-2">
@@ -252,7 +296,12 @@ export function AddVehicleModal({ open, onOpenChange, onAdd }: AddVehicleModalPr
               >
                 İptal
               </Button>
-              <Button type="submit" className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700">
+              <Button
+                type="submit"
+                disabled={isSubmitting || createVehicle.isPending}
+                className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
+              >
+                {createVehicle.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Kaydet
               </Button>
             </div>

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const VehicleType = {
   Tir: 'Tir',
   Kamyon: 'Kamyon',
-  Romork: 'Romork',
+  Kamposet: 'Kamposet',
   Konteyner: 'Konteyner',
 } as const;
 export type VehicleType = (typeof VehicleType)[keyof typeof VehicleType];
@@ -12,6 +12,7 @@ export const DoorDirection = {
   Rear: 'rear',
   Side: 'side',
   Top: 'top',
+  RearAndSide: 'rearAndSide',
 } as const;
 export type DoorDirection = (typeof DoorDirection)[keyof typeof DoorDirection];
 
