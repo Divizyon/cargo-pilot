@@ -16,9 +16,10 @@ import type { Vehicle } from '@/lib/types/vehicle';
 interface Props {
   vehicle: Vehicle | null;
   onClose: () => void;
+  onDeleted?: () => void;
 }
 
-export function VehicleDeleteDialog({ vehicle, onClose }: Props) {
+export function VehicleDeleteDialog({ vehicle, onClose, onDeleted }: Props) {
   const { mutate: deleteVehicle, isPending: isDeleting } = useDeleteVehicle();
   const { mutate: archiveVehicle, isPending: isArchiving } = useArchiveVehicle();
   const { data: plans } = useVehiclePlans(vehicle?.id ?? '');
@@ -27,20 +28,22 @@ export function VehicleDeleteDialog({ vehicle, onClose }: Props) {
 
   function handleDelete() {
     if (!vehicle) return;
-    deleteVehicle(vehicle.id, {
+    deleteVehicle(vehicle, {
       onSuccess: () => {
         toast.success('Araç başarıyla silindi.');
         onClose();
+        onDeleted?.();
       },
     });
   }
 
   function handleArchive() {
     if (!vehicle) return;
-    archiveVehicle(vehicle.id, {
+    archiveVehicle(vehicle, {
       onSuccess: () => {
         toast.success('Araç pasife alındı.');
         onClose();
+        onDeleted?.();
       },
     });
   }
