@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -76,6 +77,8 @@ internal sealed class ResendEmailService : IEmailService
     {
         var formattedTime = loginTime.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture) + " UTC";
 
+        var encodedDeviceSummary = WebUtility.HtmlEncode(deviceSummary);
+
         var request = new ResendSendEmailRequest
         {
             From = string.IsNullOrWhiteSpace(_settings.FromName)
@@ -90,7 +93,7 @@ internal sealed class ResendEmailService : IEmailService
                   <table style="width:100%;border-collapse:collapse;margin:16px 0;">
                     <tr>
                       <td style="padding:8px;font-weight:bold;background:#f5f5f5;width:140px;">Cihaz / Tarayıcı</td>
-                      <td style="padding:8px;background:#fafafa;">{deviceSummary}</td>
+                      <td style="padding:8px;background:#fafafa;">{encodedDeviceSummary}</td>
                     </tr>
                     <tr>
                       <td style="padding:8px;font-weight:bold;background:#f5f5f5;">Tarih ve Saat</td>

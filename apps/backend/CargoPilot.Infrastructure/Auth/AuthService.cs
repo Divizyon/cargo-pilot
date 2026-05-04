@@ -11,6 +11,7 @@ using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CargoPilot.Infrastructure.Auth;
@@ -25,6 +26,12 @@ internal sealed class AuthService : IAuthService
         BCrypt.Net.BCrypt.HashPassword("__timing_protection__", workFactor: 11);
 #pragma warning restore S2068
 
+    private static readonly Action<ILogger, Guid, Exception?> LogNewDeviceEmailFailed =
+        LoggerMessage.Define<Guid>(
+            LogLevel.Error,
+            new EventId(2001, nameof(LogNewDeviceEmailFailed)),
+            "Yeni cihaz uyarı e-postası gönderilemedi. UserId={UserId}");
+
     private readonly AppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
@@ -35,6 +42,7 @@ internal sealed class AuthService : IAuthService
     private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
     private readonly IEmailService _emailService;
     private readonly PasswordResetSettings _passwordResetSettings;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         AppDbContext context,
@@ -46,7 +54,8 @@ internal sealed class AuthService : IAuthService
         IPasswordResetTokenRepository resetTokenRepository,
         IUserPasswordHistoryRepository passwordHistoryRepository,
         IEmailService emailService,
-        IOptions<PasswordResetSettings> passwordResetSettings)
+        IOptions<PasswordResetSettings> passwordResetSettings,
+        ILogger<AuthService> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
@@ -58,6 +67,7 @@ internal sealed class AuthService : IAuthService
         _passwordHistoryRepository = passwordHistoryRepository;
         _emailService = emailService;
         _passwordResetSettings = passwordResetSettings.Value;
+        _logger = logger;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
@@ -234,15 +244,20 @@ internal sealed class AuthService : IAuthService
             var secureLink = $"{_passwordResetSettings.BackendBaseUrl}/api/v1/auth/secure-account" +
                 $"?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(rawToken)}";
 
-            Console.WriteLine($"[DEBUG] NewDevice tokenHash stored : {tokenHash}");
-            Console.WriteLine($"[DEBUG] NewDevice secureLink       : {secureLink}");
-
-            await _emailService.SendNewDeviceWarningEmailAsync(
-                user.Email,
-                deviceSummary!,
-                now,
-                secureLink,
-                cancellationToken);
+            try
+            {
+                await _emailService.SendNewDeviceWarningEmailAsync(
+                    user.Email,
+                    deviceSummary!,
+                    now,
+                    secureLink,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // E-posta gönderimi başarısız olsa dahi login akışı durdurulmamalı.
+                LogNewDeviceEmailFailed(_logger, user.Id, ex);
+            }
         }
 
         return Result<LoginResponse>.Success(new LoginResponse
@@ -345,8 +360,6 @@ internal sealed class AuthService : IAuthService
         catch (FormatException) { return Result<bool>.Failure(AuthErrors.InvalidResetToken); }
 
         var tokenHash = Convert.ToHexString(SHA256.HashData(resetTokenBytes));
-        Console.WriteLine($"[DEBUG] ResetPassword token   : {token}");
-        Console.WriteLine($"[DEBUG] ResetPassword hash    : {tokenHash}");
 
         var now = DateTime.UtcNow;
         var userId = await _resetTokenRepository.TryConsumeActiveTokenAsync(tokenHash, now, cancellationToken);
@@ -397,9 +410,6 @@ internal sealed class AuthService : IAuthService
 
         var tokenHash = Convert.ToHexString(SHA256.HashData(secureTokenBytes));
         var now = DateTime.UtcNow;
-
-        Console.WriteLine($"[DEBUG] SecureAccount token   : {token}");
-        Console.WriteLine($"[DEBUG] SecureAccount hash    : {tokenHash}");
 
         var userId = await _resetTokenRepository.TryConsumeActiveTokenAsync(tokenHash, now, cancellationToken);
         if (userId is null)
