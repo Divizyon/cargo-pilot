@@ -15,10 +15,7 @@ export function EmailChangeSection() {
   const { mutate: requestChange, isPending } = useRequestEmailChange();
 
   function handleSend() {
-    requestChange(
-      { newEmail },
-      { onSuccess: () => setSent(true) },
-    );
+    requestChange({ newEmail }, { onSuccess: () => setSent(true) });
   }
 
   return (
@@ -26,8 +23,8 @@ export function EmailChangeSection() {
       <CardHeader>
         <CardTitle className="text-base font-semibold">E-posta Değişikliği</CardTitle>
         <CardDescription>
-          Yeni e-posta adresinize doğrulama bağlantısı gönderilir. Mevcut e-posta doğrulanmadan
-          yeni adres aktif olmaz.
+          Yeni e-posta adresinize doğrulama bağlantısı gönderilir. Mevcut e-posta doğrulanmadan yeni
+          adres aktif olmaz.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
