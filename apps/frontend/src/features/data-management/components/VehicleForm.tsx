@@ -3,7 +3,6 @@ import { Form } from '@/components/ui/form';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
 import { VehicleIdentityFields } from './VehicleIdentityFields';
 import { VehiclePlateOrSerialField } from './VehiclePlateOrSerialField';
-import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleFormLayout } from './VehicleFormLayout';
 import { VehicleFormActions } from './VehicleFormActions';
 import { VehiclePreviewPanel } from './VehiclePreviewPanel';
@@ -33,16 +32,7 @@ export function VehicleForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        {/* Üst aksiyon çubuğu */}
-        <VehicleFormActions
-          form={form}
-          isSubmitting={isSubmitting}
-          onCancel={onCancel}
-          onDraftSubmit={onDraftSubmit ?? (() => undefined)}
-          disableSubmitWhenPristine={disableSubmitWhenPristine}
-        />
-
-        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* Sol — Form alanları */}
           <div className="space-y-4">
             {/* Araç Tipi */}
@@ -80,28 +70,33 @@ export function VehicleForm({
             <FormCard>
               <CardSectionTitle>Kimlik Bilgileri</CardSectionTitle>
               <div className="mt-3 space-y-3">
-                <VehicleIdentityFields form={form} />
+                <div className="grid grid-cols-2 gap-3">
+                  <VehicleIdentityFields form={form} section="name-only" />
+                  <VehiclePlateOrSerialField form={form} hideHeading />
+                </div>
+                <VehicleIdentityFields form={form} section="description-only" />
               </div>
             </FormCard>
 
-            {/* Fiziksel ölçüler + aks yönetimi (FormCard'ları FormLayout içinde) */}
+            {/* Fiziksel ölçüler + aks yönetimi + kapı yönü */}
             <VehicleFormLayout form={form} />
-
-            {/* Plaka / Seri No + Kapı Yönü */}
-            <FormCard>
-              <div className="grid grid-cols-2 gap-6 divide-x divide-zinc-100">
-                <div>
-                  <VehiclePlateOrSerialField form={form} hideHeading={false} />
-                </div>
-                <div className="pl-6">
-                  <VehicleDoorDirectionField form={form} hideHeading={false} />
-                </div>
-              </div>
-            </FormCard>
           </div>
 
           {/* Sağ — Canlı önizleme */}
-          <VehiclePreviewPanel form={form} />
+          <div className="flex flex-col gap-4">
+            <VehiclePreviewPanel form={form} />
+          </div>
+        </div>
+
+        {/* Aksiyon butonları — sayfanın en altı, sağa hizalı */}
+        <div className="mt-6 flex justify-end">
+          <VehicleFormActions
+            form={form}
+            isSubmitting={isSubmitting}
+            onCancel={onCancel}
+            onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+            disableSubmitWhenPristine={disableSubmitWhenPristine}
+          />
         </div>
       </form>
     </Form>
@@ -109,9 +104,7 @@ export function VehicleForm({
 }
 
 function FormCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">{children}</div>
-  );
+  return <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">{children}</div>;
 }
 
 function CardSectionTitle({ children }: { children: React.ReactNode }) {

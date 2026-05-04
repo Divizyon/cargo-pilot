@@ -33,8 +33,8 @@ function PreviewRow({
   emphasize?: boolean;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1">
-      <dt className="shrink-0 text-xs text-muted-foreground">{label}</dt>
+    <div className="flex items-baseline justify-between gap-3  py-1">
+      <dt className="shrink-0 text-xs text-muted-foreground mt-2">{label}</dt>
       <dd
         className={cn(
           'truncate text-right text-xs',
@@ -100,8 +100,7 @@ export function VehiclePreviewPanel({ form }: Props) {
     length && width && height ? ((length * width * height) / 1_000_000).toFixed(2) : null;
 
   return (
-    <aside className="lg:sticky lg:top-6 lg:self-start">
-      <div className="flex flex-col gap-4">
+    <aside className="flex flex-1 flex-col gap-4">
         {/* Operasyonel Durum */}
         <VehicleStatusToggle form={form} />
 
@@ -127,16 +126,12 @@ export function VehiclePreviewPanel({ form }: Props) {
         </div>
 
         {/* Araç Özeti */}
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-1 flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Araç Özeti
           </h3>
-          <dl className="mt-2 divide-y divide-zinc-100">
+          <dl className="mt-2 divide-y divide-zinc-100 ">
             <PreviewRow label="Araç Adı" value={name || '—'} emphasize />
-            <PreviewRow
-              label="Açıklama"
-              value={description && description.trim() ? description : '—'}
-            />
             <PreviewRow label="Tip" value={TYPE_LABELS[vehicleType] ?? vehicleType ?? '—'} />
             <PreviewRow
               label="Kapı Yönleri"
@@ -150,9 +145,12 @@ export function VehiclePreviewPanel({ form }: Props) {
               label="Aks Sayısı"
               value={axleCount > 1 ? `${axleCount} Adet` : '—'}
             />
+            <PreviewRow
+              label="Açıklama"
+              value={description && description.trim() ? description : '—'}
+            />
           </dl>
         </div>
-      </div>
     </aside>
   );
 }
