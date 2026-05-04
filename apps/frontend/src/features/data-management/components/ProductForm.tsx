@@ -1,7 +1,27 @@
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Ban, Box, Cylinder, Droplets, HelpCircle, Move3d, Package, Wine } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Ban,
+  Box,
+  Cylinder,
+  Droplets,
+  Flame,
+  FlaskConical,
+  HelpCircle,
+  Leaf,
+  Minus,
+  Move3d,
+  Package,
+  Plus,
+  ShieldOff,
+  Sun,
+  Utensils,
+  Wind,
+  Wine,
+} from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -75,34 +95,78 @@ const ROTATION_AXES = [
   },
 ] as const;
 
-const COMPACT_INPUT = 'h-9 border-zinc-200 bg-zinc-50';
-const COMPACT_INPUT_WITH_UNIT = 'h-9 border-zinc-200 bg-zinc-50 pr-16';
+const COMPACT_INPUT = 'h-9 border-zinc-200 bg-white';
+const COMPACT_INPUT_WITH_UNIT = 'h-9 border-zinc-200 bg-white pr-16';
 const UNIT_TRIGGER =
   'absolute right-1 top-1/2 h-7 w-14 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0';
 
-interface NonStackableIconProps {
-  className?: string;
+type ConstraintColor = 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
+
+type ConstraintOption = {
+  value: string;
+  label: string;
+  color: ConstraintColor;
+  Icon: LucideIcon;
+  fragilityValue?: number;
+};
+
+const CONSTRAINT_OPTIONS: ConstraintOption[] = [
+  {
+    value: 'none',
+    label: 'Kısıt Yok',
+    color: 'default',
+    Icon: ShieldOff,
+    fragilityValue: FRAGILITY_LEVELS.NonFragile,
+  },
+  {
+    value: 'fragile',
+    label: 'Kırılgan',
+    color: 'amber',
+    Icon: Wine,
+    fragilityValue: FRAGILITY_LEVELS.Fragile,
+  },
+  {
+    value: 'liquid',
+    label: 'Sıvı',
+    color: 'blue',
+    Icon: Droplets,
+    fragilityValue: FRAGILITY_LEVELS.Liquid,
+  },
+  { value: 'corrosive', label: 'Aşındırıcı', color: 'orange', Icon: Flame },
+  { value: 'odor', label: 'Kokuya Hassas', color: 'green', Icon: Wind },
+  { value: 'food', label: 'Gıda Teması', color: 'green', Icon: Utensils },
+  { value: 'dry', label: 'Kuru', color: 'default', Icon: Sun },
+  { value: 'chemical', label: 'Kimyasal', color: 'purple', Icon: FlaskConical },
+  { value: 'organic', label: 'Organik', color: 'green', Icon: Leaf },
+];
+
+const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
+const INCOMPATIBLE_GROUPS = ['Gıda', 'Genel', 'Tehlikeli Madde', 'Kimya', 'Elektronik'];
+
+function formatVolume(cm3: number): string {
+  if (cm3 >= 1_000_000) return `${(cm3 / 1_000_000).toFixed(2)} m³`;
+  if (cm3 >= 1_000) return `${(cm3 / 1_000).toFixed(2)} dm³`;
+  return `${cm3.toFixed(1)} cm³`;
 }
 
-function NonStackableIcon({ className }: NonStackableIconProps) {
+function SectionCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
+    <div className={cn('rounded-xl border border-zinc-200 bg-white p-5', className)}>
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p
+      className={cn(
+        'mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground',
+        className,
+      )}
     >
-      <rect x="3" y="3" width="18" height="15" rx="2" />
-      <path d="M9 15 V8" />
-      <path d="M6 11 L9 8 L12 11" />
-      <path d="M15 15 V8" />
-      <path d="M12 11 L15 8 L18 11" />
-      <line x1="2" y1="21" x2="22" y2="21" />
-    </svg>
+      {children}
+    </p>
   );
 }
 
@@ -230,12 +294,6 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
   );
 }
 
-function formatVolume(cm3: number): string {
-  if (cm3 >= 1_000_000) return `${(cm3 / 1_000_000).toFixed(3)} m³`;
-  if (cm3 >= 1_000) return `${(cm3 / 1_000).toFixed(2)} dm³`;
-  return `${cm3.toFixed(1)} cm³`;
-}
-
 export function ProductForm({
   defaultValues,
   onSubmit,
@@ -245,6 +303,10 @@ export function ProductForm({
 }: ProductFormProps) {
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
+
+  const [selectedCargoGroup, setSelectedCargoGroup] = useState<string>('');
+  const [incompatibleGroups, setIncompatibleGroups] = useState<string[]>([]);
+  const [selectedConstraints, setSelectedConstraints] = useState<string[]>(['none']);
 
   const [
     width,
@@ -286,7 +348,6 @@ export function ProductForm({
   });
 
   const isPallet = productType === 'palet';
-
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
 
@@ -295,15 +356,21 @@ export function ProductForm({
   const lengthCm = Number.isFinite(length) ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
   const volumeCm3 = widthCm * heightCm * lengthCm;
 
+  function toggleIncompatibleGroup(group: string) {
+    setIncompatibleGroups((prev) =>
+      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group],
+    );
+  }
+
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
             {/* SOL — Form alanları */}
-            <div className="space-y-8">
-              {/* Kimlik */}
-              <section className="space-y-3">
+            <div className="space-y-4">
+              {/* KİMLİK */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <FormField
@@ -329,7 +396,6 @@ export function ProductForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('forms.product.sku')}</FormLabel>
-
                         <FormControl>
                           <Input
                             className={COMPACT_INPUT}
@@ -342,12 +408,13 @@ export function ProductForm({
                     )}
                   />
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Ürün Tipi & Hassasiyet */}
-              <section className="space-y-3">
+              {/* ÜRÜN TİPİ & KISITLAR */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {/* Ürün Tipi */}
                   <FormField
                     control={form.control}
                     name="productType"
@@ -371,7 +438,7 @@ export function ProductForm({
                                 }
                               }
                             }}
-                            className="flex flex-wrap"
+                            className="flex flex-wrap gap-1"
                           >
                             {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
                               <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
@@ -386,53 +453,154 @@ export function ProductForm({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="fragility"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
-                        <FormControl>
-                          <ToggleGroup
-                            type="single"
-                            value={String(field.value)}
-                            onValueChange={(value) => {
-                              if (value === '') return;
-                              const num = Number(value);
-                              field.onChange(num);
-                              if (num >= FRAGILITY_LEVELS.Fragile) {
+                  {/* Kısıtlar — multi-select chip */}
+                  <div>
+                    <p className="mb-1.5 block text-sm font-medium leading-none">KISITLAR</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CONSTRAINT_OPTIONS.map((opt) => {
+                        const isActive = selectedConstraints.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              let next: string[];
+                              if (opt.value === 'none') {
+                                next = ['none'];
+                              } else {
+                                const without = selectedConstraints.filter((v) => v !== 'none');
+                                next = isActive
+                                  ? without.filter((v) => v !== opt.value)
+                                  : [...without, opt.value];
+                                if (next.length === 0) next = ['none'];
+                              }
+                              setSelectedConstraints(next);
+                              // fragility field'ını seçili kısıtlardan türet
+                              const maxFragility = next.reduce((acc, v) => {
+                                const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
+                                return Math.max(acc, o?.fragilityValue ?? 0);
+                              }, 0);
+                              form.setValue('fragility', maxFragility, { shouldValidate: false });
+                              if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
+                              } else if (!isPallet) {
+                                form.setValue('allowRotateZ', true, { shouldValidate: false });
                               }
                             }}
-                            className="flex flex-wrap"
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
+                              isActive
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-zinc-200 bg-white text-muted-foreground hover:border-zinc-300',
+                            )}
                           >
-                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
-                              <NonStackableIcon className="h-5 w-5" />
-                              <span className="text-xs">
-                                {t('forms.product.fragilityNonFragile')}
-                              </span>
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
-                              <Wine className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
-                              <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
-                              <Droplets className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
-                              <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
-                            </ToggleGroupItem>
-                          </ToggleGroup>
-                        </FormControl>
+                            <opt.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* YÜK KATEGORİSİ */}
+              <SectionCard>
+                <SectionTitle>YÜK KATEGORİSİ</SectionTitle>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+                  <div className="space-y-3">
+                    {/* Yük Grubu */}
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium leading-none">Yük Grubu</p>
+                      <Select value={selectedCargoGroup} onValueChange={setSelectedCargoGroup}>
+                        <SelectTrigger className="h-9 border-zinc-200 bg-white">
+                          <SelectValue placeholder="Yük grubu seçin…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CARGO_GROUPS.map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Uyumsuz Yük Grupları */}
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium leading-none">
+                        Uyumsuz Yük Grupları
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {INCOMPATIBLE_GROUPS.map((g) => {
+                          const selected = incompatibleGroups.includes(g);
+                          return (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => toggleIncompatibleGroup(g)}
+                              className={cn(
+                                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
+                                selected
+                                  ? 'border-destructive bg-destructive/10 text-destructive'
+                                  : 'border-zinc-200 bg-white text-muted-foreground hover:border-zinc-300',
+                              )}
+                            >
+                              {g}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Katman Sayısı — +/- sayacı */}
+                  <FormField
+                    control={form.control}
+                    name="maxStackCount"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col items-center">
+                        <FormLabel className="text-center">Katman Sayısı</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label="Azalt"
+                            onClick={() => {
+                              const next = Math.max(1, (field.value ?? 1) - 1);
+                              field.onChange(next);
+                              form.setValue('isStackable', next > 1, { shouldValidate: false });
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-muted-foreground transition hover:bg-zinc-50"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-semibold tabular-nums">
+                            {field.value ?? 1}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Artır"
+                            onClick={() => {
+                              const next = (field.value ?? 1) + 1;
+                              field.onChange(next);
+                              form.setValue('isStackable', next > 1, { shouldValidate: false });
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-muted-foreground transition hover:bg-zinc-50"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Fiziksel Özellikler — Genişlik / Yükseklik / Uzunluk / Ağırlık / Katman Sayısı */}
-              <section className="space-y-3">
+              {/* FİZİKSEL ÖZELLİKLER */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   <DimensionField
                     form={form}
                     name="width"
@@ -496,39 +664,15 @@ export function ProductForm({
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="maxStackCount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={1}
-                            step={1}
-                            placeholder="1"
-                            className={COMPACT_INPUT}
-                            {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) => {
-                              const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
-                              field.onChange(value);
-                              form.setValue('isStackable', value > 1, { shouldValidate: false });
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Kısıtlar — sadece eksen rotasyonu */}
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
+              {/* KISITLAR — eksen rotasyonu */}
+              <SectionCard>
+                <div className="mb-4 flex items-center justify-between">
+                  <SectionTitle className="mb-0">
+                    {t('forms.product.sectionConstraints')}
+                  </SectionTitle>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" aria-label={t('forms.product.axisGuideAria')}>
@@ -571,7 +715,7 @@ export function ProductForm({
                                   disabled={isDisabled}
                                   onClick={() => field.onChange(!field.value)}
                                   className={cn(
-                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
+                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-3 text-center transition-all',
                                     field.value
                                       ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
                                       : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
@@ -596,18 +740,18 @@ export function ProductForm({
                     );
                   })}
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Özel Taşıma Notları */}
-              <section className="space-y-3">
+              {/* ÖZEL TAŞIMA NOTLARI */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
                 <FormField
                   control={form.control}
                   name="notes"
                   render={({ field }) => {
                     const value = field.value ?? '';
-                    const length = value.length;
-                    const isOverLimit = length >= NOTES_MAX_LENGTH;
+                    const charCount = value.length;
+                    const isOverLimit = charCount >= NOTES_MAX_LENGTH;
                     return (
                       <FormItem>
                         <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
@@ -616,7 +760,7 @@ export function ProductForm({
                             rows={3}
                             maxLength={NOTES_MAX_LENGTH}
                             placeholder={t('forms.product.notesPlaceholder')}
-                            className="resize-none overflow-y-auto border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary/40"
+                            className="resize-none overflow-y-auto border-zinc-200 bg-white focus-visible:ring-2 focus-visible:ring-primary/40"
                             {...field}
                             value={value}
                             onChange={(e) => {
@@ -635,7 +779,7 @@ export function ProductForm({
                             )}
                           >
                             {t('forms.product.notesCounter', {
-                              count: length,
+                              count: charCount,
                               max: NOTES_MAX_LENGTH,
                             })}
                           </span>
@@ -645,10 +789,10 @@ export function ProductForm({
                     );
                   }}
                 />
-              </section>
+              </SectionCard>
             </div>
 
-            {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
+            {/* SAĞ — Önizleme */}
             <PreviewPanel
               name={name}
               productType={productType ?? 'koli'}
@@ -670,7 +814,6 @@ export function ProductForm({
             />
           </div>
 
-          {/* Aksiyonlar — sayfa genişliği boyunca, en sağda */}
           <div className="flex justify-end gap-3 border-t pt-4">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
@@ -758,59 +901,79 @@ function PreviewPanel(props: PreviewPanelProps) {
 
   return (
     <aside className="lg:sticky lg:top-6 lg:self-start">
-      <div className="flex flex-col gap-4">
-        {/* 3D önizleme */}
-        <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-          {hasDimensions ? (
-            <ProductPreview3D
-              widthCm={widthCm}
-              heightCm={heightCm}
-              depthCm={depthCm}
-              productType={productType}
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400">
-              <div className="text-zinc-500">
-                <ProductTypeIllustration type={productType} />
+      <div className="flex flex-col gap-3">
+        {/* Önizleme kartı */}
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+          {/* Başlık */}
+          <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              ÜRÜN ÖNİZLEME
+            </span>
+            <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-500">
+              3D Önizleme
+            </span>
+          </div>
+
+          {/* 3D Alan */}
+          <div className="relative aspect-square overflow-hidden bg-zinc-50">
+            {hasDimensions ? (
+              <ProductPreview3D
+                widthCm={widthCm}
+                heightCm={heightCm}
+                depthCm={depthCm}
+                productType={productType}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400">
+                <div className="text-zinc-500">
+                  <ProductTypeIllustration type={productType} />
+                </div>
+                <p className="px-6 text-center text-xs uppercase tracking-wide">
+                  {t('forms.product.previewPlaceholder')}
+                </p>
               </div>
-              <p className="px-6 text-center text-xs uppercase tracking-wide">
-                {t('forms.product.previewPlaceholder')}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Hacim */}
+          <div className="flex items-baseline justify-between border-t border-zinc-100 px-4 py-3">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              HACİM
+            </span>
+            <span className="text-xl font-semibold tabular-nums text-foreground">
+              {volumeCm3 > 0 ? formatVolume(volumeCm3) : '0.00 m³'}
+            </span>
+          </div>
         </div>
 
-        {/* Anlık Hacim — 3D placeholder hemen altı */}
-        <div className="flex items-baseline justify-between rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('forms.product.volume')}
-          </span>
-          <span className="text-lg font-semibold tabular-nums text-foreground">
-            {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
-          </span>
+        {/* Özet kartı */}
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+          <div className="border-b border-zinc-100 px-4 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              ÜRÜN ÖZETİ
+            </span>
+          </div>
+          <dl className="divide-y divide-zinc-50 px-4">
+            <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
+            <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
+            <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
+            <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
+            <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
+            <PreviewRow label="Kısıtlar" value={fragilityLabel} />
+            <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
+            <PreviewRow
+              label={<Move3d className="h-4 w-4" aria-hidden />}
+              value={
+                allRotationsFree
+                  ? t('forms.product.summaryRotationFree')
+                  : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
+              }
+            />
+          </dl>
         </div>
-
-        {/* Canlı veri özeti */}
-        <dl className="space-y-2 text-sm">
-          <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
-          <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
-          <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
-          <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
-          <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
-          <PreviewRow label={t('forms.product.fragility')} value={fragilityLabel} />
-          <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
-          <PreviewRow
-            label={<Move3d className="h-4 w-4" aria-hidden />}
-            value={
-              allRotationsFree
-                ? t('forms.product.summaryRotationFree')
-                : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
-            }
-          />
-        </dl>
 
         {notes && notes.trim().length > 0 && (
-          <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-foreground">
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-3 text-xs text-foreground">
             <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
               {t('forms.product.notesSummaryLabel')}
             </p>
@@ -830,7 +993,7 @@ interface PreviewRowProps {
 
 function PreviewRow({ label, value, emphasize = false }: PreviewRowProps) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
+    <div className="flex items-baseline justify-between gap-3 py-2">
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd
         className={cn(
@@ -841,18 +1004,6 @@ function PreviewRow({ label, value, emphasize = false }: PreviewRowProps) {
         {value}
       </dd>
     </div>
-  );
-}
-
-interface SectionTitleProps {
-  children: ReactNode;
-}
-
-function SectionTitle({ children }: SectionTitleProps) {
-  return (
-    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-      {children}
-    </h3>
   );
 }
 
