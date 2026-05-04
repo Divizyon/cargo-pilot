@@ -209,9 +209,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
   const exceedsVehicle = Boolean(
     selectedVehicle &&
-      ((width && width > selectedVehicle.width) ||
-        (height && height > selectedVehicle.height) ||
-        (length && length > selectedVehicle.length)),
+    ((width && width > selectedVehicle.width) ||
+      (height && height > selectedVehicle.height) ||
+      (length && length > selectedVehicle.length)),
   );
 
   useEffect(() => {
@@ -454,12 +454,22 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                 <p className="flex items-center gap-1.5 text-xs text-destructive">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   {[
-                    selectedVehicle && width && width > selectedVehicle.width && `en (${width} cm > ${selectedVehicle.width} cm)`,
-                    selectedVehicle && length && length > selectedVehicle.length && `boy (${length} cm > ${selectedVehicle.length} cm)`,
-                    selectedVehicle && height && height > selectedVehicle.height && `yükseklik (${height} cm > ${selectedVehicle.height} cm)`,
+                    selectedVehicle &&
+                      width &&
+                      width > selectedVehicle.width &&
+                      `en (${width} cm > ${selectedVehicle.width} cm)`,
+                    selectedVehicle &&
+                      length &&
+                      length > selectedVehicle.length &&
+                      `boy (${length} cm > ${selectedVehicle.length} cm)`,
+                    selectedVehicle &&
+                      height &&
+                      height > selectedVehicle.height &&
+                      `yükseklik (${height} cm > ${selectedVehicle.height} cm)`,
                   ]
                     .filter(Boolean)
-                    .join(', ')} aracı aşıyor — eklenemez.
+                    .join(', ')}{' '}
+                  aracı aşıyor — eklenemez.
                 </p>
               )}
             </div>

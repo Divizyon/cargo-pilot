@@ -179,7 +179,15 @@ const SIDE_DOOR_OPEN_ANGLE = SCENE.DOOR_SIDE_OPEN_ANGLE;
 
 // Grid drawn on the outer face of the panel (facing −X, at x = −(DOOR_THICKNESS+0.5)).
 // sign=1 → panel extends +Z; sign=−1 → panel extends −Z.
-function SideDoorGrid({ panelDepth, height, sign }: { panelDepth: number; height: number; sign: 1 | -1 }) {
+function SideDoorGrid({
+  panelDepth,
+  height,
+  sign,
+}: {
+  panelDepth: number;
+  height: number;
+  sign: 1 | -1;
+}) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
     const x = -(DOOR_THICKNESS + 0.5);
@@ -202,15 +210,43 @@ function SideDoorGrid({ panelDepth, height, sign }: { panelDepth: number; height
   );
 }
 
-function SideDoorFrame({ panelDepth, height, sign }: { panelDepth: number; height: number; sign: 1 | -1 }) {
+function SideDoorFrame({
+  panelDepth,
+  height,
+  sign,
+}: {
+  panelDepth: number;
+  height: number;
+  sign: 1 | -1;
+}) {
   const geometry = useMemo(() => {
     const x = -(DOOR_THICKNESS + 0.5);
     const ez = sign * panelDepth;
     const pts = [
-      x, 0, 0, x, 0, ez,
-      x, 0, ez, x, height, ez,
-      x, height, ez, x, height, 0,
-      x, height, 0, x, 0, 0,
+      x,
+      0,
+      0,
+      x,
+      0,
+      ez,
+      x,
+      0,
+      ez,
+      x,
+      height,
+      ez,
+      x,
+      height,
+      ez,
+      x,
+      height,
+      0,
+      x,
+      height,
+      0,
+      x,
+      0,
+      0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -224,7 +260,15 @@ function SideDoorFrame({ panelDepth, height, sign }: { panelDepth: number; heigh
   );
 }
 
-function SideHalfDoor({ panelDepth, height, sign }: { panelDepth: number; height: number; sign: 1 | -1 }) {
+function SideHalfDoor({
+  panelDepth,
+  height,
+  sign,
+}: {
+  panelDepth: number;
+  height: number;
+  sign: 1 | -1;
+}) {
   return (
     <group>
       <SideDoorGrid panelDepth={panelDepth} height={height} sign={sign} />
@@ -267,7 +311,15 @@ function SideDoors({ width, height, length }: { width: number; height: number; l
 // Rear half hinges at Z=0, front half at Z=length.
 // Rotation: −X lifts +Z edge upward, +X lifts −Z edge upward.
 
-function TopCoverGrid({ width, panelLength, sign }: { width: number; panelLength: number; sign: 1 | -1 }) {
+function TopCoverGrid({
+  width,
+  panelLength,
+  sign,
+}: {
+  width: number;
+  panelLength: number;
+  sign: 1 | -1;
+}) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
     const y = DOOR_THICKNESS + 0.5;
@@ -290,15 +342,43 @@ function TopCoverGrid({ width, panelLength, sign }: { width: number; panelLength
   );
 }
 
-function TopCoverFrame({ width, panelLength, sign }: { width: number; panelLength: number; sign: 1 | -1 }) {
+function TopCoverFrame({
+  width,
+  panelLength,
+  sign,
+}: {
+  width: number;
+  panelLength: number;
+  sign: 1 | -1;
+}) {
   const geometry = useMemo(() => {
     const y = DOOR_THICKNESS + 0.5;
     const ez = sign * panelLength;
     const pts = [
-      0, y, 0, width, y, 0,
-      width, y, 0, width, y, ez,
-      width, y, ez, 0, y, ez,
-      0, y, ez, 0, y, 0,
+      0,
+      y,
+      0,
+      width,
+      y,
+      0,
+      width,
+      y,
+      0,
+      width,
+      y,
+      ez,
+      width,
+      y,
+      ez,
+      0,
+      y,
+      ez,
+      0,
+      y,
+      ez,
+      0,
+      y,
+      0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -312,7 +392,15 @@ function TopCoverFrame({ width, panelLength, sign }: { width: number; panelLengt
   );
 }
 
-function TopCoverHalf({ width, panelLength, sign }: { width: number; panelLength: number; sign: 1 | -1 }) {
+function TopCoverHalf({
+  width,
+  panelLength,
+  sign,
+}: {
+  width: number;
+  panelLength: number;
+  sign: 1 | -1;
+}) {
   return (
     <group>
       <TopCoverGrid width={width} panelLength={panelLength} sign={sign} />

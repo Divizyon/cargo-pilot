@@ -2,7 +2,17 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Box, ChevronLeft, ChevronRight, Loader2, Package2, Pencil, Plus, Truck, X } from 'lucide-react';
+import {
+  Box,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Package2,
+  Pencil,
+  Plus,
+  Truck,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,7 +47,13 @@ interface VehicleListItemProps {
   onDelete: (id: string) => void;
 }
 
-function VehicleListItem({ vehicle, isSelected, onSelect, onEdit, onDelete }: VehicleListItemProps) {
+function VehicleListItem({
+  vehicle,
+  isSelected,
+  onSelect,
+  onEdit,
+  onDelete,
+}: VehicleListItemProps) {
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
   const iconClass = cn('w-4 h-4 shrink-0', isSelected ? 'text-white' : 'text-zinc-500');
 
@@ -221,9 +237,7 @@ function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDe
           <div className="space-y-1">
             <Label className="text-[10px] text-zinc-500">Genişlik (cm)</Label>
             <Input {...register('width', { valueAsNumber: true })} className="h-7 text-xs" />
-            {errors.width && (
-              <p className="text-[10px] text-destructive">{errors.width.message}</p>
-            )}
+            {errors.width && <p className="text-[10px] text-destructive">{errors.width.message}</p>}
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] text-zinc-500">Yükseklik (cm)</Label>
