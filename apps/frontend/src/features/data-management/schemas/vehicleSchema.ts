@@ -66,7 +66,7 @@ export const vehicleFormSchema = z
     }),
     doorSide: z.enum(['right', 'left'] as const).optional(),
 
-    // VY-09: King pimi (Tır/Romork)
+    // VY-09: King pimi (Tır/Kamposet)
     kingpin: z
       .object({
         distance: numField('Geçerli bir uzaklık giriniz'),
@@ -126,12 +126,12 @@ export const vehicleFormSchema = z
       });
     }
 
-    const isTirOrRomork =
-      data.vehicleType === VehicleType.Tir || data.vehicleType === VehicleType.Romork;
-    const isRoadVehicle = isTirOrRomork || data.vehicleType === VehicleType.Kamyon;
+    const isTirOrKamposet =
+      data.vehicleType === VehicleType.Tir || data.vehicleType === VehicleType.Kamposet;
+    const isRoadVehicle = isTirOrKamposet || data.vehicleType === VehicleType.Kamyon;
 
-    // VY-09: King pimi Tır/Romork için zorunlu
-    if (isTirOrRomork && !data.kingpin) {
+    // VY-09: King pimi Tır/Kamposet için zorunlu
+    if (isTirOrKamposet && !data.kingpin) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'King Pimi bilgileri zorunludur',

@@ -15,7 +15,7 @@ const DOOR_LABELS: Record<string, string> = {
 const TYPE_LABELS: Record<string, string> = {
   Tir: 'Tır',
   Kamyon: 'Kamyon',
-  Romork: 'Römork',
+  Kamposet: 'Kamposet',
   Konteyner: 'Konteyner',
 };
 

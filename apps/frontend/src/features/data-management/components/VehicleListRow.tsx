@@ -10,7 +10,7 @@ import { VehicleAuditInfo } from './VehicleAuditInfo';
 const TYPE_ICONS: Record<VehicleType, ReactNode> = {
   Tir: <Truck className="h-4 w-4" />,
   Kamyon: <Truck className="h-4 w-4" />,
-  Romork: <Truck className="h-4 w-4" />,
+  Kamposet: <Truck className="h-4 w-4" />,
   Konteyner: <Container className="h-4 w-4" />,
 };
 
