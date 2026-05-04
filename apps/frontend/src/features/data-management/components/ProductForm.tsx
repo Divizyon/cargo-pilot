@@ -33,6 +33,7 @@ import {
   type ProductFormValues,
 } from '@/features/data-management/schemas/productSchema';
 import { cn } from '@/lib/utils';
+import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormValues>;
@@ -747,19 +748,33 @@ function PreviewPanel(props: PreviewPanelProps) {
   if (!allowRotateZ) lockedAxes.push('Z');
   const allRotationsFree = lockedAxes.length === 0;
 
+  const widthCm = Number.isFinite(width) && width !== undefined ? toCentimeters(width, widthUnit ?? 'cm') : 0;
+  const heightCm = Number.isFinite(height) && height !== undefined ? toCentimeters(height, heightUnit ?? 'cm') : 0;
+  const depthCm = Number.isFinite(length) && length !== undefined ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
+  const hasDimensions = widthCm > 0 && heightCm > 0 && depthCm > 0;
+
   return (
     <aside className="lg:sticky lg:top-6 lg:self-start">
       <div className="flex flex-col gap-4">
-        {/* 3D placeholder kutusu */}
-        <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
-          <div className="flex flex-col items-center gap-3 text-zinc-400">
-            <div className="text-zinc-500">
-              <ProductTypeIllustration type={productType} />
+        {/* 3D önizleme */}
+        <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+          {hasDimensions ? (
+            <ProductPreview3D
+                widthCm={widthCm}
+                heightCm={heightCm}
+                depthCm={depthCm}
+                productType={productType}
+              />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400">
+              <div className="text-zinc-500">
+                <ProductTypeIllustration type={productType} />
+              </div>
+              <p className="px-6 text-center text-xs uppercase tracking-wide">
+                {t('forms.product.previewPlaceholder')}
+              </p>
             </div>
-            <p className="px-6 text-center text-xs uppercase tracking-wide">
-              {t('forms.product.previewPlaceholder')}
-            </p>
-          </div>
+          )}
         </div>
 
         {/* Anlık Hacim — 3D placeholder hemen altı */}
