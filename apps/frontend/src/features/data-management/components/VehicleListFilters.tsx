@@ -27,7 +27,7 @@ interface Props {
 const VEHICLE_TYPE_OPTIONS = [
   { value: 'Tir', label: 'Tır' },
   { value: 'Kamyon', label: 'Kamyon' },
-  { value: 'Romork', label: 'Römork' },
+  { value: 'Kamposet', label: 'Kamposet' },
   { value: 'Konteyner', label: 'Konteyner' },
 ];
 

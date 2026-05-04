@@ -78,6 +78,7 @@ public sealed class VehiclesController : BaseController {
         CancellationToken cancellationToken = default) {
         var command = new CreateVehicleCommand(
             request.VehicleName,
+            request.Description,
             request.VehicleType,
             request.PlateNumber,
             request.InternalWidth,
@@ -123,6 +124,7 @@ public sealed class VehiclesController : BaseController {
         var command = new UpdateVehicleCommand(
             id,
             request.VehicleName,
+            request.Description,
             request.VehicleType,
             request.PlateNumber,
             request.InternalWidth,

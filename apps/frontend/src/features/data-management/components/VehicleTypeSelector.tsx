@@ -42,7 +42,7 @@ function KamyonIcon({ className }: { className?: string }) {
   );
 }
 
-function RomorkIcon({ className }: { className?: string }) {
+function KamposetIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -83,7 +83,7 @@ function KonteynerIcon({ className }: { className?: string }) {
 const VEHICLE_OPTIONS = [
   { value: VehicleType.Tir, label: 'Tır', icon: TirIcon },
   { value: VehicleType.Kamyon, label: 'Kamyon', icon: KamyonIcon },
-  { value: VehicleType.Romork, label: 'Römork', icon: RomorkIcon },
+  { value: VehicleType.Kamposet, label: 'Kamposet', icon: KamposetIcon },
   { value: VehicleType.Konteyner, label: 'Konteyner', icon: KonteynerIcon },
 ] as const;
 

@@ -127,6 +127,8 @@ interface PlanStore {
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
   placements: PlacementWithDimensions[];
+  previewItemId: string | null;
+  previewPlacements: PlacementWithDimensions[];
   setVehicle: (vehicle: Vehicle | null) => void;
   /** Seed the catalog without touching placements (called once on panel mount). */
   initItems: (
@@ -164,6 +166,8 @@ interface PlanStore {
    */
   mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
+  setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
+  clearPreview: () => void;
   reset: () => void;
 }
 
@@ -173,6 +177,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   skuColorMap: {},
   criteria: 0,
   placements: [],
+  previewItemId: null,
+  previewPlacements: [],
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -344,6 +350,54 @@ export const usePlanStore = create<PlanStore>((set) => ({
       return { placements: computeViolations(next) };
     }),
 
+  setPreview: (itemId, item, qty, color) =>
+    set((s) => {
+      if (!s.selectedVehicle) return {};
+      const existing = s.placements.filter((p) => p.itemId === itemId);
+      const others = s.placements.filter((p) => p.itemId !== itemId);
+
+      let previewBoxes: PlacementWithDimensions[];
+      if (existing.length > 0) {
+        // Editing: keep current positions, just update dimensions/color
+        previewBoxes = existing.slice(0, qty).map((p) => ({
+          ...p,
+          width: item.width,
+          height: item.height,
+          depth: item.length,
+          weight: item.weight,
+          color,
+        }));
+        // If qty increased, append extra boxes after existing ones
+        if (qty > existing.length) {
+          previewBoxes = [
+            ...previewBoxes,
+            ...buildPlacements(item, qty - existing.length, color, s.selectedVehicle, [
+              ...others,
+              ...previewBoxes,
+            ]),
+          ];
+        }
+      } else {
+        previewBoxes = buildPlacements(item, qty, color, s.selectedVehicle, others);
+      }
+
+      const allChecked = computeViolations([...others, ...previewBoxes]);
+      return {
+        previewItemId: itemId,
+        previewPlacements: allChecked.filter((p) => p.itemId === itemId),
+      };
+    }),
+
+  clearPreview: () => set({ previewItemId: null, previewPlacements: [] }),
+
   reset: () =>
-    set({ selectedVehicle: null, selectedItems: [], skuColorMap: {}, criteria: 0, placements: [] }),
+    set({
+      selectedVehicle: null,
+      selectedItems: [],
+      skuColorMap: {},
+      criteria: 0,
+      placements: [],
+      previewItemId: null,
+      previewPlacements: [],
+    }),
 }));

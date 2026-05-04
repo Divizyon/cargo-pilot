@@ -61,12 +61,12 @@ export const vehicleFormSchema = z
       .min(0, 'Dara ağırlığı negatif olamaz'),
 
     // VY-07: Kapı yönü
-    doorDirection: z.enum(['rear', 'side', 'top'] as const, {
+    doorDirection: z.enum(['rear', 'side', 'top', 'rearAndSide'] as const, {
       message: 'Lütfen kapı yönünü seçiniz',
     }),
     doorSide: z.enum(['right', 'left'] as const).optional(),
 
-    // VY-09: King pimi (Tır/Romork)
+    // VY-09: King pimi (Tır/Kamposet)
     kingpin: z
       .object({
         distance: numField('Geçerli bir uzaklık giriniz'),
@@ -118,7 +118,7 @@ export const vehicleFormSchema = z
     }
 
     // VY-07: Yan kapı seçilince taraf zorunlu
-    if (data.doorDirection === 'side' && !data.doorSide) {
+    if ((data.doorDirection === 'side' || data.doorDirection === 'rearAndSide') && !data.doorSide) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Kapı tarafı seçiniz (Sağ veya Sol)',
@@ -126,12 +126,12 @@ export const vehicleFormSchema = z
       });
     }
 
-    const isTirOrRomork =
-      data.vehicleType === VehicleType.Tir || data.vehicleType === VehicleType.Romork;
-    const isRoadVehicle = isTirOrRomork || data.vehicleType === VehicleType.Kamyon;
+    const isTirOrKamposet =
+      data.vehicleType === VehicleType.Tir || data.vehicleType === VehicleType.Kamposet;
+    const isRoadVehicle = isTirOrKamposet || data.vehicleType === VehicleType.Kamyon;
 
-    // VY-09: King pimi Tır/Romork için zorunlu
-    if (isTirOrRomork && !data.kingpin) {
+    // VY-09: King pimi Tır/Kamposet için zorunlu
+    if (isTirOrKamposet && !data.kingpin) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'King Pimi bilgileri zorunludur',

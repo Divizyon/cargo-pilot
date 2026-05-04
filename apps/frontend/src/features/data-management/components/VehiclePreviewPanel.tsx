@@ -9,12 +9,13 @@ const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
+  rearAndSide: 'Arka + Yan',
 };
 
 const TYPE_LABELS: Record<string, string> = {
   Tir: 'Tır',
   Kamyon: 'Kamyon',
-  Romork: 'Römork',
+  Kamposet: 'Kamposet',
   Konteyner: 'Konteyner',
 };
 

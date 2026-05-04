@@ -33,6 +33,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: apps/frontend/package-lock.json
 
+      - name: npm versiyonunu güncelle
+        run: npm install -g npm@11.6.1
+
       - name: Bağımlılıkları yükle
         run: npm ci
 
