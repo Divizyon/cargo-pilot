@@ -337,11 +337,12 @@ jobs:
   deploy-test-server:
     name: Deploy (Test Server)
     runs-on: ubuntu-latest
-    needs: [enforce-test-base, migration-check]
+    needs: [enforce-test-base, migration-check, build]
     if: |
       always() &&
       (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
       (needs.migration-check.result == 'success') &&
+      (needs.build.result == 'success') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/test'
 
