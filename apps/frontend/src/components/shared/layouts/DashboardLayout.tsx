@@ -115,6 +115,7 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
 interface SidebarProps {
   isCollapsed: boolean;
   onCollapsedChange: (v: boolean) => void;
+  toggleLocked?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -126,7 +127,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
+function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: SidebarProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
@@ -141,9 +142,13 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
     >
       {/* Collapse toggle — desktop only */}
       <button
-        onClick={() => onCollapsedChange(!isCollapsed)}
-        className="absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:flex"
-        title={isCollapsed ? 'Genişlet' : 'Daralt'}
+        onClick={() => !toggleLocked && onCollapsedChange(!isCollapsed)}
+        disabled={toggleLocked}
+        className={cn(
+          'absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors lg:flex',
+          toggleLocked ? 'opacity-30 cursor-not-allowed' : 'hover:text-foreground',
+        )}
+        title={toggleLocked ? 'Bu sayfada sidebar kilittli' : isCollapsed ? 'Genişlet' : 'Daralt'}
       >
         {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </button>
@@ -265,14 +270,19 @@ function Sidebar({ isCollapsed, onCollapsedChange }: SidebarProps) {
 
 // ─── DashboardLayout ──────────────────────────────────────────────────────────
 
+const FOCUS_ROUTES = ['/planning/new'];
+
 export function DashboardLayout() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [windowCollapsed, setWindowCollapsed] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { showWarning, countdown, extendSession } = useSessionTimeout();
+  const { pathname } = useLocation();
+  const isFocusRoute = FOCUS_ROUTES.some((r) => pathname.startsWith(r));
+  const isCollapsed = isFocusRoute || windowCollapsed;
 
   useEffect(() => {
     function syncCollapse() {
-      setIsCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
+      setWindowCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
     }
     syncCollapse();
     window.addEventListener('resize', syncCollapse);
@@ -297,12 +307,21 @@ export function DashboardLayout() {
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
-        <Sidebar isCollapsed={isCollapsed} onCollapsedChange={setIsCollapsed} />
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onCollapsedChange={setWindowCollapsed}
+          toggleLocked={isFocusRoute}
+        />
       </div>
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <main className="flex-1 overflow-auto bg-page-background p-6">
+        <main
+          className={cn(
+            'flex-1',
+            isFocusRoute ? 'overflow-hidden' : 'overflow-auto bg-page-background p-6',
+          )}
+        >
           <Outlet />
         </main>
       </div>

@@ -9,6 +9,8 @@ public interface IVehicleRepository {
         string? searchTerm,
         VehicleType? vehicleType,
         bool? isActive,
+        bool? onlyFavorites,
+        IReadOnlyList<Guid>? favoriteIds,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);

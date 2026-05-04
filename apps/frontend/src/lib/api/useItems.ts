@@ -174,6 +174,19 @@ export function useBulkCreateItems() {
   });
 }
 
+export function useCreatePlanItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateItemRequest): Promise<string | null> => {
+      const { data } = await axiosInstance.post<CreateItemResponse>(ITEMS_ENDPOINT, payload);
+      return data?.data?.id ?? null;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
 export function useUpdateItem() {
   const queryClient = useQueryClient();
 

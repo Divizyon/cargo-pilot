@@ -67,6 +67,9 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(vehicle => vehicle.Description)
+            .HasMaxLength(500);
+
         builder.Property(vehicle => vehicle.VehicleType)
             .IsRequired();
 
