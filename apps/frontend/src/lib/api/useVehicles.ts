@@ -9,7 +9,6 @@ import {
   singleVehicleApiSchema,
   fromApiVehicle,
   buildCreateVehiclePayload,
-  buildUpdateVehiclePayload,
   VEHICLE_TYPE_INT,
 } from './vehicleMappers';
 
@@ -177,7 +176,7 @@ export function useUpdateVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<VehicleFormValues> }) => {
-      const { id: _id, ...payload } = buildUpdateVehiclePayload(id, data as VehicleFormValues);
+      const payload = buildCreateVehiclePayload(data as VehicleFormValues);
       const { data: res } = await axiosInstance.put<unknown>(`/api/v1/vehicles/${id}`, payload);
       const parsed = singleVehicleApiSchema.safeParse(res);
       return parsed.success ? fromApiVehicle(parsed.data.data) : null;
@@ -192,7 +191,7 @@ export function useDeleteVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vehicle: Vehicle) => {
-      const { id: _id, ...payload } = buildUpdateVehiclePayload(vehicle.id, {
+      const payload = buildCreateVehiclePayload({
         vehicleType: vehicle.vehicleType,
         name: vehicle.name,
         description: vehicle.description ?? '',
@@ -224,7 +223,7 @@ export function useArchiveVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vehicle: Vehicle) => {
-      const { id: _id, ...payload } = buildUpdateVehiclePayload(vehicle.id, {
+      const payload = buildCreateVehiclePayload({
         vehicleType: vehicle.vehicleType,
         name: vehicle.name,
         description: vehicle.description ?? '',
