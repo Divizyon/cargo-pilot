@@ -9,7 +9,7 @@ namespace CargoPilot.WebAPI.Controllers;
 /// <summary>
 /// Yükleme planı yönetimi endpoint'leri.
 /// </summary>
-[Route("api/v1/plans")]
+[Route("api/v1/loading-plans")]
 [Tags("Plans")]
 [Authorize]
 public sealed class PlansController : BaseController
