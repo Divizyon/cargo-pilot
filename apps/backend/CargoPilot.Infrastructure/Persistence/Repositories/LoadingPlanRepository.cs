@@ -1,0 +1,170 @@
+using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Plans.GetPlanById;
+using CargoPilot.Application.Features.Plans.GetPlans;
+using CargoPilot.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace CargoPilot.Infrastructure.Persistence.Repositories;
+
+internal sealed class LoadingPlanRepository : ILoadingPlanRepository
+{
+    private readonly AppDbContext _context;
+
+    public LoadingPlanRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<PagedResult<PlanSummaryDto>> GetPagedAsync(
+        int page,
+        int pageSize,
+        string sortBy,
+        bool descending,
+        CancellationToken cancellationToken = default)
+    {
+        // Global query filter (!IsDeleted) is applied automatically via EF Core configuration.
+        var query = _context.LoadingPlans.AsNoTracking();
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        IQueryable<LoadingPlan> ordered = (sortBy.ToLowerInvariant(), descending) switch
+        {
+            ("planname", true)  => query.OrderByDescending(p => p.PlanName),
+            ("planname", false) => query.OrderBy(p => p.PlanName),
+            ("fillrate", true)  => query.OrderByDescending(p => p.FillRate),
+            ("fillrate", false) => query.OrderBy(p => p.FillRate),
+            ("optimizationstatus", true)  => query.OrderByDescending(p => p.OptimizationStatus),
+            ("optimizationstatus", false) => query.OrderBy(p => p.OptimizationStatus),
+            (_, true)  => query.OrderByDescending(p => p.CreatedAtUtc),
+            (_, false) => query.OrderBy(p => p.CreatedAtUtc),
+        };
+
+        var items = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new PlanSummaryDto(
+                p.Id,
+                p.PlanName,
+                p.OptimizationStatus,
+                p.OptimizationCriteria,
+                p.TotalWeight,
+                p.FillRate,
+                p.InputTotalQuantity,
+                p.PlacedQuantity,
+                p.UnplacedQuantity,
+                p.VehicleId,
+                p.Vehicle.VehicleName,
+                p.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<PlanSummaryDto>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<PlanDetailDto?> GetDetailByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        // LoadingPlan has no collection navigation properties (WithMany() without inverse nav).
+        // We run four focused queries and assemble the DTO here.
+        // All global query filters (!IsDeleted) apply automatically on each query.
+
+        var plan = await _context.LoadingPlans
+            .AsNoTracking()
+            .Include(p => p.Vehicle)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        if (plan is null) return null;
+
+        var placements = await _context.LoadingPlanPlacements
+            .AsNoTracking()
+            .Include(p => p.Item)
+            .Where(p => p.LoadingPlanId == id)
+            .ToListAsync(cancellationToken);
+
+        var unplacedItems = await _context.LoadingPlanUnplacedItems
+            .AsNoTracking()
+            .Include(u => u.Item)
+            .Where(u => u.LoadingPlanId == id)
+            .ToListAsync(cancellationToken);
+
+        var warnings = await _context.LoadingPlanWarnings
+            .AsNoTracking()
+            .Include(w => w.RelatedItem)
+            .Include(w => w.RelatedPlacement)
+            .Where(w => w.LoadingPlanId == id)
+            .ToListAsync(cancellationToken);
+
+        return MapToDetailDto(plan, placements, unplacedItems, warnings);
+    }
+
+    private static PlanDetailDto MapToDetailDto(
+        LoadingPlan plan,
+        List<LoadingPlanPlacement> placements,
+        List<LoadingPlanUnplacedItem> unplacedItems,
+        List<LoadingPlanWarning> warnings)
+    {
+        var vehicleDto = new VehicleInPlanDto(
+            plan.Vehicle.Id,
+            plan.Vehicle.VehicleName,
+            plan.Vehicle.PlateNumber,
+            plan.Vehicle.VehicleType,
+            plan.Vehicle.InternalWidth,
+            plan.Vehicle.InternalHeight,
+            plan.Vehicle.InternalLength,
+            plan.Vehicle.MaxWeightCapacity);
+
+        var placementDtos = placements
+            .Select(p => new PlacementDto(
+                p.Id,
+                p.ItemId,
+                p.PositionX,
+                p.PositionY,
+                p.PositionZ,
+                p.Rotation,
+                ToItemInPlanDto(p.Item)))
+            .ToList();
+
+        var unplacedItemDtos = unplacedItems
+            .Select(u => new UnplacedItemDto(
+                u.Id,
+                u.ItemId,
+                u.Quantity,
+                u.Reason,
+                ToItemInPlanDto(u.Item)))
+            .ToList();
+
+        var warningDtos = warnings
+            .Select(w => new WarningDto(
+                w.Id,
+                w.Code,
+                w.Message,
+                w.RelatedItemId,
+                w.RelatedPlacementId))
+            .ToList();
+
+        return new PlanDetailDto(
+            plan.Id,
+            plan.PlanName,
+            plan.OptimizationStatus,
+            plan.OptimizationCriteria,
+            plan.ErrorCode,
+            plan.ErrorMessage,
+            plan.TotalWeight,
+            plan.FillRate,
+            plan.InputTotalQuantity,
+            plan.PlacedQuantity,
+            plan.UnplacedQuantity,
+            plan.CenterOfGravityX,
+            plan.CenterOfGravityY,
+            plan.CenterOfGravityZ,
+            plan.CreatedAtUtc,
+            vehicleDto,
+            placementDtos,
+            unplacedItemDtos,
+            warningDtos);
+    }
+
+    private static ItemInPlanDto ToItemInPlanDto(Item item) =>
+        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
+}
