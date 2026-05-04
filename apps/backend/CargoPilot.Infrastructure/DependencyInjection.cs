@@ -2,7 +2,10 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
+using CargoPilot.Application.Features.Packing.OptimizePacking;
+using CargoPilot.Domain.Packing;
 using CargoPilot.Infrastructure.Auth;
+using CargoPilot.Infrastructure.Packing;
 using CargoPilot.Infrastructure.Persistence;
 using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
@@ -47,6 +50,9 @@ public static class DependencyInjection {
             .Validate(s => !string.IsNullOrWhiteSpace(s.FrontendResetUrl), "PasswordReset:FrontendResetUrl is required.")
             .Validate(s => s.TokenExpiryMinutes > 0, "PasswordReset:TokenExpiryMinutes must be greater than 0.")
             .ValidateOnStart();
+
+        services.AddSingleton<IPackingEngine, PackingEngine>();
+        services.AddSingleton<IPackingMockDataProvider, MockPackingDataProvider>();
 
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();

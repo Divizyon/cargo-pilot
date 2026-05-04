@@ -1,14 +1,70 @@
 import { useState } from 'react';
-import { Box, Download, Loader2, Package2, Plus, Crosshair, Truck, X, Info } from 'lucide-react';
+import {
+  AlertTriangle,
+  Box,
+  CheckCircle2,
+  Download,
+  Loader2,
+  Package2,
+  PackageX,
+  Plus,
+  Crosshair,
+  Truck,
+  X,
+  Info,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import type { Vehicle } from '@/lib/types/vehicle';
+import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
+import { SCENE } from '@/lib/config/scene-config';
 import { STANDARD_VEHICLES } from '@/lib/config/vehicles';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
+import { usePackingMockOptimize, type PackingResultDto } from '@/lib/api/usePackingMockOptimize';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
+
+// 20-ft ISO konteyner iç ölçüleri (cm) — backend MockPackingDataProvider ile eşleşir
+const MOCK_CONTAINER: Vehicle = {
+  id: '00000000-0000-0000-0000-000000000001',
+  name: '20-ft ISO Konteyner (Mock)',
+  vehicleType: VehicleType.Konteyner,
+  length: 590,
+  width: 235,
+  height: 239,
+  maxCargoWeight: 21770,
+  doorDirection: DoorDirection.Rear,
+  isFavorite: false,
+  isActive: true,
+  isDeleted: false,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  createdBy: { id: 'mock', fullName: 'Mock' },
+};
+
+// Backend: x=derinlik(kapı→arka), y=genişlik(sol→sağ), z=yükseklik — metre
+// Frontend: X=genişlik(sol→sağ), Y=yükseklik(yukarı), Z=derinlik(arka→kapı) — cm
+// Z ekseni: 0=arka duvar, containerLength=kapı — backend x ekseni tersine çevrilir.
+//   positionZ = containerLength - (backend.x + rotation.l) * 100
+function mapToStorePlacements(dto: PackingResultDto) {
+  const palette = SCENE.COLORS.SKU_PALETTE;
+  const containerLengthCm = MOCK_CONTAINER.length; // 590 cm
+  return dto.placements.map((p, idx) => ({
+    itemId: p.itemId,
+    positionX: p.y * 100,
+    positionY: p.z * 100,
+    positionZ: containerLengthCm - (p.x + p.rotation.l) * 100,
+    orientationIndex: 0 as const,
+    layer: Math.floor((p.z * 100) / Math.max(p.rotation.h * 100, 1)) + 1,
+    isViolation: false,
+    width: p.rotation.w * 100,
+    height: p.rotation.h * 100,
+    depth: p.rotation.l * 100,
+    weight: 0,
+    color: palette[idx % palette.length],
+  }));
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -110,6 +166,7 @@ interface PlanRightPanelProps {
 
 export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
@@ -120,6 +177,21 @@ export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>(STANDARD_VEHICLES);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [packingResult, setPackingResult] = useState<PackingResultDto | null>(null);
+
+  const { mutate: runOptimize, isPending: isOptimizing } = usePackingMockOptimize();
+
+  function handleOptimize() {
+    // Mock optimizasyon her zaman 20-ft konteyner boyutlarıyla çalışır;
+    // hangi araç seçili olursa olsun konteyner boyutunu eşitle.
+    setVehicle(MOCK_CONTAINER);
+    runOptimize(undefined, {
+      onSuccess: (result) => {
+        setPackingResult(result);
+        setPlacements(mapToStorePlacements(result));
+      },
+    });
+  }
 
   async function handlePdfExport() {
     try {
@@ -222,7 +294,8 @@ export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
             {showCog ? 'AÇIK' : 'KAPALI'}
           </span>
         </button>
-        {placements.length > 0 && (
+
+        {!packingResult && placements.length > 0 && (
           <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
             <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-700 leading-snug">
@@ -230,12 +303,24 @@ export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
             </p>
           </div>
         )}
+
         <Button
           className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-          disabled={!selectedVehicle}
+          disabled={isOptimizing}
+          onClick={handleOptimize}
         >
-          Optimizasyonu Başlat
+          {isOptimizing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Hesaplanıyor…
+            </>
+          ) : (
+            'Optimizasyonu Başlat'
+          )}
         </Button>
+
+        {packingResult && <PackingResultSummary result={packingResult} />}
+
         <Button
           variant="outline"
           className="w-full justify-start"
@@ -256,6 +341,98 @@ export function PlanRightPanel({ getSnapshot }: PlanRightPanelProps) {
         onOpenChange={setShowVehicleModal}
         onAdd={handleAddVehicle}
       />
+    </div>
+  );
+}
+
+// ─── PackingResultSummary ─────────────────────────────────────────────────────
+
+function PackingResultSummary({ result }: { result: PackingResultDto }) {
+  // Backend deviationX/Y zaten yüzde cinsinden (örn. 12.5 = %12.5), ×100 yapılmaz
+  const cgOk = result.cgFinal.deviationX <= 15 && result.cgFinal.deviationY <= 15;
+
+  return (
+    <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 flex flex-col gap-2 text-xs">
+      {/* Özet satırı */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+        <ResultRow label="Yerleştirilen" value={`${result.placedCount} ürün`} />
+        <ResultRow label="Doluluk" value={`${result.fillRatePercent.toFixed(1)}%`} />
+        <ResultRow label="Toplam Ağırlık" value={`${result.totalWeight.toFixed(0)} kg`} />
+        <ResultRow label="Süre" value={`${result.elapsedMilliseconds} ms`} />
+      </div>
+
+      {/* CG */}
+      <div className={cn('rounded px-2 py-1.5', cgOk ? 'bg-emerald-50' : 'bg-amber-50')}>
+        <p className={cn('font-medium mb-0.5', cgOk ? 'text-emerald-700' : 'text-amber-700')}>
+          Ağırlık Merkezi
+        </p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+          <ResultRow
+            label="Sapma X"
+            value={`${result.cgFinal.deviationX.toFixed(1)}%`}
+            warn={result.cgFinal.deviationX > 15}
+          />
+          <ResultRow
+            label="Sapma Y"
+            value={`${result.cgFinal.deviationY.toFixed(1)}%`}
+            warn={result.cgFinal.deviationY > 15}
+          />
+        </div>
+      </div>
+
+      {/* Uyarılar */}
+      {result.warnings.length > 0 && (
+        <div className="space-y-0.5">
+          <p className="font-medium text-amber-700 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            {result.warnings.length} uyarı
+          </p>
+          {result.warnings.map((w) => (
+            <p key={w.itemId} className="pl-4 text-zinc-500 leading-snug">
+              {w.itemId}: {w.message}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Yerleştirilemeyen */}
+      {result.unplacedItems.length > 0 && (
+        <div className="space-y-0.5">
+          <p className="font-medium text-red-700 flex items-center gap-1">
+            <PackageX className="h-3 w-3" />
+            {result.unplacedItems.length} yerleştirilemeyen
+          </p>
+          {result.unplacedItems.map((u) => (
+            <p key={u.itemId} className="pl-4 text-zinc-500 leading-snug">
+              {u.itemName}: {u.reason}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {result.warnings.length === 0 && result.unplacedItems.length === 0 && (
+        <p className="text-emerald-600 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Tüm ürünler başarıyla yerleştirildi.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ResultRow({
+  label,
+  value,
+  warn = false,
+}: {
+  label: string;
+  value: string;
+  warn?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-1">
+      <span className="text-zinc-400">{label}</span>
+      <span className={cn('font-medium', warn ? 'text-amber-600' : 'text-zinc-700')}>{value}</span>
     </div>
   );
 }

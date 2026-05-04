@@ -69,7 +69,7 @@ const DOOR_EASING = 0.055;
 function DoorGrid({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
-    const z = -(DOOR_THICKNESS + 0.5);
+    const z = DOOR_THICKNESS + 0.5; // kapı Z=length'te, paneller +Z yönüne (dışarı) açılır
     const pts: number[] = [];
 
     for (let x = 0; x <= panelW; x += step) {
@@ -93,7 +93,7 @@ function DoorGrid({ panelW, height, sign }: { panelW: number; height: number; si
 
 function DoorFrame({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
-    const z = -(DOOR_THICKNESS + 0.5);
+    const z = DOOR_THICKNESS + 0.5;
     const ex = sign * panelW;
     // Rectangle: bottom-left → bottom-right → top-right → top-left → back to start
     const pts = [
@@ -143,7 +143,7 @@ function DoorPanel({ panelW, height, sign }: { panelW: number; height: number; s
   );
 }
 
-function ContainerDoors({ width, height }: { width: number; height: number }) {
+function ContainerDoors({ width, height }: { width: number; height: number; length: number }) {
   const leftRef = useRef<THREE.Group>(null);
   const rightRef = useRef<THREE.Group>(null);
   const angleRef = useRef(0);
@@ -160,7 +160,7 @@ function ContainerDoors({ width, height }: { width: number; height: number }) {
   const panelW = width / 2;
 
   return (
-    <group>
+    <group position={[0, 0, length]}>
       <group ref={leftRef}>
         <DoorPanel panelW={panelW} height={height} sign={1} />
       </group>
@@ -186,7 +186,7 @@ export function ContainerMesh() {
       <ContainerEdges width={width} height={height} length={length} />
       <ContainerGrid width={width} length={length} />
       {/* key resets door animation when vehicle changes */}
-      <ContainerDoors key={vehicle.id} width={width} height={height} />
+      <ContainerDoors key={vehicle.id} width={width} height={height} length={length} />
       <ContactShadows
         position={[width / 2, -0.5, length / 2]}
         scale={Math.max(width, length) * SCENE.CONTACT_SHADOW_SCALE_FACTOR}
