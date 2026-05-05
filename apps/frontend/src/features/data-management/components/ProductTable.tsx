@@ -94,14 +94,20 @@ const CONSTRAINT_FILTER_OPTIONS: {
   { value: 'chemical', label: 'Kimyasal', Icon: FlaskConical, className: 'text-purple-600' },
   { value: 'organic', label: 'Organik', Icon: Leaf, className: 'text-green-600' },
   { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
-  { value: 'rotationLocked', label: 'Rotasyon Kısıtlı', Icon: RotateCcw, className: 'text-muted-foreground' },
+  {
+    value: 'rotationLocked',
+    label: 'Rotasyon Kısıtlı',
+    Icon: RotateCcw,
+    className: 'text-muted-foreground',
+  },
 ];
 
 function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean {
   const fragilityVal = FRAGILITY_FILTER_VALUE[filter];
   if (fragilityVal !== undefined) return item.fragility === fragilityVal;
   if (filter === 'stackable') return item.isStackable;
-  if (filter === 'rotationLocked') return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
+  if (filter === 'rotationLocked')
+    return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
   return false;
 }
 

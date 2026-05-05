@@ -131,12 +131,48 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     Icon: Droplets,
     fragilityValue: FRAGILITY_LEVELS.Liquid,
   },
-  { value: 'corrosive', label: 'Aşındırıcı', color: 'orange', Icon: Flame, fragilityValue: FRAGILITY_LEVELS.Corrosive },
-  { value: 'odor', label: 'Kokuya Hassas', color: 'green', Icon: Wind, fragilityValue: FRAGILITY_LEVELS.OdorSensitive },
-  { value: 'food', label: 'Gıda Teması', color: 'green', Icon: Utensils, fragilityValue: FRAGILITY_LEVELS.FoodContact },
-  { value: 'dry', label: 'Kuru', color: 'default', Icon: Sun, fragilityValue: FRAGILITY_LEVELS.KeepDry },
-  { value: 'chemical', label: 'Kimyasal', color: 'purple', Icon: FlaskConical, fragilityValue: FRAGILITY_LEVELS.Chemical },
-  { value: 'organic', label: 'Organik', color: 'green', Icon: Leaf, fragilityValue: FRAGILITY_LEVELS.Organic },
+  {
+    value: 'corrosive',
+    label: 'Aşındırıcı',
+    color: 'orange',
+    Icon: Flame,
+    fragilityValue: FRAGILITY_LEVELS.Corrosive,
+  },
+  {
+    value: 'odor',
+    label: 'Kokuya Hassas',
+    color: 'green',
+    Icon: Wind,
+    fragilityValue: FRAGILITY_LEVELS.OdorSensitive,
+  },
+  {
+    value: 'food',
+    label: 'Gıda Teması',
+    color: 'green',
+    Icon: Utensils,
+    fragilityValue: FRAGILITY_LEVELS.FoodContact,
+  },
+  {
+    value: 'dry',
+    label: 'Kuru',
+    color: 'default',
+    Icon: Sun,
+    fragilityValue: FRAGILITY_LEVELS.KeepDry,
+  },
+  {
+    value: 'chemical',
+    label: 'Kimyasal',
+    color: 'purple',
+    Icon: FlaskConical,
+    fragilityValue: FRAGILITY_LEVELS.Chemical,
+  },
+  {
+    value: 'organic',
+    label: 'Organik',
+    color: 'green',
+    Icon: Leaf,
+    fragilityValue: FRAGILITY_LEVELS.Organic,
+  },
 ];
 
 const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
@@ -297,7 +333,11 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
       </svg>
       {!active && (
-        <Ban className="absolute inset-0 m-auto h-5 w-5 text-destructive" strokeWidth={2} aria-hidden />
+        <Ban
+          className="absolute inset-0 m-auto h-5 w-5 text-destructive"
+          strokeWidth={2}
+          aria-hidden
+        />
       )}
     </div>
   );
@@ -459,8 +499,14 @@ export function ProductForm({
                                 const w = form.getValues('width');
                                 const wu = form.getValues('widthUnit');
                                 if (w !== undefined && Number.isFinite(w)) {
-                                  form.setValue('length', w, { shouldDirty: false, shouldValidate: false });
-                                  form.setValue('lengthUnit', wu ?? 'mm', { shouldDirty: false, shouldValidate: false });
+                                  form.setValue('length', w, {
+                                    shouldDirty: false,
+                                    shouldValidate: false,
+                                  });
+                                  form.setValue('lengthUnit', wu ?? 'mm', {
+                                    shouldDirty: false,
+                                    shouldValidate: false,
+                                  });
                                 }
                               }
                             }}
@@ -657,8 +703,14 @@ export function ProductForm({
                         label={t('forms.product.diameter')}
                         onAfterChange={(v, unit) => {
                           if (v !== undefined && Number.isFinite(v)) {
-                            form.setValue('length', v, { shouldDirty: false, shouldValidate: false });
-                            form.setValue('lengthUnit', unit, { shouldDirty: false, shouldValidate: false });
+                            form.setValue('length', v, {
+                              shouldDirty: false,
+                              shouldValidate: false,
+                            });
+                            form.setValue('lengthUnit', unit, {
+                              shouldDirty: false,
+                              shouldValidate: false,
+                            });
                           }
                         }}
                       />
@@ -854,7 +906,9 @@ export function ProductForm({
                             aria-live="polite"
                             className={cn(
                               'shrink-0 tabular-nums',
-                              isOverLimit ? 'font-semibold text-destructive' : 'text-muted-foreground',
+                              isOverLimit
+                                ? 'font-semibold text-destructive'
+                                : 'text-muted-foreground',
                             )}
                           >
                             {t('forms.product.notesCounter', {
@@ -1190,4 +1244,3 @@ function DimensionField({ form, name, unitName, label, onAfterChange }: Dimensio
     />
   );
 }
-

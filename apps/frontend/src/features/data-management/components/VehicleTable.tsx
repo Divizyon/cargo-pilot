@@ -273,9 +273,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
 
       {/* Plaka */}
       <TableCell className={cell}>
-        <span className="block truncate text-xs text-muted-foreground">
-          {vehicle.plate ?? '—'}
-        </span>
+        <span className="block truncate text-xs text-muted-foreground">{vehicle.plate ?? '—'}</span>
       </TableCell>
 
       {/* Genişlik */}
@@ -317,11 +315,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
             )}
           />
           <span className="text-xs text-foreground">
-            {vehicle.status === 'draft'
-              ? 'Taslak'
-              : (vehicle.isActive ?? true)
-                ? 'Aktif'
-                : 'Pasif'}
+            {vehicle.status === 'draft' ? 'Taslak' : (vehicle.isActive ?? true) ? 'Aktif' : 'Pasif'}
           </span>
         </div>
       </TableCell>

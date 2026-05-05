@@ -115,7 +115,10 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
     _id: crypto.randomUUID(),
     sku: String(r['SKU'] ?? ''),
     name: String(r['Ürün Adı'] ?? ''),
-    tip: (String(r['Tip (koli/varil/palet)'] ?? '')).toLowerCase().trim() || 'koli',
+    tip:
+      String(r['Tip (koli/varil/palet)'] ?? '')
+        .toLowerCase()
+        .trim() || 'koli',
     width: String(r['Genişlik(mm)'] ?? ''),
     height: String(r['Yükseklik(mm)'] ?? ''),
     length: String(r['Uzunluk(mm)'] ?? ''),
@@ -131,7 +134,7 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
 }
 
 function emptyRow(): EditableRow {
-  return {
+  return editableRowSchema.parse({
     _id: crypto.randomUUID(),
     sku: '',
     name: '',
@@ -147,7 +150,7 @@ function emptyRow(): EditableRow {
     allowRotateY: true,
     allowRotateZ: true,
     notes: '',
-  };
+  });
 }
 
 // ─── Cell components ──────────────────────────────────────────────────────────
@@ -212,9 +215,12 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       {
         onSuccess: () => handleClose(),
         onError: (err) => {
-          const failures = (err as AxiosError<BackendError>).response?.data?.error?.validationFailures;
+          const failures = (err as AxiosError<BackendError>).response?.data?.error
+            ?.validationFailures;
           if (failures?.length) {
-            setApiErrors(failures.map((f) => [f.propertyName, f.errorMessage].filter(Boolean).join(': ')));
+            setApiErrors(
+              failures.map((f) => [f.propertyName, f.errorMessage].filter(Boolean).join(': ')),
+            );
           }
         },
       },
@@ -386,10 +392,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
 
                     {/* Tip */}
                     <td className="border-b border-border/40 px-2 py-0.5">
-                      <Select
-                        value={row.tip}
-                        onValueChange={(v) => patchRow(row._id, { tip: v })}
-                      >
+                      <Select value={row.tip} onValueChange={(v) => patchRow(row._id, { tip: v })}>
                         <SelectTrigger
                           className={cn(
                             'h-7 border px-1 text-xs',
