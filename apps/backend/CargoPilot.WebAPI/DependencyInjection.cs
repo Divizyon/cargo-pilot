@@ -29,6 +29,21 @@ public static class DependencyInjection {
         IConfiguration configuration,
         bool useInMemoryRepository = false)
     {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?.Where(o => !string.IsNullOrWhiteSpace(o)).ToArray() ?? [];
+
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                if (allowedOrigins.Length > 0)
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+            });
+        });
+
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -233,6 +248,7 @@ public static class DependencyInjection {
             });
         }
 
+        app.UseCors();
         app.UseAuthentication();
         app.UseHttpMetrics();
         app.UseAuthorization();

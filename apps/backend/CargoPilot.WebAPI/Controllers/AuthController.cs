@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Application.Features.Auth.DTOs;
@@ -9,6 +11,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace CargoPilot.WebAPI.Controllers;
 
@@ -25,22 +28,30 @@ public sealed class AuthController : BaseController
 {
     private readonly IMediator _mediator;
     private readonly IAuthService _authService;
+    private readonly IGoogleOAuthService _googleOAuthService;
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
+    private readonly string? _frontendCallbackUrl;
+
+    private const string OAuthStateCookie = "oauth_state";
 
     public AuthController(
         IMediator mediator,
         IAuthService authService,
+        IGoogleOAuthService googleOAuthService,
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
-        IValidator<ResetPasswordRequest> resetPasswordValidator)
+        IValidator<ResetPasswordRequest> resetPasswordValidator,
+        IConfiguration configuration)
     {
         _mediator = mediator;
         _authService = authService;
+        _googleOAuthService = googleOAuthService;
         _loginValidator = loginValidator;
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
+        _frontendCallbackUrl = configuration["OAuth:Google:FrontendCallbackUrl"];
     }
 
     [HttpPost("register")]
@@ -89,6 +100,82 @@ public sealed class AuthController : BaseController
             SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
 
         return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Google OAuth akışını başlatır; kullanıcıyı Google giriş sayfasına yönlendirir.
+    /// </summary>
+    [HttpGet("google")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    public IActionResult GoogleOAuthRedirect()
+    {
+        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+
+        Response.Cookies.Append(OAuthStateCookie, state, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(10),
+        });
+
+        return Redirect(_googleOAuthService.BuildAuthorizationUrl(state));
+    }
+
+    /// <summary>
+    /// Google'ın authorization callback endpoint'i.
+    /// Code/state doğrulaması yapılır, token exchange gerçekleştirilir, frontend'e yönlendirilir.
+    /// </summary>
+    [HttpGet("google/callback")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    public async Task<IActionResult> GoogleOAuthCallback(
+        [FromQuery] string? code,
+        [FromQuery] string? state,
+        [FromQuery] string? error,
+        CancellationToken cancellationToken)
+    {
+        var callbackBase = string.IsNullOrWhiteSpace(_frontendCallbackUrl)
+            ? "/auth/callback"
+            : _frontendCallbackUrl;
+
+        if (!string.IsNullOrEmpty(error))
+            return Redirect(BuildFrontendRedirect(callbackBase, error: error));
+
+        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
+            return Redirect(BuildFrontendRedirect(callbackBase, error: "invalid_request"));
+
+        var storedState = Request.Cookies[OAuthStateCookie];
+        Response.Cookies.Delete(OAuthStateCookie);
+
+        if (storedState != state)
+            return Redirect(BuildFrontendRedirect(callbackBase, error: "invalid_state"));
+
+        var idToken = await _googleOAuthService.ExchangeCodeForIdTokenAsync(code, cancellationToken);
+        if (idToken is null)
+            return Redirect(BuildFrontendRedirect(callbackBase, error: "token_exchange_failed"));
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        var command = new OAuthLoginCommand(idToken, AuthProvider.Google, ipAddress, userAgent);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result.IsSuccess)
+            return Redirect(BuildFrontendRedirect(callbackBase, error: result.Error?.Code ?? "auth_failed"));
+
+        var data = result.Data!;
+        SetRefreshTokenCookie(data.RefreshToken, data.RefreshTokenExpiresAt);
+
+        return Redirect(BuildFrontendRedirect(
+            callbackBase,
+            accessToken: data.AccessToken,
+            userId: data.UserId.ToString(),
+            email: data.Email,
+            fullName: data.FullName,
+            role: data.Role));
     }
 
     [HttpPost("google")]
@@ -200,6 +287,30 @@ public sealed class AuthController : BaseController
             return HandleResult(result);
 
         return Redirect(result.Data!);
+    }
+
+    private static string BuildFrontendRedirect(
+        string baseUrl,
+        string? error = null,
+        string? accessToken = null,
+        string? userId = null,
+        string? email = null,
+        string? fullName = null,
+        string? role = null)
+    {
+        if (!string.IsNullOrEmpty(error))
+            return $"{baseUrl}?error={Uri.EscapeDataString(error)}";
+
+        var qs = new QueryBuilder
+        {
+            { "accessToken", accessToken ?? string.Empty },
+            { "userId", userId ?? string.Empty },
+            { "email", email ?? string.Empty },
+            { "fullName", fullName ?? string.Empty },
+            { "role", role ?? string.Empty },
+        };
+
+        return $"{baseUrl}{qs.ToQueryString()}";
     }
 
     private void SetRefreshTokenCookie(string token, DateTime expiresAt)

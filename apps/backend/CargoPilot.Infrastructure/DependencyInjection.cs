@@ -63,6 +63,9 @@ public static class DependencyInjection {
             // BaseAddress constructor'da options üzerinden set ediliyor.
         });
 
+        services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
+        services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
+
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
@@ -73,8 +76,6 @@ public static class DependencyInjection {
                         errorNumbersToAdd: null)));
             services.AddScoped<DbInitializer>();
             services.AddScoped<IAuthService, AuthService>();
-
-            services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
         }
 
         return services;
