@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
 import type { Item } from '@/lib/types/item';
+import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -238,6 +239,34 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
   const watchedStackable = useWatch({ control, name: 'isStackable' });
   const watchedFragility = useWatch({ control, name: 'fragility' });
   const watchedProductType = useWatch({ control, name: 'productType' }) ?? 'koli';
+  const watchedWidth = useWatch({ control, name: 'width' });
+  const watchedHeight = useWatch({ control, name: 'height' });
+  const watchedLength = useWatch({ control, name: 'length' });
+
+  const isVarilType = watchedProductType === 'varil';
+
+  useEffect(() => {
+    if (
+      isVarilType &&
+      watchedWidth !== undefined &&
+      Number.isFinite(watchedWidth) &&
+      watchedWidth > 0
+    ) {
+      setValue('length', watchedWidth);
+    }
+  }, [isVarilType, watchedWidth, setValue]);
+
+  const hasDimensions = isVarilType
+    ? Number.isFinite(watchedWidth) &&
+      watchedWidth > 0 &&
+      Number.isFinite(watchedHeight) &&
+      watchedHeight > 0
+    : Number.isFinite(watchedWidth) &&
+      Number.isFinite(watchedHeight) &&
+      Number.isFinite(watchedLength) &&
+      watchedWidth > 0 &&
+      watchedHeight > 0 &&
+      watchedLength > 0;
 
   function onSubmit(data: AddBoxFormValues) {
     const item: Item = {
@@ -343,53 +372,111 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         </div>
       )}
 
+      {/* 3D Önizleme */}
+      <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+        {hasDimensions ? (
+          <ProductPreview3D
+            widthCm={watchedWidth}
+            heightCm={watchedHeight}
+            depthCm={watchedLength}
+            productType={watchedProductType}
+            color={watchedColor}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-400">
+            <ProductTypeShape type={watchedProductType} />
+            <span className="text-xs">Boyutları girin</span>
+          </div>
+        )}
+      </div>
+
       {/* Ürün Tipi */}
       <div className="flex flex-col gap-1">
         <Label className="text-xs text-zinc-500">Ürün Tipi</Label>
-        <div className="flex items-center gap-2">
-          <Controller
-            name="productType"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="h-7 text-sm flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PRODUCT_TYPE_LABELS).map(([val, label]) => (
-                    <SelectItem key={val} value={val}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <ProductTypeShape type={watchedProductType} />
-        </div>
+        <Controller
+          name="productType"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger className="h-7 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRODUCT_TYPE_LABELS).map(([val, label]) => (
+                  <SelectItem key={val} value={val}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
 
       {/* Boyutlar */}
-      <div className="grid grid-cols-3 gap-1.5">
-        {(
-          [
-            { key: 'width', label: 'En (cm)', placeholder: '80' },
-            { key: 'length', label: 'Boy (cm)', placeholder: '60' },
-            { key: 'height', label: 'Yük (cm)', placeholder: '40' },
-          ] as const
-        ).map(({ key, label, placeholder }) => (
-          <div key={key} className="flex flex-col gap-1">
-            <Label className="text-xs text-zinc-500">{label}</Label>
-            <Input
-              type="number"
-              min="1"
-              step="1"
-              placeholder={placeholder}
-              {...register(key, { valueAsNumber: true })}
-              className={cn('h-7 text-sm', errors[key] && 'border-rose-400')}
-            />
-          </div>
-        ))}
+      <div className={cn('grid gap-1.5', isVarilType ? 'grid-cols-2' : 'grid-cols-3')}>
+        {isVarilType ? (
+          <>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-zinc-500">Çap (cm)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="80"
+                {...register('width', { valueAsNumber: true })}
+                className={cn('h-7 text-sm', errors.width && 'border-rose-400')}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-zinc-500">Yükseklik (cm)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="120"
+                {...register('height', { valueAsNumber: true })}
+                className={cn('h-7 text-sm', errors.height && 'border-rose-400')}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-zinc-500">Genişlik — X (cm)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="80"
+                {...register('width', { valueAsNumber: true })}
+                className={cn('h-7 text-sm', errors.width && 'border-rose-400')}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-zinc-500">Yükseklik — Y (cm)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="40"
+                {...register('height', { valueAsNumber: true })}
+                className={cn('h-7 text-sm', errors.height && 'border-rose-400')}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-zinc-500">Derinlik — Z (cm)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="60"
+                {...register('length', { valueAsNumber: true })}
+                className={cn('h-7 text-sm', errors.length && 'border-rose-400')}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Ağırlık + Adet */}
