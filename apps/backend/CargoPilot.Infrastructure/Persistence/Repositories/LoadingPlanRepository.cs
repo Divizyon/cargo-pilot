@@ -165,6 +165,15 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             warningDtos);
     }
 
+    public async Task<LoadingPlan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _context.LoadingPlans
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+    public void Add(LoadingPlan plan) => _context.LoadingPlans.Add(plan);
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => _context.SaveChangesAsync(cancellationToken);
+
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
         new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
 }
