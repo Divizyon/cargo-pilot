@@ -21,4 +21,5 @@ public sealed record PlanDetailDto(
     VehicleInPlanDto Vehicle,
     IReadOnlyList<PlacementDto> Placements,
     IReadOnlyList<UnplacedItemDto> UnplacedItems,
-    IReadOnlyList<WarningDto> Warnings);
+    IReadOnlyList<WarningDto> Warnings,
+    IReadOnlyList<InputItemDto> InputItems);
