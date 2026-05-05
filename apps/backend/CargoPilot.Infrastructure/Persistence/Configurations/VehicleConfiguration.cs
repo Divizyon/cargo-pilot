@@ -120,6 +120,9 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
         builder.Property(vehicle => vehicle.AdditionalAxleMaxLoadKg)
             .HasPrecision(18, 4);
 
+        builder.Property(vehicle => vehicle.Description)
+            .HasMaxLength(500);
+
         builder.Property(vehicle => vehicle.LayerCount)
             .IsRequired();
 
