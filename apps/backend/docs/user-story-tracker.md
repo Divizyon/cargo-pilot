@@ -284,3 +284,30 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Application/Common/Errors/AuthErrors.cs`
 - `CargoPilot.Infrastructure/Auth/AuthService.cs`
 - `CargoPilot.WebAPI/Controllers/AuthController.cs`
+
+---
+
+## 12) US-DASH-04: Yükleme Planı Liste ve Detay Endpoint'leri
+**Story:** Dashboard geliştirici olarak, yükleme planlarını sayfalı/sıralı listeleyebilmek ve tek bir planı tüm detaylarıyla getirebilmek için backend endpoint'lerinin hazır olmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt İşler
+- `✅` `ILoadingPlanRepository` interface'ini tanımla (`CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`)
+- `✅` `LoadingPlanRepository` implementasyonunu yaz (EF Core, `AsNoTracking`, N+1 önlemi için 4 ayrı sorgu)
+- `✅` `GetPlansQuery` + `GetPlansQueryHandler` (sayfalı/sıralı liste, `PlanSummaryDto`)
+- `✅` `GetPlansQueryValidator` (page ≥ 1, pageSize 1–100, geçerli sortBy/sortDirection değerleri)
+- `✅` `GetPlanByIdQuery` + `GetPlanByIdQueryHandler` (vehicle, placements, unplaced items, warnings)
+- `✅` DTO'lar: `PlanSummaryDto`, `PlanDetailDto`, `VehicleInPlanDto`, `PlacementDto`, `ItemInPlanDto`, `UnplacedItemDto`, `WarningDto`
+- `✅` `PlansController` — route `api/v1/loading-plans`, `[Authorize]` class-level
+- `✅` `ILoadingPlanRepository` DI kaydı (`DependencyInjection.cs`)
+- `✅` `IUserVehicleFavoriteRepository` DI kaydı merge conflict sonrası geri eklendi
+- `✅` Build: 0 hata doğrulandı; uygulama `http://localhost:8081` adresinde hatasız ayağa kalktı
+
+### Kanıtlar
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Application/Features/Plans/GetPlans/` (Query, Handler, Validator, Dto)
+- `CargoPilot.Application/Features/Plans/GetPlanById/` (Query, Handler, tüm Dto'lar)
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
