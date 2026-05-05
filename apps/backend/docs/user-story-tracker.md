@@ -311,3 +311,39 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
 - `CargoPilot.Infrastructure/DependencyInjection.cs`
 - `CargoPilot.WebAPI/Controllers/PlansController.cs`
+## 12) US-AUTH-12: Yeni Cihaz Girisi Bildirimi
+**Story:** Backend Chapter Lead olarak, kullanicinin hesabina daha once giris yapilmamis bir cihazdan/tarayicidan erisim saglandiginda e-posta bildirimi gonderilmesini ve kullanicinin tek tikla tum oturumlarini sonlandirip sifre sifirlama akisina yonlendirilmesini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Kabul Kriterleri
+- AC1: Kullanici bilinen bir cihazdan giris yaptiginda hicbir bildirim gonderilmez.
+- AC2: Kullanici yeni bir cihazdan (farkli User-Agent) giris yaptiginda uyari e-postasi gonderilir; e-posta cihaz ozetini ve UTC giris zamanini icerir.
+- AC3: E-postadaki "Hesabimi Guvenlige Al" linki tiklandiginda tum aktif oturumlar iptal edilir ve kullanici sifre sifirlama sayfasina yonlendirilir.
+- AC4: Yeni cihaz tespiti OAuth (Google) girisleri icin de calisir.
+
+### Alt Isler
+- `✅` `UserSession` entity'sine `DeviceSummary` kolonu ekle (Kapsam: `UserSession.cs` guncellendi; `DeviceSummary` nullable `nvarchar(500)` alani eklendi. `UserSessionConfiguration.cs` icinde EF kolon kisitlari tanimlandi. `20260501170422_AddDeviceSummaryToUserSession` migration'i uretildi.)
+- `✅` Login akisinda yeni cihaz tespiti yap (Kapsam: `AuthService.IssueTokensAsync` metodu guncellendi; User-Agent header'i `DeviceSummary` olarak kaydedilir. `UserSessions` tablosunda ayni `UserId + DeviceSummary` cifti yoksa `isNewDevice = true` set edilir.)
+- `✅` Yeni cihaz tespitinde uyari e-postasi gonder (Kapsam: `IEmailService` arabirimine `SendNewDeviceWarningEmailAsync` eklendi. `ResendEmailService` HTML + plain-text sablonlu implementasyonu yazildi. E-posta: cihaz/tarayici bilgisi, UTC tarih/saat ve "Hesabimi Guvenlige Al" butonu icerir.)
+- `✅` `GET /api/v1/auth/secure-account` endpoint'ini ekle (Kapsam: `IAuthService` ve `AuthService`'e `SecureAccountAsync` eklendi. Endpoint token'i dogrular, tum aktif oturumlarini iptal eder, yeni bir sifre sifirlama token'i uretir ve frontend sifre sifirlama sayfasina 302 yonlendirir.)
+- `✅` E-postadaki link icin guvenli token uret (Kapsam: `RandomNumberGenerator.GetBytes(32)` ile ham token uretilir; `WebEncoders.Base64UrlEncode` ile URL-safe string'e donusturulur; `SHA256(rawBytes)` ile hash hesaplanip DB'ye kaydedilir. Tuketimde `WebEncoders.Base64UrlDecode` ile ham byte'lara donulur ve hash yeniden hesaplanarak eslestirilir. Bu yaklasim string tabanli encoding farkindan kaynaklanan hash uyumsuzluklarini ortadan kaldirir.)
+- `✅` `OAuthLoginCommand` ve `OAuthLoginCommandHandler`'a `ipAddress` ve `userAgent` parametreleri ekle (Kapsam: OAuth girislerinde de cihaz tespiti ve bildirim akisi calissin diye guncellendi.)
+- `✅` `PasswordResetSettings`'e `BackendBaseUrl` alani ekle (Kapsam: `secure-account` linki uretiminde backend URL'i konfigurasyon uzerinden okunur; `appsettings.json` ve `appsettings.Development.json` guncellendi.)
+- `✅` `Microsoft.AspNetCore.WebUtilities` paketini `Infrastructure` projesine ekle (Kapsam: `WebEncoders` sinifindan faydalanmak icin `CargoPilot.Infrastructure.csproj` guncellendi.)
+
+**Kanitlar:**
+- `CargoPilot.Domain/Entities/UserSession.cs`
+- `CargoPilot.Application/Abstractions/IEmailService.cs`
+- `CargoPilot.Application/Common/Settings/PasswordResetSettings.cs`
+- `CargoPilot.Application/Features/Auth/IAuthService.cs`
+- `CargoPilot.Application/Features/Auth/OAuthLogin/OAuthLoginCommand.cs`
+- `CargoPilot.Application/Features/Auth/OAuthLogin/OAuthLoginCommandHandler.cs`
+- `CargoPilot.Infrastructure/Auth/AuthService.cs`
+- `CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj`
+- `CargoPilot.Infrastructure/Persistence/Configurations/UserSessionConfiguration.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260501170422_AddDeviceSummaryToUserSession.cs`
+- `CargoPilot.Infrastructure/Services/ResendEmailService.cs`
+- `CargoPilot.WebAPI/Controllers/AuthController.cs`
+- `CargoPilot.WebAPI/appsettings.json`
+- `CargoPilot.WebAPI/appsettings.Development.json`

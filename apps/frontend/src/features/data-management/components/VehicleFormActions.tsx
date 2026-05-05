@@ -24,15 +24,23 @@ export function VehicleFormActions({
   }
 
   return (
-    <div className="flex justify-end gap-3 border-t pt-4">
+    <div className="flex w-full items-center justify-end gap-1 ">
       {onCancel && (
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-          İptal
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          İptal Et
         </Button>
       )}
       <Button
         type="button"
         variant="outline"
+        size="sm"
         onClick={() => void handleDraftSubmit()}
         disabled={isSubmitting}
       >
@@ -40,7 +48,9 @@ export function VehicleFormActions({
       </Button>
       <Button
         type="submit"
+        size="sm"
         disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+        className="px-5"
       >
         {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
       </Button>

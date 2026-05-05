@@ -4,7 +4,6 @@ import { useVehicles } from '@/lib/api/useVehicles';
 import { VehicleListTable } from '@/features/data-management/components/VehicleListTable';
 import { VehicleListFilters } from '@/features/data-management/components/VehicleListFilters';
 import { VehicleDeleteDialog } from '@/features/data-management/components/VehicleDeleteDialog';
-import { VehicleDetailPanel } from '@/features/data-management/components/VehicleDetailPanel';
 import { useVehicleFilters } from '@/features/data-management/hooks/useVehicleFilters';
 import type { Vehicle } from '@/lib/types/vehicle';
 
@@ -14,7 +13,6 @@ export function VehiclesPage() {
   const { data: vehicles = [], isLoading } = useVehicles(filterHook.filters);
 
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
-  const [detailVehicleId, setDetailVehicleId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -36,12 +34,10 @@ export function VehiclesPage() {
         vehicles={vehicles}
         isLoading={isLoading}
         onDelete={setVehicleToDelete}
-        onDetail={(v) => setDetailVehicleId(v.id)}
+        onDetail={(v) => navigate(`/vehicles/${v.id}/edit`, { state: { vehicle: v } })}
       />
 
       <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
-
-      <VehicleDetailPanel vehicleId={detailVehicleId} onClose={() => setDetailVehicleId(null)} />
     </div>
   );
 }

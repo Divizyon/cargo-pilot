@@ -30,7 +30,7 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
 
   if (!length || !width) {
     return (
-      <div className="flex h-44 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+      <div className="flex h-56 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
         Uzunluk ve genişlik girilince ön izleme görünür
       </div>
     );
