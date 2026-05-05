@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { usePackingOptimize } from '@/lib/api/usePackingOptimize';
+import { usePackingTestOptimize } from '@/lib/api/usePackingTestOptimize';
 import { VehicleType, type Vehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { AddVehicleModal } from './AddVehicleModal';
@@ -135,6 +136,7 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
 
   const { mutate: optimize, isPending: isOptimizing } = usePackingOptimize();
+  const { mutate: optimizeTest, isPending: isTestOptimizing } = usePackingTestOptimize();
 
   const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles();
   const pendingSelectIdRef = useRef<string | null>(null);
@@ -255,19 +257,30 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
           </div>
         )}
 
-        <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
+        <div className="px-3 py-3 border-t border-zinc-100 shrink-0 flex flex-col gap-2">
+          {selectedItems.length === 0 && selectedVehicle && (
+            <p className="text-[10px] text-amber-600 text-center">
+              Ürün seçilmedi — JSON test verisi kullanılacak (24 kutu)
+            </p>
+          )}
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle || selectedItems.length === 0 || isOptimizing}
+            disabled={!selectedVehicle || isOptimizing || isTestOptimizing}
             onClick={() => {
               if (!selectedVehicle) return;
-              optimize(
-                { vehicle: selectedVehicle, items: selectedItems, skuColorMap },
-                { onSuccess: (placements) => setPlacements(placements) },
-              );
+              if (selectedItems.length === 0) {
+                optimizeTest(undefined, {
+                  onSuccess: (placements) => setPlacements(placements),
+                });
+              } else {
+                optimize(
+                  { vehicle: selectedVehicle, items: selectedItems, skuColorMap },
+                  { onSuccess: (placements) => setPlacements(placements) },
+                );
+              }
             }}
           >
-            {isOptimizing ? (
+            {isOptimizing || isTestOptimizing ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
                 Optimizasyon…

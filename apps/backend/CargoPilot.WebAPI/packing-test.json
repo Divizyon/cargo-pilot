@@ -1,0 +1,50 @@
+{
+  "container": {
+    "length": 590,
+    "width": 235,
+    "height": 239,
+    "maxWeight": 24000
+  },
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "Ağır Makine",
+      "length": 60,
+      "width": 60,
+      "height": 60,
+      "weight": 1500,
+      "quantity": 8,
+      "isStackable": true,
+      "maxWeightOnTop": 6000,
+      "allowedRotations": 0
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "name": "Hafif Strafor",
+      "length": 200,
+      "width": 100,
+      "height": 100,
+      "weight": 30,
+      "quantity": 6,
+      "isStackable": true,
+      "maxWeightOnTop": 120,
+      "allowedRotations": 0
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "name": "Standar Kutu",
+      "length": 100,
+      "width": 100,
+      "height": 100,
+      "weight": 100,
+      "quantity": 10,
+      "isStackable": true,
+      "maxWeightOnTop": 400,
+      "allowedRotations": 0
+    }
+  ],
+  "parameters": {
+    "lifoEnabled": false,
+    "cgThresholdPercent": 15
+  }
+}

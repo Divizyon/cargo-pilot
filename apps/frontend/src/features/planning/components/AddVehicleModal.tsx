@@ -122,9 +122,9 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
         vehicleName: data.name,
         plateNumber: data.plateNumber,
         vehicleType: FORM_VEHICLE_TYPE_INT[data.vehicleType] ?? 1,
-        internalWidth: Math.round(data.width * 10),
-        internalHeight: Math.round(data.height * 10),
-        internalLength: Math.round(data.length * 10),
+        internalWidth: Math.round(data.width),
+        internalHeight: Math.round(data.height),
+        internalLength: Math.round(data.length),
         maxWeightCapacity: Math.round(data.payload * 1000),
         layerCount: data.layerCount,
         loadingType: LOADING_AREA_INT[data.loadingArea] ?? 0,
@@ -235,9 +235,9 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'width' as const, label: 'EN' },
-                  { key: 'length' as const, label: 'BOY' },
-                  { key: 'height' as const, label: 'YÜKSEKLİK' },
+                  { key: 'width' as const, label: 'EN (CM)' },
+                  { key: 'length' as const, label: 'BOY (CM)' },
+                  { key: 'height' as const, label: 'YÜKSEKLİK (CM)' },
                 ].map(({ key, label }) => (
                   <div key={key} className="flex flex-col gap-1">
                     <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">

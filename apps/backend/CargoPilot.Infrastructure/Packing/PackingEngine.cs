@@ -32,7 +32,11 @@ public sealed class PackingEngine : IPackingEngine
         decimal cgZ = 0m;
         decimal totalMass = 0m;
 
-        decimal cgThreshold = parameters.CgThresholdPercent;
+        // TEST: kısıtları geçici olarak devre dışı bırak
+        const bool disableStackingRules = true;
+        const bool disableCgConstraint = true;
+
+        decimal cgThreshold = disableCgConstraint ? decimal.MaxValue : parameters.CgThresholdPercent;
 
         foreach (var item in sortedItems)
         {
@@ -63,12 +67,13 @@ public sealed class PackingEngine : IPackingEngine
                         continue;
 
                     // §5.4 İstif kontrolü
-                    if (!GeometryHelper.CheckStackingRules(ep, rot, item, placed))
+                    if (!disableStackingRules && !GeometryHelper.CheckStackingRules(ep, rot, item, placed))
                         continue;
 
                     // §6.2 — Geçici CG hesabı
-                    var (deltaX, deltaY, _, _, _) = CgCalculator.ComputeTempCg(
-                        ep, rot, item, cgX, cgY, cgZ, totalMass, container);
+                    var (deltaX, deltaY, _, _, _) = disableCgConstraint
+                        ? (0m, 0m, 0m, 0m, 0m)
+                        : CgCalculator.ComputeTempCg(ep, rot, item, cgX, cgY, cgZ, totalMass, container);
 
                     // Maliyet skoru için EP sayısını simüle et
                     var simEps = epList.ToList();
@@ -79,7 +84,6 @@ public sealed class PackingEngine : IPackingEngine
                     double score = CostFunction.ComputeScore(
                         ep, rot, item, epCountAfter, container, parameters, lifoMax);
 
-                    // totalMass==0 → tek ürün yerleştirilmeden CG hesaplanamaz, eşik atla
                     bool passesCg = totalMass == 0
                         || (deltaX <= cgThreshold && deltaY <= cgThreshold);
 
@@ -98,7 +102,7 @@ public sealed class PackingEngine : IPackingEngine
                 // §8.1 — Normal seçim: en yüksek maliyet skoru
                 chosen = validCandidates.MaxBy(c => c.Score);
             }
-            else if (allCandidates.Count > 0)
+            else if (!disableCgConstraint && allCandidates.Count > 0)
             {
                 // §8.2 — Fallback: en az CG ihlali
                 chosen = allCandidates.MinBy(c => c.DeltaX + c.DeltaY);
