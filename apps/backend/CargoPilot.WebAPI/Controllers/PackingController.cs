@@ -33,19 +33,5 @@ public sealed class PackingController : BaseController
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Mock data ile 3D Bin Packing optimizasyonunu çalıştırır.
-    /// Body gerektirmez — algoritma doğrulaması için hızlı test endpoint'i.
-    /// </summary>
-    [HttpPost("optimize/mock")]
-    [ProducesResponseType(typeof(PackingResultDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> OptimizeWithMock(
-        [FromQuery] bool lifoEnabled = false,
-        [FromQuery] decimal cgThreshold = 15m,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new OptimizePackingWithMockDataCommand(lifoEnabled, cgThreshold);
-        var result = await _mediator.Send(command, cancellationToken);
-        return HandleResult(result);
-    }
+
 }

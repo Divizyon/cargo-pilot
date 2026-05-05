@@ -2,7 +2,7 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
-using CargoPilot.Application.Features.Packing.OptimizePacking;
+
 using CargoPilot.Domain.Packing;
 using CargoPilot.Infrastructure.Auth;
 using CargoPilot.Infrastructure.Packing;
@@ -52,7 +52,6 @@ public static class DependencyInjection {
             .ValidateOnStart();
 
         services.AddSingleton<IPackingEngine, PackingEngine>();
-        services.AddSingleton<IPackingMockDataProvider, MockPackingDataProvider>();
 
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
