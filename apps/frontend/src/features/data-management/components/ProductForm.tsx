@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
@@ -348,13 +347,24 @@ export function ProductForm({
   });
 
   const isPallet = productType === 'palet';
+  const isVaril = productType === 'varil';
+
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
   const lengthCm = Number.isFinite(length) ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
-  const volumeCm3 = widthCm * heightCm * lengthCm;
+  const volumeCm3 = isVaril
+    ? Math.PI * (widthCm / 2) ** 2 * heightCm
+    : widthCm * heightCm * lengthCm;
+
+  useEffect(() => {
+    if (isVaril && width !== undefined && Number.isFinite(width)) {
+      form.setValue('length', width, { shouldDirty: false, shouldValidate: false });
+      form.setValue('lengthUnit', widthUnit ?? 'mm', { shouldDirty: false, shouldValidate: false });
+    }
+  }, [isVaril, width, widthUnit, form]);
 
   function toggleIncompatibleGroup(group: string) {
     setIncompatibleGroups((prev) =>
@@ -597,28 +607,54 @@ export function ProductForm({
                 </div>
               </SectionCard>
 
-              {/* FİZİKSEL ÖZELLİKLER */}
-              <SectionCard>
+              {/* Fiziksel Özellikler — Boyutlar / Ağırlık / Katman Sayısı */}
+              <section className="space-y-3">
                 <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <DimensionField
-                    form={form}
-                    name="width"
-                    unitName="widthUnit"
-                    labelKey="forms.product.width"
-                  />
-                  <DimensionField
-                    form={form}
-                    name="height"
-                    unitName="heightUnit"
-                    labelKey="forms.product.height"
-                  />
-                  <DimensionField
-                    form={form}
-                    name="length"
-                    unitName="lengthUnit"
-                    labelKey="forms.product.length"
-                  />
+                <div
+                  className={cn(
+                    'grid gap-3',
+                    isVaril
+                      ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-4'
+                      : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
+                  )}
+                >
+                  {isVaril ? (
+                    <>
+                      <DimensionField
+                        form={form}
+                        name="width"
+                        unitName="widthUnit"
+                        label={t('forms.product.diameter')}
+                      />
+                      <DimensionField
+                        form={form}
+                        name="height"
+                        unitName="heightUnit"
+                        label={t('forms.product.height')}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <DimensionField
+                        form={form}
+                        name="width"
+                        unitName="widthUnit"
+                        label={`${t('forms.product.width')} (X)`}
+                      />
+                      <DimensionField
+                        form={form}
+                        name="height"
+                        unitName="heightUnit"
+                        label={`${t('forms.product.height')} (Y)`}
+                      />
+                      <DimensionField
+                        form={form}
+                        name="length"
+                        unitName="lengthUnit"
+                        label={`${t('forms.product.depth')} (Z)`}
+                      />
+                    </>
+                  )}
                   <FormField
                     control={form.control}
                     name="weight"
@@ -665,7 +701,7 @@ export function ProductForm({
                     )}
                   />
                 </div>
-              </SectionCard>
+              </section>
 
               {/* KISITLAR — eksen rotasyonu */}
               <SectionCard>
@@ -897,7 +933,10 @@ function PreviewPanel(props: PreviewPanelProps) {
     Number.isFinite(height) && height !== undefined ? toCentimeters(height, heightUnit ?? 'cm') : 0;
   const depthCm =
     Number.isFinite(length) && length !== undefined ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
-  const hasDimensions = widthCm > 0 && heightCm > 0 && depthCm > 0;
+  const hasDimensions =
+    productType === 'varil'
+      ? widthCm > 0 && heightCm > 0
+      : widthCm > 0 && heightCm > 0 && depthCm > 0;
 
   return (
     <aside className="lg:sticky lg:top-6 lg:self-start">
@@ -972,6 +1011,40 @@ function PreviewPanel(props: PreviewPanelProps) {
           </dl>
         </div>
 
+        {/* Canlı veri özeti */}
+        <dl className="space-y-2 text-sm">
+          <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
+          {productType === 'varil' ? (
+            <>
+              <PreviewRow label={t('forms.product.diameter')} value={fmt(width, widthUnit)} />
+              <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
+            </>
+          ) : (
+            <>
+              <PreviewRow label={`${t('forms.product.width')} (X)`} value={fmt(width, widthUnit)} />
+              <PreviewRow
+                label={`${t('forms.product.height')} (Y)`}
+                value={fmt(height, heightUnit)}
+              />
+              <PreviewRow
+                label={`${t('forms.product.depth')} (Z)`}
+                value={fmt(length, lengthUnit)}
+              />
+            </>
+          )}
+          <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
+          <PreviewRow label={t('forms.product.fragility')} value={fragilityLabel} />
+          <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
+          <PreviewRow
+            label={<Move3d className="h-4 w-4" aria-hidden />}
+            value={
+              allRotationsFree
+                ? t('forms.product.summaryRotationFree')
+                : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
+            }
+          />
+        </dl>
+
         {notes && notes.trim().length > 0 && (
           <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-3 text-xs text-foreground">
             <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1011,18 +1084,17 @@ interface DimensionFieldProps {
   form: ReturnType<typeof useProductForm>;
   name: 'width' | 'height' | 'length';
   unitName: 'widthUnit' | 'heightUnit' | 'lengthUnit';
-  labelKey: string;
+  label: string;
 }
 
-function DimensionField({ form, name, unitName, labelKey }: DimensionFieldProps) {
-  const { t } = useTranslation();
+function DimensionField({ form, name, unitName, label }: DimensionFieldProps) {
   return (
     <FormField
       control={form.control}
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{t(labelKey)}</FormLabel>
+          <FormLabel>{label}</FormLabel>
           <div className="relative">
             <FormControl>
               <Input
