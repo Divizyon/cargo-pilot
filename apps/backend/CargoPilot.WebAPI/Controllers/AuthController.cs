@@ -135,11 +135,14 @@ public sealed class AuthController : BaseController
     [HttpPost("logout")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         var refreshToken = Request.Cookies["refreshToken"];
-        if (!string.IsNullOrWhiteSpace(refreshToken))
-            await _authService.LogoutAsync(refreshToken, cancellationToken);
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return Unauthorized();
+
+        await _authService.LogoutAsync(refreshToken, cancellationToken);
 
         Response.Cookies.Delete("refreshToken", new CookieOptions
         {
