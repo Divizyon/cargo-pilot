@@ -28,6 +28,8 @@ public sealed class LoadingPlan : BaseEntity {
 
     private LoadingPlan() { }
 
+    public void UpdatePlanName(string planName) => PlanName = planName;
+
     public LoadingPlan(
         Guid id,
         string planName,
