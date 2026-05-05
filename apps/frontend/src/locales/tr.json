@@ -32,8 +32,6 @@
       "width": "Genişlik",
       "height": "Yükseklik",
       "length": "Uzunluk",
-      "depth": "Derinlik",
-      "diameter": "Çap",
       "weight": "Ağırlık",
       "fragility": "Kısıtlar",
       "fragilityNonFragile": "İstiflenemez",

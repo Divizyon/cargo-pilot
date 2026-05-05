@@ -97,10 +97,9 @@ function KoliScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
   );
 }
 
-function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
-  // width = çap (diameter), height = yükseklik (cylinder height along Y)
-  const radius = widthCm / 2;
-  const maxDim = Math.max(widthCm, heightCm);
+function VarilScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
+  const radius = Math.min(widthCm, depthCm) / 2;
+  const maxDim = Math.max(radius * 2, heightCm);
 
   const edgesGeo = useMemo(() => {
     const cyl = new THREE.CylinderGeometry(radius, radius, heightCm, 32);
@@ -133,20 +132,18 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
 }
 
 function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
-  // Palet yüksekliği girilmemişse tabanın %8'i kadar ince göster
-  const h = heightCm > 0 ? heightCm : Math.max(widthCm, depthCm) * 0.08;
-  const maxDim = Math.max(widthCm, h, depthCm);
+  const maxDim = Math.max(widthCm, heightCm, depthCm);
 
   const edgesGeo = useMemo(() => {
-    const box = new THREE.BoxGeometry(widthCm, h, depthCm);
+    const box = new THREE.BoxGeometry(widthCm, heightCm, depthCm);
     const edges = new THREE.EdgesGeometry(box);
     box.dispose();
     return edges;
-  }, [widthCm, h, depthCm]);
+  }, [widthCm, heightCm, depthCm]);
 
   const boardLinesGeo = useMemo(() => {
     const positions: number[] = [];
-    const yTop = h / 2;
+    const yTop = heightCm / 2;
     const slats = 5;
     for (let i = 1; i < slats; i++) {
       const x = -widthCm / 2 + (widthCm / slats) * i;
@@ -155,7 +152,7 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     return geo;
-  }, [widthCm, h, depthCm]);
+  }, [widthCm, heightCm, depthCm]);
 
   useEffect(
     () => () => {
@@ -170,7 +167,7 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
       <SceneSetup maxDim={maxDim} />
       <group>
         <mesh>
-          <boxGeometry args={[widthCm, h, depthCm]} />
+          <boxGeometry args={[widthCm, heightCm, depthCm]} />
           <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
         </mesh>
         <lineSegments geometry={edgesGeo}>
