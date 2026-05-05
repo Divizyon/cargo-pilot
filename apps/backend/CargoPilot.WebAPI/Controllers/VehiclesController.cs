@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Vehicles.GetVehicleById;
 using CargoPilot.Application.Features.Vehicles.AddVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.CreateVehicle;
 using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
@@ -17,10 +18,12 @@ namespace CargoPilot.WebAPI.Controllers;
 [Route("api/v1/vehicles")]
 [Tags("Vehicles")]
 [Authorize]
-public sealed class VehiclesController : BaseController {
+public sealed class VehiclesController : BaseController
+{
     private readonly IMediator _mediator;
 
-    public VehiclesController(IMediator mediator) {
+    public VehiclesController(IMediator mediator)
+    {
         _mediator = mediator;
     }
 
@@ -48,7 +51,8 @@ public sealed class VehiclesController : BaseController {
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] bool isExport = false,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var query = new SearchVehiclesQuery(
             SearchTerm: searchTerm,
             VehicleType: vehicleType,
@@ -75,7 +79,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateVehicleRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new CreateVehicleCommand(
             request.VehicleName,
             request.Description,
@@ -120,7 +125,8 @@ public sealed class VehiclesController : BaseController {
     public async Task<IActionResult> Update(
         [FromRoute] Guid id,
         [FromBody] UpdateVehicleRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new UpdateVehicleCommand(
             id,
             request.VehicleName,
@@ -161,7 +167,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddFavorite(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new AddVehicleFavoriteCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -179,7 +186,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveFavorite(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new RemoveVehicleFavoriteCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -203,11 +211,30 @@ public sealed class VehiclesController : BaseController {
     public async Task<IActionResult> Duplicate(
         [FromRoute] Guid id,
         [FromBody] DuplicateVehicleRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new DuplicateVehicleCommand(id, request.VehicleName, request.PlateNumber);
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
+        return HandleResult(result);
+    }
+    /// <summary>
+    /// ID ile tek bir aracı getirir.
+    /// </summary>
+    /// <param name="id">Araç ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç detayları döner.</response>
+    /// <response code="404">Araç bulunamadı.</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetVehicleByIdQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }
 }
