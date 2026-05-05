@@ -22,7 +22,7 @@ public sealed class Vehicle : BaseEntity {
     public decimal? AdditionalAxleTareWeightKg { get; private set; }
     public decimal? AdditionalAxleMaxLoadKg { get; private set; }
 #pragma warning disable S1144
-    public string? Description { get; private set; }
+    
 #pragma warning restore S1144
     public int LayerCount { get; private set; }
     public LoadingType LoadingType { get; private set; }

@@ -82,6 +82,7 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 v.LoadingType,
                 v.Volume,
                 v.IsActive,
+                favoriteSet.Contains(v.Id),
                 v.CompanyId,
                 v.Description,
                 v.KingPinDistanceMm,
