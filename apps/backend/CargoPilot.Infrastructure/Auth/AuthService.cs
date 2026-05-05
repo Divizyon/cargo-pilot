@@ -299,7 +299,8 @@ internal sealed class AuthService : IAuthService
             token: newRefreshToken,
             expiresAt: sessionExpiry,
             lastUsedAt: now,
-            createdByIp: ipAddress);
+            createdByIp: ipAddress,
+            deviceSummary: session.DeviceSummary);
 
         _context.UserSessions.Add(newSession);
         await _context.SaveChangesAsync(cancellationToken);
