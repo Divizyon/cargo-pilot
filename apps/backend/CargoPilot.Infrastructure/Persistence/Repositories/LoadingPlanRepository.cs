@@ -95,14 +95,21 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(w => w.LoadingPlanId == id)
             .ToListAsync(cancellationToken);
 
-        return MapToDetailDto(plan, placements, unplacedItems, warnings);
+        var inputItems = await _context.LoadingPlanInputItems
+            .AsNoTracking()
+            .Include(i => i.Item)
+            .Where(i => i.LoadingPlanId == id)
+            .ToListAsync(cancellationToken);
+
+        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems);
     }
 
     private static PlanDetailDto MapToDetailDto(
         LoadingPlan plan,
         List<LoadingPlanPlacement> placements,
         List<LoadingPlanUnplacedItem> unplacedItems,
-        List<LoadingPlanWarning> warnings)
+        List<LoadingPlanWarning> warnings,
+        List<LoadingPlanInputItem> inputItems)
     {
         var vehicleDto = new VehicleInPlanDto(
             plan.Vehicle.Id,
@@ -143,6 +150,14 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 w.RelatedPlacementId))
             .ToList();
 
+        var inputItemDtos = inputItems
+            .Select(i => new InputItemDto(
+                i.Id,
+                i.ItemId,
+                i.Quantity,
+                ToItemInPlanDto(i.Item)))
+            .ToList();
+
         return new PlanDetailDto(
             plan.Id,
             plan.PlanName,
@@ -162,7 +177,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             vehicleDto,
             placementDtos,
             unplacedItemDtos,
-            warningDtos);
+            warningDtos,
+            inputItemDtos);
     }
 
     public async Task<LoadingPlan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
