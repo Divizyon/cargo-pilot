@@ -111,26 +111,28 @@ function parseBool(v: unknown, fallback = true): boolean {
 
 function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
   const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
-  return raw.map((r) => ({
-    _id: crypto.randomUUID(),
-    sku: String(r['SKU'] ?? ''),
-    name: String(r['Ürün Adı'] ?? ''),
-    tip:
-      String(r['Tip (koli/varil/palet)'] ?? '')
-        .toLowerCase()
-        .trim() || 'koli',
-    width: String(r['Genişlik(mm)'] ?? ''),
-    height: String(r['Yükseklik(mm)'] ?? ''),
-    length: String(r['Uzunluk(mm)'] ?? ''),
-    weight: String(r['Ağırlık(kg)'] ?? ''),
-    fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
-    isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
-    maxStackCount: String(r['Maks Kat'] ?? '1'),
-    allowRotateX: parseBool(r['X Dönüşümü (true/false)'], true),
-    allowRotateY: parseBool(r['Y Dönüşümü (true/false)'], true),
-    allowRotateZ: parseBool(r['Z Dönüşümü (true/false)'], true),
-    notes: String(r['Özel Notlar'] ?? ''),
-  }));
+  return raw.map((r) =>
+    editableRowSchema.parse({
+      _id: crypto.randomUUID(),
+      sku: String(r['SKU'] ?? ''),
+      name: String(r['Ürün Adı'] ?? ''),
+      tip:
+        String(r['Tip (koli/varil/palet)'] ?? '')
+          .toLowerCase()
+          .trim() || 'koli',
+      width: String(r['Genişlik(mm)'] ?? ''),
+      height: String(r['Yükseklik(mm)'] ?? ''),
+      length: String(r['Uzunluk(mm)'] ?? ''),
+      weight: String(r['Ağırlık(kg)'] ?? ''),
+      fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
+      isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
+      maxStackCount: String(r['Maks Kat'] ?? '1'),
+      allowRotateX: parseBool(r['X Dönüşümü (true/false)'], true),
+      allowRotateY: parseBool(r['Y Dönüşümü (true/false)'], true),
+      allowRotateZ: parseBool(r['Z Dönüşümü (true/false)'], true),
+      notes: String(r['Özel Notlar'] ?? ''),
+    }),
+  );
 }
 
 function emptyRow(): EditableRow {
