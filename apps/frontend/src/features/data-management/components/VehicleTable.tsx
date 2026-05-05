@@ -1,10 +1,9 @@
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Download, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ChevronDown, Download, Plus, SlidersHorizontal, Star, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,16 +15,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useVehicles } from '@/lib/api/useVehicles';
+import { useVehicles, useToggleFavorite } from '@/lib/api/useVehicles';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
 import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
 import { SearchInput } from './SearchInput';
 import { VehicleDeleteDialog } from './VehicleDeleteDialog';
-import { VehicleDetailPanel } from './VehicleDetailPanel';
 
 // ─── Type icons ───────────────────────────────────────────────────────────────
 
-function TirIcon({ className }: { className?: string }) {
+interface TirIconProps {
+  className?: string;
+}
+
+function TirIcon({ className }: TirIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -46,7 +48,11 @@ function TirIcon({ className }: { className?: string }) {
   );
 }
 
-function KamyonIcon({ className }: { className?: string }) {
+interface KamyonIconProps {
+  className?: string;
+}
+
+function KamyonIcon({ className }: KamyonIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -65,7 +71,11 @@ function KamyonIcon({ className }: { className?: string }) {
   );
 }
 
-function RomorkIcon({ className }: { className?: string }) {
+interface RomorkIconProps {
+  className?: string;
+}
+
+function RomorkIcon({ className }: RomorkIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -84,7 +94,11 @@ function RomorkIcon({ className }: { className?: string }) {
   );
 }
 
-function KonteynerIcon({ className }: { className?: string }) {
+interface KonteynerIconProps {
+  className?: string;
+}
+
+function KonteynerIcon({ className }: KonteynerIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -135,11 +149,11 @@ const TYPE_CONFIG: Record<
 
 // ─── Door direction config ────────────────────────────────────────────────────
 
-const DOOR_CONFIG: Record<string, { label: string; className: string }> = {
-  rear: { label: 'Arka', className: 'bg-zinc-100 text-zinc-600' },
-  side: { label: 'Yan', className: 'bg-teal-50 text-teal-700 ring-1 ring-teal-200' },
-  top: { label: 'Üst', className: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200' },
-  rearAndSide: { label: 'Arka + Yan', className: 'bg-zinc-100 text-zinc-600' },
+const DOOR_CONFIG: Record<string, { label: string }> = {
+  rear: { label: 'Arka' },
+  side: { label: 'Yan' },
+  top: { label: 'Üst' },
+  rearAndSide: { label: 'Arka + Yan' },
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -167,14 +181,8 @@ const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-}
-
-function formatDim(cm: number): string {
-  const m = cm / 100;
-  return m % 1 === 0 ? `${m}` : m.toFixed(2).replace(/0+$/, '');
+function formatDim(mm: number): string {
+  return Math.round(mm).toLocaleString('tr-TR');
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -232,82 +240,89 @@ function VehicleTableSkeleton() {
 
 interface VehicleRowProps {
   vehicle: Vehicle;
-  onRowClick: (v: Vehicle) => void;
   onDelete: (v: Vehicle) => void;
+  onToggleFavorite: (id: string, next: boolean) => void;
 }
 
-function VehicleRow({ vehicle, onRowClick, onDelete }: VehicleRowProps) {
+function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
   const navigate = useNavigate();
   const cfg = TYPE_CONFIG[vehicle.vehicleType];
-  const door = DOOR_CONFIG[vehicle.doorDirection] ?? {
-    label: vehicle.doorDirection,
-    className: 'bg-zinc-100 text-zinc-600',
-  };
-  const weightTon = (vehicle.maxCargoWeight / 1000).toFixed(1);
-  const weightKg = vehicle.maxCargoWeight.toLocaleString('tr-TR');
+  const door = DOOR_CONFIG[vehicle.doorDirection] ?? { label: vehicle.doorDirection };
+  const weightKg = Math.round(vehicle.maxCargoWeight / 1000).toLocaleString('tr-TR');
   const cell = 'py-0 px-3';
 
   return (
-    <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick(vehicle)}>
+    <TableRow
+      className="h-12 cursor-pointer"
+      onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
+    >
+      {/* Araç */}
       <TableCell className={cn(cell, 'max-w-[180px]')}>
         <span className="block truncate text-xs text-muted-foreground" title={vehicle.name}>
           {vehicle.name}
         </span>
       </TableCell>
 
+      {/* Tip */}
       <TableCell className={cell}>
-        <div className={cn('flex items-center gap-1', cfg.textClass)}>
-          <cfg.Icon className={cn('h-3 w-3 shrink-0', cfg.iconClass)} />
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <cfg.Icon className="h-3 w-3 shrink-0" />
           <span className="text-xs">{cfg.label}</span>
         </div>
       </TableCell>
 
+      {/* Plaka */}
       <TableCell className={cell}>
-        <span className="text-xs text-muted-foreground">{formatDate(vehicle.createdAt)}</span>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <span
-          className={cn(
-            'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
-            door.className,
-          )}
-        >
-          {door.label}
+        <span className="block truncate text-xs text-muted-foreground">
+          {vehicle.plate ?? '—'}
         </span>
       </TableCell>
 
+      {/* Genişlik */}
       <TableCell className={cell}>
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">{formatDim(vehicle.length)}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            m
-          </Badge>
-        </div>
+        <span className="text-xs text-foreground">{formatDim(vehicle.width)} mm</span>
       </TableCell>
 
+      {/* Yükseklik */}
       <TableCell className={cell}>
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">{formatDim(vehicle.width)}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            m
-          </Badge>
-        </div>
+        <span className="text-xs text-foreground">{formatDim(vehicle.height)} mm</span>
       </TableCell>
 
+      {/* Uzunluk */}
       <TableCell className={cell}>
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">{formatDim(vehicle.height)}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            m
-          </Badge>
-        </div>
+        <span className="text-xs text-foreground">{formatDim(vehicle.length)} mm</span>
       </TableCell>
 
+      {/* Maks Yük */}
       <TableCell className={cell}>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold text-foreground">{weightTon} t</span>
-          <span className="text-[10px] text-muted-foreground">{weightKg} kg</span>
+        <span className="text-xs text-foreground">{weightKg} kg</span>
+      </TableCell>
+
+      {/* Kapı Yönü */}
+      <TableCell className={cell}>
+        <span className="text-xs text-muted-foreground">{door.label}</span>
+      </TableCell>
+
+      {/* Durum */}
+      <TableCell className={cell}>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              'h-1.5 w-1.5 shrink-0 rounded-full',
+              vehicle.status === 'draft'
+                ? 'bg-zinc-400'
+                : (vehicle.isActive ?? true)
+                  ? 'bg-green-500'
+                  : 'bg-zinc-400',
+            )}
+          />
+          <span className="text-xs text-foreground">
+            {vehicle.status === 'draft'
+              ? 'Taslak'
+              : (vehicle.isActive ?? true)
+                ? 'Aktif'
+                : 'Pasif'}
+          </span>
         </div>
       </TableCell>
 
@@ -316,11 +331,16 @@ function VehicleRow({ vehicle, onRowClick, onDelete }: VehicleRowProps) {
           <Button
             variant="ghost"
             size="icon"
-            title="Düzenle"
+            title={vehicle.isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
             className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground"
-            onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
+            onClick={() => onToggleFavorite(vehicle.id, !vehicle.isFavorite)}
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Star
+              className={cn(
+                'h-3.5 w-3.5',
+                vehicle.isFavorite ? 'fill-foreground text-foreground' : '',
+              )}
+            />
           </Button>
           <Button
             variant="ghost"
@@ -349,8 +369,8 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const [doorFilters, setDoorFilters] = useState<Set<DoorFilter>>(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
-  const [detailVehicleId, setDetailVehicleId] = useState<string | null>(null);
   const filterRef = useRef<HTMLDivElement>(null);
+  const { mutate: toggleFavorite } = useToggleFavorite();
 
   const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
 
@@ -402,19 +422,21 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
         {/* Category tabs */}
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
           {CATEGORY_TABS.map((tab) => (
-            <button
+            <Button
               key={tab.value}
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setCategory(tab.value)}
               className={cn(
-                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                'h-auto rounded-md px-3 py-1 text-xs font-medium',
                 category === tab.value
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -472,13 +494,15 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   ))}
                 </div>
                 {hasActiveFilters && (
-                  <button
+                  <Button
                     type="button"
-                    className="mt-3 text-[11px] text-muted-foreground underline hover:text-foreground"
+                    variant="link"
+                    size="sm"
+                    className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
                     onClick={() => setDoorFilters(new Set())}
                   >
                     Filtreleri temizle
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -525,14 +549,8 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tip
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Oluşturuldu
-                </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Kapı Yönü
-                </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Plaka
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Genişlik
@@ -540,8 +558,17 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik
                 </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Uzunluk
+                </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Max Yük
+                  Maks Yük
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Kapı Yönü
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Durum
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   İşlem
@@ -552,7 +579,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={9}
+                    colSpan={11}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     Henüz araç eklenmemiş.
@@ -563,8 +590,8 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                 <VehicleRow
                   key={v.id}
                   vehicle={v}
-                  onRowClick={(vehicle) => setDetailVehicleId(vehicle.id)}
                   onDelete={setVehicleToDelete}
+                  onToggleFavorite={(id, next) => toggleFavorite({ id, isFavorite: next })}
                 />
               ))}
             </TableBody>
@@ -573,7 +600,6 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       </div>
 
       <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
-      <VehicleDetailPanel vehicleId={detailVehicleId} onClose={() => setDetailVehicleId(null)} />
     </div>
   );
 }
