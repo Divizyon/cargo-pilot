@@ -20,6 +20,18 @@ internal sealed class ItemRepository : IItemRepository
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetExistingIdsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _dbContext.Items
+            .AsNoTracking()
+            .Where(i => idList.Contains(i.Id))
+            .Select(i => i.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsBySkuAsync(string sku, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items

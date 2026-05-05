@@ -171,6 +171,9 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
 
     public void Add(LoadingPlan plan) => _context.LoadingPlans.Add(plan);
 
+    public void AddInputItems(IEnumerable<LoadingPlanInputItem> items) =>
+        _context.LoadingPlanInputItems.AddRange(items);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
 

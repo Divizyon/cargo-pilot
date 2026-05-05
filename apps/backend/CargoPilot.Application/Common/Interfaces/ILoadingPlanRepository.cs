@@ -22,5 +22,7 @@ public interface ILoadingPlanRepository
 
     void Add(LoadingPlan plan);
 
+    void AddInputItems(IEnumerable<LoadingPlanInputItem> items);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

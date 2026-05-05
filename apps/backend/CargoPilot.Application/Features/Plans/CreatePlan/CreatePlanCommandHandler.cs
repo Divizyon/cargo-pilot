@@ -10,17 +10,20 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 {
     private readonly ILoadingPlanRepository _planRepository;
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly IItemRepository _itemRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly IValidator<CreatePlanCommand> _validator;
 
     public CreatePlanCommandHandler(
         ILoadingPlanRepository planRepository,
         IVehicleRepository vehicleRepository,
+        IItemRepository itemRepository,
         IOptimizationEngine optimizationEngine,
         IValidator<CreatePlanCommand> validator)
     {
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
+        _itemRepository = itemRepository;
         _optimizationEngine = optimizationEngine;
         _validator = validator;
     }
@@ -42,17 +45,35 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
+        var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
+        var existingItemIds = await _itemRepository.GetExistingIdsAsync(requestedItemIds, cancellationToken);
+        var missingIds = requestedItemIds.Except(existingItemIds).ToList();
+        if (missingIds.Count > 0)
+        {
+            var failures = missingIds
+                .Select(id => new ValidationFailure("Items", $"Item bulunamadı: {id}"))
+                .ToList();
+            return Result<Guid>.Failure(
+                new Error(ErrorType.NotFound, "Items.NotFound", "Bir veya daha fazla item bulunamadı.", failures));
+        }
+
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
+        var planId = Guid.NewGuid();
 
         var plan = new LoadingPlan(
-            id: Guid.NewGuid(),
+            id: planId,
             planName: request.PlanName,
             vehicleId: request.VehicleId,
             optimizationCriteria: request.OptimizationCriteria,
             inputTotalQuantity: inputTotalQuantity,
             companyId: vehicle.CompanyId);
 
+        var inputItems = request.Items
+            .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity))
+            .ToList();
+
         _planRepository.Add(plan);
+        _planRepository.AddInputItems(inputItems);
         await _planRepository.SaveChangesAsync(cancellationToken);
 
         await _optimizationEngine.RunOptimizationAsync(plan.Id, cancellationToken);
