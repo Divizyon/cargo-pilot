@@ -32,6 +32,8 @@
       "width": "Width",
       "height": "Height",
       "length": "Length",
+      "depth": "Depth",
+      "diameter": "Diameter",
       "weight": "Weight",
       "fragility": "Fragility Level",
       "fragilityNonFragile": "Non-Fragile",
