@@ -36,6 +36,12 @@ public sealed class PackingEngine : IPackingEngine
 
         foreach (var item in sortedItems)
         {
+            if (totalMass + item.Weight > container.MaxWeight)
+            {
+                unplaced.Add(new UnplacedItemResult(item.Id, item.Name, "ağırlık kapasitesi aşıldı"));
+                continue;
+            }
+
             var rotations = GeometryHelper.GetRotations(item);
             var validCandidates = new List<PackingCandidate>();
             var allCandidates = new List<PackingCandidate>();

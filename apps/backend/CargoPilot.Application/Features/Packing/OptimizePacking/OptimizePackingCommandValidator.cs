@@ -1,4 +1,3 @@
-using CargoPilot.Application.Features.Packing.DTOs;
 using FluentValidation;
 
 namespace CargoPilot.Application.Features.Packing.OptimizePacking;
@@ -30,21 +29,10 @@ public sealed class OptimizePackingCommandValidator : AbstractValidator<Optimize
             item.RuleFor(i => i.Weight).GreaterThan(0).WithMessage("Ürün ağırlığı pozitif olmalıdır.");
         });
 
-        // LIFO indeksleri unique olmalı
-        RuleFor(x => x.Items)
-            .Must(HasUniqueLifoIndexes)
-            .WithMessage("LIFO indeksleri unique olmalıdır — çakışan değer tespit edildi.");
-
         RuleFor(x => x.Parameters.CgThresholdPercent)
             .InclusiveBetween(1m, 50m)
             .When(x => x.Parameters != null)
             .WithMessage("CG eşiği 1-50 arasında olmalıdır.");
     }
 
-    private static bool HasUniqueLifoIndexes(IReadOnlyList<ItemSpecDto>? items)
-    {
-        if (items == null) return true;
-        var indexes = items.Where(i => i.LifoIndex.HasValue).Select(i => i.LifoIndex!.Value).ToList();
-        return indexes.Count == indexes.Distinct().Count();
-    }
 }

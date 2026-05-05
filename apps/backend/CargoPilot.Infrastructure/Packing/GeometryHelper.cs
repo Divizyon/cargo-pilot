@@ -1,3 +1,4 @@
+using CargoPilot.Domain.Enums;
 using CargoPilot.Domain.Packing;
 
 namespace CargoPilot.Infrastructure.Packing;
@@ -9,14 +10,20 @@ internal static class GeometryHelper
     internal static IReadOnlyList<Rotation> GetRotations(ItemSpec item)
     {
         decimal l = item.Length, w = item.Width, h = item.Height;
-        return new List<Rotation>
+
+        return item.AllowedRotations switch
         {
-            new(l, w, h),
-            new(l, h, w),
-            new(w, l, h),
-            new(w, h, l),
-            new(h, l, w),
-            new(h, w, l)
+            AllowedRotations.Fixed => new List<Rotation> { new(l, w, h) },
+            AllowedRotations.NoVertical => new List<Rotation> { new(l, w, h), new(w, l, h) },
+            _ => new List<Rotation>
+            {
+                new(l, w, h),
+                new(l, h, w),
+                new(w, l, h),
+                new(w, h, l),
+                new(h, l, w),
+                new(h, w, l)
+            }
         };
     }
 

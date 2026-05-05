@@ -56,7 +56,7 @@ public sealed class OptimizePackingCommandHandler
 
     private static ItemSpec MapItem(ItemSpecDto dto) =>
         new(dto.Id, dto.Name, dto.Length, dto.Width, dto.Height,
-            dto.Weight, dto.IsStackable, dto.MaxWeightOnTop, dto.LifoIndex);
+            dto.Weight, dto.IsStackable, dto.MaxWeightOnTop, dto.LifoIndex, dto.AllowedRotations);
 
     private static PackingResultDto MapToDto(PackingResult result) => new(
         Placements: result.Placements.Select(p => new PlacementDto(

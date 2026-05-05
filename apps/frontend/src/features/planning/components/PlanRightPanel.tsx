@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
+import { usePackingOptimize } from '@/lib/api/usePackingOptimize';
 import { VehicleType, type Vehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { AddVehicleModal } from './AddVehicleModal';
@@ -127,8 +128,13 @@ interface PlanRightPanelProps {
 
 export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
+  const skuColorMap = usePlanStore((s) => s.skuColorMap);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+
+  const { mutate: optimize, isPending: isOptimizing } = usePackingOptimize();
 
   const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles();
   const pendingSelectIdRef = useRef<string | null>(null);
@@ -252,9 +258,23 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
         <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle}
+            disabled={!selectedVehicle || selectedItems.length === 0 || isOptimizing}
+            onClick={() => {
+              if (!selectedVehicle) return;
+              optimize(
+                { vehicle: selectedVehicle, items: selectedItems, skuColorMap },
+                { onSuccess: (placements) => setPlacements(placements) },
+              );
+            }}
           >
-            Optimizasyonu Başlat
+            {isOptimizing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                Optimizasyon…
+              </>
+            ) : (
+              'Optimizasyonu Başlat'
+            )}
           </Button>
         </div>
       </div>

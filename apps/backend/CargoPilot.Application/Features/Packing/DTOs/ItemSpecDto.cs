@@ -1,3 +1,5 @@
+using CargoPilot.Domain.Enums;
+
 namespace CargoPilot.Application.Features.Packing.DTOs;
 
 public sealed record ItemSpecDto(
@@ -9,4 +11,5 @@ public sealed record ItemSpecDto(
     decimal Weight,
     bool IsStackable,
     decimal MaxWeightOnTop,
-    int? LifoIndex);
+    int? LifoIndex,
+    AllowedRotations AllowedRotations = AllowedRotations.All);
