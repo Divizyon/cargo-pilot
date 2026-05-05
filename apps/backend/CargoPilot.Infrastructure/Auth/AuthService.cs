@@ -283,8 +283,24 @@ internal sealed class AuthService : IAuthService
             .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
 
-        if (session is null || session.IsRevoked || session.ExpiresAt <= DateTime.UtcNow)
+        if (session is null || session.User is null)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
+        // Revoke edilmiş token tekrar sunuluyorsa token çalınmış olabilir — tüm sessionları kapat.
+        if (session.IsRevoked)
+        {
+            var activeSessions = await _context.UserSessions
+                .Where(s => s.UserId == session.UserId && !s.IsRevoked)
+                .ToListAsync(cancellationToken);
+            foreach (var s in activeSessions)
+                s.Revoke();
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+        }
+
+        if (session.ExpiresAt <= DateTime.UtcNow)
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
 
         session.Revoke();
 
