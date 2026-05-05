@@ -19,6 +19,7 @@ public sealed class OAuthLoginCommandHandler : IRequestHandler<OAuthLoginCommand
             request.IdToken,
             request.Provider,
             request.IpAddress,
+            request.UserAgent,
             cancellationToken);
     }
 }

@@ -6,4 +6,11 @@ public interface IEmailService {
         string toName,
         string resetLink,
         CancellationToken cancellationToken = default);
+
+    Task SendNewDeviceWarningEmailAsync(
+        string toEmail,
+        string deviceSummary,
+        DateTime loginTime,
+        string secureAccountLink,
+        CancellationToken cancellationToken = default);
 }

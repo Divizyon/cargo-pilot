@@ -30,7 +30,7 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
 
   if (!length || !width) {
     return (
-      <div className="flex h-44 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+      <div className="flex h-56 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
         Uzunluk ve genişlik girilince ön izleme görünür
       </div>
     );
@@ -62,10 +62,10 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
           rx={isContainer ? 2 : 6}
         />
 
-        {doorDirection === 'rear' && (
+        {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
           <rect x={bx + bw - 5} y={by} width={5} height={bh} fill="var(--primary)" opacity={0.6} />
         )}
-        {doorDirection === 'side' && (
+        {(doorDirection === 'side' || doorDirection === 'rearAndSide') && (
           <rect x={bx} y={by + bh - 5} width={bw} height={5} fill="var(--primary)" opacity={0.6} />
         )}
         {doorDirection === 'top' && (

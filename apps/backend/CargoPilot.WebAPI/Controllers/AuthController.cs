@@ -82,7 +82,8 @@ public sealed class AuthController : BaseController
         }
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var result = await _authService.LoginAsync(request, ipAddress, cancellationToken);
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var result = await _authService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
 
         if (result.IsSuccess)
             SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
@@ -101,7 +102,8 @@ public sealed class AuthController : BaseController
         var command = new OAuthLoginCommand(
             request.IdToken,
             AuthProvider.Google,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Request.Headers.UserAgent.ToString());
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -178,6 +180,26 @@ public sealed class AuthController : BaseController
 
         var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword, cancellationToken);
         return HandleResult(result);
+    }
+
+    [HttpGet("secure-account")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SecureAccount(
+        [FromQuery] string email,
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+            return BadRequest();
+
+        var result = await _authService.SecureAccountAsync(email, token, cancellationToken);
+        if (!result.IsSuccess)
+            return HandleResult(result);
+
+        return Redirect(result.Data!);
     }
 
     private void SetRefreshTokenCookie(string token, DateTime expiresAt)

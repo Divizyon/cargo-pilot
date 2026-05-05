@@ -10,7 +10,7 @@ describe('VehicleType', () => {
   it('has all expected vehicle type values', () => {
     expect(VehicleType.Tir).toBe('Tir');
     expect(VehicleType.Kamyon).toBe('Kamyon');
-    expect(VehicleType.Romork).toBe('Romork');
+    expect(VehicleType.Kamposet).toBe('Kamposet');
     expect(VehicleType.Konteyner).toBe('Konteyner');
   });
 

@@ -43,7 +43,9 @@ export function ChartContainer({
     <ChartContext.Provider value={{ config }}>
       <div data-chart={chartId} className={cn('flex justify-center text-xs', className)} {...props}>
         <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer>{children}</RechartsPrimitive.ResponsiveContainer>
+        <RechartsPrimitive.ResponsiveContainer debounce={50} minWidth={0}>
+          {children}
+        </RechartsPrimitive.ResponsiveContainer>
       </div>
     </ChartContext.Provider>
   );
