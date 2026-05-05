@@ -132,6 +132,26 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var refreshToken = Request.Cookies["refreshToken"];
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+            await _authService.LogoutAsync(refreshToken, cancellationToken);
+
+        Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            Path = "/api/v1/auth",
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+        });
+
+        return Ok();
+    }
+
     [HttpPost("request-password-reset")]
     [AllowAnonymous]
     [EnableRateLimiting("password-reset")]

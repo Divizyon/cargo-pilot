@@ -399,6 +399,22 @@ internal sealed class AuthService : IAuthService
         return Result<bool>.Success(true);
     }
 
+    public async Task<Result<bool>> LogoutAsync(
+        string refreshToken,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _context.UserSessions
+            .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
+
+        if (session is null || session.IsRevoked)
+            return Result<bool>.Success(true);
+
+        session.Revoke();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<bool>.Success(true);
+    }
+
     public async Task<Result<string>> SecureAccountAsync(
         string email,
         string token,
