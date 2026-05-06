@@ -22,7 +22,7 @@ export const itemSchema = z.object({
   maxStackCount: z.number().int().min(1),
   maxWeightOnTop: z.number().nonnegative().nullable(),
   // 0 = normal, 1 = kırılgan, 2 = sıvı içerir
-  fragility: z.number().int().min(0).max(2).default(0),
+  fragility: z.number().int().min(0).default(0),
   allowRotateX: z.boolean().default(true),
   allowRotateY: z.boolean().default(true),
   allowRotateZ: z.boolean().default(true),
@@ -33,6 +33,8 @@ export const itemSchema = z.object({
   allowFaceBack: z.boolean().default(true),
   allowFaceLeft: z.boolean().default(true),
   allowFaceRight: z.boolean().default(true),
+  specialNotes: z.string().nullable().optional(),
+  stackGroup: z.string().nullable().optional(),
 });
 
 export type Item = z.infer<typeof itemSchema>;

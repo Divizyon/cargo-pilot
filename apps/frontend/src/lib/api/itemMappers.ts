@@ -31,7 +31,7 @@ export interface CreateItemRequest {
   length: number;
   diameter?: number | null;
   weight: number;
-  fragilityType: 0 | 1 | 2 | 3 | 4;
+  fragilityType: number;
   isStackable: boolean;
   maxStackCount: number;
   maxWeightOnTop: number;
@@ -63,8 +63,7 @@ export function toMaxWeightOnTop(
   maxStackCount: number,
 ): number {
   if (!isStackable) return 0;
-  const layersAbove = Math.max(maxStackCount - 1, 1);
-  return Math.max(weight * layersAbove, 1);
+  return Math.max(weight * maxStackCount, 1);
 }
 
 // ─── Backend response schema ──────────────────────────────────────────────────
@@ -147,6 +146,8 @@ export function fromApiItem(api: ItemApi): Item {
     allowFaceBack: true,
     allowFaceLeft: true,
     allowFaceRight: true,
+    specialNotes: api.specialNotes ?? null,
+    stackGroup: api.stackGroup ?? null,
   };
 }
 
@@ -169,6 +170,8 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     allowRotateX: item.allowRotateX,
     allowRotateY: item.allowRotateY,
     allowRotateZ: item.allowRotateZ,
+    notes: item.specialNotes ?? '',
+    stackGroup: item.stackGroup ?? undefined,
   };
 }
 
@@ -196,6 +199,7 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
       values.allowRotateZ,
     ),
     specialNotes: trimmedNotes && trimmedNotes.length > 0 ? trimmedNotes : null,
+    stackGroup: values.stackGroup?.trim() || null,
   };
 }
 
