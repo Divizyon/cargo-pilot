@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
@@ -171,8 +172,12 @@ export function useCreateVehicle() {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success('Araç başarıyla kaydedildi.', { position: 'bottom-right' });
     },
-    onError: () => {
-      toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+    onError: (err: unknown) => {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', { position: 'bottom-right' });
+      } else {
+        toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+      }
     },
   });
 }
@@ -190,8 +195,12 @@ export function useUpdateVehicle() {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success('Araç başarıyla güncellendi.', { position: 'bottom-right' });
     },
-    onError: () => {
-      toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+    onError: (err: unknown) => {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', { position: 'bottom-right' });
+      } else {
+        toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+      }
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
