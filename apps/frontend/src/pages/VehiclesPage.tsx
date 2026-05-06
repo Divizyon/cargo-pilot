@@ -1,18 +1,8 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useVehicles } from '@/lib/api/useVehicles';
-import { VehicleListTable } from '@/features/data-management/components/VehicleListTable';
-import { VehicleListFilters } from '@/features/data-management/components/VehicleListFilters';
-import { VehicleDeleteDialog } from '@/features/data-management/components/VehicleDeleteDialog';
-import { useVehicleFilters } from '@/features/data-management/hooks/useVehicleFilters';
-import type { Vehicle } from '@/lib/types/vehicle';
+import { VehicleTable } from '@/features/data-management/components/VehicleTable';
 
 export function VehiclesPage() {
   const navigate = useNavigate();
-  const filterHook = useVehicleFilters();
-  const { data: vehicles = [], isLoading } = useVehicles(filterHook.filters);
-
-  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,21 +13,7 @@ export function VehiclesPage() {
         </p>
       </div>
 
-      <VehicleListFilters
-        filters={filterHook}
-        vehicles={vehicles}
-        vehicleFilters={filterHook.filters}
-        onCreateClick={() => navigate('/vehicles/new')}
-      />
-
-      <VehicleListTable
-        vehicles={vehicles}
-        isLoading={isLoading}
-        onDelete={setVehicleToDelete}
-        onDetail={(v) => navigate(`/vehicles/${v.id}/edit`, { state: { vehicle: v } })}
-      />
-
-      <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
+      <VehicleTable onCreateClick={() => navigate('/vehicles/new')} />
     </div>
   );
 }
