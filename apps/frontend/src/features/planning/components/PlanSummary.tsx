@@ -9,7 +9,6 @@ import { usePlanStore } from '@/lib/store/usePlanStore';
 import { exportPlanToExcel } from '@/lib/utils/export-utils';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 import { checkFeatureAccess } from '@/lib/utils/checkFeatureAccess';
-import { useReportingSettingsStore } from '@/lib/store/useReportingSettingsStore';
 
 interface PlanSummaryProps {
   plan: LoadingPlan;
@@ -23,7 +22,6 @@ export function PlanSummary({ plan, getSnapshot }: PlanSummaryProps) {
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
 
-  const reportingSettings = useReportingSettingsStore();
   const canExcelExport = checkFeatureAccess('excelExport');
   const canPdfExport = checkFeatureAccess('pdfExport');
   const isLoading = isPdfLoading || isExcelLoading;
@@ -49,7 +47,6 @@ export function PlanSummary({ plan, getSnapshot }: PlanSummaryProps) {
         items,
         vehicle: selectedVehicle,
         snapshotDataUrl,
-        reportingSettings,
       });
     } finally {
       setIsPdfLoading(false);

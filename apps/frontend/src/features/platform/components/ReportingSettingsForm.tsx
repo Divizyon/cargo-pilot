@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Mail, MapPin, Phone, Upload, X, Info } from 'lucide-react';
+import { Building2, Calendar, Info, Mail, MapPin, Phone, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -12,13 +12,30 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useReportingSettingsStore } from '@/lib/store/useReportingSettingsStore';
+import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
 import { reportingSettingsSchema } from '@/features/platform/schemas/reportingSettingsSchema';
 import type { ReportingSettingsFormValues } from '@/features/platform/schemas/reportingSettingsSchema';
 
-const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
+
+const DATE_FORMAT_OPTIONS: { value: DateFormat; label: string }[] = [
+  { value: 'DD.MM.YYYY', label: 'GG.AA.YYYY — 31.12.2026 (Türk)' },
+  { value: 'MM/DD/YYYY', label: 'AA/GG/YYYY — 12/31/2026 (ABD)' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-AA-GG — 2026-12-31 (ISO)' },
+];
 
 export function ReportingSettingsForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,9 +45,13 @@ export function ReportingSettingsForm() {
     phone,
     email,
     address,
+    dateFormat,
+    showSignatureArea,
     setLogo,
     removeLogo,
     updateContactInfo,
+    setDateFormat,
+    toggleSignatureArea,
   } = useReportingSettingsStore();
 
   const form = useForm<ReportingSettingsFormValues>({
@@ -68,7 +89,7 @@ export function ReportingSettingsForm() {
 
   return (
     <div className="space-y-8">
-      {/* Logo section */}
+      {/* Logo */}
       <div className="space-y-3">
         <div>
           <p className="text-sm font-medium text-foreground">Şirket Logosu</p>
@@ -142,6 +163,8 @@ export function ReportingSettingsForm() {
           onChange={handleFileChange}
         />
       </div>
+
+      <Separator />
 
       {/* Contact fields */}
       <Form {...form}>
@@ -218,7 +241,7 @@ export function ReportingSettingsForm() {
                       <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Textarea
                         placeholder="Şirket adresi"
-                        className="min-h-20 pl-10 resize-none"
+                        className="min-h-20 resize-none pl-10"
                         {...field}
                       />
                     </div>
@@ -236,6 +259,52 @@ export function ReportingSettingsForm() {
           </div>
         </form>
       </Form>
+
+      <Separator />
+
+      {/* Date format */}
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-medium text-foreground">Tarih Formatı</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            PDF raporlarındaki tarih gösteriminde kullanılacak format.
+          </p>
+        </div>
+        <div className="relative max-w-xs">
+          <Calendar className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Select value={dateFormat} onValueChange={(v) => setDateFormat(v as DateFormat)}>
+            <SelectTrigger className="pl-10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FORMAT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Signature area toggle */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <Label htmlFor="signature-toggle" className="text-sm font-medium">
+            İmza Alanı
+          </Label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Açık olduğunda her raporun son sayfasına otomatik olarak imza alanı eklenir.
+          </p>
+        </div>
+        <Switch
+          id="signature-toggle"
+          checked={showSignatureArea}
+          onCheckedChange={toggleSignatureArea}
+        />
+      </div>
     </div>
   );
 }
