@@ -11,6 +11,8 @@ export function useVehicleFormVisibility(control: Control<VehicleFormValues>) {
 
   return {
     showAxleSection: !isContainer,
-    showKingpinSection: isTirOrKamposet,
+    // AC1 (US-VY-09): Tır/Römork/Kamyon — tüm karayolu araçlarında görünür
+    showKingpinSection: !isContainer,
+    kingpinRequired: isTirOrKamposet,
   };
 }
