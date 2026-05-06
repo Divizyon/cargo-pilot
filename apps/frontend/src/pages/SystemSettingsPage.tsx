@@ -93,9 +93,7 @@ export function SystemSettingsPage() {
         </TabsContent>
 
         <TabsContent value="reporting" className="mt-6">
-          <ReportingSettingsTab
-            onDirtyChange={(dirty) => handleDirtyChange('reporting', dirty)}
-          />
+          <ReportingSettingsTab onDirtyChange={(dirty) => handleDirtyChange('reporting', dirty)} />
         </TabsContent>
       </Tabs>
 

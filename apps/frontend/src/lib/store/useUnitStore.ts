@@ -14,7 +14,9 @@ interface UnitState {
   volumeUnit: VolumeUnit;
   dateFormat: DateFormat;
   setUnits: (
-    units: Partial<Pick<UnitState, 'language' | 'dimensionUnit' | 'weightUnit' | 'volumeUnit' | 'dateFormat'>>,
+    units: Partial<
+      Pick<UnitState, 'language' | 'dimensionUnit' | 'weightUnit' | 'volumeUnit' | 'dateFormat'>
+    >,
   ) => void;
 }
 

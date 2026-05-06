@@ -165,7 +165,9 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <FormLabel className="text-sm font-medium">Koordinat Eksenlerini Göster</FormLabel>
+                    <FormLabel className="text-sm font-medium">
+                      Koordinat Eksenlerini Göster
+                    </FormLabel>
                     <FormDescription className="text-xs">
                       X, Y, Z eksen göstergelerini görüntüler.
                     </FormDescription>

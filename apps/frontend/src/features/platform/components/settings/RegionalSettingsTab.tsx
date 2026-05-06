@@ -44,8 +44,7 @@ const UNIT_TOOLTIPS = {
     'Ölçü birimi; ürün tanımlama formu, araç boyutları ve 3D koordinat hesaplamalarında kullanılır.',
   weightUnit:
     'Ağırlık birimi; ürün ağırlığı, araç yük kapasitesi ve aks yük limitlerinde kullanılır.',
-  volumeUnit:
-    'Hacim birimi; hesaplanan araç ve kargo hacimlerinin gösteriminde kullanılır.',
+  volumeUnit: 'Hacim birimi; hesaplanan araç ve kargo hacimlerinin gösteriminde kullanılır.',
 } as const;
 
 interface RegionalSettingsTabProps {
