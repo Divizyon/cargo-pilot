@@ -74,7 +74,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
 
     public async Task<bool> IsUsedInActiveLoadingPlanAsync(Guid vehicleId, CancellationToken cancellationToken = default) {
         return await _context.LoadingPlans
-            .AnyAsync(p => p.VehicleId == vehicleId && !p.IsDeleted, cancellationToken);
+            .AnyAsync(p => p.VehicleId == vehicleId && p.OptimizationStatus == LoadingPlanOptimizationStatus.Draft, cancellationToken);
     }
 
     public void Add(Vehicle vehicle) {
