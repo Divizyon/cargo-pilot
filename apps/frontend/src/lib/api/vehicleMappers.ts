@@ -2,32 +2,29 @@ import { z } from 'zod';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 
+// Backend: Trailer=0, Truck=1, Container=2, Romork=3
 export const VEHICLE_TYPE_INT = {
-  Tir: 0,
-  Kamyon: 1,
-  Kamposet: 2,
-  Konteyner: 3,
+  Tir: 0,       // Trailer
+  Kamyon: 1,    // Truck
+  Konteyner: 2, // Container
+  Kamposet: 3,  // Romork
 } as const;
 
-export const LOADING_TYPE_INT = {
-  rear: 0,
-  side: 1,
-  top: 2,
-  rearAndSide: 3,
-} as const;
-
+// Backend: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
 const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
   0: VehicleType.Tir,
   1: VehicleType.Kamyon,
-  2: VehicleType.Kamposet,
-  3: VehicleType.Konteyner,
+  2: VehicleType.Konteyner,
+  3: VehicleType.Kamposet,
 };
 
-const DOOR_DIR_FROM_INT: Record<number, DoorDirection> = {
-  0: DoorDirection.Rear,
-  1: DoorDirection.Side,
-  2: DoorDirection.Top,
-  3: DoorDirection.RearAndSide,
+// loadingType int → { direction, doorSide }
+const LOADING_TYPE_FROM_INT: Record<number, { direction: DoorDirection; doorSide?: 'right' | 'left' }> = {
+  0: { direction: DoorDirection.Rear },
+  1: { direction: DoorDirection.Side, doorSide: 'right' },
+  2: { direction: DoorDirection.Side, doorSide: 'left' },
+  3: { direction: DoorDirection.RearAndSide },
+  4: { direction: DoorDirection.Top },
 };
 
 // ─── Backend response schema ──────────────────────────────────────────────────
@@ -125,7 +122,8 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     grossWeight: api.grossWeight ?? undefined,
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: DOOR_DIR_FROM_INT[api.loadingType] ?? DoorDirection.Rear,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType]?.direction ?? DoorDirection.Rear,
+    doorSide: LOADING_TYPE_FROM_INT[api.loadingType]?.doorSide,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -155,6 +153,7 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
     tareWeight: v.tareWeight,
     maxLayerCount: v.maxLayerCount,
     doorDirection: v.doorDirection,
+    doorSide: v.doorSide,
     kingpin: v.kingpin,
     axleB: v.axleB,
     axles: v.axles,
@@ -198,8 +197,14 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     internalWidth: values.width,
     internalHeight: values.height,
     maxWeightCapacity: values.maxCargoWeight,
-    layerCount: values.maxLayerCount ?? 0,
-    loadingType: LOADING_TYPE_INT[values.doorDirection],
+    layerCount: values.maxLayerCount ?? 1,
+    loadingType: (() => {
+      if (values.doorDirection === 'side') {
+        return values.doorSide === 'left' ? 2 : 1; // SideLeft=2, SideRight=1
+      }
+      const map: Record<string, number> = { rear: 0, rearAndSide: 3, top: 4 };
+      return map[values.doorDirection] ?? 0;
+    })(),
     isActive: values.isActive ?? true,
     kingPinDistanceMm: values.kingpin?.distance ?? null,
     kingPinTareWeightKg: values.kingpin?.tareWeight ?? null,
