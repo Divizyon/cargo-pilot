@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
@@ -168,6 +169,10 @@ export function useCreateVehicle() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      toast.success('Araç başarıyla kaydedildi.', { position: 'bottom-right' });
+    },
+    onError: () => {
+      toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
     },
   });
 }
@@ -180,6 +185,13 @@ export function useUpdateVehicle() {
       const { data: res } = await axiosInstance.put<unknown>(`/api/v1/vehicles/${id}`, payload);
       const parsed = singleVehicleApiSchema.safeParse(res);
       return parsed.success ? fromApiVehicle(parsed.data.data) : null;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      toast.success('Araç başarıyla güncellendi.', { position: 'bottom-right' });
+    },
+    onError: () => {
+      toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -299,47 +311,31 @@ export function useVehiclePlans(vehicleId: string) {
   });
 }
 
-const existsSchema = z.union([
-  z.object({ data: z.object({ exists: z.boolean() }) }).transform((r) => r.data),
-  z.object({ exists: z.boolean() }),
-]);
+// TODO: Backend check-name/check-plate/check-serial hazır olunca kullanılacak
+// const existsSchema = z.union([...]);
 
-export function useVehicleDuplicateCheck(name: string) {
+// TODO: Backend check-name/check-plate/check-serial endpoint'leri eklenince enabled: false kaldırılacak
+export function useVehicleDuplicateCheck(_name: string) {
   return useQuery({
-    queryKey: ['vehicles', 'duplicate-check', name] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `/api/v1/vehicles/check-name?name=${encodeURIComponent(name)}`,
-      );
-      return existsSchema.parse(data);
-    },
-    enabled: name.trim().length > 0,
+    queryKey: ['vehicles', 'duplicate-check', _name] as const,
+    queryFn: async () => ({ exists: false }),
+    enabled: false,
   });
 }
 
-export function useVehiclePlateCheck(plate: string) {
+export function useVehiclePlateCheck(_plate: string) {
   return useQuery({
-    queryKey: ['vehicles', 'plate-check', plate] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `/api/v1/vehicles/check-plate?plate=${encodeURIComponent(plate)}`,
-      );
-      return existsSchema.parse(data);
-    },
-    enabled: plate.trim().length > 0,
+    queryKey: ['vehicles', 'plate-check', _plate] as const,
+    queryFn: async () => ({ exists: false }),
+    enabled: false,
   });
 }
 
-export function useVehicleSerialCheck(serial: string) {
+export function useVehicleSerialCheck(_serial: string) {
   return useQuery({
-    queryKey: ['vehicles', 'serial-check', serial] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `/api/v1/vehicles/check-serial?serial=${encodeURIComponent(serial)}`,
-      );
-      return existsSchema.parse(data);
-    },
-    enabled: serial.trim().length > 0,
+    queryKey: ['vehicles', 'serial-check', _serial] as const,
+    queryFn: async () => ({ exists: false }),
+    enabled: false,
   });
 }
 
