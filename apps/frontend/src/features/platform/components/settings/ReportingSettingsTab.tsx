@@ -141,7 +141,9 @@ export function ReportingSettingsTab({ onDirtyChange }: ReportingSettingsTabProp
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Rapor İçeriği</CardTitle>
-            <CardDescription>Raporlarda görünecek başlık, alt bilgi ve logo ayarları.</CardDescription>
+            <CardDescription>
+              Raporlarda görünecek başlık, alt bilgi ve logo ayarları.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
