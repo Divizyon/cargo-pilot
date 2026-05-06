@@ -63,7 +63,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       className="h-9 border-zinc-200 bg-white pr-8"
                       {...field}
                       value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       kg
@@ -92,7 +92,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       className="h-9 border-zinc-200 bg-white pr-8"
                       {...field}
                       value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       cm

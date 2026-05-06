@@ -48,7 +48,7 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                   min="1"
                   {...field}
                   value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
                 />
               </FormControl>
               {/* AC3: Aracın ön noktasından mesafeyi temsil eder */}
@@ -71,7 +71,7 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                   min="0"
                   {...field}
                   value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
                 />
               </FormControl>
               <FormMessage />
@@ -93,7 +93,7 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                   max={KINGPIN_LEGAL_MAX_LOAD}
                   {...field}
                   value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
                 />
               </FormControl>
               {/* AC4: Yasal taşıma sınırı */}
