@@ -2,6 +2,7 @@ import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
+import type { ReportingSettings } from '@/lib/store/useReportingSettingsStore';
 
 Font.register({
   family: 'Roboto',
@@ -86,6 +87,36 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     padding: 10,
   },
+  companyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  companyLogo: {
+    width: 80,
+    height: 32,
+    objectFit: 'contain',
+  },
+  companyInfo: {
+    flex: 1,
+    marginLeft: 12,
+    alignItems: 'flex-end',
+  },
+  companyName: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  companyDetail: {
+    fontSize: 8,
+    color: '#6b7280',
+    marginBottom: 1,
+  },
 });
 
 interface PlanPdfDocumentProps {
@@ -94,6 +125,10 @@ interface PlanPdfDocumentProps {
   items: Item[];
   vehicle: Vehicle | null;
   snapshotDataUrl?: string;
+  reportingSettings?: Pick<
+    ReportingSettings,
+    'logoDataUrl' | 'companyName' | 'phone' | 'email' | 'address'
+  >;
 }
 
 export function PlanPdfDocument({
@@ -102,7 +137,15 @@ export function PlanPdfDocument({
   items,
   vehicle,
   snapshotDataUrl,
+  reportingSettings,
 }: PlanPdfDocumentProps) {
+  const hasCompanyInfo =
+    reportingSettings &&
+    (reportingSettings.logoDataUrl ||
+      reportingSettings.companyName ||
+      reportingSettings.phone ||
+      reportingSettings.email ||
+      reportingSettings.address);
   const calculateFillRate = (): number => {
     if (!vehicle) return 0;
     const vehicleVolume = vehicle.width * vehicle.height * vehicle.length;
@@ -148,6 +191,27 @@ export function PlanPdfDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {hasCompanyInfo && (
+          <View style={styles.companyHeader}>
+            {reportingSettings.logoDataUrl && (
+              <Image src={reportingSettings.logoDataUrl} style={styles.companyLogo} />
+            )}
+            <View style={styles.companyInfo}>
+              {reportingSettings.companyName ? (
+                <Text style={styles.companyName}>{reportingSettings.companyName}</Text>
+              ) : null}
+              {reportingSettings.phone ? (
+                <Text style={styles.companyDetail}>{reportingSettings.phone}</Text>
+              ) : null}
+              {reportingSettings.email ? (
+                <Text style={styles.companyDetail}>{reportingSettings.email}</Text>
+              ) : null}
+              {reportingSettings.address ? (
+                <Text style={styles.companyDetail}>{reportingSettings.address}</Text>
+              ) : null}
+            </View>
+          </View>
+        )}
         <Text style={styles.title}>Yükleme Planı Raporu</Text>
 
         <View style={styles.section}>
