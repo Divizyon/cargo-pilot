@@ -343,6 +343,31 @@ export function useVehicleSerialCheck(serial: string) {
   });
 }
 
+export function useDuplicateVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      vehicleName,
+      plateNumber,
+    }: {
+      id: string;
+      vehicleName: string;
+      plateNumber: string;
+    }) => {
+      const { data } = await axiosInstance.post<unknown>(
+        `/api/v1/vehicles/${id}/duplicate`,
+        { vehicleName, plateNumber },
+      );
+      const parsed = singleVehicleApiSchema.safeParse(data);
+      return parsed.success ? fromApiVehicle(parsed.data.data) : null;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
+}
+
 // ─── Planning-context vehicle create ─────────────────────────────────────────
 
 export const planVehicleCreatePayloadSchema = z.object({

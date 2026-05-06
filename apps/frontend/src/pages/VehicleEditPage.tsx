@@ -6,10 +6,11 @@ import { useVehicle, useUpdateVehicle } from '@/lib/api/useVehicles';
 import { vehicleToFormValues } from '@/lib/api/vehicleMappers';
 import { VehicleForm } from '@/features/data-management/components/VehicleForm';
 import { VehicleDeleteDialog } from '@/features/data-management/components/VehicleDeleteDialog';
+import { VehicleDuplicateDialog } from '@/features/data-management/components/VehicleDuplicateDialog';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy } from 'lucide-react';
 
 export function VehicleEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ export function VehicleEditPage() {
   const { data: vehicle, isLoading, isError } = useVehicle(id ?? '', vehicleFromState);
   const { mutate: updateVehicle, isPending } = useUpdateVehicle();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
 
   function handleSubmit(values: VehicleFormValues) {
     if (!id) return;
@@ -62,15 +64,26 @@ export function VehicleEditPage() {
             {vehicle.name} — teknik verilerini ve boyutlarını görüntüleyin veya güncelleyin.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 text-xs text-destructive hover:border-destructive hover:bg-destructive/5 hover:text-destructive"
-          onClick={() => setShowDeleteDialog(true)}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Aracı Sil
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setShowDuplicateDialog(true)}
+          >
+            <Copy className="h-3.5 w-3.5" />
+            Kopyala
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs text-destructive hover:border-destructive hover:bg-destructive/5 hover:text-destructive"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Aracı Sil
+          </Button>
+        </div>
       </div>
 
       <VehicleForm
@@ -85,6 +98,12 @@ export function VehicleEditPage() {
         vehicle={showDeleteDialog ? vehicle : null}
         onClose={() => setShowDeleteDialog(false)}
         onDeleted={() => navigate('/vehicles')}
+      />
+
+      <VehicleDuplicateDialog
+        vehicle={showDuplicateDialog ? vehicle : null}
+        onClose={() => setShowDuplicateDialog(false)}
+        onDuplicated={(newId) => navigate(`/vehicles/${newId}/edit`)}
       />
     </div>
   );
