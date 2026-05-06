@@ -1,7 +1,8 @@
 import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFilters } from '@/lib/api/useVehicles';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDate, getExcelDateCellValue } from '@/lib/utils/formatDate';
 
 const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
@@ -10,6 +11,8 @@ const DOOR_LABELS: Record<string, string> = {
 };
 
 export function exportVehiclesToExcel(vehicles: Vehicle[], _filters?: VehicleFilters): void {
+  const { dateFormat } = useUnitStore.getState();
+
   const rows = vehicles.map((v) => ({
     'Araç Adı': v.name,
     'Araç Tipi': v.vehicleType,
@@ -24,6 +27,14 @@ export function exportVehiclesToExcel(vehicles: Vehicle[], _filters?: VehicleFil
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Araçlar');
-  const fileName = `CargoPilot_Arac_Envanteri_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
+
+  const exportDate = new Date();
+  const metaWs = XLSX.utils.aoa_to_sheet(
+    [['Dışa Aktarma Tarihi', getExcelDateCellValue(exportDate, dateFormat)]],
+    { cellDates: true },
+  );
+  XLSX.utils.book_append_sheet(wb, metaWs, 'Meta');
+
+  const fileName = `CargoPilot_Arac_Envanteri_${formatDate(exportDate, dateFormat)}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }

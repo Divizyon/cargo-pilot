@@ -4,16 +4,10 @@ import { FileDown, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadPlanPdf } from '@/lib/utils/downloadPlanPdf';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDate } from '@/lib/utils/formatDate';
 import { ROUTES } from '@/lib/config/routes';
 import type { RecentPlan } from '@/lib/api/useRecentPlans';
-
-const dateFormatter = new Intl.DateTimeFormat('tr-TR', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
 
 interface Props {
   plan: RecentPlan;
@@ -23,6 +17,7 @@ interface Props {
 export function RecentPlanRow({ plan, isSelected }: Props) {
   const navigate = useNavigate();
   const setSelectedSnapshotPlanId = useUIStore((s) => s.setSelectedSnapshotPlanId);
+  const dateFormat = useUnitStore((s) => s.dateFormat);
 
   function handleSelect() {
     setSelectedSnapshotPlanId(plan.id);
@@ -53,7 +48,7 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
           {plan.name}
         </button>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {dateFormatter.format(new Date(plan.createdAt))}
+          {formatDate(plan.createdAt, dateFormat, true)}
         </p>
       </div>
 
