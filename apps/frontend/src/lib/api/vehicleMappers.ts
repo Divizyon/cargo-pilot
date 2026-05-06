@@ -11,7 +11,7 @@ export const VEHICLE_TYPE_INT = {
 } as const;
 
 // Backend: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
-const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
+export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
   0: VehicleType.Tir,
   1: VehicleType.Kamyon,
   2: VehicleType.Konteyner,
@@ -19,7 +19,7 @@ const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
 };
 
 // loadingType int → { direction, doorSide }
-const LOADING_TYPE_FROM_INT: Record<number, { direction: DoorDirection; doorSide?: 'right' | 'left' }> = {
+export const LOADING_TYPE_FROM_INT: Record<number, { direction: DoorDirection; doorSide?: 'right' | 'left' }> = {
   0: { direction: DoorDirection.Rear },
   1: { direction: DoorDirection.Side, doorSide: 'right' },
   2: { direction: DoorDirection.Side, doorSide: 'left' },

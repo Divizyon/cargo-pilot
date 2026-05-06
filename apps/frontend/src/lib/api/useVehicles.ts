@@ -12,6 +12,8 @@ import {
   fromApiVehicle,
   buildCreateVehiclePayload,
   VEHICLE_TYPE_INT,
+  VEHICLE_TYPE_FROM_INT,
+  LOADING_TYPE_FROM_INT,
 } from './vehicleMappers';
 
 // ─── List API response schema ─────────────────────────────────────────────────
@@ -21,6 +23,7 @@ const vehicleListApiItemSchema = z.object({
   vehicleName: z.string(),
   vehicleType: z.number().int(),
   plateNumber: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   internalWidth: z.number(),
   internalHeight: z.number(),
   internalLength: z.number(),
@@ -29,6 +32,15 @@ const vehicleListApiItemSchema = z.object({
   loadingType: z.number().int().nullable().optional(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
+  kingPinDistanceMm: z.number().nullable().optional(),
+  kingPinTareWeightKg: z.number().nullable().optional(),
+  kingPinMaxLoadKg: z.number().nullable().optional(),
+  mainAxleDistanceMm: z.number().nullable().optional(),
+  mainAxleTareWeightKg: z.number().nullable().optional(),
+  mainAxleMaxLoadKg: z.number().nullable().optional(),
+  additionalAxleDistanceMm: z.number().nullable().optional(),
+  additionalAxleTareWeightKg: z.number().nullable().optional(),
+  additionalAxleMaxLoadKg: z.number().nullable().optional(),
 });
 
 const vehicleListApiResponseSchema = z.object({
@@ -43,32 +55,37 @@ const vehicleListApiResponseSchema = z.object({
 
 type VehicleListApiItem = z.infer<typeof vehicleListApiItemSchema>;
 
-const VEHICLE_TYPE_MAP: Record<number, VehicleType> = {
-  0: VehicleType.Tir,
-  1: VehicleType.Kamyon,
-  2: VehicleType.Kamposet,
-  3: VehicleType.Konteyner,
-};
-
-const LOADING_TYPE_MAP: Record<number, (typeof DoorDirection)[keyof typeof DoorDirection]> = {
-  0: DoorDirection.Rear,
-  1: DoorDirection.Side,
-  2: DoorDirection.Top,
-  3: DoorDirection.RearAndSide,
-};
-
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
+  const loadingTypeInfo = LOADING_TYPE_FROM_INT[api.loadingType ?? 0];
+  const kingpin =
+    api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
+      ? { distance: api.kingPinDistanceMm, tareWeight: api.kingPinTareWeightKg ?? 0, maxLoad: api.kingPinMaxLoadKg }
+      : undefined;
+  const axleB =
+    api.mainAxleDistanceMm != null && api.mainAxleMaxLoadKg != null
+      ? { distance: api.mainAxleDistanceMm, tareWeight: api.mainAxleTareWeightKg ?? 0, maxLoad: api.mainAxleMaxLoadKg }
+      : undefined;
+  const additionalAxle =
+    api.additionalAxleDistanceMm != null && api.additionalAxleMaxLoadKg != null
+      ? { distance: api.additionalAxleDistanceMm, tareWeight: api.additionalAxleTareWeightKg ?? 0, maxLoad: api.additionalAxleMaxLoadKg }
+      : undefined;
+
   return {
     id: api.id,
     name: api.vehicleName,
-    vehicleType: VEHICLE_TYPE_MAP[api.vehicleType] ?? VehicleType.Kamyon,
+    vehicleType: VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir,
+    description: api.description ?? undefined,
     plate: api.plateNumber ?? undefined,
     width: api.internalWidth,
     height: api.internalHeight,
     length: api.internalLength,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_MAP[api.loadingType ?? 0] ?? DoorDirection.Rear,
+    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
+    doorSide: loadingTypeInfo?.doorSide,
+    kingpin,
+    axleB,
+    axles: additionalAxle ? [additionalAxle] : undefined,
     isFavorite: api.isFavorite ?? false,
     isActive: api.isActive ?? true,
     isDeleted: false,
