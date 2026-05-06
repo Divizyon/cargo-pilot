@@ -23,7 +23,7 @@ const vehicleModalSchema = z.object({
   width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   layerCount: z.number({ error: 'Sayı giriniz' }).int().min(1, 'En az 1'),
-  loadingArea: z.enum(['arka', 'yan', 'arka-yan']),
+  loadingArea: z.enum(['arka', 'yan', 'ust', 'arka-yan']),
 });
 
 type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
@@ -56,12 +56,13 @@ const VEHICLE_TYPES: Array<{
 // ─── Loading area config ──────────────────────────────────────────────────────
 
 const LOADING_AREAS: Array<{
-  value: 'arka' | 'yan' | 'arka-yan';
+  value: 'arka' | 'yan' | 'ust' | 'arka-yan';
   label: string;
 }> = [
   { value: 'arka', label: 'Yalnızca Arka' },
-  { value: 'yan', label: '+ Yan Profil' },
-  { value: 'arka-yan', label: '+ Arka + Yan (Full)' },
+  { value: 'yan', label: 'Yan Kapı' },
+  { value: 'ust', label: 'Üst Kapak' },
+  { value: 'arka-yan', label: 'Arka + Yan' },
 ];
 
 // ─── AddVehicleModal ──────────────────────────────────────────────────────────
@@ -82,7 +83,8 @@ const FORM_VEHICLE_TYPE_INT: Record<string, number> = {
 const LOADING_AREA_INT: Record<string, number> = {
   arka: 0,
   yan: 1,
-  'arka-yan': 0,
+  ust: 2,
+  'arka-yan': 3,
 };
 
 export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleModalProps) {
