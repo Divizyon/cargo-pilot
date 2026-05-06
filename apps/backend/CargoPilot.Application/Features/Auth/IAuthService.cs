@@ -59,4 +59,12 @@ public interface IAuthService
         string email,
         string token,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gelen refresh token'a ait oturumu iptal eder.
+    /// Token bulunamazsa veya zaten iptal edilmişse yine başarı döner (idempotent).
+    /// </summary>
+    Task<Result<bool>> LogoutAsync(
+        string refreshToken,
+        CancellationToken cancellationToken = default);
 }

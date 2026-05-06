@@ -94,8 +94,8 @@ const ROTATION_AXES = [
   },
 ] as const;
 
-const COMPACT_INPUT = 'h-9 border-zinc-200 bg-white';
-const COMPACT_INPUT_WITH_UNIT = 'h-9 border-zinc-200 bg-white pr-16';
+const COMPACT_INPUT = 'h-9 border-input bg-background';
+const COMPACT_INPUT_WITH_UNIT = 'h-9 border-input bg-background pr-16';
 const UNIT_TRIGGER =
   'absolute right-1 top-1/2 h-7 w-14 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0';
 
@@ -131,12 +131,48 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     Icon: Droplets,
     fragilityValue: FRAGILITY_LEVELS.Liquid,
   },
-  { value: 'corrosive', label: 'Aşındırıcı', color: 'orange', Icon: Flame },
-  { value: 'odor', label: 'Kokuya Hassas', color: 'green', Icon: Wind },
-  { value: 'food', label: 'Gıda Teması', color: 'green', Icon: Utensils },
-  { value: 'dry', label: 'Kuru', color: 'default', Icon: Sun },
-  { value: 'chemical', label: 'Kimyasal', color: 'purple', Icon: FlaskConical },
-  { value: 'organic', label: 'Organik', color: 'green', Icon: Leaf },
+  {
+    value: 'corrosive',
+    label: 'Aşındırıcı',
+    color: 'orange',
+    Icon: Flame,
+    fragilityValue: FRAGILITY_LEVELS.Corrosive,
+  },
+  {
+    value: 'odor',
+    label: 'Kokuya Hassas',
+    color: 'green',
+    Icon: Wind,
+    fragilityValue: FRAGILITY_LEVELS.OdorSensitive,
+  },
+  {
+    value: 'food',
+    label: 'Gıda Teması',
+    color: 'green',
+    Icon: Utensils,
+    fragilityValue: FRAGILITY_LEVELS.FoodContact,
+  },
+  {
+    value: 'dry',
+    label: 'Kuru',
+    color: 'default',
+    Icon: Sun,
+    fragilityValue: FRAGILITY_LEVELS.KeepDry,
+  },
+  {
+    value: 'chemical',
+    label: 'Kimyasal',
+    color: 'purple',
+    Icon: FlaskConical,
+    fragilityValue: FRAGILITY_LEVELS.Chemical,
+  },
+  {
+    value: 'organic',
+    label: 'Organik',
+    color: 'green',
+    Icon: Leaf,
+    fragilityValue: FRAGILITY_LEVELS.Organic,
+  },
 ];
 
 const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
@@ -148,15 +184,25 @@ function formatVolume(cm3: number): string {
   return `${cm3.toFixed(1)} cm³`;
 }
 
-function SectionCard({ children, className }: { children: ReactNode; className?: string }) {
+interface SectionCardProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function SectionCard({ children, className }: SectionCardProps) {
   return (
-    <div className={cn('rounded-xl border border-zinc-200 bg-white p-5', className)}>
+    <div className={cn('rounded-xl border border-border bg-background p-5', className)}>
       {children}
     </div>
   );
 }
 
-function SectionTitle({ children, className }: { children: ReactNode; className?: string }) {
+interface SectionTitleProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function SectionTitle({ children, className }: SectionTitleProps) {
   return (
     <p
       className={cn(
@@ -287,7 +333,11 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
       </svg>
       {!active && (
-        <Ban className="absolute inset-0 m-auto h-5 w-5 text-red-500" strokeWidth={2} aria-hidden />
+        <Ban
+          className="absolute inset-0 m-auto h-5 w-5 text-destructive"
+          strokeWidth={2}
+          aria-hidden
+        />
       )}
     </div>
   );
@@ -303,9 +353,12 @@ export function ProductForm({
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
 
-  const [selectedCargoGroup, setSelectedCargoGroup] = useState<string>('');
-  const [incompatibleGroups, setIncompatibleGroups] = useState<string[]>([]);
-  const [selectedConstraints, setSelectedConstraints] = useState<string[]>(['none']);
+  const [selectedConstraints, setSelectedConstraints] = useState<string[]>(() => {
+    const frag = defaultValues?.fragility ?? 0;
+    if (frag === 0) return ['none'];
+    const match = CONSTRAINT_OPTIONS.find((o) => o.fragilityValue === frag);
+    return match ? [match.value] : ['none'];
+  });
 
   const [
     width,
@@ -324,6 +377,7 @@ export function ProductForm({
     allowRotateY,
     allowRotateZ,
     notes,
+    incompatibleGroups,
   ] = useWatch({
     control: form.control,
     name: [
@@ -343,6 +397,7 @@ export function ProductForm({
       'allowRotateY',
       'allowRotateZ',
       'notes',
+      'incompatibleGroups',
     ],
   });
 
@@ -367,9 +422,9 @@ export function ProductForm({
   }, [isVaril, width, widthUnit, form]);
 
   function toggleIncompatibleGroup(group: string) {
-    setIncompatibleGroups((prev) =>
-      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group],
-    );
+    const prev = form.getValues('incompatibleGroups') ?? [];
+    const next = prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group];
+    form.setValue('incompatibleGroups', next, { shouldDirty: true });
   }
 
   return (
@@ -438,13 +493,27 @@ export function ProductForm({
                             onValueChange={(value) => {
                               if (!value) return;
                               field.onChange(value);
-                              if (value === 'pallet') {
+                              if (value === 'palet') {
                                 form.setValue('allowRotateY', false, { shouldValidate: false });
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
                               } else {
                                 form.setValue('allowRotateY', true, { shouldValidate: false });
                                 if ((form.getValues('fragility') ?? 0) < 1) {
                                   form.setValue('allowRotateZ', true, { shouldValidate: false });
+                                }
+                              }
+                              if (value === 'varil') {
+                                const w = form.getValues('width');
+                                const wu = form.getValues('widthUnit');
+                                if (w !== undefined && Number.isFinite(w)) {
+                                  form.setValue('length', w, {
+                                    shouldDirty: false,
+                                    shouldValidate: false,
+                                  });
+                                  form.setValue('lengthUnit', wu ?? 'mm', {
+                                    shouldDirty: false,
+                                    shouldValidate: false,
+                                  });
                                 }
                               }
                             }}
@@ -470,9 +539,16 @@ export function ProductForm({
                       {CONSTRAINT_OPTIONS.map((opt) => {
                         const isActive = selectedConstraints.includes(opt.value);
                         return (
-                          <button
+                          <Button
                             key={opt.value}
                             type="button"
+                            variant="outline"
+                            className={cn(
+                              'h-auto rounded-full px-2.5 py-1 text-xs font-medium',
+                              isActive
+                                ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                : 'text-muted-foreground hover:text-muted-foreground',
+                            )}
                             onClick={() => {
                               let next: string[];
                               if (opt.value === 'none') {
@@ -485,7 +561,6 @@ export function ProductForm({
                                 if (next.length === 0) next = ['none'];
                               }
                               setSelectedConstraints(next);
-                              // fragility field'ını seçili kısıtlardan türet
                               const maxFragility = next.reduce((acc, v) => {
                                 const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
                                 return Math.max(acc, o?.fragilityValue ?? 0);
@@ -497,16 +572,10 @@ export function ProductForm({
                                 form.setValue('allowRotateZ', true, { shouldValidate: false });
                               }
                             }}
-                            className={cn(
-                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
-                              isActive
-                                ? 'border-primary bg-primary/10 text-primary'
-                                : 'border-zinc-200 bg-white text-muted-foreground hover:border-zinc-300',
-                            )}
                           >
                             <opt.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
                             {opt.label}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -522,18 +591,27 @@ export function ProductForm({
                     {/* Yük Grubu */}
                     <div>
                       <p className="mb-1.5 text-sm font-medium leading-none">Yük Grubu</p>
-                      <Select value={selectedCargoGroup} onValueChange={setSelectedCargoGroup}>
-                        <SelectTrigger className="h-9 border-zinc-200 bg-white">
-                          <SelectValue placeholder="Yük grubu seçin…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CARGO_GROUPS.map((g) => (
-                            <SelectItem key={g} value={g}>
-                              {g}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Controller
+                        control={form.control}
+                        name="stackGroup"
+                        render={({ field }) => (
+                          <Select
+                            value={field.value ?? ''}
+                            onValueChange={(v) => field.onChange(v)}
+                          >
+                            <SelectTrigger className="h-9 border-input bg-background">
+                              <SelectValue placeholder="Yük grubu seçin…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CARGO_GROUPS.map((g) => (
+                                <SelectItem key={g} value={g}>
+                                  {g}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                     </div>
 
                     {/* Uyumsuz Yük Grupları */}
@@ -543,21 +621,22 @@ export function ProductForm({
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {INCOMPATIBLE_GROUPS.map((g) => {
-                          const selected = incompatibleGroups.includes(g);
+                          const selected = (incompatibleGroups ?? []).includes(g);
                           return (
-                            <button
+                            <Button
                               key={g}
                               type="button"
-                              onClick={() => toggleIncompatibleGroup(g)}
+                              variant="outline"
                               className={cn(
-                                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
+                                'h-auto rounded-full px-2.5 py-1 text-xs font-medium',
                                 selected
-                                  ? 'border-destructive bg-destructive/10 text-destructive'
-                                  : 'border-zinc-200 bg-white text-muted-foreground hover:border-zinc-300',
+                                  ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive'
+                                  : 'text-muted-foreground hover:text-muted-foreground',
                               )}
+                              onClick={() => toggleIncompatibleGroup(g)}
                             >
                               {g}
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -572,33 +651,37 @@ export function ProductForm({
                       <FormItem className="flex flex-col items-center">
                         <FormLabel className="text-center">Katman Sayısı</FormLabel>
                         <div className="flex items-center gap-1">
-                          <button
+                          <Button
                             type="button"
+                            variant="outline"
+                            size="icon"
                             aria-label="Azalt"
+                            className="h-8 w-8"
                             onClick={() => {
                               const next = Math.max(1, (field.value ?? 1) - 1);
                               field.onChange(next);
                               form.setValue('isStackable', next > 1, { shouldValidate: false });
                             }}
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-muted-foreground transition hover:bg-zinc-50"
                           >
                             <Minus className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                           <span className="w-8 text-center text-sm font-semibold tabular-nums">
                             {field.value ?? 1}
                           </span>
-                          <button
+                          <Button
                             type="button"
+                            variant="outline"
+                            size="icon"
                             aria-label="Artır"
+                            className="h-8 w-8"
                             onClick={() => {
                               const next = (field.value ?? 1) + 1;
                               field.onChange(next);
                               form.setValue('isStackable', next > 1, { shouldValidate: false });
                             }}
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-muted-foreground transition hover:bg-zinc-50"
                           >
                             <Plus className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -711,9 +794,15 @@ export function ProductForm({
                   </SectionTitle>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label={t('forms.product.axisGuideAria')}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label={t('forms.product.axisGuideAria')}
+                      >
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="space-y-1">
@@ -740,8 +829,9 @@ export function ProductForm({
                           <FormItem className="m-0 space-y-0">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <button
+                                <Button
                                   type="button"
+                                  variant="outline"
                                   aria-pressed={field.value}
                                   aria-label={
                                     isDisabled
@@ -751,10 +841,10 @@ export function ProductForm({
                                   disabled={isDisabled}
                                   onClick={() => field.onChange(!field.value)}
                                   className={cn(
-                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-3 text-center transition-all',
+                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md px-2 py-3',
                                     field.value
-                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
-                                      : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
+                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20 hover:bg-primary/5 hover:text-primary'
+                                      : 'text-muted-foreground',
                                     isDisabled && 'cursor-not-allowed opacity-50',
                                   )}
                                 >
@@ -762,7 +852,7 @@ export function ProductForm({
                                   <span className="text-xs font-medium leading-none text-foreground">
                                     {t(labelKey)}
                                   </span>
-                                </button>
+                                </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 {isDisabled
@@ -796,7 +886,7 @@ export function ProductForm({
                             rows={3}
                             maxLength={NOTES_MAX_LENGTH}
                             placeholder={t('forms.product.notesPlaceholder')}
-                            className="resize-none overflow-y-auto border-zinc-200 bg-white focus-visible:ring-2 focus-visible:ring-primary/40"
+                            className="resize-none overflow-y-auto border-input bg-background focus-visible:ring-2 focus-visible:ring-primary/40"
                             {...field}
                             value={value}
                             onChange={(e) => {
@@ -811,7 +901,9 @@ export function ProductForm({
                             aria-live="polite"
                             className={cn(
                               'shrink-0 tabular-nums',
-                              isOverLimit ? 'font-semibold text-red-600' : 'text-muted-foreground',
+                              isOverLimit
+                                ? 'font-semibold text-destructive'
+                                : 'text-muted-foreground',
                             )}
                           >
                             {t('forms.product.notesCounter', {
@@ -942,19 +1034,19 @@ function PreviewPanel(props: PreviewPanelProps) {
     <aside className="lg:sticky lg:top-6 lg:self-start">
       <div className="flex flex-col gap-3">
         {/* Önizleme kartı */}
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
           {/* Başlık */}
-          <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
+          <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               ÜRÜN ÖNİZLEME
             </span>
-            <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-500">
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">
               3D Önizleme
             </span>
           </div>
 
           {/* 3D Alan */}
-          <div className="relative aspect-square overflow-hidden bg-zinc-50">
+          <div className="relative aspect-square overflow-hidden bg-muted/30">
             {hasDimensions ? (
               <ProductPreview3D
                 widthCm={widthCm}
@@ -963,8 +1055,8 @@ function PreviewPanel(props: PreviewPanelProps) {
                 productType={productType}
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400">
-                <div className="text-zinc-500">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                <div>
                   <ProductTypeIllustration type={productType} />
                 </div>
                 <p className="px-6 text-center text-xs uppercase tracking-wide">
@@ -975,7 +1067,7 @@ function PreviewPanel(props: PreviewPanelProps) {
           </div>
 
           {/* Hacim */}
-          <div className="flex items-baseline justify-between border-t border-zinc-100 px-4 py-3">
+          <div className="flex items-baseline justify-between border-t border-border/60 px-4 py-3">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               HACİM
             </span>
@@ -986,13 +1078,13 @@ function PreviewPanel(props: PreviewPanelProps) {
         </div>
 
         {/* Özet kartı */}
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-          <div className="border-b border-zinc-100 px-4 py-2.5">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
+          <div className="border-b border-border/60 px-4 py-2.5">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               ÜRÜN ÖZETİ
             </span>
           </div>
-          <dl className="divide-y divide-zinc-50 px-4">
+          <dl className="divide-y divide-border/40 px-4">
             <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
             <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
             <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
@@ -1046,7 +1138,7 @@ function PreviewPanel(props: PreviewPanelProps) {
         </dl>
 
         {notes && notes.trim().length > 0 && (
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-3 text-xs text-foreground">
+          <div className="rounded-xl border border-dashed border-border bg-background p-3 text-xs text-foreground">
             <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
               {t('forms.product.notesSummaryLabel')}
             </p>
@@ -1104,16 +1196,28 @@ function DimensionField({ form, name, unitName, label }: DimensionFieldProps) {
                 className={COMPACT_INPUT_WITH_UNIT}
                 {...field}
                 value={field.value ?? ''}
-                onChange={(e) =>
-                  field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)
-                }
+                onChange={(e) => {
+                  const v = e.target.value === '' ? undefined : e.target.valueAsNumber;
+                  field.onChange(v);
+                  if (onAfterChange) {
+                    onAfterChange(v, form.getValues(unitName) ?? 'mm');
+                  }
+                }}
               />
             </FormControl>
             <Controller
               control={form.control}
               name={unitName}
               render={({ field: unitField }) => (
-                <Select value={unitField.value} onValueChange={unitField.onChange}>
+                <Select
+                  value={unitField.value}
+                  onValueChange={(u) => {
+                    unitField.onChange(u);
+                    if (onAfterChange) {
+                      onAfterChange(form.getValues(name), u as DimensionUnitKey);
+                    }
+                  }}
+                >
                   <SelectTrigger className={UNIT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>

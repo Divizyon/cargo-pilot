@@ -212,6 +212,17 @@ export const usePlanStore = create<PlanStore>((set) => ({
         return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
       const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, s.placements);
+      const overflowCount = newBoxes.filter((p) => p.isViolation).length;
+      if (overflowCount > 0) {
+        const fitsCount = qty - overflowCount;
+        useUIStore.getState().addNotification({
+          variant: 'warning',
+          message:
+            fitsCount > 0
+              ? `${item.name}: ${fitsCount} adet yerleştirildi, ${overflowCount} adet araca sığmadı.`
+              : `${item.name}: ${qty} adet araca sığmadı.`,
+        });
+      }
       const next = [...s.placements, ...newBoxes];
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],

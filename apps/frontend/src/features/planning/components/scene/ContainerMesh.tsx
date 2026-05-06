@@ -57,11 +57,11 @@ function ContainerGrid({ width, length }: { width: number; length: number }) {
   );
 }
 
-// ─── Shared door constants ─────────────────────────────────────────────────────
+// ─── Shared door constants (values from scene-config) ─────────────────────────
 
-const DOOR_THICKNESS = 5;
-const DOOR_OPEN_ANGLE = Math.PI * 0.72;
-const DOOR_EASING = 0.055;
+const DOOR_THICKNESS = SCENE.DOOR_THICKNESS_CM;
+const DOOR_OPEN_ANGLE = SCENE.DOOR_REAR_OPEN_ANGLE;
+const DOOR_EASING = SCENE.DOOR_EASING;
 
 // ─── Rear door helpers (X-axis panel on Z=0 face) ─────────────────────────────
 
@@ -173,124 +173,269 @@ function RearDoors({ width, height }: { width: number; height: number }) {
 
 // ─── Side door (X face) ────────────────────────────────────────────────────────
 
-// Panels are represented as EdgesGeometry boxes so they are visible from any
-// camera angle — flat ZY-plane lines become edge-on (invisible) from the default
-// isometric view, but a 3D box's Z-axis and Y-axis edges remain clearly visible.
-//
-// Hinge strategy: both panels pivot from the container centre (Z = length/2).
-// This keeps the far edges only ~120 cm outside the container at 10° open,
-// so they remain inside the camera's default viewport.
-const SIDE_DOOR_PANEL_W = 15; // cm – box depth in X, makes edges clearly visible
-const SIDE_DOOR_OPEN_ANGLE = Math.PI * 0.055; // ≈10° – stays in viewport
+// Same visual style as rear doors: grid lines + frame outline on the outer face.
+// Front panel hinges at Z=0, rear panel hinges at Z=length — both swing outward (−X).
+const SIDE_DOOR_OPEN_ANGLE = SCENE.DOOR_SIDE_OPEN_ANGLE;
 
-function SideHalfDoorEdges({
-  panelL,
+// Grid drawn on the outer face of the panel (facing −X, at x = −(DOOR_THICKNESS+0.5)).
+// sign=1 → panel extends +Z; sign=−1 → panel extends −Z.
+function SideDoorGrid({
+  panelDepth,
   height,
   sign,
 }: {
-  panelL: number;
+  panelDepth: number;
   height: number;
   sign: 1 | -1;
 }) {
-  const edgesGeo = useMemo(() => {
-    const box = new THREE.BoxGeometry(SIDE_DOOR_PANEL_W, height, panelL);
-    const edges = new THREE.EdgesGeometry(box);
-    box.dispose();
-    return edges;
-  }, [height, panelL]);
+  const geometry = useMemo(() => {
+    const step = SCENE.GRID_STEP_CM;
+    const x = -(DOOR_THICKNESS + 0.5);
+    const pts: number[] = [];
+    for (let z = 0; z <= panelDepth; z += step) {
+      pts.push(x, 0, sign * z, x, height, sign * z);
+    }
+    for (let y = 0; y <= height; y += step) {
+      pts.push(x, y, 0, x, y, sign * panelDepth);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return geo;
+  }, [panelDepth, height, sign]);
 
-  // Center of the box: X pulls it just outside the container face, Z at panel centre
   return (
-    <lineSegments
-      geometry={edgesGeo}
-      position={[-(SIDE_DOOR_PANEL_W / 2 + 0.5), height / 2, (sign * panelL) / 2]}
-    >
+    <lineSegments geometry={geometry}>
+      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+    </lineSegments>
+  );
+}
+
+function SideDoorFrame({
+  panelDepth,
+  height,
+  sign,
+}: {
+  panelDepth: number;
+  height: number;
+  sign: 1 | -1;
+}) {
+  const geometry = useMemo(() => {
+    const x = -(DOOR_THICKNESS + 0.5);
+    const ez = sign * panelDepth;
+    const pts = [
+      x,
+      0,
+      0,
+      x,
+      0,
+      ez,
+      x,
+      0,
+      ez,
+      x,
+      height,
+      ez,
+      x,
+      height,
+      ez,
+      x,
+      height,
+      0,
+      x,
+      height,
+      0,
+      x,
+      0,
+      0,
+    ];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return geo;
+  }, [panelDepth, height, sign]);
+
+  return (
+    <lineSegments geometry={geometry}>
       <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
     </lineSegments>
   );
 }
 
-// Both panels hinge from the container's side-face centre (Z = length/2).
-// sign=-1 panel covers Z[0, length/2]; sign=+1 covers Z[length/2, length].
-function SideDoors({ height, length }: { height: number; length: number }) {
-  const backHalfRef = useRef<THREE.Group>(null);
-  const frontHalfRef = useRef<THREE.Group>(null);
+function SideHalfDoor({
+  panelDepth,
+  height,
+  sign,
+}: {
+  panelDepth: number;
+  height: number;
+  sign: 1 | -1;
+}) {
+  return (
+    <group>
+      <SideDoorGrid panelDepth={panelDepth} height={height} sign={sign} />
+      <SideDoorFrame panelDepth={panelDepth} height={height} sign={sign} />
+    </group>
+  );
+}
+
+function SideDoors({ width, height, length }: { width: number; height: number; length: number }) {
+  const frontRef = useRef<THREE.Group>(null);
+  const rearRef = useRef<THREE.Group>(null);
   const angleRef = useRef(0);
 
   useFrame(() => {
     const diff = SIDE_DOOR_OPEN_ANGLE - angleRef.current;
     if (Math.abs(diff) > 0.0005) {
       angleRef.current += diff * DOOR_EASING;
-      // Both panels open outward (toward –X = outside the container left face)
-      if (backHalfRef.current) backHalfRef.current.rotation.y = -angleRef.current;
-      if (frontHalfRef.current) frontHalfRef.current.rotation.y = angleRef.current;
+      if (frontRef.current) frontRef.current.rotation.y = -angleRef.current;
+      if (rearRef.current) rearRef.current.rotation.y = angleRef.current;
     }
   });
 
-  const panelL = length / 2;
+  const panelDepth = width / 2;
 
   return (
-    // Group origin sits at the centre of the side face so hinges are symmetric
-    <group position={[0, 0, length / 2]}>
-      {/* Back half: extends toward Z=0 */}
-      <group ref={backHalfRef}>
-        <SideHalfDoorEdges panelL={panelL} height={height} sign={-1} />
+    <group>
+      <group ref={frontRef}>
+        <SideHalfDoor panelDepth={panelDepth} height={height} sign={1} />
       </group>
-      {/* Front half: extends toward Z=length */}
-      <group ref={frontHalfRef}>
-        <SideHalfDoorEdges panelL={panelL} height={height} sign={1} />
+      <group ref={rearRef} position={[0, 0, length]}>
+        <SideHalfDoor panelDepth={panelDepth} height={height} sign={-1} />
       </group>
     </group>
   );
 }
 
-// ─── Top opening indicator (Open-Top vehicles) ────────────────────────────────
+// ─── Top cover (open-top vehicles) ────────────────────────────────────────────
 
-function TopOpeningIndicator({
+// Same visual style as rear doors. Grid + frame on the outer face (facing +Y).
+// Rear half hinges at Z=0, front half at Z=length.
+// Rotation: −X lifts +Z edge upward, +X lifts −Z edge upward.
+
+function TopCoverGrid({
   width,
-  length,
-  height,
+  panelLength,
+  sign,
 }: {
   width: number;
-  length: number;
-  height: number;
+  panelLength: number;
+  sign: 1 | -1;
 }) {
   const geometry = useMemo(() => {
+    const step = SCENE.GRID_STEP_CM;
+    const y = DOOR_THICKNESS + 0.5;
+    const pts: number[] = [];
+    for (let z = 0; z <= panelLength; z += step) {
+      pts.push(0, y, sign * z, width, y, sign * z);
+    }
+    for (let x = 0; x <= width; x += step) {
+      pts.push(x, y, 0, x, y, sign * panelLength);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return geo;
+  }, [width, panelLength, sign]);
+
+  return (
+    <lineSegments geometry={geometry}>
+      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+    </lineSegments>
+  );
+}
+
+function TopCoverFrame({
+  width,
+  panelLength,
+  sign,
+}: {
+  width: number;
+  panelLength: number;
+  sign: 1 | -1;
+}) {
+  const geometry = useMemo(() => {
+    const y = DOOR_THICKNESS + 0.5;
+    const ez = sign * panelLength;
     const pts = [
       0,
-      height,
+      y,
       0,
       width,
-      height,
+      y,
       0,
       width,
-      height,
+      y,
       0,
       width,
-      height,
-      length,
+      y,
+      ez,
       width,
-      height,
-      length,
+      y,
+      ez,
       0,
-      height,
-      length,
+      y,
+      ez,
       0,
-      height,
-      length,
+      y,
+      ez,
       0,
-      height,
+      y,
       0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
     return geo;
-  }, [width, length, height]);
+  }, [width, panelLength, sign]);
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_DOOR} opacity={0.8} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
     </lineSegments>
+  );
+}
+
+function TopCoverHalf({
+  width,
+  panelLength,
+  sign,
+}: {
+  width: number;
+  panelLength: number;
+  sign: 1 | -1;
+}) {
+  return (
+    <group>
+      <TopCoverGrid width={width} panelLength={panelLength} sign={sign} />
+      <TopCoverFrame width={width} panelLength={panelLength} sign={sign} />
+    </group>
+  );
+}
+
+function TopCover({ width, height, length }: { width: number; height: number; length: number }) {
+  const rearRef = useRef<THREE.Group>(null);
+  const frontRef = useRef<THREE.Group>(null);
+  const angleRef = useRef(0);
+
+  useFrame(() => {
+    const diff = SCENE.DOOR_SIDE_OPEN_ANGLE - angleRef.current;
+    if (Math.abs(diff) > 0.0005) {
+      angleRef.current += diff * DOOR_EASING;
+      // −X rotation: +Z edge lifts upward (away from container)
+      if (rearRef.current) rearRef.current.rotation.x = -angleRef.current;
+      // +X rotation: −Z edge lifts upward (away from container)
+      if (frontRef.current) frontRef.current.rotation.x = angleRef.current;
+    }
+  });
+
+  const panelLength = width / 2;
+
+  return (
+    <group position={[0, height, 0]}>
+      <group ref={rearRef}>
+        <TopCoverHalf width={width} panelLength={panelLength} sign={1} />
+      </group>
+      <group ref={frontRef} position={[0, 0, length]}>
+        <TopCoverHalf width={width} panelLength={panelLength} sign={-1} />
+      </group>
+    </group>
   );
 }
 
@@ -320,15 +465,15 @@ export function ContainerMesh() {
         // For right-side doors: translate to X=width and mirror X so geometry faces outward
         <group
           key={`side-${vehicle.id}`}
-          position={[doorSide === 'right' ? width : 0, 0, 0]}
-          scale={[doorSide === 'right' ? -1 : 1, 1, 1]}
+          position={[doorSide === 'left' ? 0 : width, 0, 0]}
+          scale={[doorSide === 'left' ? 1 : -1, 1, 1]}
         >
-          <SideDoors height={height} length={length} />
+          <SideDoors width={width} height={height} length={length} />
         </group>
       )}
 
       {doorDirection === 'top' && (
-        <TopOpeningIndicator key={vehicle.id} width={width} length={length} height={height} />
+        <TopCover key={vehicle.id} width={width} height={height} length={length} />
       )}
 
       <ContactShadows
