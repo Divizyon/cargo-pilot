@@ -21,6 +21,8 @@ public interface IVehicleRepository {
 
     Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default);
 
+    Task<bool> IsUsedInActiveLoadingPlanAsync(Guid vehicleId, CancellationToken cancellationToken = default);
+
     void Add(Vehicle vehicle);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

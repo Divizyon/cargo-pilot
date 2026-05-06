@@ -18,6 +18,7 @@ import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -73,6 +74,7 @@ export const router = createBrowserRouter([
           { path: '/notifications', element: <DashboardPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <SettingsPage /> },
+          { path: '/settings', element: <SystemSettingsPage /> },
           { path: '/profile', element: <ProfilePage /> },
         ],
       },
