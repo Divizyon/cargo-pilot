@@ -1,4 +1,14 @@
-import { Droplets, Flame, FlaskConical, Leaf, RotateCcw, Sun, Utensils, Wind, Wine } from 'lucide-react';
+import {
+  Droplets,
+  Flame,
+  FlaskConical,
+  Leaf,
+  RotateCcw,
+  Sun,
+  Utensils,
+  Wind,
+  Wine,
+} from 'lucide-react';
 
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
@@ -42,12 +52,32 @@ function NonStackableIcon({ className }: { className?: string }) {
 
 const FRAGILITY_DEFS: Record<number, Omit<ConstraintDef, 'icon'> & { icon: ElementType }> = {
   1: { icon: Wine, label: 'Kırılgan', className: 'border-amber-200 bg-amber-50 text-amber-600' },
-  2: { icon: Droplets, label: 'Sıvı İçerir', className: 'border-blue-200 bg-blue-50 text-blue-600' },
-  5: { icon: Flame, label: 'Aşındırıcı', className: 'border-orange-200 bg-orange-50 text-orange-600' },
-  6: { icon: Wind, label: 'Kokuya Hassas', className: 'border-green-200 bg-green-50 text-green-600' },
-  7: { icon: Utensils, label: 'Gıda Teması', className: 'border-green-200 bg-green-50 text-green-700' },
+  2: {
+    icon: Droplets,
+    label: 'Sıvı İçerir',
+    className: 'border-blue-200 bg-blue-50 text-blue-600',
+  },
+  5: {
+    icon: Flame,
+    label: 'Aşındırıcı',
+    className: 'border-orange-200 bg-orange-50 text-orange-600',
+  },
+  6: {
+    icon: Wind,
+    label: 'Kokuya Hassas',
+    className: 'border-green-200 bg-green-50 text-green-600',
+  },
+  7: {
+    icon: Utensils,
+    label: 'Gıda Teması',
+    className: 'border-green-200 bg-green-50 text-green-700',
+  },
   8: { icon: Sun, label: 'Kuru', className: 'border-border bg-muted text-muted-foreground' },
-  9: { icon: FlaskConical, label: 'Kimyasal', className: 'border-purple-200 bg-purple-50 text-purple-600' },
+  9: {
+    icon: FlaskConical,
+    label: 'Kimyasal',
+    className: 'border-purple-200 bg-purple-50 text-purple-600',
+  },
   10: { icon: Leaf, label: 'Organik', className: 'border-green-200 bg-green-50 text-green-600' },
 };
 
