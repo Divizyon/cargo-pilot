@@ -91,6 +91,11 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           )}
         />
       </div>
+      {'message' in (form.formState.errors.axleB ?? {}) && (
+        <p className="text-sm font-medium text-destructive">
+          {(form.formState.errors.axleB as { message?: string }).message}
+        </p>
+      )}
       {totalTare > 0 && (
         <p className="text-xs text-muted-foreground">
           Toplam boş ağırlık:{' '}

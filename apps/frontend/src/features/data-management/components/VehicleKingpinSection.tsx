@@ -28,6 +28,12 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
         </p>
       </div>
 
+      {'message' in (form.formState.errors.kingpin ?? {}) && (
+        <p className="text-sm font-medium text-destructive">
+          {(form.formState.errors.kingpin as { message?: string }).message}
+        </p>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
         {/* AC3: Uzaklık — aracın ön noktasından mesafe */}
         <FormField

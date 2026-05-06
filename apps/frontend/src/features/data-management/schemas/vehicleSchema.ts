@@ -13,7 +13,7 @@ const nonnegField = (msg: string) => z.number({ error: msg }).min(0, 'Değer neg
 
 const axleEntrySchema = z.object({
   distance: numField('Geçerli bir uzaklık giriniz'),
-  tareWeight: nonnegField('Geçerli bir ağırlık giriniz'),
+  tareWeight: z.number().min(0).optional().default(0),
   maxLoad: numField('Geçerli bir maksimum yük giriniz'),
 });
 
@@ -87,7 +87,7 @@ export const vehicleFormSchema = z
     axleB: z
       .object({
         distance: numField('Geçerli bir uzaklık giriniz'),
-        tareWeight: nonnegField('Geçerli bir ağırlık giriniz'),
+        tareWeight: z.number().min(0).optional().default(0),
         maxLoad: numField('Lütfen Aks B için maksimum yük değerini giriniz'),
       })
       .optional(),
