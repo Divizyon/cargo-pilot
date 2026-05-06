@@ -47,6 +47,15 @@ export const vehicleApiSchema = z.object({
   tareWeight: z.number().optional().nullable(),
   layerCount: z.number().int().optional().nullable(),
   loadingType: z.number().int(),
+  kingPinDistanceMm: z.number().optional().nullable(),
+  kingPinTareWeightKg: z.number().optional().nullable(),
+  kingPinMaxLoadKg: z.number().optional().nullable(),
+  mainAxleDistanceMm: z.number().optional().nullable(),
+  mainAxleTareWeightKg: z.number().optional().nullable(),
+  mainAxleMaxLoadKg: z.number().optional().nullable(),
+  additionalAxleDistanceMm: z.number().optional().nullable(),
+  additionalAxleTareWeightKg: z.number().optional().nullable(),
+  additionalAxleMaxLoadKg: z.number().optional().nullable(),
   isFavorite: z.boolean().default(false),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
@@ -75,6 +84,33 @@ export const singleVehicleApiSchema = z.object({
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
 export function fromApiVehicle(api: VehicleApi): Vehicle {
+  const kingpin =
+    api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
+      ? {
+          distance: api.kingPinDistanceMm,
+          tareWeight: api.kingPinTareWeightKg ?? 0,
+          maxLoad: api.kingPinMaxLoadKg,
+        }
+      : undefined;
+
+  const axleB =
+    api.mainAxleDistanceMm != null && api.mainAxleMaxLoadKg != null
+      ? {
+          distance: api.mainAxleDistanceMm,
+          tareWeight: api.mainAxleTareWeightKg ?? 0,
+          maxLoad: api.mainAxleMaxLoadKg,
+        }
+      : undefined;
+
+  const additionalAxle =
+    api.additionalAxleDistanceMm != null && api.additionalAxleMaxLoadKg != null
+      ? {
+          distance: api.additionalAxleDistanceMm,
+          tareWeight: api.additionalAxleTareWeightKg ?? 0,
+          maxLoad: api.additionalAxleMaxLoadKg,
+        }
+      : undefined;
+
   return {
     id: api.id,
     name: api.vehicleName,
@@ -90,6 +126,9 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
     doorDirection: DOOR_DIR_FROM_INT[api.loadingType] ?? DoorDirection.Rear,
+    kingpin,
+    axleB,
+    axles: additionalAxle ? [additionalAxle] : undefined,
     isFavorite: api.isFavorite,
     isActive: api.isActive,
     isDeleted: api.isDeleted,
@@ -116,6 +155,9 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
     tareWeight: v.tareWeight,
     maxLayerCount: v.maxLayerCount,
     doorDirection: v.doorDirection,
+    kingpin: v.kingpin,
+    axleB: v.axleB,
+    axles: v.axles,
     isActive: v.isActive,
     status: v.status,
   };
@@ -127,18 +169,23 @@ export interface CreateVehicleRequest {
   vehicleName: string;
   vehicleType: number;
   description?: string | null;
-  plateNumber?: string | null;
-  serialNumber?: string | null;
+  plateNumber: string;
   internalLength: number;
   internalWidth: number;
   internalHeight: number;
   maxWeightCapacity: number;
-  grossWeight?: number | null;
-  tareWeight?: number | null;
-  layerCount?: number | null;
+  layerCount: number;
   loadingType: number;
   isActive?: boolean;
-  status?: string;
+  kingPinDistanceMm?: number | null;
+  kingPinTareWeightKg?: number | null;
+  kingPinMaxLoadKg?: number | null;
+  mainAxleDistanceMm?: number | null;
+  mainAxleTareWeightKg?: number | null;
+  mainAxleMaxLoadKg?: number | null;
+  additionalAxleDistanceMm?: number | null;
+  additionalAxleTareWeightKg?: number | null;
+  additionalAxleMaxLoadKg?: number | null;
 }
 
 export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehicleRequest {
@@ -146,18 +193,23 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     vehicleName: values.name,
     vehicleType: VEHICLE_TYPE_INT[values.vehicleType],
     description: values.description?.trim() || null,
-    plateNumber: values.plate?.trim() || null,
-    serialNumber: values.serialNumber?.trim() || null,
+    plateNumber: values.plate?.trim() ?? values.serialNumber?.trim() ?? '',
     internalLength: values.length,
     internalWidth: values.width,
     internalHeight: values.height,
     maxWeightCapacity: values.maxCargoWeight,
-    grossWeight: values.grossWeight ?? null,
-    tareWeight: values.tareWeight ?? null,
-    layerCount: values.maxLayerCount ?? null,
+    layerCount: values.maxLayerCount ?? 0,
     loadingType: LOADING_TYPE_INT[values.doorDirection],
     isActive: values.isActive ?? true,
-    status: values.status,
+    kingPinDistanceMm: values.kingpin?.distance ?? null,
+    kingPinTareWeightKg: values.kingpin?.tareWeight ?? null,
+    kingPinMaxLoadKg: values.kingpin?.maxLoad ?? null,
+    mainAxleDistanceMm: values.axleB?.distance ?? null,
+    mainAxleTareWeightKg: values.axleB?.tareWeight ?? null,
+    mainAxleMaxLoadKg: values.axleB?.maxLoad ?? null,
+    additionalAxleDistanceMm: values.axles?.[0]?.distance ?? null,
+    additionalAxleTareWeightKg: values.axles?.[0]?.tareWeight ?? null,
+    additionalAxleMaxLoadKg: values.axles?.[0]?.maxLoad ?? null,
   };
 }
 
