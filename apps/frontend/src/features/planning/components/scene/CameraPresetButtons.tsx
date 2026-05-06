@@ -20,6 +20,7 @@ import { useSceneStore } from '@/lib/store/useSceneStore';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE, type CameraPreset } from '@/lib/config/scene-config';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
+import { useReportingSettingsStore } from '@/lib/store/useReportingSettingsStore';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +56,7 @@ export function CameraPresetButtons({ className, getSnapshot }: CameraPresetButt
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const reportingSettings = useReportingSettingsStore();
 
   const [sliderValue, setSliderValue] = useState(0);
   const debouncedSlider = useDebounce(sliderValue, 80);
@@ -89,6 +91,7 @@ export function CameraPresetButtons({ className, getSnapshot }: CameraPresetButt
         items: selectedItems.map((si) => si.item),
         vehicle: selectedVehicle,
         snapshotDataUrl: getSnapshot?.(),
+        reportingSettings,
       });
     } finally {
       setIsPdfLoading(false);
