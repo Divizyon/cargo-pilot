@@ -20,6 +20,7 @@ public sealed class Item : BaseEntity {
     public AllowedRotations AllowedRotations { get; private set; }
     public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
+    public string? IncompatibleGroups { get; private set; }
     public string? SpecialNotes { get; private set; }
 
     private Item() { }
@@ -43,6 +44,7 @@ public sealed class Item : BaseEntity {
         decimal? diameter = null,
         string? imageUrl = null,
         string? stackGroup = null,
+        string? incompatibleGroups = null,
         string? specialNotes = null) : base(id) {
         SKU = sku;
         Barcode = barcode;
@@ -61,6 +63,7 @@ public sealed class Item : BaseEntity {
         AllowedRotations = allowedRotations;
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
+        IncompatibleGroups = incompatibleGroups;
         SpecialNotes = specialNotes;
     }
 
@@ -82,6 +85,7 @@ public sealed class Item : BaseEntity {
         AllowedRotations allowedRotations,
         string? imageUrl,
         string? stackGroup,
+        string? incompatibleGroups,
         string? specialNotes) {
         SKU = sku;
         Barcode = barcode;
@@ -100,6 +104,7 @@ public sealed class Item : BaseEntity {
         AllowedRotations = allowedRotations;
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
+        IncompatibleGroups = incompatibleGroups;
         SpecialNotes = specialNotes;
     }
 }

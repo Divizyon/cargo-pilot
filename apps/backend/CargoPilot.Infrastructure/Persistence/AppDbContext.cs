@@ -27,6 +27,7 @@ public class AppDbContext : DbContext {
     public DbSet<LoadingPlanPlacement> LoadingPlanPlacements => Set<LoadingPlanPlacement>();
     public DbSet<LoadingPlanUnplacedItem> LoadingPlanUnplacedItems => Set<LoadingPlanUnplacedItem>();
     public DbSet<LoadingPlanWarning> LoadingPlanWarnings => Set<LoadingPlanWarning>();
+    public DbSet<BusinessRule> BusinessRules => Set<BusinessRule>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -53,6 +54,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new LoadingPlanPlacementConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanUnplacedItemConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanWarningConfiguration());
+        modelBuilder.ApplyConfiguration(new BusinessRuleConfiguration());
     }
 
     private void ApplyAuditFields() {

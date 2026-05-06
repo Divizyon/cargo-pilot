@@ -59,6 +59,7 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
             diameter: request.Diameter,
             imageUrl: request.ImageUrl,
             stackGroup: request.StackGroup,
+            incompatibleGroups: request.IncompatibleGroups,
             specialNotes: request.SpecialNotes);
 
         _itemRepository.Add(item);

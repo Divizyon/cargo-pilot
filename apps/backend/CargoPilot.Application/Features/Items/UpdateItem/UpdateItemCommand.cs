@@ -23,4 +23,5 @@ public sealed record UpdateItemCommand(
     AllowedRotations AllowedRotations,
     string? ImageUrl,
     string? StackGroup,
+    string? IncompatibleGroups,
     string? SpecialNotes) : IRequest<Result<Guid>>;

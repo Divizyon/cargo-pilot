@@ -41,6 +41,7 @@ public sealed class GetItemByIdQueryHandler : IRequestHandler<GetItemByIdQuery, 
             item.AllowedRotations,
             item.ImageUrl,
             item.StackGroup,
+            item.IncompatibleGroups,
             item.SpecialNotes);
 
         return Result<ItemDetailDto>.Success(dto);
