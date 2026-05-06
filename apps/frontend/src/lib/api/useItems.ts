@@ -23,6 +23,20 @@ interface ProblemDetails {
   instance?: string;
 }
 
+interface BackendValidationFailure {
+  propertyName?: string;
+  errorMessage?: string;
+}
+
+export interface BackendError {
+  isSuccess?: boolean;
+  error?: {
+    code?: string;
+    message?: string;
+    validationFailures?: BackendValidationFailure[];
+  };
+}
+
 interface CreateItemResponse {
   isSuccess?: boolean;
   message?: string;
@@ -143,7 +157,7 @@ export function useDeleteItem() {
 export function useBulkCreateItems() {
   const queryClient = useQueryClient();
 
-  return useMutation<BulkCreateItemsResponse, AxiosError<ProblemDetails>, BulkCreateItemsPayload>({
+  return useMutation<BulkCreateItemsResponse, AxiosError<BackendError>, BulkCreateItemsPayload>({
     mutationFn: (payload) =>
       axiosInstance
         .post<BulkCreateItemsResponse>(`${ITEMS_ENDPOINT}/bulk`, payload)
@@ -158,17 +172,17 @@ export function useBulkCreateItems() {
     },
     onError: (error) => {
       const status = error.response?.status;
-      const detail = error.response?.data?.detail;
+      const message = error.response?.data?.error?.message;
 
       if (status === 400) {
-        toast.error(detail ?? 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.', {
+        toast.error(message ?? 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.', {
           position: 'bottom-right',
         });
         return;
       }
 
       if (status && status !== 401 && status < 500) {
-        toast.error(detail ?? 'Toplu ürün eklenemedi.', { position: 'bottom-right' });
+        toast.error(message ?? 'Toplu ürün eklenemedi.', { position: 'bottom-right' });
       }
     },
   });
