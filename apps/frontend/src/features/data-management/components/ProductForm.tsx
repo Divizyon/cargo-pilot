@@ -1,7 +1,26 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Ban, Box, Cylinder, Droplets, HelpCircle, Move3d, Package, Wine } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Ban,
+  Box,
+  Cylinder,
+  Droplets,
+  Flame,
+  FlaskConical,
+  HelpCircle,
+  Leaf,
+  Minus,
+  Move3d,
+  Package,
+  Plus,
+  ShieldOff,
+  Sun,
+  Utensils,
+  Wind,
+  Wine,
+} from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -75,34 +94,124 @@ const ROTATION_AXES = [
   },
 ] as const;
 
-const COMPACT_INPUT = 'h-9 border-zinc-200 bg-zinc-50';
-const COMPACT_INPUT_WITH_UNIT = 'h-9 border-zinc-200 bg-zinc-50 pr-16';
+const COMPACT_INPUT = 'h-9 border-input bg-background';
+const COMPACT_INPUT_WITH_UNIT = 'h-9 border-input bg-background pr-16';
 const UNIT_TRIGGER =
   'absolute right-1 top-1/2 h-7 w-14 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0';
 
-interface NonStackableIconProps {
+type ConstraintColor = 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
+
+type ConstraintOption = {
+  value: string;
+  label: string;
+  color: ConstraintColor;
+  Icon: LucideIcon;
+  fragilityValue?: number;
+};
+
+const CONSTRAINT_OPTIONS: ConstraintOption[] = [
+  {
+    value: 'none',
+    label: 'Kısıt Yok',
+    color: 'default',
+    Icon: ShieldOff,
+    fragilityValue: FRAGILITY_LEVELS.NonFragile,
+  },
+  {
+    value: 'fragile',
+    label: 'Kırılgan',
+    color: 'amber',
+    Icon: Wine,
+    fragilityValue: FRAGILITY_LEVELS.Fragile,
+  },
+  {
+    value: 'liquid',
+    label: 'Sıvı',
+    color: 'blue',
+    Icon: Droplets,
+    fragilityValue: FRAGILITY_LEVELS.Liquid,
+  },
+  {
+    value: 'corrosive',
+    label: 'Aşındırıcı',
+    color: 'orange',
+    Icon: Flame,
+    fragilityValue: FRAGILITY_LEVELS.Corrosive,
+  },
+  {
+    value: 'odor',
+    label: 'Kokuya Hassas',
+    color: 'green',
+    Icon: Wind,
+    fragilityValue: FRAGILITY_LEVELS.OdorSensitive,
+  },
+  {
+    value: 'food',
+    label: 'Gıda Teması',
+    color: 'green',
+    Icon: Utensils,
+    fragilityValue: FRAGILITY_LEVELS.FoodContact,
+  },
+  {
+    value: 'dry',
+    label: 'Kuru',
+    color: 'default',
+    Icon: Sun,
+    fragilityValue: FRAGILITY_LEVELS.KeepDry,
+  },
+  {
+    value: 'chemical',
+    label: 'Kimyasal',
+    color: 'purple',
+    Icon: FlaskConical,
+    fragilityValue: FRAGILITY_LEVELS.Chemical,
+  },
+  {
+    value: 'organic',
+    label: 'Organik',
+    color: 'green',
+    Icon: Leaf,
+    fragilityValue: FRAGILITY_LEVELS.Organic,
+  },
+];
+
+const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
+const INCOMPATIBLE_GROUPS = ['Gıda', 'Genel', 'Tehlikeli Madde', 'Kimya', 'Elektronik'];
+
+function formatVolume(cm3: number): string {
+  if (cm3 >= 1_000_000) return `${(cm3 / 1_000_000).toFixed(2)} m³`;
+  if (cm3 >= 1_000) return `${(cm3 / 1_000).toFixed(2)} dm³`;
+  return `${cm3.toFixed(1)} cm³`;
+}
+
+interface SectionCardProps {
+  children: ReactNode;
   className?: string;
 }
 
-function NonStackableIcon({ className }: NonStackableIconProps) {
+function SectionCard({ children, className }: SectionCardProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
+    <div className={cn('rounded-xl border border-border bg-background p-5', className)}>
+      {children}
+    </div>
+  );
+}
+
+interface SectionTitleProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function SectionTitle({ children, className }: SectionTitleProps) {
+  return (
+    <p
+      className={cn(
+        'mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground',
+        className,
+      )}
     >
-      <rect x="3" y="3" width="18" height="15" rx="2" />
-      <path d="M9 15 V8" />
-      <path d="M6 11 L9 8 L12 11" />
-      <path d="M15 15 V8" />
-      <path d="M12 11 L15 8 L18 11" />
-      <line x1="2" y1="21" x2="22" y2="21" />
-    </svg>
+      {children}
+    </p>
   );
 }
 
@@ -224,16 +333,14 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
       </svg>
       {!active && (
-        <Ban className="absolute inset-0 m-auto h-5 w-5 text-red-500" strokeWidth={2} aria-hidden />
+        <Ban
+          className="absolute inset-0 m-auto h-5 w-5 text-destructive"
+          strokeWidth={2}
+          aria-hidden
+        />
       )}
     </div>
   );
-}
-
-function formatVolume(cm3: number): string {
-  if (cm3 >= 1_000_000) return `${(cm3 / 1_000_000).toFixed(3)} m³`;
-  if (cm3 >= 1_000) return `${(cm3 / 1_000).toFixed(2)} dm³`;
-  return `${cm3.toFixed(1)} cm³`;
 }
 
 export function ProductForm({
@@ -245,6 +352,13 @@ export function ProductForm({
 }: ProductFormProps) {
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
+
+  const [selectedConstraints, setSelectedConstraints] = useState<string[]>(() => {
+    const frag = defaultValues?.fragility ?? 0;
+    if (frag === 0) return ['none'];
+    const match = CONSTRAINT_OPTIONS.find((o) => o.fragilityValue === frag);
+    return match ? [match.value] : ['none'];
+  });
 
   const [
     width,
@@ -263,6 +377,7 @@ export function ProductForm({
     allowRotateY,
     allowRotateZ,
     notes,
+    incompatibleGroups,
   ] = useWatch({
     control: form.control,
     name: [
@@ -282,10 +397,12 @@ export function ProductForm({
       'allowRotateY',
       'allowRotateZ',
       'notes',
+      'incompatibleGroups',
     ],
   });
 
   const isPallet = productType === 'palet';
+  const isVaril = productType === 'varil';
 
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
@@ -293,17 +410,25 @@ export function ProductForm({
   const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
   const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
   const lengthCm = Number.isFinite(length) ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
-  const volumeCm3 = widthCm * heightCm * lengthCm;
+  const volumeCm3 = isVaril
+    ? Math.PI * (widthCm / 2) ** 2 * heightCm
+    : widthCm * heightCm * lengthCm;
+
+  function toggleIncompatibleGroup(group: string) {
+    const prev = form.getValues('incompatibleGroups') ?? [];
+    const next = prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group];
+    form.setValue('incompatibleGroups', next, { shouldDirty: true });
+  }
 
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
             {/* SOL — Form alanları */}
-            <div className="space-y-8">
-              {/* Kimlik */}
-              <section className="space-y-3">
+            <div className="space-y-4">
+              {/* KİMLİK */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <FormField
@@ -329,7 +454,6 @@ export function ProductForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('forms.product.sku')}</FormLabel>
-
                         <FormControl>
                           <Input
                             className={COMPACT_INPUT}
@@ -342,12 +466,13 @@ export function ProductForm({
                     )}
                   />
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Ürün Tipi & Hassasiyet */}
-              <section className="space-y-3">
+              {/* ÜRÜN TİPİ & KISITLAR */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {/* Ürün Tipi */}
                   <FormField
                     control={form.control}
                     name="productType"
@@ -361,7 +486,7 @@ export function ProductForm({
                             onValueChange={(value) => {
                               if (!value) return;
                               field.onChange(value);
-                              if (value === 'pallet') {
+                              if (value === 'palet') {
                                 form.setValue('allowRotateY', false, { shouldValidate: false });
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
                               } else {
@@ -370,8 +495,22 @@ export function ProductForm({
                                   form.setValue('allowRotateZ', true, { shouldValidate: false });
                                 }
                               }
+                              if (value === 'varil') {
+                                const w = form.getValues('width');
+                                const wu = form.getValues('widthUnit');
+                                if (w !== undefined && Number.isFinite(w)) {
+                                  form.setValue('length', w, {
+                                    shouldDirty: false,
+                                    shouldValidate: false,
+                                  });
+                                  form.setValue('lengthUnit', wu ?? 'mm', {
+                                    shouldDirty: false,
+                                    shouldValidate: false,
+                                  });
+                                }
+                              }
                             }}
-                            className="flex flex-wrap"
+                            className="flex flex-wrap gap-1"
                           >
                             {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
                               <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
@@ -386,71 +525,224 @@ export function ProductForm({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="fragility"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="block">{t('forms.product.fragility')}</FormLabel>
-                        <FormControl>
-                          <ToggleGroup
-                            type="single"
-                            value={String(field.value)}
-                            onValueChange={(value) => {
-                              if (value === '') return;
-                              const num = Number(value);
-                              field.onChange(num);
-                              if (num >= FRAGILITY_LEVELS.Fragile) {
+                  {/* Kısıtlar — multi-select chip */}
+                  <div>
+                    <p className="mb-1.5 block text-sm font-medium leading-none">KISITLAR</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CONSTRAINT_OPTIONS.map((opt) => {
+                        const isActive = selectedConstraints.includes(opt.value);
+                        return (
+                          <Button
+                            key={opt.value}
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              'h-auto rounded-full px-2.5 py-1 text-xs font-medium',
+                              isActive
+                                ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                : 'text-muted-foreground hover:text-muted-foreground',
+                            )}
+                            onClick={() => {
+                              let next: string[];
+                              if (opt.value === 'none') {
+                                next = ['none'];
+                              } else {
+                                const without = selectedConstraints.filter((v) => v !== 'none');
+                                next = isActive
+                                  ? without.filter((v) => v !== opt.value)
+                                  : [...without, opt.value];
+                                if (next.length === 0) next = ['none'];
+                              }
+                              setSelectedConstraints(next);
+                              const maxFragility = next.reduce((acc, v) => {
+                                const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
+                                return Math.max(acc, o?.fragilityValue ?? 0);
+                              }, 0);
+                              form.setValue('fragility', maxFragility, { shouldValidate: false });
+                              if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
                                 form.setValue('allowRotateZ', false, { shouldValidate: false });
+                              } else if (!isPallet) {
+                                form.setValue('allowRotateZ', true, { shouldValidate: false });
                               }
                             }}
-                            className="flex flex-wrap"
                           >
-                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.NonFragile)}>
-                              <NonStackableIcon className="h-5 w-5" />
-                              <span className="text-xs">
-                                {t('forms.product.fragilityNonFragile')}
-                              </span>
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Fragile)}>
-                              <Wine className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
-                              <span className="text-xs">{t('forms.product.fragilityFragile')}</span>
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value={String(FRAGILITY_LEVELS.Liquid)}>
-                              <Droplets className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
-                              <span className="text-xs">{t('forms.product.fragilityLiquid')}</span>
-                            </ToggleGroupItem>
-                          </ToggleGroup>
-                        </FormControl>
+                            <opt.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {opt.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* YÜK KATEGORİSİ */}
+              <SectionCard>
+                <SectionTitle>YÜK KATEGORİSİ</SectionTitle>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+                  <div className="space-y-3">
+                    {/* Yük Grubu */}
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium leading-none">Yük Grubu</p>
+                      <Controller
+                        control={form.control}
+                        name="stackGroup"
+                        render={({ field }) => (
+                          <Select
+                            value={field.value ?? ''}
+                            onValueChange={(v) => field.onChange(v)}
+                          >
+                            <SelectTrigger className="h-9 border-input bg-background">
+                              <SelectValue placeholder="Yük grubu seçin…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CARGO_GROUPS.map((g) => (
+                                <SelectItem key={g} value={g}>
+                                  {g}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    {/* Uyumsuz Yük Grupları */}
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium leading-none">
+                        Uyumsuz Yük Grupları
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {INCOMPATIBLE_GROUPS.map((g) => {
+                          const selected = (incompatibleGroups ?? []).includes(g);
+                          return (
+                            <Button
+                              key={g}
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                'h-auto rounded-full px-2.5 py-1 text-xs font-medium',
+                                selected
+                                  ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive'
+                                  : 'text-muted-foreground hover:text-muted-foreground',
+                              )}
+                              onClick={() => toggleIncompatibleGroup(g)}
+                            >
+                              {g}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Katman Sayısı — +/- sayacı */}
+                  <FormField
+                    control={form.control}
+                    name="maxStackCount"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col items-center">
+                        <FormLabel className="text-center">Katman Sayısı</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label="Azalt"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              const next = Math.max(1, (field.value ?? 1) - 1);
+                              field.onChange(next);
+                              form.setValue('isStackable', next > 1, { shouldValidate: false });
+                            }}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </Button>
+                          <span className="w-8 text-center text-sm font-semibold tabular-nums">
+                            {field.value ?? 1}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label="Artır"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              const next = (field.value ?? 1) + 1;
+                              field.onChange(next);
+                              form.setValue('isStackable', next > 1, { shouldValidate: false });
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Fiziksel Özellikler — Genişlik / Yükseklik / Uzunluk / Ağırlık / Katman Sayısı */}
+              {/* Fiziksel Özellikler — Boyutlar / Ağırlık / Katman Sayısı */}
               <section className="space-y-3">
                 <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-                  <DimensionField
-                    form={form}
-                    name="width"
-                    unitName="widthUnit"
-                    labelKey="forms.product.width"
-                  />
-                  <DimensionField
-                    form={form}
-                    name="height"
-                    unitName="heightUnit"
-                    labelKey="forms.product.height"
-                  />
-                  <DimensionField
-                    form={form}
-                    name="length"
-                    unitName="lengthUnit"
-                    labelKey="forms.product.length"
-                  />
+                <div
+                  className={cn(
+                    'grid gap-3',
+                    isVaril
+                      ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-4'
+                      : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
+                  )}
+                >
+                  {isVaril ? (
+                    <>
+                      <DimensionField
+                        form={form}
+                        name="width"
+                        unitName="widthUnit"
+                        label={t('forms.product.diameter')}
+                        onAfterChange={(v, unit) => {
+                          if (v !== undefined && Number.isFinite(v)) {
+                            form.setValue('length', v, {
+                              shouldDirty: false,
+                              shouldValidate: false,
+                            });
+                            form.setValue('lengthUnit', unit, {
+                              shouldDirty: false,
+                              shouldValidate: false,
+                            });
+                          }
+                        }}
+                      />
+                      <DimensionField
+                        form={form}
+                        name="height"
+                        unitName="heightUnit"
+                        label={t('forms.product.height')}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <DimensionField
+                        form={form}
+                        name="width"
+                        unitName="widthUnit"
+                        label={`${t('forms.product.width')} (X)`}
+                      />
+                      <DimensionField
+                        form={form}
+                        name="height"
+                        unitName="heightUnit"
+                        label={`${t('forms.product.height')} (Y)`}
+                      />
+                      <DimensionField
+                        form={form}
+                        name="length"
+                        unitName="lengthUnit"
+                        label={`${t('forms.product.depth')} (Z)`}
+                      />
+                    </>
+                  )}
                   <FormField
                     control={form.control}
                     name="weight"
@@ -496,44 +788,26 @@ export function ProductForm({
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="maxStackCount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="m-0">{t('forms.product.layerCount')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={1}
-                            step={1}
-                            placeholder="1"
-                            className={COMPACT_INPUT}
-                            {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) => {
-                              const value = e.target.value === '' ? 1 : e.target.valueAsNumber;
-                              field.onChange(value);
-                              form.setValue('isStackable', value > 1, { shouldValidate: false });
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               </section>
 
-              {/* Kısıtlar — sadece eksen rotasyonu */}
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
+              {/* KISITLAR — eksen rotasyonu */}
+              <SectionCard>
+                <div className="mb-4 flex items-center justify-between">
+                  <SectionTitle className="mb-0">
+                    {t('forms.product.sectionConstraints')}
+                  </SectionTitle>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label={t('forms.product.axisGuideAria')}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label={t('forms.product.axisGuideAria')}
+                      >
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="space-y-1">
@@ -560,8 +834,9 @@ export function ProductForm({
                           <FormItem className="m-0 space-y-0">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <button
+                                <Button
                                   type="button"
+                                  variant="outline"
                                   aria-pressed={field.value}
                                   aria-label={
                                     isDisabled
@@ -571,10 +846,10 @@ export function ProductForm({
                                   disabled={isDisabled}
                                   onClick={() => field.onChange(!field.value)}
                                   className={cn(
-                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md border bg-zinc-50 px-2 py-1.5 text-center transition-all',
+                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md px-2 py-3',
                                     field.value
-                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20'
-                                      : 'border-zinc-200 text-muted-foreground hover:border-zinc-300',
+                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20 hover:bg-primary/5 hover:text-primary'
+                                      : 'text-muted-foreground',
                                     isDisabled && 'cursor-not-allowed opacity-50',
                                   )}
                                 >
@@ -582,7 +857,7 @@ export function ProductForm({
                                   <span className="text-xs font-medium leading-none text-foreground">
                                     {t(labelKey)}
                                   </span>
-                                </button>
+                                </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 {isDisabled
@@ -596,18 +871,18 @@ export function ProductForm({
                     );
                   })}
                 </div>
-              </section>
+              </SectionCard>
 
-              {/* Özel Taşıma Notları */}
-              <section className="space-y-3">
+              {/* ÖZEL TAŞIMA NOTLARI */}
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
                 <FormField
                   control={form.control}
                   name="notes"
                   render={({ field }) => {
                     const value = field.value ?? '';
-                    const length = value.length;
-                    const isOverLimit = length >= NOTES_MAX_LENGTH;
+                    const charCount = value.length;
+                    const isOverLimit = charCount >= NOTES_MAX_LENGTH;
                     return (
                       <FormItem>
                         <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
@@ -616,7 +891,7 @@ export function ProductForm({
                             rows={3}
                             maxLength={NOTES_MAX_LENGTH}
                             placeholder={t('forms.product.notesPlaceholder')}
-                            className="resize-none overflow-y-auto border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-primary/40"
+                            className="resize-none overflow-y-auto border-input bg-background focus-visible:ring-2 focus-visible:ring-primary/40"
                             {...field}
                             value={value}
                             onChange={(e) => {
@@ -631,11 +906,13 @@ export function ProductForm({
                             aria-live="polite"
                             className={cn(
                               'shrink-0 tabular-nums',
-                              isOverLimit ? 'font-semibold text-red-600' : 'text-muted-foreground',
+                              isOverLimit
+                                ? 'font-semibold text-destructive'
+                                : 'text-muted-foreground',
                             )}
                           >
                             {t('forms.product.notesCounter', {
-                              count: length,
+                              count: charCount,
                               max: NOTES_MAX_LENGTH,
                             })}
                           </span>
@@ -645,10 +922,10 @@ export function ProductForm({
                     );
                   }}
                 />
-              </section>
+              </SectionCard>
             </div>
 
-            {/* SAĞ — 3D Önizleme (Three.js placeholder) */}
+            {/* SAĞ — Önizleme */}
             <PreviewPanel
               name={name}
               productType={productType ?? 'koli'}
@@ -670,7 +947,6 @@ export function ProductForm({
             />
           </div>
 
-          {/* Aksiyonlar — sayfa genişliği boyunca, en sağda */}
           <div className="flex justify-end gap-3 border-t pt-4">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
@@ -754,48 +1030,105 @@ function PreviewPanel(props: PreviewPanelProps) {
     Number.isFinite(height) && height !== undefined ? toCentimeters(height, heightUnit ?? 'cm') : 0;
   const depthCm =
     Number.isFinite(length) && length !== undefined ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
-  const hasDimensions = widthCm > 0 && heightCm > 0 && depthCm > 0;
+  const hasDimensions =
+    productType === 'varil'
+      ? widthCm > 0 && heightCm > 0
+      : widthCm > 0 && heightCm > 0 && depthCm > 0;
 
   return (
     <aside className="lg:sticky lg:top-6 lg:self-start">
-      <div className="flex flex-col gap-4">
-        {/* 3D önizleme */}
-        <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-          {hasDimensions ? (
-            <ProductPreview3D
-              widthCm={widthCm}
-              heightCm={heightCm}
-              depthCm={depthCm}
-              productType={productType}
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400">
-              <div className="text-zinc-500">
-                <ProductTypeIllustration type={productType} />
+      <div className="flex flex-col gap-3">
+        {/* Önizleme kartı */}
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
+          {/* Başlık */}
+          <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              ÜRÜN ÖNİZLEME
+            </span>
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">
+              3D Önizleme
+            </span>
+          </div>
+
+          {/* 3D Alan */}
+          <div className="relative aspect-square overflow-hidden bg-muted/30">
+            {hasDimensions ? (
+              <ProductPreview3D
+                widthCm={widthCm}
+                heightCm={heightCm}
+                depthCm={depthCm}
+                productType={productType}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                <div>
+                  <ProductTypeIllustration type={productType} />
+                </div>
+                <p className="px-6 text-center text-xs uppercase tracking-wide">
+                  {t('forms.product.previewPlaceholder')}
+                </p>
               </div>
-              <p className="px-6 text-center text-xs uppercase tracking-wide">
-                {t('forms.product.previewPlaceholder')}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Hacim */}
+          <div className="flex items-baseline justify-between border-t border-border/60 px-4 py-3">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              HACİM
+            </span>
+            <span className="text-xl font-semibold tabular-nums text-foreground">
+              {volumeCm3 > 0 ? formatVolume(volumeCm3) : '0.00 m³'}
+            </span>
+          </div>
         </div>
 
-        {/* Anlık Hacim — 3D placeholder hemen altı */}
-        <div className="flex items-baseline justify-between rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('forms.product.volume')}
-          </span>
-          <span className="text-lg font-semibold tabular-nums text-foreground">
-            {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
-          </span>
+        {/* Özet kartı */}
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
+          <div className="border-b border-border/60 px-4 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              ÜRÜN ÖZETİ
+            </span>
+          </div>
+          <dl className="divide-y divide-border/40 px-4">
+            <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
+            <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
+            <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
+            <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
+            <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
+            <PreviewRow label="Kısıtlar" value={fragilityLabel} />
+            <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
+            <PreviewRow
+              label={<Move3d className="h-4 w-4" aria-hidden />}
+              value={
+                allRotationsFree
+                  ? t('forms.product.summaryRotationFree')
+                  : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
+              }
+            />
+          </dl>
         </div>
 
         {/* Canlı veri özeti */}
         <dl className="space-y-2 text-sm">
           <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
-          <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
-          <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
-          <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
+          {productType === 'varil' ? (
+            <>
+              <PreviewRow label={t('forms.product.diameter')} value={fmt(width, widthUnit)} />
+              <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
+            </>
+          ) : (
+            <>
+              <PreviewRow label={`${t('forms.product.width')} (X)`} value={fmt(width, widthUnit)} />
+              <PreviewRow
+                label={`${t('forms.product.height')} (Y)`}
+                value={fmt(height, heightUnit)}
+              />
+              <PreviewRow
+                label={`${t('forms.product.depth')} (Z)`}
+                value={fmt(length, lengthUnit)}
+              />
+            </>
+          )}
           <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
           <PreviewRow label={t('forms.product.fragility')} value={fragilityLabel} />
           <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
@@ -810,7 +1143,7 @@ function PreviewPanel(props: PreviewPanelProps) {
         </dl>
 
         {notes && notes.trim().length > 0 && (
-          <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-foreground">
+          <div className="rounded-xl border border-dashed border-border bg-background p-3 text-xs text-foreground">
             <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
               {t('forms.product.notesSummaryLabel')}
             </p>
@@ -830,7 +1163,7 @@ interface PreviewRowProps {
 
 function PreviewRow({ label, value, emphasize = false }: PreviewRowProps) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
+    <div className="flex items-baseline justify-between gap-3 py-2">
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd
         className={cn(
@@ -844,34 +1177,22 @@ function PreviewRow({ label, value, emphasize = false }: PreviewRowProps) {
   );
 }
 
-interface SectionTitleProps {
-  children: ReactNode;
-}
-
-function SectionTitle({ children }: SectionTitleProps) {
-  return (
-    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-      {children}
-    </h3>
-  );
-}
-
 interface DimensionFieldProps {
   form: ReturnType<typeof useProductForm>;
   name: 'width' | 'height' | 'length';
   unitName: 'widthUnit' | 'heightUnit' | 'lengthUnit';
-  labelKey: string;
+  label: string;
+  onAfterChange?: (value: number | undefined, unit: DimensionUnitKey) => void;
 }
 
-function DimensionField({ form, name, unitName, labelKey }: DimensionFieldProps) {
-  const { t } = useTranslation();
+function DimensionField({ form, name, unitName, label, onAfterChange }: DimensionFieldProps) {
   return (
     <FormField
       control={form.control}
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{t(labelKey)}</FormLabel>
+          <FormLabel>{label}</FormLabel>
           <div className="relative">
             <FormControl>
               <Input
@@ -881,16 +1202,28 @@ function DimensionField({ form, name, unitName, labelKey }: DimensionFieldProps)
                 className={COMPACT_INPUT_WITH_UNIT}
                 {...field}
                 value={field.value ?? ''}
-                onChange={(e) =>
-                  field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)
-                }
+                onChange={(e) => {
+                  const v = e.target.value === '' ? undefined : e.target.valueAsNumber;
+                  field.onChange(v);
+                  if (onAfterChange) {
+                    onAfterChange(v, form.getValues(unitName) ?? 'mm');
+                  }
+                }}
               />
             </FormControl>
             <Controller
               control={form.control}
               name={unitName}
               render={({ field: unitField }) => (
-                <Select value={unitField.value} onValueChange={unitField.onChange}>
+                <Select
+                  value={unitField.value}
+                  onValueChange={(u) => {
+                    unitField.onChange(u);
+                    if (onAfterChange) {
+                      onAfterChange(form.getValues(name), u as DimensionUnitKey);
+                    }
+                  }}
+                >
                   <SelectTrigger className={UNIT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>

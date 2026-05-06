@@ -284,3 +284,104 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Application/Common/Errors/AuthErrors.cs`
 - `CargoPilot.Infrastructure/Auth/AuthService.cs`
 - `CargoPilot.WebAPI/Controllers/AuthController.cs`
+
+---
+
+## 12) US-DASH-04: Yükleme Planı Liste ve Detay Endpoint'leri
+**Story:** Dashboard geliştirici olarak, yükleme planlarını sayfalı/sıralı listeleyebilmek ve tek bir planı tüm detaylarıyla getirebilmek için backend endpoint'lerinin hazır olmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt İşler
+- `✅` `ILoadingPlanRepository` interface'ini tanımla (`CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`)
+- `✅` `LoadingPlanRepository` implementasyonunu yaz (EF Core, `AsNoTracking`, N+1 önlemi için 4 ayrı sorgu)
+- `✅` `GetPlansQuery` + `GetPlansQueryHandler` (sayfalı/sıralı liste, `PlanSummaryDto`)
+- `✅` `GetPlansQueryValidator` (page ≥ 1, pageSize 1–100, geçerli sortBy/sortDirection değerleri)
+- `✅` `GetPlanByIdQuery` + `GetPlanByIdQueryHandler` (vehicle, placements, unplaced items, warnings)
+- `✅` DTO'lar: `PlanSummaryDto`, `PlanDetailDto`, `VehicleInPlanDto`, `PlacementDto`, `ItemInPlanDto`, `UnplacedItemDto`, `WarningDto`
+- `✅` `PlansController` — route `api/v1/loading-plans`, `[Authorize]` class-level
+- `✅` `ILoadingPlanRepository` DI kaydı (`DependencyInjection.cs`)
+- `✅` `IUserVehicleFavoriteRepository` DI kaydı merge conflict sonrası geri eklendi
+- `✅` Build: 0 hata doğrulandı; uygulama `http://localhost:8081` adresinde hatasız ayağa kalktı
+
+### Kanıtlar
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Application/Features/Plans/GetPlans/` (Query, Handler, Validator, Dto)
+- `CargoPilot.Application/Features/Plans/GetPlanById/` (Query, Handler, tüm Dto'lar)
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
+## 13) US-AUTH-12: Yeni Cihaz Girisi Bildirimi
+**Story:** Backend Chapter Lead olarak, kullanicinin hesabina daha once giris yapilmamis bir cihazdan/tarayicidan erisim saglandiginda e-posta bildirimi gonderilmesini ve kullanicinin tek tikla tum oturumlarini sonlandirip sifre sifirlama akisina yonlendirilmesini isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Kabul Kriterleri
+- AC1: Kullanici bilinen bir cihazdan giris yaptiginda hicbir bildirim gonderilmez.
+- AC2: Kullanici yeni bir cihazdan (farkli User-Agent) giris yaptiginda uyari e-postasi gonderilir; e-posta cihaz ozetini ve UTC giris zamanini icerir.
+- AC3: E-postadaki "Hesabimi Guvenlige Al" linki tiklandiginda tum aktif oturumlar iptal edilir ve kullanici sifre sifirlama sayfasina yonlendirilir.
+- AC4: Yeni cihaz tespiti OAuth (Google) girisleri icin de calisir.
+
+### Alt Isler
+- `✅` `UserSession` entity'sine `DeviceSummary` kolonu ekle (Kapsam: `UserSession.cs` guncellendi; `DeviceSummary` nullable `nvarchar(500)` alani eklendi. `UserSessionConfiguration.cs` icinde EF kolon kisitlari tanimlandi. `20260501170422_AddDeviceSummaryToUserSession` migration'i uretildi.)
+- `✅` Login akisinda yeni cihaz tespiti yap (Kapsam: `AuthService.IssueTokensAsync` metodu guncellendi; User-Agent header'i `DeviceSummary` olarak kaydedilir. `UserSessions` tablosunda ayni `UserId + DeviceSummary` cifti yoksa `isNewDevice = true` set edilir.)
+- `✅` Yeni cihaz tespitinde uyari e-postasi gonder (Kapsam: `IEmailService` arabirimine `SendNewDeviceWarningEmailAsync` eklendi. `ResendEmailService` HTML + plain-text sablonlu implementasyonu yazildi. E-posta: cihaz/tarayici bilgisi, UTC tarih/saat ve "Hesabimi Guvenlige Al" butonu icerir.)
+- `✅` `GET /api/v1/auth/secure-account` endpoint'ini ekle (Kapsam: `IAuthService` ve `AuthService`'e `SecureAccountAsync` eklendi. Endpoint token'i dogrular, tum aktif oturumlarini iptal eder, yeni bir sifre sifirlama token'i uretir ve frontend sifre sifirlama sayfasina 302 yonlendirir.)
+- `✅` E-postadaki link icin guvenli token uret (Kapsam: `RandomNumberGenerator.GetBytes(32)` ile ham token uretilir; `WebEncoders.Base64UrlEncode` ile URL-safe string'e donusturulur; `SHA256(rawBytes)` ile hash hesaplanip DB'ye kaydedilir. Tuketimde `WebEncoders.Base64UrlDecode` ile ham byte'lara donulur ve hash yeniden hesaplanarak eslestirilir. Bu yaklasim string tabanli encoding farkindan kaynaklanan hash uyumsuzluklarini ortadan kaldirir.)
+- `✅` `OAuthLoginCommand` ve `OAuthLoginCommandHandler`'a `ipAddress` ve `userAgent` parametreleri ekle (Kapsam: OAuth girislerinde de cihaz tespiti ve bildirim akisi calissin diye guncellendi.)
+- `✅` `PasswordResetSettings`'e `BackendBaseUrl` alani ekle (Kapsam: `secure-account` linki uretiminde backend URL'i konfigurasyon uzerinden okunur; `appsettings.json` ve `appsettings.Development.json` guncellendi.)
+- `✅` `Microsoft.AspNetCore.WebUtilities` paketini `Infrastructure` projesine ekle (Kapsam: `WebEncoders` sinifindan faydalanmak icin `CargoPilot.Infrastructure.csproj` guncellendi.)
+
+**Kanitlar:**
+- `CargoPilot.Domain/Entities/UserSession.cs`
+- `CargoPilot.Application/Abstractions/IEmailService.cs`
+- `CargoPilot.Application/Common/Settings/PasswordResetSettings.cs`
+- `CargoPilot.Application/Features/Auth/IAuthService.cs`
+- `CargoPilot.Application/Features/Auth/OAuthLogin/OAuthLoginCommand.cs`
+- `CargoPilot.Application/Features/Auth/OAuthLogin/OAuthLoginCommandHandler.cs`
+- `CargoPilot.Infrastructure/Auth/AuthService.cs`
+- `CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj`
+- `CargoPilot.Infrastructure/Persistence/Configurations/UserSessionConfiguration.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260501170422_AddDeviceSummaryToUserSession.cs`
+- `CargoPilot.Infrastructure/Services/ResendEmailService.cs`
+- `CargoPilot.WebAPI/Controllers/AuthController.cs`
+- `CargoPilot.WebAPI/appsettings.json`
+- `CargoPilot.WebAPI/appsettings.Development.json`
+
+---
+
+## 14) Loading Plan CRUD Endpoint'leri (Oluştur / İsim Güncelle / Sil)
+**Story:** Backend geliştirici olarak, yükleme planı oluşturabilmek, plan adını güncelleyebilmek ve planı soft-delete ile silebilmek için CRUD endpoint'lerinin hazır olmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt İşler
+- `✅` `IOptimizationEngine` interface'ini tanımla (`CargoPilot.Application/Common/Interfaces/IOptimizationEngine.cs`)
+- `✅` `NoOpOptimizationEngine` mock implementasyonu yaz (`CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`)
+- `✅` `IOptimizationEngine` DI kaydı eklendi (`DependencyInjection.cs`)
+- `✅` `CreatePlanItemRequest` record tanımla (ItemId, Quantity)
+- `✅` `CreatePlanCommand` tanımla (PlanName, VehicleId, Items, OptimizationCriteria)
+- `✅` `CreatePlanCommandValidator` yaz (PlanName max 100, VehicleId NotEmpty, Items NotEmpty, her item Quantity > 0)
+- `✅` `CreatePlanCommandHandler` yaz (Vehicle 404 kontrolü, inputTotalQuantity hesabı, LoadingPlan oluştur, Add + SaveChanges + RunOptimizationAsync)
+- `✅` `UpdatePlanNameCommand` tanımla (Id, PlanName)
+- `✅` `UpdatePlanNameCommandValidator` yaz (PlanName max 100)
+- `✅` `UpdatePlanNameCommandHandler` yaz (GetByIdAsync 404 kontrolü, plan.UpdatePlanName, SaveChanges)
+- `✅` `LoadingPlan.UpdatePlanName(string)` domain metodu eklendi (`private set` koruması için)
+- `✅` `DeletePlanCommand` tanımla (Id)
+- `✅` `DeletePlanCommandHandler` yaz (GetByIdAsync 404 kontrolü, plan.MarkAsDeleted, SaveChanges)
+- `✅` `ILoadingPlanRepository` genişletildi (GetByIdAsync, Add, SaveChangesAsync)
+- `✅` `LoadingPlanRepository` implementasyonları eklendi (GetByIdAsync tracking olmadan, Add, SaveChangesAsync)
+- `✅` `PlansController` güncellendi — POST 201, PATCH 200, DELETE 200; XML summary'ler eklendi
+- `✅` Build: 0 hata doğrulandı; uygulama `http://localhost:8081` adresinde hatasız ayağa kalktı
+
+### Kanıtlar
+- `CargoPilot.Application/Common/Interfaces/IOptimizationEngine.cs`
+- `CargoPilot.Application/Features/Plans/CreatePlan/` (Command, ItemRequest, Validator, Handler)
+- `CargoPilot.Application/Features/Plans/UpdatePlanName/` (Command, Validator, Handler)
+- `CargoPilot.Application/Features/Plans/DeletePlan/` (Command, Handler)
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.Domain/Entities/LoadingPlan.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`

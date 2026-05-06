@@ -9,6 +9,7 @@ public interface IAuthService
     Task<Result<LoginResponse>> LoginAsync(
         LoginRequest request,
         string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -19,6 +20,7 @@ public interface IAuthService
         string idToken,
         AuthProvider provider,
         string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -46,5 +48,23 @@ public interface IAuthService
     Task<Result<bool>> ResetPasswordAsync(
         string token,
         string newPassword,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// "Bu giriş benim değil" akışı: token doğrulanır, tüm aktif oturumlar iptal edilir
+    /// ve kullanıcı şifre sıfırlama sayfasına yönlendirme URL'si ile döner.
+    /// AC3: Hesap güvenceye alma.
+    /// </summary>
+    Task<Result<string>> SecureAccountAsync(
+        string email,
+        string token,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gelen refresh token'a ait oturumu iptal eder.
+    /// Token bulunamazsa veya zaten iptal edilmişse yine başarı döner (idempotent).
+    /// </summary>
+    Task<Result<bool>> LogoutAsync(
+        string refreshToken,
         CancellationToken cancellationToken = default);
 }

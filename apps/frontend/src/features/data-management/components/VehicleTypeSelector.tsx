@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { Card } from '@/components/ui/card';
 import { VehicleType, type VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
 
 function TirIcon({ className }: { className?: string }) {
@@ -83,7 +82,7 @@ function KonteynerIcon({ className }: { className?: string }) {
 const VEHICLE_OPTIONS = [
   { value: VehicleType.Tir, label: 'Tır', icon: TirIcon },
   { value: VehicleType.Kamyon, label: 'Kamyon', icon: KamyonIcon },
-  { value: VehicleType.Kamposet, label: 'Kamposet', icon: KamposetIcon },
+  { value: VehicleType.Kamposet, label: 'Römork', icon: KamposetIcon },
   { value: VehicleType.Konteyner, label: 'Konteyner', icon: KonteynerIcon },
 ] as const;
 
@@ -95,19 +94,42 @@ interface VehicleTypeSelectorProps {
 export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProps) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {VEHICLE_OPTIONS.map(({ value: optionValue, label, icon: Icon }) => (
-        <Card
-          key={optionValue}
-          className={cn(
-            'cursor-pointer flex flex-col items-center justify-center gap-2 p-2.5 transition-colors hover:bg-muted/50',
-            value === optionValue && 'ring-2 ring-primary',
-          )}
-          onClick={() => onChange(optionValue)}
-        >
-          <Icon className="h-7 w-7" />
-          <span className="text-xs font-medium">{label}</span>
-        </Card>
-      ))}
+      {VEHICLE_OPTIONS.map(({ value: optionValue, label, icon: Icon }) => {
+        const isSelected = value === optionValue;
+        return (
+          <button
+            key={optionValue}
+            type="button"
+            onClick={() => onChange(optionValue)}
+            className={cn(
+              'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-4 text-sm font-medium transition-all',
+              isSelected
+                ? 'border-foreground bg-white shadow-sm'
+                : 'border-zinc-200 bg-zinc-50 text-muted-foreground hover:border-zinc-300 hover:bg-white',
+            )}
+          >
+            {isSelected && (
+              <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-foreground">
+                <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3" aria-hidden>
+                  <path
+                    d="M2 6l3 3 5-5"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            )}
+            <Icon className={cn('h-8 w-8', isSelected ? 'text-foreground' : 'text-zinc-400')} />
+            <span
+              className={cn('text-xs', isSelected ? 'text-foreground' : 'text-muted-foreground')}
+            >
+              {label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

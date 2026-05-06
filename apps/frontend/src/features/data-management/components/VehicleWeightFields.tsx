@@ -30,7 +30,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         Ağırlık Limitleri
       </h3>
       <div className="grid grid-cols-3 gap-3">
@@ -39,15 +39,23 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
           name="maxCargoWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Maks. Kargo Yükü ({WEIGHT_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Maks. Kargo Yükü
+              </FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {WEIGHT_UNIT}
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -58,15 +66,21 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
           name="grossWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Brüt Ağırlık ({WEIGHT_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">Brüt Ağırlık</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="1"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {WEIGHT_UNIT}
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -77,15 +91,21 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
           name="tareWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Dara Ağırlığı ({WEIGHT_UNIT})</FormLabel>
+              <FormLabel className="text-xs font-medium text-foreground">Dara Ağırlığı</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min="0"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    className="h-9 border-zinc-200 bg-white pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {WEIGHT_UNIT}
+                  </span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

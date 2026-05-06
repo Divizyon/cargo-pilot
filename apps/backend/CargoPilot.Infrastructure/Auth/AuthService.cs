@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
-using System.Text;
 using CargoPilot.Application.Abstractions;
+using Microsoft.AspNetCore.WebUtilities;
 using CargoPilot.Application.Common.Errors;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -11,6 +11,7 @@ using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CargoPilot.Infrastructure.Auth;
@@ -25,6 +26,12 @@ internal sealed class AuthService : IAuthService
         BCrypt.Net.BCrypt.HashPassword("__timing_protection__", workFactor: 11);
 #pragma warning restore S2068
 
+    private static readonly Action<ILogger, Guid, Exception?> LogNewDeviceEmailFailed =
+        LoggerMessage.Define<Guid>(
+            LogLevel.Error,
+            new EventId(2001, nameof(LogNewDeviceEmailFailed)),
+            "Yeni cihaz uyarı e-postası gönderilemedi. UserId={UserId}");
+
     private readonly AppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
@@ -35,6 +42,7 @@ internal sealed class AuthService : IAuthService
     private readonly IUserPasswordHistoryRepository _passwordHistoryRepository;
     private readonly IEmailService _emailService;
     private readonly PasswordResetSettings _passwordResetSettings;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         AppDbContext context,
@@ -46,7 +54,8 @@ internal sealed class AuthService : IAuthService
         IPasswordResetTokenRepository resetTokenRepository,
         IUserPasswordHistoryRepository passwordHistoryRepository,
         IEmailService emailService,
-        IOptions<PasswordResetSettings> passwordResetSettings)
+        IOptions<PasswordResetSettings> passwordResetSettings,
+        ILogger<AuthService> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
@@ -58,11 +67,13 @@ internal sealed class AuthService : IAuthService
         _passwordHistoryRepository = passwordHistoryRepository;
         _emailService = emailService;
         _passwordResetSettings = passwordResetSettings.Value;
+        _logger = logger;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
         LoginRequest request,
         string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
@@ -92,7 +103,7 @@ internal sealed class AuthService : IAuthService
 
         user.ResetLoginAttempts();
 
-        return await IssueTokensAsync(user, ipAddress, cancellationToken);
+        return await IssueTokensAsync(user, ipAddress, userAgent, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -100,6 +111,7 @@ internal sealed class AuthService : IAuthService
         string idToken,
         AuthProvider provider,
         string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
         var validator = _oauthValidators.FirstOrDefault(v => v.Supports(provider));
@@ -180,15 +192,22 @@ internal sealed class AuthService : IAuthService
             }
         }
 
-        return await IssueTokensAsync(user, ipAddress, cancellationToken);
+        return await IssueTokensAsync(user, ipAddress, userAgent, cancellationToken);
     }
 
     /// <summary>Kullanıcı için JWT + refresh token üretir ve oturum kaydeder.</summary>
     private async Task<Result<LoginResponse>> IssueTokensAsync(
         AppUser user,
         string? ipAddress,
+        string? userAgent,
         CancellationToken cancellationToken)
     {
+        var deviceSummary = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Trim();
+
+        var isNewDevice = deviceSummary is not null &&
+            !await _context.UserSessions
+                .AnyAsync(s => s.UserId == user.Id && s.DeviceSummary == deviceSummary, cancellationToken);
+
         var now = DateTime.UtcNow;
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var refreshToken = _jwtTokenService.GenerateRefreshToken();
@@ -200,10 +219,46 @@ internal sealed class AuthService : IAuthService
             token: refreshToken,
             expiresAt: sessionExpiry,
             lastUsedAt: now,
-            createdByIp: ipAddress);
+            createdByIp: ipAddress,
+            deviceSummary: deviceSummary);
 
         _context.UserSessions.Add(session);
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (isNewDevice && !string.IsNullOrWhiteSpace(_passwordResetSettings.BackendBaseUrl))
+        {
+            await _resetTokenRepository.InvalidateAllForUserAsync(user.Id, cancellationToken);
+
+            var rawTokenBytes = RandomNumberGenerator.GetBytes(32);
+            var rawToken = WebEncoders.Base64UrlEncode(rawTokenBytes);
+            var tokenHash = Convert.ToHexString(SHA256.HashData(rawTokenBytes));
+
+            _resetTokenRepository.Add(new PasswordResetToken(
+                id: Guid.NewGuid(),
+                userId: user.Id,
+                tokenHash: tokenHash,
+                expiresAt: now.AddMinutes(_passwordResetSettings.TokenExpiryMinutes)));
+
+            await _resetTokenRepository.SaveChangesAsync(cancellationToken);
+
+            var secureLink = $"{_passwordResetSettings.BackendBaseUrl}/api/v1/auth/secure-account" +
+                $"?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(rawToken)}";
+
+            try
+            {
+                await _emailService.SendNewDeviceWarningEmailAsync(
+                    user.Email,
+                    deviceSummary!,
+                    now,
+                    secureLink,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // E-posta gönderimi başarısız olsa dahi login akışı durdurulmamalı.
+                LogNewDeviceEmailFailed(_logger, user.Id, ex);
+            }
+        }
 
         return Result<LoginResponse>.Success(new LoginResponse
         {
@@ -228,8 +283,24 @@ internal sealed class AuthService : IAuthService
             .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
 
-        if (session is null || session.IsRevoked || session.ExpiresAt <= DateTime.UtcNow)
+        if (session is null || session.User is null)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
+        // Revoke edilmiş token tekrar sunuluyorsa token çalınmış olabilir — tüm sessionları kapat.
+        if (session.IsRevoked)
+        {
+            var activeSessions = await _context.UserSessions
+                .Where(s => s.UserId == session.UserId && !s.IsRevoked)
+                .ToListAsync(cancellationToken);
+            foreach (var s in activeSessions)
+                s.Revoke();
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+        }
+
+        if (session.ExpiresAt <= DateTime.UtcNow)
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
 
         session.Revoke();
 
@@ -244,7 +315,8 @@ internal sealed class AuthService : IAuthService
             token: newRefreshToken,
             expiresAt: sessionExpiry,
             lastUsedAt: now,
-            createdByIp: ipAddress);
+            createdByIp: ipAddress,
+            deviceSummary: session.DeviceSummary);
 
         _context.UserSessions.Add(newSession);
         await _context.SaveChangesAsync(cancellationToken);
@@ -272,10 +344,8 @@ internal sealed class AuthService : IAuthService
         await _resetTokenRepository.InvalidateAllForUserAsync(user.Id, cancellationToken);
 
         var rawTokenBytes = RandomNumberGenerator.GetBytes(32);
-        var rawToken = Convert.ToBase64String(rawTokenBytes)
-            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
-
-        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+        var rawToken = WebEncoders.Base64UrlEncode(rawTokenBytes);
+        var tokenHash = Convert.ToHexString(SHA256.HashData(rawTokenBytes));
 
         var resetToken = new PasswordResetToken(
             id: Guid.NewGuid(),
@@ -302,7 +372,11 @@ internal sealed class AuthService : IAuthService
         string newPassword,
         CancellationToken cancellationToken = default)
     {
-        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        byte[] resetTokenBytes;
+        try { resetTokenBytes = WebEncoders.Base64UrlDecode(token); }
+        catch (FormatException) { return Result<bool>.Failure(AuthErrors.InvalidResetToken); }
+
+        var tokenHash = Convert.ToHexString(SHA256.HashData(resetTokenBytes));
 
         var now = DateTime.UtcNow;
         var userId = await _resetTokenRepository.TryConsumeActiveTokenAsync(tokenHash, now, cancellationToken);
@@ -340,5 +414,66 @@ internal sealed class AuthService : IAuthService
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<bool>> LogoutAsync(
+        string refreshToken,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _context.UserSessions
+            .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
+
+        if (session is null || session.IsRevoked)
+            return Result<bool>.Success(true);
+
+        session.Revoke();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<string>> SecureAccountAsync(
+        string email,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        byte[] secureTokenBytes;
+        try { secureTokenBytes = WebEncoders.Base64UrlDecode(token); }
+        catch (FormatException) { return Result<string>.Failure(AuthErrors.InvalidResetToken); }
+
+        var tokenHash = Convert.ToHexString(SHA256.HashData(secureTokenBytes));
+        var now = DateTime.UtcNow;
+
+        var userId = await _resetTokenRepository.TryConsumeActiveTokenAsync(tokenHash, now, cancellationToken);
+        if (userId is null)
+            return Result<string>.Failure(AuthErrors.InvalidResetToken);
+
+        var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
+        if (user is null)
+            return Result<string>.Failure(AuthErrors.InvalidResetToken);
+
+        var activeSessions = await _context.UserSessions
+            .Where(s => s.UserId == user.Id && !s.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in activeSessions)
+            session.Revoke();
+
+        await _resetTokenRepository.InvalidateAllForUserAsync(user.Id, cancellationToken);
+
+        var newRawTokenBytes = RandomNumberGenerator.GetBytes(32);
+        var newRawToken = WebEncoders.Base64UrlEncode(newRawTokenBytes);
+        var newTokenHash = Convert.ToHexString(SHA256.HashData(newRawTokenBytes));
+
+        _resetTokenRepository.Add(new PasswordResetToken(
+            id: Guid.NewGuid(),
+            userId: user.Id,
+            tokenHash: newTokenHash,
+            expiresAt: now.AddMinutes(_passwordResetSettings.TokenExpiryMinutes)));
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var redirectUrl = $"{_passwordResetSettings.FrontendResetUrl}?token={Uri.EscapeDataString(newRawToken)}";
+        return Result<string>.Success(redirectUrl);
     }
 }

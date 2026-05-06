@@ -388,6 +388,64 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.ToTable("LoadingPlans", (string)null);
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanInputItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LoadingPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_LoadingPlanInputItems_IsDeleted");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("LoadingPlanId")
+                        .HasDatabaseName("IX_LoadingPlanInputItems_LoadingPlanId");
+
+                    b.ToTable("LoadingPlanInputItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LoadingPlanInputItems_Quantity_Positive", "[Quantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanPlacement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -695,6 +753,10 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("DeviceSummary")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
 
@@ -965,6 +1027,25 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanInputItem", b =>
+                {
+                    b.HasOne("CargoPilot.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", "LoadingPlan")
+                        .WithMany()
+                        .HasForeignKey("LoadingPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("LoadingPlan");
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanPlacement", b =>

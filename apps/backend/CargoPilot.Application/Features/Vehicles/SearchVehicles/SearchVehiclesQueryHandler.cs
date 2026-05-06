@@ -82,9 +82,19 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 v.LoadingType,
                 v.Volume,
                 v.IsActive,
+                favoriteSet.Contains(v.Id),
                 v.CompanyId,
-                ResolveAuditUser(v, userMap),
-                favoriteSet.Contains(v.Id)))
+                v.Description,
+                v.KingPinDistanceMm,
+                v.KingPinTareWeightKg,
+                v.KingPinMaxLoadKg,
+                v.MainAxleDistanceMm,
+                v.MainAxleTareWeightKg,
+                v.MainAxleMaxLoadKg,
+                v.AdditionalAxleDistanceMm,
+                v.AdditionalAxleTareWeightKg,
+                v.AdditionalAxleMaxLoadKg,
+                ResolveAuditUser(v, userMap)))
             .ToList();
 
         var result = new PagedResult<VehicleSummaryDto>(

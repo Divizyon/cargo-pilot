@@ -28,19 +28,22 @@ public sealed class AuthController : BaseController
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
+    private readonly IWebHostEnvironment _env;
 
     public AuthController(
         IMediator mediator,
         IAuthService authService,
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
-        IValidator<ResetPasswordRequest> resetPasswordValidator)
+        IValidator<ResetPasswordRequest> resetPasswordValidator,
+        IWebHostEnvironment env)
     {
         _mediator = mediator;
         _authService = authService;
         _loginValidator = loginValidator;
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
+        _env = env;
     }
 
     [HttpPost("register")]
@@ -82,7 +85,8 @@ public sealed class AuthController : BaseController
         }
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var result = await _authService.LoginAsync(request, ipAddress, cancellationToken);
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var result = await _authService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
 
         if (result.IsSuccess)
             SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
@@ -101,7 +105,8 @@ public sealed class AuthController : BaseController
         var command = new OAuthLoginCommand(
             request.IdToken,
             AuthProvider.Google,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Request.Headers.UserAgent.ToString());
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -128,6 +133,23 @@ public sealed class AuthController : BaseController
             SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
 
         return HandleResult(result);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var refreshToken = Request.Cookies["refreshToken"];
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return Unauthorized();
+
+        await _authService.LogoutAsync(refreshToken, cancellationToken);
+
+        Response.Cookies.Delete("refreshToken", RefreshTokenClearOptions());
+
+        return Ok();
     }
 
     [HttpPost("request-password-reset")]
@@ -180,15 +202,43 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
+    [HttpGet("secure-account")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SecureAccount(
+        [FromQuery] string email,
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+            return BadRequest();
+
+        var result = await _authService.SecureAccountAsync(email, token, cancellationToken);
+        if (!result.IsSuccess)
+            return HandleResult(result);
+
+        return Redirect(result.Data!);
+    }
+
     private void SetRefreshTokenCookie(string token, DateTime expiresAt)
     {
         Response.Cookies.Append("refreshToken", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            Expires = expiresAt,
-            Path = "/api/v1/auth"
+            Secure   = !_env.IsDevelopment(),
+            SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+            Expires  = expiresAt,
+            Path     = "/api/v1/auth"
         });
     }
+
+    private CookieOptions RefreshTokenClearOptions() => new()
+    {
+        Path     = "/api/v1/auth",
+        HttpOnly = true,
+        Secure   = !_env.IsDevelopment(),
+        SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+    };
 }

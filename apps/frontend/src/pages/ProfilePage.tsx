@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { ProfileForm } from '@/features/platform/components/ProfileForm';
+import { EmailChangeSection } from '@/features/platform/components/EmailChangeSection';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -46,6 +47,7 @@ export function ProfilePage() {
       </div>
 
       <ProfileForm />
+      <EmailChangeSection />
     </div>
   );
 }

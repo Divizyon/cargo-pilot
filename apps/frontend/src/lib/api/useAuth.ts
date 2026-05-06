@@ -192,6 +192,7 @@ interface ProfileData {
   lastName: string;
   fullName: string;
   email: string;
+  companyName: string;
 }
 
 interface ProfileApiResponse {
@@ -203,12 +204,14 @@ interface ProfileApiResponse {
 
 export function useProfile() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userId = useAuthStore((s) => s.user?.id);
 
   return useQuery<ProfileData>({
-    queryKey: ['me', 'profile'],
+    queryKey: ['profile', userId],
     queryFn: () =>
       axiosInstance.get<ProfileApiResponse>('/api/v1/me/profile').then((r) => r.data.data),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!userId,
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -221,26 +224,26 @@ interface UpdateProfilePayload {
 interface UpdateProfileResponse {
   isSuccess: boolean;
   message: string;
-  data: {
-    userId: string;
-    email: string;
-    fullName: string;
-    role: string;
-  };
+  data: ProfileData;
+  error?: BackendError;
 }
 
 export function useUpdateProfile() {
+  const queryClient = useQueryClient();
   const updateUser = useAuthStore((s) => s.updateUser);
+  const userId = useAuthStore((s) => s.user?.id);
 
   return useMutation<UpdateProfileResponse, AxiosError, UpdateProfilePayload>({
     mutationFn: (payload) =>
-      axiosInstance.patch<UpdateProfileResponse>('/api/v1/users/me', payload).then((r) => r.data),
+      axiosInstance.put<UpdateProfileResponse>('/api/v1/me/profile', payload).then((r) => r.data),
     onSuccess: (res) => {
-      if (res.isSuccess && res.data?.fullName) {
+      if (res.isSuccess && res.data) {
         updateUser({ fullName: res.data.fullName });
+        queryClient.invalidateQueries({ queryKey: ['profile', userId] });
       }
       toast.success('Profil bilgileriniz başarıyla güncellendi.', {
         position: 'bottom-right',
+        duration: 3000,
       });
     },
     onError: () => {
@@ -248,6 +251,17 @@ export function useUpdateProfile() {
         position: 'bottom-right',
       });
     },
+  });
+}
+
+interface RequestEmailChangePayload {
+  newEmail: string;
+}
+
+export function useRequestEmailChange() {
+  return useMutation<void, AxiosError, RequestEmailChangePayload>({
+    mutationFn: (payload) =>
+      axiosInstance.post('/api/v1/me/email-change-request', payload).then((r) => r.data),
   });
 }
 
