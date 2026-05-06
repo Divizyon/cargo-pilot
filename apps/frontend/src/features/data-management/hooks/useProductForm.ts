@@ -6,6 +6,7 @@ import {
   productSchema,
   type ProductFormValues,
 } from '@/features/data-management/schemas/productSchema';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 
 function translateErrors<T extends FieldValues>(
   errors: FieldErrors<T>,
@@ -24,6 +25,8 @@ function translateErrors<T extends FieldValues>(
 
 export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
   const { t } = useTranslation();
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
   const baseResolver = zodResolver(productSchema);
 
   const resolver: Resolver<ProductFormValues> = async (values, ctx, opts) => {
@@ -39,10 +42,10 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
     resolver,
     defaultValues: {
       productType: 'koli',
-      widthUnit: 'mm',
-      heightUnit: 'mm',
-      lengthUnit: 'mm',
-      weightUnit: 'kg',
+      widthUnit: dimensionUnit,
+      heightUnit: dimensionUnit,
+      lengthUnit: dimensionUnit,
+      weightUnit: weightUnit === 'ton' ? 'kg' : weightUnit,
       isStackable: false,
       maxStackCount: 1,
       fragility: 0,

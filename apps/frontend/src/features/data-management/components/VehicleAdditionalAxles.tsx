@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Trash2 } from 'lucide-react';
 import { validateAxleDistances } from '@/lib/utils/validateAxleSum';
-import { WEIGHT_UNIT, DIMENSION_UNIT } from '@/lib/config/vehicle-config';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleAdditionalAxlesProps {
@@ -14,6 +14,9 @@ interface VehicleAdditionalAxlesProps {
 }
 
 export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'axles',
@@ -52,7 +55,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
               <FormItem>
                 {index === 0 && (
                   <FormLabel className="text-xs font-medium text-foreground">
-                    Kapasite ({WEIGHT_UNIT})
+                    Kapasite ({weightUnit})
                   </FormLabel>
                 )}
                 <FormControl>
@@ -66,7 +69,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                      kg
+                      {weightUnit}
                     </span>
                   </div>
                 </FormControl>
@@ -81,7 +84,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
               <FormItem>
                 {index === 0 && (
                   <FormLabel className="text-xs font-medium text-foreground">
-                    Mesafe ({DIMENSION_UNIT})
+                    Mesafe ({dimensionUnit})
                   </FormLabel>
                 )}
                 <FormControl>
@@ -95,7 +98,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                      cm
+                      {dimensionUnit}
                     </span>
                   </div>
                 </FormControl>
@@ -118,8 +121,8 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
       {showDistanceWarning && (
         <Alert variant="warning">
           <AlertDescription>
-            Aks mesafeleri toplamı ({distanceSum} {DIMENSION_UNIT}) araç uzunluğunu ({vehicleLength}{' '}
-            {DIMENSION_UNIT}) aşıyor.
+            Aks mesafeleri toplamı ({distanceSum} {dimensionUnit}) araç uzunluğunu ({vehicleLength}{' '}
+            {dimensionUnit}) aşıyor.
           </AlertDescription>
         </Alert>
       )}
