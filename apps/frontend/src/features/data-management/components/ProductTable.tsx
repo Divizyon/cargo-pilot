@@ -1,24 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ForwardRefExoticComponent, RefAttributes } from 'react';
-
 import {
   Box,
   ChevronDown,
   Cylinder,
   Download,
+  Droplets,
+  Flame,
+  FlaskConical,
   Layers,
+  Leaf,
   Package,
   Plus,
   RotateCcw,
   SlidersHorizontal,
+  Sun,
   Trash2,
   Upload,
+  Utensils,
+  Wind,
   Wine,
-  Droplets,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,43 +54,61 @@ const PRODUCT_TYPE_ICON = {
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
 
-type ConstraintFilter = 'fragile' | 'liquid' | 'stackable' | 'rotationLocked';
+type ConstraintFilter =
+  | 'fragile'
+  | 'liquid'
+  | 'corrosive'
+  | 'odor'
+  | 'food'
+  | 'dry'
+  | 'chemical'
+  | 'organic'
+  | 'stackable'
+  | 'rotationLocked';
 
-import type { LucideProps } from 'lucide-react';
-type LucideIcon = ForwardRefExoticComponent<
-  Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
->;
+const FRAGILITY_FILTER_VALUE: Partial<Record<ConstraintFilter, number>> = {
+  fragile: 1,
+  liquid: 2,
+  corrosive: 5,
+  odor: 6,
+  food: 7,
+  dry: 8,
+  chemical: 9,
+  organic: 10,
+};
+
+import type { LucideIcon } from 'lucide-react';
+
 const CONSTRAINT_FILTER_OPTIONS: {
   value: ConstraintFilter;
   label: string;
   Icon: LucideIcon;
-
   className: string;
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
   { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
+  { value: 'corrosive', label: 'Aşındırıcı', Icon: Flame, className: 'text-orange-600' },
+  { value: 'odor', label: 'Kokuya Hassas', Icon: Wind, className: 'text-green-600' },
+  { value: 'food', label: 'Gıda Teması', Icon: Utensils, className: 'text-green-600' },
+  { value: 'dry', label: 'Kuru', Icon: Sun, className: 'text-muted-foreground' },
+  { value: 'chemical', label: 'Kimyasal', Icon: FlaskConical, className: 'text-purple-600' },
+  { value: 'organic', label: 'Organik', Icon: Leaf, className: 'text-green-600' },
   { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
   {
     value: 'rotationLocked',
     label: 'Rotasyon Kısıtlı',
     Icon: RotateCcw,
-
     className: 'text-muted-foreground',
   },
 ];
 
 function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean {
-  switch (filter) {
-    case 'fragile':
-      return item.fragility === 1;
-    case 'liquid':
-      return item.fragility === 2;
-    case 'stackable':
-      return item.isStackable;
-
-    case 'rotationLocked':
-      return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
-  }
+  const fragilityVal = FRAGILITY_FILTER_VALUE[filter];
+  if (fragilityVal !== undefined) return item.fragility === fragilityVal;
+  if (filter === 'stackable') return item.isStackable;
+  if (filter === 'rotationLocked')
+    return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
+  return false;
 }
 
 // ─── Text highlight ───────────────────────────────────────────────────────────
@@ -231,36 +252,21 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
       </TableCell>
 
       <TableCell className={cell}>
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">
-            {formatDimension(item.width, unit)}
-          </span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            {unit}
-          </Badge>
-        </div>
+        <span className="text-xs text-foreground">
+          {formatDimension(item.width, unit)} {unit}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">
-            {formatDimension(item.height, unit)}
-          </span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            {unit}
-          </Badge>
-        </div>
+        <span className="text-xs text-foreground">
+          {formatDimension(item.height, unit)} {unit}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-xs text-foreground">
-            {formatDimension(item.length, unit)}
-          </span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            {unit}
-          </Badge>
-        </div>
+        <span className="text-xs text-foreground">
+          {formatDimension(item.length, unit)} {unit}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
@@ -409,18 +415,21 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         {/* Category tabs */}
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
           {CATEGORY_TABS.map((tab) => (
-            <button
+            <Button
               key={tab.value}
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setCategory(tab.value)}
               className={cn(
-                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                'h-auto rounded-md px-3 py-1 text-xs font-medium',
                 category === tab.value
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -472,13 +481,15 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   ))}
                 </div>
                 {hasActiveFilters && (
-                  <button
+                  <Button
                     type="button"
-                    className="mt-3 text-[11px] text-muted-foreground underline hover:text-foreground"
+                    variant="link"
+                    size="sm"
+                    className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
                     onClick={() => setConstraintFilters(new Set())}
                   >
                     Filtreleri temizle
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -540,7 +551,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Genişlik
+                  Genişlik/Çap
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik

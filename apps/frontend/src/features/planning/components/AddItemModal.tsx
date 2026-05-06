@@ -15,6 +15,7 @@ import { SCENE } from '@/lib/config/scene-config';
 import type { Item } from '@/lib/types/item';
 import { useCreatePlanItem } from '@/lib/api/useItems';
 import { toCategory, toMaxWeightOnTop, ALLOWED_ROTATIONS } from '@/lib/api/itemMappers';
+import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -69,56 +70,6 @@ const CONSTRAINTS: Array<{
   { name: 'isNotStackable', label: 'İstiflenemez', Icon: Layers },
   { name: 'isNotRotatable', label: 'Döndürülemez', Icon: RotateCcw },
 ];
-
-// ─── BoxPreview ───────────────────────────────────────────────────────────────
-
-function BoxPreview({ w, h, d, color }: { w: number; h: number; d: number; color?: string }) {
-  const BASE = 44;
-  const max = Math.max(w || 1, h || 1, d || 1);
-  const fw = ((w || 1) / max) * BASE;
-  const fh = ((h || 1) / max) * BASE;
-  const dep = ((d || 1) / max) * 14;
-  const ox = dep * 0.75;
-  const oy = dep * 0.5;
-  const vw = fw + ox + 2;
-  const vh = fh + oy + 2;
-
-  const c = color ?? '#a1a1aa';
-
-  return (
-    <div className="flex items-center justify-center py-3 mt-2">
-      <svg viewBox={`0 0 ${vw} ${vh}`} width={vw * 2.4} height={vh * 2.4}>
-        <polygon
-          points={`1,${oy + 1} ${ox + 1},1 ${fw + ox + 1},1 ${fw + 1},${oy + 1}`}
-          fill={c}
-          fillOpacity={0.45}
-          stroke={c}
-          strokeOpacity={0.7}
-          strokeWidth="0.6"
-        />
-        <rect
-          x={1}
-          y={oy + 1}
-          width={fw}
-          height={fh}
-          fill={c}
-          fillOpacity={0.65}
-          stroke={c}
-          strokeOpacity={0.7}
-          strokeWidth="0.6"
-        />
-        <polygon
-          points={`${fw + 1},${oy + 1} ${fw + ox + 1},1 ${fw + ox + 1},${fh + 1} ${fw + 1},${fh + oy + 1}`}
-          fill={c}
-          fillOpacity={0.85}
-          stroke={c}
-          strokeOpacity={0.7}
-          strokeWidth="0.6"
-        />
-      </svg>
-    </div>
-  );
-}
 
 // ─── AddItemModal ─────────────────────────────────────────────────────────────
 
@@ -183,6 +134,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
   const previewIdRef = useRef<string>('');
 
   const name = useWatch({ control, name: 'name' });
+  const productType = useWatch({ control, name: 'productType' });
   const width = useWatch({ control, name: 'width' });
   const height = useWatch({ control, name: 'height' });
   const length = useWatch({ control, name: 'length' });
@@ -451,9 +403,25 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                 />
               </div>
               {exceedsVehicle && (
-                <p className="flex items-center gap-1.5 text-xs text-amber-600">
+                <p className="flex items-center gap-1.5 text-xs text-destructive">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  Boyutlar seçili aracın iç ölçülerini aşıyor
+                  {[
+                    selectedVehicle &&
+                      width &&
+                      width > selectedVehicle.width &&
+                      `en (${width} cm > ${selectedVehicle.width} cm)`,
+                    selectedVehicle &&
+                      length &&
+                      length > selectedVehicle.length &&
+                      `boy (${length} cm > ${selectedVehicle.length} cm)`,
+                    selectedVehicle &&
+                      height &&
+                      height > selectedVehicle.height &&
+                      `yükseklik (${height} cm > ${selectedVehicle.height} cm)`,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}{' '}
+                  aracı aşıyor — eklenemez.
                 </p>
               )}
             </div>
@@ -502,7 +470,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
               </Button>
               <Button
                 type="submit"
-                disabled={createPlanItem.isPending}
+                disabled={createPlanItem.isPending || exceedsVehicle}
                 className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
               >
                 {createPlanItem.isPending ? (
@@ -515,7 +483,15 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
           {/* ── Right: Preview ────────────────────────────────────────────── */}
           <div className="w-52 bg-zinc-50 border-l border-zinc-100 flex flex-col items-center gap-4 p-5 shrink-0">
-            <BoxPreview w={width || 1} h={height || 1} d={length || 1} color={previewColor} />
+            <div className="w-full aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+              <ProductPreview3D
+                widthCm={width || 1}
+                heightCm={height || 1}
+                depthCm={length || 1}
+                productType={productType ?? 'koli'}
+                color={previewColor}
+              />
+            </div>
 
             <div className="w-full text-center space-y-3">
               <p className="text-sm font-semibold text-zinc-800 truncate">

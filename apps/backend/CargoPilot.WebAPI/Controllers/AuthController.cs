@@ -32,6 +32,7 @@ public sealed class AuthController : BaseController
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
+    private readonly IWebHostEnvironment _env;
     private readonly string? _frontendCallbackUrl;
 
     private const string OAuthStateCookie = "oauth_state";
@@ -43,6 +44,7 @@ public sealed class AuthController : BaseController
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
         IValidator<ResetPasswordRequest> resetPasswordValidator,
+        IWebHostEnvironment env,
         IConfiguration configuration)
     {
         _mediator = mediator;
@@ -51,6 +53,7 @@ public sealed class AuthController : BaseController
         _loginValidator = loginValidator;
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
+        _env = env;
         _frontendCallbackUrl = configuration["OAuth:Google:FrontendCallbackUrl"];
     }
 
@@ -219,6 +222,23 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var refreshToken = Request.Cookies["refreshToken"];
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return Unauthorized();
+
+        await _authService.LogoutAsync(refreshToken, cancellationToken);
+
+        Response.Cookies.Delete("refreshToken", RefreshTokenClearOptions());
+
+        return Ok();
+    }
+
     [HttpPost("request-password-reset")]
     [AllowAnonymous]
     [EnableRateLimiting("password-reset")]
@@ -318,10 +338,18 @@ public sealed class AuthController : BaseController
         Response.Cookies.Append("refreshToken", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            Expires = expiresAt,
-            Path = "/api/v1/auth"
+            Secure   = !_env.IsDevelopment(),
+            SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+            Expires  = expiresAt,
+            Path     = "/api/v1/auth"
         });
     }
+
+    private CookieOptions RefreshTokenClearOptions() => new()
+    {
+        Path     = "/api/v1/auth",
+        HttpOnly = true,
+        Secure   = !_env.IsDevelopment(),
+        SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+    };
 }

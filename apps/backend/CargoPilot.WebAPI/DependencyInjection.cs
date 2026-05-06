@@ -245,6 +245,8 @@ public static class DependencyInjection {
             {
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "CargoPilot API");
                 options.RoutePrefix = "swagger";
+                options.UseRequestInterceptor(
+                    "(req) => { req.credentials = 'include'; return req; }");
             });
         }
 

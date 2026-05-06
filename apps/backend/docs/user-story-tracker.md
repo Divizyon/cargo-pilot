@@ -311,7 +311,7 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
 - `CargoPilot.Infrastructure/DependencyInjection.cs`
 - `CargoPilot.WebAPI/Controllers/PlansController.cs`
-## 12) US-AUTH-12: Yeni Cihaz Girisi Bildirimi
+## 13) US-AUTH-12: Yeni Cihaz Girisi Bildirimi
 **Story:** Backend Chapter Lead olarak, kullanicinin hesabina daha once giris yapilmamis bir cihazdan/tarayicidan erisim saglandiginda e-posta bildirimi gonderilmesini ve kullanicinin tek tikla tum oturumlarini sonlandirip sifre sifirlama akisina yonlendirilmesini isterim.
 
 **Genel Durum:** `✅ Tamamlandi`
@@ -347,3 +347,41 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.WebAPI/Controllers/AuthController.cs`
 - `CargoPilot.WebAPI/appsettings.json`
 - `CargoPilot.WebAPI/appsettings.Development.json`
+
+---
+
+## 14) Loading Plan CRUD Endpoint'leri (Oluştur / İsim Güncelle / Sil)
+**Story:** Backend geliştirici olarak, yükleme planı oluşturabilmek, plan adını güncelleyebilmek ve planı soft-delete ile silebilmek için CRUD endpoint'lerinin hazır olmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Alt İşler
+- `✅` `IOptimizationEngine` interface'ini tanımla (`CargoPilot.Application/Common/Interfaces/IOptimizationEngine.cs`)
+- `✅` `NoOpOptimizationEngine` mock implementasyonu yaz (`CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`)
+- `✅` `IOptimizationEngine` DI kaydı eklendi (`DependencyInjection.cs`)
+- `✅` `CreatePlanItemRequest` record tanımla (ItemId, Quantity)
+- `✅` `CreatePlanCommand` tanımla (PlanName, VehicleId, Items, OptimizationCriteria)
+- `✅` `CreatePlanCommandValidator` yaz (PlanName max 100, VehicleId NotEmpty, Items NotEmpty, her item Quantity > 0)
+- `✅` `CreatePlanCommandHandler` yaz (Vehicle 404 kontrolü, inputTotalQuantity hesabı, LoadingPlan oluştur, Add + SaveChanges + RunOptimizationAsync)
+- `✅` `UpdatePlanNameCommand` tanımla (Id, PlanName)
+- `✅` `UpdatePlanNameCommandValidator` yaz (PlanName max 100)
+- `✅` `UpdatePlanNameCommandHandler` yaz (GetByIdAsync 404 kontrolü, plan.UpdatePlanName, SaveChanges)
+- `✅` `LoadingPlan.UpdatePlanName(string)` domain metodu eklendi (`private set` koruması için)
+- `✅` `DeletePlanCommand` tanımla (Id)
+- `✅` `DeletePlanCommandHandler` yaz (GetByIdAsync 404 kontrolü, plan.MarkAsDeleted, SaveChanges)
+- `✅` `ILoadingPlanRepository` genişletildi (GetByIdAsync, Add, SaveChangesAsync)
+- `✅` `LoadingPlanRepository` implementasyonları eklendi (GetByIdAsync tracking olmadan, Add, SaveChangesAsync)
+- `✅` `PlansController` güncellendi — POST 201, PATCH 200, DELETE 200; XML summary'ler eklendi
+- `✅` Build: 0 hata doğrulandı; uygulama `http://localhost:8081` adresinde hatasız ayağa kalktı
+
+### Kanıtlar
+- `CargoPilot.Application/Common/Interfaces/IOptimizationEngine.cs`
+- `CargoPilot.Application/Features/Plans/CreatePlan/` (Command, ItemRequest, Validator, Handler)
+- `CargoPilot.Application/Features/Plans/UpdatePlanName/` (Command, Validator, Handler)
+- `CargoPilot.Application/Features/Plans/DeletePlan/` (Command, Handler)
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.Domain/Entities/LoadingPlan.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`

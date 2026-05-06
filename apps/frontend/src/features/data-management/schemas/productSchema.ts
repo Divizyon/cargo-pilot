@@ -4,6 +4,12 @@ export const FRAGILITY_LEVELS = {
   NonFragile: 0,
   Fragile: 1,
   Liquid: 2,
+  Corrosive: 5,
+  OdorSensitive: 6,
+  FoodContact: 7,
+  KeepDry: 8,
+  Chemical: 9,
+  Organic: 10,
 } as const;
 
 export type FragilityLevel = (typeof FRAGILITY_LEVELS)[keyof typeof FRAGILITY_LEVELS];
@@ -49,13 +55,15 @@ export const productSchema = z
     lengthUnit: z.enum(Object.keys(DIMENSION_UNITS) as [DimensionUnitKey, ...DimensionUnitKey[]]),
     weight: numField('validations.product.weightPositive'),
     weightUnit: z.enum(Object.keys(WEIGHT_UNITS) as [WeightUnitKey, ...WeightUnitKey[]]),
-    fragility: z.number().int().min(0).max(2),
+    fragility: z.number().int().min(0),
     isStackable: z.boolean(),
     maxStackCount: z.number().int().min(1, 'validations.product.maxStackMin').optional(),
     allowRotateX: z.boolean(),
     allowRotateY: z.boolean(),
     allowRotateZ: z.boolean(),
     notes: z.string().max(NOTES_MAX_LENGTH, 'validations.product.notesTooLong').optional(),
+    stackGroup: z.string().optional(),
+    incompatibleGroups: z.array(z.string()).optional(),
   })
   .refine((data) => !data.isStackable || data.maxStackCount !== undefined, {
     message: 'validations.product.maxStackRequired',
