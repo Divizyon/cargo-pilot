@@ -55,10 +55,12 @@ export const vehicleFormSchema = z
       .positive('Maksimum kargo yükü sıfırdan büyük olmalıdır'),
     grossWeight: z
       .number({ error: 'Geçerli bir ağırlık giriniz' })
-      .positive('Brüt ağırlık sıfırdan büyük olmalıdır'),
+      .positive('Brüt ağırlık sıfırdan büyük olmalıdır')
+      .optional(),
     tareWeight: z
       .number({ error: 'Geçerli bir ağırlık giriniz' })
-      .min(0, 'Dara ağırlığı negatif olamaz'),
+      .min(0, 'Dara ağırlığı negatif olamaz')
+      .optional(),
 
     // VY-07: Kapı yönü
     doorDirection: z.enum(['rear', 'side', 'top', 'rearAndSide'] as const, {
