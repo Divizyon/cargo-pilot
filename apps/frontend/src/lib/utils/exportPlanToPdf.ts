@@ -10,7 +10,10 @@ export interface PdfExportData {
   items: Item[];
   vehicle: Vehicle | null;
   snapshotDataUrl?: string;
-  reportingSettings?: Pick<ReportingSettings, 'logoDataUrl' | 'companyName' | 'phone' | 'email' | 'address'>;
+  reportingSettings?: Pick<
+    ReportingSettings,
+    'logoDataUrl' | 'companyName' | 'phone' | 'email' | 'address'
+  >;
 }
 
 export async function exportPlanToPdf(data: PdfExportData): Promise<void> {

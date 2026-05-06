@@ -22,8 +22,16 @@ const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 
 export function ReportingSettingsForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { logoDataUrl, companyName, phone, email, address, setLogo, removeLogo, updateContactInfo } =
-    useReportingSettingsStore();
+  const {
+    logoDataUrl,
+    companyName,
+    phone,
+    email,
+    address,
+    setLogo,
+    removeLogo,
+    updateContactInfo,
+  } = useReportingSettingsStore();
 
   const form = useForm<ReportingSettingsFormValues>({
     resolver: zodResolver(reportingSettingsSchema),
