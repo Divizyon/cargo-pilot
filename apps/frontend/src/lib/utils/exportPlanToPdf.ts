@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
+import type { ReportingSettings } from '@/lib/store/useReportingSettingsStore';
 
 export interface PdfExportData {
   planId: string;
@@ -9,6 +10,7 @@ export interface PdfExportData {
   items: Item[];
   vehicle: Vehicle | null;
   snapshotDataUrl?: string;
+  reportingSettings?: Pick<ReportingSettings, 'logoDataUrl' | 'companyName' | 'phone' | 'email' | 'address'>;
 }
 
 export async function exportPlanToPdf(data: PdfExportData): Promise<void> {
