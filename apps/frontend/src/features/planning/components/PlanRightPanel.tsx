@@ -1,6 +1,21 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Package2, Plus, Truck, X } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Box,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Package2,
+  Pencil,
+  Plus,
+  Truck,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -8,6 +23,17 @@ import { VehicleType, type Vehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
+
+// ─── Vehicle edit schema ──────────────────────────────────────────────────────
+
+const vehicleEditSchema = z.object({
+  length: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+  payload: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
+});
+
+type VehicleEditValues = z.infer<typeof vehicleEditSchema>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,10 +43,17 @@ interface VehicleListItemProps {
   vehicle: Vehicle;
   isSelected: boolean;
   onSelect: (v: Vehicle) => void;
+  onEdit: (v: Vehicle) => void;
   onDelete: (id: string) => void;
 }
 
-function VehicleListItem({ vehicle, isSelected, onSelect, onDelete }: VehicleListItemProps) {
+function VehicleListItem({
+  vehicle,
+  isSelected,
+  onSelect,
+  onEdit,
+  onDelete,
+}: VehicleListItemProps) {
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
   const iconClass = cn('w-4 h-4 shrink-0', isSelected ? 'text-white' : 'text-zinc-500');
 
@@ -55,6 +88,18 @@ function VehicleListItem({ vehicle, isSelected, onSelect, onDelete }: VehicleLis
             {((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1)} t
           </p>
         </div>
+      </button>
+      <button
+        onClick={() => onEdit(vehicle)}
+        title="Düzenle"
+        className={cn(
+          'shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity',
+          isSelected
+            ? 'text-zinc-300 hover:text-white hover:bg-white/10'
+            : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100',
+        )}
+      >
+        <Pencil className="w-3 h-3" />
       </button>
       <button
         onClick={() => onDelete(vehicle.id)}
@@ -118,6 +163,129 @@ function PlanSummaryPanel() {
   );
 }
 
+// ─── VehicleSpec ──────────────────────────────────────────────────────────────
+
+function VehicleSpec({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-[10px] text-zinc-400">{label}</span>
+      <span className="text-xs font-medium text-zinc-700">{value}</span>
+    </div>
+  );
+}
+
+// ─── VehicleDetails ───────────────────────────────────────────────────────────
+
+interface VehicleDetailsProps {
+  vehicle: Vehicle;
+  onUpdate: (v: Vehicle) => void;
+  defaultEditing?: boolean;
+}
+
+function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDetailsProps) {
+  const [isEditing, setIsEditing] = useState(defaultEditing);
+  const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
+  const payloadTon = ((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<VehicleEditValues>({
+    resolver: zodResolver(vehicleEditSchema),
+    defaultValues: {
+      length: vehicle.length,
+      width: vehicle.width,
+      height: vehicle.height,
+      payload: vehicle.payload ?? vehicle.maxCargoWeight,
+    },
+  });
+
+  function handleSave(values: VehicleEditValues) {
+    onUpdate({
+      ...vehicle,
+      length: values.length,
+      width: values.width,
+      height: values.height,
+      payload: values.payload,
+      maxCargoWeight: values.payload,
+    });
+    setIsEditing(false);
+  }
+
+  if (isEditing) {
+    return (
+      <form onSubmit={handleSubmit(handleSave)} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-zinc-700">{vehicle.name}</p>
+          <button
+            type="button"
+            onClick={() => setIsEditing(false)}
+            className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-[10px] text-zinc-500">Uzunluk (cm)</Label>
+            <Input {...register('length', { valueAsNumber: true })} className="h-7 text-xs" />
+            {errors.length && (
+              <p className="text-[10px] text-destructive">{errors.length.message}</p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-zinc-500">Genişlik (cm)</Label>
+            <Input {...register('width', { valueAsNumber: true })} className="h-7 text-xs" />
+            {errors.width && <p className="text-[10px] text-destructive">{errors.width.message}</p>}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-zinc-500">Yükseklik (cm)</Label>
+            <Input {...register('height', { valueAsNumber: true })} className="h-7 text-xs" />
+            {errors.height && (
+              <p className="text-[10px] text-destructive">{errors.height.message}</p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-zinc-500">Maks. Yük (kg)</Label>
+            <Input {...register('payload', { valueAsNumber: true })} className="h-7 text-xs" />
+            {errors.payload && (
+              <p className="text-[10px] text-destructive">{errors.payload.message}</p>
+            )}
+          </div>
+        </div>
+        <Button
+          type="submit"
+          className="w-full h-7 text-xs bg-zinc-900 text-white hover:bg-zinc-700"
+        >
+          Kaydet
+        </Button>
+      </form>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-zinc-700">{vehicle.name}</p>
+        <button
+          type="button"
+          onClick={() => setIsEditing(true)}
+          title="Düzenle"
+          className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </div>
+      <VehicleSpec label="Uzunluk" value={`${vehicle.length} cm`} />
+      <VehicleSpec label="Genişlik" value={`${vehicle.width} cm`} />
+      <VehicleSpec label="Yükseklik" value={`${vehicle.height} cm`} />
+      <VehicleSpec label="Maks. Yük" value={`${payloadTon} ton`} />
+      <VehicleSpec label="İç Hacim" value={`${volumeM3} m³`} />
+    </div>
+  );
+}
+
 // ─── PlanRightPanel ───────────────────────────────────────────────────────────
 
 interface PlanRightPanelProps {
@@ -133,6 +301,7 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
   const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles();
   const pendingSelectIdRef = useRef<string | null>(null);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const hasAutoClosedRef = useRef(false);
 
   useEffect(() => {
@@ -150,6 +319,16 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
 
   function handleSelectVehicle(v: Vehicle) {
     setVehicle(v);
+    setEditingVehicleId(null);
+    if (!hasAutoClosedRef.current) {
+      hasAutoClosedRef.current = true;
+      onToggleVehicles?.();
+    }
+  }
+
+  function handleEditVehicle(v: Vehicle) {
+    setVehicle(v);
+    setEditingVehicleId(v.id);
     if (!hasAutoClosedRef.current) {
       hasAutoClosedRef.current = true;
       onToggleVehicles?.();
@@ -158,6 +337,11 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
 
   function handleDeleteVehicle(id: string) {
     if (selectedVehicle?.id === id) setVehicle(null);
+  }
+
+  function handleUpdateVehicle(v: Vehicle) {
+    setVehicle(v);
+    setEditingVehicleId(null);
   }
 
   return (
@@ -226,6 +410,7 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
                   vehicle={v}
                   isSelected={selectedVehicle?.id === v.id}
                   onSelect={handleSelectVehicle}
+                  onEdit={handleEditVehicle}
                   onDelete={handleDeleteVehicle}
                 />
               ))
@@ -241,6 +426,30 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
         </div>
 
         <PlanSummaryPanel />
+
+        {/* Seçili araç detayları — kutu seçili değilken göster */}
+        {selectedVehicle && selectedInstanceId === null && (
+          <div className="border-t border-zinc-100 px-3 py-3 overflow-y-auto max-h-[200px]">
+            <VehicleDetails
+              key={`${selectedVehicle.id}-${editingVehicleId}`}
+              vehicle={selectedVehicle}
+              onUpdate={handleUpdateVehicle}
+              defaultEditing={editingVehicleId === selectedVehicle.id}
+            />
+          </div>
+        )}
+
+        {/* Araç seçilmemişse boş durum */}
+        {!selectedVehicle && selectedInstanceId === null && (
+          <div className="flex flex-col items-center justify-center gap-2 text-center py-4 border-t border-zinc-100">
+            <Box className="w-8 h-8 text-zinc-200" />
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Yükleme alanını görmek için
+              <br />
+              bir araç seçin
+            </p>
+          </div>
+        )}
 
         {/* Seçili kutu bilgileri */}
         {selectedInstanceId !== null && (
