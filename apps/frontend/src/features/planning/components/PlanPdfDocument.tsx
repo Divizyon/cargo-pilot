@@ -125,7 +125,10 @@ interface PlanPdfDocumentProps {
   items: Item[];
   vehicle: Vehicle | null;
   snapshotDataUrl?: string;
-  reportingSettings?: Pick<ReportingSettings, 'logoDataUrl' | 'companyName' | 'phone' | 'email' | 'address'>;
+  reportingSettings?: Pick<
+    ReportingSettings,
+    'logoDataUrl' | 'companyName' | 'phone' | 'email' | 'address'
+  >;
 }
 
 export function PlanPdfDocument({
