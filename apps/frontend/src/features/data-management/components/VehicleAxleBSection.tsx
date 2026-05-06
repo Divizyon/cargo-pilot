@@ -4,7 +4,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { calculateTotalTare } from '@/lib/utils/calculateTotalTare';
-import { WEIGHT_UNIT, DIMENSION_UNIT } from '@/lib/config/vehicle-config';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleAxleBSectionProps {
@@ -12,6 +12,9 @@ interface VehicleAxleBSectionProps {
 }
 
 export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   const [axleB, kingpin, mainTare] = useWatch({
     control: form.control,
     name: ['axleB', 'kingpin', 'tareWeight'],
@@ -42,7 +45,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-xs font-medium text-foreground">
-                Kapasite ({WEIGHT_UNIT})
+                Kapasite ({weightUnit})
               </FormLabel>
               <FormControl>
                 <div className="relative">
@@ -55,7 +58,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
                     onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    kg
+                    {weightUnit}
                   </span>
                 </div>
               </FormControl>
@@ -69,7 +72,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-xs font-medium text-foreground">
-                Mesafe ({DIMENSION_UNIT})
+                Mesafe ({dimensionUnit})
               </FormLabel>
               <FormControl>
                 <div className="relative">
@@ -82,7 +85,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
                     onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    cm
+                    {dimensionUnit}
                   </span>
                 </div>
               </FormControl>
@@ -95,7 +98,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
         <p className="text-xs text-muted-foreground">
           Toplam boş ağırlık:{' '}
           <span className="font-semibold text-foreground">
-            {totalTare.toLocaleString('tr-TR')} {WEIGHT_UNIT}
+            {totalTare.toLocaleString('tr-TR')} {weightUnit}
           </span>
         </p>
       )}
