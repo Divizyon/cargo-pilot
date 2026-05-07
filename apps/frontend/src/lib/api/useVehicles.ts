@@ -152,7 +152,10 @@ export function useVehicles(filters?: VehicleFilters) {
       const rawItems = raw?.items;
       const totalCount = (raw?.totalCount as number) ?? 0;
       if (!Array.isArray(rawItems)) return { items: [], totalCount };
-      return { items: rawItems.map((item) => fromApiVehicleListItem(vehicleListApiItemSchema.parse(item))), totalCount };
+      return {
+        items: rawItems.map((item) => fromApiVehicleListItem(vehicleListApiItemSchema.parse(item))),
+        totalCount,
+      };
     },
     staleTime: 5 * 60 * 1000,
     select: (data): VehiclesPage => ({
