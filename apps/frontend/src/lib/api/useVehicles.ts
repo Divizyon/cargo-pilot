@@ -32,6 +32,7 @@ const vehicleListApiItemSchema = z.object({
   loadingType: z.number().int().nullable().optional(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
+  createdAt: z.string().optional(),
   kingPinDistanceMm: z.number().nullable().optional(),
   kingPinTareWeightKg: z.number().nullable().optional(),
   kingPinMaxLoadKg: z.number().nullable().optional(),
@@ -43,31 +44,33 @@ const vehicleListApiItemSchema = z.object({
   additionalAxleMaxLoadKg: z.number().nullable().optional(),
 });
 
-const vehicleListApiResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.object({
-    items: z.array(vehicleListApiItemSchema),
-    totalCount: z.number().int(),
-    page: z.number().int(),
-    pageSize: z.number().int(),
-  }),
-});
-
 type VehicleListApiItem = z.infer<typeof vehicleListApiItemSchema>;
 
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
   const loadingTypeInfo = LOADING_TYPE_FROM_INT[api.loadingType ?? 0];
   const kingpin =
     api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
-      ? { distance: api.kingPinDistanceMm, tareWeight: api.kingPinTareWeightKg ?? 0, maxLoad: api.kingPinMaxLoadKg }
+      ? {
+          distance: api.kingPinDistanceMm,
+          tareWeight: api.kingPinTareWeightKg ?? 0,
+          maxLoad: api.kingPinMaxLoadKg,
+        }
       : undefined;
   const axleB =
     api.mainAxleDistanceMm != null && api.mainAxleMaxLoadKg != null
-      ? { distance: api.mainAxleDistanceMm, tareWeight: api.mainAxleTareWeightKg ?? 0, maxLoad: api.mainAxleMaxLoadKg }
+      ? {
+          distance: api.mainAxleDistanceMm,
+          tareWeight: api.mainAxleTareWeightKg ?? 0,
+          maxLoad: api.mainAxleMaxLoadKg,
+        }
       : undefined;
   const additionalAxle =
     api.additionalAxleDistanceMm != null && api.additionalAxleMaxLoadKg != null
-      ? { distance: api.additionalAxleDistanceMm, tareWeight: api.additionalAxleTareWeightKg ?? 0, maxLoad: api.additionalAxleMaxLoadKg }
+      ? {
+          distance: api.additionalAxleDistanceMm,
+          tareWeight: api.additionalAxleTareWeightKg ?? 0,
+          maxLoad: api.additionalAxleMaxLoadKg,
+        }
       : undefined;
 
   return {
@@ -89,7 +92,7 @@ function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
     isFavorite: api.isFavorite ?? false,
     isActive: api.isActive ?? true,
     isDeleted: false,
-    createdAt: new Date(0).toISOString(),
+    createdAt: api.createdAt ?? new Date(0).toISOString(),
     createdBy: { id: '', fullName: '' },
   };
 }
@@ -112,47 +115,53 @@ function useCompanyId() {
   return useAuthStore((s) => s.user?.companyId ?? '');
 }
 
+export interface VehiclesPage {
+  items: Vehicle[];
+  totalCount: number;
+}
+
 export function useVehicles(filters?: VehicleFilters) {
   const companyId = useCompanyId();
   const mergedFilters = { isDeleted: false, ...filters };
   return useQuery({
     queryKey: ['vehicles', companyId, mergedFilters] as const,
-    queryFn: async (): Promise<Vehicle[]> => {
+    queryFn: async (): Promise<VehiclesPage> => {
       const params = new URLSearchParams();
       if (mergedFilters.search) params.set('searchTerm', mergedFilters.search);
       if (mergedFilters.page !== undefined) params.set('page', String(mergedFilters.page));
       if (mergedFilters.pageSize !== undefined)
         params.set('pageSize', String(mergedFilters.pageSize));
 
-      // Vehicle type filter — convert string label to backend int
       if (mergedFilters.vehicleType) {
         const typeInt =
           VEHICLE_TYPE_INT[mergedFilters.vehicleType as keyof typeof VEHICLE_TYPE_INT];
         if (typeInt !== undefined) params.set('vehicleType', String(typeInt));
       }
 
-      // Status filter
       if (mergedFilters.status) {
         params.set('isActive', String(mergedFilters.status === 'active'));
       }
 
-      // Favorites filter
       if (mergedFilters.favoritesOnly) {
-        params.set('isFavorite', 'true');
+        params.set('onlyFavorites', 'true');
       }
 
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles${qs ? `?${qs}` : ''}`);
-      const parsed = vehicleListApiResponseSchema.parse(data);
-      return parsed.data.items.map(fromApiVehicleListItem);
+      const raw = (data as Record<string, unknown>)?.data as Record<string, unknown>;
+      const rawItems = raw?.items;
+      const totalCount = (raw?.totalCount as number) ?? 0;
+      if (!Array.isArray(rawItems)) return { items: [], totalCount };
+      return { items: (rawItems as VehicleListApiItem[]).map(fromApiVehicleListItem), totalCount };
     },
     staleTime: 5 * 60 * 1000,
-    select: (data) => {
-      return [...data].sort((a, b) => {
-        if (a.isFavorite === b.isFavorite) return 0;
-        return a.isFavorite ? -1 : 1;
-      });
-    },
+    select: (data): VehiclesPage => ({
+      items: [...data.items].sort((a, b) => {
+        if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+        return b.createdAt.localeCompare(a.createdAt);
+      }),
+      totalCount: data.totalCount,
+    }),
   });
 }
 
@@ -162,10 +171,12 @@ export function useVehicle(id: string, initialData?: Vehicle) {
   return useQuery({
     queryKey: ['vehicles', companyId, id] as const,
     queryFn: (): Vehicle => {
-      const caches = queryClient.getQueriesData<Vehicle[]>({ queryKey: ['vehicles', companyId] });
+      const caches = queryClient.getQueriesData<VehiclesPage>({
+        queryKey: ['vehicles', companyId],
+      });
       for (const [, data] of caches) {
-        if (!Array.isArray(data)) continue;
-        const found = data.find((v) => v.id === id);
+        if (!data?.items) continue;
+        const found = data.items.find((v) => v.id === id);
         if (found) return found;
       }
       throw new Error('Araç bulunamadı');
@@ -190,8 +201,14 @@ export function useCreateVehicle() {
       toast.success('Araç başarıyla kaydedildi.', { position: 'bottom-right' });
     },
     onError: (err: unknown) => {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', { position: 'bottom-right' });
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 409) {
+          toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', {
+            position: 'bottom-right',
+          });
+        } else {
+          toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+        }
       } else {
         toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
       }
@@ -213,8 +230,14 @@ export function useUpdateVehicle() {
       toast.success('Araç başarıyla güncellendi.', { position: 'bottom-right' });
     },
     onError: (err: unknown) => {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', { position: 'bottom-right' });
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 409) {
+          toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', {
+            position: 'bottom-right',
+          });
+        } else {
+          toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+        }
       } else {
         toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
       }
@@ -243,13 +266,10 @@ export function useDeleteVehicle() {
         tareWeight: vehicle.tareWeight,
         maxLayerCount: vehicle.maxLayerCount,
         doorDirection: vehicle.doorDirection,
-        isActive: vehicle.isActive ?? true,
+        isActive: false,
         status: vehicle.status,
       } as VehicleFormValues);
-      await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, {
-        ...payload,
-        isDeleted: true,
-      });
+      await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -299,13 +319,13 @@ export function useToggleFavorite() {
     },
     onMutate: async ({ id, isFavorite }) => {
       await queryClient.cancelQueries({ queryKey: ['vehicles', companyId] });
-      const keys = queryClient.getQueriesData<Vehicle[]>({ queryKey: ['vehicles', companyId] });
+      const keys = queryClient.getQueriesData<VehiclesPage>({ queryKey: ['vehicles', companyId] });
       keys.forEach(([key, data]) => {
-        if (!data) return;
-        queryClient.setQueryData<Vehicle[]>(
-          key,
-          data.map((v) => (v.id === id ? { ...v, isFavorite } : v)),
-        );
+        if (!data?.items) return;
+        queryClient.setQueryData<VehiclesPage>(key, {
+          ...data,
+          items: data.items.map((v) => (v.id === id ? { ...v, isFavorite } : v)),
+        });
       });
       return { keys };
     },
@@ -377,10 +397,10 @@ export function useDuplicateVehicle() {
       vehicleName: string;
       plateNumber: string;
     }) => {
-      const { data } = await axiosInstance.post<unknown>(
-        `/api/v1/vehicles/${id}/duplicate`,
-        { vehicleName, plateNumber },
-      );
+      const { data } = await axiosInstance.post<unknown>(`/api/v1/vehicles/${id}/duplicate`, {
+        vehicleName,
+        plateNumber,
+      });
       const parsed = singleVehicleApiSchema.safeParse(data);
       return parsed.success ? fromApiVehicle(parsed.data.data) : null;
     },

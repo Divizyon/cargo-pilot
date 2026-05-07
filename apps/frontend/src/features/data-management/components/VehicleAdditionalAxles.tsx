@@ -44,7 +44,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
       </div>
 
       {fields.map((fieldItem, index) => (
-        <div key={fieldItem.id} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+        <div key={fieldItem.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
           <FormField
             control={form.control}
             name={`axles.${index}.maxLoad`}
@@ -63,7 +63,42 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       className="h-9 border-zinc-200 bg-white pr-8"
                       {...field}
                       value={field.value ?? ''}
-                      onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
+                      onChange={(e) => {
+                        const v = e.target.valueAsNumber;
+                        field.onChange(Number.isNaN(v) ? undefined : v);
+                      }}
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                      kg
+                    </span>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`axles.${index}.tareWeight`}
+            render={({ field }) => (
+              <FormItem>
+                {index === 0 && (
+                  <FormLabel className="text-xs font-medium text-foreground">
+                    Dara Ağırlığı ({WEIGHT_UNIT})
+                  </FormLabel>
+                )}
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0"
+                      className="h-9 border-zinc-200 bg-white pr-8"
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.valueAsNumber;
+                        field.onChange(Number.isNaN(v) ? undefined : v);
+                      }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       kg
@@ -92,7 +127,10 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       className="h-9 border-zinc-200 bg-white pr-8"
                       {...field}
                       value={field.value ?? ''}
-                      onChange={(e) => { const v = e.target.valueAsNumber; field.onChange(Number.isNaN(v) ? undefined : v); }}
+                      onChange={(e) => {
+                        const v = e.target.valueAsNumber;
+                        field.onChange(Number.isNaN(v) ? undefined : v);
+                      }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                       cm

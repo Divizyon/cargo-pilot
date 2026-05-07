@@ -298,7 +298,8 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
 
-  const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles();
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
+  const vehicles = vehiclesData?.items ?? [];
   const pendingSelectIdRef = useRef<string | null>(null);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);

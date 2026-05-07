@@ -25,7 +25,7 @@ export function VehicleEditPage() {
   function handleSubmit(values: VehicleFormValues) {
     if (!id) return;
     updateVehicle(
-      { id, data: values },
+      { id, data: { ...values, status: 'active' } },
       {
         onSuccess: () => {
           toast.success('Araç başarıyla güncellendi.');
@@ -91,7 +91,7 @@ export function VehicleEditPage() {
         onSubmit={handleSubmit}
         onCancel={() => navigate('/vehicles')}
         isSubmitting={isPending}
-        disableSubmitWhenPristine
+        disableSubmitWhenPristine={vehicle.status !== 'draft'}
       />
 
       <VehicleDeleteDialog

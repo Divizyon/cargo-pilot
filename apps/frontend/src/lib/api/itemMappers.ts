@@ -176,8 +176,8 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
 }
 
 export function buildCreateItemPayload(values: ProductFormValues): CreateItemRequest {
-  const maxStackCount = values.maxStackCount ?? 1;
-  const isStackable = maxStackCount > 1;
+  const isStackable = values.isStackable && (values.maxStackCount ?? 1) > 1;
+  const maxStackCount = isStackable ? (values.maxStackCount ?? 1) : 0;
   const trimmedNotes = values.notes?.trim();
 
   return {
@@ -189,9 +189,9 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     height: toCentimeters(values.height, values.heightUnit),
     length: toCentimeters(values.length, values.lengthUnit),
     weight: values.weight,
-    fragilityType: values.fragility as 0 | 1 | 2 | 3 | 4,
+    fragilityType: values.fragility,
     isStackable,
-    maxStackCount: isStackable ? maxStackCount : 0,
+    maxStackCount,
     maxWeightOnTop: toMaxWeightOnTop(values.weight, isStackable, maxStackCount),
     allowedRotations: toAllowedRotations(
       values.allowRotateX,

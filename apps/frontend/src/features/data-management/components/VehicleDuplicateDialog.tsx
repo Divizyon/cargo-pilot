@@ -92,12 +92,7 @@ export function VehicleDuplicateDialog({ vehicle, onClose, onDuplicated }: Props
 
           <div className="space-y-1.5">
             <Label htmlFor="dup-plate">Plaka</Label>
-            <Input
-              id="dup-plate"
-              {...register('plateNumber')}
-              placeholder="34 ABC 123"
-              autoFocus
-            />
+            <Input id="dup-plate" {...register('plateNumber')} placeholder="34 ABC 123" autoFocus />
             {errors.plateNumber && (
               <p className="text-xs text-destructive">{errors.plateNumber.message}</p>
             )}

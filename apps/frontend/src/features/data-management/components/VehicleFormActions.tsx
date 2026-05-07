@@ -18,7 +18,7 @@ export function VehicleFormActions({
   disableSubmitWhenPristine,
 }: VehicleFormActionsProps) {
   async function handleDraftSubmit() {
-    const valid = await form.trigger();
+    const valid = await form.trigger(['name', 'vehicleType']);
     if (!valid) return;
     onDraftSubmit({ ...form.getValues(), status: 'draft' });
   }

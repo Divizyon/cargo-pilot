@@ -4,10 +4,10 @@ import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 
 // Backend: Trailer=0, Truck=1, Container=2, Romork=3
 export const VEHICLE_TYPE_INT = {
-  Tir: 0,       // Trailer
-  Kamyon: 1,    // Truck
+  Tir: 0, // Trailer
+  Kamyon: 1, // Truck
   Konteyner: 2, // Container
-  Kamposet: 3,  // Romork
+  Kamposet: 3, // Romork
 } as const;
 
 // Backend: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
@@ -19,7 +19,10 @@ export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
 };
 
 // loadingType int → { direction, doorSide }
-export const LOADING_TYPE_FROM_INT: Record<number, { direction: DoorDirection; doorSide?: 'right' | 'left' }> = {
+export const LOADING_TYPE_FROM_INT: Record<
+  number,
+  { direction: DoorDirection; doorSide?: 'right' | 'left' }
+> = {
   0: { direction: DoorDirection.Rear },
   1: { direction: DoorDirection.Side, doorSide: 'right' },
   2: { direction: DoorDirection.Side, doorSide: 'left' },
@@ -67,7 +70,7 @@ export type VehicleApi = z.infer<typeof vehicleApiSchema>;
 
 export const paginatedVehiclesApiSchema = z.object({
   data: z.object({
-    vehicles: z.array(vehicleApiSchema),
+    items: z.array(vehicleApiSchema),
     totalCount: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
@@ -168,14 +171,18 @@ export interface CreateVehicleRequest {
   vehicleName: string;
   vehicleType: number;
   description?: string | null;
-  plateNumber: string;
+  plateNumber: string | null;
+  serialNumber?: string | null;
   internalLength: number;
   internalWidth: number;
   internalHeight: number;
   maxWeightCapacity: number;
+  grossWeight?: number | null;
+  tareWeight?: number | null;
   layerCount: number;
   loadingType: number;
   isActive?: boolean;
+  status?: string | null;
   kingPinDistanceMm?: number | null;
   kingPinTareWeightKg?: number | null;
   kingPinMaxLoadKg?: number | null;
@@ -192,11 +199,14 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     vehicleName: values.name,
     vehicleType: VEHICLE_TYPE_INT[values.vehicleType],
     description: values.description?.trim() || null,
-    plateNumber: values.plate?.trim() ?? values.serialNumber?.trim() ?? '',
+    plateNumber: values.plate?.trim() || null,
+    serialNumber: values.serialNumber?.trim() || null,
     internalLength: values.length,
     internalWidth: values.width,
     internalHeight: values.height,
     maxWeightCapacity: values.maxCargoWeight,
+    grossWeight: values.grossWeight ?? null,
+    tareWeight: values.tareWeight ?? null,
     layerCount: values.maxLayerCount ?? 1,
     loadingType: (() => {
       if (values.doorDirection === 'side') {
@@ -206,14 +216,16 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       return map[values.doorDirection] ?? 0;
     })(),
     isActive: values.isActive ?? true,
+    ...(values.status === 'draft' ? { status: 'draft' } : {}),
     kingPinDistanceMm: values.kingpin?.distance ?? null,
     kingPinTareWeightKg: values.kingpin?.tareWeight ?? null,
     kingPinMaxLoadKg: values.kingpin?.maxLoad ?? null,
     mainAxleDistanceMm: values.axleB?.distance ?? null,
-    mainAxleTareWeightKg: values.axleB?.tareWeight ?? null,
+    mainAxleTareWeightKg: values.axleB != null ? (values.axleB.tareWeight ?? 0) : null,
     mainAxleMaxLoadKg: values.axleB?.maxLoad ?? null,
     additionalAxleDistanceMm: values.axles?.[0]?.distance ?? null,
-    additionalAxleTareWeightKg: values.axles?.[0]?.tareWeight ?? null,
+    additionalAxleTareWeightKg:
+      values.axles?.[0] != null ? (values.axles[0].tareWeight ?? 0) : null,
     additionalAxleMaxLoadKg: values.axles?.[0]?.maxLoad ?? null,
   };
 }

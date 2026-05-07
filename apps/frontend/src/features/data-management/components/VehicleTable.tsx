@@ -1,7 +1,18 @@
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Download, Plus, SlidersHorizontal, Star, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Plus,
+  SlidersHorizontal,
+  Star,
+  Trash2,
+} from 'lucide-react';
+
+const PAGE_SIZE = 10;
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -363,16 +374,25 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const [doorFilters, setDoorFilters] = useState<Set<DoorFilter>>(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
   const { mutate: toggleFavorite } = useToggleFavorite();
 
-  const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  }, []);
 
-  const {
-    data: vehicles = [],
-    isLoading,
-    isFetching,
-  } = useVehicles(searchTerm ? { search: searchTerm } : undefined);
+  const { data, isLoading, isFetching } = useVehicles({
+    search: searchTerm || undefined,
+    vehicleType: category !== 'all' ? category : undefined,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+
+  const vehicles = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     if (!showFilterPanel) return;
@@ -392,15 +412,13 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       else next.add(value);
       return next;
     });
+    setPage(1);
   }
-
-  const categoryFiltered =
-    category === 'all' ? vehicles : vehicles.filter((v) => v.vehicleType === category);
 
   const filteredVehicles =
     doorFilters.size === 0
-      ? categoryFiltered
-      : categoryFiltered.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
+      ? vehicles
+      : vehicles.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
 
   const showSkeleton = isLoading || isFetching;
   const isEmpty =
@@ -421,7 +439,10 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setCategory(tab.value)}
+              onClick={() => {
+                setCategory(tab.value);
+                setPage(1);
+              }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium',
                 category === tab.value
@@ -592,6 +613,40 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           </Table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalCount > PAGE_SIZE && (
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-muted-foreground">
+            Toplam <span className="font-medium text-foreground">{totalCount}</span> araç
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={page <= 1 || showSkeleton}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{page}</span>
+              {' / '}
+              <span className="font-medium text-foreground">{totalPages}</span>
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={page >= totalPages || showSkeleton}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
     </div>
