@@ -67,11 +67,9 @@ export function useUploadReportingLogo() {
       const form = new FormData();
       form.append('logo', file);
       return axiosInstance
-        .post<SettingsApiResponse<ReportingSettingsData>>(
-          '/api/v1/settings/reporting/logo',
-          form,
-          { headers: { 'Content-Type': 'multipart/form-data' } },
-        )
+        .post<
+          SettingsApiResponse<ReportingSettingsData>
+        >('/api/v1/settings/reporting/logo', form, { headers: { 'Content-Type': 'multipart/form-data' } })
         .then((r) => r.data);
     },
     onSuccess: () => {
@@ -88,8 +86,7 @@ export function useRemoveReportingLogo() {
   const queryClient = useQueryClient();
 
   return useMutation<void, AxiosError>({
-    mutationFn: () =>
-      axiosInstance.delete('/api/v1/settings/reporting/logo').then((r) => r.data),
+    mutationFn: () => axiosInstance.delete('/api/v1/settings/reporting/logo').then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       toast.success('Logo kaldırıldı.', { position: 'bottom-right' });

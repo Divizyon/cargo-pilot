@@ -135,7 +135,9 @@ export function ReportingSettingsTab() {
             <Upload className="mr-2 h-4 w-4" />
             {hasLogo ? 'Logoyu Değiştir' : 'Logo Yükle'}
           </Button>
-          <p className="mt-1.5 text-xs text-muted-foreground">PNG, JPG, SVG veya WEBP · Maks. 2 MB</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            PNG, JPG, SVG veya WEBP · Maks. 2 MB
+          </p>
         </div>
       </div>
 
