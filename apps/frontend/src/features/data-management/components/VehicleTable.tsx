@@ -200,7 +200,7 @@ function formatDim(mm: number): string {
 
 function VehicleTableSkeleton() {
   return (
-    <Table className="min-w-[1000px]">
+    <Table className="min-w-[1000px] table-fixed">
       <TableHeader>
         <TableRow className="bg-muted/40 hover:bg-muted/40">
           {['w-40', 'w-24', 'w-24', 'w-20', 'w-20', 'w-20', 'w-20', 'w-24', 'w-16'].map((w, i) => (
@@ -555,7 +555,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
         {showSkeleton ? (
           <VehicleTableSkeleton />
         ) : (
-          <Table className="min-w-[1000px]">
+          <Table className="min-w-[1000px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
@@ -615,36 +615,38 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       </div>
 
       {/* Pagination */}
-      {totalCount > PAGE_SIZE && (
+      {totalCount > 0 && (
         <div className="flex items-center justify-between px-1">
           <p className="text-xs text-muted-foreground">
             Toplam <span className="font-medium text-foreground">{totalCount}</span> araç
           </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={page <= 1 || showSkeleton}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{page}</span>
-              {' / '}
-              <span className="font-medium text-foreground">{totalPages}</span>
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={page >= totalPages || showSkeleton}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={page <= 1 || showSkeleton}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{page}</span>
+                {' / '}
+                <span className="font-medium text-foreground">{totalPages}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={page >= totalPages || showSkeleton}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

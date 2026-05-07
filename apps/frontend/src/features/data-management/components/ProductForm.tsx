@@ -684,7 +684,7 @@ export function ProductForm({
               </SectionCard>
 
               {/* Fiziksel Özellikler — Boyutlar / Ağırlık / Katman Sayısı */}
-              <section className="space-y-3">
+              <SectionCard>
                 <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
                 <div
                   className={cn(
@@ -789,7 +789,7 @@ export function ProductForm({
                     )}
                   />
                 </div>
-              </section>
+              </SectionCard>
 
               {/* KISITLAR — eksen rotasyonu */}
               <SectionCard>
@@ -1107,40 +1107,6 @@ function PreviewPanel(props: PreviewPanelProps) {
             />
           </dl>
         </div>
-
-        {/* Canlı veri özeti */}
-        <dl className="space-y-2 text-sm">
-          <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
-          {productType === 'varil' ? (
-            <>
-              <PreviewRow label={t('forms.product.diameter')} value={fmt(width, widthUnit)} />
-              <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
-            </>
-          ) : (
-            <>
-              <PreviewRow label={`${t('forms.product.width')} (X)`} value={fmt(width, widthUnit)} />
-              <PreviewRow
-                label={`${t('forms.product.height')} (Y)`}
-                value={fmt(height, heightUnit)}
-              />
-              <PreviewRow
-                label={`${t('forms.product.depth')} (Z)`}
-                value={fmt(length, lengthUnit)}
-              />
-            </>
-          )}
-          <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
-          <PreviewRow label={t('forms.product.fragility')} value={fragilityLabel} />
-          <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
-          <PreviewRow
-            label={<Move3d className="h-4 w-4" aria-hidden />}
-            value={
-              allRotationsFree
-                ? t('forms.product.summaryRotationFree')
-                : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
-            }
-          />
-        </dl>
 
         {notes && notes.trim().length > 0 && (
           <div className="rounded-xl border border-dashed border-border bg-background p-3 text-xs text-foreground">
