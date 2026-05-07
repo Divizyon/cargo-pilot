@@ -131,6 +131,11 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
 
         builder.Property(vehicle => vehicle.CompanyId);
 
+        builder.Property(vehicle => vehicle.ErpId)
+            .HasMaxLength(200);
+
+        builder.Property(vehicle => vehicle.IntegrationId);
+
         builder.Property(vehicle => vehicle.Volume)
             .HasPrecision(18, 4)
             .HasComputedColumnSql(
@@ -141,6 +146,11 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
             .WithMany(company => company.Vehicles)
             .HasForeignKey(vehicle => vehicle.CompanyId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(vehicle => vehicle.Integration)
+            .WithMany()
+            .HasForeignKey(vehicle => vehicle.IntegrationId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(vehicle => vehicle.IsDeleted)
             .HasDatabaseName("IX_Vehicles_IsDeleted");

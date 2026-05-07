@@ -27,8 +27,11 @@ public sealed class Vehicle : BaseEntity {
     public int LayerCount { get; private set; }
     public LoadingType LoadingType { get; private set; }
     public Guid? CompanyId { get; private set; }
+    public string? ErpId { get; private set; }
+    public Guid? IntegrationId { get; private set; }
 #pragma warning disable S1144
     public Company? Company { get; private set; }
+    public Integration? Integration { get; private set; }
 #pragma warning restore S1144
 
     // Computed from millimeter dimensions as m^3.
@@ -36,6 +39,16 @@ public sealed class Vehicle : BaseEntity {
     public decimal Volume { get; private set; }
 
     private Vehicle() { }
+
+    public void SetErpSource(string erpId, Guid integrationId) {
+        ErpId = erpId;
+        IntegrationId = integrationId;
+    }
+
+    public void ClearErpSource() {
+        ErpId = null;
+        IntegrationId = null;
+    }
 
     public void Update(
         string vehicleName,
