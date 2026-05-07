@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Building2, Mail, MapPin, Phone, Upload, X } from 'lucide-react';
+import { AlertCircle, Building2, Calendar, Mail, MapPin, Phone, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -12,6 +12,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -22,7 +31,15 @@ import {
 } from '@/lib/api/useReportingSettings';
 import { reportingSettingsSchema } from '@/features/platform/schemas/reportingSettingsSchema';
 import type { ReportingSettingsFormValues } from '@/features/platform/schemas/reportingSettingsSchema';
+import { useReportingSettingsStore } from '@/lib/store/useReportingSettingsStore';
+import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
 import { cn } from '@/lib/utils';
+
+const DATE_FORMAT_OPTIONS: { value: DateFormat; label: string }[] = [
+  { value: 'DD.MM.YYYY', label: 'GG.AA.YYYY — 31.12.2026 (Türk)' },
+  { value: 'MM/DD/YYYY', label: 'AA/GG/YYYY — 12/31/2026 (ABD)' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-AA-GG — 2026-12-31 (ISO)' },
+];
 
 export function ReportingSettingsTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +47,9 @@ export function ReportingSettingsTab() {
   const { mutate: updateSettings, isPending: isSaving } = useUpdateReportingSettings();
   const { mutate: uploadLogo, isPending: isUploading } = useUploadReportingLogo();
   const { mutate: removeLogo, isPending: isRemoving } = useRemoveReportingLogo();
+
+  const { dateFormat, showSignatureArea, setDateFormat, toggleSignatureArea } =
+    useReportingSettingsStore();
 
   const form = useForm<ReportingSettingsFormValues>({
     resolver: zodResolver(reportingSettingsSchema),
@@ -244,6 +264,52 @@ export function ReportingSettingsTab() {
             </div>
           </form>
         </Form>
+      </div>
+
+      <Separator />
+
+      {/* Date format */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Tarih Formatı</h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            PDF raporlarındaki tarih gösteriminde kullanılacak format.
+          </p>
+        </div>
+        <div className="relative max-w-xs">
+          <Calendar className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Select value={dateFormat} onValueChange={(v) => setDateFormat(v as DateFormat)}>
+            <SelectTrigger className="pl-10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FORMAT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Signature area toggle */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <Label htmlFor="signature-toggle" className="text-sm font-medium">
+            İmza Alanı
+          </Label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Açık olduğunda her raporun son sayfasına otomatik olarak imza alanı eklenir.
+          </p>
+        </div>
+        <Switch
+          id="signature-toggle"
+          checked={showSignatureArea}
+          onCheckedChange={toggleSignatureArea}
+        />
       </div>
     </div>
   );
