@@ -49,7 +49,7 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
                     className={cn(
                       'flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-all',
                       isSelected
-                        ? 'border-foreground bg-foreground text-white'
+                        ? 'border-foreground bg-foreground text-background'
                         : 'border-border bg-background text-foreground hover:border-foreground/40',
                     )}
                   >
@@ -88,7 +88,7 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
                       className={cn(
                         'flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-all',
                         isSelected
-                          ? 'border-foreground bg-foreground text-white'
+                          ? 'border-foreground bg-foreground text-background'
                           : 'border-border bg-background text-foreground hover:border-foreground/40',
                       )}
                     >
