@@ -91,6 +91,9 @@ jobs:
     name: Docker Image Build
     runs-on: ubuntu-latest
     needs: [frontend-ci, backend-ci]
+    permissions:
+      contents: read
+      packages: read
     if: |
       (github.event_name == 'pull_request' && github.base_ref == 'test') ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')) ||
@@ -100,11 +103,22 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@v4
 
+      - name: GHCR'a giriş yap
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Backend Docker image build
         run: |
           for attempt in 1 2 3; do
             echo "==> Backend build, deneme $attempt/3"
-            if docker build -t cargo-pilot-backend:ci ./apps/backend/; then
+            if docker build \
+              --build-arg DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0 \
+              --build-arg DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0 \
+              -t cargo-pilot-backend:ci \
+              ./apps/backend/; then
               echo "Build başarılı"; break
             fi
             [ $attempt -lt 3 ] && { echo "Başarısız, 20s bekleniyor..."; sleep 20; } \

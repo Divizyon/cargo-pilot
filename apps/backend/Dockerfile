@@ -1,4 +1,6 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:8.0
+ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:8.0
+FROM ${DOTNET_SDK_IMAGE} AS build
 WORKDIR /src
 
 # Copy full backend tree so solution/csproj discovery works for monorepo layouts.
@@ -18,7 +20,7 @@ RUN set -e; \
     dotnet publish "$project" -c Release -o /app/publish /p:UseAppHost=false; \
     basename "$project" .csproj > /app/publish/.entry-dll
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM ${DOTNET_ASPNET_IMAGE} AS final
 WORKDIR /app
 
 # Health check için curl (aspnet:8.0 Debian Bookworm tabanlı, curl yüklü değil)
