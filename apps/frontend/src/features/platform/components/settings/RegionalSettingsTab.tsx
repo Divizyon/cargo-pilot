@@ -181,9 +181,9 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="DD.MM.YYYY">GG.AA.YYYY — Türkiye Standardı</SelectItem>
-                        <SelectItem value="MM/DD/YYYY">MM/DD/YYYY — ABD Standardı</SelectItem>
-                        <SelectItem value="YYYY-MM-DD">YYYY-MM-DD — ISO 8601</SelectItem>
+                        <SelectItem value="DD.MM.YYYY">GG.AA.YYYY — 31.12.2026 (Türk)</SelectItem>
+                        <SelectItem value="MM/DD/YYYY">AA/GG/YYYY — 12/31/2026 (ABD)</SelectItem>
+                        <SelectItem value="YYYY-MM-DD">YYYY-AA-GG — 2026-12-31 (ISO)</SelectItem>
                       </SelectContent>
                     </Select>
                     <span className="shrink-0 rounded-md border bg-muted px-3 py-2 text-sm font-mono text-muted-foreground">
@@ -313,7 +313,7 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
                 Kaydediliyor...
               </>
             ) : (
-              'Kaydet'
+              'Değişiklikleri Kaydet'
             )}
           </Button>
         </div>

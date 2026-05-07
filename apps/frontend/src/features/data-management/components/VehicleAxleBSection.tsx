@@ -61,7 +61,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    kg
+                    {weightUnit}
                   </span>
                 </div>
               </FormControl>

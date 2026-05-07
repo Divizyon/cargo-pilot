@@ -72,7 +72,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
                       }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                      kg
+                      {weightUnit}
                     </span>
                   </div>
                 </FormControl>
