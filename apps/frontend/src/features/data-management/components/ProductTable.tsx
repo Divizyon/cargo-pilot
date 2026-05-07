@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Cylinder,
   Download,
   Droplets,
@@ -158,7 +160,7 @@ const SKELETON_COL_WIDTHS = [
 
 function ProductTableSkeleton() {
   return (
-    <Table className="min-w-[860px]">
+    <Table className="min-w-[1000px] table-fixed">
       <TableHeader>
         <TableRow className="bg-muted/40 hover:bg-muted/40">
           {SKELETON_COL_WIDTHS.map((w, i) => (
@@ -245,8 +247,8 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
         </div>
       </TableCell>
 
-      <TableCell className={cell}>
-        <span className="font-mono text-xs text-muted-foreground">
+      <TableCell className={cn(cell, 'max-w-[96px]')}>
+        <span className="block truncate font-mono text-xs text-muted-foreground" title={item.sku}>
           <HighlightText text={item.sku} query={searchTerm} />
         </span>
       </TableCell>
@@ -339,24 +341,34 @@ const CATEGORY_TO_PRODUCT_TYPE: Record<
   palet: 'palet',
 };
 
+const PAGE_SIZE = 10;
+
 export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [constraintFilters, setConstraintFilters] = useState<Set<ConstraintFilter>>(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
 
   const unit: DimensionUnit = 'mm';
 
-  const handleSearch = useCallback((term: string) => setSearchTerm(term), []);
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    setPage(1);
+  }, []);
   const deleteItem = useDeleteItem();
 
   const {
-    data: items,
+    data: itemsPage,
     isLoading,
     isFetching,
-  } = useItems(searchTerm ? { search: searchTerm } : undefined);
+  } = useItems({ search: searchTerm || undefined, page, pageSize: PAGE_SIZE });
+
+  const items = itemsPage?.items;
+  const totalCount = itemsPage?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // Close filter panel on outside click
   useEffect(() => {
@@ -385,6 +397,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       else next.add(value);
       return next;
     });
+    setPage(1);
   }
 
   const categoryFiltered =
@@ -420,7 +433,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setCategory(tab.value)}
+              onClick={() => {
+                setCategory(tab.value);
+                setPage(1);
+              }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium',
                 category === tab.value
@@ -486,7 +502,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                     variant="link"
                     size="sm"
                     className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
-                    onClick={() => setConstraintFilters(new Set())}
+                    onClick={() => {
+                      setConstraintFilters(new Set());
+                      setPage(1);
+                    }}
                   >
                     Filtreleri temizle
                   </Button>
@@ -538,7 +557,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
-          <Table className="min-w-[1100px]">
+          <Table className="min-w-[1000px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
@@ -601,6 +620,42 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           </Table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalCount > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-muted-foreground">
+            Toplam <span className="font-medium text-foreground">{totalCount}</span> ürün
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={page <= 1 || showSkeleton}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{page}</span>
+                {' / '}
+                <span className="font-medium text-foreground">{totalPages}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={page >= totalPages || showSkeleton}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <BulkImportDialog open={showBulkImport} onOpenChange={setShowBulkImport} />
     </div>

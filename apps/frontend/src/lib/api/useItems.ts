@@ -59,10 +59,17 @@ export interface ItemFilters {
   pageSize?: number;
 }
 
+export interface PaginatedItems {
+  items: Item[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export function useItems(filters?: ItemFilters) {
   return useQuery({
     queryKey: ['items', filters] as const,
-    queryFn: async (): Promise<Item[]> => {
+    queryFn: async (): Promise<PaginatedItems> => {
       const params = new URLSearchParams();
       if (filters?.search) params.set('searchTerm', filters.search);
       if (filters?.page !== undefined) params.set('page', String(filters.page));
@@ -70,7 +77,12 @@ export function useItems(filters?: ItemFilters) {
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`${ITEMS_ENDPOINT}${qs ? `?${qs}` : ''}`);
       const parsed = paginatedItemsApiSchema.parse(data);
-      return parsed.data.items.map(fromApiItem);
+      return {
+        items: parsed.data.items.map(fromApiItem),
+        totalCount: parsed.data.totalCount,
+        page: parsed.data.page,
+        pageSize: parsed.data.pageSize,
+      };
     },
   });
 }

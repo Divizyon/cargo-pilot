@@ -4,7 +4,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { calculateTotalTare } from '@/lib/utils/calculateTotalTare';
-import { WEIGHT_UNIT, DIMENSION_UNIT } from '@/lib/config/vehicle-config';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleAxleBSectionProps {
@@ -12,6 +12,9 @@ interface VehicleAxleBSectionProps {
 }
 
 export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   const [axleB, kingpin, mainTare] = useWatch({
     control: form.control,
     name: ['axleB', 'kingpin', 'tareWeight'],
@@ -35,27 +38,60 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
         </h3>
         <p className="mt-0.5 text-xs text-muted-foreground">Ana Aks (Dingil B)</p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}
           name="axleB.maxLoad"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-xs font-medium text-foreground">
-                Kapasite ({WEIGHT_UNIT})
+                Kapasite ({weightUnit})
               </FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                     kg
+                  </span>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="axleB.tareWeight"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs font-medium text-foreground">
+                Dara Ağırlığı ({weightUnit})
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    className="h-9 border-input bg-background pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {weightUnit}
                   </span>
                 </div>
               </FormControl>
@@ -69,20 +105,23 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-xs font-medium text-foreground">
-                Mesafe ({DIMENSION_UNIT})
+                Mesafe ({dimensionUnit})
               </FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    cm
+                    {dimensionUnit}
                   </span>
                 </div>
               </FormControl>
@@ -91,11 +130,16 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           )}
         />
       </div>
+      {'message' in (form.formState.errors.axleB ?? {}) && (
+        <p className="text-sm font-medium text-destructive">
+          {(form.formState.errors.axleB as { message?: string }).message}
+        </p>
+      )}
       {totalTare > 0 && (
         <p className="text-xs text-muted-foreground">
           Toplam boş ağırlık:{' '}
           <span className="font-semibold text-foreground">
-            {totalTare.toLocaleString('tr-TR')} {WEIGHT_UNIT}
+            {totalTare.toLocaleString('tr-TR')} {weightUnit}
           </span>
         </p>
       )}

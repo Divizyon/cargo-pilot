@@ -19,6 +19,12 @@ export type DoorDirection = (typeof DoorDirection)[keyof typeof DoorDirection];
 const VEHICLE_TYPE_VALUES = Object.values(VehicleType) as [VehicleType, ...VehicleType[]];
 const DOOR_DIRECTION_VALUES = Object.values(DoorDirection) as [DoorDirection, ...DoorDirection[]];
 
+const axleSchema = z.object({
+  distance: z.number().positive(),
+  tareWeight: z.number().min(0),
+  maxLoad: z.number().positive(),
+});
+
 export const vehicleSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -35,6 +41,9 @@ export const vehicleSchema = z.object({
   maxLayerCount: z.number().int().positive().optional(),
   doorDirection: z.enum(DOOR_DIRECTION_VALUES),
   doorSide: z.enum(['right', 'left']).optional(),
+  kingpin: axleSchema.optional(),
+  axleB: axleSchema.optional(),
+  axles: z.array(axleSchema).optional(),
   isFavorite: z.boolean().default(false),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),

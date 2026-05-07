@@ -1,5 +1,6 @@
 using CargoPilot.Application.Features.Vehicles.AddVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.CreateVehicle;
+using CargoPilot.Application.Features.Vehicles.DeleteVehicle;
 using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 using CargoPilot.Application.Features.Vehicles.RemoveVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.SearchVehicles;
@@ -143,6 +144,26 @@ public sealed class VehiclesController : BaseController {
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
             request.AdditionalAxleMaxLoadKg);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Bir aracı arşivler (soft delete). Aktif yükleme planında kullanılan araç arşivlenemez.
+    /// </summary>
+    /// <param name="id">Arşivlenecek araç ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç arşivlendi; ID döner.</response>
+    /// <response code="404">Araç bulunamadı.</response>
+    /// <response code="409">Araç aktif bir yükleme planında kullanılıyor.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default) {
+        var command = new DeleteVehicleCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

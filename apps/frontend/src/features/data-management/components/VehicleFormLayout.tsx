@@ -38,7 +38,7 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
 
       {/* Maks. İstif Katmanı + Kapı Yönü + Aks Yönetimi */}
       <FormCard>
-        <div className="grid grid-cols-2 gap-6 divide-x divide-zinc-100">
+        <div className="grid grid-cols-2 gap-6 divide-x divide-border">
           <div className="flex flex-col gap-6">
             <VehicleLayerCountField form={form} hideHeading={false} />
             <VehicleDoorDirectionField form={form} hideHeading={false} />
@@ -67,5 +67,5 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
 }
 
 function FormCard({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">{children}</div>;
+  return <div className="rounded-xl border border-border bg-card p-4 shadow-sm">{children}</div>;
 }

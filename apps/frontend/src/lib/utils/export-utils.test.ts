@@ -3,6 +3,7 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 
 const mockJsonToSheet = vi.fn((data) => ({ data }));
+const mockAoaToSheet = vi.fn((data) => ({ data }));
 const mockBookNew = vi.fn(() => ({}));
 const mockBookAppendSheet = vi.fn();
 const mockWriteFile = vi.fn();
@@ -10,6 +11,7 @@ const mockWriteFile = vi.fn();
 vi.mock('xlsx', () => ({
   utils: {
     json_to_sheet: mockJsonToSheet,
+    aoa_to_sheet: mockAoaToSheet,
     book_new: mockBookNew,
     book_append_sheet: mockBookAppendSheet,
   },
