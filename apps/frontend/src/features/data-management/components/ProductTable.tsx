@@ -433,7 +433,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => { setCategory(tab.value); setPage(1); }}
+              onClick={() => {
+                setCategory(tab.value);
+                setPage(1);
+              }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium',
                 category === tab.value
@@ -499,7 +502,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                     variant="link"
                     size="sm"
                     className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
-                    onClick={() => { setConstraintFilters(new Set()); setPage(1); }}
+                    onClick={() => {
+                      setConstraintFilters(new Set());
+                      setPage(1);
+                    }}
                   >
                     Filtreleri temizle
                   </Button>
