@@ -87,10 +87,20 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.SpecialNotes)
             .HasMaxLength(1000);
 
-        builder.HasIndex(item => item.SKU)
-            .IsUnique()
-            .HasFilter("[IsDeleted] = 0");
+        builder.Property(item => item.CompanyId);
+
+        builder.HasOne(item => item.Company)
+            .WithMany(company => company.Items)
+            .HasForeignKey(item => item.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(item => item.IsDeleted);
+        builder.HasIndex(item => item.CompanyId)
+            .HasDatabaseName("IX_Items_CompanyId");
+        builder.HasIndex(item => new { item.CompanyId, item.SKU })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0")
+            .HasDatabaseName("IX_Items_CompanyId_SKU");
 
         builder.HasQueryFilter(item => !item.IsDeleted);
     }
