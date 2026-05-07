@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { VehicleForm } from '@/features/data-management/components/VehicleForm';
 import { useCreateVehicle } from '@/lib/api/useVehicles';
+import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 
 export function VehicleCreatePage() {
   const navigate = useNavigate();
@@ -20,6 +21,11 @@ export function VehicleCreatePage() {
         onCancel={() => navigate('/vehicles')}
         onSubmit={(values) =>
           createVehicle.mutate(values, {
+            onSuccess: () => navigate('/vehicles'),
+          })
+        }
+        onDraftSubmit={(values) =>
+          createVehicle.mutate({ ...values, status: 'draft' } as VehicleFormValues, {
             onSuccess: () => navigate('/vehicles'),
           })
         }

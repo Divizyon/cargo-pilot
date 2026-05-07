@@ -239,7 +239,8 @@ export function PlanLeftPanel() {
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
-  const { data: apiItems = [], isLoading: itemsLoading } = useItems({ pageSize: 100 });
+  const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
+  const apiItems = itemsPage?.items ?? [];
 
   const scrollRef = useRef<HTMLDivElement>(null);
 

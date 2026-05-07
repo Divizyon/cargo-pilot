@@ -1,42 +1,133 @@
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
+import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
+import { formatDate, formatTimestamp } from '@/lib/utils/pdfDateUtils';
 
-Font.register({
-  family: 'Roboto',
-  src: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/fonts/FontAwesome.otf',
-});
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const FOOTER_COLOR = '#9ca3af'; // tertiary text
+const MUTED_COLOR = '#6b7280';
+const PRIMARY_COLOR = '#1f2937';
+const BORDER_COLOR = '#e5e7eb';
+
+// Header height ≈ 55pt  →  paddingTop must be ≥ header bottom + gap
+const PAGE_PADDING_TOP = 90;
+const PAGE_PADDING_BOTTOM = 50;
+const PAGE_PADDING_H = 40;
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    paddingTop: PAGE_PADDING_TOP,
+    paddingBottom: PAGE_PADDING_BOTTOM,
+    paddingLeft: PAGE_PADDING_H,
+    paddingRight: PAGE_PADDING_H,
     fontFamily: 'Helvetica',
     fontSize: 10,
   },
-  title: {
-    fontSize: 20,
+
+  // Fixed header ─ absolute, repeats every page
+  header: {
+    position: 'absolute',
+    top: 20,
+    left: PAGE_PADDING_H,
+    right: PAGE_PADDING_H,
+  },
+  headerInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    flex: 1,
+  },
+  headerLogo: {
+    width: 48,
+    height: 22,
+    objectFit: 'contain',
+  },
+  headerLogoText: {
+    fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#1f2937',
+    color: PRIMARY_COLOR,
+  },
+  headerCompanyBlock: {
+    flexDirection: 'column',
+  },
+  headerCompanyName: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: PRIMARY_COLOR,
+    marginBottom: 1,
+  },
+  headerCompanyDetail: {
+    fontSize: 7,
+    color: MUTED_COLOR,
+    marginBottom: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  headerDocNumber: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: PRIMARY_COLOR,
+    marginBottom: 2,
+  },
+  headerDate: {
+    fontSize: 8,
+    color: MUTED_COLOR,
+  },
+  headerDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_COLOR,
+    marginTop: 8,
+  },
+
+  // Fixed footer ─ absolute, repeats every page
+  footer: {
+    position: 'absolute',
+    bottom: 15,
+    left: PAGE_PADDING_H,
+    right: PAGE_PADDING_H,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 8,
+    color: FOOTER_COLOR,
+  },
+
+  // Content
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: PRIMARY_COLOR,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 8,
     color: '#374151',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 5,
+    borderBottomColor: BORDER_COLOR,
+    paddingBottom: 4,
   },
   summaryGrid: {
-    display: 'flex',
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 15,
+    gap: 16,
+    marginBottom: 12,
   },
   summaryBox: {
     flex: 1,
@@ -45,26 +136,26 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   summaryLabel: {
-    fontSize: 9,
-    color: '#6b7280',
-    marginBottom: 5,
+    fontSize: 8,
+    color: MUTED_COLOR,
+    marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: PRIMARY_COLOR,
   },
   table: {
     width: '100%',
     borderStyle: 'solid' as const,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 20,
+    borderColor: BORDER_COLOR,
+    marginBottom: 16,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: BORDER_COLOR,
     width: '100%',
   },
   tableHeader: {
@@ -73,28 +164,151 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     flex: 1,
-    padding: 8,
-    fontSize: 9,
+    padding: 7,
+    fontSize: 8,
   },
   violationCell: {
     color: '#dc2626',
     fontWeight: 'bold',
   },
   snapshotContainer: {
-    marginTop: 20,
+    marginTop: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    padding: 10,
+    borderColor: BORDER_COLOR,
+    padding: 8,
+  },
+
+  // Signature area ─ last section, right-aligned
+  signatureWrapper: {
+    marginTop: 32,
+    alignItems: 'flex-end',
+  },
+  signatureBox: {
+    width: 220,
+    borderTopWidth: 1,
+    borderTopColor: BORDER_COLOR,
+    paddingTop: 8,
+  },
+  signatureLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: PRIMARY_COLOR,
+    marginBottom: 32,
+  },
+  signatureLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1d5db',
+    marginBottom: 6,
+  },
+  signatureHelper: {
+    fontSize: 8,
+    color: MUTED_COLOR,
   },
 });
 
-interface PlanPdfDocumentProps {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ReportingPdfSettings {
+  logoDataUrl: string | null;
+  companyName: string;
+  phone: string;
+  email: string;
+  address: string;
+  dateFormat: DateFormat;
+  showSignatureArea: boolean;
+}
+
+export interface PlanPdfDocumentProps {
   planId: string;
   placements: PlacementWithDimensions[];
   items: Item[];
   vehicle: Vehicle | null;
   snapshotDataUrl?: string;
+  documentNumber: string;
+  generatedAt: Date;
+  reportingSettings: ReportingPdfSettings;
 }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function PdfHeader({
+  documentNumber,
+  generatedAt,
+  settings,
+}: {
+  documentNumber: string;
+  generatedAt: Date;
+  settings: ReportingPdfSettings;
+}) {
+  const hasContact = settings.companyName || settings.phone || settings.email || settings.address;
+  const formattedDate = formatDate(generatedAt, settings.dateFormat);
+
+  return (
+    <View fixed style={styles.header}>
+      <View style={styles.headerInner}>
+        {/* Left: logo + company info */}
+        <View style={styles.headerLeft}>
+          {settings.logoDataUrl ? (
+            <Image src={settings.logoDataUrl} style={styles.headerLogo} />
+          ) : (
+            <Text style={styles.headerLogoText}>CargoPilot</Text>
+          )}
+          {hasContact && (
+            <View style={styles.headerCompanyBlock}>
+              {settings.companyName ? (
+                <Text style={styles.headerCompanyName}>{settings.companyName}</Text>
+              ) : null}
+              {settings.phone ? (
+                <Text style={styles.headerCompanyDetail}>{settings.phone}</Text>
+              ) : null}
+              {settings.email ? (
+                <Text style={styles.headerCompanyDetail}>{settings.email}</Text>
+              ) : null}
+              {settings.address ? (
+                <Text style={styles.headerCompanyDetail}>{settings.address}</Text>
+              ) : null}
+            </View>
+          )}
+        </View>
+
+        {/* Right: doc number + date */}
+        <View style={styles.headerRight}>
+          <Text style={styles.headerDocNumber}>{documentNumber}</Text>
+          <Text style={styles.headerDate}>{formattedDate}</Text>
+        </View>
+      </View>
+      <View style={styles.headerDivider} />
+    </View>
+  );
+}
+
+function PdfFooter({ generatedAt, dateFormat }: { generatedAt: Date; dateFormat: DateFormat }) {
+  const timestamp = formatTimestamp(generatedAt, dateFormat);
+
+  return (
+    <View fixed style={styles.footer}>
+      <Text style={styles.footerText}>Sistem Üretim Tarihi: {timestamp}</Text>
+      <Text
+        style={styles.footerText}
+        render={({ pageNumber, totalPages }) => `Sayfa ${pageNumber} / ${totalPages}`}
+      />
+    </View>
+  );
+}
+
+function SignatureSection() {
+  return (
+    <View style={styles.signatureWrapper}>
+      <View style={styles.signatureBox}>
+        <Text style={styles.signatureLabel}>Onaylayan / İmza</Text>
+        <View style={styles.signatureLine} />
+        <Text style={styles.signatureHelper}>Ad Soyad / Unvan / Tarih</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Document ─────────────────────────────────────────────────────────────────
 
 export function PlanPdfDocument({
   planId,
@@ -102,37 +316,33 @@ export function PlanPdfDocument({
   items,
   vehicle,
   snapshotDataUrl,
+  documentNumber,
+  generatedAt,
+  reportingSettings,
 }: PlanPdfDocumentProps) {
-  const calculateFillRate = (): number => {
+  const fillRate = (() => {
     if (!vehicle) return 0;
     const vehicleVolume = vehicle.width * vehicle.height * vehicle.length;
     const placedVolume = placements.reduce((sum, p) => sum + p.width * p.height * p.depth, 0);
     return vehicleVolume > 0 ? (placedVolume / vehicleVolume) * 100 : 0;
-  };
+  })();
 
-  const calculateTotalWeight = (): number => {
-    return placements.reduce((sum, placement) => {
-      const item = items.find((i) => i.id === placement.itemId);
-      return sum + (item?.weight ?? 0);
-    }, 0);
-  };
+  const totalWeight = placements.reduce((sum, p) => {
+    const item = items.find((i) => i.id === p.itemId);
+    return sum + (item?.weight ?? 0);
+  }, 0);
 
-  const fillRate = calculateFillRate();
-  const totalWeight = calculateTotalWeight();
-
-  // Aynı ürünleri grupla
   const grouped = placements.reduce<
     Map<string, { name: string; count: number; weight: number; violations: number; dims: string }>
   >((acc, p) => {
     const item = items.find((i) => i.id === p.itemId);
-    const key = p.itemId;
-    const existing = acc.get(key);
+    const existing = acc.get(p.itemId);
     if (existing) {
       existing.count += 1;
       existing.weight += item?.weight ?? 0;
       if (p.isViolation) existing.violations += 1;
     } else {
-      acc.set(key, {
+      acc.set(p.itemId, {
         name: item?.name ?? '-',
         count: 1,
         weight: item?.weight ?? 0,
@@ -148,11 +358,24 @@ export function PlanPdfDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Fixed header — every page */}
+        <PdfHeader
+          documentNumber={documentNumber}
+          generatedAt={generatedAt}
+          settings={reportingSettings}
+        />
+
+        {/* Fixed footer — every page */}
+        <PdfFooter generatedAt={generatedAt} dateFormat={reportingSettings.dateFormat} />
+
+        {/* ── Content ── */}
         <Text style={styles.title}>Yükleme Planı Raporu</Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Plan Özeti</Text>
-          <Text style={{ marginBottom: 10, fontSize: 9, color: '#6b7280' }}>Plan ID: {planId}</Text>
+          <Text style={{ marginBottom: 8, fontSize: 8, color: MUTED_COLOR }}>
+            Plan ID: {planId}
+          </Text>
 
           <View style={styles.summaryGrid}>
             <View style={styles.summaryBox}>
@@ -199,7 +422,7 @@ export function PlanPdfDocument({
                 >
                   {row.count}
                 </Text>
-                <Text style={[styles.tableCell, { width: '24%', color: '#6b7280' }]}>
+                <Text style={[styles.tableCell, { width: '24%', color: MUTED_COLOR }]}>
                   {row.dims}
                 </Text>
                 <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
@@ -225,15 +448,14 @@ export function PlanPdfDocument({
             <View style={styles.snapshotContainer}>
               <Image
                 src={snapshotDataUrl}
-                style={{
-                  width: '100%',
-                  height: 300,
-                  objectFit: 'contain',
-                }}
+                style={{ width: '100%', height: 260, objectFit: 'contain' }}
               />
             </View>
           </View>
         )}
+
+        {/* Signature — last page only, conditional */}
+        {reportingSettings.showSignatureArea && <SignatureSection />}
       </Page>
     </Document>
   );

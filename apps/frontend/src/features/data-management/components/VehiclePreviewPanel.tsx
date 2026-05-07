@@ -1,7 +1,7 @@
 import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { cn } from '@/lib/utils';
-import { VehiclePreviewCanvas } from './VehiclePreviewCanvas';
+import { VehiclePreview3D } from './VehiclePreview3D';
 import { VehicleStatusToggle } from './VehicleStatusToggle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
@@ -59,9 +59,11 @@ export function VehiclePreviewPanel({ form }: Props) {
     grossWeight,
     tareWeight,
     doorDirection,
+    doorSide,
     description,
     axles,
     axleB,
+    kingpin,
   ] = useWatch({
     control,
     name: [
@@ -74,9 +76,11 @@ export function VehiclePreviewPanel({ form }: Props) {
       'grossWeight',
       'tareWeight',
       'doorDirection',
+      'doorSide',
       'description',
       'axles',
       'axleB',
+      'kingpin',
     ],
   });
 
@@ -102,13 +106,31 @@ export function VehiclePreviewPanel({ form }: Props) {
       {/* Operasyonel Durum */}
       <VehicleStatusToggle form={form} />
 
-      {/* Kargo Hacmi Önizleme */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      {/* 3D Araç Önizleme */}
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Kargo Hacmi Önizleme
+          3D Araç Önizleme
         </h3>
-        <div className="mt-3">
-          <VehiclePreviewCanvas control={control} />
+        <div className="mt-3 h-56">
+          {vehicleType ? (
+            <VehiclePreview3D
+              vehicleType={vehicleType}
+              length={length ?? 0}
+              width={width ?? 0}
+              height={height ?? 0}
+              doorDirection={doorDirection}
+              doorSide={doorSide}
+              kingpinDistance={kingpin?.distance}
+              axleBDistance={axleB?.distance}
+              axleDistances={(axles ?? [])
+                .map((a) => a?.distance)
+                .filter((d): d is number => d > 0)}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+              Araç tipi seçilince 3D önizleme görünür
+            </div>
+          )}
         </div>
         {volume && (
           <div className="mt-3 text-center">
@@ -122,11 +144,11 @@ export function VehiclePreviewPanel({ form }: Props) {
       </div>
 
       {/* Araç Özeti */}
-      <div className="flex flex-1 flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-1 flex-col rounded-xl border border-border bg-card p-4 shadow-sm">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Araç Özeti
         </h3>
-        <dl className="mt-2 divide-y divide-zinc-100 ">
+        <dl className="mt-2 divide-y divide-border">
           <PreviewRow label="Araç Adı" value={name || '—'} emphasize />
           <PreviewRow label="Tip" value={TYPE_LABELS[vehicleType] ?? vehicleType ?? '—'} />
           <PreviewRow
