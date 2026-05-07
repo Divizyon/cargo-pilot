@@ -87,7 +87,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
               <FormItem>
                 {index === 0 && (
                   <FormLabel className="text-xs font-medium text-foreground">
-                    Dara Ağırlığı ({WEIGHT_UNIT})
+                    Dara Ağırlığı ({weightUnit})
                   </FormLabel>
                 )}
                 <FormControl>
