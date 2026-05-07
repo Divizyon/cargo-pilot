@@ -50,11 +50,11 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
                       'flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-all',
                       isSelected
                         ? 'border-foreground bg-foreground text-white'
-                        : 'border-zinc-300 bg-white text-foreground hover:border-zinc-400',
+                        : 'border-border bg-background text-foreground hover:border-foreground/40',
                     )}
                   >
                     {isSelected && (
-                      <span className="inline-block h-2 w-2 rounded-sm bg-white" aria-hidden />
+                      <span className="inline-block h-2 w-2 rounded-sm bg-background" aria-hidden />
                     )}
                     {DIRECTION_LABELS[dir]}
                   </button>
@@ -89,11 +89,14 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
                         'flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-all',
                         isSelected
                           ? 'border-foreground bg-foreground text-white'
-                          : 'border-zinc-300 bg-white text-foreground hover:border-zinc-400',
+                          : 'border-border bg-background text-foreground hover:border-foreground/40',
                       )}
                     >
                       {isSelected && (
-                        <span className="inline-block h-2 w-2 rounded-sm bg-white" aria-hidden />
+                        <span
+                          className="inline-block h-2 w-2 rounded-sm bg-background"
+                          aria-hidden
+                        />
                       )}
                       {label}
                     </button>

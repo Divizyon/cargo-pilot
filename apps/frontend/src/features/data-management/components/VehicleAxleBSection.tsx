@@ -52,7 +52,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
                     onChange={(e) => {
@@ -82,7 +82,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
                   <Input
                     type="number"
                     min="0"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
                     onChange={(e) => {
@@ -112,7 +112,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
                     onChange={(e) => {

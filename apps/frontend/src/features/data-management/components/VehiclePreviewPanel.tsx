@@ -107,7 +107,7 @@ export function VehiclePreviewPanel({ form }: Props) {
       <VehicleStatusToggle form={form} />
 
       {/* 3D Araç Önizleme */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           3D Araç Önizleme
         </h3>
@@ -144,11 +144,11 @@ export function VehiclePreviewPanel({ form }: Props) {
       </div>
 
       {/* Araç Özeti */}
-      <div className="flex flex-1 flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-1 flex-col rounded-xl border border-border bg-card p-4 shadow-sm">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Araç Özeti
         </h3>
-        <dl className="mt-2 divide-y divide-zinc-100 ">
+        <dl className="mt-2 divide-y divide-border">
           <PreviewRow label="Araç Adı" value={name || '—'} emphasize />
           <PreviewRow label="Tip" value={TYPE_LABELS[vehicleType] ?? vehicleType ?? '—'} />
           <PreviewRow
