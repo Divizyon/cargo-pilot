@@ -54,7 +54,7 @@ export function VehicleLayerCountField({ form }: VehicleLayerCountFieldProps) {
                 min="1"
                 step="1"
                 disabled={unlimited}
-                className="h-9 border-zinc-200 bg-white"
+                className="h-9 border-input bg-background"
                 value={field.value ?? ''}
                 onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
                 onKeyDown={(e) => {

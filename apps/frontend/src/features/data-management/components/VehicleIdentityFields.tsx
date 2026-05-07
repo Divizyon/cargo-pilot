@@ -39,7 +39,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
               <FormControl>
                 <Input
                   {...field}
-                  className="h-9 border-zinc-200 bg-white"
+                  className="h-9 border-input bg-background"
                   placeholder="Örn: 34 ABC 123 veya Filo Tır 1"
                   onBlur={(e) => {
                     field.onBlur();
@@ -71,7 +71,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
                 <Textarea
                   {...field}
                   value={field.value ?? ''}
-                  className="resize-none border-zinc-200 bg-white"
+                  className="resize-none border-input bg-background"
                   placeholder="Araç hakkında ek notlar..."
                   rows={3}
                 />

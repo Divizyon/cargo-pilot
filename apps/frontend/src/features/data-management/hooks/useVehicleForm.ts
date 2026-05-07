@@ -17,6 +17,7 @@ export function useVehicleForm(
       description: '',
       status: 'active',
       isActive: true,
+      doorDirection: 'rear',
       ...defaultValues,
     },
     mode: 'onSubmit',

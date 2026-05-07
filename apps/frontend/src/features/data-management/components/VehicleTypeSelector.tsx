@@ -104,8 +104,8 @@ export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProp
             className={cn(
               'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-4 text-sm font-medium transition-all',
               isSelected
-                ? 'border-foreground bg-white shadow-sm'
-                : 'border-zinc-200 bg-zinc-50 text-muted-foreground hover:border-zinc-300 hover:bg-white',
+                ? 'border-foreground bg-background shadow-sm'
+                : 'border-border bg-muted text-muted-foreground hover:border-foreground/40 hover:bg-background',
             )}
           >
             {isSelected && (
@@ -121,7 +121,9 @@ export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProp
                 </svg>
               </span>
             )}
-            <Icon className={cn('h-8 w-8', isSelected ? 'text-foreground' : 'text-zinc-400')} />
+            <Icon
+              className={cn('h-8 w-8', isSelected ? 'text-foreground' : 'text-muted-foreground')}
+            />
             <span
               className={cn('text-xs', isSelected ? 'text-foreground' : 'text-muted-foreground')}
             >

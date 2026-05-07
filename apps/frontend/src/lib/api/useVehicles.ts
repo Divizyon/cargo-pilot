@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { toast } from 'sonner';
+import axios from 'axios';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
@@ -10,6 +12,8 @@ import {
   fromApiVehicle,
   buildCreateVehiclePayload,
   VEHICLE_TYPE_INT,
+  VEHICLE_TYPE_FROM_INT,
+  LOADING_TYPE_FROM_INT,
 } from './vehicleMappers';
 
 // ─── List API response schema ─────────────────────────────────────────────────
@@ -19,6 +23,7 @@ const vehicleListApiItemSchema = z.object({
   vehicleName: z.string(),
   vehicleType: z.number().int(),
   plateNumber: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   internalWidth: z.number(),
   internalHeight: z.number(),
   internalLength: z.number(),
@@ -27,50 +32,67 @@ const vehicleListApiItemSchema = z.object({
   loadingType: z.number().int().nullable().optional(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
-});
-
-const vehicleListApiResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.object({
-    items: z.array(vehicleListApiItemSchema),
-    totalCount: z.number().int(),
-    page: z.number().int(),
-    pageSize: z.number().int(),
-  }),
+  createdAt: z.string().optional(),
+  kingPinDistanceMm: z.number().nullable().optional(),
+  kingPinTareWeightKg: z.number().nullable().optional(),
+  kingPinMaxLoadKg: z.number().nullable().optional(),
+  mainAxleDistanceMm: z.number().nullable().optional(),
+  mainAxleTareWeightKg: z.number().nullable().optional(),
+  mainAxleMaxLoadKg: z.number().nullable().optional(),
+  additionalAxleDistanceMm: z.number().nullable().optional(),
+  additionalAxleTareWeightKg: z.number().nullable().optional(),
+  additionalAxleMaxLoadKg: z.number().nullable().optional(),
 });
 
 type VehicleListApiItem = z.infer<typeof vehicleListApiItemSchema>;
 
-const VEHICLE_TYPE_MAP: Record<number, VehicleType> = {
-  0: VehicleType.Tir,
-  1: VehicleType.Kamyon,
-  2: VehicleType.Kamposet,
-  3: VehicleType.Konteyner,
-};
-
-const LOADING_TYPE_MAP: Record<number, (typeof DoorDirection)[keyof typeof DoorDirection]> = {
-  0: DoorDirection.Rear,
-  1: DoorDirection.Side,
-  2: DoorDirection.Top,
-  3: DoorDirection.RearAndSide,
-};
-
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
+  const loadingTypeInfo = LOADING_TYPE_FROM_INT[api.loadingType ?? 0];
+  const kingpin =
+    api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
+      ? {
+          distance: api.kingPinDistanceMm,
+          tareWeight: api.kingPinTareWeightKg ?? 0,
+          maxLoad: api.kingPinMaxLoadKg,
+        }
+      : undefined;
+  const axleB =
+    api.mainAxleDistanceMm != null && api.mainAxleMaxLoadKg != null
+      ? {
+          distance: api.mainAxleDistanceMm,
+          tareWeight: api.mainAxleTareWeightKg ?? 0,
+          maxLoad: api.mainAxleMaxLoadKg,
+        }
+      : undefined;
+  const additionalAxle =
+    api.additionalAxleDistanceMm != null && api.additionalAxleMaxLoadKg != null
+      ? {
+          distance: api.additionalAxleDistanceMm,
+          tareWeight: api.additionalAxleTareWeightKg ?? 0,
+          maxLoad: api.additionalAxleMaxLoadKg,
+        }
+      : undefined;
+
   return {
     id: api.id,
     name: api.vehicleName,
-    vehicleType: VEHICLE_TYPE_MAP[api.vehicleType] ?? VehicleType.Kamyon,
+    vehicleType: VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir,
+    description: api.description ?? undefined,
     plate: api.plateNumber ?? undefined,
     width: api.internalWidth,
     height: api.internalHeight,
     length: api.internalLength,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_MAP[api.loadingType ?? 0] ?? DoorDirection.Rear,
+    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
+    doorSide: loadingTypeInfo?.doorSide,
+    kingpin,
+    axleB,
+    axles: additionalAxle ? [additionalAxle] : undefined,
     isFavorite: api.isFavorite ?? false,
     isActive: api.isActive ?? true,
     isDeleted: false,
-    createdAt: new Date(0).toISOString(),
+    createdAt: api.createdAt ?? new Date(0).toISOString(),
     createdBy: { id: '', fullName: '' },
   };
 }
@@ -93,47 +115,56 @@ function useCompanyId() {
   return useAuthStore((s) => s.user?.companyId ?? '');
 }
 
+export interface VehiclesPage {
+  items: Vehicle[];
+  totalCount: number;
+}
+
 export function useVehicles(filters?: VehicleFilters) {
   const companyId = useCompanyId();
   const mergedFilters = { isDeleted: false, ...filters };
   return useQuery({
     queryKey: ['vehicles', companyId, mergedFilters] as const,
-    queryFn: async (): Promise<Vehicle[]> => {
+    queryFn: async (): Promise<VehiclesPage> => {
       const params = new URLSearchParams();
       if (mergedFilters.search) params.set('searchTerm', mergedFilters.search);
       if (mergedFilters.page !== undefined) params.set('page', String(mergedFilters.page));
       if (mergedFilters.pageSize !== undefined)
         params.set('pageSize', String(mergedFilters.pageSize));
 
-      // Vehicle type filter — convert string label to backend int
       if (mergedFilters.vehicleType) {
         const typeInt =
           VEHICLE_TYPE_INT[mergedFilters.vehicleType as keyof typeof VEHICLE_TYPE_INT];
         if (typeInt !== undefined) params.set('vehicleType', String(typeInt));
       }
 
-      // Status filter
       if (mergedFilters.status) {
         params.set('isActive', String(mergedFilters.status === 'active'));
       }
 
-      // Favorites filter
       if (mergedFilters.favoritesOnly) {
-        params.set('isFavorite', 'true');
+        params.set('onlyFavorites', 'true');
       }
 
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles${qs ? `?${qs}` : ''}`);
-      const parsed = vehicleListApiResponseSchema.parse(data);
-      return parsed.data.items.map(fromApiVehicleListItem);
+      const raw = (data as Record<string, unknown>)?.data as Record<string, unknown>;
+      const rawItems = raw?.items;
+      const totalCount = (raw?.totalCount as number) ?? 0;
+      if (!Array.isArray(rawItems)) return { items: [], totalCount };
+      return {
+        items: rawItems.map((item) => fromApiVehicleListItem(vehicleListApiItemSchema.parse(item))),
+        totalCount,
+      };
     },
     staleTime: 5 * 60 * 1000,
-    select: (data) => {
-      return [...data].sort((a, b) => {
-        if (a.isFavorite === b.isFavorite) return 0;
-        return a.isFavorite ? -1 : 1;
-      });
-    },
+    select: (data): VehiclesPage => ({
+      items: [...data.items].sort((a, b) => {
+        if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+        return b.createdAt.localeCompare(a.createdAt);
+      }),
+      totalCount: data.totalCount,
+    }),
   });
 }
 
@@ -143,10 +174,12 @@ export function useVehicle(id: string, initialData?: Vehicle) {
   return useQuery({
     queryKey: ['vehicles', companyId, id] as const,
     queryFn: (): Vehicle => {
-      const caches = queryClient.getQueriesData<Vehicle[]>({ queryKey: ['vehicles', companyId] });
+      const caches = queryClient.getQueriesData<VehiclesPage>({
+        queryKey: ['vehicles', companyId],
+      });
       for (const [, data] of caches) {
-        if (!Array.isArray(data)) continue;
-        const found = data.find((v) => v.id === id);
+        if (!data?.items) continue;
+        const found = data.items.find((v) => v.id === id);
         if (found) return found;
       }
       throw new Error('Araç bulunamadı');
@@ -168,6 +201,20 @@ export function useCreateVehicle() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      toast.success('Araç başarıyla kaydedildi.', { position: 'bottom-right' });
+    },
+    onError: (err: unknown) => {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 409) {
+          toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', {
+            position: 'bottom-right',
+          });
+        } else {
+          toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+        }
+      } else {
+        toast.error('Araç kaydedilemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+      }
     },
   });
 }
@@ -180,6 +227,23 @@ export function useUpdateVehicle() {
       const { data: res } = await axiosInstance.put<unknown>(`/api/v1/vehicles/${id}`, payload);
       const parsed = singleVehicleApiSchema.safeParse(res);
       return parsed.success ? fromApiVehicle(parsed.data.data) : null;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      toast.success('Araç başarıyla güncellendi.', { position: 'bottom-right' });
+    },
+    onError: (err: unknown) => {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 409) {
+          toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', {
+            position: 'bottom-right',
+          });
+        } else {
+          toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+        }
+      } else {
+        toast.error('Araç güncellenemedi. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+      }
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -205,13 +269,10 @@ export function useDeleteVehicle() {
         tareWeight: vehicle.tareWeight,
         maxLayerCount: vehicle.maxLayerCount,
         doorDirection: vehicle.doorDirection,
-        isActive: vehicle.isActive ?? true,
+        isActive: false,
         status: vehicle.status,
       } as VehicleFormValues);
-      await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, {
-        ...payload,
-        isDeleted: true,
-      });
+      await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -261,13 +322,13 @@ export function useToggleFavorite() {
     },
     onMutate: async ({ id, isFavorite }) => {
       await queryClient.cancelQueries({ queryKey: ['vehicles', companyId] });
-      const keys = queryClient.getQueriesData<Vehicle[]>({ queryKey: ['vehicles', companyId] });
+      const keys = queryClient.getQueriesData<VehiclesPage>({ queryKey: ['vehicles', companyId] });
       keys.forEach(([key, data]) => {
-        if (!data) return;
-        queryClient.setQueryData<Vehicle[]>(
-          key,
-          data.map((v) => (v.id === id ? { ...v, isFavorite } : v)),
-        );
+        if (!data?.items) return;
+        queryClient.setQueryData<VehiclesPage>(key, {
+          ...data,
+          items: data.items.map((v) => (v.id === id ? { ...v, isFavorite } : v)),
+        });
       });
       return { keys };
     },
@@ -299,47 +360,56 @@ export function useVehiclePlans(vehicleId: string) {
   });
 }
 
-const existsSchema = z.union([
-  z.object({ data: z.object({ exists: z.boolean() }) }).transform((r) => r.data),
-  z.object({ exists: z.boolean() }),
-]);
+// TODO: Backend check-name/check-plate/check-serial hazır olunca kullanılacak
+// const existsSchema = z.union([...]);
 
-export function useVehicleDuplicateCheck(name: string) {
+// TODO: Backend check-name/check-plate/check-serial endpoint'leri eklenince enabled: false kaldırılacak
+export function useVehicleDuplicateCheck(_name: string) {
   return useQuery({
-    queryKey: ['vehicles', 'duplicate-check', name] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `/api/v1/vehicles/check-name?name=${encodeURIComponent(name)}`,
-      );
-      return existsSchema.parse(data);
-    },
-    enabled: name.trim().length > 0,
+    queryKey: ['vehicles', 'duplicate-check', _name] as const,
+    queryFn: async () => ({ exists: false }),
+    enabled: false,
   });
 }
 
-export function useVehiclePlateCheck(plate: string) {
+export function useVehiclePlateCheck(_plate: string) {
   return useQuery({
-    queryKey: ['vehicles', 'plate-check', plate] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `/api/v1/vehicles/check-plate?plate=${encodeURIComponent(plate)}`,
-      );
-      return existsSchema.parse(data);
-    },
-    enabled: plate.trim().length > 0,
+    queryKey: ['vehicles', 'plate-check', _plate] as const,
+    queryFn: async () => ({ exists: false }),
+    enabled: false,
   });
 }
 
-export function useVehicleSerialCheck(serial: string) {
+export function useVehicleSerialCheck(_serial: string) {
   return useQuery({
-    queryKey: ['vehicles', 'serial-check', serial] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `/api/v1/vehicles/check-serial?serial=${encodeURIComponent(serial)}`,
-      );
-      return existsSchema.parse(data);
+    queryKey: ['vehicles', 'serial-check', _serial] as const,
+    queryFn: async () => ({ exists: false }),
+    enabled: false,
+  });
+}
+
+export function useDuplicateVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      vehicleName,
+      plateNumber,
+    }: {
+      id: string;
+      vehicleName: string;
+      plateNumber: string;
+    }) => {
+      const { data } = await axiosInstance.post<unknown>(`/api/v1/vehicles/${id}/duplicate`, {
+        vehicleName,
+        plateNumber,
+      });
+      const parsed = singleVehicleApiSchema.safeParse(data);
+      return parsed.success ? fromApiVehicle(parsed.data.data) : null;
     },
-    enabled: serial.trim().length > 0,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
   });
 }
 

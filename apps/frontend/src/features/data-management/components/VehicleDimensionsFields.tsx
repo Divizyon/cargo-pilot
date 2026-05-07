@@ -45,10 +45,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                     {dimensionUnit}
@@ -72,10 +75,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                     {dimensionUnit}
@@ -99,10 +105,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
                   <Input
                     type="number"
                     min="1"
-                    className="h-9 border-zinc-200 bg-white pr-10"
+                    className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                     {dimensionUnit}
