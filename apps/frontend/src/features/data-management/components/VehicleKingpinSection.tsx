@@ -8,7 +8,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { WEIGHT_UNIT, DIMENSION_UNIT, KINGPIN_LEGAL_MAX_LOAD } from '@/lib/config/vehicle-config';
+import { KINGPIN_LEGAL_MAX_LOAD } from '@/lib/config/vehicle-config';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleKingpinSectionProps {
@@ -16,6 +17,9 @@ interface VehicleKingpinSectionProps {
 }
 
 export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   return (
     <div className="flex flex-col gap-3">
       {/* AC1 (US-VY-09): Başlık US ile eşleşecek şekilde güncellendi */}
@@ -41,7 +45,8 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
           name="kingpin.distance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Uzaklık ({DIMENSION_UNIT})</FormLabel>
+
+              <FormLabel>Aracın Ön Noktasından Uzaklık ({dimensionUnit})</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -67,7 +72,7 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
           name="kingpin.tareWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Dara Ağırlığı ({WEIGHT_UNIT})</FormLabel>
+              <FormLabel>Dara Ağırlığı ({weightUnit})</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -91,7 +96,11 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
           name="kingpin.maxLoad"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Maksimum Yük ({WEIGHT_UNIT})</FormLabel>
+
+              <FormLabel>
+                Maks. Yük ({weightUnit}, yasal limit:{' '}
+                {KINGPIN_LEGAL_MAX_LOAD.toLocaleString('tr-TR')})
+              </FormLabel>
               <FormControl>
                 <Input
                   type="number"

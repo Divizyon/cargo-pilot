@@ -4,7 +4,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { validateAxleCapacity } from '@/lib/utils/validateAxleSum';
-import { WEIGHT_UNIT } from '@/lib/config/vehicle-config';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleWeightFieldsProps {
@@ -12,6 +12,8 @@ interface VehicleWeightFieldsProps {
 }
 
 export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   const [maxCargoWeight, axleB, axles, kingpin] = useWatch({
     control: form.control,
     name: ['maxCargoWeight', 'axleB', 'axles', 'kingpin'],
@@ -56,7 +58,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {WEIGHT_UNIT}
+                    {weightUnit}
                   </span>
                 </div>
               </FormControl>
@@ -84,7 +86,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {WEIGHT_UNIT}
+                    {weightUnit}
                   </span>
                 </div>
               </FormControl>
@@ -112,7 +114,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {WEIGHT_UNIT}
+                    {weightUnit}
                   </span>
                 </div>
               </FormControl>

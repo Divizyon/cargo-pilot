@@ -16,6 +16,26 @@ vi.mock('@/features/planning/components/PlanPdfDocument', () => ({
   PlanPdfDocument: () => null,
 }));
 
+const MOCK_DOCUMENT_NUMBER = 'TST-RPT-20260506-0001';
+
+vi.mock('@/lib/store/useReportingSettingsStore', () => ({
+  useReportingSettingsStore: Object.assign(
+    vi.fn(() => ({})),
+    {
+      getState: vi.fn(() => ({
+        nextDocumentNumber: vi.fn(() => MOCK_DOCUMENT_NUMBER),
+        logoDataUrl: null,
+        companyName: '',
+        phone: '',
+        email: '',
+        address: '',
+        dateFormat: 'DD.MM.YYYY',
+        showSignatureArea: true,
+      })),
+    },
+  ),
+}));
+
 const { exportPlanToPdf } = await import('@/lib/utils/exportPlanToPdf');
 
 describe('exportPlanToPdf', () => {
@@ -119,7 +139,7 @@ describe('exportPlanToPdf', () => {
     expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
   });
 
-  it('should use correct filename format with first 8 chars of plan ID', async () => {
+  it('should use document number as filename', async () => {
     const mockLink = {
       href: '',
       download: '',
@@ -146,6 +166,6 @@ describe('exportPlanToPdf', () => {
 
     await exportPlanToPdf(dataWithLongId);
 
-    expect(mockLink.download).toBe('CargoPilot_Plan_plan-123.pdf');
+    expect(mockLink.download).toBe(`${MOCK_DOCUMENT_NUMBER}.pdf`);
   });
 });
