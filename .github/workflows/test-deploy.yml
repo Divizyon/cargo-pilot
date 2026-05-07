@@ -154,23 +154,13 @@ jobs:
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@v3
 
-      # Sadece test branch'e push'ta GHCR'a login olunur (PR'larda push yapılmaz)
+      # Base image pull için de GHCR auth gerekli; GITHUB_TOKEN her trigger'da geçerli
       - name: GHCR'a giriş yap
-        if: github.event_name == 'push' && github.ref == 'refs/heads/test'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: .NET base image önceden çek (MCR rate limit koruması)
-        run: |
-          for i in 1 2 3; do
-            docker pull mcr.microsoft.com/dotnet/sdk:8.0 && \
-            docker pull mcr.microsoft.com/dotnet/aspnet:8.0 && break
-            echo "Deneme $i başarısız, 15s bekleniyor..."
-            sleep 15
-          done
 
       # push: PR'larda false, test branch push'ta true
       - name: Backend image build ve GHCR push
@@ -180,6 +170,9 @@ jobs:
           file: ./apps/backend/Dockerfile
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
           tags: ghcr.io/divizyon/cargo-pilot-backend:test
+          build-args: |
+            DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
+            DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
           cache-from: type=gha,scope=backend-test
           cache-to: type=gha,mode=max,scope=backend-test
 
@@ -198,6 +191,9 @@ jobs:
     name: Deploy (Test)
     runs-on: ubuntu-latest
     needs: [enforce-test-base, migration-check]
+    permissions:
+      contents: read
+      packages: read
     if: |
       always() &&
       (needs.enforce-test-base.result == 'success' || needs.enforce-test-base.result == 'skipped') &&
@@ -237,17 +233,16 @@ jobs:
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@v3
 
+      # Base image pull için GHCR auth; GITHUB_TOKEN her trigger'da geçerli
+      - name: GHCR'a giriş yap
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       # Deploy kendi image'larını inline build eder; build job ile aynı GHA cache
       # scope'u kullanıldığı için, build job da koştuysa ikinci build cache'ten döner.
-      - name: .NET base image önceden çek (MCR rate limit koruması)
-        run: |
-          for i in 1 2 3; do
-            docker pull mcr.microsoft.com/dotnet/sdk:8.0 && \
-            docker pull mcr.microsoft.com/dotnet/aspnet:8.0 && break
-            echo "Deneme $i başarısız, 15s bekleniyor..."
-            sleep 15
-          done
-
       # Tag'ler docker-compose.test.yml'deki image: alanlarıyla eşleşmeli.
       # load: true → image'ı local Docker daemon'a yükle (no push)
       - name: Backend image build (deploy için)
@@ -258,6 +253,9 @@ jobs:
           push: false
           load: true
           tags: ghcr.io/divizyon/cargo-pilot-backend:test
+          build-args: |
+            DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
+            DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
           cache-from: type=gha,scope=backend-test
           cache-to: type=gha,mode=max,scope=backend-test
 
