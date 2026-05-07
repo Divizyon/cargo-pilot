@@ -9,12 +9,30 @@ import { GlobalSpinner } from '@/components/shared/GlobalSpinner';
 import { NotificationBridge } from '@/components/shared/NotificationBridge';
 import { queryClient } from '@/lib/api/queryClient';
 import { initializeAuth } from '@/lib/auth/initializeAuth';
+import { useUIStore } from '@/lib/store/useUIStore';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import i18n from '@/lib/config/i18n';
 import { router } from './router';
 
 export function App() {
+  const theme = useUIStore((s) => s.theme);
+  const language = useUnitStore((s) => s.language);
+
   useEffect(() => {
     void initializeAuth();
   }, []);
+
+  useEffect(() => {
+    void i18n.changeLanguage(language);
+  }, [language]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const applyDark =
+      theme === 'dark' ||
+      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    root.classList.toggle('dark', applyDark);
+  }, [theme]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -30,5 +48,3 @@ export function App() {
     </QueryClientProvider>
   );
 }
-
-//hfvjdxb

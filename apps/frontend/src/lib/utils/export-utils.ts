@@ -1,8 +1,12 @@
 import * as XLSX from 'xlsx';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDate, getExcelDateCellValue } from '@/lib/utils/formatDate';
 
 export function exportItemsToExcel(items: Item[]): void {
+  const { dateFormat } = useUnitStore.getState();
+
   const rows = items.map((item) => ({
     SKU: item.sku,
     'Ürün Adı': item.name,
@@ -21,10 +25,18 @@ export function exportItemsToExcel(items: Item[]): void {
     'Özel Notlar': item.specialNotes ?? '',
   }));
 
+  const exportDate = new Date();
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Ürünler');
-  XLSX.writeFile(wb, `CargoPilot_Urunler_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+  const metaWs = XLSX.utils.aoa_to_sheet(
+    [['Dışa Aktarma Tarihi', getExcelDateCellValue(exportDate, dateFormat)]],
+    { cellDates: true },
+  );
+  XLSX.utils.book_append_sheet(wb, metaWs, 'Meta');
+
+  XLSX.writeFile(wb, `CargoPilot_Urunler_${formatDate(exportDate, dateFormat)}.xlsx`);
 }
 
 export function downloadItemImportTemplate(): void {
@@ -72,6 +84,8 @@ export function exportPlanToExcel(
   placements: PlacementWithDimensions[],
   items: Item[],
 ): void {
+  const { dateFormat } = useUnitStore.getState();
+
   const rows = placements.map((p) => {
     const item = items.find((i) => i.id === p.itemId);
     return {
@@ -87,8 +101,16 @@ export function exportPlanToExcel(
     };
   });
 
+  const exportDate = new Date();
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Yükleme Planı');
+
+  const metaWs = XLSX.utils.aoa_to_sheet(
+    [['Dışa Aktarma Tarihi', getExcelDateCellValue(exportDate, dateFormat)]],
+    { cellDates: true },
+  );
+  XLSX.utils.book_append_sheet(wb, metaWs, 'Meta');
+
   XLSX.writeFile(wb, `CargoPilot_Plan_${planId.slice(0, 8)}.xlsx`);
 }
