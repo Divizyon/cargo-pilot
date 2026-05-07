@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { RegionalSettingsTab } from '@/features/platform/components/settings/RegionalSettingsTab';
 import { VisualizationSettingsTab } from '@/features/platform/components/settings/VisualizationSettingsTab';
-import { ReportingSettingsTab } from '@/features/platform/components/settings/ReportingSettingsTab';
+import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
 
 type TabId = 'regional' | 'visualization' | 'reporting';
 
@@ -93,7 +93,7 @@ export function SystemSettingsPage() {
         </TabsContent>
 
         <TabsContent value="reporting" className="mt-6">
-          <ReportingSettingsTab onDirtyChange={(dirty) => handleDirtyChange('reporting', dirty)} />
+          <ReportingSettingsTab />
         </TabsContent>
       </Tabs>
 

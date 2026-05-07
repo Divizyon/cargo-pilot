@@ -207,7 +207,7 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
                 Kaydediliyor...
               </>
             ) : (
-              'Kaydet'
+              'Değişiklikleri Kaydet'
             )}
           </Button>
         </div>
