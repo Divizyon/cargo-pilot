@@ -114,7 +114,7 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
               </FormControl>
               {/* AC4: Yasal taşıma sınırı */}
               <FormDescription>
-                Yasal limit: {KINGPIN_LEGAL_MAX_LOAD.toLocaleString('tr-TR')} {WEIGHT_UNIT}
+                Yasal limit: {KINGPIN_LEGAL_MAX_LOAD.toLocaleString('tr-TR')} {weightUnit}
               </FormDescription>
               <FormMessage />
             </FormItem>
