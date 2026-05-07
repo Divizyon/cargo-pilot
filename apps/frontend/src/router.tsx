@@ -17,7 +17,7 @@ import { VehicleEditPage } from '@/pages/VehicleEditPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -72,7 +72,7 @@ export const router = createBrowserRouter([
           { path: '/erp', element: <DashboardPage /> },
           { path: '/notifications', element: <DashboardPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
-          { path: '/settings', element: <SystemSettingsPage /> },
+          { path: '/settings', element: <SettingsPage /> },
           { path: '/profile', element: <ProfilePage /> },
         ],
       },

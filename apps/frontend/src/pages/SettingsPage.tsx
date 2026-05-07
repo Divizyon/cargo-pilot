@@ -1,5 +1,7 @@
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ReportingSettingsForm } from '@/features/platform/components/ReportingSettingsForm';
+import { FileText } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
 
 export function SettingsPage() {
   return (
@@ -7,25 +9,30 @@ export function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Sistem Ayarları</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Platform genelinde geçerli ayarları yönetin.
+          Platform genelinde geçerli ayarları buradan yönetin.
         </p>
       </div>
 
       <Tabs defaultValue="reporting">
         <TabsList>
-          <TabsTrigger value="reporting">Raporlama</TabsTrigger>
+          <TabsTrigger value="reporting" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Raporlama
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="reporting" className="mt-6">
-          <div className="max-w-2xl space-y-1">
-            <h2 className="text-base font-semibold text-foreground">Raporlama Ayarları</h2>
-            <p className="text-sm text-muted-foreground">
-              PDF raporlarının üst bilgisinde görünecek şirket kimliğini tanımlayın.
-            </p>
-          </div>
-          <div className="mt-6 max-w-2xl">
-            <ReportingSettingsForm />
-          </div>
+        <TabsContent value="reporting">
+          <Card>
+            <CardHeader>
+              <CardTitle>Raporlama Ayarları</CardTitle>
+              <CardDescription>
+                PDF raporlarında otomatik olarak görünecek kurumsal kimlik bilgilerini tanımlayın.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ReportingSettingsTab />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
