@@ -45,7 +45,6 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
           name="kingpin.distance"
           render={({ field }) => (
             <FormItem>
-
               <FormLabel>Aracın Ön Noktasından Uzaklık ({dimensionUnit})</FormLabel>
               <FormControl>
                 <Input
@@ -96,7 +95,6 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
           name="kingpin.maxLoad"
           render={({ field }) => (
             <FormItem>
-
               <FormLabel>
                 Maks. Yük ({weightUnit}, yasal limit:{' '}
                 {KINGPIN_LEGAL_MAX_LOAD.toLocaleString('tr-TR')})
