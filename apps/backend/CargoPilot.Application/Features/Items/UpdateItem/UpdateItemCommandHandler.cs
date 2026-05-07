@@ -64,7 +64,8 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
             allowedRotations: request.AllowedRotations,
             imageUrl: request.ImageUrl,
             stackGroup: request.StackGroup,
-            specialNotes: request.SpecialNotes);
+            specialNotes: request.SpecialNotes,
+            constraintIds: request.ConstraintIds);
 
         await _itemRepository.SaveChangesAsync(cancellationToken);
 
