@@ -1,5 +1,6 @@
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
+using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
@@ -109,6 +110,37 @@ public sealed class PlansController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new UpdatePlanNameCommand(id, request.PlanName), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Geçmiş yükleme planı raporlarını filtreli ve sayfalı listeler.
+    /// </summary>
+    /// <param name="startDate">Başlangıç tarihi (UTC, opsiyonel).</param>
+    /// <param name="endDate">Bitiş tarihi (UTC, opsiyonel).</param>
+    /// <param name="vehicleId">Araç ID filtresi (opsiyonel).</param>
+    /// <param name="minFillRate">Minimum doluluk oranı, 0-100 arası (opsiyonel).</param>
+    /// <param name="maxFillRate">Maksimum doluluk oranı, 0-100 arası (opsiyonel).</param>
+    /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
+    /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Rapor listesi sayfalı döner; sonuç yoksa boş liste ile totalCount=0 döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    [HttpGet("reports")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetReports(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] Guid? vehicleId = null,
+        [FromQuery] decimal? minFillRate = null,
+        [FromQuery] decimal? maxFillRate = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetLoadingPlanReportsQuery(startDate, endDate, vehicleId, minFillRate, maxFillRate, page, pageSize);
+        var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }
 
