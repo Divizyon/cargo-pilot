@@ -14,34 +14,35 @@ internal sealed class ItemRepository : IItemRepository
         _dbContext = dbContext;
     }
 
-    public Task<Item?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<Item?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
-            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == companyId, cancellationToken);
     }
 
     public async Task<IReadOnlyList<Guid>> GetExistingIdsAsync(
         IEnumerable<Guid> ids,
+        Guid? companyId,
         CancellationToken cancellationToken = default)
     {
         var idList = ids.ToList();
         return await _dbContext.Items
             .AsNoTracking()
-            .Where(i => idList.Contains(i.Id))
+            .Where(i => idList.Contains(i.Id) && i.CompanyId == companyId)
             .Select(i => i.Id)
             .ToListAsync(cancellationToken);
     }
 
-    public Task<bool> ExistsBySkuAsync(string sku, CancellationToken cancellationToken = default)
+    public Task<bool> ExistsBySkuAsync(string sku, Guid? companyId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
-            .AnyAsync(i => i.SKU == sku, cancellationToken);
+            .AnyAsync(i => i.SKU == sku && i.CompanyId == companyId, cancellationToken);
     }
 
-    public Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, CancellationToken cancellationToken = default)
+    public Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, Guid? companyId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
-            .AnyAsync(i => i.SKU == sku && i.Id != excludeItemId, cancellationToken);
+            .AnyAsync(i => i.SKU == sku && i.Id != excludeItemId && i.CompanyId == companyId, cancellationToken);
     }
 
     public Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default)
@@ -54,9 +55,11 @@ internal sealed class ItemRepository : IItemRepository
         string? searchTerm,
         int page,
         int pageSize,
+        Guid? companyId,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.Items.AsNoTracking();
+        var query = _dbContext.Items.AsNoTracking()
+            .Where(i => i.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {

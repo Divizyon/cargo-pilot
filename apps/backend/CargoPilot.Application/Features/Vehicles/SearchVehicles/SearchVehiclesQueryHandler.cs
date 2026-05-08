@@ -54,6 +54,7 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             favoriteIds,
             page,
             pageSize,
+            _currentUserService.CompanyId,
             cancellationToken);
 
         var userIds = pagedVehicles.Items

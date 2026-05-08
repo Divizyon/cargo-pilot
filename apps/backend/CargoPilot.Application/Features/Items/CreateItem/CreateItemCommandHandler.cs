@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -9,13 +10,16 @@ namespace CargoPilot.Application.Features.Items.CreateItem;
 public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand, Result<Guid>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<CreateItemCommand> _validator;
 
     public CreateItemCommandHandler(
         IItemRepository itemRepository,
+        ICurrentUserService currentUserService,
         IValidator<CreateItemCommand> validator)
     {
         _itemRepository = itemRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -33,7 +37,9 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var skuExists = await _itemRepository.ExistsBySkuAsync(request.SKU, cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+
+        var skuExists = await _itemRepository.ExistsBySkuAsync(request.SKU, companyId, cancellationToken);
         if (skuExists)
         {
             return Result<Guid>.Failure(
@@ -60,7 +66,8 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
             imageUrl: request.ImageUrl,
             stackGroup: request.StackGroup,
             specialNotes: request.SpecialNotes,
-            constraintIds: request.ConstraintIds);
+            constraintIds: request.ConstraintIds,
+            companyId: companyId);
 
         _itemRepository.Add(item);
         await _itemRepository.SaveChangesAsync(cancellationToken);

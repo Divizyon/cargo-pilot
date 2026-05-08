@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using FluentValidation;
@@ -8,13 +9,16 @@ namespace CargoPilot.Application.Features.Items.UpdateItem;
 public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand, Result<Guid>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<UpdateItemCommand> _validator;
 
     public UpdateItemCommandHandler(
         IItemRepository itemRepository,
+        ICurrentUserService currentUserService,
         IValidator<UpdateItemCommand> validator)
     {
         _itemRepository = itemRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -32,14 +36,16 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var item = await _itemRepository.GetByIdAsync(request.Id, cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+
+        var item = await _itemRepository.GetByIdAsync(request.Id, companyId, cancellationToken);
         if (item is null)
         {
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Item.NotFound", "Ürün bulunamadı."));
         }
 
-        var skuExists = await _itemRepository.ExistsBySkuAsync(request.SKU, request.Id, cancellationToken);
+        var skuExists = await _itemRepository.ExistsBySkuAsync(request.SKU, request.Id, companyId, cancellationToken);
         if (skuExists)
         {
             return Result<Guid>.Failure(
