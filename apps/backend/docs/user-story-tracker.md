@@ -385,3 +385,40 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Infrastructure/DependencyInjection.cs`
 - `CargoPilot.Domain/Entities/LoadingPlan.cs`
 - `CargoPilot.WebAPI/Controllers/PlansController.cs`
+
+---
+
+## 15) US-REP-03: Yükleme Planı Rapor Listesi Endpoint'i
+**Story:** Rapor sayfası geliştirici olarak, geçmiş yükleme planı raporlarını filtreli ve sayfalı listeleyebilmek için backend endpoint'inin hazır olmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Kabul Kriterleri
+- AC1: Rapor listesi `CreatedAtUtc` desc sıralı döner; her satırda `planName`, `createdAt`, `vehiclePlate`, `fillRate`, `status`, `reportId`, `downloadUrl` alanları bulunur.
+- AC2: Tarih aralığı (`startDate`/`endDate`), araç (`vehicleId`), doluluk oranı aralığı (`minFillRate`/`maxFillRate`) filtreleri ve sayfalama (`page`/`pageSize`) desteklenir.
+- AC3: Her satırda PDF indirme bilgisi (`reportId`/`downloadUrl`) endpoint'ten döner; frontend bu URL ile indirme yapabilir.
+- AC4: Kayıt yoksa `items=[]`, `totalCount=0` döner; frontend empty state gösterebilir.
+
+### Alt İşler
+- `✅` `LoadingPlanReportDto` record tanımla (`Id`, `PlanName`, `CreatedAtUtc`, `VehiclePlate`, `FillRate`, `Status`, `ReportId`, `DownloadUrl`)
+- `✅` `GetLoadingPlanReportsQuery` record tanımla (`StartDate`, `EndDate`, `VehicleId`, `MinFillRate`, `MaxFillRate`, `Page`, `PageSize`)
+- `✅` `GetLoadingPlanReportsQueryValidator` yaz (Page ≥ 1, PageSize 1–100, FillRate 0–100, MinFillRate ≤ MaxFillRate, StartDate ≤ EndDate)
+- `✅` `GetLoadingPlanReportsQueryHandler` yaz (validasyon + repository çağrısı, `Result.Success` ile dön)
+- `✅` `LoadingPlan` entity'sine `ReportId (Guid?)` ve `ReportUrl (string?)` alanları eklendi
+- `✅` `ILoadingPlanRepository` arayüzüne `GetPagedReportsAsync` metodu eklendi
+- `✅` `LoadingPlanRepository`'e `GetPagedReportsAsync` implementasyonu yazıldı (5 dinamik filtre, `OrderByDescending CreatedAtUtc`, `Skip/Take`)
+- `✅` `PlansController`'a `GET /api/v1/loading-plans/reports` endpoint'i eklendi
+- `✅` `AddReportFieldsToLoadingPlans` migration'i oluşturuldu ve `dotnet ef database update` ile uygulandı; sütunlar SQL sorgusuyla doğrulandı
+- `✅` Swagger üzerinden filtreleme, sıralama ve validasyon (0–100 doluluk kontrolü) senaryoları test edildi
+- `✅` Branch `dev`'e rebase edildi, build 0 hata ile doğrulandı
+
+### Kanıtlar
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/LoadingPlanReportDto.cs`
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/GetLoadingPlanReportsQuery.cs`
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/GetLoadingPlanReportsQueryValidator.cs`
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/GetLoadingPlanReportsQueryHandler.cs`
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Domain/Entities/LoadingPlan.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260507133430_AddReportFieldsToLoadingPlans.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
