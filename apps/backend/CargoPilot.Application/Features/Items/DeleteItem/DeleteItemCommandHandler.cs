@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using MediatR;
@@ -7,15 +8,19 @@ namespace CargoPilot.Application.Features.Items.DeleteItem;
 public sealed class DeleteItemCommandHandler : IRequestHandler<DeleteItemCommand, Result<Guid>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly ICurrentUserService _currentUserService;
 
-    public DeleteItemCommandHandler(IItemRepository itemRepository)
+    public DeleteItemCommandHandler(
+        IItemRepository itemRepository,
+        ICurrentUserService currentUserService)
     {
         _itemRepository = itemRepository;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<Guid>> Handle(DeleteItemCommand request, CancellationToken cancellationToken)
     {
-        var item = await _itemRepository.GetByIdAsync(request.Id, cancellationToken);
+        var item = await _itemRepository.GetByIdAsync(request.Id, _currentUserService.CompanyId, cancellationToken);
         if (item is null)
         {
             return Result<Guid>.Failure(

@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -12,6 +13,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IItemRepository _itemRepository;
     private readonly IOptimizationEngine _optimizationEngine;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<CreatePlanCommand> _validator;
 
     public CreatePlanCommandHandler(
@@ -19,12 +21,14 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         IVehicleRepository vehicleRepository,
         IItemRepository itemRepository,
         IOptimizationEngine optimizationEngine,
+        ICurrentUserService currentUserService,
         IValidator<CreatePlanCommand> validator)
     {
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
         _itemRepository = itemRepository;
         _optimizationEngine = optimizationEngine;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -40,13 +44,15 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+
+        var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
         if (vehicle is null)
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
         var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
-        var existingItemIds = await _itemRepository.GetExistingIdsAsync(requestedItemIds, cancellationToken);
+        var existingItemIds = await _itemRepository.GetExistingIdsAsync(requestedItemIds, companyId, cancellationToken);
         var missingIds = requestedItemIds.Except(existingItemIds).ToList();
         if (missingIds.Count > 0)
         {
@@ -66,7 +72,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             vehicleId: request.VehicleId,
             optimizationCriteria: request.OptimizationCriteria,
             inputTotalQuantity: inputTotalQuantity,
-            companyId: vehicle.CompanyId);
+            companyId: companyId);
 
         var inputItems = request.Items
             .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity))

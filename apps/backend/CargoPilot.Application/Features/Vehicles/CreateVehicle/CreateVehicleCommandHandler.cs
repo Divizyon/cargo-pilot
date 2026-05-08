@@ -9,17 +9,14 @@ namespace CargoPilot.Application.Features.Vehicles.CreateVehicle;
 
 public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand, Result<Guid>> {
     private readonly IVehicleRepository _vehicleRepository;
-    private readonly IUserRepository _userRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<CreateVehicleCommand> _validator;
 
     public CreateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
-        IUserRepository userRepository,
         ICurrentUserService currentUserService,
         IValidator<CreateVehicleCommand> validator) {
         _vehicleRepository = vehicleRepository;
-        _userRepository = userRepository;
         _currentUserService = currentUserService;
         _validator = validator;
     }
@@ -34,17 +31,14 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        if (_currentUserService.UserId is not { } userId)
+        if (_currentUserService.UserId is null)
             return Result<Guid>.Failure(
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));
 
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-        if (user is null)
-            return Result<Guid>.Failure(
-                new Error(ErrorType.NotFound, "USER_NOT_FOUND", "Kullanıcı bulunamadı."));
+        var companyId = _currentUserService.CompanyId;
 
         var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
-            request.PlateNumber, user.CompanyId, cancellationToken);
+            request.PlateNumber, companyId, cancellationToken);
         if (plateExists)
             return Result<Guid>.Failure(
                 new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));
@@ -70,7 +64,7 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             additionalAxleMaxLoadKg: request.AdditionalAxleMaxLoadKg,
             layerCount: request.LayerCount,
             loadingType: request.LoadingType,
-            companyId: user.CompanyId);
+            companyId: companyId);
 
         _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);

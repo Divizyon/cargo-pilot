@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using FluentValidation;
@@ -8,13 +9,16 @@ namespace CargoPilot.Application.Features.Items.SearchItems;
 public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, Result<PagedResult<ItemSummaryDto>>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<SearchItemsQuery> _validator;
 
     public SearchItemsQueryHandler(
         IItemRepository itemRepository,
+        ICurrentUserService currentUserService,
         IValidator<SearchItemsQuery> validator)
     {
         _itemRepository = itemRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -36,6 +40,7 @@ public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, 
             request.SearchTerm,
             request.Page,
             request.PageSize,
+            _currentUserService.CompanyId,
             cancellationToken);
 
         var dto = new PagedResult<ItemSummaryDto>(
