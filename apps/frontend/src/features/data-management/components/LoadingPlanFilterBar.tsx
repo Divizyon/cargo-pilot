@@ -45,12 +45,14 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [localPlate, setLocalPlate] = useState(plate);
+  const [prevPlateProp, setPrevPlateProp] = useState(plate);
   const debouncedPlate = useDebounce(localPlate, 350);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  if (plate !== prevPlateProp) {
+    setPrevPlateProp(plate);
     setLocalPlate(plate);
-  }, [plate]);
+  }
 
   useEffect(() => {
     setPlate(debouncedPlate);

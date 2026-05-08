@@ -1,3 +1,4 @@
+import { type ElementType } from 'react';
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -15,7 +16,7 @@ import { ConstraintType, type PlanProductItem } from '@/lib/types/loadingPlan';
 
 const CONSTRAINT_CONFIG: Record<
   ConstraintType,
-  { label: string; Icon: React.ElementType; className: string }
+  { label: string; Icon: ElementType; className: string }
 > = {
   [ConstraintType.Fragile]: {
     label: 'Kırılgan',
