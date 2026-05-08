@@ -59,7 +59,8 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
             diameter: request.Diameter,
             imageUrl: request.ImageUrl,
             stackGroup: request.StackGroup,
-            specialNotes: request.SpecialNotes);
+            specialNotes: request.SpecialNotes,
+            constraintIds: request.ConstraintIds);
 
         _itemRepository.Add(item);
         await _itemRepository.SaveChangesAsync(cancellationToken);

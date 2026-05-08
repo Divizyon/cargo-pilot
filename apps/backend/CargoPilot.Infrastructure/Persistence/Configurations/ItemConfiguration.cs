@@ -65,6 +65,10 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.FragilityType)
             .IsRequired();
 
+        builder.Property(item => item.ConstraintIdsJson)
+            .IsRequired()
+            .HasDefaultValue("[]");
+
         builder.Property(item => item.IsStackable)
             .IsRequired();
 
