@@ -15,7 +15,7 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/loading-plans")]
 [Tags("Plans")]
-[Authorize]
+[Authorize(Policy = "CompanyMember")]
 public sealed class PlansController : BaseController
 {
     private readonly IMediator _mediator;
