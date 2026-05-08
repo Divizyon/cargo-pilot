@@ -49,7 +49,11 @@ import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { useDebounce } from '@/lib/utils/useDebounce';
-import { VehicleType, type Vehicle, type VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
+import {
+  VehicleType,
+  type Vehicle,
+  type VehicleType as VehicleTypeValue,
+} from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
@@ -179,7 +183,10 @@ function VehicleListItem({
 
 // ─── SortableVehicleListItem ──────────────────────────────────────────────────
 
-interface SortableVehicleListItemProps extends Omit<VehicleListItemProps, 'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'> {
+interface SortableVehicleListItemProps extends Omit<
+  VehicleListItemProps,
+  'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'
+> {
   id: string;
 }
 
@@ -588,30 +595,33 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
                   Araç Tipi
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(Object.entries(VEHICLE_TYPE_META) as [VehicleTypeValue, { label: string; icon: typeof Truck }][]).map(
-                  ([key, meta]) => {
-                    const Icon = meta.icon;
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={key}
-                        checked={activeVehicleTypes.has(key)}
-                        onCheckedChange={(checked: boolean) => {
-                          setActiveVehicleTypes((prev) => {
-                            const next = new Set(prev);
-                            if (checked) next.add(key);
-                            else next.delete(key);
-                            return next;
-                          });
-                        }}
-                        onSelect={(e: Event) => e.preventDefault()}
-                        className="text-xs gap-2"
-                      >
-                        <Icon className="w-3.5 h-3.5 text-zinc-500" />
-                        {meta.label}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  },
-                )}
+                {(
+                  Object.entries(VEHICLE_TYPE_META) as [
+                    VehicleTypeValue,
+                    { label: string; icon: typeof Truck },
+                  ][]
+                ).map(([key, meta]) => {
+                  const Icon = meta.icon;
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={activeVehicleTypes.has(key)}
+                      onCheckedChange={(checked: boolean) => {
+                        setActiveVehicleTypes((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.add(key);
+                          else next.delete(key);
+                          return next;
+                        });
+                      }}
+                      onSelect={(e: Event) => e.preventDefault()}
+                      className="text-xs gap-2"
+                    >
+                      <Icon className="w-3.5 h-3.5 text-zinc-500" />
+                      {meta.label}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
                 {activeVehicleTypes.size > 0 && (
                   <>
                     <DropdownMenuSeparator />

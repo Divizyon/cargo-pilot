@@ -303,7 +303,10 @@ function StoreItemRow({
 
 // ─── SortableStoreItemRow ─────────────────────────────────────────────────────
 
-interface SortableStoreItemRowProps extends Omit<StoreItemRowProps, 'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'> {
+interface SortableStoreItemRowProps extends Omit<
+  StoreItemRowProps,
+  'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'
+> {
   id: string;
 }
 
