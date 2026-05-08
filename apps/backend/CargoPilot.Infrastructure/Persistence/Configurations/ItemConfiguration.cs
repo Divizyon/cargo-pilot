@@ -98,6 +98,10 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
 
         builder.Property(item => item.IntegrationId);
 
+        builder.Property(item => item.IsRuleAssigned)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasOne(item => item.Company)
             .WithMany(company => company.Items)
             .HasForeignKey(item => item.CompanyId)

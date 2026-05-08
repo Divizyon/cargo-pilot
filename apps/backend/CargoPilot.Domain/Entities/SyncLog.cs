@@ -8,6 +8,8 @@ public sealed class SyncLog : BaseEntity {
     public DateTime? CompletedAt { get; private set; }
     public SyncLogStatus Status { get; private set; }
     public int SyncedRecordCount { get; private set; }
+    public int RuleAssignedCount { get; private set; }
+    public int RuleNotAssignedCount { get; private set; }
     public string? ErrorMessage { get; private set; }
 
 #pragma warning disable S1144
@@ -22,10 +24,12 @@ public sealed class SyncLog : BaseEntity {
         Status = SyncLogStatus.Running;
     }
 
-    public void Complete(int syncedRecordCount) {
+    public void Complete(int syncedRecordCount, int ruleAssignedCount = 0, int ruleNotAssignedCount = 0) {
         CompletedAt = DateTime.UtcNow;
         Status = SyncLogStatus.Success;
         SyncedRecordCount = syncedRecordCount;
+        RuleAssignedCount = ruleAssignedCount;
+        RuleNotAssignedCount = ruleNotAssignedCount;
     }
 
     public void Fail(string errorMessage) {
@@ -34,10 +38,12 @@ public sealed class SyncLog : BaseEntity {
         ErrorMessage = errorMessage;
     }
 
-    public void PartialFail(int syncedRecordCount, string errorMessage) {
+    public void PartialFail(int syncedRecordCount, string errorMessage, int ruleAssignedCount = 0, int ruleNotAssignedCount = 0) {
         CompletedAt = DateTime.UtcNow;
         Status = SyncLogStatus.PartialFailure;
         SyncedRecordCount = syncedRecordCount;
         ErrorMessage = errorMessage;
+        RuleAssignedCount = ruleAssignedCount;
+        RuleNotAssignedCount = ruleNotAssignedCount;
     }
 }

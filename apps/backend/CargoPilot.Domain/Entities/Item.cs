@@ -26,6 +26,7 @@ public sealed class Item : BaseEntity {
     public Guid? CompanyId { get; private set; }
     public string? ErpId { get; private set; }
     public Guid? IntegrationId { get; private set; }
+    public bool IsRuleAssigned { get; private set; } = true;
 #pragma warning disable S1144
     public Company? Company { get; private set; }
     public Integration? Integration { get; private set; }
@@ -86,6 +87,8 @@ public sealed class Item : BaseEntity {
         ErpId = null;
         IntegrationId = null;
     }
+
+    public void SetRuleAssigned(bool isRuleAssigned) => IsRuleAssigned = isRuleAssigned;
 
     public void Update(
         string sku,
