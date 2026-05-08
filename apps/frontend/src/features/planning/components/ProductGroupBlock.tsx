@@ -73,7 +73,9 @@ export function ProductGroupBlock({ group, defaultOpen = true }: ProductGroupBlo
           <div className="flex items-center gap-3 px-3 py-1.5 border-t border-zinc-100 bg-zinc-50">
             <span className="flex-1 text-[10px] text-zinc-400">Ürün Adı</span>
             <span className="text-[10px] text-zinc-400 w-10 text-right shrink-0">Adet</span>
-            <span className="text-[10px] text-zinc-400 w-16 text-right shrink-0">Birim Ağırlık</span>
+            <span className="text-[10px] text-zinc-400 w-16 text-right shrink-0">
+              Birim Ağırlık
+            </span>
             <span className="text-[10px] text-zinc-400 w-10 shrink-0">Katman</span>
             <span className="text-[10px] text-zinc-400 shrink-0">Kısıtlar</span>
           </div>

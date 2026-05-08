@@ -3,12 +3,7 @@ import { format } from 'date-fns';
 import { ChevronLeft, Package2, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
@@ -80,7 +75,8 @@ interface VehicleCardProps {
 }
 
 function VehicleCard({ plan, index }: VehicleCardProps) {
-  const isContainer = plan.vehicleName.toLowerCase().includes('konteyner') ||
+  const isContainer =
+    plan.vehicleName.toLowerCase().includes('konteyner') ||
     plan.vehicleName.toLowerCase().includes('ft');
   const date = formatPlanDate(plan.plannedAt ?? plan.createdAt);
   const statusCfg = STATUS_CONFIG[plan.status] ?? STATUS_CONFIG[PlanStatus.Taslak];
@@ -129,10 +125,7 @@ function VehicleCard({ plan, index }: VehicleCardProps) {
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCell label="Ürün Sayısı" value={`${plan.productCount} adet`} />
-          <StatCell
-            label="Toplam Ağırlık"
-            value={`${(plan.totalWeightKg / 1000).toFixed(1)} t`}
-          />
+          <StatCell label="Toplam Ağırlık" value={`${(plan.totalWeightKg / 1000).toFixed(1)} t`} />
           <StatCell
             label="Araç Kapasitesi"
             value={`${(plan.vehicleCapacityKg / 1000).toFixed(1)} t`}
@@ -162,11 +155,7 @@ function VehicleCard({ plan, index }: VehicleCardProps) {
       {productGroups.length > 0 && (
         <div className="space-y-2">
           {productGroups.map((group, i) => (
-            <ProductGroupBlock
-              key={group.id}
-              group={group}
-              defaultOpen={i === 0}
-            />
+            <ProductGroupBlock key={group.id} group={group} defaultOpen={i === 0} />
           ))}
         </div>
       )}

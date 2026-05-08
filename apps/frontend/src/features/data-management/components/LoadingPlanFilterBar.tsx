@@ -132,10 +132,7 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
               </span>
             )}
             <ChevronDown
-              className={cn(
-                'h-3.5 w-3.5 transition-transform',
-                showFilterPanel && 'rotate-180',
-              )}
+              className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
             />
           </Button>
 

@@ -35,12 +35,15 @@ export function useLoadingPlanFilters(): LoadingPlanFiltersHook {
   const hasActiveFilters = Boolean(search || plate || vehicleNames.length || dateFrom || dateTo);
 
   function setParam(key: string, value: string) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (value) next.set(key, value);
-      else next.delete(key);
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function setSearch(v: string) {
@@ -48,12 +51,15 @@ export function useLoadingPlanFilters(): LoadingPlanFiltersHook {
   }
 
   function setStatusTab(v: string) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (v && v !== 'all') next.set('status', v);
-      else next.delete('status');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (v && v !== 'all') next.set('status', v);
+        else next.delete('status');
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function setPlate(v: string) {
@@ -73,15 +79,18 @@ export function useLoadingPlanFilters(): LoadingPlanFiltersHook {
   }
 
   function clearFilters() {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete('q');
-      next.delete('plate');
-      next.delete('vehicles');
-      next.delete('dateFrom');
-      next.delete('dateTo');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('q');
+        next.delete('plate');
+        next.delete('vehicles');
+        next.delete('dateFrom');
+        next.delete('dateTo');
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   return {

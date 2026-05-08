@@ -64,9 +64,7 @@ function TruncatedName({ name }: TruncatedNameProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-xs text-zinc-700 cursor-default">
-            {name.slice(0, 60)}…
-          </span>
+          <span className="text-xs text-zinc-700 cursor-default">{name.slice(0, 60)}…</span>
         </TooltipTrigger>
         <TooltipContent className="max-w-sm break-words text-xs">{name}</TooltipContent>
       </Tooltip>

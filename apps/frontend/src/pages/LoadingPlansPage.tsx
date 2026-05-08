@@ -1,5 +1,13 @@
 import { useState, type ReactNode } from 'react';
-import { ClipboardList, Clock, FileText, LayoutGrid, List, TrendingUp, CheckCircle2 } from 'lucide-react';
+import {
+  ClipboardList,
+  Clock,
+  FileText,
+  LayoutGrid,
+  List,
+  TrendingUp,
+  CheckCircle2,
+} from 'lucide-react';
 import { LoadingPlanFilterBar } from '@/features/data-management/components/LoadingPlanFilterBar';
 import { LoadingPlanTable } from '@/features/data-management/components/LoadingPlanTable';
 import { VehicleCard } from '@/features/data-management/components/VehicleCard';
@@ -94,12 +102,7 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
   if (isLoading) {
     return (
-      <div
-        className={cn(
-          'grid gap-4',
-          isSidebarOpen ? 'grid-cols-3' : 'grid-cols-4',
-        )}
-      >
+      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-3' : 'grid-cols-4')}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="h-52 animate-pulse rounded-xl border border-border bg-muted" />
         ))}
@@ -117,12 +120,7 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div
-        className={cn(
-          'grid gap-4',
-          isSidebarOpen ? 'grid-cols-3' : 'grid-cols-4',
-        )}
-      >
+      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-3' : 'grid-cols-4')}>
         {items.map((plan) => (
           <VehicleCard key={plan.id} plan={plan} />
         ))}
@@ -190,11 +188,7 @@ export function LoadingPlansPage() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <StatCard
-          icon={<FileText className="h-5 w-5" />}
-          value={totalCount}
-          label="Toplam Plan"
-        />
+        <StatCard icon={<FileText className="h-5 w-5" />} value={totalCount} label="Toplam Plan" />
         <StatCard
           icon={<Clock className="h-5 w-5 text-blue-500" />}
           value={activeCount}
@@ -207,11 +201,7 @@ export function LoadingPlansPage() {
           label="Tamamlandı"
           accent="text-emerald-600 dark:text-emerald-400"
         />
-        <StatCard
-          icon={<ClipboardList className="h-5 w-5" />}
-          value={draftCount}
-          label="Taslak"
-        />
+        <StatCard icon={<ClipboardList className="h-5 w-5" />} value={draftCount} label="Taslak" />
         <StatCard
           icon={<TrendingUp className="h-5 w-5 text-amber-500" />}
           value={`%${avgFill}`}

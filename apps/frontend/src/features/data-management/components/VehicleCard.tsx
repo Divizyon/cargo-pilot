@@ -77,11 +77,7 @@ function FillMetric({ label, pct }: FillMetricProps) {
         <div
           className={cn(
             'h-full rounded-full transition-all',
-            isCritical
-              ? 'bg-red-500'
-              : isWarning
-                ? 'bg-yellow-500'
-                : 'bg-primary/50',
+            isCritical ? 'bg-red-500' : isWarning ? 'bg-yellow-500' : 'bg-primary/50',
           )}
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
@@ -125,7 +121,8 @@ export function VehicleCard({ plan }: VehicleCardProps) {
         <div>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">İç Ölçüler</p>
           <p className="mt-0.5 text-xs font-medium text-foreground">
-            {plan.interiorWidthM.toFixed(2)} × {plan.interiorDepthM.toFixed(2)} × {plan.interiorHeightM.toFixed(2)} m
+            {plan.interiorWidthM.toFixed(2)} × {plan.interiorDepthM.toFixed(2)} ×{' '}
+            {plan.interiorHeightM.toFixed(2)} m
           </p>
           <p className="text-[10px] text-muted-foreground">En × Boy × Yükseklik</p>
         </div>

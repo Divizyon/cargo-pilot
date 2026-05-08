@@ -43,10 +43,7 @@ function VehicleIcon({ className }: { className?: string }) {
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; className: string; dotClass: string }
-> = {
+const STATUS_CONFIG: Record<string, { label: string; className: string; dotClass: string }> = {
   [PlanStatus.Tamamlandi]: {
     label: 'Tamamlandı',
     className:
@@ -67,8 +64,7 @@ const STATUS_CONFIG: Record<
   },
   [PlanStatus.Taslak]: {
     label: 'Taslak',
-    className:
-      'bg-muted text-muted-foreground border border-border',
+    className: 'bg-muted text-muted-foreground border border-border',
     dotClass: 'bg-muted-foreground',
   },
 };
@@ -92,11 +88,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function FillBar({ pct }: { pct: number }) {
   const color =
-    pct >= 80
-      ? 'bg-emerald-500'
-      : pct >= 50
-        ? 'bg-amber-400'
-        : 'bg-muted-foreground/30';
+    pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-muted-foreground/30';
 
   return (
     <div className="flex items-center gap-2">
@@ -342,9 +334,7 @@ function PlanRow({ plan }: { plan: LoadingPlanListItem }) {
       </TableCell>
 
       {/* Product count */}
-      <TableCell className="text-right text-sm text-foreground">
-        {plan.productCount} ürün
-      </TableCell>
+      <TableCell className="text-right text-sm text-foreground">{plan.productCount} ürün</TableCell>
 
       {/* Total weight */}
       <TableCell>
