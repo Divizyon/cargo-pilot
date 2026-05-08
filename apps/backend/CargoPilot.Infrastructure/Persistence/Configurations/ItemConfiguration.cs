@@ -89,10 +89,20 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
 
         builder.Property(item => item.CompanyId);
 
+        builder.Property(item => item.ErpId)
+            .HasMaxLength(200);
+
+        builder.Property(item => item.IntegrationId);
+
         builder.HasOne(item => item.Company)
             .WithMany(company => company.Items)
             .HasForeignKey(item => item.CompanyId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(item => item.Integration)
+            .WithMany()
+            .HasForeignKey(item => item.IntegrationId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(item => item.IsDeleted);
         builder.HasIndex(item => item.CompanyId)
