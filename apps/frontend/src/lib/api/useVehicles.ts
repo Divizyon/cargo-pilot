@@ -158,7 +158,10 @@ export function useVehicles(filters?: VehicleFilters) {
         if (result.success) {
           validItems.push(fromApiVehicleListItem(result.data));
         } else {
-          console.error('[useVehicles] tenant veri doğrulama hatası — öğe göz ardı edildi', result.error);
+          console.error(
+            '[useVehicles] tenant veri doğrulama hatası — öğe göz ardı edildi',
+            result.error,
+          );
         }
       }
       return { items: validItems, totalCount };
