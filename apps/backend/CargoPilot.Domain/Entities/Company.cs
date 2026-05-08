@@ -10,6 +10,8 @@ public sealed class Company : BaseEntity {
     public int MaxUserCount { get; private set; }
     public ICollection<AppUser> Users { get; } = [];
     public ICollection<Vehicle> Vehicles { get; } = [];
+    public ICollection<Item> Items { get; } = [];
+    public ICollection<Integration> Integrations { get; } = [];
 
     private Company() { }
 

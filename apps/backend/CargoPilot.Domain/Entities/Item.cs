@@ -23,6 +23,13 @@ public sealed class Item : BaseEntity {
     public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
     public string? SpecialNotes { get; private set; }
+    public Guid? CompanyId { get; private set; }
+    public string? ErpId { get; private set; }
+    public Guid? IntegrationId { get; private set; }
+#pragma warning disable S1144
+    public Company? Company { get; private set; }
+    public Integration? Integration { get; private set; }
+#pragma warning restore S1144
 
     private Item() { }
 
@@ -46,7 +53,8 @@ public sealed class Item : BaseEntity {
         string? imageUrl = null,
         string? stackGroup = null,
         string? specialNotes = null,
-        int[]? constraintIds = null) : base(id) {
+        int[]? constraintIds = null,
+        Guid? companyId = null) : base(id) {
         SKU = sku;
         Barcode = barcode;
         Name = name;
@@ -66,6 +74,17 @@ public sealed class Item : BaseEntity {
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
         SpecialNotes = specialNotes;
+        CompanyId = companyId;
+    }
+
+    public void SetErpSource(string erpId, Guid integrationId) {
+        ErpId = erpId;
+        IntegrationId = integrationId;
+    }
+
+    public void ClearErpSource() {
+        ErpId = null;
+        IntegrationId = null;
     }
 
     public void Update(
