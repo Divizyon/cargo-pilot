@@ -1,4 +1,21 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,23 +23,45 @@ import {
   Box,
   ChevronLeft,
   ChevronRight,
+  Container,
+  GripVertical,
   Loader2,
   Package2,
   Pencil,
   Plus,
+  Search,
+  SlidersHorizontal,
   Truck,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { VehicleType, type Vehicle } from '@/lib/types/vehicle';
+import { useDebounce } from '@/lib/utils/useDebounce';
+import { VehicleType, type Vehicle, type VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
+
+// ─── Vehicle type filter metadata ────────────────────────────────────────────
+
+const VEHICLE_TYPE_META: Record<VehicleTypeValue, { label: string; icon: typeof Truck }> = {
+  [VehicleType.Tir]: { label: 'Tır', icon: Truck },
+  [VehicleType.Kamyon]: { label: 'Kamyon', icon: Truck },
+  [VehicleType.Kamposet]: { label: 'Kamposet', icon: Truck },
+  [VehicleType.Konteyner]: { label: 'Konteyner', icon: Container },
+};
 
 // ─── Vehicle edit schema ──────────────────────────────────────────────────────
 
@@ -35,13 +74,14 @@ const vehicleEditSchema = z.object({
 
 type VehicleEditValues = z.infer<typeof vehicleEditSchema>;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 // ─── VehicleListItem ──────────────────────────────────────────────────────────
 
 interface VehicleListItemProps {
   vehicle: Vehicle;
   isSelected: boolean;
+  dragHandleRef?: (el: HTMLElement | null) => void;
+  dragHandleListeners?: Record<string, unknown>;
+  dragHandleAttributes?: Record<string, unknown>;
   onSelect: (v: Vehicle) => void;
   onEdit: (v: Vehicle) => void;
   onDelete: (id: string) => void;
@@ -50,6 +90,9 @@ interface VehicleListItemProps {
 function VehicleListItem({
   vehicle,
   isSelected,
+  dragHandleRef,
+  dragHandleListeners,
+  dragHandleAttributes,
   onSelect,
   onEdit,
   onDelete,
@@ -60,10 +103,27 @@ function VehicleListItem({
   return (
     <div
       className={cn(
-        'group/item flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors',
+        'group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
         isSelected ? 'bg-zinc-900 text-white' : 'hover:bg-zinc-50 text-zinc-700',
       )}
     >
+      {/* Drag handle */}
+      {dragHandleRef && (
+        <button
+          ref={dragHandleRef}
+          {...(dragHandleListeners as HTMLAttributes<HTMLButtonElement>)}
+          {...(dragHandleAttributes as HTMLAttributes<HTMLButtonElement>)}
+          className={cn(
+            'shrink-0 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none',
+            isSelected ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-200 hover:text-zinc-400',
+          )}
+          title="Sırasını değiştir"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      )}
+
       <button
         onClick={() => onSelect(vehicle)}
         className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
@@ -117,6 +177,39 @@ function VehicleListItem({
   );
 }
 
+// ─── SortableVehicleListItem ──────────────────────────────────────────────────
+
+interface SortableVehicleListItemProps extends Omit<VehicleListItemProps, 'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'> {
+  id: string;
+}
+
+function SortableVehicleListItem({ id, ...itemProps }: SortableVehicleListItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(isDragging && 'opacity-40 z-50 relative')}
+    >
+      <VehicleListItem
+        {...itemProps}
+        dragHandleRef={setActivatorNodeRef}
+        dragHandleListeners={listeners as Record<string, unknown>}
+        dragHandleAttributes={attributes as unknown as Record<string, unknown>}
+      />
+    </div>
+  );
+}
+
 // ─── PlanSummaryPanel ─────────────────────────────────────────────────────────
 
 function PlanSummaryPanel() {
@@ -124,17 +217,20 @@ function PlanSummaryPanel() {
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
 
+  // AC4: debounce 200ms so rapid quantity changes don't cause jank
+  const debouncedPlacements = useDebounce(placements, 200);
+
   const stats = useMemo(() => {
     if (!selectedVehicle) return null;
     const vehicleVol = selectedVehicle.width * selectedVehicle.height * selectedVehicle.length;
     const weightMap = new Map(selectedItems.map(({ item }) => [item.id, item.weight]));
-    const cargoVolCm3 = placements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
-    const totalWeight = placements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
+    const cargoVolCm3 = debouncedPlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
+    const totalWeight = debouncedPlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
     const volumePct =
       vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
     const remainingM3 = parseFloat(Math.max(0, (vehicleVol - cargoVolCm3) / 1_000_000).toFixed(2));
-    return { volumePct, totalWeight, remainingM3, placedCount: placements.length };
-  }, [placements, selectedVehicle, selectedItems]);
+    return { volumePct, totalWeight, remainingM3, placedCount: debouncedPlacements.length };
+  }, [debouncedPlacements, selectedVehicle, selectedItems]);
 
   if (!stats) {
     return (
@@ -304,6 +400,56 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const hasAutoClosedRef = useRef(false);
+  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [activeVehicleTypes, setActiveVehicleTypes] = useState<Set<VehicleTypeValue>>(new Set());
+  // Local order state for drag-and-drop (server order is the initial order)
+  const [vehicleOrder, setVehicleOrder] = useState<string[]>([]);
+
+  // Initialize local order when vehicles load; keep in sync when server adds/removes vehicles
+  useEffect(() => {
+    if (vehicles.length === 0) return;
+    const serverIds = vehicles.map((v) => v.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVehicleOrder((prev) => {
+      if (prev.length === 0) return serverIds;
+      const prevSet = new Set(prev);
+      const newIds = serverIds.filter((id) => !prevSet.has(id));
+      const retained = prev.filter((id) => serverIds.includes(id));
+      return [...retained, ...newIds];
+    });
+  }, [vehicles]);
+
+  // Sorted + filtered vehicle list
+  const displayedVehicles = useMemo(() => {
+    const ordered =
+      vehicleOrder.length > 0
+        ? vehicleOrder
+            .map((id) => vehicles.find((v) => v.id === id))
+            .filter((v): v is Vehicle => v !== undefined)
+        : vehicles;
+    return ordered.filter((v) => {
+      if (vehicleSearch.trim() && !v.name.toLowerCase().includes(vehicleSearch.toLowerCase()))
+        return false;
+      if (activeVehicleTypes.size > 0 && !activeVehicleTypes.has(v.vehicleType)) return false;
+      return true;
+    });
+  }, [vehicles, vehicleOrder, vehicleSearch, activeVehicleTypes]);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleVehicleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setVehicleOrder((ids) => {
+      const oldIndex = ids.indexOf(active.id as string);
+      const newIndex = ids.indexOf(over.id as string);
+      return arrayMove(ids, oldIndex, newIndex);
+    });
+  }
 
   useEffect(() => {
     if (!pendingSelectIdRef.current) return;
@@ -338,6 +484,7 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
 
   function handleDeleteVehicle(id: string) {
     if (selectedVehicle?.id === id) setVehicle(null);
+    setVehicleOrder((prev) => prev.filter((oid) => oid !== id));
   }
 
   function handleUpdateVehicle(v: Vehicle) {
@@ -345,9 +492,15 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
     setEditingVehicleId(null);
   }
 
+  // DnD items list (use vehicleOrder IDs for SortableContext)
+  const sortableIds = useMemo(() => {
+    if (vehicleSearch.trim()) return displayedVehicles.map((v) => v.id);
+    return vehicleOrder.length > 0 ? vehicleOrder : vehicles.map((v) => v.id);
+  }, [vehicleOrder, vehicles, vehicleSearch, displayedVehicles]);
+
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* ── Kutu 1: Araçlar — wrapper+toggle birlikte kayar, kutu biraz daha ileri gider */}
+      {/* ── Kutu 1: Araçlar — wrapper+toggle birlikte kayar */}
       <div
         className={cn(
           'relative flex-1 min-h-0',
@@ -355,7 +508,7 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
           !vehiclesOpen && 'translate-x-[calc(100%-0.75rem)]',
         )}
       >
-        {/* Toggle butonu — wrapper ile kayar, ekranın sağ kenarına oturur */}
+        {/* Toggle butonu */}
         {onToggleVehicles && (
           <button
             onClick={onToggleVehicles}
@@ -393,11 +546,101 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
             </Button>
           </div>
 
+          {/* Vehicle search + type filter */}
+          <div className="px-2 pt-2 pb-1 shrink-0 flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <Input
+                value={vehicleSearch}
+                onChange={(e) => setVehicleSearch(e.target.value)}
+                placeholder="Araç adı ile ara…"
+                className="h-7 pl-8 pr-7 text-xs bg-zinc-50 border-zinc-200 focus-visible:ring-1 focus-visible:ring-zinc-300"
+              />
+              {vehicleSearch && (
+                <button
+                  onClick={() => setVehicleSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Vehicle type filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title="Araç tipine göre filtrele"
+                  className={cn(
+                    'h-7 w-7 shrink-0 border-zinc-200',
+                    activeVehicleTypes.size > 0
+                      ? 'bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-700 hover:border-zinc-700'
+                      : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100',
+                  )}
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide py-1">
+                  Araç Tipi
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(Object.entries(VEHICLE_TYPE_META) as [VehicleTypeValue, { label: string; icon: typeof Truck }][]).map(
+                  ([key, meta]) => {
+                    const Icon = meta.icon;
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={activeVehicleTypes.has(key)}
+                        onCheckedChange={(checked: boolean) => {
+                          setActiveVehicleTypes((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(key);
+                            else next.delete(key);
+                            return next;
+                          });
+                        }}
+                        onSelect={(e: Event) => e.preventDefault()}
+                        className="text-xs gap-2"
+                      >
+                        <Icon className="w-3.5 h-3.5 text-zinc-500" />
+                        {meta.label}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  },
+                )}
+                {activeVehicleTypes.size > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <button
+                      onClick={() => setActiveVehicleTypes(new Set())}
+                      className="w-full text-[10px] text-zinc-400 hover:text-zinc-700 px-2 py-1.5 text-left transition-colors"
+                    >
+                      Filtreleri temizle
+                    </button>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
             {vehiclesLoading ? (
               <div className="flex items-center justify-center py-8 text-zinc-400 text-xs">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 Araçlar yükleniyor…
+              </div>
+            ) : displayedVehicles.length === 0 && (vehicleSearch || activeVehicleTypes.size > 0) ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                <Search className="w-6 h-6 text-zinc-200" />
+                <p className="text-xs text-zinc-400">
+                  {vehicleSearch
+                    ? `"${vehicleSearch}" için araç bulunamadı`
+                    : 'Seçili araç tipinde sonuç yok'}
+                </p>
               </div>
             ) : vehicles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
@@ -405,16 +648,25 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
                 <p className="text-xs text-zinc-400">Henüz araç eklenmemiş</p>
               </div>
             ) : (
-              vehicles.map((v) => (
-                <VehicleListItem
-                  key={v.id}
-                  vehicle={v}
-                  isSelected={selectedVehicle?.id === v.id}
-                  onSelect={handleSelectVehicle}
-                  onEdit={handleEditVehicle}
-                  onDelete={handleDeleteVehicle}
-                />
-              ))
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleVehicleDragEnd}
+              >
+                <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                  {displayedVehicles.map((v) => (
+                    <SortableVehicleListItem
+                      key={v.id}
+                      id={v.id}
+                      vehicle={v}
+                      isSelected={selectedVehicle?.id === v.id}
+                      onSelect={handleSelectVehicle}
+                      onEdit={handleEditVehicle}
+                      onDelete={handleDeleteVehicle}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>
