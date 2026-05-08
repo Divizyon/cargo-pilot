@@ -6,13 +6,15 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 interface SearchInputProps {
   onSearch: (debouncedValue: string) => void;
   placeholder?: string;
+  initialValue?: string;
 }
 
 export function SearchInput({
   onSearch,
   placeholder = 'SKU kodu veya ürün adı ile ara...',
+  initialValue = '',
 }: SearchInputProps) {
-  const [rawValue, setRawValue] = useState('');
+  const [rawValue, setRawValue] = useState(initialValue);
   const debouncedValue = useDebounce(rawValue, 350);
 
   // Notify parent when debounced value settles
