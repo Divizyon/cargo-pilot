@@ -22,10 +22,32 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         int pageSize,
         string sortBy,
         bool descending,
+        string? plateNumber = null,
+        IReadOnlyList<Guid>? vehicleIds = null,
+        DateOnly? planDateStart = null,
+        DateOnly? planDateEnd = null,
         CancellationToken cancellationToken = default)
     {
         // Global query filter (!IsDeleted) is applied automatically via EF Core configuration.
         var query = _context.LoadingPlans.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(plateNumber))
+            query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
+
+        if (vehicleIds is { Count: > 0 })
+            query = query.Where(p => vehicleIds.Contains(p.VehicleId));
+
+        if (planDateStart.HasValue)
+        {
+            var start = planDateStart.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAtUtc >= start);
+        }
+
+        if (planDateEnd.HasValue)
+        {
+            var end = planDateEnd.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAtUtc <= end);
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 

@@ -7,4 +7,8 @@ public sealed record GetPlansQuery(
     int Page = 1,
     int PageSize = 20,
     string SortBy = "createdAt",
-    string SortDirection = "desc") : IRequest<Result<PagedResult<PlanSummaryDto>>>;
+    string SortDirection = "desc",
+    string? PlateNumber = null,
+    IReadOnlyList<Guid>? VehicleIds = null,
+    DateOnly? PlanDateStart = null,
+    DateOnly? PlanDateEnd = null) : IRequest<Result<PagedResult<PlanSummaryDto>>>;

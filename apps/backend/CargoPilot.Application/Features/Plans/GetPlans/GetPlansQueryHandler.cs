@@ -39,6 +39,10 @@ public sealed class GetPlansQueryHandler : IRequestHandler<GetPlansQuery, Result
             request.PageSize,
             request.SortBy,
             descending,
+            request.PlateNumber,
+            request.VehicleIds,
+            request.PlanDateStart,
+            request.PlanDateEnd,
             cancellationToken);
 
         return Result<PagedResult<PlanSummaryDto>>.Success(pagedResult);
