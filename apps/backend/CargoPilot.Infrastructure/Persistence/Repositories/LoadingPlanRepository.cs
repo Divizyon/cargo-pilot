@@ -1,5 +1,6 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Domain.Entities;
@@ -59,6 +60,56 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .ToListAsync(cancellationToken);
 
         return new PagedResult<PlanSummaryDto>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<PagedResult<LoadingPlanReportDto>> GetPagedReportsAsync(
+        int page,
+        int pageSize,
+        DateTime? startDate,
+        DateTime? endDate,
+        Guid? vehicleId,
+        decimal? minFillRate,
+        decimal? maxFillRate,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.LoadingPlans
+            .AsNoTracking()
+            .Include(p => p.Vehicle)
+            .AsQueryable();
+
+        if (startDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
+
+        if (vehicleId.HasValue)
+            query = query.Where(p => p.VehicleId == vehicleId.Value);
+
+        if (minFillRate.HasValue)
+            query = query.Where(p => p.FillRate >= minFillRate.Value);
+
+        if (maxFillRate.HasValue)
+            query = query.Where(p => p.FillRate <= maxFillRate.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new LoadingPlanReportDto(
+                p.Id,
+                p.PlanName,
+                p.CreatedAtUtc,
+                p.Vehicle.PlateNumber,
+                p.FillRate,
+                p.OptimizationStatus,
+                p.ReportId,
+                p.ReportUrl))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<LoadingPlanReportDto>(items, totalCount, page, pageSize);
     }
 
     public async Task<PlanDetailDto?> GetDetailByIdAsync(

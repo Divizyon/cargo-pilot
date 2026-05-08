@@ -1,5 +1,6 @@
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
+using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
@@ -109,6 +110,24 @@ public sealed class PlansController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new UpdatePlanNameCommand(id, request.PlanName), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Geçmiş yükleme planı raporlarını filtreli ve sayfalı listeler.
+    /// </summary>
+    /// <param name="query">Tarih aralığı, araç, doluluk oranı ve sayfalama parametreleri.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Rapor listesi sayfalı döner; sonuç yoksa boş liste ile totalCount=0 döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    [HttpGet("reports")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetReports(
+        [FromQuery] GetLoadingPlanReportsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }
 
