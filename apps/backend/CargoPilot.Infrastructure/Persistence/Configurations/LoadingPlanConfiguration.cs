@@ -73,6 +73,9 @@ internal sealed class LoadingPlanConfiguration : IEntityTypeConfiguration<Loadin
         builder.Property(plan => plan.CenterOfGravityZ)
             .HasPrecision(18, 4);
 
+        builder.Property(plan => plan.ReportUrl)
+            .HasMaxLength(2048);
+
         builder.Property(plan => plan.CompanyId);
 
         builder.HasOne(plan => plan.Vehicle)

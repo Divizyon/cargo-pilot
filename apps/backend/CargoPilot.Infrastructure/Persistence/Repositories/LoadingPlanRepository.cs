@@ -74,7 +74,6 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     {
         var query = _context.LoadingPlans
             .AsNoTracking()
-            .Include(p => p.Vehicle)
             .AsQueryable();
 
         if (startDate.HasValue)
