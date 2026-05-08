@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Vehicles.UpsertVehicleFromErp;
 using CargoPilot.Application.Features.Vehicles.AddVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.CreateVehicle;
 using CargoPilot.Application.Features.Vehicles.DeleteVehicle;
@@ -18,10 +19,12 @@ namespace CargoPilot.WebAPI.Controllers;
 [Route("api/v1/vehicles")]
 [Tags("Vehicles")]
 [Authorize]
-public sealed class VehiclesController : BaseController {
+public sealed class VehiclesController : BaseController
+{
     private readonly IMediator _mediator;
 
-    public VehiclesController(IMediator mediator) {
+    public VehiclesController(IMediator mediator)
+    {
         _mediator = mediator;
     }
 
@@ -49,7 +52,8 @@ public sealed class VehiclesController : BaseController {
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] bool isExport = false,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var query = new SearchVehiclesQuery(
             SearchTerm: searchTerm,
             VehicleType: vehicleType,
@@ -76,7 +80,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateVehicleRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new CreateVehicleCommand(
             request.VehicleName,
             request.Description,
@@ -121,7 +126,8 @@ public sealed class VehiclesController : BaseController {
     public async Task<IActionResult> Update(
         [FromRoute] Guid id,
         [FromBody] UpdateVehicleRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new UpdateVehicleCommand(
             id,
             request.VehicleName,
@@ -162,7 +168,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new DeleteVehicleCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -182,7 +189,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddFavorite(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new AddVehicleFavoriteCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -200,7 +208,8 @@ public sealed class VehiclesController : BaseController {
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveFavorite(
         [FromRoute] Guid id,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new RemoveVehicleFavoriteCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
@@ -224,11 +233,55 @@ public sealed class VehiclesController : BaseController {
     public async Task<IActionResult> Duplicate(
         [FromRoute] Guid id,
         [FromBody] DuplicateVehicleRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         var command = new DuplicateVehicleCommand(id, request.VehicleName, request.PlateNumber);
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
+        return HandleResult(result);
+    }
+    /// <summary>
+    /// ERP'den gelen araç verisini upsert eder (yeni oluşturur veya günceller).
+    /// </summary>
+    /// <param name="request">ERP araç bilgileri.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç güncellendi; ID döner.</response>
+    /// <response code="201">Araç oluşturuldu; ID döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    [HttpPost("erp-upsert")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpsertFromErp(
+        [FromBody] UpsertVehicleFromErpRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpsertVehicleFromErpCommand(
+            request.ErpId,
+            request.IntegrationId,
+            request.VehicleName,
+            request.VehicleType,
+            request.PlateNumber,
+            request.InternalWidth,
+            request.InternalHeight,
+            request.InternalLength,
+            request.MaxWeightCapacity,
+            request.LayerCount,
+            request.LoadingType,
+            request.CompanyId,
+            request.Description,
+            request.KingPinDistanceMm,
+            request.KingPinTareWeightKg,
+            request.KingPinMaxLoadKg,
+            request.MainAxleDistanceMm,
+            request.MainAxleTareWeightKg,
+            request.MainAxleMaxLoadKg,
+            request.AdditionalAxleDistanceMm,
+            request.AdditionalAxleTareWeightKg,
+            request.AdditionalAxleMaxLoadKg);
+
+        var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
 }

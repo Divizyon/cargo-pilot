@@ -27,4 +27,6 @@ public sealed record VehicleSummaryDto(
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
     decimal? AdditionalAxleMaxLoadKg,
-    AuditUserDto? LastModifiedBy);
+    AuditUserDto? LastModifiedBy,
+    string? ErpId,
+    Guid? IntegrationId);
