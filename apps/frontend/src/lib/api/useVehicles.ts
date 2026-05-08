@@ -152,10 +152,16 @@ export function useVehicles(filters?: VehicleFilters) {
       const rawItems = raw?.items;
       const totalCount = (raw?.totalCount as number) ?? 0;
       if (!Array.isArray(rawItems)) return { items: [], totalCount };
-      return {
-        items: rawItems.map((item) => fromApiVehicleListItem(vehicleListApiItemSchema.parse(item))),
-        totalCount,
-      };
+      const validItems: Vehicle[] = [];
+      for (const item of rawItems) {
+        const result = vehicleListApiItemSchema.safeParse(item);
+        if (result.success) {
+          validItems.push(fromApiVehicleListItem(result.data));
+        } else {
+          console.error('[useVehicles] tenant veri doğrulama hatası — öğe göz ardı edildi', result.error);
+        }
+      }
+      return { items: validItems, totalCount };
     },
     staleTime: 5 * 60 * 1000,
     select: (data): VehiclesPage => ({
