@@ -13,6 +13,7 @@ public interface ILoadingPlanRepository
         int pageSize,
         string sortBy,
         bool descending,
+        Guid? companyId,
         string? plateNumber = null,
         IReadOnlyList<Guid>? vehicleIds = null,
         DateOnly? planDateStart = null,
@@ -21,6 +22,7 @@ public interface ILoadingPlanRepository
 
     Task<PlanDetailDto?> GetDetailByIdAsync(
         Guid id,
+        Guid? companyId,
         CancellationToken cancellationToken = default);
 
     Task<PagedResult<LoadingPlanReportDto>> GetPagedReportsAsync(
@@ -31,9 +33,10 @@ public interface ILoadingPlanRepository
         Guid? vehicleId,
         decimal? minFillRate,
         decimal? maxFillRate,
+        Guid? companyId,
         CancellationToken cancellationToken = default);
 
-    Task<LoadingPlan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
 
     void Add(LoadingPlan plan);
 

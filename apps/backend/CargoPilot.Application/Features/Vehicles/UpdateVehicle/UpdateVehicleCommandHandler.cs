@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using FluentValidation;
@@ -7,12 +8,15 @@ namespace CargoPilot.Application.Features.Vehicles.UpdateVehicle;
 
 public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand, Result<Guid>> {
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<UpdateVehicleCommand> _validator;
 
     public UpdateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
+        ICurrentUserService currentUserService,
         IValidator<UpdateVehicleCommand> validator) {
         _vehicleRepository = vehicleRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -26,14 +30,16 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var vehicle = await _vehicleRepository.GetByIdAsync(request.Id, cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+
+        var vehicle = await _vehicleRepository.GetByIdAsync(request.Id, companyId, cancellationToken);
         if (vehicle is null)
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
         if (!string.Equals(vehicle.PlateNumber, request.PlateNumber, StringComparison.OrdinalIgnoreCase)) {
             var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
-                request.PlateNumber, vehicle.CompanyId, request.Id, cancellationToken);
+                request.PlateNumber, companyId, request.Id, cancellationToken);
             if (plateExists)
                 return Result<Guid>.Failure(
                     new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));

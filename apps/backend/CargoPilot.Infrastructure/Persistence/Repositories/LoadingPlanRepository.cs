@@ -22,14 +22,15 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         int pageSize,
         string sortBy,
         bool descending,
+        Guid? companyId,
         string? plateNumber = null,
         IReadOnlyList<Guid>? vehicleIds = null,
         DateOnly? planDateStart = null,
         DateOnly? planDateEnd = null,
         CancellationToken cancellationToken = default)
     {
-        // Global query filter (!IsDeleted) is applied automatically via EF Core configuration.
-        var query = _context.LoadingPlans.AsNoTracking();
+        var query = _context.LoadingPlans.AsNoTracking()
+            .Where(p => p.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(plateNumber))
             query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
@@ -92,10 +93,12 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         Guid? vehicleId,
         decimal? minFillRate,
         decimal? maxFillRate,
+        Guid? companyId,
         CancellationToken cancellationToken = default)
     {
         var query = _context.LoadingPlans
             .AsNoTracking()
+            .Where(p => p.CompanyId == companyId)
             .AsQueryable();
 
         if (startDate.HasValue)
@@ -135,16 +138,13 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
 
     public async Task<PlanDetailDto?> GetDetailByIdAsync(
         Guid id,
+        Guid? companyId,
         CancellationToken cancellationToken = default)
     {
-        // LoadingPlan has no collection navigation properties (WithMany() without inverse nav).
-        // We run four focused queries and assemble the DTO here.
-        // All global query filters (!IsDeleted) apply automatically on each query.
-
         var plan = await _context.LoadingPlans
             .AsNoTracking()
             .Include(p => p.Vehicle)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
         if (plan is null) return null;
 
@@ -253,9 +253,9 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             inputItemDtos);
     }
 
-    public async Task<LoadingPlan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
         => await _context.LoadingPlans
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
     public void Add(LoadingPlan plan) => _context.LoadingPlans.Add(plan);
 
