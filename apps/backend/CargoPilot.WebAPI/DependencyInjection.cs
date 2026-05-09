@@ -89,6 +89,22 @@ public static class DependencyInjection {
                         QueueLimit        = 0,
                     }));
         });
+        var corsOrigins = Enumerable.Range(1, 10)
+            .Select(i => configuration[$"CORS_ALLOWED_ORIGIN_{i}"])
+            .Where(o => !string.IsNullOrWhiteSpace(o))
+            .ToArray();
+
+        services.AddCors(options => {
+            options.AddDefaultPolicy(builder => {
+                if (corsOrigins.Length > 0)
+                    builder.WithOrigins(corsOrigins!).AllowCredentials();
+                else
+                    builder.AllowAnyOrigin();
+
+                builder.AllowAnyMethod().AllowAnyHeader();
+            });
+        });
+
 
         services.AddTransient<GlobalExceptionMiddleware>();
 
@@ -239,6 +255,7 @@ public static class DependencyInjection {
     public static WebApplication UsePresentation(this WebApplication app)
     {
         app.UseRouting();
+        app.UseCors();
         app.UseRateLimiter();
         app.UseMiddleware<GlobalExceptionMiddleware>();
 

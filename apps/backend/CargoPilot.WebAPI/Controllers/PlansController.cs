@@ -97,8 +97,7 @@ public sealed class PlansController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(command, cancellationToken);
-        if (!result.IsSuccess) return HandleResult(result);
-        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result);
+        return HandleResult(result);
     }
 
     /// <summary>
