@@ -1,0 +1,31 @@
+using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
+
+namespace CargoPilot.Application.Common.Interfaces;
+
+public interface INotificationRepository
+{
+    // Returns up to PageSize+1 items; caller checks count > PageSize to determine hasMore.
+    Task<IReadOnlyList<Notification>> GetPagedAsync(
+        Guid userId,
+        DateTime? cursor,
+        NotificationType? type,
+        NotificationSeverity? severity,
+        bool? isRead,
+        string? searchText,
+        CancellationToken cancellationToken = default);
+
+    Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<Notification?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+
+    Task MarkAsReadAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+
+    Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task SoftDeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+
+    Task BulkSoftDeleteAsync(IEnumerable<Guid> ids, Guid userId, CancellationToken cancellationToken = default);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+}
