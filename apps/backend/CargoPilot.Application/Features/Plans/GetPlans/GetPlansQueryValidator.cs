@@ -31,5 +31,23 @@ public sealed class GetPlansQueryValidator : AbstractValidator<GetPlansQuery>
                     || string.Equals(d, "desc", StringComparison.OrdinalIgnoreCase))
                 .WithErrorCode("PLAN_LIST_SORTDIR_INVALID")
                 .WithMessage("Sıralama yönü 'asc' veya 'desc' olmalıdır.");
+
+        RuleFor(x => x.PlateNumber)
+            .MaximumLength(20)
+                .WithErrorCode("PLAN_LIST_PLATENUMBER_MAXLENGTH")
+                .WithMessage("Plaka filtresi en fazla 20 karakter olabilir.")
+            .When(x => x.PlateNumber is not null);
+
+        RuleFor(x => x.VehicleIds)
+            .Must(ids => ids!.Count <= 50)
+                .WithErrorCode("PLAN_LIST_VEHICLEIDS_MAXCOUNT")
+                .WithMessage("VehicleIds filtresi en fazla 50 araç ID'si içerebilir.")
+            .When(x => x.VehicleIds is { Count: > 0 });
+
+        RuleFor(x => x.PlanDateStart)
+            .LessThanOrEqualTo(x => x.PlanDateEnd!.Value)
+                .WithErrorCode("PLAN_LIST_DATERANGE_INVALID")
+                .WithMessage("Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            .When(x => x.PlanDateStart.HasValue && x.PlanDateEnd.HasValue);
     }
 }

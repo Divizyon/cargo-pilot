@@ -14,6 +14,10 @@ public interface ILoadingPlanRepository
         string sortBy,
         bool descending,
         Guid? companyId,
+        string? plateNumber = null,
+        IReadOnlyList<Guid>? vehicleIds = null,
+        DateOnly? planDateStart = null,
+        DateOnly? planDateEnd = null,
         CancellationToken cancellationToken = default);
 
     Task<PlanDetailDto?> GetDetailByIdAsync(
