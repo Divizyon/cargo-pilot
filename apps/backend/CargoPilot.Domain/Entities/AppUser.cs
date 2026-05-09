@@ -2,18 +2,48 @@ using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Domain.Entities;
 
+/// <summary>
+/// Represents an application user in the system.
+/// </summary>
 public sealed class AppUser : BaseEntity {
     private const int _maxFailedAttempts = 5;
     private const int _lockoutDurationMinutes = 15;
 
+    /// <summary>
+    /// Gets the company identifier associated with the user.
+    /// </summary>
     public Guid? CompanyId { get; private set; }
+    /// <summary>
+    /// Gets the user's first name.
+    /// </summary>
     public string FirstName { get; private set; } = null!;
+    /// <summary>
+    /// Gets the user's last name.
+    /// </summary>
     public string LastName { get; private set; } = null!;
+    /// <summary>
+    /// Gets the user's email address.
+    /// </summary>
     public string Email { get; private set; } = null!;
+    /// <summary>
+    /// Gets the user's password hash for local authentication.
+    /// </summary>
     public string? PasswordHash { get; private set; }
+    /// <summary>
+    /// Gets the user type.
+    /// </summary>
     public UserType UserType { get; private set; }
+    /// <summary>
+    /// Gets the user identifier in an external system.
+    /// </summary>
     public string? ExternalSystemId { get; private set; }
+    /// <summary>
+    /// Gets the authentication provider for the user.
+    /// </summary>
     public AuthProvider AuthProvider { get; private set; }
+    /// <summary>
+    /// Gets the number of consecutive failed login attempts.
+    /// </summary>
     public int FailedLoginAttempts { get; private set; }
     public DateTime? LockoutEndUtc { get; private set; }
     public bool TourCompleted { get; private set; }
