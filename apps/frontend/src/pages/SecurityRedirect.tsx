@@ -32,10 +32,7 @@ export function SecurityRedirect() {
               <Alert variant="destructive">
                 <AlertDescription>Bu bağlantı artık geçerli değil.</AlertDescription>
               </Alert>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/auth/login', { replace: true })}
-              >
+              <Button variant="outline" onClick={() => navigate('/auth/login', { replace: true })}>
                 Giriş sayfasına dön
               </Button>
             </>

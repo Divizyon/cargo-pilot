@@ -278,9 +278,7 @@ export function useRevokeAllSessions() {
 
   return useMutation<void, AxiosError, RevokeAllSessionsPayload>({
     mutationFn: ({ token }) =>
-      axiosInstance
-        .post<void>(AUTH_ENDPOINTS.revokeAllSessions, { token })
-        .then((r) => r.data),
+      axiosInstance.post<void>(AUTH_ENDPOINTS.revokeAllSessions, { token }).then((r) => r.data),
     onSuccess: () => {
       useAuthStore.getState().clearAuth();
       queryClient.clear();
