@@ -21,8 +21,10 @@ internal sealed class VehicleRepository : IVehicleRepository {
         IReadOnlyList<Guid>? favoriteIds,
         int page,
         int pageSize,
+        Guid? companyId,
         CancellationToken cancellationToken = default) {
-        var query = _context.Vehicles.AsNoTracking();
+        var query = _context.Vehicles.AsNoTracking()
+            .Where(v => v.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm)) {
             var term = searchTerm.Trim();
@@ -57,9 +59,9 @@ internal sealed class VehicleRepository : IVehicleRepository {
         return new PagedResult<Vehicle>(items, totalCount, page, pageSize);
     }
 
-    public async Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) {
+    public async Task<Vehicle?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default) {
         return await _context.Vehicles
-            .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId, cancellationToken);
     }
 
     public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {

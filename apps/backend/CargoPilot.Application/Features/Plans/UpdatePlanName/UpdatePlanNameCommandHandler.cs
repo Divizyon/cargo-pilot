@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using FluentValidation;
@@ -8,13 +9,16 @@ namespace CargoPilot.Application.Features.Plans.UpdatePlanName;
 public sealed class UpdatePlanNameCommandHandler : IRequestHandler<UpdatePlanNameCommand, Result<Guid>>
 {
     private readonly ILoadingPlanRepository _planRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<UpdatePlanNameCommand> _validator;
 
     public UpdatePlanNameCommandHandler(
         ILoadingPlanRepository planRepository,
+        ICurrentUserService currentUserService,
         IValidator<UpdatePlanNameCommand> validator)
     {
         _planRepository = planRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -30,7 +34,7 @@ public sealed class UpdatePlanNameCommandHandler : IRequestHandler<UpdatePlanNam
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var plan = await _planRepository.GetByIdAsync(request.Id, cancellationToken);
+        var plan = await _planRepository.GetByIdAsync(request.Id, _currentUserService.CompanyId, cancellationToken);
         if (plan is null)
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Plan.NotFound", "Yükleme planı bulunamadı."));
