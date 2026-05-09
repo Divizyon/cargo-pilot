@@ -1,6 +1,7 @@
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Me.GetMyProfile;
 using CargoPilot.Application.Features.Me.UpdateMyProfile;
+using CargoPilot.Application.Features.Me.UpdateTourCompleted;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +39,20 @@ public sealed class MeController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateProfile(
         [FromBody] UpdateMyProfileCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>Giriş yapmış kullanıcının tur tamamlama durumunu günceller.</summary>
+    [HttpPatch("tour-completed")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateTourCompleted(
+        [FromBody] UpdateTourCompletedCommand command,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);

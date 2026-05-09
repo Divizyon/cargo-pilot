@@ -1,6 +1,9 @@
 import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
+import type { ProductType } from '@/lib/types/item';
+
+const CYLINDER_SEGMENTS = 16;
 
 interface BoxWrapperProps {
   width: number;
@@ -17,6 +20,7 @@ interface BoxWrapperProps {
   isSelected?: boolean;
   isHidden?: boolean;
   isGhosted?: boolean;
+  productType?: ProductType;
 }
 
 export function BoxWrapper({
@@ -34,17 +38,27 @@ export function BoxWrapper({
   isSelected = false,
   isHidden = false,
   isGhosted = false,
+  productType,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
   const cz = positionZ + depth / 2;
 
+  const isVaril = productType === 'varil';
+  const radius = Math.min(width, depth) / 2;
+
   const edgesGeo = useMemo(() => {
+    if (isVaril) {
+      const cyl = new THREE.CylinderGeometry(radius, radius, height, CYLINDER_SEGMENTS);
+      const edges = new THREE.EdgesGeometry(cyl);
+      cyl.dispose();
+      return edges;
+    }
     const box = new THREE.BoxGeometry(width, height, depth);
     const edges = new THREE.EdgesGeometry(box);
     box.dispose();
     return edges;
-  }, [width, height, depth]);
+  }, [isVaril, radius, width, height, depth]);
 
   useEffect(
     () => () => {
@@ -69,7 +83,11 @@ export function BoxWrapper({
     >
       {!isGhosted && (
         <mesh>
-          <boxGeometry args={[width, height, depth]} />
+          {isVaril ? (
+            <cylinderGeometry args={[radius, radius, height, CYLINDER_SEGMENTS]} />
+          ) : (
+            <boxGeometry args={[width, height, depth]} />
+          )}
           <meshStandardMaterial
             color={color}
             transparent

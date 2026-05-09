@@ -23,10 +23,32 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         string sortBy,
         bool descending,
         Guid? companyId,
+        string? plateNumber = null,
+        IReadOnlyList<Guid>? vehicleIds = null,
+        DateOnly? planDateStart = null,
+        DateOnly? planDateEnd = null,
         CancellationToken cancellationToken = default)
     {
         var query = _context.LoadingPlans.AsNoTracking()
             .Where(p => p.CompanyId == companyId);
+
+        if (!string.IsNullOrWhiteSpace(plateNumber))
+            query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
+
+        if (vehicleIds is { Count: > 0 })
+            query = query.Where(p => vehicleIds.Contains(p.VehicleId));
+
+        if (planDateStart.HasValue)
+        {
+            var start = planDateStart.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAtUtc >= start);
+        }
+
+        if (planDateEnd.HasValue)
+        {
+            var end = planDateEnd.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAtUtc <= end);
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 

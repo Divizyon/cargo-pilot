@@ -26,13 +26,18 @@ public sealed class PlansController : BaseController
     }
 
     /// <summary>
-    /// Yükleme planlarını sayfalı ve sıralı listeler.
+    /// Yükleme planlarını sayfalı, sıralı ve filtrelenmiş listeler.
     /// Dashboard için örnek: ?pageSize=7&amp;sortBy=createdAt&amp;sortDirection=desc
+    /// Filtre örneği: ?plateNumber=34&amp;vehicleIds=guid1&amp;vehicleIds=guid2&amp;planDateStart=2025-01-01&amp;planDateEnd=2025-12-31
     /// </summary>
     /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
     /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20).</param>
     /// <param name="sortBy">Sıralama alanı: createdAt, planName, fillRate, optimizationStatus (varsayılan: createdAt).</param>
     /// <param name="sortDirection">Sıralama yönü: asc veya desc (varsayılan: desc).</param>
+    /// <param name="plateNumber">Araç plakasında serbest metin araması (opsiyonel).</param>
+    /// <param name="vehicleIds">Belirli araçlara göre çoklu filtre (opsiyonel).</param>
+    /// <param name="planDateStart">Plan oluşturma tarihi başlangıcı, dahil (opsiyonel).</param>
+    /// <param name="planDateEnd">Plan oluşturma tarihi bitişi, dahil (opsiyonel).</param>
     /// <param name="cancellationToken">İptal token'ı.</param>
     /// <response code="200">Plan listesi sayfalı döner.</response>
     /// <response code="400">Doğrulama hatası.</response>
@@ -44,9 +49,14 @@ public sealed class PlansController : BaseController
         [FromQuery] int pageSize = 20,
         [FromQuery] string sortBy = "createdAt",
         [FromQuery] string sortDirection = "desc",
+        [FromQuery] string? plateNumber = null,
+        [FromQuery] List<Guid>? vehicleIds = null,
+        [FromQuery] DateOnly? planDateStart = null,
+        [FromQuery] DateOnly? planDateEnd = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetPlansQuery(page, pageSize, sortBy, sortDirection);
+        var query = new GetPlansQuery(page, pageSize, sortBy, sortDirection,
+            plateNumber, vehicleIds?.AsReadOnly(), planDateStart, planDateEnd);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }
