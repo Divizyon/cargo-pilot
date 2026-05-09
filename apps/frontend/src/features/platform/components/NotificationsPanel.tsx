@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -110,7 +110,8 @@ function NotificationItem({ notification: n }: NotificationItemProps) {
   const { mutate: deleteNotification } = useDeleteNotification();
 
   const Icon = TYPE_ICON[n.type] ?? Bell;
-  const badgeClass = SEVERITY_BADGE[n.severity] ?? 'border border-border bg-muted text-muted-foreground';
+  const badgeClass =
+    SEVERITY_BADGE[n.severity] ?? 'border border-border bg-muted text-muted-foreground';
 
   function handleActionClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -220,10 +221,7 @@ export function NotificationsPanel() {
 
   const { mutate: markAllRead, isPending: isMarkingAll } = useMarkAllNotificationsRead();
 
-  const notifications = useMemo(
-    () => data?.pages.flatMap((p) => p.items) ?? [],
-    [data],
-  );
+  const notifications = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
 
   const totalUnread = data?.pages[0]?.totalUnread ?? 0;
   const isEmpty = !isLoading && notifications.length === 0;

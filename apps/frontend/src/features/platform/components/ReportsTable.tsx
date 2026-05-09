@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
@@ -82,7 +82,10 @@ function fillRateColor(rate: number) {
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-const STATUS_MAP: Record<number, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+const STATUS_MAP: Record<
+  number,
+  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+> = {
   0: { label: 'Taslak', variant: 'secondary' },
   1: { label: 'Aktif', variant: 'default' },
   2: { label: 'Tamamlandı', variant: 'outline' },
