@@ -1,14 +1,33 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ChevronLeft, Package2, Truck } from 'lucide-react';
+import {
+  ChevronRight,
+  Home,
+  Settings,
+  Search,
+  Zap,
+  Package,
+  BarChart3,
+  Scale,
+  Layers3,
+  Box,
+  AlertCircle,
+  RotateCcw,
+  MoveHorizontal,
+  ArrowUpDown,
+  Copy,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
-import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
+import type { LoadingPlanListItem, PlanProductGroup, PlanProductItem } from '@/lib/types/loadingPlan';
+import { SharePlanDropdown } from '@/features/planning/components/SharePlanDropdown';
 import { cn } from '@/lib/utils';
-import { ProductGroupBlock } from '@/features/planning/components/ProductGroupBlock';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,7 +51,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
   [PlanStatus.Taslak]: {
     label: 'Taslak',
-    className: 'bg-zinc-50 text-zinc-600 border-zinc-200',
+    className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
   },
   [PlanStatus.Iptal]: {
     label: 'İptal',
@@ -40,161 +59,433 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
 };
 
-// ─── TruncatedPlanName ────────────────────────────────────────────────────────
+// ─── Tab types ────────────────────────────────────────────────────────────────
 
-interface TruncatedPlanNameProps {
-  name: string;
-  className?: string;
+type PlanTab = 'cargo' | 'equipment' | 'rules' | '3d-planner';
+
+const PLAN_TABS: { id: PlanTab; label: string; step: number }[] = [
+  { id: 'cargo', label: 'Kargo', step: 1 },
+  { id: 'equipment', label: 'Ekipman', step: 2 },
+  { id: 'rules', label: 'Kurallar', step: 3 },
+  { id: '3d-planner', label: '3D Planlayıcı', step: 4 },
+];
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+interface UtilizationCardProps {
+  icon: React.ReactNode;
+  label: string;
+  pct: number;
+  loadedLabel: string;
+  loadedValue: string;
+  remainingLabel: string;
+  remainingValue: string;
 }
 
-function TruncatedPlanName({ name, className }: TruncatedPlanNameProps) {
-  const shouldTruncate = name.length > 60;
-  const displayName = shouldTruncate ? name.slice(0, 60) + '…' : name;
-
-  if (!shouldTruncate) {
-    return <span className={className}>{name}</span>;
-  }
+function UtilizationCard({
+  icon,
+  label,
+  pct,
+  loadedLabel,
+  loadedValue,
+  remainingLabel,
+  remainingValue,
+}: UtilizationCardProps) {
+  const isHigh = pct >= 85;
+  const isMed = pct >= 60 && pct < 85;
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={cn('cursor-default', className)}>{displayName}</span>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-sm break-words">{name}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3 flex flex-col gap-2 min-w-0">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-500">{label}</span>
+        <span className="text-zinc-300">{icon}</span>
+      </div>
+      <p
+        className={cn(
+          'text-2xl font-bold leading-none',
+          isHigh ? 'text-emerald-600' : isMed ? 'text-yellow-600' : 'text-zinc-900',
+        )}
+      >
+        {pct.toFixed(1)}%
+      </p>
+      <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+        <div
+          className={cn(
+            'h-full rounded-full',
+            isHigh ? 'bg-emerald-500' : isMed ? 'bg-yellow-400' : 'bg-zinc-400',
+          )}
+          style={{ width: `${Math.min(pct, 100)}%` }}
+        />
+      </div>
+      <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+        <span>
+          {loadedLabel}: <span className="font-medium text-zinc-700">{loadedValue}</span>
+        </span>
+        <span>
+          {remainingLabel}: <span className="font-medium text-zinc-700">{remainingValue}</span>
+        </span>
+      </div>
+    </div>
   );
 }
 
-// ─── VehicleCard ──────────────────────────────────────────────────────────────
-
-interface VehicleCardProps {
-  plan: LoadingPlanListItem;
-  index: number;
+interface InfoCardProps {
+  icon: React.ReactNode;
+  label: string;
+  primary: string;
+  children?: React.ReactNode;
 }
 
-function VehicleCard({ plan, index }: VehicleCardProps) {
-  const isContainer =
-    plan.vehicleName.toLowerCase().includes('konteyner') ||
-    plan.vehicleName.toLowerCase().includes('ft');
-  const date = formatPlanDate(plan.plannedAt ?? plan.createdAt);
+function InfoCard({ icon, label, primary, children }: InfoCardProps) {
+  return (
+    <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3 flex flex-col gap-2 min-w-0">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-500">{label}</span>
+        <span className="text-zinc-300">{icon}</span>
+      </div>
+      <p className="text-2xl font-bold leading-none text-zinc-900">{primary}</p>
+      {children && <div className="text-[11px] text-zinc-500 space-y-0.5">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Three.js Placeholder ─────────────────────────────────────────────────────
+
+interface ThreeDPlaceholderProps {
+  label: string;
+}
+
+function ThreeDPlaceholder({ label }: ThreeDPlaceholderProps) {
+  return (
+    <div className="w-full h-[220px] rounded-lg bg-zinc-50 border border-dashed border-zinc-300 flex flex-col items-center justify-center gap-2 select-none">
+      <Box className="w-8 h-8 text-zinc-300" strokeWidth={1.5} />
+      <span className="text-xs text-zinc-400 font-medium">{label} — 3D Görünüm</span>
+      <span className="text-[10px] text-zinc-300">Three.js canvas buraya gelecek</span>
+    </div>
+  );
+}
+
+// ─── Constraint icons ─────────────────────────────────────────────────────────
+
+const CONSTRAINT_ICON_MAP: Record<string, React.ReactNode> = {
+  fragile: <AlertCircle className="w-3 h-3 text-rose-500" />,
+  liquid: <RotateCcw className="w-3 h-3 text-blue-500" />,
+  bottom_only: <ArrowUpDown className="w-3 h-3 text-amber-500" />,
+  no_rotate: <MoveHorizontal className="w-3 h-3 text-zinc-500" />,
+  heavy_side: <Scale className="w-3 h-3 text-purple-500" />,
+  hazmat: <AlertCircle className="w-3 h-3 text-orange-500" />,
+};
+
+// ─── Product row ──────────────────────────────────────────────────────────────
+
+interface ContainerProductRowProps {
+  product: PlanProductItem;
+}
+
+function ContainerProductRow({ product }: ContainerProductRowProps) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 rounded-md transition-colors">
+      <span className="w-2 h-2 rounded-full bg-zinc-300 shrink-0" />
+      <span className="flex-1 text-xs text-zinc-700 truncate">
+        {product.name}{' '}
+        <span className="text-zinc-400">x{product.quantity}</span>
+      </span>
+      <div className="flex items-center gap-1 shrink-0">
+        <Scale className="w-3 h-3 text-zinc-400" />
+        <span className="text-[10px] text-zinc-400">{product.unitWeightKg} kg</span>
+        <Layers3 className="w-3 h-3 text-zinc-400 ml-1" />
+        <span className="text-[10px] text-zinc-400">{product.layerCount}</span>
+        {product.constraints.map((c) => (
+          <span key={c} title={c}>
+            {CONSTRAINT_ICON_MAP[c] ?? null}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Container Panel ──────────────────────────────────────────────────────────
+
+interface ContainerPanelProps {
+  plan: LoadingPlanListItem;
+  index: number;
+  productGroups: PlanProductGroup[];
+  cogText: string;
+}
+
+function ContainerPanel({ plan, index, productGroups, cogText }: ContainerPanelProps) {
+  const [activeGroup, setActiveGroup] = useState(productGroups[0]?.id ?? '');
   const statusCfg = STATUS_CONFIG[plan.status] ?? STATUS_CONFIG[PlanStatus.Taslak];
 
-  const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
+  const selectedGroup = productGroups.find((g) => g.id === activeGroup) ?? productGroups[0];
 
   return (
-    <div className="space-y-3">
-      {/* Card header: sequence number, vehicle name, date */}
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-zinc-900 text-white text-[10px] font-semibold shrink-0">
-          {index}
-        </span>
-        <span className="text-sm font-medium text-zinc-800 truncate">{plan.vehicleName}</span>
-        {plan.vehiclePlate && (
-          <span className="text-xs text-zinc-400 shrink-0">{plan.vehiclePlate}</span>
-        )}
-        <span className="text-xs text-zinc-400 shrink-0 ml-auto">{date}</span>
-      </div>
+    <div className="flex-1 min-w-0 flex flex-col gap-2">
+      {/* 3D Viewport placeholder */}
+      <ThreeDPlaceholder label={plan.vehicleName} />
 
-      {/* Vehicle stats card */}
-      <div className="bg-white rounded-xl border border-zinc-200 p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
-            {isContainer ? (
-              <Package2 className="w-4 h-4 text-zinc-500" strokeWidth={2} />
-            ) : (
-              <Truck className="w-4 h-4 text-zinc-500" strokeWidth={2} />
-            )}
-          </div>
+      {/* CoG indicator */}
+      <p className="text-[11px] font-medium text-amber-600 px-1">{cogText}</p>
+
+      {/* Container header row */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-100">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-zinc-900 text-white text-[10px] font-bold shrink-0">
+            {index}
+          </span>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-medium text-zinc-800">{plan.vehicleName}</p>
-              <span
+            <p className="text-sm font-semibold text-zinc-800 truncate">{plan.vehicleName}</p>
+            <p className="text-[10px] text-zinc-400">{plan.planCode}</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={cn(
+                'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border',
+                statusCfg.className,
+              )}
+            >
+              Hacim: {plan.volumeFillPercentage.toFixed(0)}%
+            </span>
+            <span
+              className={cn(
+                'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border',
+                statusCfg.className,
+              )}
+            >
+              Ağırlık: {plan.fillPercentage.toFixed(0)}%
+            </span>
+          </div>
+        </div>
+
+        {/* Group tabs */}
+        {productGroups.length > 0 && (
+          <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-100 overflow-x-auto">
+            {productGroups.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setActiveGroup(g.id)}
                 className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border',
-                  statusCfg.className,
+                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors shrink-0',
+                  activeGroup === g.id
+                    ? 'bg-zinc-900 text-white'
+                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100',
                 )}
               >
-                {statusCfg.label}
-              </span>
-            </div>
-            <p className="text-xs text-zinc-400 mt-0.5">{plan.planCode}</p>
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: g.color }}
+                />
+                {g.name}
+              </button>
+            ))}
           </div>
-        </div>
+        )}
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCell label="Ürün Sayısı" value={`${plan.productCount} adet`} />
-          <StatCell label="Toplam Ağırlık" value={`${(plan.totalWeightKg / 1000).toFixed(1)} t`} />
-          <StatCell
-            label="Araç Kapasitesi"
-            value={`${(plan.vehicleCapacityKg / 1000).toFixed(1)} t`}
+        {/* Product list */}
+        <div className="py-1 max-h-[200px] overflow-y-auto">
+          {selectedGroup?.products.map((product) => (
+            <ContainerProductRow key={product.id} product={product} />
+          ))}
+          {!selectedGroup && (
+            <p className="text-xs text-zinc-400 text-center py-4">Ürün bulunamadı.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 3D Planner Tab Content ───────────────────────────────────────────────────
+
+interface ThreeDPlannerContentProps {
+  plan: LoadingPlanListItem;
+  productGroups: PlanProductGroup[];
+  search: string;
+  onSearchChange: (v: string) => void;
+  editMode: boolean;
+  onEditModeChange: (v: boolean) => void;
+}
+
+function ThreeDPlannerContent({
+  plan,
+  productGroups,
+  search,
+  onSearchChange,
+  editMode,
+  onEditModeChange,
+}: ThreeDPlannerContentProps) {
+  const totalVolume = plan.interiorWidthM * plan.interiorHeightM * plan.interiorDepthM;
+  const loadedVolume = (plan.volumeFillPercentage / 100) * totalVolume;
+  const remainingVolume = totalVolume - loadedVolume;
+  const remainingWeight = plan.vehicleCapacityKg - plan.totalWeightKg;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-3">
+        <UtilizationCard
+          icon={<BarChart3 className="w-4 h-4" />}
+          label="Hacim Kullanımı"
+          pct={plan.volumeFillPercentage}
+          loadedLabel="Yüklü"
+          loadedValue={`${loadedVolume.toFixed(2)} m³`}
+          remainingLabel="Kalan"
+          remainingValue={`${remainingVolume.toFixed(2)} m³`}
+        />
+        <UtilizationCard
+          icon={<Scale className="w-4 h-4" />}
+          label="Ağırlık Kullanımı"
+          pct={plan.fillPercentage}
+          loadedLabel="Yüklü"
+          loadedValue={`${plan.totalWeightKg.toLocaleString('tr-TR')} kg`}
+          remainingLabel="Kalan"
+          remainingValue={`${remainingWeight.toLocaleString('tr-TR')} kg`}
+        />
+        <InfoCard
+          icon={<Package className="w-4 h-4" />}
+          label="Kullanılan Ekipman"
+          primary={String(plan.productCount)}
+        >
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-600">{plan.vehicleName}</span>
+              <span className="font-medium text-zinc-700">x1</span>
+            </div>
+          </div>
+        </InfoCard>
+        <InfoCard
+          icon={<Layers3 className="w-4 h-4" />}
+          label="Yüklenemeyen Kargo"
+          primary={`${remainingVolume.toFixed(2)} m³`}
+        >
+          <span>
+            Ağırlık:{' '}
+            <span className="font-medium text-zinc-700">
+              {Math.max(0, plan.vehicleCapacityKg - plan.totalWeightKg).toLocaleString('tr-TR')} kg
+            </span>
+          </span>
+        </InfoCard>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 bg-white rounded-xl border border-zinc-200 px-3 py-2">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+          <Input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Kargo öğelerini ara..."
+            className="pl-8 h-8 text-xs border-zinc-200"
           />
-          <StatCell label="Doluluk" value={`%${plan.fillPercentage}`} highlight />
         </div>
 
-        {/* Fill bar */}
-        <div className="mt-3">
-          <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all',
-                plan.fillPercentage >= 90
-                  ? 'bg-emerald-500'
-                  : plan.fillPercentage >= 60
-                    ? 'bg-blue-500'
-                    : 'bg-zinc-400',
-              )}
-              style={{ width: `${plan.fillPercentage}%` }}
+        <div className="flex items-center gap-2 ml-2">
+          <Label htmlFor="edit-mode" className="text-xs text-zinc-500 cursor-pointer">
+            Düzenleme Modu
+          </Label>
+          <Switch
+            id="edit-mode"
+            checked={editMode}
+            onCheckedChange={onEditModeChange}
+            className="scale-75"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <SharePlanDropdown planId={plan.id} planName={plan.planName} />
+
+          <Button size="sm" className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white text-xs gap-1.5">
+            <Zap className="w-3.5 h-3.5" />
+            Otomatik Plan
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5 border-zinc-200"
+          >
+            <Package className="w-3.5 h-3.5" />
+            Yüklenemeyen
+            <span className="inline-flex items-center justify-center rounded-full bg-zinc-900 text-white text-[9px] font-bold w-4 h-4">
+              {plan.productCount}
+            </span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Right-side floating action bar hint */}
+      <div className="flex gap-4">
+        {/* Containers */}
+        <div className="flex-1 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+              Konteynerler (1)
+            </span>
+          </div>
+          <div className="flex gap-4">
+            <ContainerPanel
+              plan={plan}
+              index={1}
+              productGroups={productGroups}
+              cogText="Ağırlık Merkezi: %7 ön, %6 sağ"
             />
           </div>
         </div>
-      </div>
 
-      {/* Product groups */}
-      {productGroups.length > 0 && (
-        <div className="space-y-2">
-          {productGroups.map((group, i) => (
-            <ProductGroupBlock key={group.id} group={group} defaultOpen={i === 0} />
+        {/* Floating right panel */}
+        <div className="flex flex-col gap-1.5 pt-[220px]">
+          {[Copy, BarChart3, Package].map((Icon, i) => (
+            <button
+              key={i}
+              className="w-7 h-7 flex items-center justify-center rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <Icon className="w-3.5 h-3.5" />
+            </button>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function StatCell({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-zinc-400">{label}</span>
-      <span className={cn('text-sm font-medium', highlight ? 'text-zinc-900' : 'text-zinc-600')}>
-        {value}
-      </span>
-    </div>
-  );
+// ─── Shared detail content (used both inline and as standalone page) ──────────
+
+interface PlanDetailContentProps {
+  id: string;
+  onBack?: () => void;
 }
 
-// ─── LoadingPlanDetailPage ────────────────────────────────────────────────────
-
-export function LoadingPlanDetailPage() {
-  const { id } = useParams<{ id: string }>();
+export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const navigate = useNavigate();
-  const { data: plan, isLoading, isError } = useLoadingPlanListItem(id ?? '');
+  const [activeTab, setActiveTab] = useState<PlanTab>('3d-planner');
+  const [search, setSearch] = useState('');
+  const [editMode, setEditMode] = useState(false);
+
+  const { data: plan, isLoading, isError } = useLoadingPlanListItem(id);
+  const { data: productGroups = [] } = useLoadingPlanProducts(id);
+
+  function handleBack() {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate('/planning');
+    }
+  }
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4 max-w-3xl">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-40 w-full rounded-xl" />
+      <div className="p-6 space-y-4 max-w-5xl">
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-8 w-72" />
+        <Skeleton className="h-4 w-96" />
+        <div className="grid grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-10 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     );
   }
@@ -203,37 +494,128 @@ export function LoadingPlanDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
         <p className="text-sm text-zinc-500">Plan bulunamadı.</p>
-        <Button variant="outline" size="sm" onClick={() => navigate('/planning')}>
+        <Button variant="outline" size="sm" onClick={handleBack}>
           Planlara dön
         </Button>
       </div>
     );
   }
 
+  const statusCfg = STATUS_CONFIG[plan.status] ?? STATUS_CONFIG[PlanStatus.Taslak];
   const planDate = formatPlanDate(plan.plannedAt ?? plan.createdAt);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-zinc-50">
-      <div className="px-6 py-5 border-b border-zinc-200 bg-white">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-3 -ml-2 text-zinc-500 hover:text-zinc-900"
-          onClick={() => navigate('/planning')}
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Planlar
-        </Button>
+      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      <div className="px-6 pt-5 pb-4 bg-white border-b border-zinc-200">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-1.5 text-xs text-zinc-400 mb-3">
+          <Link to="/dashboard" className="hover:text-zinc-600 transition-colors">
+            <Home className="w-3.5 h-3.5" />
+          </Link>
+          <ChevronRight className="w-3 h-3" />
+          <Link to="/planning" className="hover:text-zinc-600 transition-colors">
+            Projeler
+          </Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-zinc-600 font-medium truncate max-w-[200px]">{plan.planName}</span>
+        </nav>
 
-        <h1 className="text-xl font-semibold text-zinc-900 leading-snug">
-          <TruncatedPlanName name={plan.planName} />
-        </h1>
-        <p className="text-sm text-zinc-500 mt-1">{planDate}</p>
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl font-bold text-zinc-900 leading-tight truncate max-w-xl">
+                {plan.planName}
+              </h1>
+              <span
+                className={cn(
+                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border',
+                  statusCfg.className,
+                )}
+              >
+                {statusCfg.label}
+              </span>
+            </div>
+            <p className="text-sm text-zinc-500 mt-1">
+              {plan.vehicleName}
+              {plan.vehiclePlate ? ` · ${plan.vehiclePlate}` : ''} · {planDate} ·{' '}
+              <span className="font-mono text-zinc-400 text-xs">{plan.planCode}</span>
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs border-zinc-200 shrink-0"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Ayarlar
+          </Button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-0.5 mt-4">
+          {PLAN_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                activeTab === tab.id
+                  ? 'bg-zinc-900 text-white'
+                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100',
+              )}
+            >
+              <span
+                className={cn(
+                  'inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold',
+                  activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-500',
+                )}
+              >
+                {tab.step}
+              </span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 px-6 py-6 max-w-3xl space-y-4">
-        <VehicleCard plan={plan} index={1} />
+      {/* ── Tab Content ──────────────────────────────────────────────────── */}
+      <div className="flex-1 px-6 py-5">
+        {activeTab === '3d-planner' && (
+          <ThreeDPlannerContent
+            plan={plan}
+            productGroups={productGroups}
+            search={search}
+            onSearchChange={setSearch}
+            editMode={editMode}
+            onEditModeChange={setEditMode}
+          />
+        )}
+
+        {activeTab !== '3d-planner' && (
+          <div className="flex flex-col items-center justify-center h-48 text-zinc-400 gap-2">
+            <Package className="w-8 h-8 text-zinc-200" />
+            <p className="text-sm">Bu sekme henüz hazır değil.</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setActiveTab('3d-planner')}
+            >
+              3D Planlayıcıya geç
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+// ─── LoadingPlanDetailPage (standalone route: /planning/:id) ──────────────────
+
+export function LoadingPlanDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  return <PlanDetailContent id={id ?? ''} />;
 }

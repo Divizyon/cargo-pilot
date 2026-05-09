@@ -1,13 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import {
-  ClipboardList,
-  Clock,
-  FileText,
-  LayoutGrid,
-  List,
-  TrendingUp,
-  CheckCircle2,
-} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ClipboardList, Clock, FileText, LayoutGrid, Link2, List, CheckCircle2 } from 'lucide-react';
 import { LoadingPlanFilterBar } from '@/features/data-management/components/LoadingPlanFilterBar';
 import { LoadingPlanTable } from '@/features/data-management/components/LoadingPlanTable';
 import { VehicleCard } from '@/features/data-management/components/VehicleCard';
@@ -102,9 +95,9 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
   if (isLoading) {
     return (
-      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-3' : 'grid-cols-4')}>
+      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-2' : 'grid-cols-3')}>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-52 animate-pulse rounded-xl border border-border bg-muted" />
+          <div key={i} className="h-[420px] animate-pulse rounded-xl border border-border bg-muted" />
         ))}
       </div>
     );
@@ -120,13 +113,12 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-3' : 'grid-cols-4')}>
+      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-2' : 'grid-cols-3')}>
         {items.map((plan) => (
           <VehicleCard key={plan.id} plan={plan} />
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-border pt-3">
           <span className="text-xs text-muted-foreground">
@@ -161,33 +153,39 @@ export function LoadingPlansPage() {
   const isSidebarOpen = useUIStore((s) => s.isSidebarOpen);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
-  // Fetch unfiltered totals for the summary stats
-  const { data: allData } = useLoadingPlanList({}, 1, 9999);
-  const allPlans = allData?.items ?? [];
+  const { data: allData } = useLoadingPlanList({}, 1, 1);
+  const { data: activeData } = useLoadingPlanList({ status: 'aktif' }, 1, 1);
+  const { data: completedData } = useLoadingPlanList({ status: 'tamamlandi' }, 1, 1);
+  const { data: draftData } = useLoadingPlanList({ status: 'taslak' }, 1, 1);
 
   const totalCount = allData?.totalCount ?? 0;
-  const activeCount = allPlans.filter((p) => p.status === 'aktif').length;
-  const completedCount = allPlans.filter((p) => p.status === 'tamamlandi').length;
-  const draftCount = allPlans.filter((p) => p.status === 'taslak').length;
-  const avgFill =
-    allPlans.length > 0
-      ? Math.round(allPlans.reduce((sum, p) => sum + p.fillPercentage, 0) / allPlans.length)
-      : 0;
+  const activeCount = activeData?.totalCount ?? 0;
+  const completedCount = completedData?.totalCount ?? 0;
+  const draftCount = draftData?.totalCount ?? 0;
 
-  const allVehicleNames = allData?.allVehicleNames ?? [];
+  const allVehicleNames: string[] = [];
 
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Yükleme Planları</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Araçlara atanmış tüm yükleme planlarının izlendiği ve yönetildiği merkez.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Yükleme Planları</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Araçlara atanmış tüm yükleme planlarının izlendiği ve yönetildiği merkez.
+          </p>
+        </div>
+        <Link
+          to="/planning/shares"
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 transition-colors shrink-0 mt-1"
+        >
+          <Link2 className="w-3.5 h-3.5" />
+          Paylaşım Bağlantıları
+        </Link>
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={<FileText className="h-5 w-5" />} value={totalCount} label="Toplam Plan" />
         <StatCard
           icon={<Clock className="h-5 w-5 text-blue-500" />}
@@ -202,12 +200,6 @@ export function LoadingPlansPage() {
           accent="text-emerald-600 dark:text-emerald-400"
         />
         <StatCard icon={<ClipboardList className="h-5 w-5" />} value={draftCount} label="Taslak" />
-        <StatCard
-          icon={<TrendingUp className="h-5 w-5 text-amber-500" />}
-          value={`%${avgFill}`}
-          label="Ort. Doluluk"
-          accent="text-amber-600 dark:text-amber-400"
-        />
       </div>
 
       {/* Filter bar + view toggle + content */}

@@ -4,6 +4,25 @@ import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { planningDetailRoute } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -13,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useLoadingPlanList } from '@/lib/api/useLoadingPlans';
+import { useDeleteLoadingPlan, useLoadingPlanList, useRenameLoadingPlan } from '@/lib/api/useLoadingPlans';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
 import type { LoadingPlanFiltersHook } from '../hooks/useLoadingPlanFilters';
@@ -204,9 +223,10 @@ function Pagination({ page, pageSize, totalCount, onPage, onPageSize }: Paginati
 
 interface Props {
   filters: LoadingPlanFiltersHook;
+  onPlanSelect?: (id: string) => void;
 }
 
-export function LoadingPlanTable({ filters }: Props) {
+export function LoadingPlanTable({ filters, onPlanSelect }: Props) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -279,7 +299,7 @@ export function LoadingPlanTable({ filters }: Props) {
               </TableCell>
             </TableRow>
           ) : (
-            items.map((plan) => <PlanRow key={plan.id} plan={plan} />)
+            items.map((plan) => <PlanRow key={plan.id} plan={plan} onSelect={onPlanSelect} />)
           )}
         </TableBody>
       </Table>
@@ -295,79 +315,184 @@ export function LoadingPlanTable({ filters }: Props) {
   );
 }
 
+// ─── Rename dialog ────────────────────────────────────────────────────────────
+
+interface RenameDialogProps {
+  plan: LoadingPlanListItem;
+  open: boolean;
+  onClose: () => void;
+}
+
+function RenameDialog({ plan, open, onClose }: RenameDialogProps) {
+  const [value, setValue] = useState(plan.planName);
+  const rename = useRenameLoadingPlan();
+
+  function handleSubmit() {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === plan.planName) {
+      onClose();
+      return;
+    }
+    rename.mutate(
+      { id: plan.id, planName: trimmed },
+      { onSettled: onClose },
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Plan Adını Düzenle</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          className="mt-1"
+          autoFocus
+        />
+        <DialogFooter className="mt-4">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            İptal
+          </Button>
+          <Button size="sm" onClick={handleSubmit} disabled={rename.isPending}>
+            Kaydet
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Plan row ─────────────────────────────────────────────────────────────────
 
-function PlanRow({ plan }: { plan: LoadingPlanListItem }) {
+function PlanRow({
+  plan,
+  onSelect,
+}: {
+  plan: LoadingPlanListItem;
+  onSelect?: (id: string) => void;
+}) {
   const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const deletePlan = useDeleteLoadingPlan();
+
+  function handleRowClick() {
+    if (onSelect) {
+      onSelect(plan.id);
+    } else {
+      navigate(planningDetailRoute(plan.id));
+    }
+  }
+
   return (
-    <TableRow
-      className="group cursor-pointer"
-      onClick={() => navigate(planningDetailRoute(plan.id))}
-    >
-      {/* Plan name + code */}
-      <TableCell>
-        <div>
-          <p className="text-sm font-medium text-foreground">{plan.planName}</p>
-          <p className="text-xs text-muted-foreground">{plan.planCode}</p>
-        </div>
-      </TableCell>
+    <>
+      <TableRow
+        className="group cursor-pointer"
+        onClick={handleRowClick}
+      >
+        {/* Plan name + code */}
+        <TableCell>
+          <div>
+            <p className="text-sm font-medium text-foreground">{plan.planName}</p>
+            <p className="text-xs text-muted-foreground">{plan.planCode}</p>
+          </div>
+        </TableCell>
 
-      {/* Vehicle */}
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <VehicleIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="text-sm text-foreground">{plan.vehicleName}</span>
-        </div>
-      </TableCell>
+        {/* Vehicle */}
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <VehicleIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm text-foreground">{plan.vehicleName}</span>
+          </div>
+        </TableCell>
 
-      {/* Created date */}
-      <TableCell className="text-sm text-muted-foreground">{formatDate(plan.createdAt)}</TableCell>
+        {/* Created date */}
+        <TableCell className="text-sm text-muted-foreground">
+          {formatDate(plan.createdAt)}
+        </TableCell>
 
-      {/* Planned date */}
-      <TableCell className="text-sm text-muted-foreground">
-        {plan.plannedAt ? formatDate(plan.plannedAt) : '—'}
-      </TableCell>
+        {/* Planned date */}
+        <TableCell className="text-sm text-muted-foreground">
+          {plan.plannedAt ? formatDate(plan.plannedAt) : '—'}
+        </TableCell>
 
-      {/* Status */}
-      <TableCell>
-        <StatusBadge status={plan.status} />
-      </TableCell>
+        {/* Status */}
+        <TableCell>
+          <StatusBadge status={plan.status} />
+        </TableCell>
 
-      {/* Product count */}
-      <TableCell className="text-right text-sm text-foreground">{plan.productCount} ürün</TableCell>
+        {/* Product count */}
+        <TableCell className="text-right text-sm text-foreground">
+          {plan.productCount} ürün
+        </TableCell>
 
-      {/* Total weight */}
-      <TableCell>
-        <div>
-          <p className="text-sm font-medium text-foreground">{formatWeight(plan.totalWeightKg)}</p>
-          <p className="text-xs text-muted-foreground">
-            {plan.totalWeightKg.toLocaleString('tr-TR')} kg
-          </p>
-        </div>
-      </TableCell>
+        {/* Total weight */}
+        <TableCell>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {formatWeight(plan.totalWeightKg)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {plan.totalWeightKg.toLocaleString('tr-TR')} kg
+            </p>
+          </div>
+        </TableCell>
 
-      {/* Fill percentage */}
-      <TableCell>
-        <FillBar pct={plan.fillPercentage} />
-      </TableCell>
+        {/* Fill percentage */}
+        <TableCell>
+          <FillBar pct={plan.fillPercentage} />
+        </TableCell>
 
-      {/* Actions */}
-      <TableCell onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            aria-label="Düzenle"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            aria-label="Sil"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </TableCell>
-    </TableRow>
+        {/* Actions */}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              aria-label="Düzenle"
+              onClick={() => setRenameOpen(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              aria-label="Sil"
+              onClick={() => setDeleteOpen(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </TableCell>
+      </TableRow>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Planı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{plan.planName}</strong> planı silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletePlan.mutate(plan.id)}
+              disabled={deletePlan.isPending}
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Rename dialog */}
+      {renameOpen && (
+        <RenameDialog plan={plan} open={renameOpen} onClose={() => setRenameOpen(false)} />
+      )}
+    </>
   );
 }
