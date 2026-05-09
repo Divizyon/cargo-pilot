@@ -230,7 +230,8 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
     const matchesFrom = !dateFrom || r.date >= dateFrom;
     const matchesTo = !dateTo || r.date <= dateTo;
     const matchesFill =
-      fillRateFilters.size === 0 || [...fillRateFilters].some((f) => matchesFillRate(r.fillRate, f));
+      fillRateFilters.size === 0 ||
+      [...fillRateFilters].some((f) => matchesFillRate(r.fillRate, f));
     return matchesCategory && matchesSearch && matchesFrom && matchesTo && matchesFill;
   });
 
@@ -316,13 +317,19 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                     <Input
                       type="date"
                       value={dateFrom}
-                      onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                      onChange={(e) => {
+                        setDateFrom(e.target.value);
+                        setPage(1);
+                      }}
                       className="h-7 text-xs"
                     />
                     <Input
                       type="date"
                       value={dateTo}
-                      onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                      onChange={(e) => {
+                        setDateTo(e.target.value);
+                        setPage(1);
+                      }}
                       className="h-7 text-xs"
                     />
                   </div>
