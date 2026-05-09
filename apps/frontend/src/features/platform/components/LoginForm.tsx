@@ -61,7 +61,6 @@ function GoogleIcon() {
   );
 }
 
-
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();

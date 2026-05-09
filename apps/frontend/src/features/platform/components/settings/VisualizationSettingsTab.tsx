@@ -1,16 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -37,7 +32,7 @@ interface VisualizationSettingsTabProps {
   onDirtyChange: (dirty: boolean) => void;
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-4 pb-1 first:pt-0">
       {children}
@@ -47,7 +42,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 interface SelectRowProps {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 function SelectRow({ label, children }: SelectRowProps) {
@@ -62,7 +57,7 @@ function SelectRow({ label, children }: SelectRowProps) {
 interface SwitchRowProps {
   label: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 function SwitchRow({ label, description, children }: SwitchRowProps) {
@@ -88,7 +83,9 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
   });
 
   const { isDirty } = form.formState;
-  useEffect(() => { onDirtyChange(isDirty); }, [isDirty, onDirtyChange]);
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   function onSubmit(values: VisualizationSettingsValues) {
     setTheme(values.theme);
@@ -155,7 +152,10 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
           name="showGrid"
           render={({ field }) => (
             <FormItem>
-              <SwitchRow label="Izgara Göster" description="3D sahnede zemin ızgarasını görüntüler.">
+              <SwitchRow
+                label="Izgara Göster"
+                description="3D sahnede zemin ızgarasını görüntüler."
+              >
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
@@ -169,7 +169,10 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
           name="showLabels"
           render={({ field }) => (
             <FormItem>
-              <SwitchRow label="Etiketleri Göster" description="Kutular üzerinde ürün adını gösterir.">
+              <SwitchRow
+                label="Etiketleri Göster"
+                description="Kutular üzerinde ürün adını gösterir."
+              >
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
@@ -183,7 +186,10 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
           name="showAxes"
           render={({ field }) => (
             <FormItem>
-              <SwitchRow label="Koordinat Eksenleri" description="X, Y, Z eksen göstergelerini görüntüler.">
+              <SwitchRow
+                label="Koordinat Eksenleri"
+                description="X, Y, Z eksen göstergelerini görüntüler."
+              >
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
@@ -197,7 +203,10 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
           name="animationEnabled"
           render={({ field }) => (
             <FormItem>
-              <SwitchRow label="Animasyonlar" description="Yükleme ve geçiş animasyonlarını etkinleştirir.">
+              <SwitchRow
+                label="Animasyonlar"
+                description="Yükleme ve geçiş animasyonlarını etkinleştirir."
+              >
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
@@ -207,9 +216,17 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
         />
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" size="sm" disabled={form.formState.isSubmitting} className="min-w-36">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={form.formState.isSubmitting}
+            className="min-w-36"
+          >
             {form.formState.isSubmitting ? (
-              <><Loader2 className="animate-spin" />Kaydediliyor...</>
+              <>
+                <Loader2 className="animate-spin" />
+                Kaydediliyor...
+              </>
             ) : (
               'Değişiklikleri Kaydet'
             )}

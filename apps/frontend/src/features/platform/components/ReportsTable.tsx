@@ -52,11 +52,16 @@ function fillRateColor(rate: number) {
 
 function colValue(report: PlanReport, col: FilterableCol): string {
   switch (col) {
-    case 'planName':      return report.planName;
-    case 'date':          return formatDate(report.date);
-    case 'vehicle':       return report.vehicle;
-    case 'totalWeightKg': return `${new Intl.NumberFormat('tr-TR').format(report.totalWeightKg)} kg`;
-    case 'fillRate':      return `%${report.fillRate}`;
+    case 'planName':
+      return report.planName;
+    case 'date':
+      return formatDate(report.date);
+    case 'vehicle':
+      return report.vehicle;
+    case 'totalWeightKg':
+      return `${new Intl.NumberFormat('tr-TR').format(report.totalWeightKg)} kg`;
+    case 'fillRate':
+      return `%${report.fillRate}`;
   }
 }
 
@@ -71,7 +76,14 @@ interface AutoFilterMenuProps {
   onClose: () => void;
 }
 
-function AutoFilterMenu({ col, options, selected, onToggle, onClear, onClose }: AutoFilterMenuProps) {
+function AutoFilterMenu({
+  col,
+  options,
+  selected,
+  onToggle,
+  onClear,
+  onClose,
+}: AutoFilterMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,10 +112,7 @@ function AutoFilterMenu({ col, options, selected, onToggle, onClear, onClose }: 
               key={opt}
               className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
             >
-              <Checkbox
-                checked={selected.has(opt)}
-                onCheckedChange={() => onToggle(opt)}
-              />
+              <Checkbox checked={selected.has(opt)} onCheckedChange={() => onToggle(opt)} />
               <span className="text-xs">{opt}</span>
             </label>
           ))}
@@ -140,8 +149,16 @@ interface ColHeadProps {
 }
 
 function ColHead({
-  label, col, options, selected, activeCol,
-  onOpen, onToggle, onClear, onClose, className,
+  label,
+  col,
+  options,
+  selected,
+  activeCol,
+  onOpen,
+  onToggle,
+  onClear,
+  onClose,
+  className,
 }: ColHeadProps) {
   const isOpen = activeCol === col;
   const hasFilter = selected.size > 0;
@@ -189,19 +206,33 @@ function ReportsTableSkeleton() {
       <TableHeader>
         <TableRow className="bg-muted/40 hover:bg-muted/40">
           {['w-48', 'w-28', 'w-36', 'w-28', 'w-40', 'w-16'].map((w, i) => (
-            <TableHead key={i}><Skeleton className={cn('h-3', w)} /></TableHead>
+            <TableHead key={i}>
+              <Skeleton className={cn('h-3', w)} />
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
-            <TableCell className="px-3 py-0"><Skeleton className="h-3 w-40" /></TableCell>
-            <TableCell className="px-3 py-0"><Skeleton className="h-3 w-20" /></TableCell>
-            <TableCell className="px-3 py-0"><Skeleton className="h-3 w-28" /></TableCell>
-            <TableCell className="px-3 py-0"><Skeleton className="h-3 w-20" /></TableCell>
-            <TableCell className="px-3 py-0"><Skeleton className="h-2 w-full rounded-full" /></TableCell>
-            <TableCell className="px-3 py-0"><Skeleton className="h-6 w-6 rounded-md" /></TableCell>
+            <TableCell className="px-3 py-0">
+              <Skeleton className="h-3 w-40" />
+            </TableCell>
+            <TableCell className="px-3 py-0">
+              <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="px-3 py-0">
+              <Skeleton className="h-3 w-28" />
+            </TableCell>
+            <TableCell className="px-3 py-0">
+              <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="px-3 py-0">
+              <Skeleton className="h-2 w-full rounded-full" />
+            </TableCell>
+            <TableCell className="px-3 py-0">
+              <Skeleton className="h-6 w-6 rounded-md" />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -245,7 +276,12 @@ function ReportRow({ report }: ReportRowProps) {
       <TableCell className={cell}>
         <div className="flex items-center gap-2">
           <Progress value={report.fillRate} className="h-1.5 flex-1" />
-          <span className={cn('w-9 text-right font-mono text-xs font-medium', fillRateColor(report.fillRate))}>
+          <span
+            className={cn(
+              'w-9 text-right font-mono text-xs font-medium',
+              fillRateColor(report.fillRate),
+            )}
+          >
             %{report.fillRate}
           </span>
         </div>
@@ -295,10 +331,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
   const colOptions = useMemo<Record<FilterableCol, string[]>>(() => {
     const cols: FilterableCol[] = ['planName', 'date', 'vehicle', 'totalWeightKg', 'fillRate'];
     return Object.fromEntries(
-      cols.map((col) => [
-        col,
-        [...new Set(baseFiltered.map((r) => colValue(r, col)))].sort(),
-      ]),
+      cols.map((col) => [col, [...new Set(baseFiltered.map((r) => colValue(r, col)))].sort()]),
     ) as Record<FilterableCol, string[]>;
   }, [baseFiltered]);
 
@@ -383,11 +416,11 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           <Table className="min-w-[700px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-                <ColHead label="Plan"     {...colHeadProps('planName')}      className="w-48" />
-                <ColHead label="Tarih"    {...colHeadProps('date')}          className="w-28" />
-                <ColHead label="Araç"     {...colHeadProps('vehicle')}       className="w-36" />
-                <ColHead label="Ağırlık"  {...colHeadProps('totalWeightKg')} className="w-28" />
-                <ColHead label="Doluluk"  {...colHeadProps('fillRate')}      className="w-40" />
+                <ColHead label="Plan" {...colHeadProps('planName')} className="w-48" />
+                <ColHead label="Tarih" {...colHeadProps('date')} className="w-28" />
+                <ColHead label="Araç" {...colHeadProps('vehicle')} className="w-36" />
+                <ColHead label="Ağırlık" {...colHeadProps('totalWeightKg')} className="w-28" />
+                <ColHead label="Doluluk" {...colHeadProps('fillRate')} className="w-40" />
                 <TableHead className="w-16 px-3 py-0 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   İndir
                 </TableHead>
@@ -396,7 +429,10 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
                     {data?.length === 0
                       ? 'Henüz plan raporu bulunmuyor.'
                       : 'Arama kriterlerine uyan plan bulunamadı.'}

@@ -1,16 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { HelpCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -37,7 +31,8 @@ const DEFAULT_VALUES: RegionalSettingsValues = {
 };
 
 const UNIT_TOOLTIPS = {
-  dimensionUnit: 'Ürün tanımlama formu, araç boyutları ve 3D koordinat hesaplamalarında kullanılır.',
+  dimensionUnit:
+    'Ürün tanımlama formu, araç boyutları ve 3D koordinat hesaplamalarında kullanılır.',
   weightUnit: 'Ürün ağırlığı, araç yük kapasitesi ve aks yük limitlerinde kullanılır.',
   volumeUnit: 'Hesaplanan araç ve kargo hacimlerinin gösteriminde kullanılır.',
 } as const;
@@ -53,13 +48,15 @@ function UnitTooltip({ text }: { text: string }) {
         <TooltipTrigger asChild>
           <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
         </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-56 text-xs">{text}</TooltipContent>
+        <TooltipContent side="right" className="max-w-56 text-xs">
+          {text}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-4 pb-1 first:pt-0">
       {children}
@@ -70,7 +67,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 interface RowProps {
   label: string;
   tooltip?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 function Row({ label, tooltip, children }: RowProps) {
@@ -107,7 +104,9 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
   });
 
   const { isDirty } = form.formState;
-  useEffect(() => { onDirtyChange(isDirty); }, [isDirty, onDirtyChange]);
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const watchedDateFormat = useWatch<RegionalSettingsValues, 'dateFormat'>({
     control: form.control,
@@ -283,9 +282,17 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
         />
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" size="sm" disabled={form.formState.isSubmitting} className="min-w-36">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={form.formState.isSubmitting}
+            className="min-w-36"
+          >
             {form.formState.isSubmitting ? (
-              <><Loader2 className="animate-spin" />Kaydediliyor...</>
+              <>
+                <Loader2 className="animate-spin" />
+                Kaydediliyor...
+              </>
             ) : (
               'Değişiklikleri Kaydet'
             )}

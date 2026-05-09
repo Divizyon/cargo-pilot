@@ -93,7 +93,7 @@ function PdfPreviewPanel({
     const d = new Date();
     const yy = String(d.getFullYear());
     const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const seq = String((d.getDate() * 3 + 7) % 900 + 100);
+    const seq = String(((d.getDate() * 3 + 7) % 900) + 100);
     return `RP-${yy}${mm}-${seq}`;
   })();
 
@@ -109,7 +109,6 @@ function PdfPreviewPanel({
         style={{ aspectRatio: '210/297' }}
       >
         <div className="flex h-full flex-col p-[6%] text-[7px] leading-snug">
-
           {/* ── Header (editable area) ── */}
           <div className="flex items-start gap-2 border-b border-gray-200 pb-2">
             {/* Logo */}
@@ -128,16 +127,14 @@ function PdfPreviewPanel({
             {/* Company info */}
             <div className="min-w-0 flex-1 space-y-0.5">
               <EditableField value={companyName} placeholder="Şirket adı" />
-              <EditableField value={phone}       placeholder="Telefon" />
-              <EditableField value={email}       placeholder="E-posta" />
-              <EditableField value={address}     placeholder="Adres" />
+              <EditableField value={phone} placeholder="Telefon" />
+              <EditableField value={email} placeholder="E-posta" />
+              <EditableField value={address} placeholder="Adres" />
             </div>
 
             {/* Doc no + Date */}
             <div className="shrink-0 space-y-0.5 text-right">
-              <div className="rounded bg-gray-100 px-0.5 font-mono text-gray-500">
-                {docNo}
-              </div>
+              <div className="rounded bg-gray-100 px-0.5 font-mono text-gray-500">{docNo}</div>
               <div className="rounded bg-blue-50 px-0.5 text-gray-700 ring-1 ring-blue-200">
                 {today}
               </div>
@@ -239,16 +236,16 @@ export function ReportingSettingsTab() {
 
   // Live values for preview
   const watchedCompanyName = useWatch({ control: form.control, name: 'companyName' }) ?? '';
-  const watchedPhone       = useWatch({ control: form.control, name: 'phone' }) ?? '';
-  const watchedEmail       = useWatch({ control: form.control, name: 'email' }) ?? '';
-  const watchedAddress     = useWatch({ control: form.control, name: 'address' }) ?? '';
+  const watchedPhone = useWatch({ control: form.control, name: 'phone' }) ?? '';
+  const watchedEmail = useWatch({ control: form.control, name: 'email' }) ?? '';
+  const watchedAddress = useWatch({ control: form.control, name: 'address' }) ?? '';
 
   function onSubmit(values: ReportingSettingsFormValues) {
     updateSettings({
       companyName: values.companyName || undefined,
-      phone:       values.phone       || undefined,
-      email:       values.email       || undefined,
-      address:     values.address     || undefined,
+      phone: values.phone || undefined,
+      email: values.email || undefined,
+      address: values.address || undefined,
     });
   }
 
@@ -261,7 +258,6 @@ export function ReportingSettingsTab() {
 
   const hasLogo = !!settings?.logoUrl;
   const isLogoActionPending = isUploading || isRemoving;
-
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_280px] gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -318,7 +314,9 @@ export function ReportingSettingsTab() {
               <Upload className="mr-2 h-3.5 w-3.5" />
               {hasLogo ? 'Logoyu Değiştir' : 'Logo Yükle'}
             </Button>
-            <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, SVG veya WEBP · Maks. 2 MB</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              PNG, JPG, SVG veya WEBP · Maks. 2 MB
+            </p>
           </div>
         </div>
 

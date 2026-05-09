@@ -18,12 +18,7 @@ const PLANS: PlanDef[] = [
     label: 'Ücretsiz',
     price: '₺0',
     period: '/ ay',
-    features: [
-      '3 yükleme planı / ay',
-      '1 araç',
-      '50 ürün',
-      'Temel raporlama',
-    ],
+    features: ['3 yükleme planı / ay', '1 araç', '50 ürün', 'Temel raporlama'],
   },
   {
     key: 'starter',
@@ -89,7 +84,12 @@ export function SubscriptionTab() {
           <p className="mt-1 text-base font-bold text-foreground">{PLAN_LABELS[currentPlan]}</p>
           {expiresAt && (
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Bitiş: {new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(expiresAt))}
+              Bitiş:{' '}
+              {new Intl.DateTimeFormat('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              }).format(new Date(expiresAt))}
             </p>
           )}
         </div>

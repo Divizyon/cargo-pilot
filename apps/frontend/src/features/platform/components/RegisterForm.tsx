@@ -72,7 +72,6 @@ function GoogleIcon() {
   );
 }
 
-
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

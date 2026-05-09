@@ -19,9 +19,15 @@ export function ProfilePage() {
 
       <Tabs defaultValue="individual">
         <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b bg-transparent p-0">
-          <TabsTrigger value="individual" className={TAB_CLASS}>Bireysel Hesap</TabsTrigger>
-          <TabsTrigger value="members"    className={TAB_CLASS}>Şirket Hesabım</TabsTrigger>
-          <TabsTrigger value="billing"    className={TAB_CLASS}>Abonelik</TabsTrigger>
+          <TabsTrigger value="individual" className={TAB_CLASS}>
+            Bireysel Hesap
+          </TabsTrigger>
+          <TabsTrigger value="members" className={TAB_CLASS}>
+            Şirket Hesabım
+          </TabsTrigger>
+          <TabsTrigger value="billing" className={TAB_CLASS}>
+            Abonelik
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="individual" className="mt-4 flex flex-col gap-6">
