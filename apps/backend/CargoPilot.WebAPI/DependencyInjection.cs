@@ -128,9 +128,9 @@ public static class DependencyInjection {
             options.AddPolicy("Individual", policy =>
                 policy.RequireClaim("role", "Individual"));
 
-            // CompanyAdmin | CompanyWorker | Individual
+            // SuperAdmin | CompanyAdmin | CompanyWorker | Individual
             options.AddPolicy("CompanyMember", policy =>
-                policy.RequireClaim("role", "CompanyAdmin", "CompanyWorker", "Individual"));
+                policy.RequireClaim("role", "SuperAdmin", "CompanyAdmin", "CompanyWorker", "Individual"));
         });
 
         services.AddControllers().AddJsonOptions(options =>

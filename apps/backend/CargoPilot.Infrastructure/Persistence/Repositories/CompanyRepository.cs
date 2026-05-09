@@ -16,9 +16,4 @@ internal sealed class CompanyRepository : ICompanyRepository
     {
         _dbContext.Companies.Add(company);
     }
-
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        return _dbContext.SaveChangesAsync(cancellationToken);
-    }
 }
