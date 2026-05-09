@@ -20,4 +20,9 @@ public interface IEmailService {
         string temporaryPassword,
         string loginUrl,
         CancellationToken cancellationToken = default);
+
+    Task SendAccessRemovedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default);
 }

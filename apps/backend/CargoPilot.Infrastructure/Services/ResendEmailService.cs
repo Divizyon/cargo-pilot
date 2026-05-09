@@ -176,6 +176,39 @@ internal sealed class ResendEmailService : IEmailService
         }
     }
 
+    public async Task SendAccessRemovedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — Hesap Erişiminiz Kaldırıldı",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#dc2626;">Erişiminiz Kaldırıldı</h2>
+                  <p>Merhaba {WebUtility.HtmlEncode(toName)},</p>
+                  <p>Firma yöneticiniz tarafından Cargo Pilot hesabınıza erişiminiz kaldırılmıştır.</p>
+                  <p>Bu konuda sorularınız varsa firma yöneticinizle iletişime geçebilirsiniz.</p>
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Merhaba {toName},\n\nErişiminiz kaldırılmıştır.\n\nFirma yöneticinizle iletişime geçebilirsiniz.\n\n— Cargo Pilot Ekibi"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
     private sealed class ResendSendEmailRequest
     {
         [JsonPropertyName("from")]
