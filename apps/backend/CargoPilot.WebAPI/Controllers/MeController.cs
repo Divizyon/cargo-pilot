@@ -11,7 +11,7 @@ namespace CargoPilot.WebAPI.Controllers;
 
 /// <summary>Giriş yapmış kullanıcıya ait profil endpoint'leri.</summary>
 [Route("api/v1/me")]
-[Authorize]
+[Authorize(Policy = "CompanyMember")]
 public sealed class MeController : BaseController
 {
     private readonly IMediator _mediator;
