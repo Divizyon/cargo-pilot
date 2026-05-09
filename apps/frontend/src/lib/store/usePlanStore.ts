@@ -89,6 +89,7 @@ function buildPlacements(
           depth: d,
           weight: item.weight,
           color,
+          productType: item.productType,
         });
         continue;
       }
@@ -113,6 +114,7 @@ function buildPlacements(
       depth: d,
       weight: item.weight,
       color,
+      productType: item.productType,
     });
 
     curX += w;

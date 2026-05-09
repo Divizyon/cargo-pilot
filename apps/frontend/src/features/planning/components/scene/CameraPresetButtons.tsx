@@ -101,7 +101,7 @@ export function CameraPresetButtons({ className, getSnapshot }: CameraPresetButt
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 rounded-lg bg-white/90 p-1 backdrop-blur border border-zinc-200',
+        'flex items-center gap-1.5 rounded-lg bg-white/90 p-1 backdrop-blur border border-zinc-200 text-zinc-700',
         className,
       )}
     >

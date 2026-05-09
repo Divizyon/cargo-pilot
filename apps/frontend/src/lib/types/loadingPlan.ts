@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProductType } from '@/lib/types/item';
 
 // 0: alt yüz · 1: üst yüz · 2: ön yüz · 3: arka yüz · 4: sol yüz · 5: sağ yüz altta.
 // Detay: lib/utils/boxOrientations.ts → BOX_ORIENTATIONS
@@ -37,6 +38,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   depth: z.number().positive(),
   weight: z.number().nonnegative().default(0),
   color: z.string().optional(),
+  productType: z.enum([ProductType.Koli, ProductType.Varil, ProductType.Palet]).optional(),
 });
 
 export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;
