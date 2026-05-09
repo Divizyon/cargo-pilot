@@ -18,7 +18,7 @@ interface Props {
 
 export function WeeklyTrendChart({ data }: Props) {
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-none">
+    <div className="rounded-xl border bg-card p-4 shadow-none">
       <div className="flex items-start justify-between mb-1">
         <div>
           <p className="text-base font-semibold text-foreground">Haftalık Sevkiyat Trendi</p>

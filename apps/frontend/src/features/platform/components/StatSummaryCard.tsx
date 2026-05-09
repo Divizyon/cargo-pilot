@@ -33,7 +33,7 @@ export function StatSummaryCard({
 }: Props) {
   if (isError) {
     return (
-      <div className="rounded-xl border bg-card p-6 shadow-none">
+      <div className="rounded-xl border bg-card p-4 shadow-none">
         <Alert variant="destructive">
           <AlertDescription className="flex items-center justify-between">
             <span>İstatistikler yüklenemedi.</span>
@@ -87,7 +87,7 @@ export function StatSummaryCard({
             >
               {deltaText}
             </span>
-            <span className="text-sm text-muted-foreground">bu ay</span>
+            <span className="text-sm text-muted-foreground">bu hafta</span>
           </div>
         </>
       )}
