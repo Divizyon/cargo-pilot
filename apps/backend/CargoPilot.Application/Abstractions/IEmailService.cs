@@ -13,4 +13,9 @@ public interface IEmailService {
         DateTime loginTime,
         string secureAccountLink,
         CancellationToken cancellationToken = default);
+
+    Task SendAccessRemovedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default);
 }
