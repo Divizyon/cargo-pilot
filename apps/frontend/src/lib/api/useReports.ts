@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
 
 export const planReportSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   planName: z.string(),
   date: z.string(),
   vehiclePlate: z.string(),
@@ -29,13 +29,13 @@ export interface ReportsPage {
 
 const reportApiItemSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     planName: z.string().optional(),
     createdAtUtc: z.string().optional(),
     vehiclePlate: z.string().nullable().optional(),
     fillRate: z.number().nullable().optional(),
     status: z.number().int().optional(),
-    reportId: z.string().uuid().nullable().optional(),
+    reportId: z.uuid().nullable().optional(),
     downloadUrl: z.string().nullable().optional(),
   })
   .passthrough();
@@ -99,5 +99,21 @@ export function useReports(filters?: ReportsFilters, page = 1, pageSize = 10) {
       return { items, totalCount };
     },
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useDownloadPlanPdf() {
+  return useMutation({
+    mutationFn: async ({ id, planName }: { id: string; planName: string }) => {
+      const { data } = await axiosInstance.get<Blob>(`/api/v1/loading-plans/${id}/pdf`, {
+        responseType: 'blob',
+      });
+      const blobUrl = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${planName}_rapor.pdf`;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    },
   });
 }

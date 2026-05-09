@@ -6,15 +6,22 @@ import {
   ChevronRight,
   Download,
   FileDown,
+  Loader2,
   Search,
   SlidersHorizontal,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -25,15 +32,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { useReports, type PlanReport, type ReportsFilters } from '@/lib/api/useReports';
+import { ROUTES } from '@/lib/config/routes';
+import {
+  useReports,
+  useDownloadPlanPdf,
+  type PlanReport,
+  type ReportsFilters,
+} from '@/lib/api/useReports';
+import { useVehicles } from '@/lib/api/useVehicles';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
 
 const dateFormatter = new Intl.DateTimeFormat('tr-TR', {
-  day: 'numeric',
-  month: 'short',
+  day: '2-digit',
+  month: '2-digit',
   year: 'numeric',
 });
 
@@ -58,21 +72,7 @@ function getPeriodDates(period: PeriodTab): { startDate?: string; endDate?: stri
   return { startDate: start.toISOString(), endDate: now.toISOString() };
 }
 
-// ─── Fill rate filter ─────────────────────────────────────────────────────────
-
-type FillRateFilter = 'high' | 'medium' | 'low';
-
-const FILL_RATE_OPTIONS: { value: FillRateFilter; label: string; color: string }[] = [
-  { value: 'high', label: '%90 ve üzeri', color: 'bg-emerald-500' },
-  { value: 'medium', label: '%60 – %89', color: 'bg-amber-400' },
-  { value: 'low', label: '%60 altı', color: 'bg-red-400' },
-];
-
-function matchesFillRate(rate: number, filter: FillRateFilter) {
-  if (filter === 'high') return rate >= 90;
-  if (filter === 'medium') return rate >= 60 && rate < 90;
-  return rate < 60;
-}
+// ─── Fill rate color ──────────────────────────────────────────────────────────
 
 function fillRateColor(rate: number) {
   if (rate >= 90) return 'text-emerald-600';
@@ -95,7 +95,7 @@ const STATUS_MAP: Record<
 function StatusBadge({ status }: { status: number }) {
   const s = STATUS_MAP[status] ?? STATUS_MAP[0];
   return (
-    <Badge variant={s.variant} className="text-[10px] font-medium px-1.5 py-0">
+    <Badge variant={s.variant} className="px-1.5 py-0 text-[10px] font-medium">
       {s.label}
     </Badge>
   );
@@ -118,22 +118,22 @@ function ReportsTableSkeleton() {
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
-            <TableCell className="py-0 px-3">
+            <TableCell className="px-3 py-0">
               <Skeleton className="h-3 w-36" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="px-3 py-0">
               <Skeleton className="h-3 w-20" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="px-3 py-0">
               <Skeleton className="h-3 w-24" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="px-3 py-0">
               <Skeleton className="h-5 w-16 rounded-full" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="px-3 py-0">
               <Skeleton className="h-2 w-full rounded-full" />
             </TableCell>
-            <TableCell className="py-0 px-3">
+            <TableCell className="px-3 py-0">
               <Skeleton className="h-6 w-6 rounded-md" />
             </TableCell>
           </TableRow>
@@ -151,13 +151,12 @@ interface ReportRowProps {
 
 function ReportRow({ report }: ReportRowProps) {
   const navigate = useNavigate();
-  const cell = 'py-0 px-3';
+  const { mutate: downloadPdf, isPending } = useDownloadPlanPdf();
+  const cell = 'px-3 py-0';
 
   function handleDownload(e: { stopPropagation(): void }) {
     e.stopPropagation();
-    if (report.downloadUrl) {
-      window.open(report.downloadUrl, '_blank', 'noopener,noreferrer');
-    }
+    downloadPdf({ id: report.id, planName: report.planName });
   }
 
   return (
@@ -205,12 +204,16 @@ function ReportRow({ report }: ReportRowProps) {
         <Button
           variant="ghost"
           size="icon"
-          title="Planı İndir"
-          disabled={!report.downloadUrl}
+          title="PDF İndir"
+          disabled={isPending}
           className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
           onClick={handleDownload}
         >
-          <FileDown className="h-3.5 w-3.5" />
+          {isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <FileDown className="h-3.5 w-3.5" />
+          )}
         </Button>
       </TableCell>
     </TableRow>
@@ -224,21 +227,43 @@ interface ReportsTableProps {
 }
 
 export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [fillRateFilters, setFillRateFilters] = useState<Set<FillRateFilter>>(new Set());
+  const [vehicleId, setVehicleId] = useState('');
+  const [minFillRateStr, setMinFillRateStr] = useState('');
+  const [maxFillRateStr, setMaxFillRateStr] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
+
+  const { data: vehiclesData } = useVehicles({ pageSize: 200 });
+  const vehicles = vehiclesData?.items ?? [];
 
   const periodDates = useMemo(() => getPeriodDates(period), [period]);
 
   const serverFilters = useMemo<ReportsFilters>(() => {
     const f: ReportsFilters = {};
-    if (periodDates.startDate) f.startDate = periodDates.startDate;
-    if (periodDates.endDate) f.endDate = periodDates.endDate;
+    if (dateFrom || dateTo) {
+      if (dateFrom) f.startDate = new Date(dateFrom).toISOString();
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        f.endDate = end.toISOString();
+      }
+    } else {
+      if (periodDates.startDate) f.startDate = periodDates.startDate;
+      if (periodDates.endDate) f.endDate = periodDates.endDate;
+    }
+    if (vehicleId) f.vehicleId = vehicleId;
+    const min = Number(minFillRateStr);
+    const max = Number(maxFillRateStr);
+    if (minFillRateStr && !isNaN(min)) f.minFillRate = Math.min(100, Math.max(0, min));
+    if (maxFillRateStr && !isNaN(max)) f.maxFillRate = Math.min(100, Math.max(0, max));
     return f;
-  }, [periodDates]);
+  }, [periodDates, dateFrom, dateTo, vehicleId, minFillRateStr, maxFillRateStr]);
 
   const { data, isLoading } = useReports(serverFilters, page, PAGE_SIZE);
 
@@ -258,31 +283,36 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
 
-  function toggleFillRate(value: FillRateFilter) {
-    setFillRateFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
+  function clearAllFilters() {
+    setVehicleId('');
+    setMinFillRateStr('');
+    setMaxFillRateStr('');
+    setDateFrom('');
+    setDateTo('');
     setPage(1);
   }
 
-  const pageItems = data?.items ?? [];
-  const filtered = pageItems.filter((r) => {
-    const matchesSearch =
-      !searchTerm || r.planName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFill =
-      fillRateFilters.size === 0 ||
-      [...fillRateFilters].some((f) => matchesFillRate(r.fillRate, f));
-    return matchesSearch && matchesFill;
-  });
+  // AC1: sort by date descending (newest first)
+  const sorted = useMemo(
+    () =>
+      [...(data?.items ?? [])].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    [data?.items],
+  );
+
+  // client-side: plan name search only (vehicle + fill rate are server-side)
+  const filtered = sorted.filter(
+    (r) => !searchTerm || r.planName.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const paginated = filtered;
 
-  const hasActiveFilters = fillRateFilters.size > 0;
+  const activeFilterCount =
+    (vehicleId ? 1 : 0) + (minFillRateStr || maxFillRateStr ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
+
+  const hasActiveFilters = activeFilterCount > 0;
   const isEmpty =
     !isLoading && totalCount === 0 && !searchTerm && !hasActiveFilters && period === 'all';
   const noResults =
@@ -304,11 +334,13 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
               size="sm"
               onClick={() => {
                 setPeriod(tab.value);
+                setDateFrom('');
+                setDateTo('');
                 setPage(1);
               }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium',
-                period === tab.value
+                period === tab.value && !dateFrom && !dateTo
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
@@ -344,7 +376,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
             Filtrele
             {hasActiveFilters && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {fillRateFilters.size}
+                {activeFilterCount}
               </span>
             )}
             <ChevronDown
@@ -353,26 +385,95 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           </Button>
 
           {showFilterPanel && (
-            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
-              <div className="p-3 space-y-3">
+            <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-xl border border-border bg-background shadow-lg">
+              <div className="space-y-4 p-3">
+                {/* Date range */}
                 <div>
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    Doluluk
+                    Tarih Aralığı
                   </p>
-                  <div className="space-y-2">
-                    {FILL_RATE_OPTIONS.map(({ value, label, color }) => (
-                      <label
-                        key={value}
-                        className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
-                      >
-                        <Checkbox
-                          checked={fillRateFilters.has(value)}
-                          onCheckedChange={() => toggleFillRate(value)}
-                        />
-                        <span className={cn('inline-block h-2 w-2 rounded-full', color)} />
-                        <span className="text-xs">{label}</span>
-                      </label>
-                    ))}
+                  <div className="flex flex-col gap-1.5">
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      max={dateTo || undefined}
+                      onChange={(e) => {
+                        setDateFrom(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 text-xs"
+                    />
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      min={dateFrom || undefined}
+                      onChange={(e) => {
+                        setDateTo(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Vehicle select — AC2 */}
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Araç
+                  </p>
+                  <Select
+                    value={vehicleId || '__all__'}
+                    onValueChange={(v) => {
+                      setVehicleId(v === '__all__' ? '' : v);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue placeholder="Tüm araçlar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Tüm araçlar</SelectItem>
+                      {vehicles.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                          {v.plate ? ` (${v.plate})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Fill rate range — AC2 */}
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Doluluk Oranı (%)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Min"
+                      value={minFillRateStr}
+                      onChange={(e) => {
+                        setMinFillRateStr(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 text-xs"
+                    />
+                    <span className="shrink-0 text-xs text-muted-foreground">–</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Max"
+                      value={maxFillRateStr}
+                      onChange={(e) => {
+                        setMaxFillRateStr(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 text-xs"
+                    />
                   </div>
                 </div>
 
@@ -382,10 +483,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                     variant="link"
                     size="sm"
                     className="h-auto p-0 text-[11px] text-muted-foreground"
-                    onClick={() => {
-                      setFillRateFilters(new Set());
-                      setPage(1);
-                    }}
+                    onClick={clearAllFilters}
                   >
                     Filtreleri temizle
                   </Button>
@@ -426,22 +524,22 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           <Table className="min-w-[700px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-44 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Plan
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Tarih
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-32 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Plaka
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-20 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Durum
                 </TableHead>
-                <TableHead className="w-36 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-36 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Doluluk
                 </TableHead>
-                <TableHead className="w-14 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-14 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   İndir
                 </TableHead>
               </TableRow>
@@ -449,15 +547,24 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={6}
-                    className="py-16 text-center text-sm text-muted-foreground"
-                  >
-                    Henüz plan raporu bulunmuyor.
+                  <TableCell colSpan={6} className="py-16">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Henüz rapor bulunmuyor. İlk planınızı oluşturun.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => void navigate(ROUTES.PLANNING_NEW)}
+                      >
+                        Plan Oluştur
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
-              {paginated.map((report) => (
+              {filtered.map((report) => (
                 <ReportRow key={report.id} report={report} />
               ))}
             </TableBody>
