@@ -18,7 +18,6 @@ import type {
   PlanProductItem,
 } from '@/lib/types/loadingPlan';
 import { useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
-import { usePlanStore } from '@/lib/store/usePlanStore';
 
 // ─── Constraint icons + Turkish labels ───────────────────────────────────────
 
@@ -173,7 +172,6 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
     if (onSelect) {
       onSelect();
     } else {
-      usePlanStore.getState().reset();
       navigate(`${ROUTES.PLANNING_NEW}?fromPlan=${plan.id}`);
     }
   }
