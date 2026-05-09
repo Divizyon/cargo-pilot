@@ -32,7 +32,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useDeleteLoadingPlan, useLoadingPlanList, useRenameLoadingPlan } from '@/lib/api/useLoadingPlans';
+import {
+  useDeleteLoadingPlan,
+  useLoadingPlanList,
+  useRenameLoadingPlan,
+} from '@/lib/api/useLoadingPlans';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
 import type { LoadingPlanFiltersHook } from '../hooks/useLoadingPlanFilters';
@@ -333,10 +337,7 @@ function RenameDialog({ plan, open, onClose }: RenameDialogProps) {
       onClose();
       return;
     }
-    rename.mutate(
-      { id: plan.id, planName: trimmed },
-      { onSettled: onClose },
-    );
+    rename.mutate({ id: plan.id, planName: trimmed }, { onSettled: onClose });
   }
 
   return (
@@ -389,10 +390,7 @@ function PlanRow({
 
   return (
     <>
-      <TableRow
-        className="group cursor-pointer"
-        onClick={handleRowClick}
-      >
+      <TableRow className="group cursor-pointer" onClick={handleRowClick}>
         {/* Plan name + code */}
         <TableCell>
           <div>

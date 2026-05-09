@@ -31,7 +31,11 @@ interface ShareLinkDialogProps {
 const VALIDITY_OPTIONS: Array<{ value: ShareValidity; label: string; hint: string }> = [
   { value: ShareValidity.H24, label: '24 Saat', hint: 'Bu bağlantı 24 saat geçerlidir.' },
   { value: ShareValidity.D7, label: '7 Gün', hint: 'Bu bağlantı 7 gün geçerlidir.' },
-  { value: ShareValidity.Unlimited, label: 'Süresiz', hint: 'Bu bağlantının geçerlilik süresi yoktur.' },
+  {
+    value: ShareValidity.Unlimited,
+    label: 'Süresiz',
+    hint: 'Bu bağlantının geçerlilik süresi yoktur.',
+  },
 ];
 
 export function ShareLinkDialog({ open, onOpenChange, planId, planName }: ShareLinkDialogProps) {
@@ -80,7 +84,8 @@ export function ShareLinkDialog({ open, onOpenChange, planId, planName }: ShareL
             Bağlantı ile Paylaş
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-zinc-800">{planName}</span> planını bağlantı ile paylaşın.
+            <span className="font-medium text-zinc-800">{planName}</span> planını bağlantı ile
+            paylaşın.
           </DialogDescription>
         </DialogHeader>
 

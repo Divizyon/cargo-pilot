@@ -54,7 +54,10 @@ function CardGrid({ filters }: CardGridProps) {
     return (
       <div className="grid grid-cols-3 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-[380px] animate-pulse rounded-xl border border-border bg-muted" />
+          <div
+            key={i}
+            className="h-[380px] animate-pulse rounded-xl border border-border bg-muted"
+          />
         ))}
       </div>
     );

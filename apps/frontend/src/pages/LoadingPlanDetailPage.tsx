@@ -25,7 +25,11 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
 import { PlanStatus } from '@/lib/types/loadingPlan';
-import type { LoadingPlanListItem, PlanProductGroup, PlanProductItem } from '@/lib/types/loadingPlan';
+import type {
+  LoadingPlanListItem,
+  PlanProductGroup,
+  PlanProductItem,
+} from '@/lib/types/loadingPlan';
 import { SharePlanDropdown } from '@/features/planning/components/SharePlanDropdown';
 import { cn } from '@/lib/utils';
 
@@ -187,8 +191,7 @@ function ContainerProductRow({ product }: ContainerProductRowProps) {
     <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 rounded-md transition-colors">
       <span className="w-2 h-2 rounded-full bg-zinc-300 shrink-0" />
       <span className="flex-1 text-xs text-zinc-700 truncate">
-        {product.name}{' '}
-        <span className="text-zinc-400">x{product.quantity}</span>
+        {product.name} <span className="text-zinc-400">x{product.quantity}</span>
       </span>
       <div className="flex items-center gap-1 shrink-0">
         <Scale className="w-3 h-3 text-zinc-400" />
@@ -395,16 +398,15 @@ function ThreeDPlannerContent({
         <div className="flex items-center gap-2 ml-auto">
           <SharePlanDropdown planId={plan.id} planName={plan.planName} />
 
-          <Button size="sm" className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white text-xs gap-1.5">
+          <Button
+            size="sm"
+            className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white text-xs gap-1.5"
+          >
             <Zap className="w-3.5 h-3.5" />
             Otomatik Plan
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs gap-1.5 border-zinc-200"
-          >
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-zinc-200">
             <Package className="w-3.5 h-3.5" />
             Yüklenemeyen
             <span className="inline-flex items-center justify-center rounded-full bg-zinc-900 text-white text-[9px] font-bold w-4 h-4">

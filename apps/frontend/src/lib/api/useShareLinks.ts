@@ -19,12 +19,15 @@ interface ProblemDetails {
 
 export function useCreateShareLink() {
   const queryClient = useQueryClient();
-  return useMutation<ShareLink, AxiosError<ProblemDetails>, { planId: string; validity: ShareValidity }>({
+  return useMutation<
+    ShareLink,
+    AxiosError<ProblemDetails>,
+    { planId: string; validity: ShareValidity }
+  >({
     mutationFn: async ({ planId, validity }) => {
-      const { data } = await axiosInstance.post<unknown>(
-        `/api/v1/loading-plans/${planId}/shares`,
-        { validity },
-      );
+      const { data } = await axiosInstance.post<unknown>(`/api/v1/loading-plans/${planId}/shares`, {
+        validity,
+      });
       const parsed = z.object({ data: shareLinkSchema }).safeParse(data);
       if (!parsed.success) throw new Error('Geçersiz yanıt formatı');
       return parsed.data.data;
@@ -84,7 +87,6 @@ export function useShareByToken(token: string) {
 
 export function useRecordShareView() {
   return useMutation<void, AxiosError<ProblemDetails>, string>({
-    mutationFn: (token) =>
-      axiosInstance.post(`/api/v1/shares/${token}/view`).then(() => undefined),
+    mutationFn: (token) => axiosInstance.post(`/api/v1/shares/${token}/view`).then(() => undefined),
   });
 }

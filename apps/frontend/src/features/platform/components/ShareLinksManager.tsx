@@ -47,7 +47,10 @@ function ShareLinkRow({ link }: { link: ShareLink }) {
             Süresi Doldu
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 text-[10px]">
+          <Badge
+            variant="outline"
+            className="text-emerald-600 border-emerald-200 bg-emerald-50 text-[10px]"
+          >
             Aktif
           </Badge>
         )}

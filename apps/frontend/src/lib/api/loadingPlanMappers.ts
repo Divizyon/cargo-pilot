@@ -20,24 +20,26 @@ const planVehicleApiSchema = z
 
 // ─── Plan list item ───────────────────────────────────────────────────────────
 
-export const planListApiItemSchema = z.object({
-  id: z.string(),
-  planName: z.string().optional(),
-  name: z.string().optional(), // alternative field name
-  vehicleId: z.string().nullable().optional(),
-  vehicle: planVehicleApiSchema,
-  fillRate: z.number().nullable().optional(),
-  volumeFillRate: z.number().nullable().optional(),
-  optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
-  itemCount: z.number().int().nullable().optional(),
-  placementCount: z.number().int().nullable().optional(), // alternative field name
-  totalWeight: z.number().nullable().optional(),
-  totalWeightKg: z.number().nullable().optional(), // alternative field name
-  createdAt: z.string().optional(),
-  plannedAt: z.string().nullable().optional(),
-  planCode: z.string().nullable().optional(),
-  status: z.string().nullable().optional(),
-}).passthrough();
+export const planListApiItemSchema = z
+  .object({
+    id: z.string(),
+    planName: z.string().optional(),
+    name: z.string().optional(), // alternative field name
+    vehicleId: z.string().nullable().optional(),
+    vehicle: planVehicleApiSchema,
+    fillRate: z.number().nullable().optional(),
+    volumeFillRate: z.number().nullable().optional(),
+    optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
+    itemCount: z.number().int().nullable().optional(),
+    placementCount: z.number().int().nullable().optional(), // alternative field name
+    totalWeight: z.number().nullable().optional(),
+    totalWeightKg: z.number().nullable().optional(), // alternative field name
+    createdAt: z.string().optional(),
+    plannedAt: z.string().nullable().optional(),
+    planCode: z.string().nullable().optional(),
+    status: z.string().nullable().optional(),
+  })
+  .passthrough();
 
 export type PlanListApiItem = z.infer<typeof planListApiItemSchema>;
 
@@ -69,7 +71,9 @@ export type ParsedListResponse = {
   totalCount: number;
 };
 
-export function extractListData(parsed: z.infer<typeof planListApiResponseSchema>): ParsedListResponse {
+export function extractListData(
+  parsed: z.infer<typeof planListApiResponseSchema>,
+): ParsedListResponse {
   const d = parsed.data;
   if (Array.isArray(d)) {
     return { rawItems: d, totalCount: d.length };
@@ -121,8 +125,7 @@ function mapStatus(
   if (typeof raw === 'string') {
     const s = raw.toLowerCase();
     if (s === 'completed' || s === 'tamamlandi' || s === 'done') return 'tamamlandi';
-    if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing')
-      return 'aktif';
+    if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing') return 'aktif';
     if (s === 'cancelled' || s === 'canceled' || s === 'iptal' || s === 'failed') return 'iptal';
     return 'taslak';
   }
@@ -142,16 +145,16 @@ function mapStatus(
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
-  const planName = api.planName ?? (api as Record<string, unknown>)['name'] as string ?? '—';
+  const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
   const itemCount =
     api.itemCount ??
     api.placementCount ??
-    (api as Record<string, unknown>)['itemsCount'] as number | undefined ??
+    ((api as Record<string, unknown>)['itemsCount'] as number | undefined) ??
     0;
   const totalWeight =
     api.totalWeight ??
     api.totalWeightKg ??
-    (api as Record<string, unknown>)['weight'] as number | undefined ??
+    ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
   return {
     id: api.id,

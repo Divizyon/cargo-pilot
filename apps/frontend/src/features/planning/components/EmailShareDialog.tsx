@@ -45,7 +45,8 @@ export function EmailShareDialog({ open, onOpenChange, planId, planName }: Email
             E-posta ile Paylaş
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-zinc-800">{planName}</span> planını e-posta ile gönderin.
+            <span className="font-medium text-zinc-800">{planName}</span> planını e-posta ile
+            gönderin.
           </DialogDescription>
         </DialogHeader>
 
