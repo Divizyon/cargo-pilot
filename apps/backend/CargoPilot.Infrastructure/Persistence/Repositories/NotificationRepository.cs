@@ -16,6 +16,11 @@ internal sealed class NotificationRepository : INotificationRepository
         _dbContext = dbContext;
     }
 
+    public void Add(Notification notification)
+    {
+        _dbContext.Notifications.Add(notification);
+    }
+
     public async Task<IReadOnlyList<Notification>> GetPagedAsync(
         Guid userId,
         DateTime? cursor,

@@ -6,6 +6,9 @@ namespace CargoPilot.Application.Common.Interfaces;
 public interface INotificationRepository
 {
     // Returns up to PageSize+1 items; caller checks count > PageSize to determine hasMore.
+    void Add(Notification notification);
+
+    // Returns up to PageSize+1 items; caller checks count > PageSize to determine hasMore.
     Task<IReadOnlyList<Notification>> GetPagedAsync(
         Guid userId,
         DateTime? cursor,
