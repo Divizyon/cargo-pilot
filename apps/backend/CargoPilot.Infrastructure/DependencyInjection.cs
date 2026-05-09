@@ -78,6 +78,7 @@ public static class DependencyInjection {
             services.AddScoped<IAuthService, AuthService>();
 
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
+            services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
         }
 
         return services;
