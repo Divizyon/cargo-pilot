@@ -60,6 +60,10 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser> {
 
         builder.Property(user => user.LockoutEndUtc);
 
+        builder.Property(user => user.TourCompleted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.HasIndex(user => user.Email)
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
