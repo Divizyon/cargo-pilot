@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
@@ -8,7 +8,9 @@ import { CameraPresetButtons } from '@/features/planning/components/scene/Camera
 import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 import { cn } from '@/lib/utils';
 import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
-import { useVehicle } from '@/lib/api/useVehicles';
+import { useItems } from '@/lib/api/useItems';
+import { SCENE } from '@/lib/config/scene-config';
+import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 
 // ─── PlanAutoLoader ───────────────────────────────────────────────────────────
@@ -21,12 +23,37 @@ interface PlanAutoLoaderProps {
 function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
   const { data: plan } = useLoadingPlanListItem(planId);
   const { data: productGroups = [], isLoading: productsLoading } = useLoadingPlanProducts(planId);
-  const { data: vehicle } = useVehicle(plan?.vehicleId ?? '');
+  const { data: itemsPage } = useItems({ pageSize: 100 });
+  const allItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
+
+  const vehicle = useMemo(
+    (): Vehicle | null =>
+      plan && plan.vehicleId
+        ? {
+            id: plan.vehicleId,
+            name: plan.vehicleName,
+            plate: plan.vehiclePlate,
+            width: plan.interiorWidthM,
+            height: plan.interiorHeightM,
+            length: plan.interiorDepthM,
+            maxCargoWeight: plan.vehicleCapacityKg,
+            vehicleType: plan.vehicleType ?? VehicleType.Tir,
+            doorDirection: plan.doorDirection ?? DoorDirection.Rear,
+            doorSide: plan.doorSide,
+            isFavorite: false,
+            isActive: true,
+            isDeleted: false,
+            createdAt: new Date(0).toISOString(),
+            createdBy: { id: '', fullName: '' },
+          }
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plan?.vehicleId],
+  );
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const initItems = usePlanStore((s) => s.initItems);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const selectedItems = usePlanStore((s) => s.selectedItems);
 
   const vehicleSetRef = useRef(false);
   const placementsAppliedRef = useRef(false);
@@ -46,38 +73,45 @@ function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
     onVehicleSelected();
   }, [vehicle, selectedVehicle, setVehicle, onVehicleSelected]);
 
-  // Step 2: miktarları güncelle + hepsini 3D sahneye ekle
-  // Koşul: araç seçildi, PlanLeftPanel ürünleri tohumladı, ürün sorgusu bitti
+  // Step 2: ürünleri doğrudan items API'sinden al, plan miktarlarıyla eşleştir, sahneye ekle
+  // vehicle.id kontrolü: reset öncesi eski araçla erken tetiklenmeyi önler
   useEffect(() => {
     if (
       placementsAppliedRef.current ||
       !selectedVehicle ||
-      selectedItems.length === 0 ||
-      productsLoading
+      selectedVehicle.id !== vehicle?.id ||
+      productsLoading ||
+      productGroups.length === 0 ||
+      allItems.length === 0
     )
       return;
 
     placementsAppliedRef.current = true;
 
-    // Plandaki miktar haritası (boş olabilir — optimize edilmemiş plan)
     const quantityMap = new Map<string, number>(
       productGroups.flatMap((g) => g.products.map((p) => [p.id, p.quantity])),
     );
 
-    // Miktarları güncelle
-    const { skuColorMap, selectedItems: currentItems } = usePlanStore.getState();
-    const updatedItems = currentItems.map((si) => ({
-      item: si.item,
-      quantity: quantityMap.get(si.item.id) ?? si.quantity,
-    }));
-    initItems(updatedItems, skuColorMap);
+    const planItemIds = new Set(productGroups.flatMap((g) => g.products.map((p) => p.id)));
 
-    // Tüm kalemleri 3D sahneye ekle
+    const storeItems = allItems
+      .filter((item) => planItemIds.has(item.id))
+      .map((item) => ({ item, quantity: quantityMap.get(item.id) ?? 1 }));
+
+    if (storeItems.length === 0) return;
+
+    const colorMap: Record<string, string> = {};
+    storeItems.forEach((si, i) => {
+      colorMap[si.item.sku] = SCENE.COLORS.SKU_PALETTE[i % SCENE.COLORS.SKU_PALETTE.length];
+    });
+
+    initItems(storeItems, colorMap);
+
     const { selectedItems: current } = usePlanStore.getState();
     for (const { item } of current) {
       usePlanStore.getState().togglePlacement(item.id);
     }
-  }, [selectedVehicle, selectedItems.length, productsLoading, productGroups, initItems]);
+  }, [selectedVehicle, vehicle, productsLoading, productGroups, allItems, initItems]);
 
   return null;
 }

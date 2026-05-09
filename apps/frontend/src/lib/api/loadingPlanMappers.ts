@@ -4,6 +4,7 @@ import type {
   PlanProductGroup,
   PlanProductItem,
 } from '@/lib/types/loadingPlan';
+import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -18,6 +19,8 @@ const planVehicleApiSchema = z
     internalHeight: z.number().optional(),
     internalLength: z.number().optional(),
     maxWeightCapacity: z.number().optional(),
+    vehicleType: z.number().int().optional(),
+    loadingType: z.number().int().optional(),
   })
   .nullable()
   .optional();
@@ -300,5 +303,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     interiorWidthM: v?.internalWidth ?? 0,
     interiorHeightM: v?.internalHeight ?? 0,
     interiorDepthM: v?.internalLength ?? 0,
+    vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
+    doorDirection: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
+    doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
   };
 }
