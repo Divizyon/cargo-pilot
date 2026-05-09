@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
@@ -153,7 +153,7 @@ function ReportRow({ report }: ReportRowProps) {
   const navigate = useNavigate();
   const cell = 'py-0 px-3';
 
-  function handleDownload(e: React.MouseEvent) {
+  function handleDownload(e: { stopPropagation(): void }) {
     e.stopPropagation();
     if (report.downloadUrl) {
       window.open(report.downloadUrl, '_blank', 'noopener,noreferrer');

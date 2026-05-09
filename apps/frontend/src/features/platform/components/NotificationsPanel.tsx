@@ -1,4 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import {
+  type ForwardRefExoticComponent,
+  type MouseEvent,
+  type RefAttributes,
+  useMemo,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -40,8 +46,8 @@ import {
 
 // ─── Type metadata ────────────────────────────────────────────────────────────
 
-type IconComponent = React.ForwardRefExoticComponent<
-  Omit<LucideProps, 'ref'> & React.RefAttributes<SVGSVGElement>
+type IconComponent = ForwardRefExoticComponent<
+  Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>
 >;
 
 const TYPE_ICON: Record<string, IconComponent> = {
@@ -113,7 +119,7 @@ function NotificationItem({ notification: n }: NotificationItemProps) {
   const badgeClass =
     SEVERITY_BADGE[n.severity] ?? 'border border-border bg-muted text-muted-foreground';
 
-  function handleActionClick(e: React.MouseEvent) {
+  function handleActionClick(e: MouseEvent) {
     e.stopPropagation();
     if (!n.actionUrl) return;
     if (!n.isRead) markRead(n.id);
@@ -128,7 +134,7 @@ function NotificationItem({ notification: n }: NotificationItemProps) {
     if (!n.isRead) markRead(n.id);
   }
 
-  function handleDelete(e: React.MouseEvent) {
+  function handleDelete(e: MouseEvent) {
     e.stopPropagation();
     deleteNotification(n.id);
   }
