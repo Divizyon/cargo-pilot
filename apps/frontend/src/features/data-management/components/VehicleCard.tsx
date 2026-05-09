@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
-import { planningDetailRoute } from '@/lib/config/routes';
+import { ROUTES } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import type {
   LoadingPlanListItem,
@@ -18,6 +18,7 @@ import type {
   PlanProductItem,
 } from '@/lib/types/loadingPlan';
 import { useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
+import { usePlanStore } from '@/lib/store/usePlanStore';
 
 // ─── Constraint icons + Turkish labels ───────────────────────────────────────
 
@@ -172,7 +173,8 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
     if (onSelect) {
       onSelect();
     } else {
-      navigate(planningDetailRoute(plan.id));
+      usePlanStore.getState().reset();
+      navigate(`${ROUTES.PLANNING_NEW}?fromPlan=${plan.id}`);
     }
   }
 

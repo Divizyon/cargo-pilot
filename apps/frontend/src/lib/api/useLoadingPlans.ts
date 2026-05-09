@@ -2,10 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
-import {
-  loadingPlanSchema,
-  type LoadingPlanListItem,
-} from '@/lib/types/loadingPlan';
+import { loadingPlanSchema, type LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { apiFetch } from './fetcher';
 import { axiosInstance } from './axiosInstance';
 import {
@@ -104,7 +101,7 @@ export function useLoadingPlanListItem(id: string) {
       return fromApiPlanListItem({
         id: d.id,
         planName: d.planName,
-        vehicleId: d.vehicleId ?? '',
+        vehicleId: d.vehicleId ?? d.vehicle?.id ?? '',
         vehicle: d.vehicle,
         fillRate: d.fillRate,
         volumeFillRate: d.volumeFillRate,
@@ -221,19 +218,19 @@ export function useLoadingPlanProducts(planId: string) {
     queryKey: ['loading-plan-products', planId] as const,
     queryFn: async (): Promise<import('@/lib/types/loadingPlan').PlanProductGroup[]> => {
       const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
-      console.log('[useLoadingPlanProducts] raw response keys:', Object.keys(data as object));
       const parsed = planDetailApiResponseSchema.safeParse(data);
       if (!parsed.success) {
         console.error('[useLoadingPlanProducts] parse error', parsed.error);
         return [];
       }
       const d = parsed.data.data;
-      const rawPlacements = d.placements?.length ? d.placements : d.placementDetails ?? [];
+      const rawPlacements = d.placements?.length ? d.placements : (d.placementDetails ?? []);
       const rawInput = (d as Record<string, unknown>)['inputItems'];
-      console.log('[useLoadingPlanProducts] inputItems[0]:', Array.isArray(rawInput) ? rawInput[0] : rawInput);
       const source = rawPlacements.length
         ? rawPlacements
-        : Array.isArray(rawInput) ? (rawInput as typeof rawPlacements) : [];
+        : Array.isArray(rawInput)
+          ? (rawInput as typeof rawPlacements)
+          : [];
       return fromApiDetailPlacements(source);
     },
     enabled: Boolean(planId),

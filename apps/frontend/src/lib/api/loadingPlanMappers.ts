@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import type { LoadingPlanListItem, PlanProductGroup, PlanProductItem } from '@/lib/types/loadingPlan';
+import type {
+  LoadingPlanListItem,
+  PlanProductGroup,
+  PlanProductItem,
+} from '@/lib/types/loadingPlan';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -183,8 +187,14 @@ function mapStatus(
 // ─── Mapper: placements → PlanProductGroup[] ─────────────────────────────────
 
 const GROUP_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316',
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#84cc16',
+  '#f97316',
 ];
 
 export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): PlanProductGroup[] {
@@ -203,13 +213,15 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
   }
 
   // group name → items
-  const groupMap = new Map<string, { color: string; entries: Array<{ id: string; p: PlacementItemApi; count: number }> }>();
+  const groupMap = new Map<
+    string,
+    { color: string; entries: Array<{ id: string; p: PlacementItemApi; count: number }> }
+  >();
   let colorIdx = 0;
 
   for (const [itemId, { p, count }] of itemMap) {
     const item = p.item;
-    const groupName =
-      item?.groupName ?? item?.categoryName ?? item?.category ?? 'Yük Grubu';
+    const groupName = item?.groupName ?? item?.categoryName ?? item?.category ?? 'Yük Grubu';
     const groupColor =
       item?.groupColor ?? item?.categoryColor ?? GROUP_COLORS[colorIdx % GROUP_COLORS.length];
 
@@ -232,7 +244,11 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
       if (fragility >= 1 || item?.isFragile) constraints.push('fragile');
       if (fragility === 2 || item?.isLiquid) constraints.push('liquid');
       if (item?.isHazmat) constraints.push('hazmat');
-      if (item?.allowRotateX === false && item?.allowRotateY === false && item?.allowRotateZ === false)
+      if (
+        item?.allowRotateX === false &&
+        item?.allowRotateY === false &&
+        item?.allowRotateZ === false
+      )
         constraints.push('no_rotate');
 
       return {
