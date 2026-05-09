@@ -1,3 +1,5 @@
+using CargoPilot.Domain.Enums;
+
 namespace CargoPilot.Domain.Entities;
 
 public sealed class Integration : BaseEntity {
@@ -7,6 +9,9 @@ public sealed class Integration : BaseEntity {
     public string? MappingTable { get; private set; }
     public int? SyncInterval { get; private set; }
     public DateTime? LastSyncDate { get; private set; }
+    public SyncFrequency? SyncFrequency { get; private set; }
+    public DateTime? NextScheduledSyncAt { get; private set; }
+    public ErpSyncStatus SyncStatus { get; private set; } = ErpSyncStatus.Idle;
     public string? AuthCredentials { get; private set; }
 
 #pragma warning disable S1144
@@ -43,4 +48,19 @@ public sealed class Integration : BaseEntity {
     public void UpdateAuthCredentials(string? authCredentials) => AuthCredentials = authCredentials;
 
     public void RecordSync(DateTime syncDate) => LastSyncDate = syncDate;
+
+    public void UpdateSyncSettings(SyncFrequency? frequency, DateTime? nextScheduledSyncAt) {
+        SyncFrequency = frequency;
+        NextScheduledSyncAt = nextScheduledSyncAt;
+    }
+
+    public void StartSync() => SyncStatus = ErpSyncStatus.Running;
+
+    public void CompleteSync(DateTime lastSyncAt, DateTime? nextScheduledSyncAt) {
+        LastSyncDate = lastSyncAt;
+        NextScheduledSyncAt = nextScheduledSyncAt;
+        SyncStatus = ErpSyncStatus.Idle;
+    }
+
+    public void FailSync() => SyncStatus = ErpSyncStatus.Failed;
 }

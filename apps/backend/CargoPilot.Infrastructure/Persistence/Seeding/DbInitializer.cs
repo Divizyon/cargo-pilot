@@ -43,21 +43,36 @@ public sealed class DbInitializer {
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        var adminExists = await _context.Users
-            .AnyAsync(
-                user => user.Email == DefaultAdminEmail,
-                cancellationToken);
+        var testIntegrationExists = await _context.Integrations
+            .AnyAsync(i => i.CompanyId == company.Id, cancellationToken);
 
-        if (!adminExists) {
-            var defaultAdminPassword = _configuration["Seed:DefaultAdminPassword"];
-            if (string.IsNullOrWhiteSpace(defaultAdminPassword)) {
-                throw new InvalidOperationException(
-                    "Seed:DefaultAdminPassword tanımsız. Seed için varsayılan admin şifresi yapılandırılmalı.");
-            }
-
-            var adminUser = new AppUser(
+        if (!testIntegrationExists) {
+            var integration = new Integration(
                 id: Guid.NewGuid(),
-                companyId: null,
+                companyId: company.Id,
+                systemName: "TestERP",
+                apiEndpoint: "https://erp.test",
+                mappingTable: null,
+                syncInterval: null,
+                authCredentials: null);
+
+            await _context.Integrations.AddAsync(integration, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        var defaultAdminPassword = _configuration["Seed:DefaultAdminPassword"];
+        if (string.IsNullOrWhiteSpace(defaultAdminPassword)) {
+            throw new InvalidOperationException(
+                "Seed:DefaultAdminPassword tanımsız. Seed için varsayılan admin şifresi yapılandırılmalı.");
+        }
+
+        var adminUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == DefaultAdminEmail, cancellationToken);
+
+        if (adminUser is null) {
+            adminUser = new AppUser(
+                id: Guid.NewGuid(),
+                companyId: company.Id,
                 firstName: "System",
                 lastName: "Admin",
                 email: DefaultAdminEmail,
@@ -67,7 +82,10 @@ public sealed class DbInitializer {
                 authProvider: AuthProvider.Local);
 
             await _context.Users.AddAsync(adminUser, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+        } else if (adminUser.CompanyId is null) {
+            adminUser.AssignToCompany(company.Id);
         }
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }
