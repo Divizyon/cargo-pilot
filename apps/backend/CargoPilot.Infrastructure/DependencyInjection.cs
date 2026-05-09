@@ -57,6 +57,7 @@ public static class DependencyInjection {
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
         services.AddScoped<IOptimizationEngine, NoOpOptimizationEngine>();
+        services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
