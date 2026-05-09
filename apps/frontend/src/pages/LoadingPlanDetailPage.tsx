@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -77,7 +77,7 @@ const PLAN_TABS: { id: PlanTab; label: string; step: number }[] = [
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 interface UtilizationCardProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   pct: number;
   loadedLabel: string;
@@ -134,10 +134,10 @@ function UtilizationCard({
 }
 
 interface InfoCardProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   primary: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 function InfoCard({ icon, label, primary, children }: InfoCardProps) {
@@ -171,7 +171,7 @@ function ThreeDPlaceholder({ label }: ThreeDPlaceholderProps) {
 
 // ─── Constraint icons ─────────────────────────────────────────────────────────
 
-const CONSTRAINT_ICON_MAP: Record<string, React.ReactNode> = {
+const CONSTRAINT_ICON_MAP: Record<string, ReactNode> = {
   fragile: <AlertCircle className="w-3 h-3 text-rose-500" />,
   liquid: <RotateCcw className="w-3 h-3 text-blue-500" />,
   bottom_only: <ArrowUpDown className="w-3 h-3 text-amber-500" />,
