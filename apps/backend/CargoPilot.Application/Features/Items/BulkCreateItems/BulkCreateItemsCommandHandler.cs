@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Items.CreateItem;
@@ -11,13 +12,16 @@ public sealed class BulkCreateItemsCommandHandler
     : IRequestHandler<BulkCreateItemsCommand, Result<BulkCreateItemsResponse>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<CreateItemCommand> _validator;
 
     public BulkCreateItemsCommandHandler(
         IItemRepository itemRepository,
+        ICurrentUserService currentUserService,
         IValidator<CreateItemCommand> validator)
     {
         _itemRepository = itemRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -29,6 +33,7 @@ public sealed class BulkCreateItemsCommandHandler
             return Result<BulkCreateItemsResponse>.Failure(
                 new Error(ErrorType.Validation, "BulkItem.EmptyList", "En az bir ürün gönderilmelidir."));
 
+        var companyId = _currentUserService.CompanyId;
         var failures = new List<ValidationFailure>();
 
         // Field validation per row
@@ -63,7 +68,7 @@ public sealed class BulkCreateItemsCommandHandler
         // DB SKU conflicts (only for non-batch-duplicate SKUs)
         foreach (var (sku, indices) in skuToIndices.Where(kv => !batchDuplicates.Contains(kv.Key)))
         {
-            if (await _itemRepository.ExistsBySkuAsync(sku, cancellationToken))
+            if (await _itemRepository.ExistsBySkuAsync(sku, companyId, cancellationToken))
             {
                 foreach (var idx in indices)
                     failures.Add(new ValidationFailure($"[{idx}].SKU", "Bu SKU zaten kullanımda."));
@@ -96,7 +101,8 @@ public sealed class BulkCreateItemsCommandHandler
                 diameter: cmd.Diameter,
                 imageUrl: cmd.ImageUrl,
                 stackGroup: cmd.StackGroup,
-                specialNotes: cmd.SpecialNotes));
+                specialNotes: cmd.SpecialNotes,
+                companyId: companyId));
         }
 
         await _itemRepository.SaveChangesAsync(cancellationToken);

@@ -30,7 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRegister, isEmailDuplicate } from '@/lib/api/useAuth';
-import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
+import { OAUTH_GOOGLE_URL } from '@/lib/config/env';
 import { registerSchema } from '@/features/platform/schemas/registerSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
 
@@ -68,17 +68,6 @@ function GoogleIcon() {
         fill="#EA4335"
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
       />
-    </svg>
-  );
-}
-
-function MicrosoftIcon() {
-  return (
-    <svg viewBox="0 0 21 21" className="size-4 shrink-0" aria-hidden="true">
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
     </svg>
   );
 }
@@ -388,16 +377,6 @@ export function RegisterForm() {
         >
           <GoogleIcon />
           Google ile Kayıt Ol
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => handleOAuth(OAUTH_MICROSOFT_URL)}
-          disabled={!OAUTH_MICROSOFT_URL}
-        >
-          <MicrosoftIcon />
-          Microsoft ile Kayıt Ol
         </Button>
       </div>
 

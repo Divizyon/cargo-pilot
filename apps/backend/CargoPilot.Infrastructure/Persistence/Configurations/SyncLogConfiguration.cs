@@ -42,6 +42,14 @@ internal sealed class SyncLogConfiguration : IEntityTypeConfiguration<SyncLog> {
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(s => s.RuleAssignedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.RuleNotAssignedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.Property(s => s.ErrorMessage)
             .HasMaxLength(2000);
 

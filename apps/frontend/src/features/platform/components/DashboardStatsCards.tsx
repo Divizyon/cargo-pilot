@@ -1,10 +1,11 @@
-import { Box, Truck, TrendingUp } from 'lucide-react';
+import { Gauge, Scale, ClipboardList } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDashboardStats } from '@/lib/api/useDashboardStats';
 import { StatSummaryCard } from './StatSummaryCard';
 import { WeeklyTrendChart } from './WeeklyTrendChart';
 
-const ciroFormat = (v: number) => `₺${new Intl.NumberFormat('tr-TR').format(v)}`;
+const efficiencyFormat = (v: number) => `%${v}`;
+const tonnageFormat = (v: number) => `${new Intl.NumberFormat('tr-TR').format(v)} ton`;
 
 export function DashboardStatsCards() {
   const { data, isLoading, isError } = useDashboardStats();
@@ -18,35 +19,36 @@ export function DashboardStatsCards() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-4">
         <StatSummaryCard
-          title="Toplam Sevkiyat"
-          icon={Box}
-          value={data?.totalShipments.value ?? 0}
-          subInfo={data?.totalShipments.subInfo ?? ''}
-          delta={data?.totalShipments.delta ?? 0}
+          title="Araç Verimliliği"
+          icon={Gauge}
+          value={data?.vehicleEfficiency.value ?? 0}
+          subInfo={data?.vehicleEfficiency.subInfo ?? ''}
+          delta={data?.vehicleEfficiency.delta ?? 0}
           isLoading={isLoading}
           isError={isError}
           onRetry={handleRetry}
+          formatValue={efficiencyFormat}
         />
         <StatSummaryCard
-          title="Aktif Araç"
-          icon={Truck}
-          value={data?.activeVehicles.value ?? 0}
-          subInfo={data?.activeVehicles.subInfo ?? ''}
-          delta={data?.activeVehicles.delta ?? 0}
+          title="Toplam Yüklenen Tonaj"
+          icon={Scale}
+          value={data?.weeklyLoadedTonnage.value ?? 0}
+          subInfo={data?.weeklyLoadedTonnage.subInfo ?? ''}
+          delta={data?.weeklyLoadedTonnage.delta ?? 0}
           isLoading={isLoading}
           isError={isError}
           onRetry={handleRetry}
+          formatValue={tonnageFormat}
         />
         <StatSummaryCard
-          title="Aylık Ciro"
-          icon={TrendingUp}
-          value={data?.monthlyCiro.value ?? 0}
-          subInfo={data?.monthlyCiro.subInfo ?? ''}
-          delta={data?.monthlyCiro.delta ?? 0}
+          title="Toplam Yükleme Sayısı"
+          icon={ClipboardList}
+          value={data?.weeklyLoadingCount.value ?? 0}
+          subInfo={data?.weeklyLoadingCount.subInfo ?? ''}
+          delta={data?.weeklyLoadingCount.delta ?? 0}
           isLoading={isLoading}
           isError={isError}
           onRetry={handleRetry}
-          formatValue={ciroFormat}
         />
       </div>
 

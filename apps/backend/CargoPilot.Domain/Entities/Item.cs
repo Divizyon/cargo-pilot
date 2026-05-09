@@ -1,4 +1,5 @@
 using CargoPilot.Domain.Enums;
+using System.Text.Json;
 
 namespace CargoPilot.Domain.Entities;
 
@@ -14,6 +15,7 @@ public sealed class Item : BaseEntity {
     public decimal? Diameter { get; private set; }
     public decimal Weight { get; private set; }
     public FragilityType FragilityType { get; private set; }
+    public string ConstraintIdsJson { get; private set; } = "[]";
     public bool IsStackable { get; private set; }
     public int MaxStackCount { get; private set; }
     public decimal MaxWeightOnTop { get; private set; }
@@ -24,6 +26,7 @@ public sealed class Item : BaseEntity {
     public Guid? CompanyId { get; private set; }
     public string? ErpId { get; private set; }
     public Guid? IntegrationId { get; private set; }
+    public bool IsRuleAssigned { get; private set; } = true;
 #pragma warning disable S1144
     public Company? Company { get; private set; }
     public Integration? Integration { get; private set; }
@@ -51,6 +54,7 @@ public sealed class Item : BaseEntity {
         string? imageUrl = null,
         string? stackGroup = null,
         string? specialNotes = null,
+        int[]? constraintIds = null,
         Guid? companyId = null) : base(id) {
         SKU = sku;
         Barcode = barcode;
@@ -63,6 +67,7 @@ public sealed class Item : BaseEntity {
         Diameter = diameter;
         Weight = weight;
         FragilityType = fragilityType;
+        ConstraintIdsJson = SerializeConstraintIds(constraintIds);
         IsStackable = isStackable;
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
@@ -83,6 +88,8 @@ public sealed class Item : BaseEntity {
         IntegrationId = null;
     }
 
+    public void SetRuleAssigned(bool isRuleAssigned) => IsRuleAssigned = isRuleAssigned;
+
     public void Update(
         string sku,
         string? barcode,
@@ -101,7 +108,8 @@ public sealed class Item : BaseEntity {
         AllowedRotations allowedRotations,
         string? imageUrl,
         string? stackGroup,
-        string? specialNotes) {
+        string? specialNotes,
+        int[]? constraintIds = null) {
         SKU = sku;
         Barcode = barcode;
         Name = name;
@@ -113,6 +121,7 @@ public sealed class Item : BaseEntity {
         Diameter = diameter;
         Weight = weight;
         FragilityType = fragilityType;
+        ConstraintIdsJson = SerializeConstraintIds(constraintIds);
         IsStackable = isStackable;
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
@@ -120,5 +129,22 @@ public sealed class Item : BaseEntity {
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
         SpecialNotes = specialNotes;
+    }
+
+    public int[] GetConstraintIds() {
+        if (string.IsNullOrEmpty(ConstraintIdsJson) || ConstraintIdsJson == "[]")
+            return [];
+        try {
+            return JsonSerializer.Deserialize<int[]>(ConstraintIdsJson) ?? [];
+        }
+        catch {
+            return [];
+        }
+    }
+
+    private static string SerializeConstraintIds(int[]? constraintIds) {
+        if (constraintIds is null or { Length: 0 })
+            return "[]";
+        return JsonSerializer.Serialize(constraintIds);
     }
 }

@@ -422,3 +422,60 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
 - `CargoPilot.Infrastructure/Persistence/Migrations/20260507133430_AddReportFieldsToLoadingPlans.cs`
 - `CargoPilot.WebAPI/Controllers/PlansController.cs`
+
+### US-REP-03 Düzeltmeleri (branch: `feature/loading-plan-reports`)
+- `✅` `GET /loading-plans/reports` endpoint'inde `[FromQuery]` model binding varsayılan değerleri çalışmıyordu — query record doğrudan bind edilmek yerine explicit `[FromQuery]` parametreler + manuel record constructor ile düzeltildi (`PlansController.cs`)
+- `✅` `ReportUrl` EF konfigürasyonuna `HasMaxLength(2048)` eklendi; `nvarchar(max)` yerine `nvarchar(2048)` kolonu oluşturulur (`LoadingPlanConfiguration.cs`)
+- `✅` `GetPagedReportsAsync` içindeki `.Include(p => p.Vehicle)` kaldırıldı; Select projection kullanıldığında gereksiz join yapıyordu (`LoadingPlanRepository.cs`)
+- `✅` `FixReportUrlMaxLength` migration'i oluşturuldu ve uygulandı
+
+**Kanıtlar:**
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
+- `CargoPilot.Infrastructure/Persistence/Configurations/LoadingPlanConfiguration.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260508090402_FixReportUrlMaxLength.cs`
+
+---
+
+## 16) Auth Company Scope — ICurrentUserService Genişletme + CRUD İzolasyonu (PR1)
+**Story:** Backend geliştirici olarak, tüm CRUD endpoint'lerinin (Items, Vehicles, LoadingPlans) yalnızca token sahibi kullanıcının şirketine ait verileri döndürmesi ve oluşturması için company-scope izolasyonunun uygulanmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+**Branch:** `feature/auth-company-scope`
+
+### Task 1 — ICurrentUserService Genişletme
+- `✅` `ICurrentUserService` arayüzüne `CompanyId (Guid?)` ve `UserType (UserType?)` property'leri eklendi (`CargoPilot.Application/Abstractions/ICurrentUserService.cs`)
+- `✅` `JwtCurrentUserService`'e `company_id` claim'inden `CompanyId`, `role` claim'inden `UserType` okuma eklendi (`CargoPilot.WebAPI/Services/JwtCurrentUserService.cs`)
+- `✅` `AnonymousCurrentUserService`'e eksik implementasyonlar eklendi (`CompanyId => null`, `UserType => null`) (`CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs`)
+
+### Task 2 — Items CRUD Company-Scope
+- `✅` `IItemRepository` tüm metodlarına `Guid? companyId` parametresi eklendi (`GetByIdAsync`, `GetExistingIdsAsync`, `ExistsBySkuAsync` x2, `SearchAsync`)
+- `✅` `ItemRepository` implementasyonları güncellendi; tüm sorgulara `WHERE CompanyId == companyId` filtresi eklendi
+- `✅` 6 Item handler'ına (`Create`, `Update`, `Delete`, `GetById`, `Search`, `BulkCreate`) `ICurrentUserService` inject edildi ve `_currentUserService.CompanyId` geçildi
+
+### Task 3 — Vehicles CRUD Company-Scope + Favorite Guard
+- `✅` `IVehicleRepository`'ye `SearchAsync` ve `GetByIdAsync` metodlarına `Guid? companyId` parametresi eklendi
+- `✅` `VehicleRepository` implementasyonları güncellendi; `SearchAsync`'e `WHERE CompanyId == companyId`, `GetByIdAsync`'e compound predicate eklendi
+- `✅` `SearchVehiclesQueryHandler` güncellendi
+- `✅` `CreateVehicleCommandHandler`'dan gereksiz `IUserRepository` bağımlılığı kaldırıldı; `_currentUserService.CompanyId` doğrudan kullanılıyor (DB round-trip eliminasyonu)
+- `✅` `UpdateVehicleCommandHandler`, `DeleteVehicleCommandHandler`, `DuplicateVehicleCommandHandler` güncellendi
+- `✅` `AddVehicleFavoriteCommandHandler`'dan `IUserRepository` bağımlılığı kaldırıldı; `GetByIdAsync(vehicleId, companyId)` ile implicit company guard sağlandı
+
+### Task 4 — LoadingPlan CRUD Company-Scope
+- `✅` `ILoadingPlanRepository` tüm 4 metoduna `Guid? companyId` parametresi eklendi (`GetPagedAsync`, `GetDetailByIdAsync`, `GetByIdAsync`, `GetPagedReportsAsync`)
+- `✅` `LoadingPlanRepository` implementasyonları güncellendi; tüm sorgulara company filtresi eklendi
+- `✅` 6 Plan handler'ına (`GetPlans`, `GetPlanById`, `UpdatePlanName`, `DeletePlan`, `CreatePlan`, `GetLoadingPlanReports`) `ICurrentUserService` inject edildi
+- `✅` `CreatePlanCommandHandler`'da araç lookup ve item lookup da company-scope ile yapılıyor; `ICurrentUserService` eklendi
+
+### Kanıtlar
+- `CargoPilot.Application/Abstractions/ICurrentUserService.cs`
+- `CargoPilot.Application/Common/Interfaces/IItemRepository.cs`
+- `CargoPilot.Application/Common/Interfaces/IVehicleRepository.cs`
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/ItemRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/VehicleRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs`
+- `CargoPilot.WebAPI/Services/JwtCurrentUserService.cs`
+- 13 handler dosyası (Items x6, Vehicles x5, Plans x6)

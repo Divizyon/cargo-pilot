@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -8,12 +9,15 @@ namespace CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 
 public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVehicleCommand, Result<Guid>> {
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<DuplicateVehicleCommand> _validator;
 
     public DuplicateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
+        ICurrentUserService currentUserService,
         IValidator<DuplicateVehicleCommand> validator) {
         _vehicleRepository = vehicleRepository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -27,13 +31,15 @@ public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVe
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
-        var source = await _vehicleRepository.GetByIdAsync(request.Id, cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+
+        var source = await _vehicleRepository.GetByIdAsync(request.Id, companyId, cancellationToken);
         if (source is null)
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
         var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
-            request.PlateNumber, source.CompanyId, cancellationToken);
+            request.PlateNumber, companyId, cancellationToken);
         if (plateExists)
             return Result<Guid>.Failure(
                 new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));
@@ -58,7 +64,7 @@ public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVe
             additionalAxleMaxLoadKg: source.AdditionalAxleMaxLoadKg,
             layerCount: source.LayerCount,
             loadingType: source.LoadingType,
-            companyId: source.CompanyId);
+            companyId: companyId);
 
         _vehicleRepository.Add(duplicate);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
