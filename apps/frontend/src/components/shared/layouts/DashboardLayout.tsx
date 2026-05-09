@@ -8,7 +8,6 @@ import {
   ClipboardList,
   DatabaseZap,
   LayoutDashboard,
-  Link2,
   Loader2,
   LogOut,
   Package,
@@ -50,7 +49,6 @@ const MAIN_NAV: NavItemDef[] = [
   { icon: Package, label: 'Ürün Yönetimi', path: '/products', end: false },
   { icon: Truck, label: 'Araç Yönetimi', path: '/vehicles', end: false },
   { icon: BarChart3, label: 'Raporlama', path: '/reports', end: false },
-  { icon: Link2, label: 'Entegrasyonlar', path: '/integrations', end: false },
   { icon: DatabaseZap, label: 'ERP Yönetimi', path: '/erp', end: false },
 ];
 

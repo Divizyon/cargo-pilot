@@ -7,7 +7,6 @@ export const regionalSettingsSchema = z.object({
   dimensionUnit: z.enum(['cm', 'mm']),
   weightUnit: z.enum(['kg', 'ton']),
   volumeUnit: z.enum(['m³', 'dm³']),
-  currency: z.enum(['TRY', 'USD', 'EUR']),
 });
 
 export type RegionalSettingsValues = z.infer<typeof regionalSettingsSchema>;
