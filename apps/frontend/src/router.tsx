@@ -21,6 +21,8 @@ import { SharePage } from '@/pages/SharePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
+import { ReportDetailPage } from '@/pages/ReportDetailPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ShareLinksPage } from '@/pages/ShareLinksPage';
 
 export const router = createBrowserRouter([
@@ -72,12 +74,12 @@ export const router = createBrowserRouter([
           { path: '/planning', element: <LoadingPlansPage /> },
           { path: '/planning/new', element: <NewPlanPage /> },
           { path: '/reports', element: <ReportsPage /> },
+          { path: '/reports/:id', element: <ReportDetailPage /> },
           { path: '/planning/shares', element: <ShareLinksPage /> },
           { path: '/planning/:id', element: <LoadingPlanDetailPage /> },
-          { path: '/reports', element: <DashboardPage /> },
           { path: '/integrations', element: <DashboardPage /> },
           { path: '/erp', element: <DashboardPage /> },
-          { path: '/notifications', element: <DashboardPage /> },
+          { path: '/notifications', element: <NotificationsPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <SystemSettingsPage /> },
           { path: '/profile', element: <ProfilePage /> },
