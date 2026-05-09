@@ -8,6 +8,7 @@ import {
   FileDown,
   Search,
   SlidersHorizontal,
+  Truck,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { ROUTES } from '@/lib/config/routes';
 import { useReports, type PlanReport, type ReportsFilters } from '@/lib/api/useReports';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -155,9 +157,22 @@ function ReportRow({ report }: ReportRowProps) {
 
   function handleDownload(e: { stopPropagation(): void }) {
     e.stopPropagation();
-    if (report.downloadUrl) {
-      window.open(report.downloadUrl, '_blank', 'noopener,noreferrer');
-    }
+    if (!report.downloadUrl) return;
+    const url = report.downloadUrl;
+    const filename = `${report.planName}_rapor.pdf`;
+    fetch(url)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch(() => {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
   }
 
   return (
@@ -224,9 +239,13 @@ interface ReportsTableProps {
 }
 
 export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [fillRateFilters, setFillRateFilters] = useState<Set<FillRateFilter>>(new Set());
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -235,10 +254,20 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
 
   const serverFilters = useMemo<ReportsFilters>(() => {
     const f: ReportsFilters = {};
-    if (periodDates.startDate) f.startDate = periodDates.startDate;
-    if (periodDates.endDate) f.endDate = periodDates.endDate;
+    // Custom date range takes precedence over period tabs
+    if (dateFrom || dateTo) {
+      if (dateFrom) f.startDate = new Date(dateFrom).toISOString();
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        f.endDate = end.toISOString();
+      }
+    } else {
+      if (periodDates.startDate) f.startDate = periodDates.startDate;
+      if (periodDates.endDate) f.endDate = periodDates.endDate;
+    }
     return f;
-  }, [periodDates]);
+  }, [periodDates, dateFrom, dateTo]);
 
   const { data, isLoading } = useReports(serverFilters, page, PAGE_SIZE);
 
@@ -268,21 +297,40 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
     setPage(1);
   }
 
-  const pageItems = data?.items ?? [];
-  const filtered = pageItems.filter((r) => {
+  function clearAllFilters() {
+    setFillRateFilters(new Set());
+    setVehiclePlate('');
+    setDateFrom('');
+    setDateTo('');
+    setPage(1);
+  }
+
+  // AC1: sort by date descending (newest first)
+  const sorted = useMemo(
+    () =>
+      [...(data?.items ?? [])].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    [data?.items],
+  );
+
+  const filtered = sorted.filter((r) => {
     const matchesSearch =
       !searchTerm || r.planName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFill =
       fillRateFilters.size === 0 ||
       [...fillRateFilters].some((f) => matchesFillRate(r.fillRate, f));
-    return matchesSearch && matchesFill;
+    // AC2: vehicle plate filter
+    const matchesVehicle =
+      !vehiclePlate || r.vehiclePlate.toLowerCase().includes(vehiclePlate.toLowerCase());
+    return matchesSearch && matchesFill && matchesVehicle;
   });
 
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const paginated = filtered;
 
-  const hasActiveFilters = fillRateFilters.size > 0;
+  const hasActiveFilters = fillRateFilters.size > 0 || !!vehiclePlate || !!dateFrom || !!dateTo;
   const isEmpty =
     !isLoading && totalCount === 0 && !searchTerm && !hasActiveFilters && period === 'all';
   const noResults =
@@ -304,11 +352,14 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
               size="sm"
               onClick={() => {
                 setPeriod(tab.value);
+                // clear custom date range when period tab is selected
+                setDateFrom('');
+                setDateTo('');
                 setPage(1);
               }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium',
-                period === tab.value
+                period === tab.value && !dateFrom && !dateTo
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
@@ -353,11 +404,60 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           </Button>
 
           {showFilterPanel && (
-            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
-              <div className="p-3 space-y-3">
+            <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-3 space-y-4">
+                {/* Date range — AC2 */}
                 <div>
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    Doluluk
+                    Tarih Aralığı
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      max={dateTo || undefined}
+                      onChange={(e) => {
+                        setDateFrom(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 text-xs"
+                    />
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      min={dateFrom || undefined}
+                      onChange={(e) => {
+                        setDateTo(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Vehicle plate — AC2 */}
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Araç Plakası
+                  </p>
+                  <div className="relative">
+                    <Truck className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="34 ABC 123"
+                      value={vehiclePlate}
+                      onChange={(e) => {
+                        setVehiclePlate(e.target.value);
+                        setPage(1);
+                      }}
+                      className="h-7 pl-7 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Fill rate — AC2 */}
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Doluluk Oranı
                   </p>
                   <div className="space-y-2">
                     {FILL_RATE_OPTIONS.map(({ value, label, color }) => (
@@ -382,10 +482,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                     variant="link"
                     size="sm"
                     className="h-auto p-0 text-[11px] text-muted-foreground"
-                    onClick={() => {
-                      setFillRateFilters(new Set());
-                      setPage(1);
-                    }}
+                    onClick={clearAllFilters}
                   >
                     Filtreleri temizle
                   </Button>
@@ -449,11 +546,20 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={6}
-                    className="py-16 text-center text-sm text-muted-foreground"
-                  >
-                    Henüz plan raporu bulunmuyor.
+                  <TableCell colSpan={6} className="py-16">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Henüz rapor bulunmuyor. İlk planınızı oluşturun.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => void navigate(ROUTES.PLANNING_NEW)}
+                      >
+                        Plan Oluştur
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
