@@ -28,7 +28,6 @@ services:
       OAuth__Google__CallbackUrl: ${GOOGLE_OAUTH_CALLBACK_URL:-}
       OAuth__Google__FrontendCallbackUrl: ${GOOGLE_OAUTH_FRONTEND_CALLBACK_URL:-}
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0:-}
-      Cors__AllowedOrigins__1: ${CORS_ALLOWED_ORIGIN_1:-}
       Resend__ApiKey: ${RESEND_API_KEY:-}
       Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
       Resend__FromName: ${RESEND_FROM_NAME:-}
