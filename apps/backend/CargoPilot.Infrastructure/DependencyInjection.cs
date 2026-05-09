@@ -66,9 +66,11 @@ public static class DependencyInjection {
         });
 
         if (!useInMemoryRepository) {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
+                    connectionString,
                     sqlOptions => sqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(30),

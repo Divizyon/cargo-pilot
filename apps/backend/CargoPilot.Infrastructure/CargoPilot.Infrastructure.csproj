@@ -12,6 +12,8 @@
 
     <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
 
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.23" />
+
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.3.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.25">

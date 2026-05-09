@@ -3,10 +3,13 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using CargoPilot.Application.Abstractions;
+using CargoPilot.WebAPI.Hangfire;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
 using CargoPilot.WebAPI.Swagger;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -212,6 +215,23 @@ public static class DependencyInjection {
                 "database",
                 failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
+
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    new SqlServerStorageOptions
+                    {
+                        CommandBatchMaxTimeout       = TimeSpan.FromMinutes(5),
+                        SlidingInvisibilityTimeout   = TimeSpan.FromMinutes(5),
+                        QueuePollInterval            = TimeSpan.Zero,
+                        UseRecommendedIsolationLevel = true,
+                        DisableGlobalLocks           = true,
+                    }));
+
+            services.AddHangfireServer();
         }
 
         return services;
@@ -239,6 +259,12 @@ public static class DependencyInjection {
         app.UseHttpMetrics();
         app.UseAuthorization();
         app.MapControllers();
+
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            Authorization = [new HangfireSuperAdminFilter()],
+            AppPath       = null,
+        });
         app.MapMetrics("/metrics");
 
         app.MapHealthChecks("/health", new HealthCheckOptions
