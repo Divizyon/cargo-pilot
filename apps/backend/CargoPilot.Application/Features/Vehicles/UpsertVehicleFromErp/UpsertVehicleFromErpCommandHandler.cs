@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -5,79 +6,100 @@ using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.UpsertVehicleFromErp;
 
-internal sealed class UpsertVehicleFromErpCommandHandler : IRequestHandler<UpsertVehicleFromErpCommand, Result<Guid>>
+internal sealed class UpsertVehicleFromErpCommandHandler : IRequestHandler<UpsertVehicleFromErpCommand, Result<ErpVehicleSyncResultDto>>
 {
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpsertVehicleFromErpCommandHandler(IVehicleRepository vehicleRepository)
+    public UpsertVehicleFromErpCommandHandler(
+        IVehicleRepository vehicleRepository,
+        ICurrentUserService currentUserService)
     {
         _vehicleRepository = vehicleRepository;
+        _currentUserService = currentUserService;
     }
 
-    public async Task<Result<Guid>> Handle(
+    public async Task<Result<ErpVehicleSyncResultDto>> Handle(
         UpsertVehicleFromErpCommand request,
         CancellationToken cancellationToken)
     {
-        var existing = await _vehicleRepository.GetByErpIdAsync(
-            request.ErpId,
-            request.IntegrationId,
-            cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+        int added = 0, updated = 0, skipped = 0;
 
-        if (existing is not null)
+        foreach (var item in request.Vehicles)
         {
-            existing.Update(
-                request.VehicleName,
-                request.Description,
-                request.VehicleType,
-                request.PlateNumber,
-                request.InternalWidth,
-                request.InternalHeight,
-                request.InternalLength,
-                request.MaxWeightCapacity,
-                request.KingPinDistanceMm,
-                request.KingPinTareWeightKg,
-                request.KingPinMaxLoadKg,
-                request.MainAxleDistanceMm,
-                request.MainAxleTareWeightKg,
-                request.MainAxleMaxLoadKg,
-                request.AdditionalAxleDistanceMm,
-                request.AdditionalAxleTareWeightKg,
-                request.AdditionalAxleMaxLoadKg,
-                request.LayerCount,
-                request.LoadingType,
-                true);
+            try
+            {
+                var existing = await _vehicleRepository.GetByErpIdAsync(
+                    item.ErpId,
+                    request.IntegrationId,
+                    companyId,
+                    cancellationToken);
 
-            existing.SetErpSource(request.ErpId, request.IntegrationId);
-            await _vehicleRepository.SaveChangesAsync(cancellationToken);
-            return Result<Guid>.Success(existing.Id);
+                if (existing is not null)
+                {
+                    existing.Update(
+                        item.VehicleName,
+                        item.Description,
+                        item.VehicleType,
+                        item.PlateNumber,
+                        item.InternalWidth,
+                        item.InternalHeight,
+                        item.InternalLength,
+                        item.MaxWeightCapacity,
+                        item.KingPinDistanceMm,
+                        item.KingPinTareWeightKg,
+                        item.KingPinMaxLoadKg,
+                        item.MainAxleDistanceMm,
+                        item.MainAxleTareWeightKg,
+                        item.MainAxleMaxLoadKg,
+                        item.AdditionalAxleDistanceMm,
+                        item.AdditionalAxleTareWeightKg,
+                        item.AdditionalAxleMaxLoadKg,
+                        item.LayerCount,
+                        item.LoadingType,
+                        true);
+
+                    existing.SetErpSource(item.ErpId, request.IntegrationId);
+                    updated++;
+                }
+                else
+                {
+                    var vehicle = new Vehicle(
+                        Guid.NewGuid(),
+                        item.VehicleName,
+                        item.VehicleType,
+                        item.PlateNumber,
+                        item.InternalWidth,
+                        item.InternalHeight,
+                        item.InternalLength,
+                        item.MaxWeightCapacity,
+                        item.KingPinDistanceMm,
+                        item.KingPinTareWeightKg,
+                        item.KingPinMaxLoadKg,
+                        item.MainAxleDistanceMm,
+                        item.MainAxleTareWeightKg,
+                        item.MainAxleMaxLoadKg,
+                        item.AdditionalAxleDistanceMm,
+                        item.AdditionalAxleTareWeightKg,
+                        item.AdditionalAxleMaxLoadKg,
+                        item.LayerCount,
+                        item.LoadingType,
+                        companyId,
+                        item.Description);
+
+                    vehicle.SetErpSource(item.ErpId, request.IntegrationId);
+                    _vehicleRepository.Add(vehicle);
+                    added++;
+                }
+            }
+            catch
+            {
+                skipped++;
+            }
         }
 
-        var vehicle = new Vehicle(
-            Guid.NewGuid(),
-            request.VehicleName,
-            request.VehicleType,
-            request.PlateNumber,
-            request.InternalWidth,
-            request.InternalHeight,
-            request.InternalLength,
-            request.MaxWeightCapacity,
-            request.KingPinDistanceMm,
-            request.KingPinTareWeightKg,
-            request.KingPinMaxLoadKg,
-            request.MainAxleDistanceMm,
-            request.MainAxleTareWeightKg,
-            request.MainAxleMaxLoadKg,
-            request.AdditionalAxleDistanceMm,
-            request.AdditionalAxleTareWeightKg,
-            request.AdditionalAxleMaxLoadKg,
-            request.LayerCount,
-            request.LoadingType,
-            request.CompanyId,
-            request.Description);
-
-        vehicle.SetErpSource(request.ErpId, request.IntegrationId);
-        _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
-        return Result<Guid>.Success(vehicle.Id);
+        return Result<ErpVehicleSyncResultDto>.Success(new ErpVehicleSyncResultDto(added, updated, skipped));
     }
 }

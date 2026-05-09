@@ -14,11 +14,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CargoPilot.Infrastructure;
 
-public static class DependencyInjection {
+public static class DependencyInjection
+{
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        bool useInMemoryRepository = false) {
+        bool useInMemoryRepository = false)
+    {
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection("Jwt"))
             .Validate(s => !string.IsNullOrWhiteSpace(s.Secret), "Jwt:Secret is required.")
@@ -54,6 +56,7 @@ public static class DependencyInjection {
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
+        services.AddScoped<IPendingVehicleMappingRepository, PendingVehicleMappingRepository>();
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
         services.AddScoped<IOptimizationEngine, NoOpOptimizationEngine>();
@@ -65,7 +68,8 @@ public static class DependencyInjection {
             // BaseAddress constructor'da options üzerinden set ediliyor.
         });
 
-        if (!useInMemoryRepository) {
+        if (!useInMemoryRepository)
+        {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),

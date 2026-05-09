@@ -14,7 +14,6 @@ public sealed record UpsertVehicleFromErpRequest(
     decimal MaxWeightCapacity,
     int LayerCount,
     LoadingType LoadingType,
-    Guid? CompanyId,
     string? Description = null,
     decimal? KingPinDistanceMm = null,
     decimal? KingPinTareWeightKg = null,

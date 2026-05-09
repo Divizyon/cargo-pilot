@@ -101,8 +101,7 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 v.AdditionalAxleTareWeightKg,
                 v.AdditionalAxleMaxLoadKg,
                 ResolveAuditUser(v, userMap),
-                v.ErpId,
-                v.IntegrationId))
+                v.ErpId))
             .ToList();
 
         var result = new PagedResult<VehicleSummaryDto>(
