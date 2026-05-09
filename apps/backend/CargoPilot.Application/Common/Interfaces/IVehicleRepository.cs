@@ -14,9 +14,10 @@ public interface IVehicleRepository
         IReadOnlyList<Guid>? favoriteIds,
         int page,
         int pageSize,
+        Guid? companyId,
         CancellationToken cancellationToken = default);
 
-    Task<Vehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Vehicle?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default);
 
