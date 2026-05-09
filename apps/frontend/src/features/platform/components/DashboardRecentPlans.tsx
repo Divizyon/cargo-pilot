@@ -5,6 +5,7 @@ import { useRecentPlans } from '@/lib/api/useRecentPlans';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { RecentPlanRow } from './RecentPlanRow';
 import { PlanSnapshotPanel } from './PlanSnapshotPanel';
+import { DashboardPlanWizard } from './DashboardPlanWizard';
 
 export function DashboardRecentPlans() {
   const { data, isLoading, isError } = useRecentPlans();
@@ -52,8 +53,11 @@ export function DashboardRecentPlans() {
           )}
         </div>
 
-        <div className="rounded-xl border border-border overflow-hidden m-4">
-          <PlanSnapshotPanel />
+        <div className="flex flex-col gap-4 m-4">
+          <div className="rounded-xl border border-border overflow-hidden">
+            <PlanSnapshotPanel />
+          </div>
+          <DashboardPlanWizard />
         </div>
       </div>
     </div>
