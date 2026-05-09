@@ -43,6 +43,7 @@ const AUTH_PASSTHROUGH_URLS = [
   '/api/v1/auth/refresh',
   '/api/v1/auth/request-password-reset',
   '/api/v1/auth/reset-password',
+  '/api/v1/auth/revoke-all-sessions',
 ];
 
 axiosInstance.interceptors.request.use((config) => {

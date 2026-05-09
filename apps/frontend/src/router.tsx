@@ -18,6 +18,7 @@ import { LoadingPlansPage } from '@/pages/LoadingPlansPage';
 import { LoadingPlanDetailPage } from '@/pages/LoadingPlanDetailPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
+import { SecurityRedirect } from '@/pages/SecurityRedirect';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
@@ -53,6 +54,10 @@ export const router = createBrowserRouter([
   {
     path: '/share/:token',
     element: <SharePage />,
+  },
+  {
+    path: '/security/revoke',
+    element: <SecurityRedirect />,
   },
   {
     path: '/error',
