@@ -15,6 +15,7 @@ public sealed record ItemDetailDto(
     decimal? Diameter,
     decimal Weight,
     FragilityType FragilityType,
+    int[] ConstraintIds,
     bool IsStackable,
     int MaxStackCount,
     decimal MaxWeightOnTop,

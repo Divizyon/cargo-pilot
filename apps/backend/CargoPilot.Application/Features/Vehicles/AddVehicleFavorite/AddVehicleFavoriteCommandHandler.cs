@@ -10,19 +10,16 @@ namespace CargoPilot.Application.Features.Vehicles.AddVehicleFavorite;
 public sealed class AddVehicleFavoriteCommandHandler : IRequestHandler<AddVehicleFavoriteCommand, Result<bool>> {
     private readonly IUserVehicleFavoriteRepository _favoriteRepository;
     private readonly IVehicleRepository _vehicleRepository;
-    private readonly IUserRepository _userRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<AddVehicleFavoriteCommand> _validator;
 
     public AddVehicleFavoriteCommandHandler(
         IUserVehicleFavoriteRepository favoriteRepository,
         IVehicleRepository vehicleRepository,
-        IUserRepository userRepository,
         ICurrentUserService currentUserService,
         IValidator<AddVehicleFavoriteCommand> validator) {
         _favoriteRepository = favoriteRepository;
         _vehicleRepository = vehicleRepository;
-        _userRepository = userRepository;
         _currentUserService = currentUserService;
         _validator = validator;
     }
@@ -41,13 +38,8 @@ public sealed class AddVehicleFavoriteCommandHandler : IRequestHandler<AddVehicl
             return Result<bool>.Failure(
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));
 
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-        if (user is null)
-            return Result<bool>.Failure(
-                new Error(ErrorType.NotFound, "USER_NOT_FOUND", "Kullanıcı bulunamadı."));
-
-        var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, cancellationToken);
-        if (vehicle is null || vehicle.CompanyId != user.CompanyId)
+        var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, _currentUserService.CompanyId, cancellationToken);
+        if (vehicle is null)
             return Result<bool>.Failure(
                 new Error(ErrorType.NotFound, "VEHICLE_NOT_FOUND", "Araç bulunamadı."));
 
