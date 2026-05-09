@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
   ChevronLeft,
@@ -9,6 +10,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -23,7 +25,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { useReports, type PlanReport } from '@/lib/api/useReports';
+import { useReports, type PlanReport, type ReportsFilters } from '@/lib/api/useReports';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -35,16 +37,26 @@ const dateFormatter = new Intl.DateTimeFormat('tr-TR', {
   year: 'numeric',
 });
 
-// ─── Category tabs ────────────────────────────────────────────────────────────
+// ─── Period tabs ──────────────────────────────────────────────────────────────
 
-type CategoryTab = 'all' | 'high' | 'medium' | 'low';
+type PeriodTab = 'all' | 'weekly' | 'monthly' | 'quarterly';
 
-const CATEGORY_TABS: { value: CategoryTab; label: string }[] = [
+const PERIOD_TABS: { value: PeriodTab; label: string }[] = [
   { value: 'all', label: 'Tümü' },
-  { value: 'high', label: 'Yüksek' },
-  { value: 'medium', label: 'Orta' },
-  { value: 'low', label: 'Düşük' },
+  { value: 'weekly', label: 'Haftalık' },
+  { value: 'monthly', label: 'Aylık' },
+  { value: 'quarterly', label: 'Dönemlik' },
 ];
+
+function getPeriodDates(period: PeriodTab): { startDate?: string; endDate?: string } {
+  if (period === 'all') return {};
+  const now = new Date();
+  const start = new Date(now);
+  if (period === 'weekly') start.setDate(start.getDate() - 7);
+  else if (period === 'monthly') start.setMonth(start.getMonth() - 1);
+  else start.setMonth(start.getMonth() - 3);
+  return { startDate: start.toISOString(), endDate: now.toISOString() };
+}
 
 // ─── Fill rate filter ─────────────────────────────────────────────────────────
 
@@ -68,6 +80,27 @@ function fillRateColor(rate: number) {
   return 'text-red-500';
 }
 
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+const STATUS_MAP: Record<
+  number,
+  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+> = {
+  0: { label: 'Taslak', variant: 'secondary' },
+  1: { label: 'Aktif', variant: 'default' },
+  2: { label: 'Tamamlandı', variant: 'outline' },
+  3: { label: 'İptal', variant: 'destructive' },
+};
+
+function StatusBadge({ status }: { status: number }) {
+  const s = STATUS_MAP[status] ?? STATUS_MAP[0];
+  return (
+    <Badge variant={s.variant} className="text-[10px] font-medium px-1.5 py-0">
+      {s.label}
+    </Badge>
+  );
+}
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function ReportsTableSkeleton() {
@@ -75,7 +108,7 @@ function ReportsTableSkeleton() {
     <Table className="min-w-[700px] table-fixed">
       <TableHeader>
         <TableRow className="bg-muted/40 hover:bg-muted/40">
-          {['w-48', 'w-28', 'w-36', 'w-28', 'w-40', 'w-16'].map((w, i) => (
+          {['w-44', 'w-24', 'w-32', 'w-20', 'w-36', 'w-14'].map((w, i) => (
             <TableHead key={i}>
               <Skeleton className={cn('h-3', w)} />
             </TableHead>
@@ -86,16 +119,16 @@ function ReportsTableSkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
             <TableCell className="py-0 px-3">
-              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-3 w-36" />
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-20" />
             </TableCell>
             <TableCell className="py-0 px-3">
-              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-24" />
             </TableCell>
             <TableCell className="py-0 px-3">
-              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-5 w-16 rounded-full" />
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-2 w-full rounded-full" />
@@ -117,16 +150,22 @@ interface ReportRowProps {
 }
 
 function ReportRow({ report }: ReportRowProps) {
+  const navigate = useNavigate();
   const cell = 'py-0 px-3';
 
-  function handleDownload(e: { stopPropagation: () => void }) {
+  function handleDownload(e: { stopPropagation(): void }) {
     e.stopPropagation();
-    console.info('Plan indiriliyor:', report.id);
+    if (report.downloadUrl) {
+      window.open(report.downloadUrl, '_blank', 'noopener,noreferrer');
+    }
   }
 
   return (
-    <TableRow className="h-12">
-      <TableCell className={cn(cell, 'max-w-[192px]')}>
+    <TableRow
+      className="h-12 cursor-pointer"
+      onClick={() => void navigate(`/reports/${report.id}`)}
+    >
+      <TableCell className={cn(cell, 'max-w-[176px]')}>
         <span className="block truncate text-xs text-muted-foreground" title={report.planName}>
           {report.planName}
         </span>
@@ -138,16 +177,14 @@ function ReportRow({ report }: ReportRowProps) {
         </span>
       </TableCell>
 
-      <TableCell className={cn(cell, 'max-w-[144px]')}>
-        <span className="block truncate text-xs text-foreground" title={report.vehicle}>
-          {report.vehicle}
+      <TableCell className={cn(cell, 'max-w-[128px]')}>
+        <span className="block truncate text-xs text-foreground" title={report.vehiclePlate}>
+          {report.vehiclePlate}
         </span>
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="font-mono text-xs text-foreground">
-          {new Intl.NumberFormat('tr-TR').format(report.totalWeightKg)} kg
-        </span>
+        <StatusBadge status={report.status} />
       </TableCell>
 
       <TableCell className={cell}>
@@ -169,7 +206,8 @@ function ReportRow({ report }: ReportRowProps) {
           variant="ghost"
           size="icon"
           title="Planı İndir"
-          className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground"
+          disabled={!report.downloadUrl}
+          className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
           onClick={handleDownload}
         >
           <FileDown className="h-3.5 w-3.5" />
@@ -186,16 +224,23 @@ interface ReportsTableProps {
 }
 
 export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
-  const [category, setCategory] = useState<CategoryTab>('all');
+  const [period, setPeriod] = useState<PeriodTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [fillRateFilters, setFillRateFilters] = useState<Set<FillRateFilter>>(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading } = useReports();
+  const periodDates = useMemo(() => getPeriodDates(period), [period]);
+
+  const serverFilters = useMemo<ReportsFilters>(() => {
+    const f: ReportsFilters = {};
+    if (periodDates.startDate) f.startDate = periodDates.startDate;
+    if (periodDates.endDate) f.endDate = periodDates.endDate;
+    return f;
+  }, [periodDates]);
+
+  const { data, isLoading } = useReports(serverFilters, page, PAGE_SIZE);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -223,45 +268,47 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
     setPage(1);
   }
 
-  const filtered = (data ?? []).filter((r) => {
-    const matchesCategory = category === 'all' || matchesFillRate(r.fillRate, category);
+  const pageItems = data?.items ?? [];
+  const filtered = pageItems.filter((r) => {
     const matchesSearch =
       !searchTerm || r.planName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFrom = !dateFrom || r.date >= dateFrom;
-    const matchesTo = !dateTo || r.date <= dateTo;
     const matchesFill =
       fillRateFilters.size === 0 ||
       [...fillRateFilters].some((f) => matchesFillRate(r.fillRate, f));
-    return matchesCategory && matchesSearch && matchesFrom && matchesTo && matchesFill;
+    return matchesSearch && matchesFill;
   });
 
-  const totalCount = filtered.length;
+  const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = filtered;
 
-  const hasActiveFilters = fillRateFilters.size > 0 || !!dateFrom || !!dateTo;
-  const isEmpty = !isLoading && filtered.length === 0 && !searchTerm && !hasActiveFilters;
-  const noResults = !isLoading && filtered.length === 0 && (!!searchTerm || hasActiveFilters);
+  const hasActiveFilters = fillRateFilters.size > 0;
+  const isEmpty =
+    !isLoading && totalCount === 0 && !searchTerm && !hasActiveFilters && period === 'all';
+  const noResults =
+    !isLoading &&
+    (totalCount === 0 || filtered.length === 0) &&
+    (!!searchTerm || hasActiveFilters || period !== 'all');
 
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Category tabs */}
+        {/* Period tabs */}
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {CATEGORY_TABS.map((tab) => (
+          {PERIOD_TABS.map((tab) => (
             <Button
               key={tab.value}
               type="button"
               variant="ghost"
               size="sm"
               onClick={() => {
-                setCategory(tab.value);
+                setPeriod(tab.value);
                 setPage(1);
               }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium',
-                category === tab.value
+                period === tab.value
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
@@ -297,7 +344,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
             Filtrele
             {hasActiveFilters && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {fillRateFilters.size + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0)}
+                {fillRateFilters.size}
               </span>
             )}
             <ChevronDown
@@ -306,36 +353,8 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           </Button>
 
           {showFilterPanel && (
-            <div className="absolute left-0 top-full z-20 mt-1 min-w-[220px] rounded-xl border border-border bg-background shadow-lg">
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
               <div className="p-3 space-y-3">
-                {/* Date range */}
-                <div>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    Tarih Aralığı
-                  </p>
-                  <div className="space-y-1.5">
-                    <Input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => {
-                        setDateFrom(e.target.value);
-                        setPage(1);
-                      }}
-                      className="h-7 text-xs"
-                    />
-                    <Input
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => {
-                        setDateTo(e.target.value);
-                        setPage(1);
-                      }}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Fill rate */}
                 <div>
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Doluluk
@@ -365,8 +384,6 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                     className="h-auto p-0 text-[11px] text-muted-foreground"
                     onClick={() => {
                       setFillRateFilters(new Set());
-                      setDateFrom('');
-                      setDateTo('');
                       setPage(1);
                     }}
                   >
@@ -383,8 +400,11 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           variant="outline"
           size="sm"
           className="ml-auto shrink-0 gap-1.5 text-xs"
-          disabled={!dateFrom && !dateTo}
-          onClick={() => onBulkDownload?.(dateFrom, dateTo)}
+          disabled={period === 'all'}
+          onClick={() => {
+            const { startDate, endDate } = periodDates;
+            if (startDate && endDate) onBulkDownload?.(startDate, endDate);
+          }}
         >
           <Download className="h-3.5 w-3.5" />
           Dönemsel Rapor İndir
@@ -406,22 +426,22 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
           <Table className="min-w-[700px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-48 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Plan
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tarih
                 </TableHead>
+                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Plaka
+                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Durum
+                </TableHead>
                 <TableHead className="w-36 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Araç
-                </TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Ağırlık
-                </TableHead>
-                <TableHead className="w-40 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Doluluk
                 </TableHead>
-                <TableHead className="w-16 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-14 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   İndir
                 </TableHead>
               </TableRow>
