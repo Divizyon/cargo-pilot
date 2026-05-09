@@ -17,9 +17,9 @@ export function SearchInput({
   const [rawValue, setRawValue] = useState(initialValue);
   const debouncedValue = useDebounce(rawValue, 350);
   const onSearchRef = useRef(onSearch);
-    useEffect(() => {
-      onSearchRef.current = onSearch;
-    }, [onSearch]);  
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
 
   useEffect(() => {
     if (debouncedValue.length === 1) return;
