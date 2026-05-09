@@ -1,12 +1,14 @@
-import { useRef, useEffect, useMemo, useState } from 'react';
+import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { BoxWrapper } from '@/components/shared/BoxWrapper';
+import { LandingWireframe } from '@/components/shared/LandingWireframe';
 import { SCENE } from '@/lib/config/scene-config';
 import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOrientations';
 import { isGhosted, isPlacementVisible } from '@/lib/utils/sceneFilter';
 import { useDragBox } from '@/features/planning/components/scene/useDragBox';
+import { useLandingAnimation } from '@/features/planning/components/scene/useLandingAnimation';
 import type { DragState } from '@/features/planning/components/scene/useDragBox';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
@@ -92,14 +94,30 @@ interface CargoMeshInstancedProps {
 // ─── InstancedBoxes ────────────────────────────────────────────────────────────
 
 function InstancedBoxes() {
+  // Box (koli/palet) refs
   const opaqueRef = useRef<THREE.InstancedMesh>(null);
   const ghostWireRef = useRef<THREE.InstancedMesh>(null);
   const violationRef = useRef<THREE.InstancedMesh>(null);
+  // Cylinder (varil) refs
+  const opaqueCylRef = useRef<THREE.InstancedMesh>(null);
+  const ghostWireCylRef = useRef<THREE.InstancedMesh>(null);
+  const violationCylRef = useRef<THREE.InstancedMesh>(null);
 
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
   const previewPlacements = usePlanStore((s) => s.previewPlacements);
+  const clearPreview = usePlanStore((s) => s.clearPreview);
   const vehicle = usePlanStore((s) => s.selectedVehicle);
+
+  const handleAllSettled = useCallback(() => {
+    clearPreview();
+  }, [clearPreview]);
+
+  const landingMeshRefs = useLandingAnimation(
+    previewPlacements,
+    rawPlacements.length,
+    handleAllSettled,
+  );
 
   const placements = useMemo(
     () =>
@@ -108,6 +126,19 @@ function InstancedBoxes() {
         : rawPlacements,
     [rawPlacements, previewItemId, previewPlacements],
   );
+
+  // Varil / box index mapping: globalIdx ↔ per-geometry instanceIdx
+  // boxIndices[instanceIdx] = globalIdx, cylIndices[instanceIdx] = globalIdx
+  const { boxIndices, cylIndices } = useMemo(() => {
+    const box: number[] = [];
+    const cyl: number[] = [];
+    placements.forEach((p, i) => {
+      if (p.productType === 'varil') cyl.push(i);
+      else box.push(i);
+    });
+    return { boxIndices: box, cylIndices: cyl };
+  }, [placements]);
+
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
@@ -120,7 +151,14 @@ function InstancedBoxes() {
   const [dragState, setDragState] = useState<DragState | null>(null);
 
   useEffect(() => {
-    for (const ref of [opaqueRef, ghostWireRef, violationRef]) {
+    for (const ref of [
+      opaqueRef,
+      ghostWireRef,
+      violationRef,
+      opaqueCylRef,
+      ghostWireCylRef,
+      violationCylRef,
+    ]) {
       if (ref.current) {
         ref.current.frustumCulled = false;
         ref.current.matrixAutoUpdate = false;
@@ -129,7 +167,15 @@ function InstancedBoxes() {
   }, []);
 
   useEffect(() => {
-    if (!opaqueRef.current || !ghostWireRef.current || !violationRef.current) return;
+    if (
+      !opaqueRef.current ||
+      !ghostWireRef.current ||
+      !violationRef.current ||
+      !opaqueCylRef.current ||
+      !ghostWireCylRef.current ||
+      !violationCylRef.current
+    )
+      return;
 
     const matrix = new THREE.Matrix4();
     const color = new THREE.Color();
@@ -137,61 +183,72 @@ function InstancedBoxes() {
     const position = new THREE.Vector3();
     const scale = new THREE.Vector3();
 
-    placements.forEach((p, i) => {
-      const visible = isPlacementVisible(p, i, {
+    function writeInstance(globalIdx: number, instanceIdx: number, isVaril: boolean) {
+      const p = placements[globalIdx];
+      const visible = isPlacementVisible(p, globalIdx, {
         selectedInstanceId,
         selectedItemId,
         hiddenItemIds,
       });
       const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
 
-      const px = dragState?.idx === i ? dragState.x : p.positionX;
-      const py = dragState?.idx === i ? dragState.y : p.positionY;
-      const pz = dragState?.idx === i ? dragState.z : p.positionZ;
+      const px = dragState?.idx === globalIdx ? dragState.x : p.positionX;
+      const py = dragState?.idx === globalIdx ? dragState.y : p.positionY;
+      const pz = dragState?.idx === globalIdx ? dragState.z : p.positionZ;
 
       const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
-      position.set(px + p.width / 2, py + p.height / 2, pz + p.depth / 2);
+      const radius = Math.min(p.width, p.depth) / 2;
       applyOrientationQuaternion(quaternion, p.orientationIndex);
+      position.set(px + p.width / 2, py + p.height / 2, pz + p.depth / 2);
 
-      // Opaque mesh: visible ve ghost değil
-      if (visible && !ghosted) {
-        scale.set(base.width, base.height, base.depth);
-      } else {
-        scale.copy(SCALE_ZERO);
-      }
+      const oRef = isVaril ? opaqueCylRef : opaqueRef;
+      const gRef = isVaril ? ghostWireCylRef : ghostWireRef;
+      const vRef = isVaril ? violationCylRef : violationRef;
+
+      // Cylinder: scale.x/z = radius (unit cylinder r=0.5 → ×2r), scale.y = height
+      // Box: scale = dimensions
+      const sw = isVaril ? radius * 2 : base.width;
+      const sh = isVaril ? p.height : base.height;
+      const sd = isVaril ? radius * 2 : base.depth;
+
+      if (visible && !ghosted) scale.set(sw, sh, sd);
+      else scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
-      opaqueRef.current!.setMatrixAt(i, matrix);
+      oRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      // Ghost edge mesh: visible ve ghosted — sadece wireframe çizer, solid yok
-      if (visible && ghosted) {
-        scale.set(base.width, base.height, base.depth);
-      } else {
-        scale.copy(SCALE_ZERO);
-      }
+      if (visible && ghosted) scale.set(sw, sh, sd);
+      else scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
-      ghostWireRef.current!.setMatrixAt(i, matrix);
+      gRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      // Violation wireframe: sadece xRayMode açıkken ihlal olan kutular
-      if (xRayMode && p.isViolation && visible) {
-        scale.set(base.width, base.height, base.depth);
-      } else {
-        scale.copy(SCALE_ZERO);
-      }
+      if (xRayMode && p.isViolation && visible) scale.set(sw, sh, sd);
+      else scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
-      violationRef.current!.setMatrixAt(i, matrix);
+      vRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      // Renk (opaque mesh için)
       color.copy(p.isViolation ? COLOR_VIOLATION : p.color ? color.set(p.color) : COLOR_NORMAL);
-      opaqueRef.current!.setColorAt(i, color);
-    });
+      oRef.current!.setColorAt(instanceIdx, color);
+    }
 
-    opaqueRef.current.instanceMatrix.needsUpdate = true;
-    ghostWireRef.current.instanceMatrix.needsUpdate = true;
-    violationRef.current.instanceMatrix.needsUpdate = true;
+    boxIndices.forEach((globalIdx, instanceIdx) => writeInstance(globalIdx, instanceIdx, false));
+    cylIndices.forEach((globalIdx, instanceIdx) => writeInstance(globalIdx, instanceIdx, true));
 
-    if (opaqueRef.current.instanceColor) opaqueRef.current.instanceColor.needsUpdate = true;
+    for (const ref of [
+      opaqueRef,
+      ghostWireRef,
+      violationRef,
+      opaqueCylRef,
+      ghostWireCylRef,
+      violationCylRef,
+    ]) {
+      if (ref.current) ref.current.instanceMatrix.needsUpdate = true;
+    }
+    if (opaqueRef.current?.instanceColor) opaqueRef.current.instanceColor.needsUpdate = true;
+    if (opaqueCylRef.current?.instanceColor) opaqueCylRef.current.instanceColor.needsUpdate = true;
   }, [
     placements,
+    boxIndices,
+    cylIndices,
     selectedItemId,
     selectedInstanceId,
     hiddenItemIds,
@@ -239,39 +296,41 @@ function InstancedBoxes() {
 
   return (
     <>
-      {/* Opaque mesh — normal görünür kutular */}
+      {/* ── Box (koli/palet) InstancedMesh'ler ── */}
       <instancedMesh
         key={`opaque-${placements.length}`}
         ref={opaqueRef}
-        args={[undefined, undefined, placements.length]}
+        args={[undefined, undefined, Math.max(1, boxIndices.length)]}
         castShadow
         receiveShadow
         onClick={(e) => {
           e.stopPropagation();
-          const instanceId = e.instanceId;
-          if (instanceId === undefined) return;
-          if (!placements[instanceId]) return;
+          const iid = e.instanceId;
+          if (iid === undefined) return;
+          const globalIdx = boxIndices[iid];
+          if (globalIdx === undefined) return;
           setSelectedItemId(null);
-          setSelectedInstanceId(selectedInstanceId === instanceId ? null : instanceId);
+          setSelectedInstanceId(selectedInstanceId === globalIdx ? null : globalIdx);
         }}
         onPointerDown={(e) => {
           e.stopPropagation();
-          const instanceId = e.instanceId;
-          if (instanceId === undefined || !vehicle) return;
+          const iid = e.instanceId;
+          if (iid === undefined || !vehicle) return;
+          const globalIdx = boxIndices[iid];
+          if (globalIdx === undefined) return;
           setSelectedItemId(null);
-          setSelectedInstanceId(instanceId);
-          startDrag(instanceId, placements, vehicle, setDragState, e);
+          setSelectedInstanceId(globalIdx);
+          startDrag(globalIdx, placements, vehicle, setDragState, e);
         }}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial transparent opacity={0.85} />
       </instancedMesh>
 
-      {/* Ghost wireframe mesh — grup dışı kutular sadece çerçeve olarak görünür */}
       <instancedMesh
         key={`ghost-${placements.length}`}
         ref={ghostWireRef}
-        args={[undefined, undefined, placements.length]}
+        args={[undefined, undefined, Math.max(1, boxIndices.length)]}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial
@@ -283,13 +342,73 @@ function InstancedBoxes() {
         />
       </instancedMesh>
 
-      {/* Violation wireframe — xRayMode'da ihlaller her zaman görünür */}
       <instancedMesh
         key={`violation-${placements.length}`}
         ref={violationRef}
-        args={[undefined, undefined, placements.length]}
+        args={[undefined, undefined, Math.max(1, boxIndices.length)]}
       >
         <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial
+          color={SCENE.COLORS.VIOLATION}
+          wireframe
+          depthTest={false}
+          transparent
+          opacity={0.9}
+        />
+      </instancedMesh>
+
+      {/* ── Cylinder (varil) InstancedMesh'ler ── */}
+      <instancedMesh
+        key={`opaque-cyl-${placements.length}`}
+        ref={opaqueCylRef}
+        args={[undefined, undefined, Math.max(1, cylIndices.length)]}
+        castShadow
+        receiveShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          const iid = e.instanceId;
+          if (iid === undefined) return;
+          const globalIdx = cylIndices[iid];
+          if (globalIdx === undefined) return;
+          setSelectedItemId(null);
+          setSelectedInstanceId(selectedInstanceId === globalIdx ? null : globalIdx);
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          const iid = e.instanceId;
+          if (iid === undefined || !vehicle) return;
+          const globalIdx = cylIndices[iid];
+          if (globalIdx === undefined) return;
+          setSelectedItemId(null);
+          setSelectedInstanceId(globalIdx);
+          startDrag(globalIdx, placements, vehicle, setDragState, e);
+        }}
+      >
+        <cylinderGeometry args={[0.5, 0.5, 1, 16]} />
+        <meshStandardMaterial transparent opacity={0.85} />
+      </instancedMesh>
+
+      <instancedMesh
+        key={`ghost-cyl-${placements.length}`}
+        ref={ghostWireCylRef}
+        args={[undefined, undefined, Math.max(1, cylIndices.length)]}
+      >
+        <cylinderGeometry args={[0.5, 0.5, 1, 16]} />
+        <meshBasicMaterial
+          color="#94a3b8"
+          wireframe
+          transparent
+          opacity={0.35}
+          depthWrite={false}
+        />
+      </instancedMesh>
+
+      <instancedMesh
+        key={`violation-cyl-${placements.length}`}
+        ref={violationCylRef}
+        args={[undefined, undefined, Math.max(1, cylIndices.length)]}
+      >
+        <cylinderGeometry args={[0.5, 0.5, 1, 16]} />
         <meshBasicMaterial
           color={SCENE.COLORS.VIOLATION}
           wireframe
@@ -303,6 +422,24 @@ function InstancedBoxes() {
       <lineSegments geometry={edgesLineGeo}>
         <lineBasicMaterial color="#000000" />
       </lineSegments>
+
+      {/* Landing wireframe — previewPlacements animasyon süresince */}
+      {previewPlacements.map((p, idx) => {
+        const key = `${p.itemId}-${idx}`;
+        return (
+          <LandingWireframe
+            key={`landing-${key}`}
+            placement={p}
+            meshRefCallback={(node) => {
+              if (node) {
+                landingMeshRefs.current.set(key, node);
+              } else {
+                landingMeshRefs.current.delete(key);
+              }
+            }}
+          />
+        );
+      })}
 
       {/* Selected box — BoxWrapper ile glow */}
       {selectedPlacements.map(({ p, idx }) => {
@@ -345,6 +482,7 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
   const previewPlacements = usePlanStore((s) => s.previewPlacements);
+  const clearPreview = usePlanStore((s) => s.clearPreview);
   const vehicle = usePlanStore((s) => s.selectedVehicle);
 
   const placements = useMemo(
@@ -363,6 +501,17 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
   const { startDrag } = useDragBox();
   const [dragState, setDragState] = useState<DragState | null>(null);
+
+  const handleAllSettled = useCallback(() => {
+    clearPreview();
+  }, [clearPreview]);
+
+  // < INSTANCED_THRESHOLD yolu için landing animasyonu
+  const landingMeshRefs = useLandingAnimation(
+    previewPlacements,
+    rawPlacements.length,
+    handleAllSettled,
+  );
 
   if (placements.length === 0) return null;
 
@@ -393,6 +542,7 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
               isSelected={isInstanceSelected || isItemSelected}
               isHidden={hiddenItemIds.includes(p.itemId)}
               isGhosted={ghosted}
+              productType={p.productType}
               onClick={() => {
                 setSelectedItemId(null);
                 setSelectedInstanceId(selectedInstanceId === i ? null : i);
@@ -402,6 +552,23 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
                 setSelectedItemId(null);
                 setSelectedInstanceId(i);
                 startDrag(i, placements, vehicle, setDragState, e);
+              }}
+            />
+          );
+        })}
+        {/* Landing wireframe — < threshold yolu */}
+        {previewPlacements.map((p, idx) => {
+          const key = `${p.itemId}-${idx}`;
+          return (
+            <LandingWireframe
+              key={`landing-${key}`}
+              placement={p}
+              meshRefCallback={(node) => {
+                if (node) {
+                  landingMeshRefs.current.set(key, node);
+                } else {
+                  landingMeshRefs.current.delete(key);
+                }
               }}
             />
           );
