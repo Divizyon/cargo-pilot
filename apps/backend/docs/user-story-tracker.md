@@ -479,3 +479,50 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs`
 - `CargoPilot.WebAPI/Services/JwtCurrentUserService.cs`
 - 13 handler dosyası (Items x6, Vehicles x5, Plans x6)
+
+---
+
+## 17) Auth Company Scope — Personal Company Otomatik Oluşturma + Role Policy Tanımları (PR2)
+**Story:** Backend geliştirici olarak, bireysel kayıt olan kullanıcıların JWT token'larında `company_id` claim'inin dolu gelmesi ve tüm company-scope endpoint'lere role tabanlı authorization uygulanması için gerekli altyapının kurulmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+**Branch:** `feature/auth-company-scope-pr2`
+
+### Task 5 — Individual Register → Personal Company Otomatik Oluşturma
+- `✅` `ICompanyRepository` arayüzü oluşturuldu (`Add`, `SaveChangesAsync`) (`CargoPilot.Application/Common/Interfaces/ICompanyRepository.cs`)
+- `✅` `CompanyRepository` implementasyonu oluşturuldu (`CargoPilot.Infrastructure/Persistence/Repositories/CompanyRepository.cs`)
+- `✅` `ICompanyRepository → CompanyRepository` Infrastructure DI'a kaydedildi
+- `✅` `RegisterCommandHandler` güncellendi: kayıt sırasında `Personal - {email}` adlı `SubscriptionType.Free` Company otomatik oluşturulur ve kullanıcıya atanır; artık JWT token'da `company_id` claim'i dolu gelir
+
+**Kabul Kriterleri:**
+- `POST /api/v1/auth/register` → login sonrası JWT decode edildiğinde `company_id` dolu
+- Aynı e-posta ile ikinci kayıt → `Auth.EmailAlreadyExists` (409); ikinci Personal Company oluşturulmaz
+
+### Task 6 — Role Policy Tanımları ve Controller Güvenlik Güncellemesi
+- `✅` `services.AddAuthorization(...)` ile 5 named policy tanımlandı (`CargoPilot.WebAPI/DependencyInjection.cs`):
+  - `SuperAdmin` — role claim = `"SuperAdmin"`
+  - `CompanyAdmin` — role claim = `"CompanyAdmin"`
+  - `CompanyWorker` — role claim = `"CompanyWorker"`
+  - `Individual` — role claim = `"Individual"`
+  - `CompanyMember` — role claim ∈ {`CompanyAdmin`, `CompanyWorker`, `Individual`}
+- `✅` `ItemsController` → `[Authorize(Policy = "CompanyMember")]`
+- `✅` `VehiclesController` → `[Authorize(Policy = "CompanyMember")]`
+- `✅` `PlansController` → `[Authorize(Policy = "CompanyMember")]`
+- `✅` `MeController` → `[Authorize(Policy = "CompanyMember")]`
+
+**Kabul Kriterleri:**
+- Token olmadan Items/Vehicles/Plans/Me endpoint'lerine istek → **401**
+- `SuperAdmin` token ile bu endpoint'lere istek → **403** (CompanyMember policy dışı)
+- `CompanyAdmin/CompanyWorker/Individual` token ile istek → **200**, yalnızca kendi company'sinin verisi
+
+### Kanıtlar
+- `CargoPilot.Application/Common/Interfaces/ICompanyRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/CompanyRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.Application/Features/Auth/Register/RegisterCommandHandler.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Controllers/ItemsController.cs`
+- `CargoPilot.WebAPI/Controllers/VehiclesController.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
+- `CargoPilot.WebAPI/Controllers/MeController.cs`
