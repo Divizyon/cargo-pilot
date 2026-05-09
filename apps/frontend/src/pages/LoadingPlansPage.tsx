@@ -1,15 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, FileText, LayoutGrid, Link2, List, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Clock, FileText, Link2, CheckCircle2 } from 'lucide-react';
 import { LoadingPlanFilterBar } from '@/features/data-management/components/LoadingPlanFilterBar';
-import { LoadingPlanTable } from '@/features/data-management/components/LoadingPlanTable';
 import { VehicleCard } from '@/features/data-management/components/VehicleCard';
 import { useLoadingPlanFilters } from '@/features/data-management/hooks/useLoadingPlanFilters';
 import { useLoadingPlanList } from '@/lib/api/useLoadingPlans';
-import { useUIStore } from '@/lib/store/useUIStore';
 import { cn } from '@/lib/utils';
 
-// ─── Summary stat card ────────────────────────────────────────────────────────
+// ─── Summary stat card (snapshot bölümü) ─────────────────────────────────────
 
 interface StatCardProps {
   icon: ReactNode;
@@ -30,61 +28,20 @@ function StatCard({ icon, value, label, accent }: StatCardProps) {
   );
 }
 
-// ─── View toggle ──────────────────────────────────────────────────────────────
-
-type ViewMode = 'table' | 'cards';
-
-interface ViewToggleProps {
-  mode: ViewMode;
-  onChange: (mode: ViewMode) => void;
-}
-
-function ViewToggle({ mode, onChange }: ViewToggleProps) {
-  return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5">
-      <button
-        onClick={() => onChange('table')}
-        aria-label="Tablo görünümü"
-        className={cn(
-          'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-          mode === 'table'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground',
-        )}
-      >
-        <List className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => onChange('cards')}
-        aria-label="Kart görünümü"
-        className={cn(
-          'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-          mode === 'cards'
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground',
-        )}
-      >
-        <LayoutGrid className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
-// ─── Card grid ────────────────────────────────────────────────────────────────
+// ─── Card grid (3 sütun sabit — AC6) ─────────────────────────────────────────
 
 interface CardGridProps {
   filters: ReturnType<typeof useLoadingPlanFilters>;
-  isSidebarOpen: boolean;
 }
 
-function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
+function CardGrid({ filters }: CardGridProps) {
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  const { search, statusTab, plate, vehicleNames, dateFrom, dateTo } = filters;
+  const { search, plate, vehicleNames, dateFrom, dateTo } = filters;
 
   const { data, isLoading } = useLoadingPlanList(
-    { search, status: statusTab, plate, vehicleNames, dateFrom, dateTo },
+    { search, plate, vehicleNames, dateFrom, dateTo },
     page,
     pageSize,
   );
@@ -95,9 +52,9 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
   if (isLoading) {
     return (
-      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-2' : 'grid-cols-3')}>
+      <div className="grid grid-cols-3 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-[420px] animate-pulse rounded-xl border border-border bg-muted" />
+          <div key={i} className="h-[380px] animate-pulse rounded-xl border border-border bg-muted" />
         ))}
       </div>
     );
@@ -113,9 +70,9 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className={cn('grid gap-4', isSidebarOpen ? 'grid-cols-2' : 'grid-cols-3')}>
-        {items.map((plan) => (
-          <VehicleCard key={plan.id} plan={plan} />
+      <div className="grid grid-cols-3 gap-4">
+        {items.map((plan, i) => (
+          <VehicleCard key={plan.id} plan={plan} index={(page - 1) * pageSize + i} />
         ))}
       </div>
 
@@ -150,8 +107,6 @@ function CardGrid({ filters, isSidebarOpen }: CardGridProps) {
 
 export function LoadingPlansPage() {
   const filters = useLoadingPlanFilters();
-  const isSidebarOpen = useUIStore((s) => s.isSidebarOpen);
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   const { data: allData } = useLoadingPlanList({}, 1, 1);
   const { data: activeData } = useLoadingPlanList({ status: 'aktif' }, 1, 1);
@@ -163,11 +118,11 @@ export function LoadingPlansPage() {
   const completedCount = completedData?.totalCount ?? 0;
   const draftCount = draftData?.totalCount ?? 0;
 
-  const allVehicleNames: string[] = [];
+  const allVehicleNames = allData?.allVehicleNames ?? [];
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Header */}
+      {/* Başlık */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Yükleme Planları</h1>
@@ -177,14 +132,14 @@ export function LoadingPlansPage() {
         </div>
         <Link
           to="/planning/shares"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 transition-colors shrink-0 mt-1"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-1"
         >
           <Link2 className="w-3.5 h-3.5" />
           Paylaşım Bağlantıları
         </Link>
       </div>
 
-      {/* Summary stats */}
+      {/* Anlık görüntü (snapshot) bölümü */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={<FileText className="h-5 w-5" />} value={totalCount} label="Toplam Plan" />
         <StatCard
@@ -202,23 +157,11 @@ export function LoadingPlansPage() {
         <StatCard icon={<ClipboardList className="h-5 w-5" />} value={draftCount} label="Taslak" />
       </div>
 
-      {/* Filter bar + view toggle + content */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <LoadingPlanFilterBar filters={filters} allVehicleNames={allVehicleNames} />
-          </div>
-          <div className="pt-1">
-            <ViewToggle mode={viewMode} onChange={setViewMode} />
-          </div>
-        </div>
+      {/* Arama + filtre çubuğu (snapshot'ın hemen altında, sabit — AC1) */}
+      <LoadingPlanFilterBar filters={filters} allVehicleNames={allVehicleNames} />
 
-        {viewMode === 'table' ? (
-          <LoadingPlanTable filters={filters} />
-        ) : (
-          <CardGrid filters={filters} isSidebarOpen={isSidebarOpen} />
-        )}
-      </div>
+      {/* Kart grid (3 sütun — AC6) */}
+      <CardGrid filters={filters} />
     </div>
   );
 }

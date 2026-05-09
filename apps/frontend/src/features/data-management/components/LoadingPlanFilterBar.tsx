@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, ChevronDown, Download, Plus, SlidersHorizontal, X } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { CalendarDays, ChevronDown, Plus, SlidersHorizontal, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,28 +14,16 @@ interface Props {
   allVehicleNames: string[];
 }
 
-type StatusTab = 'all' | 'taslak' | 'aktif' | 'tamamlandi' | 'iptal';
-
-const STATUS_TABS: { value: StatusTab; label: string }[] = [
-  { value: 'all', label: 'Tümü' },
-  { value: 'taslak', label: 'Taslak' },
-  { value: 'aktif', label: 'Aktif' },
-  { value: 'tamamlandi', label: 'Tamamlandı' },
-  { value: 'iptal', label: 'İptal' },
-];
-
 export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
   const navigate = useNavigate();
   const {
     search,
-    statusTab,
     plate,
     vehicleNames,
     dateFrom,
     dateTo,
     hasActiveFilters,
     setSearch,
-    setStatusTab,
     setPlate,
     setVehicleNames,
     setDateFrom,
@@ -48,6 +36,10 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
   const [prevPlateProp, setPrevPlateProp] = useState(plate);
   const debouncedPlate = useDebounce(localPlate, 350);
   const filterRef = useRef<HTMLDivElement>(null);
+  const setPlateRef = useRef(setPlate);
+  useLayoutEffect(() => {
+    setPlateRef.current = setPlate;
+  });
 
   if (plate !== prevPlateProp) {
     setPrevPlateProp(plate);
@@ -55,8 +47,8 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
   }
 
   useEffect(() => {
-    setPlate(debouncedPlate);
-  }, [debouncedPlate, setPlate]);
+    setPlateRef.current(debouncedPlate);
+  }, [debouncedPlate]);
 
   useEffect(() => {
     if (!showFilterPanel) return;
@@ -84,36 +76,17 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
 
   return (
     <div className="sticky top-0 z-10 bg-page-background pb-3 pt-1">
-      {/* Status tabs + search + actions row */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Status tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setStatusTab(tab.value)}
-              className={cn(
-                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                (statusTab || 'all') === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Search */}
+        {/* Arama (AC2: minimum 2 karakter tetikler) */}
         <div className="min-w-[260px] flex-1">
           <SearchInput
             onSearch={setSearch}
-            placeholder="Plan adı, ID veya araç ile ara..."
+            placeholder="Plan adı, araç plakası veya araç adı ile ara..."
             initialValue={search}
           />
         </div>
 
-        {/* Filter panel trigger */}
+        {/* Filtre paneli (AC3: plaka, araç adı, plan tarihi) */}
         <div ref={filterRef} className="relative shrink-0">
           <Button
             variant="outline"
@@ -137,9 +110,12 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
           </Button>
 
           {showFilterPanel && (
-            <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-border bg-background shadow-lg">
+            <div
+              className="absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-border bg-background shadow-lg"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <div className="space-y-4 p-4">
-                {/* Araç Plakası */}
+                {/* Araç Plakası (AC3) */}
                 <div>
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Araç Plakası
@@ -152,7 +128,7 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
                   />
                 </div>
 
-                {/* Araç Adı multi-select */}
+                {/* Araç Adı çoklu seçim (AC3) */}
                 {allVehicleNames.length > 0 && (
                   <div>
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -175,26 +151,25 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
                   </div>
                 )}
 
-                {/* Plan Tarihi date range */}
+                {/* Plan Tarihi tarih aralığı (AC3) */}
                 <div>
                   <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     <CalendarDays className="h-3 w-3" />
                     Plan Tarihi
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <Input
                       type="date"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-8 text-xs"
+                      className="h-8 w-full text-xs"
                     />
-                    <span className="shrink-0 text-xs text-muted-foreground">—</span>
                     <Input
                       type="date"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                       min={dateFrom || undefined}
-                      className="h-8 text-xs"
+                      className="h-8 w-full text-xs"
                     />
                   </div>
                 </div>
@@ -219,7 +194,7 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
           )}
         </div>
 
-        {/* Filtreleri Temizle — visible when any filter is active */}
+        {/* Filtreleri Temizle — en az bir filtre aktifken görünür (AC4) */}
         {hasActiveFilters && (
           <Button
             variant="ghost"
@@ -236,13 +211,6 @@ export function LoadingPlanFilterBar({ filters, allVehicleNames }: Props) {
         )}
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {/* Dışa Aktar */}
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <Download className="h-3.5 w-3.5" />
-            Dışa Aktar
-          </Button>
-
-          {/* Yeni Plan Oluştur */}
           <Button size="sm" className="gap-1.5 text-xs" onClick={() => navigate('/planning/new')}>
             <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
             Yeni Plan Oluştur

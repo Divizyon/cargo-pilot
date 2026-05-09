@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/lib/hooks/useDebounce';
@@ -16,11 +16,13 @@ export function SearchInput({
 }: SearchInputProps) {
   const [rawValue, setRawValue] = useState(initialValue);
   const debouncedValue = useDebounce(rawValue, 350);
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
 
-  // Notify parent when debounced value settles
   useEffect(() => {
-    onSearch(debouncedValue);
-  }, [debouncedValue, onSearch]);
+    if (debouncedValue.length === 1) return;
+    onSearchRef.current(debouncedValue);
+  }, [debouncedValue]);
 
   function handleClear() {
     setRawValue('');

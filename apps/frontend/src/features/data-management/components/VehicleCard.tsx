@@ -1,40 +1,23 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Maximize2,
   AlertCircle,
   RotateCcw,
   ArrowUpDown,
   MoveHorizontal,
   Scale,
   Layers3,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { planningDetailRoute } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import type { LoadingPlanListItem, PlanProductGroup, PlanProductItem } from '@/lib/types/loadingPlan';
-import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// ─── Constraint icons + Turkish labels ───────────────────────────────────────
 
-const STATUS_LABEL: Record<string, string> = {
-  [PlanStatus.Tamamlandi]: 'Tamamlandı',
-  [PlanStatus.Aktif]: 'Aktif',
-  [PlanStatus.Iptal]: 'İptal',
-  [PlanStatus.Taslak]: 'Taslak',
-};
-
-const STATUS_CLASS: Record<string, string> = {
-  [PlanStatus.Tamamlandi]: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  [PlanStatus.Aktif]: 'bg-blue-50 text-blue-700 border border-blue-200',
-  [PlanStatus.Iptal]: 'bg-red-50 text-red-700 border border-red-200',
-  [PlanStatus.Taslak]: 'bg-zinc-100 text-zinc-600 border border-zinc-200',
-};
-
-// ─── Constraint icons ─────────────────────────────────────────────────────────
-
-const CONSTRAINT_ICON: Record<string, React.ReactNode> = {
+const CONSTRAINT_ICON: Record<string, ReactNode> = {
   fragile: <AlertCircle className="w-3 h-3 text-rose-500" />,
   liquid: <RotateCcw className="w-3 h-3 text-blue-500" />,
   bottom_only: <ArrowUpDown className="w-3 h-3 text-amber-500" />,
@@ -43,36 +26,120 @@ const CONSTRAINT_ICON: Record<string, React.ReactNode> = {
   hazmat: <AlertCircle className="w-3 h-3 text-orange-500" />,
 };
 
+const CONSTRAINT_LABEL: Record<string, string> = {
+  fragile: 'Kırılgan',
+  liquid: 'Sıvı',
+  bottom_only: 'Sadece Alta',
+  no_rotate: 'Döndürülemez',
+  heavy_side: 'Ağır Yük',
+  hazmat: 'Tehlikeli Madde',
+};
+
+// ─── Fill helpers ─────────────────────────────────────────────────────────────
+
+function getFillClass(pct: number): string {
+  if (pct >= 100) return 'text-destructive font-semibold';
+  if (pct >= 85) return 'text-amber-600 dark:text-amber-400 font-semibold';
+  return 'text-foreground';
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function truncate(text: string, max = 60): string {
+  return text.length > max ? text.slice(0, max) + '…' : text;
+}
+
 // ─── Product row ──────────────────────────────────────────────────────────────
 
 function ProductItemRow({ product }: { product: PlanProductItem }) {
   return (
-    <div className="flex items-start gap-3 px-4 py-2.5 border-b border-zinc-100 last:border-0">
-      <span className="mt-1 w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-zinc-800">{product.name}</span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-zinc-200 text-[11px] font-semibold text-zinc-700 bg-zinc-50">
-            x{product.quantity}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] text-zinc-500 bg-zinc-100">
-            Katman #{product.layerCount}
-          </span>
-          {product.constraints.map((c) => (
-            <span key={c} className="flex items-center gap-0.5" title={c}>
-              {CONSTRAINT_ICON[c] ?? null}
-            </span>
-          ))}
-          <span className="flex items-center gap-1 text-[11px] text-zinc-500 ml-auto">
-            <Scale className="w-3 h-3" />
-            {product.unitWeightKg} kg
-            <Layers3 className="w-3 h-3 ml-1" />
-            {product.layerCount}
-          </span>
-        </div>
+        <span
+          className="text-xs font-medium text-foreground truncate block"
+          title={product.name.length > 60 ? product.name : undefined}
+        >
+          {truncate(product.name)}
+        </span>
       </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-border text-[10px] font-semibold text-foreground bg-muted/50">
+          x{product.quantity}
+        </span>
+        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+          <Scale className="w-3 h-3" />
+          {product.unitWeightKg} kg
+        </span>
+        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+          <Layers3 className="w-3 h-3" />
+          {product.layerCount}
+        </span>
+        {product.constraints.length > 0 && (
+          <div className="flex items-center gap-0.5">
+            {product.constraints.map((c) => (
+              <span key={c} title={CONSTRAINT_LABEL[c] ?? c} className="flex items-center">
+                {CONSTRAINT_ICON[c] ?? null}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Group block (collapse/expand) ───────────────────────────────────────────
+
+const PRODUCTS_PER_GROUP_THRESHOLD = 20;
+
+function GroupBlock({ group }: { group: PlanProductGroup }) {
+  const [open, setOpen] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+
+  const totalQty = group.products.reduce((sum, p) => sum + p.quantity, 0);
+  const visibleProducts =
+    showAll || group.products.length <= PRODUCTS_PER_GROUP_THRESHOLD
+      ? group.products
+      : group.products.slice(0, PRODUCTS_PER_GROUP_THRESHOLD);
+  const hiddenCount = group.products.length - PRODUCTS_PER_GROUP_THRESHOLD;
+
+  return (
+    <div>
+      <button
+        className="flex w-full items-center gap-2 px-4 py-2 text-left border-b border-border hover:bg-muted/40 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: group.color }} />
+        <span className="flex-1 text-[11px] font-semibold text-foreground truncate">{group.name}</span>
+        <span className="text-[10px] text-muted-foreground font-mono shrink-0">{group.id.slice(0, 8)}</span>
+        <span className="text-[11px] text-muted-foreground shrink-0 ml-1">{totalQty} ürün</span>
+        {open ? (
+          <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+        )}
+      </button>
+      {open && (
+        <div>
+          {visibleProducts.map((p) => (
+            <ProductItemRow key={p.id} product={p} />
+          ))}
+          {!showAll && hiddenCount > 0 && (
+            <button
+              className="w-full px-4 py-2 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAll(true);
+              }}
+            >
+              Daha fazla göster ({hiddenCount} ürün)
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -81,13 +148,12 @@ function ProductItemRow({ product }: { product: PlanProductItem }) {
 
 interface VehicleCardProps {
   plan: LoadingPlanListItem;
+  index: number;
   onSelect?: () => void;
 }
 
-export function VehicleCard({ plan, onSelect }: VehicleCardProps) {
+export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
   const navigate = useNavigate();
-  const [hovering3D, setHovering3D] = useState(false);
-  const [activeGroup, setActiveGroup] = useState('');
 
   const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
 
@@ -99,119 +165,111 @@ export function VehicleCard({ plan, onSelect }: VehicleCardProps) {
     }
   }
 
-  const effectiveGroup = activeGroup || productGroups[0]?.id || '';
-  const selectedGroup = productGroups.find((g: PlanProductGroup) => g.id === effectiveGroup) ?? productGroups[0];
-
   const volumePct = plan.volumeFillPercentage;
   const weightPct = plan.fillPercentage;
+  const planDate = formatDate(plan.plannedAt ?? plan.createdAt);
+
+  // Dimensions: stored in cm, display in meters
+  const widthM = (plan.interiorWidthM / 100).toFixed(2);
+  const heightM = (plan.interiorHeightM / 100).toFixed(2);
+  const depthM = (plan.interiorDepthM / 100).toFixed(2);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-      {/* ── Three.js placeholder area ── */}
-      <div
-        className="relative cursor-pointer bg-zinc-100"
-        style={{ height: 220 }}
-        onMouseEnter={() => setHovering3D(true)}
-        onMouseLeave={() => setHovering3D(false)}
-        onClick={handleClick}
-      >
-        {/* placeholder visual */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-2 opacity-30">
-            <Box className="w-12 h-12 text-zinc-500" strokeWidth={1} />
-          </div>
-        </div>
-
-        {/* "Open 3D View" overlay */}
-        <div
-          className={cn(
-            'absolute inset-0 flex items-center justify-center transition-opacity duration-150',
-            hovering3D ? 'opacity-100' : 'opacity-0',
-          )}
-        >
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/90 shadow-md backdrop-blur-sm text-sm font-medium text-zinc-800">
-            <Maximize2 className="w-4 h-4" />
-            3D Görünümü Aç
-          </div>
-        </div>
-
-        {/* CoG badge */}
-        <div className="absolute bottom-3 left-3">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-700">
-            Hacim: %{volumePct.toFixed(0)} · Ağırlık: %{weightPct.toFixed(0)}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Container header ── */}
-      <div className="px-4 pt-3 pb-2 border-b border-zinc-100">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-900 text-white text-[11px] font-bold shrink-0">
-            1
+    <div
+      className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      onClick={handleClick}
+    >
+      {/* ── Plan header (Plan Üst Bilgisi) ── */}
+      <div className="px-4 pt-3 pb-3 border-b border-border">
+        {/* Sıra no + plan adı + tarih */}
+        <div className="flex items-start gap-2.5 mb-3">
+          <span className="mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold shrink-0">
+            {index + 1}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-base font-bold text-zinc-900 leading-tight">{plan.vehicleName}</p>
-            <p className="text-xs text-zinc-400 mt-0.5">{plan.planCode}</p>
-          </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span
-              className={cn(
-                'inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold',
-                volumePct >= 80
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border border-amber-200',
-              )}
+            <p
+              className="text-sm font-semibold text-foreground leading-tight truncate"
+              title={plan.planName.length > 60 ? plan.planName : undefined}
             >
-              Hacim: {volumePct.toFixed(0)}%
-            </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200">
-              Ağırlık: {weightPct.toFixed(0)}%
-            </span>
+              {truncate(plan.planName)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{planDate}</p>
           </div>
         </div>
 
-        {/* Status + plan name */}
-        <div className="flex items-center gap-2 mt-2">
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
-              STATUS_CLASS[plan.status] ?? STATUS_CLASS[PlanStatus.Taslak],
+        {/* Araç teknik bilgileri (AC1–AC5) */}
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-base font-bold text-foreground leading-tight truncate">
+              {plan.vehicleName}
+            </p>
+            {plan.vehiclePlate && (
+              <p className="text-xs text-muted-foreground mt-0.5">{plan.vehiclePlate}</p>
             )}
-          >
-            {STATUS_LABEL[plan.status] ?? plan.status}
-          </span>
-          <span className="text-xs text-zinc-500 truncate">{plan.planName}</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {widthM} × {depthM} × {heightM} m
+            </p>
+          </div>
+
+          {/* Doluluk göstergeleri üst bölümde (AC3–AC5) */}
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className={cn('text-[11px]', getFillClass(volumePct))}>
+              Hacim: {volumePct.toFixed(0)}%
+              {volumePct >= 100 && (
+                <span className="ml-1 text-destructive text-[10px]">Kapasite aşıldı</span>
+              )}
+            </span>
+            <span className={cn('text-[11px]', getFillClass(weightPct))}>
+              Ağırlık: {weightPct.toFixed(0)}%
+              {weightPct >= 100 && (
+                <span className="ml-1 text-destructive text-[10px]">Kapasite aşıldı</span>
+              )}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── Product group tabs ── */}
-      {productGroups.length > 0 && (
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-zinc-100 overflow-x-auto">
-          {productGroups.map((g: PlanProductGroup) => (
-            <button
-              key={g.id}
-              onClick={() => setActiveGroup(g.id)}
-              className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition-colors shrink-0',
-                effectiveGroup === g.id
-                  ? 'bg-zinc-900 text-white border-zinc-900'
-                  : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-400',
-              )}
-            >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
-              {g.name}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* ── 3D taslak alanı ── */}
+      <div
+        className="relative flex items-center justify-center bg-muted/40 border-b border-border overflow-hidden"
+        style={{ height: 120 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <svg
+          viewBox="0 0 160 80"
+          className="w-36 opacity-20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* araç gövdesi */}
+          <rect x="10" y="20" width="120" height="50" rx="3" stroke="currentColor" strokeWidth="1.5" />
+          {/* ön bölme */}
+          <rect x="10" y="20" width="22" height="50" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          {/* kargo kutuları */}
+          <rect x="36" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          <rect x="62" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          <rect x="88" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          <rect x="36" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          <rect x="62" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          <rect x="88" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          {/* tekerlekler */}
+          <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground/60 font-medium tracking-wide">
+          3D görünüm — yakında
+        </span>
+      </div>
 
-      {/* ── Product items ── */}
-      <div className="flex-1 overflow-y-auto max-h-[260px] divide-y divide-zinc-50">
-        {selectedGroup?.products.map((p) => (
-          <ProductItemRow key={p.id} product={p} />
-        ))}
-        {!selectedGroup && (
-          <div className="flex items-center justify-center py-6 text-xs text-zinc-400">
+      {/* ── Product groups (AC6–AC8) ── */}
+      <div className="flex-1 overflow-y-auto max-h-[320px]" onClick={(e) => e.stopPropagation()}>
+        {(productGroups as PlanProductGroup[]).length > 0 ? (
+          (productGroups as PlanProductGroup[]).map((g) => (
+            <GroupBlock key={g.id} group={g} />
+          ))
+        ) : (
+          <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
             Ürün bulunamadı.
           </div>
         )}
