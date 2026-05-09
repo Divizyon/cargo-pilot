@@ -61,15 +61,15 @@ export function SystemSettingsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Sistem Ayarları</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Sistem Ayarları</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Platforma ait tüm yapılandırma seçeneklerini buradan yönetin.
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b bg-transparent p-0">
           {(Object.keys(TAB_LABELS) as TabId[]).map((tab) => (
             <TabsTrigger
@@ -82,17 +82,17 @@ export function SystemSettingsPage() {
           ))}
         </TabsList>
 
-        <TabsContent value="regional" className="mt-6">
+        <TabsContent value="regional" className="mt-4">
           <RegionalSettingsTab onDirtyChange={(dirty) => handleDirtyChange('regional', dirty)} />
         </TabsContent>
 
-        <TabsContent value="visualization" className="mt-6">
+        <TabsContent value="visualization" className="mt-4">
           <VisualizationSettingsTab
             onDirtyChange={(dirty) => handleDirtyChange('visualization', dirty)}
           />
         </TabsContent>
 
-        <TabsContent value="reporting" className="mt-6">
+        <TabsContent value="reporting" className="mt-4">
           <ReportingSettingsTab />
         </TabsContent>
       </Tabs>

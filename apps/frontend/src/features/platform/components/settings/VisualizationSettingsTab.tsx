@@ -10,8 +10,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
-  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -21,7 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   visualizationSettingsSchema,
   type VisualizationSettingsValues,
@@ -40,6 +37,46 @@ interface VisualizationSettingsTabProps {
   onDirtyChange: (dirty: boolean) => void;
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-4 pb-1 first:pt-0">
+      {children}
+    </p>
+  );
+}
+
+interface SelectRowProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+function SelectRow({ label, children }: SelectRowProps) {
+  return (
+    <div className="flex items-center gap-6 border-b border-border py-2.5 last:border-0">
+      <span className="w-44 shrink-0 text-sm text-foreground">{label}</span>
+      <div className="w-52">{children}</div>
+    </div>
+  );
+}
+
+interface SwitchRowProps {
+  label: string;
+  description: string;
+  children: React.ReactNode;
+}
+
+function SwitchRow({ label, description, children }: SwitchRowProps) {
+  return (
+    <div className="flex items-center gap-6 border-b border-border py-2.5 last:border-0">
+      <div className="w-44 shrink-0">
+        <p className="text-sm text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSettingsTabProps) {
   const setTheme = useUIStore((s) => s.setTheme);
   const storedTheme = useUIStore((s) => s.theme);
@@ -51,9 +88,7 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
   });
 
   const { isDirty } = form.formState;
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
+  useEffect(() => { onDirtyChange(isDirty); }, [isDirty, onDirtyChange]);
 
   function onSubmit(values: VisualizationSettingsValues) {
     setTheme(values.theme);
@@ -64,148 +99,117 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Tema</CardTitle>
-            <CardDescription>Uygulama teması ve renk şeması tercihleri.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
-            <FormField
-              control={form.control}
-              name="theme"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tema</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="light">Açık</SelectItem>
-                      <SelectItem value="dark">Koyu</SelectItem>
-                      <SelectItem value="system">Sistem Teması</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-xl">
+        <SectionLabel>Tema</SectionLabel>
 
-            <FormField
-              control={form.control}
-              name="colorScheme"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>3D Renk Şeması</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="default">Varsayılan</SelectItem>
-                      <SelectItem value="category">Kategoriye Göre</SelectItem>
-                      <SelectItem value="weight">Ağırlığa Göre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">3D Görünüm Seçenekleri</CardTitle>
-            <CardDescription>Sahne üzerinde görüntülenecek öğeler.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="showGrid"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <FormLabel className="text-sm font-medium">Izgara Göster</FormLabel>
-                    <FormDescription className="text-xs">
-                      3D sahnede zemin ızgarasını görüntüler.
-                    </FormDescription>
-                  </div>
+        <FormField
+          control={form.control}
+          name="theme"
+          render={({ field }) => (
+            <FormItem>
+              <SelectRow label="Tema">
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
                   </FormControl>
-                </FormItem>
-              )}
-            />
+                  <SelectContent>
+                    <SelectItem value="light">Açık</SelectItem>
+                    <SelectItem value="dark">Koyu</SelectItem>
+                    <SelectItem value="system">Sistem Teması</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SelectRow>
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="showLabels"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <FormLabel className="text-sm font-medium">Etiketleri Göster</FormLabel>
-                    <FormDescription className="text-xs">
-                      Kutular üzerinde ürün adını gösterir.
-                    </FormDescription>
-                  </div>
+        <FormField
+          control={form.control}
+          name="colorScheme"
+          render={({ field }) => (
+            <FormItem>
+              <SelectRow label="3D Renk Şeması">
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
                   </FormControl>
-                </FormItem>
-              )}
-            />
+                  <SelectContent>
+                    <SelectItem value="default">Varsayılan</SelectItem>
+                    <SelectItem value="category">Kategoriye Göre</SelectItem>
+                    <SelectItem value="weight">Ağırlığa Göre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SelectRow>
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="showAxes"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <FormLabel className="text-sm font-medium">
-                      Koordinat Eksenlerini Göster
-                    </FormLabel>
-                    <FormDescription className="text-xs">
-                      X, Y, Z eksen göstergelerini görüntüler.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+        <SectionLabel>3D Görünüm</SectionLabel>
 
-            <FormField
-              control={form.control}
-              name="animationEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <FormLabel className="text-sm font-medium">Animasyonları Etkinleştir</FormLabel>
-                    <FormDescription className="text-xs">
-                      Yükleme ve geçiş animasyonlarını etkinleştirir.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+        <FormField
+          control={form.control}
+          name="showGrid"
+          render={({ field }) => (
+            <FormItem>
+              <SwitchRow label="Izgara Göster" description="3D sahnede zemin ızgarasını görüntüler.">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </SwitchRow>
+            </FormItem>
+          )}
+        />
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={form.formState.isSubmitting} className="min-w-40">
+        <FormField
+          control={form.control}
+          name="showLabels"
+          render={({ field }) => (
+            <FormItem>
+              <SwitchRow label="Etiketleri Göster" description="Kutular üzerinde ürün adını gösterir.">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </SwitchRow>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="showAxes"
+          render={({ field }) => (
+            <FormItem>
+              <SwitchRow label="Koordinat Eksenleri" description="X, Y, Z eksen göstergelerini görüntüler.">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </SwitchRow>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="animationEnabled"
+          render={({ field }) => (
+            <FormItem>
+              <SwitchRow label="Animasyonlar" description="Yükleme ve geçiş animasyonlarını etkinleştirir.">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </SwitchRow>
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end pt-4">
+          <Button type="submit" size="sm" disabled={form.formState.isSubmitting} className="min-w-36">
             {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Kaydediliyor...
-              </>
+              <><Loader2 className="animate-spin" />Kaydediliyor...</>
             ) : (
               'Değişiklikleri Kaydet'
             )}

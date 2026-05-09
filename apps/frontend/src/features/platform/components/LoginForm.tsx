@@ -34,7 +34,7 @@ import {
   isAccountLocked,
   getLockedMinutesRemaining,
 } from '@/lib/api/useAuth';
-import { OAUTH_GOOGLE_URL, OAUTH_MICROSOFT_URL } from '@/lib/config/env';
+import { OAUTH_GOOGLE_URL } from '@/lib/config/env';
 import { loginSchema } from '@/features/platform/schemas/loginSchema';
 import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
 
@@ -61,16 +61,6 @@ function GoogleIcon() {
   );
 }
 
-function MicrosoftIcon() {
-  return (
-    <svg viewBox="0 0 21 21" className="size-4 shrink-0" aria-hidden="true">
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-    </svg>
-  );
-}
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -328,16 +318,6 @@ export function LoginForm() {
         >
           <GoogleIcon />
           Google ile Giriş Yap
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => handleOAuth(OAUTH_MICROSOFT_URL)}
-          disabled={!OAUTH_MICROSOFT_URL}
-        >
-          <MicrosoftIcon />
-          Microsoft ile Giriş Yap
         </Button>
       </div>
 

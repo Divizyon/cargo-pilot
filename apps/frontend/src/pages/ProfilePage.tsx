@@ -1,53 +1,48 @@
-import { useAuthStore } from '@/lib/store/useAuthStore';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProfileForm } from '@/features/platform/components/ProfileForm';
 import { EmailChangeSection } from '@/features/platform/components/EmailChangeSection';
+import { CompanyMembersTable } from '@/features/platform/components/CompanyMembersTable';
+import { SubscriptionTab } from '@/features/platform/components/SubscriptionTab';
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin',
-  manager: 'Yönetici',
-  viewer: 'Görüntüleyici',
-};
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
+const TAB_CLASS =
+  'rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none';
 
 export function ProfilePage() {
-  const user = useAuthStore((s) => s.user);
-
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Profilim</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Kişisel bilgilerinizi görüntüleyin ve güncelleyin.
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Profilim</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Kişisel bilgilerinizi yönetin ve firma çalışanlarını görüntüleyin.
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-          {user ? getInitials(user.fullName) : '?'}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-foreground">
-            {user?.fullName ?? '—'}
-          </p>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{user?.email ?? ''}</p>
-          {user?.role && (
-            <span className="mt-1.5 inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {ROLE_LABELS[user.role] ?? user.role}
-            </span>
-          )}
-        </div>
-      </div>
+      <Tabs defaultValue="individual">
+        <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b bg-transparent p-0">
+          <TabsTrigger value="individual" className={TAB_CLASS}>Bireysel Hesap</TabsTrigger>
+          <TabsTrigger value="members"    className={TAB_CLASS}>Şirket Hesabım</TabsTrigger>
+          <TabsTrigger value="billing"    className={TAB_CLASS}>Abonelik</TabsTrigger>
+        </TabsList>
 
-      <ProfileForm />
-      <EmailChangeSection />
+        <TabsContent value="individual" className="mt-4 flex flex-col gap-6">
+          <ProfileForm />
+          <EmailChangeSection />
+        </TabsContent>
+
+        <TabsContent value="members" className="mt-4 flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Firma Çalışanları</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Firmanızdaki tüm aktif ve pasif kullanıcılar.
+            </p>
+          </div>
+          <CompanyMembersTable />
+        </TabsContent>
+
+        <TabsContent value="billing" className="mt-4">
+          <SubscriptionTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
