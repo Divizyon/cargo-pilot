@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IPendingVehicleMappingRepository, PendingVehicleMappingRepository>();
@@ -81,6 +82,7 @@ public static class DependencyInjection
             services.AddScoped<IAuthService, AuthService>();
 
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
+            services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
         }
 
         return services;
