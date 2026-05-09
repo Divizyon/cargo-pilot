@@ -369,7 +369,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const newIdx = items.findIndex((si) => si.item.id === overId);
       if (oldIdx === -1 || newIdx === -1) return {};
       const [removed] = items.splice(oldIdx, 1);
-      items.splice(newIdx, 0, removed);
+      const insertIdx = oldIdx < newIdx ? newIdx - 1 : newIdx;
+      items.splice(insertIdx, 0, removed);
       return { selectedItems: items };
     }),
 
