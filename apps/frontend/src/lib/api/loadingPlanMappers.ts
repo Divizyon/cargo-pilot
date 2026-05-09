@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
+import type {
+  LoadingPlanListItem,
+  PlanProductGroup,
+  PlanProductItem,
+} from '@/lib/types/loadingPlan';
+import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -14,6 +19,8 @@ const planVehicleApiSchema = z
     internalHeight: z.number().optional(),
     internalLength: z.number().optional(),
     maxWeightCapacity: z.number().optional(),
+    vehicleType: z.number().int().optional(),
+    loadingType: z.number().int().optional(),
   })
   .nullable()
   .optional();
@@ -93,6 +100,42 @@ export function extractListData(
 
 // ─── Detail response (GET /api/v1/loading-plans/{id}) ────────────────────────
 
+const placementItemApiSchema = z
+  .object({
+    id: z.string().optional(),
+    itemId: z.string().optional(),
+    quantity: z.number().optional(),
+    item: z
+      .object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        itemName: z.string().optional(),
+        weight: z.number().optional(),
+        unitWeight: z.number().optional(),
+        weightKg: z.number().optional(),
+        category: z.string().nullable().optional(),
+        categoryName: z.string().nullable().optional(),
+        groupName: z.string().nullable().optional(),
+        categoryColor: z.string().nullable().optional(),
+        groupColor: z.string().nullable().optional(),
+        fragility: z.number().optional(),
+        isFragile: z.boolean().optional(),
+        isHazmat: z.boolean().optional(),
+        isLiquid: z.boolean().optional(),
+        allowRotateX: z.boolean().optional(),
+        allowRotateY: z.boolean().optional(),
+        allowRotateZ: z.boolean().optional(),
+        maxStackCount: z.number().optional(),
+        layerCount: z.number().optional(),
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
+  })
+  .passthrough();
+
+export type PlacementItemApi = z.infer<typeof placementItemApiSchema>;
+
 export const planDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),
   data: z
@@ -106,10 +149,13 @@ export const planDetailApiResponseSchema = z.object({
       optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
       itemCount: z.number().int().nullable().optional(),
       totalWeight: z.number().nullable().optional(),
-      createdAt: z.string(),
+      createdAt: z.string().optional(),
       plannedAt: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string().nullable().optional(),
+      placements: z.array(placementItemApiSchema).optional(),
+      placementDetails: z.array(placementItemApiSchema).optional(),
+      items: z.array(placementItemApiSchema).optional(),
     })
     .passthrough(),
 });
@@ -139,6 +185,89 @@ function mapStatus(
     default:
       return 'taslak';
   }
+}
+
+// ─── Mapper: placements → PlanProductGroup[] ─────────────────────────────────
+
+const GROUP_COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#84cc16',
+  '#f97316',
+];
+
+export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): PlanProductGroup[] {
+  // itemId → { item, count }
+  const itemMap = new Map<string, { p: PlacementItemApi; count: number }>();
+
+  for (const p of rawPlacements) {
+    const itemId = p.itemId ?? p.id ?? p.item?.id ?? '';
+    if (!itemId) continue;
+    const existing = itemMap.get(itemId);
+    if (existing) {
+      existing.count += p.quantity ?? 1;
+    } else {
+      itemMap.set(itemId, { p, count: p.quantity ?? 1 });
+    }
+  }
+
+  // group name → items
+  const groupMap = new Map<
+    string,
+    { color: string; entries: Array<{ id: string; p: PlacementItemApi; count: number }> }
+  >();
+  let colorIdx = 0;
+
+  for (const [itemId, { p, count }] of itemMap) {
+    const item = p.item;
+    const groupName = item?.groupName ?? item?.categoryName ?? item?.category ?? 'Yük Grubu';
+    const groupColor =
+      item?.groupColor ?? item?.categoryColor ?? GROUP_COLORS[colorIdx % GROUP_COLORS.length];
+
+    if (!groupMap.has(groupName)) {
+      groupMap.set(groupName, { color: groupColor, entries: [] });
+      colorIdx++;
+    }
+    groupMap.get(groupName)!.entries.push({ id: itemId, p, count });
+  }
+
+  const groups: PlanProductGroup[] = [];
+  let gIdx = 0;
+
+  for (const [groupName, { color, entries }] of groupMap) {
+    const products: PlanProductItem[] = entries.map(({ id, p, count }) => {
+      const item = p.item;
+      const constraints: PlanProductItem['constraints'] = [];
+
+      const fragility = item?.fragility ?? 0;
+      if (fragility >= 1 || item?.isFragile) constraints.push('fragile');
+      if (fragility === 2 || item?.isLiquid) constraints.push('liquid');
+      if (item?.isHazmat) constraints.push('hazmat');
+      if (
+        item?.allowRotateX === false &&
+        item?.allowRotateY === false &&
+        item?.allowRotateZ === false
+      )
+        constraints.push('no_rotate');
+
+      return {
+        id,
+        name: item?.name ?? item?.itemName ?? id,
+        quantity: count,
+        unitWeightKg: item?.weight ?? item?.unitWeight ?? item?.weightKg ?? 0,
+        layerCount: item?.layerCount ?? item?.maxStackCount ?? 1,
+        constraints,
+      };
+    });
+
+    groups.push({ id: `grp-${gIdx++}-${groupName}`, name: groupName, color, products });
+  }
+
+  return groups;
 }
 
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
@@ -174,5 +303,9 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     interiorWidthM: v?.internalWidth ?? 0,
     interiorHeightM: v?.internalHeight ?? 0,
     interiorDepthM: v?.internalLength ?? 0,
+    vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
+    doorDirection:
+      v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
+    doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
   };
 }
