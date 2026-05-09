@@ -21,7 +21,7 @@ export function DashboardGreeting() {
         {displayName ? `${greeting}, ${displayName}` : 'Hoş geldiniz'}
       </h1>
       <p className="text-sm text-muted-foreground mt-1">
-        {formattedDate} · Genel operasyon görünümü
+        {formattedDate}
       </p>
     </div>
   );

@@ -15,9 +15,9 @@ const statCardSchema = z.object({
 });
 
 const dashboardStatsSchema = z.object({
-  totalShipments: statCardSchema,
-  activeVehicles: statCardSchema,
-  monthlyCiro: statCardSchema,
+  weeklyLoadingCount: statCardSchema,
+  vehicleEfficiency: statCardSchema,
+  weeklyLoadedTonnage: statCardSchema,
   weeklyTrend: z.array(weeklyTrendItemSchema),
 });
 
@@ -26,9 +26,9 @@ export type WeeklyTrendItem = z.infer<typeof weeklyTrendItemSchema>;
 export type StatCard = z.infer<typeof statCardSchema>;
 
 const MOCK_DATA: DashboardStatsData = {
-  totalShipments: { value: 1247, subInfo: '89 aktif · 158 bu hafta', delta: 12 },
-  activeVehicles: { value: 34, subInfo: '8 bakımda · 26 sahada', delta: -3 },
-  monthlyCiro: { value: 284500, subInfo: 'Hedef: ₺350.000', delta: 18 },
+  weeklyLoadingCount: { value: 158, subInfo: 'Bu hafta gerçekleşen yükleme', delta: 12 },
+  vehicleEfficiency: { value: 87, subInfo: "34 araçtan 30'u aktif sahada", delta: 5 },
+  weeklyLoadedTonnage: { value: 1840, subInfo: 'Haftalık hedef: 2.000 ton', delta: 8 },
   weeklyTrend: [
     { day: 'Pzt', sevkiyat: 120, teslim: 95 },
     { day: 'Sal', sevkiyat: 145, teslim: 110 },

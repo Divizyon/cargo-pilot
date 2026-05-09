@@ -19,12 +19,12 @@ export function DashboardRecentPlans() {
 
   return (
     <div className="rounded-xl border bg-card shadow-none overflow-hidden">
-      <div className="px-6 pt-5 pb-3">
+      <div className="px-4 pt-4 pb-2">
         <p className="text-base font-semibold text-foreground">Son Yapılan 7 Plan</p>
       </div>
 
       {isError && (
-        <div className="px-6 pb-4">
+        <div className="px-4 pb-3">
           <Alert variant="destructive">
             <AlertDescription>Plan listesi yüklenemedi.</AlertDescription>
           </Alert>
@@ -34,7 +34,7 @@ export function DashboardRecentPlans() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
         <div>
           {isLoading ? (
-            <ul className="px-6 pb-4 space-y-2">
+            <ul className="px-4 pb-3 space-y-2">
               {Array.from({ length: 7 }).map((_, i) => (
                 <li key={i}>
                   <Skeleton className="h-12 w-full rounded-md animate-pulse bg-accent" />
@@ -42,7 +42,7 @@ export function DashboardRecentPlans() {
               ))}
             </ul>
           ) : !data?.length ? (
-            <p className="px-6 pb-4 text-sm text-muted-foreground">Henüz plan oluşturulmamış.</p>
+            <p className="px-4 pb-3 text-sm text-muted-foreground">Henüz plan oluşturulmamış.</p>
           ) : (
             <ul>
               {data.map((plan) => (

@@ -7,8 +7,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <DashboardGreeting />
-      <DashboardStatsCards />
       <DashboardPlanWizard />
+      <DashboardStatsCards />
       <DashboardRecentPlans />
     </div>
   );

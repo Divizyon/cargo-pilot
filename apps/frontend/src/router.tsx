@@ -18,6 +18,7 @@ import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
+import { ReportsPage } from '@/pages/ReportsPage';
 
 export const router = createBrowserRouter([
   {
@@ -67,7 +68,7 @@ export const router = createBrowserRouter([
           { path: '/vehicles/:id/edit', element: <VehicleEditPage /> },
           { path: '/planning', element: <DashboardPage /> },
           { path: '/planning/new', element: <NewPlanPage /> },
-          { path: '/reports', element: <DashboardPage /> },
+          { path: '/reports', element: <ReportsPage /> },
           { path: '/integrations', element: <DashboardPage /> },
           { path: '/erp', element: <DashboardPage /> },
           { path: '/notifications', element: <DashboardPage /> },
