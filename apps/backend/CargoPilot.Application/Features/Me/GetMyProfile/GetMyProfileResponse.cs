@@ -6,4 +6,5 @@ public sealed record GetMyProfileResponse(
     string LastName,
     string FullName,
     string Email,
-    string? CompanyName);
+    string? CompanyName,
+    bool TourCompleted);

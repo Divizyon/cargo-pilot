@@ -39,6 +39,7 @@ internal sealed class GetMyProfileQueryHandler
                 user.LastName,
                 $"{user.FirstName} {user.LastName}",
                 user.Email,
-                user.Company?.Name));
+                user.Company?.Name,
+                user.TourCompleted));
     }
 }
