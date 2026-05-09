@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using FluentValidation;
@@ -9,13 +10,16 @@ public sealed class GetLoadingPlanReportsQueryHandler
     : IRequestHandler<GetLoadingPlanReportsQuery, Result<PagedResult<LoadingPlanReportDto>>>
 {
     private readonly ILoadingPlanRepository _repository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<GetLoadingPlanReportsQuery> _validator;
 
     public GetLoadingPlanReportsQueryHandler(
         ILoadingPlanRepository repository,
+        ICurrentUserService currentUserService,
         IValidator<GetLoadingPlanReportsQuery> validator)
     {
         _repository = repository;
+        _currentUserService = currentUserService;
         _validator = validator;
     }
 
@@ -41,6 +45,7 @@ public sealed class GetLoadingPlanReportsQueryHandler
             request.VehicleId,
             request.MinFillRate,
             request.MaxFillRate,
+            _currentUserService.CompanyId,
             cancellationToken);
 
         return Result<PagedResult<LoadingPlanReportDto>>.Success(pagedResult);

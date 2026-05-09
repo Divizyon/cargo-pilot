@@ -65,6 +65,10 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.FragilityType)
             .IsRequired();
 
+        builder.Property(item => item.ConstraintIdsJson)
+            .IsRequired()
+            .HasDefaultValue("[]");
+
         builder.Property(item => item.IsStackable)
             .IsRequired();
 
@@ -93,6 +97,10 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
             .HasMaxLength(200);
 
         builder.Property(item => item.IntegrationId);
+
+        builder.Property(item => item.IsRuleAssigned)
+            .IsRequired()
+            .HasDefaultValue(true);
 
         builder.HasOne(item => item.Company)
             .WithMany(company => company.Items)
