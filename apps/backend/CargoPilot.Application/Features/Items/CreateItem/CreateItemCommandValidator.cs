@@ -72,6 +72,14 @@ public sealed class CreateItemCommandValidator : AbstractValidator<CreateItemCom
                 .WithErrorCode("ITEM_VAL_FRAGILITY_INVALID")
                 .WithMessage("Gecersiz fragility tipi.");
 
+        RuleFor(x => x.ConstraintIds)
+            .Must(ids => ids == null || ids.Length == ids.Distinct().Count())
+                .WithErrorCode("ITEM_VAL_CONSTRAINTIDS_DUPLICATE")
+                .WithMessage("Kısıtlama ID'leri tekrarlanmamalıdır.")
+            .Must(ids => ids == null || ids.All(id => id >= 0 && id <= 9))
+                .WithErrorCode("ITEM_VAL_CONSTRAINTIDS_INVALID")
+                .WithMessage("Kısıtlama ID'leri 0-9 aralığında olmalıdır.");
+
         RuleFor(x => x.MaxStackCount)
             .GreaterThanOrEqualTo(0)
                 .WithErrorCode("ITEM_VAL_MAXSTACKCOUNT_MIN")
