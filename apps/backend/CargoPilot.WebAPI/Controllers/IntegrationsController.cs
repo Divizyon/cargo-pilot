@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Integrations.ApprovePendingVehicleMapping;
 using CargoPilot.Application.Features.Vehicles.UpsertVehicleFromErp;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -77,6 +78,28 @@ public sealed class IntegrationsController : BaseController
     {
         var command = new DeletePendingVehicleMappingCommand(id, mappingId);
         var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+    /// <summary>
+    /// Bekleyen bir araç mapping'ini onaylar ve Vehicle'a dönüştürür.
+    /// </summary>
+    /// <param name="id">Entegrasyon ID'si.</param>
+    /// <param name="mappingId">Onaylanacak mapping ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="201">Araç oluşturuldu; ID döner.</response>
+    /// <response code="404">Mapping bulunamadı.</response>
+    [HttpPost("{id:guid}/vehicles/pending/{mappingId:guid}/approve")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApprovePendingVehicleMapping(
+        [FromRoute] Guid id,
+        [FromRoute] Guid mappingId,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new ApprovePendingVehicleMappingCommand(id, mappingId);
+        var result = await _mediator.Send(command, cancellationToken);
+        if (result.IsSuccess)
+            return StatusCode(StatusCodes.Status201Created, result);
         return HandleResult(result);
     }
 }

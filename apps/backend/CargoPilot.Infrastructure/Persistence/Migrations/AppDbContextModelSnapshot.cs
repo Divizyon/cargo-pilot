@@ -84,11 +84,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("TourCompleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<string>("PasswordHash")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");

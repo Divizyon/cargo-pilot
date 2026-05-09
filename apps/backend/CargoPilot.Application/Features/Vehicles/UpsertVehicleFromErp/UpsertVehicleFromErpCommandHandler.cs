@@ -93,7 +93,7 @@ internal sealed class UpsertVehicleFromErpCommandHandler : IRequestHandler<Upser
                     added++;
                 }
             }
-            catch
+            catch (InvalidOperationException)
             {
                 skipped++;
             }
