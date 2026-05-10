@@ -17,6 +17,8 @@ public sealed record PlanDetailDto(
     decimal? CenterOfGravityX,
     decimal? CenterOfGravityY,
     decimal? CenterOfGravityZ,
+    decimal? WeightBalanceOffsetX,
+    decimal? WeightBalanceOffsetZ,
     DateTime CreatedAtUtc,
     ErpExportStatus? ErpExportStatus,
     VehicleInPlanDto Vehicle,

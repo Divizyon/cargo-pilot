@@ -1,10 +1,59 @@
-import { useRef, useMemo } from 'react';
+// BoxWrapper kuralı kargo kutuları içindir; konteyner kapakları için geçerli değil.
+/* eslint-disable no-restricted-syntax */
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { ContainerBody } from './ContainerBody';
+
+import normalUrl from '@/assets/textures/container-steel/normal.jpg';
+import roughnessUrl from '@/assets/textures/container-steel/roughness.jpg';
+import metalnessUrl from '@/assets/textures/container-steel/metalness.jpg';
+import aoUrl from '@/assets/textures/container-steel/ao.jpg';
+
+const UV_SCALE = 0.008;
+
+function DoorPanel({
+  width,
+  height,
+  depth = 0.1,
+}: {
+  width: number;
+  height: number;
+  depth?: number;
+}) {
+  const [normalMap, roughnessMap, metalnessMap, aoMap] = useTexture([
+    normalUrl,
+    roughnessUrl,
+    metalnessUrl,
+    aoUrl,
+  ]);
+
+  useEffect(() => {
+    for (const tex of [normalMap, roughnessMap, metalnessMap, aoMap]) {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(width * UV_SCALE, height * UV_SCALE);
+      tex.needsUpdate = true;
+    }
+  }, [width, height, normalMap, roughnessMap, metalnessMap, aoMap]);
+
+  return (
+    <mesh position={[width / 2, height / 2, 0]}>
+      <boxGeometry args={[width, height, depth]} />
+      <meshStandardMaterial
+        normalMap={normalMap}
+        roughnessMap={roughnessMap}
+        metalnessMap={metalnessMap}
+        aoMap={aoMap}
+        metalness={0.45}
+        roughness={0.7}
+      />
+    </mesh>
+  );
+}
 
 // ─── ContainerEdges ────────────────────────────────────────────────────────────
 
@@ -31,32 +80,6 @@ function ContainerEdges({
   );
 }
 
-// ─── ContainerGrid ─────────────────────────────────────────────────────────────
-
-function ContainerGrid({ width, length }: { width: number; length: number }) {
-  const geometry = useMemo(() => {
-    const step = SCENE.GRID_STEP_CM;
-    const points: number[] = [];
-
-    for (let z = 0; z <= length; z += step) {
-      points.push(0, 0, z, width, 0, z);
-    }
-    for (let x = 0; x <= width; x += step) {
-      points.push(x, 0, 0, x, 0, length);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-    return geo;
-  }, [width, length]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.45} transparent />
-    </lineSegments>
-  );
-}
-
 // ─── Shared door constants (values from scene-config) ─────────────────────────
 
 const DOOR_THICKNESS = SCENE.DOOR_THICKNESS_CM;
@@ -65,8 +88,6 @@ const DOOR_EASING = SCENE.DOOR_EASING;
 
 // ─── Rear door helpers (X-axis panel on Z=0 face) ─────────────────────────────
 
-// Grid lines on the outer face of a rear door panel.
-// sign=+1 → x runs 0…panelW (left door); sign=-1 → x runs 0…-panelW (right door).
 function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
@@ -87,7 +108,7 @@ function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} opacity={0.18} transparent />
     </lineSegments>
   );
 }
@@ -137,6 +158,9 @@ function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: numbe
 function RearDoorPanel({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   return (
     <group>
+      <group scale={[sign, 1, 1]}>
+        <DoorPanel width={panelW} height={height} />
+      </group>
       <RearDoorGrid panelW={panelW} height={height} sign={sign} />
       <RearDoorFrame panelW={panelW} height={height} sign={sign} />
     </group>
@@ -173,12 +197,8 @@ function RearDoors({ width, height }: { width: number; height: number }) {
 
 // ─── Side door (X face) ────────────────────────────────────────────────────────
 
-// Same visual style as rear doors: grid lines + frame outline on the outer face.
-// Front panel hinges at Z=0, rear panel hinges at Z=length — both swing outward (−X).
 const SIDE_DOOR_OPEN_ANGLE = SCENE.DOOR_SIDE_OPEN_ANGLE;
 
-// Grid drawn on the outer face of the panel (facing −X, at x = −(DOOR_THICKNESS+0.5)).
-// sign=1 → panel extends +Z; sign=−1 → panel extends −Z.
 function SideDoorGrid({
   panelDepth,
   height,
@@ -205,7 +225,7 @@ function SideDoorGrid({
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} opacity={0.18} transparent />
     </lineSegments>
   );
 }
@@ -271,6 +291,10 @@ function SideHalfDoor({
 }) {
   return (
     <group>
+      {/* Panel: X ekseni boyunca, Z yönünde uzanır — DoorPanel X=width Z=depth olduğu için rotate et */}
+      <group rotation={[0, -Math.PI / 2, 0]} position={[0, 0, 0]} scale={[sign, 1, 1]}>
+        <DoorPanel width={panelDepth} height={height} />
+      </group>
       <SideDoorGrid panelDepth={panelDepth} height={height} sign={sign} />
       <SideDoorFrame panelDepth={panelDepth} height={height} sign={sign} />
     </group>
@@ -307,10 +331,6 @@ function SideDoors({ width, height, length }: { width: number; height: number; l
 
 // ─── Top cover (open-top vehicles) ────────────────────────────────────────────
 
-// Same visual style as rear doors. Grid + frame on the outer face (facing +Y).
-// Rear half hinges at Z=0, front half at Z=length.
-// Rotation: −X lifts +Z edge upward, +X lifts −Z edge upward.
-
 function TopCoverGrid({
   width,
   panelLength,
@@ -337,7 +357,7 @@ function TopCoverGrid({
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} opacity={0.18} transparent />
     </lineSegments>
   );
 }
@@ -403,6 +423,10 @@ function TopCoverHalf({
 }) {
   return (
     <group>
+      {/* Panel: XZ düzleminde, rotate ile yatay yap */}
+      <group rotation={[-Math.PI / 2, 0, 0]} scale={[1, sign, 1]}>
+        <DoorPanel width={width} height={panelLength} />
+      </group>
       <TopCoverGrid width={width} panelLength={panelLength} sign={sign} />
       <TopCoverFrame width={width} panelLength={panelLength} sign={sign} />
     </group>
@@ -418,9 +442,7 @@ function TopCover({ width, height, length }: { width: number; height: number; le
     const diff = SCENE.DOOR_SIDE_OPEN_ANGLE - angleRef.current;
     if (Math.abs(diff) > 0.0005) {
       angleRef.current += diff * DOOR_EASING;
-      // −X rotation: +Z edge lifts upward (away from container)
       if (rearRef.current) rearRef.current.rotation.x = -angleRef.current;
-      // +X rotation: −Z edge lifts upward (away from container)
       if (frontRef.current) frontRef.current.rotation.x = angleRef.current;
     }
   });
@@ -447,22 +469,18 @@ export function ContainerMesh() {
   if (!vehicle) return null;
 
   const { width, height, length, doorSide } = vehicle;
-  // Default to 'rear' when doorDirection is absent (API not yet mapped)
   const doorDirection = vehicle.doorDirection ?? 'rear';
 
   return (
     <group>
       <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
-      <ContainerGrid width={width} length={length} />
 
-      {/* key resets door animation when vehicle changes */}
       {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
         <RearDoors key={`rear-${vehicle.id}`} width={width} height={height} />
       )}
 
       {(doorDirection === 'side' || doorDirection === 'rearAndSide') && (
-        // For right-side doors: translate to X=width and mirror X so geometry faces outward
         <group
           key={`side-${vehicle.id}`}
           position={[doorSide === 'left' ? 0 : width, 0, 0]}

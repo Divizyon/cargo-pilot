@@ -60,16 +60,20 @@ public static class DependencyInjection {
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
-        services.AddScoped<IOptimizationEngine, NoOpOptimizationEngine>();
+        services.AddScoped<IOptimizationEngine, OptimizationEngine>();
         services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddScoped<IErpExportService, ErpExportService>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
         });
+
+        services.AddTransient<TrialExpiryNotificationJob>();
+        services.AddTransient<NotificationCleanupJob>();
 
         if (!useInMemoryRepository) {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
@@ -83,7 +87,6 @@ public static class DependencyInjection {
                         errorNumbersToAdd: null)));
             services.AddScoped<DbInitializer>();
             services.AddScoped<IAuthService, AuthService>();
-
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
             services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
 
