@@ -64,8 +64,24 @@ echo "[$(date)] Stack yeniden başlatılıyor..."
 docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
     down --remove-orphans
 
-docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
-    up -d --build
+if [[ "${ENVIRONMENT}" == "test" ]]; then
+    # Test ortamı: GHCR'dan immutable tag ile çek (--build yapılmaz)
+    TARGET_SHA=$(git rev-parse --short=7 "${TARGET_REF}" 2>/dev/null || echo "")
+    if [[ -z "${TARGET_SHA}" ]]; then
+        echo "[ERROR] '${TARGET_REF}' için SHA türetilemedi."
+        exit 1
+    fi
+    export IMAGE_TAG="test-${TARGET_SHA}"
+    echo "[$(date)] GHCR'dan image çekiliyor: IMAGE_TAG=${IMAGE_TAG}"
+    IMAGE_TAG="${IMAGE_TAG}" docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
+        pull backend frontend
+    IMAGE_TAG="${IMAGE_TAG}" docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
+        up -d --no-build
+else
+    # Prod ortamı: local build (prod pipeline henüz hazır değil)
+    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
+        up -d --build
+fi
 
 # Sağlık kontrolü
 echo "[$(date)] Sağlık kontrolü bekleniyor (60s)..."
