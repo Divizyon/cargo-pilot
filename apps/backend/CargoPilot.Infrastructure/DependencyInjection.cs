@@ -3,6 +3,7 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Infrastructure.Auth;
+using CargoPilot.Infrastructure.Jobs;
 using CargoPilot.Infrastructure.Persistence;
 using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
@@ -61,10 +62,14 @@ public static class DependencyInjection {
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
         });
+
+        services.AddTransient<TrialExpiryNotificationJob>();
+        services.AddTransient<NotificationCleanupJob>();
 
         if (!useInMemoryRepository) {
             services.AddDbContext<AppDbContext>(options =>
@@ -76,7 +81,6 @@ public static class DependencyInjection {
                         errorNumbersToAdd: null)));
             services.AddScoped<DbInitializer>();
             services.AddScoped<IAuthService, AuthService>();
-
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
         }
 
