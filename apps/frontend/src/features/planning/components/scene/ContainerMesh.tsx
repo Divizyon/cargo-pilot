@@ -31,32 +31,6 @@ function ContainerEdges({
   );
 }
 
-// ─── ContainerGrid ─────────────────────────────────────────────────────────────
-
-function ContainerGrid({ width, length }: { width: number; length: number }) {
-  const geometry = useMemo(() => {
-    const step = SCENE.GRID_STEP_CM;
-    const points: number[] = [];
-
-    for (let z = 0; z <= length; z += step) {
-      points.push(0, 0, z, width, 0, z);
-    }
-    for (let x = 0; x <= width; x += step) {
-      points.push(x, 0, 0, x, 0, length);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-    return geo;
-  }, [width, length]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.45} transparent />
-    </lineSegments>
-  );
-}
-
 // ─── Shared door constants (values from scene-config) ─────────────────────────
 
 const DOOR_THICKNESS = SCENE.DOOR_THICKNESS_CM;
@@ -65,80 +39,40 @@ const DOOR_EASING = SCENE.DOOR_EASING;
 
 // ─── Rear door helpers (X-axis panel on Z=0 face) ─────────────────────────────
 
-// Grid lines on the outer face of a rear door panel.
-// sign=+1 → x runs 0…panelW (left door); sign=-1 → x runs 0…-panelW (right door).
-function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
-  const geometry = useMemo(() => {
-    const step = SCENE.GRID_STEP_CM;
-    const z = -(DOOR_THICKNESS + 0.5);
-    const pts: number[] = [];
+function RearDoorPanel({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
+  const z = -(DOOR_THICKNESS + 0.5);
+  const cx = (sign * panelW) / 2;
+  const cy = height / 2;
+  const cz = z - DOOR_THICKNESS / 2;
 
-    for (let x = 0; x <= panelW; x += step) {
-      pts.push(sign * x, 0, z, sign * x, height, z);
-    }
-    for (let y = 0; y <= height; y += step) {
+  const corrugationGeo = useMemo(() => {
+    const step = 50;
+    const pts: number[] = [];
+    for (let y = step; y < height; y += step) {
       pts.push(0, y, z, sign * panelW, y, z);
     }
-
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
     return geo;
-  }, [panelW, height, sign]);
+  }, [panelW, height, sign, z]);
 
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
-    </lineSegments>
-  );
-}
-
-function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
-  const geometry = useMemo(() => {
-    const z = -(DOOR_THICKNESS + 0.5);
-    const ex = sign * panelW;
-    const pts = [
-      0,
-      0,
-      z,
-      ex,
-      0,
-      z,
-      ex,
-      0,
-      z,
-      ex,
-      height,
-      z,
-      ex,
-      height,
-      z,
-      0,
-      height,
-      z,
-      0,
-      height,
-      z,
-      0,
-      0,
-      z,
-    ];
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    return geo;
-  }, [panelW, height, sign]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
-    </lineSegments>
-  );
-}
-
-function RearDoorPanel({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   return (
     <group>
-      <RearDoorGrid panelW={panelW} height={height} sign={sign} />
-      <RearDoorFrame panelW={panelW} height={height} sign={sign} />
+      {/* eslint-disable-next-line no-restricted-syntax */}
+      <mesh position={[cx, cy, cz]} castShadow>
+        <boxGeometry args={[panelW, height, DOOR_THICKNESS]} />
+        <meshStandardMaterial
+          color="#b0bec5"
+          metalness={0.65}
+          roughness={0.35}
+          transparent
+          opacity={0.75}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <lineSegments geometry={corrugationGeo}>
+        <lineBasicMaterial color="#94a3b8" opacity={0.7} transparent depthWrite={false} />
+      </lineSegments>
     </group>
   );
 }
@@ -173,92 +107,8 @@ function RearDoors({ width, height }: { width: number; height: number }) {
 
 // ─── Side door (X face) ────────────────────────────────────────────────────────
 
-// Same visual style as rear doors: grid lines + frame outline on the outer face.
 // Front panel hinges at Z=0, rear panel hinges at Z=length — both swing outward (−X).
 const SIDE_DOOR_OPEN_ANGLE = SCENE.DOOR_SIDE_OPEN_ANGLE;
-
-// Grid drawn on the outer face of the panel (facing −X, at x = −(DOOR_THICKNESS+0.5)).
-// sign=1 → panel extends +Z; sign=−1 → panel extends −Z.
-function SideDoorGrid({
-  panelDepth,
-  height,
-  sign,
-}: {
-  panelDepth: number;
-  height: number;
-  sign: 1 | -1;
-}) {
-  const geometry = useMemo(() => {
-    const step = SCENE.GRID_STEP_CM;
-    const x = -(DOOR_THICKNESS + 0.5);
-    const pts: number[] = [];
-    for (let z = 0; z <= panelDepth; z += step) {
-      pts.push(x, 0, sign * z, x, height, sign * z);
-    }
-    for (let y = 0; y <= height; y += step) {
-      pts.push(x, y, 0, x, y, sign * panelDepth);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    return geo;
-  }, [panelDepth, height, sign]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
-    </lineSegments>
-  );
-}
-
-function SideDoorFrame({
-  panelDepth,
-  height,
-  sign,
-}: {
-  panelDepth: number;
-  height: number;
-  sign: 1 | -1;
-}) {
-  const geometry = useMemo(() => {
-    const x = -(DOOR_THICKNESS + 0.5);
-    const ez = sign * panelDepth;
-    const pts = [
-      x,
-      0,
-      0,
-      x,
-      0,
-      ez,
-      x,
-      0,
-      ez,
-      x,
-      height,
-      ez,
-      x,
-      height,
-      ez,
-      x,
-      height,
-      0,
-      x,
-      height,
-      0,
-      x,
-      0,
-      0,
-    ];
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    return geo;
-  }, [panelDepth, height, sign]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
-    </lineSegments>
-  );
-}
 
 function SideHalfDoor({
   panelDepth,
@@ -269,10 +119,39 @@ function SideHalfDoor({
   height: number;
   sign: 1 | -1;
 }) {
+  const x = -(DOOR_THICKNESS + 0.5);
+  const cx = x - DOOR_THICKNESS / 2;
+  const cy = height / 2;
+  const cz = (sign * panelDepth) / 2;
+
+  const corrugationGeo = useMemo(() => {
+    const step = 50;
+    const pts: number[] = [];
+    for (let y = step; y < height; y += step) {
+      pts.push(x, y, 0, x, y, sign * panelDepth);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return geo;
+  }, [panelDepth, height, sign, x]);
+
   return (
     <group>
-      <SideDoorGrid panelDepth={panelDepth} height={height} sign={sign} />
-      <SideDoorFrame panelDepth={panelDepth} height={height} sign={sign} />
+      {/* eslint-disable-next-line no-restricted-syntax */}
+      <mesh position={[cx, cy, cz]} castShadow>
+        <boxGeometry args={[DOOR_THICKNESS, height, panelDepth]} />
+        <meshStandardMaterial
+          color="#b0bec5"
+          metalness={0.65}
+          roughness={0.35}
+          transparent
+          opacity={0.75}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <lineSegments geometry={corrugationGeo}>
+        <lineBasicMaterial color="#94a3b8" opacity={0.7} transparent depthWrite={false} />
+      </lineSegments>
     </group>
   );
 }
@@ -454,7 +333,6 @@ export function ContainerMesh() {
     <group>
       <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
-      <ContainerGrid width={width} length={length} />
 
       {/* key resets door animation when vehicle changes */}
       {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
