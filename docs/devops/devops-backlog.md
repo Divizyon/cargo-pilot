@@ -11,13 +11,9 @@ Bu doküman, 2026-05-10 tarihinde gerçekleştirilen kapsamlı DevOps audit sonu
 ## Kategori 1 — Uyumsuzluklar (Prod / Test Farkları)
 
 ### 1.1 `docker-compose.prod.yml` — GHCR image desteği yok
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — PR #488
 
-`docker-compose.test.yml`'de backend ve frontend GHCR'dan image çekiyor (`ghcr.io/divizyon/...`).  
-`docker-compose.prod.yml`'de ise yalnızca `build:` var — GHCR image referansı yok.
-
-**Etki:** Prod deploy edildiğinde CI build optimizasyonundan yararlanamaz, her deploy'da local build yapılır.  
-**Çözüm:** `docker-compose.prod.yml`'e `image: ghcr.io/divizyon/cargo-pilot-backend:latest` ve `image: ghcr.io/divizyon/cargo-pilot-frontend:latest` eklenmeli. Prod CI pipeline ile birlikte ele alınmalı (bkz. 4.1).
+`docker-compose.prod.yml`'e backend ve frontend için `image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-{service}:${IMAGE_TAG:-prod}` eklendi. `build:` alanı local build fallback olarak korundu. Prod pipeline hazır olduğunda `docker compose pull` ile GHCR'dan çekilebilir.
 
 ---
 
@@ -58,37 +54,23 @@ Backend servisinde test'te olan aşağıdaki env var'lar prod'da yok:
 ---
 
 ### 1.5 `apps/frontend/nginx.conf` — `/api` proxy trailing slash farkı
-**Durum:** ℹ️ Dikkat
+**Durum:** ✅ Tamamlandı — PR #442 (bugfix/chore-nginx-api-proxy-test)
 
-`infra/nginx/cargopilot-test.conf` (host nginx): `location /api/` — trailing slash var  
-`apps/frontend/nginx.conf` (container nginx): `location /api` — trailing slash yok
-
-**Etki:** `/api` ile `/api/` davranışı Nginx'te farklıdır; bazı endpoint'lerde 301 redirect oluşabilir.  
-**Çözüm:** `apps/frontend/nginx.conf`'taki `location /api`'yi `location /api/` olarak güncelle; ya da tutarlı bir karar alınarak her iki config hizalanmalı.
+`apps/frontend/nginx.conf`'taki `location /api` → `location /api/` olarak güncellendi. Host nginx ve container nginx hizalandı.
 
 ---
 
 ### 1.6 `docs/setup/local-setup.md` — Branch açma komutu yanlış
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — PR #480
 
-`local-setup.md` Bölüm 9'da şu komut var:
-```bash
-git checkout --no-track -b feature/US-XXX-description origin/dev
-```
-`BRANCHING.md`'ye göre tüm feature branch'ler `origin/test`'ten açılmalı.
-
-**Etki:** Yeni başlayan geliştirici yanlış base'den branch açar, `enforce-test-base` CI job'u fail eder.  
-**Çözüm:** `local-setup.md` Bölüm 9'daki komut `origin/test` olarak güncellenmeli.
+`local-setup.md`'deki branch komutu `origin/dev` → `origin/test` olarak düzeltildi.
 
 ---
 
 ### 1.7 `docs/setup/local-setup.md` — GHCR login artık gerekmiyor
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — PR #480
 
-`local-setup.md` Bölüm 4'te GHCR PAT gereksinimiyle ilgili not var. GHCR package'ları public yapıldığından bu bilgi artık geçersiz.
-
-**Etki:** Gereksiz adım geliştiricileri karıştırır.  
-**Çözüm:** GHCR PAT notu kaldırılmalı, yerine "image'lar public, login gerekmez" notu eklenmeli.
+GHCR PAT notu kaldırıldı. Package'lar public yapıldığından developer login gerektirmez bilgisi eklendi.
 
 ---
 
@@ -101,7 +83,7 @@ Sunucuda production ortamı hiç kurulmamış. `.env.prod` dosyası yok, `docker
 
 **Etki:** `https://cargopilot.divizyon.org`'da yalnızca test ortamı çalışıyor; production DB ve storage başlatılmamış.  
 **Çözüm:** `.env.prod.example` → `.env.prod` oluşturulmalı, değerler doldurulmalı, `docker-compose.prod.yml` ayağa kaldırılmalı.  
-**Bkz.:** [server-requirements.md](server-requirements.md), [PRODUCTION_DEPLOYMENT_INFO.md](../../PRODUCTION_DEPLOYMENT_INFO.md)
+**Bkz.:** [server-requirements.md](server-requirements.md)
 
 ---
 
@@ -118,10 +100,10 @@ Sunucuda production ortamı hiç kurulmamış. `.env.prod` dosyası yok, `docker
 ### 2.3 Production için GHCR Image Pipeline Yok
 **Durum:** ⚠️ Açık
 
-Test için `ghcr.io/divizyon/cargo-pilot-backend:test` tag'i CI'da push ediliyor. Production için `:latest` veya `:v{version}` tag'i push edilmiyor.
+Test için `ghcr.io/divizyon/cargo-pilot-backend:test` tag'i CI'da push ediliyor. Production için `:prod` veya `:{git-tag}` tag'i push edilmiyor.
 
-**Etki:** Prod deploy edildiğinde build'i nereden alacağı belirsiz.  
-**Çözüm:** `main`'e push'ta image'ların `:latest` ve `:{git-tag}` olarak GHCR'a push edilmesi sağlanmalı.
+**Etki:** `docker-compose.prod.yml`'e `image:` alanı eklendi (madde 1.1) ancak bu image'ı GHCR'a push eden CI job'u henüz yok.  
+**Çözüm:** `main`'e push'ta image'ların `:prod` ve `:prod-{sha}` olarak GHCR'a push edilmesi sağlanmalı.
 
 ---
 
@@ -136,14 +118,9 @@ Test için `ghcr.io/divizyon/cargo-pilot-backend:test` tag'i CI'da push ediliyor
 ---
 
 ### 2.5 `test` Branch'ine Direct Push Koruması Eksik
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — GitHub API ile uygulandı
 
-GitHub branch protection'da `test` branch'i için "Require a pull request" kuralı aktif değil. `git push origin test` ile doğrudan push yapılabilir; `enforce-test-base` CI job'u tetiklenmez.
-
-**Etki:** Branch stratejisi devre dışı bırakılabilir.  
-**Çözüm:** GitHub → Settings → Branches → `test` → Branch protection rule:
-- "Require a pull request before merging" ✅
-- Required status checks: `Test PR Dev Kontrolü`, `Image Build`, `Deploy (Test)` ✅
+`test` branch'ine branch protection kuralı GitHub API üzerinden eklendi. PR zorunluluğu ve required status check'ler (`Test PR Dev Kontrolü`, `Image Build`, `Deploy (Test)`) aktif.
 
 ---
 
@@ -153,7 +130,7 @@ GitHub branch protection'da `test` branch'i için "Require a pull request" kural
 `appsettings.Development.json`'da eski SA parolası repoya commit edilmişti. Dosya güncellendi ama git geçmişinde hala görünür.
 
 **Etki:** Geçmişe erişimi olan biri parolayı görebilir.  
-**Çözüm:** Sunucudaki SA parolası döndürülmeli (rotate). Geçmiş temizliği için `git filter-repo` gerekebilir ancak tüm ekibin klonunu güncellemesi gerekirk. Minimum aksyon: **parolayı döndür**.
+**Çözüm:** Sunucudaki SA parolası döndürülmeli (rotate). Geçmiş temizliği için `git filter-repo` gerekebilir ancak tüm ekibin klonunu güncellemesi gerekir. Minimum aksyon: **parolayı döndür**.
 
 ---
 
@@ -180,39 +157,23 @@ GitHub branch protection'da `test` branch'i için "Require a pull request" kural
 ## Kategori 3 — Güncellenmesi Gerekenler
 
 ### 3.1 `docs/setup/local-setup.md` — Vite Dev Proxy Belgelenmemiş
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — PR #480
 
-`vite.config.ts`'te `VITE_DEV_PROXY_TARGET` env var'ı ile local backend proxy konfigürasyonu mevcut. Bu özellik `local-setup.md`'de hiç belgelenmemiş.
-
-**Çözüm:** `local-setup.md`'ye "Frontend Vite ile, Backend Docker'da" başlıklı bir bölüm eklenmeli:
-```bash
-# .env.local veya shell'de:
-VITE_DEV_PROXY_TARGET=http://localhost:8081
-npm run dev
-```
+`local-setup.md`'ye "Frontend Vite ile, Backend Docker'da" başlıklı bölüm eklendi. `VITE_DEV_PROXY_TARGET` kullanımı ve port tablosu belgelendi.
 
 ---
 
 ### 3.2 `infra/env/.env.test.example` — `VITE_DEV_PROXY_TARGET` eksik
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — PR #480
 
-`vite.config.ts`'te `VITE_DEV_PROXY_TARGET` kullanılıyor ama `.env.test.example`'da bu değişken yok.
-
-**Çözüm:** `.env.test.example`'a aşağıdaki satır eklenmeli:
-```
-# ─── Vite Dev Proxy (local frontend geliştirme) ──────
-# npm run dev ile çalışırken /api istekleri bu adrese proxy edilir
-VITE_DEV_PROXY_TARGET=http://localhost:8081
-```
+`.env.test.example`'a `VITE_DEV_PROXY_TARGET=http://localhost:8081` eklendi.
 
 ---
 
 ### 3.3 `docs/devops/secret-management.md` — GHCR packages public bilgisi yok
-**Durum:** ⚠️ Açık
+**Durum:** ✅ Tamamlandı — PR #480
 
-GHCR package'lar 2026-05-10 tarihinde public yapıldı. `secret-management.md`'de bununla ilgili bilgi yok; eski dokümanda PAT gereksinimi ima ediliyor.
-
-**Çözüm:** `secret-management.md`'ye GHCR public package bilgisi ve developer'ların login gerektirmediğine dair not eklenmeli.
+`secret-management.md`'ye GHCR public package bilgisi ve developer'ların login gerektirmediğine dair bölüm eklendi.
 
 ---
 
@@ -234,12 +195,10 @@ Doküman "bildirim kanalı tanımlanmadı" diyor ama nasıl ekleneceği anlatıl
 
 ---
 
-### 3.6 `infra/scripts/rollback.sh` — Prod'da local build yapıyor
-**Durum:** ⚠️ Açık
+### 3.6 `infra/scripts/rollback.sh` — Test ortamında local build yapıyordu
+**Durum:** ✅ Tamamlandı — PR #484
 
-`rollback.sh`'ta `docker compose ... up -d --build` komutu var. Prod'da GHCR image kullanılacaksa `--build` kaldırılmalı; belirli bir tag'in image'ı pull edilmeli.
-
-**Çözüm:** Rollback script'i GHCR tag bazlı image pull'u desteklemeli. `docker compose pull` + `up -d --no-build` akışına geçilmeli.
+`rollback.sh` test ortamında `--build` yerine GHCR'dan `test-{sha}` immutable tag çekecek şekilde güncellendi. Prod ortamı için `--build` davranışı korundu (prod pipeline hazır değil).
 
 ---
 
@@ -253,45 +212,113 @@ Doküman "bildirim kanalı tanımlanmadı" diyor ama nasıl ekleneceği anlatıl
 ---
 
 ### 3.8 `TEST_GHCR_PAT` Sona Erme Tarihi Takibi
-**Durum:** ℹ️ Bilgi
+**Durum:** ✅ Çözüldü — PR #483
 
-`TEST_GHCR_PAT` classic PAT'ın süresi dolduğunda CI pipeline fail eder.
+GHCR package'lar public yapıldığından `test-deploy.yml`'deki PAT login adımı kaldırıldı. `TEST_GHCR_PAT` ve `TEST_GHCR_USER` secret'larına artık ihtiyaç yoktur.
 
-**Çözüm:** PAT sona erme tarihi takvime eklenmeli. Süresi dolmadan önce yenilenmeli ve `TEST_GHCR_PAT` + `TEST_GHCR_USER` secret'ları güncellenmeli.
+---
+
+## Kategori 4 — GHCR Yapısı İyileştirmeleri (2026-05-10 Audit)
+
+### 4.1 GHCR — Immutable tag yok, rollback riskli
+**Durum:** ✅ Tamamlandı — PR #483
+
+`test-deploy.yml` build job'u artık her push'ta hem `:test` (mutable/latest) hem `:test-{7-char-sha}` (immutable) tag'i GHCR'a push ediyor. Deploy job `IMAGE_TAG` output'u ile immutable tag'i sunucuya taşıyor.
+
+---
+
+### 4.2 GHCR — Deploy'da PAT login
+**Durum:** ✅ Tamamlandı — PR #483
+
+Package'lar public yapıldığından `deploy-test-server` job'undaki GHCR PAT login adımı kaldırıldı. Sunucu artık login olmadan image çekiyor.
+
+---
+
+### 4.3 GHCR — `sync-base-images.yml` eski branch trigger
+**Durum:** ✅ Tamamlandı — PR #485
+
+Artık kullanılmayan `bugfix/INC-003-mcr-rate-limit-fix` branch push tetikleyicisi kaldırıldı.
+
+---
+
+### 4.4 GHCR — Base image'larda immutable tarih etiketi yok
+**Durum:** ✅ Tamamlandı — PR #485
+
+`sync-base-images.yml` artık `:8.0` floating tag yanında `:8.0-YYYYMMDD` immutable tarih etiketi de push ediyor.
+
+---
+
+### 4.5 GHCR — `.env.test.example`'da `GHCR_OWNER` ve `IMAGE_TAG` eksik
+**Durum:** ✅ Tamamlandı — PR #486
+
+`.env.test.example`'a `GHCR_OWNER=divizyon` ve `IMAGE_TAG=test` eklendi. Rollback kullanımı ve CI davranışı açıklandı.
+
+---
+
+### 4.6 GHCR — CI `docker-build` job'unda GHA cache yok
+**Durum:** ✅ Tamamlandı — PR #487
+
+`ci.yml`'deki `docker-build` job'u `docker/build-push-action@v6` + `docker/setup-buildx-action@v3` ile yenilendi. GHA cache (`scope: cargo-pilot-backend-ci` / `frontend-ci`) eklendi.
+
+---
+
+## Kategori 5 — Operasyonel İyileştirmeler
+
+### 5.1 GHA Cache Birikimi — 10 GB Limitine Yaklaşma
+**Durum:** ✅ Tamamlandı — PR #489 / #492
+
+`cache-cleanup.yml` workflow'u eklendi:
+- PR kapanınca (merge/close): `refs/pull/<n>/merge` ve `refs/pull/<n>/head` cache'leri anında silinir (sadece aynı repo PR'ları, fork koruması mevcut)
+- Her Pazartesi 03:00 UTC: orphan branch cache'leri + 7 günden eski cache'ler temizlenir
+- Tab-delimited jq çıktısı ile ref null durumunda awk kayması önlendi
+
+---
+
+### 5.2 `dev` Branch'i Test'in Gerisine Düştü
+**Durum:** ✅ Çözüldü — PR #493
+
+`US-REP-04` (#482) dev'i atlayarak doğrudan test'e merge edilmesinden kaynaklanan uyumsuzluk `sync/test-to-dev` PR'ı ile giderildi.
+
+**Süreç Kuralı:** Feature branch'ler her zaman önce `dev`'e, ardından aynı branch'ten `test`'e PR açılmalı. `sync/` branch'leri `enforce-test-base` kontrolünü atlasa da bu kural sağlıklı geçmiş için zorunludur.
 
 ---
 
 ## Öncelik Matrisi
 
-| # | Madde | Kategori | Öncelik | İş Kodu |
-|---|-------|----------|---------|---------|
-| 1 | Production Stack Deploy | Eksik | 🔴 Kritik | — |
-| 2 | Production CI/CD Pipeline | Eksik | 🔴 Kritik | — |
-| 3 | Prod GHCR Image Pipeline | Eksik | 🔴 Kritik | — |
-| 4 | `docker-compose.prod.yml` — healthcheck, env, GHCR | Uyumsuzluk | 🔴 Kritik | — |
-| 5 | MSSQL SA Parolası Döndürme | Eksik | 🔴 Güvenlik | — |
-| 6 | `test` Branch Direct Push Koruması | Eksik | 🟠 Yüksek | — |
-| 7 | Grafana Alert Contact Point | Eksik | 🟠 Yüksek | — |
-| 8 | Resend Domain Doğrulaması | Eksik | 🟠 Yüksek | — |
-| 9 | `local-setup.md` — branch komutu düzelt | Güncelleme | 🟠 Yüksek | — |
-| 10 | `local-setup.md` — Vite proxy belgele | Güncelleme | 🟠 Yüksek | — |
-| 11 | `.env.test.example` — VITE_DEV_PROXY_TARGET | Güncelleme | 🟡 Orta | — |
-| 12 | `nginx.conf` — trailing slash hizalama | Uyumsuzluk | 🟡 Orta | — |
-| 13 | `secret-management.md` — GHCR public notu | Güncelleme | 🟡 Orta | — |
-| 14 | `PRODUCTION_DEPLOYMENT_INFO.md` güncelle | Güncelleme | 🟡 Orta | — |
-| 15 | `rollback.sh` — prod GHCR pull desteği | Güncelleme | 🟡 Orta | — |
-| 16 | SSL sertifikası (self-signed → gerçek) | Eksik | 🟡 Orta | — |
-| 17 | `monitoring-setup.md` — contact point adımları | Güncelleme | 🟡 Orta | — |
-| 18 | Node.js 20 → 22 geçişi | Güncelleme | 🟢 Düşük | — |
-| 19 | `TEST_GHCR_PAT` sona erme takvimi | Bilgi | 🟢 Düşük | — |
+| # | Madde | Kategori | Öncelik | Durum |
+|---|-------|----------|---------|-------|
+| 1 | Production Stack Deploy | Eksik | 🔴 Kritik | ⚠️ Açık |
+| 2 | Production CI/CD Pipeline | Eksik | 🔴 Kritik | ⚠️ Açık |
+| 3 | Prod GHCR Image Pipeline | Eksik | 🔴 Kritik | ⚠️ Açık |
+| 4 | `docker-compose.prod.yml` — healthcheck, OAuth/CORS/Resend env | Uyumsuzluk | 🔴 Kritik | ⚠️ Açık |
+| 5 | MSSQL SA Parolası Döndürme | Güvenlik | 🔴 Güvenlik | ⚠️ Açık |
+| 6 | Grafana Alert Contact Point | Eksik | 🟠 Yüksek | ⚠️ Açık |
+| 7 | Resend Domain Doğrulaması | Eksik | 🟠 Yüksek | ⚠️ Açık |
+| 8 | SSL — self-signed → gerçek sertifika | Eksik | 🟡 Orta | ⚠️ Açık |
+| 9 | `PRODUCTION_DEPLOYMENT_INFO.md` güncelle | Güncelleme | 🟡 Orta | ⚠️ Açık |
+| 10 | `monitoring-setup.md` — contact point adımları | Güncelleme | 🟡 Orta | ⚠️ Açık |
+| 11 | Node.js 20 → 22 geçişi | Güncelleme | 🟢 Düşük | ⚠️ Açık |
 
 ---
 
 ## Tamamlananlar
 
-| Tarih | Madde | PR |
-|-------|-------|-----|
+| Tarih | Madde | PR / Aksiyon |
+|-------|-------|--------------|
 | 2026-05-10 | Nginx `/api` proxy — frontend container'da CORS kökten çözüldü | #440 |
-| 2026-05-10 | `VITE_API_BASE_URL` build arg `:-` → `-` (boş geçişe izin ver) | #440 |
-| 2026-05-10 | GHCR packages public yapıldı — developer login gerekmez | — |
+| 2026-05-10 | `VITE_API_BASE_URL` build arg `:-` → `-` | #440 |
+| 2026-05-10 | GHCR packages public yapıldı | GitHub org ayarı |
 | 2026-05-10 | `CORS_ALLOWED_ORIGIN_1` workaround kaldırıldı | #442 |
+| 2026-05-10 | nginx.conf trailing slash hizalandı | #442 |
+| 2026-05-10 | `local-setup.md` branch komutu düzeltildi, Vite proxy belgelendi | #480 |
+| 2026-05-10 | `.env.test.example` — `VITE_DEV_PROXY_TARGET` eklendi | #480 |
+| 2026-05-10 | `secret-management.md` — GHCR public bölümü eklendi | #480 |
+| 2026-05-10 | `test` branch direct push koruması eklendi | GitHub API |
+| 2026-05-10 | GHCR immutable tag (`test-{sha}`) + PAT login kaldırıldı | #483 |
+| 2026-05-10 | `rollback.sh` test ortamında GHCR pull kullanıyor | #484 |
+| 2026-05-10 | `sync-base-images.yml` eski trigger silindi + tarih etiketi eklendi | #485 |
+| 2026-05-10 | `.env.test.example` — `GHCR_OWNER`, `IMAGE_TAG` eklendi | #486 |
+| 2026-05-10 | CI `docker-build` — buildx + GHA cache eklendi | #487 |
+| 2026-05-10 | `docker-compose.prod.yml` — GHCR image referansı eklendi | #488 |
+| 2026-05-10 | GHA cache cleanup workflow eklendi | #489 / #492 |
+| 2026-05-10 | `dev` branch test ile hizalandı | #493 |
