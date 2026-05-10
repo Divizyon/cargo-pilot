@@ -52,11 +52,13 @@ public static class DependencyInjection {
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
         services.AddScoped<IOptimizationEngine, NoOpOptimizationEngine>();
+        services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
@@ -76,6 +78,7 @@ public static class DependencyInjection {
             services.AddScoped<IAuthService, AuthService>();
 
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
+            services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
         }
 
         return services;

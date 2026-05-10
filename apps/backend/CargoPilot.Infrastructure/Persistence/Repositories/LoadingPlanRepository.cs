@@ -1,5 +1,6 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Domain.Entities;
@@ -21,10 +22,33 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         int pageSize,
         string sortBy,
         bool descending,
+        Guid? companyId,
+        string? plateNumber = null,
+        IReadOnlyList<Guid>? vehicleIds = null,
+        DateOnly? planDateStart = null,
+        DateOnly? planDateEnd = null,
         CancellationToken cancellationToken = default)
     {
-        // Global query filter (!IsDeleted) is applied automatically via EF Core configuration.
-        var query = _context.LoadingPlans.AsNoTracking();
+        var query = _context.LoadingPlans.AsNoTracking()
+            .Where(p => p.CompanyId == companyId);
+
+        if (!string.IsNullOrWhiteSpace(plateNumber))
+            query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
+
+        if (vehicleIds is { Count: > 0 })
+            query = query.Where(p => vehicleIds.Contains(p.VehicleId));
+
+        if (planDateStart.HasValue)
+        {
+            var start = planDateStart.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAtUtc >= start);
+        }
+
+        if (planDateEnd.HasValue)
+        {
+            var end = planDateEnd.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAtUtc <= end);
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -61,18 +85,66 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         return new PagedResult<PlanSummaryDto>(items, totalCount, page, pageSize);
     }
 
-    public async Task<PlanDetailDto?> GetDetailByIdAsync(
-        Guid id,
+    public async Task<PagedResult<LoadingPlanReportDto>> GetPagedReportsAsync(
+        int page,
+        int pageSize,
+        DateTime? startDate,
+        DateTime? endDate,
+        Guid? vehicleId,
+        decimal? minFillRate,
+        decimal? maxFillRate,
+        Guid? companyId,
         CancellationToken cancellationToken = default)
     {
-        // LoadingPlan has no collection navigation properties (WithMany() without inverse nav).
-        // We run four focused queries and assemble the DTO here.
-        // All global query filters (!IsDeleted) apply automatically on each query.
+        var query = _context.LoadingPlans
+            .AsNoTracking()
+            .Where(p => p.CompanyId == companyId)
+            .AsQueryable();
 
+        if (startDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
+
+        if (vehicleId.HasValue)
+            query = query.Where(p => p.VehicleId == vehicleId.Value);
+
+        if (minFillRate.HasValue)
+            query = query.Where(p => p.FillRate >= minFillRate.Value);
+
+        if (maxFillRate.HasValue)
+            query = query.Where(p => p.FillRate <= maxFillRate.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new LoadingPlanReportDto(
+                p.Id,
+                p.PlanName,
+                p.CreatedAtUtc,
+                p.Vehicle.PlateNumber,
+                p.FillRate,
+                p.OptimizationStatus,
+                p.ReportId,
+                p.ReportUrl))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<LoadingPlanReportDto>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<PlanDetailDto?> GetDetailByIdAsync(
+        Guid id,
+        Guid? companyId,
+        CancellationToken cancellationToken = default)
+    {
         var plan = await _context.LoadingPlans
             .AsNoTracking()
             .Include(p => p.Vehicle)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
         if (plan is null) return null;
 
@@ -181,9 +253,9 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             inputItemDtos);
     }
 
-    public async Task<LoadingPlan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
         => await _context.LoadingPlans
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
     public void Add(LoadingPlan plan) => _context.LoadingPlans.Add(plan);
 

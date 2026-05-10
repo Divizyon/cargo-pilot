@@ -385,3 +385,144 @@ Bagimli branch: `feature/US-DB01-centralized-connection-string`. Runtime baglant
 - `CargoPilot.Infrastructure/DependencyInjection.cs`
 - `CargoPilot.Domain/Entities/LoadingPlan.cs`
 - `CargoPilot.WebAPI/Controllers/PlansController.cs`
+
+---
+
+## 15) US-REP-03: Yükleme Planı Rapor Listesi Endpoint'i
+**Story:** Rapor sayfası geliştirici olarak, geçmiş yükleme planı raporlarını filtreli ve sayfalı listeleyebilmek için backend endpoint'inin hazır olmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+### Kabul Kriterleri
+- AC1: Rapor listesi `CreatedAtUtc` desc sıralı döner; her satırda `planName`, `createdAt`, `vehiclePlate`, `fillRate`, `status`, `reportId`, `downloadUrl` alanları bulunur.
+- AC2: Tarih aralığı (`startDate`/`endDate`), araç (`vehicleId`), doluluk oranı aralığı (`minFillRate`/`maxFillRate`) filtreleri ve sayfalama (`page`/`pageSize`) desteklenir.
+- AC3: Her satırda PDF indirme bilgisi (`reportId`/`downloadUrl`) endpoint'ten döner; frontend bu URL ile indirme yapabilir.
+- AC4: Kayıt yoksa `items=[]`, `totalCount=0` döner; frontend empty state gösterebilir.
+
+### Alt İşler
+- `✅` `LoadingPlanReportDto` record tanımla (`Id`, `PlanName`, `CreatedAtUtc`, `VehiclePlate`, `FillRate`, `Status`, `ReportId`, `DownloadUrl`)
+- `✅` `GetLoadingPlanReportsQuery` record tanımla (`StartDate`, `EndDate`, `VehicleId`, `MinFillRate`, `MaxFillRate`, `Page`, `PageSize`)
+- `✅` `GetLoadingPlanReportsQueryValidator` yaz (Page ≥ 1, PageSize 1–100, FillRate 0–100, MinFillRate ≤ MaxFillRate, StartDate ≤ EndDate)
+- `✅` `GetLoadingPlanReportsQueryHandler` yaz (validasyon + repository çağrısı, `Result.Success` ile dön)
+- `✅` `LoadingPlan` entity'sine `ReportId (Guid?)` ve `ReportUrl (string?)` alanları eklendi
+- `✅` `ILoadingPlanRepository` arayüzüne `GetPagedReportsAsync` metodu eklendi
+- `✅` `LoadingPlanRepository`'e `GetPagedReportsAsync` implementasyonu yazıldı (5 dinamik filtre, `OrderByDescending CreatedAtUtc`, `Skip/Take`)
+- `✅` `PlansController`'a `GET /api/v1/loading-plans/reports` endpoint'i eklendi
+- `✅` `AddReportFieldsToLoadingPlans` migration'i oluşturuldu ve `dotnet ef database update` ile uygulandı; sütunlar SQL sorgusuyla doğrulandı
+- `✅` Swagger üzerinden filtreleme, sıralama ve validasyon (0–100 doluluk kontrolü) senaryoları test edildi
+- `✅` Branch `dev`'e rebase edildi, build 0 hata ile doğrulandı
+
+### Kanıtlar
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/LoadingPlanReportDto.cs`
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/GetLoadingPlanReportsQuery.cs`
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/GetLoadingPlanReportsQueryValidator.cs`
+- `CargoPilot.Application/Features/Plans/GetLoadingPlanReports/GetLoadingPlanReportsQueryHandler.cs`
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Domain/Entities/LoadingPlan.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260507133430_AddReportFieldsToLoadingPlans.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
+
+### US-REP-03 Düzeltmeleri (branch: `feature/loading-plan-reports`)
+- `✅` `GET /loading-plans/reports` endpoint'inde `[FromQuery]` model binding varsayılan değerleri çalışmıyordu — query record doğrudan bind edilmek yerine explicit `[FromQuery]` parametreler + manuel record constructor ile düzeltildi (`PlansController.cs`)
+- `✅` `ReportUrl` EF konfigürasyonuna `HasMaxLength(2048)` eklendi; `nvarchar(max)` yerine `nvarchar(2048)` kolonu oluşturulur (`LoadingPlanConfiguration.cs`)
+- `✅` `GetPagedReportsAsync` içindeki `.Include(p => p.Vehicle)` kaldırıldı; Select projection kullanıldığında gereksiz join yapıyordu (`LoadingPlanRepository.cs`)
+- `✅` `FixReportUrlMaxLength` migration'i oluşturuldu ve uygulandı
+
+**Kanıtlar:**
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
+- `CargoPilot.Infrastructure/Persistence/Configurations/LoadingPlanConfiguration.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Migrations/20260508090402_FixReportUrlMaxLength.cs`
+
+---
+
+## 16) Auth Company Scope — ICurrentUserService Genişletme + CRUD İzolasyonu (PR1)
+**Story:** Backend geliştirici olarak, tüm CRUD endpoint'lerinin (Items, Vehicles, LoadingPlans) yalnızca token sahibi kullanıcının şirketine ait verileri döndürmesi ve oluşturması için company-scope izolasyonunun uygulanmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+**Branch:** `feature/auth-company-scope`
+
+### Task 1 — ICurrentUserService Genişletme
+- `✅` `ICurrentUserService` arayüzüne `CompanyId (Guid?)` ve `UserType (UserType?)` property'leri eklendi (`CargoPilot.Application/Abstractions/ICurrentUserService.cs`)
+- `✅` `JwtCurrentUserService`'e `company_id` claim'inden `CompanyId`, `role` claim'inden `UserType` okuma eklendi (`CargoPilot.WebAPI/Services/JwtCurrentUserService.cs`)
+- `✅` `AnonymousCurrentUserService`'e eksik implementasyonlar eklendi (`CompanyId => null`, `UserType => null`) (`CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs`)
+
+### Task 2 — Items CRUD Company-Scope
+- `✅` `IItemRepository` tüm metodlarına `Guid? companyId` parametresi eklendi (`GetByIdAsync`, `GetExistingIdsAsync`, `ExistsBySkuAsync` x2, `SearchAsync`)
+- `✅` `ItemRepository` implementasyonları güncellendi; tüm sorgulara `WHERE CompanyId == companyId` filtresi eklendi
+- `✅` 6 Item handler'ına (`Create`, `Update`, `Delete`, `GetById`, `Search`, `BulkCreate`) `ICurrentUserService` inject edildi ve `_currentUserService.CompanyId` geçildi
+
+### Task 3 — Vehicles CRUD Company-Scope + Favorite Guard
+- `✅` `IVehicleRepository`'ye `SearchAsync` ve `GetByIdAsync` metodlarına `Guid? companyId` parametresi eklendi
+- `✅` `VehicleRepository` implementasyonları güncellendi; `SearchAsync`'e `WHERE CompanyId == companyId`, `GetByIdAsync`'e compound predicate eklendi
+- `✅` `SearchVehiclesQueryHandler` güncellendi
+- `✅` `CreateVehicleCommandHandler`'dan gereksiz `IUserRepository` bağımlılığı kaldırıldı; `_currentUserService.CompanyId` doğrudan kullanılıyor (DB round-trip eliminasyonu)
+- `✅` `UpdateVehicleCommandHandler`, `DeleteVehicleCommandHandler`, `DuplicateVehicleCommandHandler` güncellendi
+- `✅` `AddVehicleFavoriteCommandHandler`'dan `IUserRepository` bağımlılığı kaldırıldı; `GetByIdAsync(vehicleId, companyId)` ile implicit company guard sağlandı
+
+### Task 4 — LoadingPlan CRUD Company-Scope
+- `✅` `ILoadingPlanRepository` tüm 4 metoduna `Guid? companyId` parametresi eklendi (`GetPagedAsync`, `GetDetailByIdAsync`, `GetByIdAsync`, `GetPagedReportsAsync`)
+- `✅` `LoadingPlanRepository` implementasyonları güncellendi; tüm sorgulara company filtresi eklendi
+- `✅` 6 Plan handler'ına (`GetPlans`, `GetPlanById`, `UpdatePlanName`, `DeletePlan`, `CreatePlan`, `GetLoadingPlanReports`) `ICurrentUserService` inject edildi
+- `✅` `CreatePlanCommandHandler`'da araç lookup ve item lookup da company-scope ile yapılıyor; `ICurrentUserService` eklendi
+
+### Kanıtlar
+- `CargoPilot.Application/Abstractions/ICurrentUserService.cs`
+- `CargoPilot.Application/Common/Interfaces/IItemRepository.cs`
+- `CargoPilot.Application/Common/Interfaces/IVehicleRepository.cs`
+- `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/ItemRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/VehicleRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
+- `CargoPilot.Infrastructure/Services/AnonymousCurrentUserService.cs`
+- `CargoPilot.WebAPI/Services/JwtCurrentUserService.cs`
+- 13 handler dosyası (Items x6, Vehicles x5, Plans x6)
+
+---
+
+## 17) Auth Company Scope — Personal Company Otomatik Oluşturma + Role Policy Tanımları (PR2)
+**Story:** Backend geliştirici olarak, bireysel kayıt olan kullanıcıların JWT token'larında `company_id` claim'inin dolu gelmesi ve tüm company-scope endpoint'lere role tabanlı authorization uygulanması için gerekli altyapının kurulmasını isterim.
+
+**Genel Durum:** `✅ Tamamlandi`
+
+**Branch:** `feature/auth-company-scope-pr2`
+
+### Task 5 — Individual Register → Personal Company Otomatik Oluşturma
+- `✅` `ICompanyRepository` arayüzü oluşturuldu (`Add`, `SaveChangesAsync`) (`CargoPilot.Application/Common/Interfaces/ICompanyRepository.cs`)
+- `✅` `CompanyRepository` implementasyonu oluşturuldu (`CargoPilot.Infrastructure/Persistence/Repositories/CompanyRepository.cs`)
+- `✅` `ICompanyRepository → CompanyRepository` Infrastructure DI'a kaydedildi
+- `✅` `RegisterCommandHandler` güncellendi: kayıt sırasında `Personal - {email}` adlı `SubscriptionType.Free` Company otomatik oluşturulur ve kullanıcıya atanır; artık JWT token'da `company_id` claim'i dolu gelir
+
+**Kabul Kriterleri:**
+- `POST /api/v1/auth/register` → login sonrası JWT decode edildiğinde `company_id` dolu
+- Aynı e-posta ile ikinci kayıt → `Auth.EmailAlreadyExists` (409); ikinci Personal Company oluşturulmaz
+
+### Task 6 — Role Policy Tanımları ve Controller Güvenlik Güncellemesi
+- `✅` `services.AddAuthorization(...)` ile 5 named policy tanımlandı (`CargoPilot.WebAPI/DependencyInjection.cs`):
+  - `SuperAdmin` — role claim = `"SuperAdmin"`
+  - `CompanyAdmin` — role claim = `"CompanyAdmin"`
+  - `CompanyWorker` — role claim = `"CompanyWorker"`
+  - `Individual` — role claim = `"Individual"`
+  - `CompanyMember` — role claim ∈ {`CompanyAdmin`, `CompanyWorker`, `Individual`}
+- `✅` `ItemsController` → `[Authorize(Policy = "CompanyMember")]`
+- `✅` `VehiclesController` → `[Authorize(Policy = "CompanyMember")]`
+- `✅` `PlansController` → `[Authorize(Policy = "CompanyMember")]`
+- `✅` `MeController` → `[Authorize(Policy = "CompanyMember")]`
+
+**Kabul Kriterleri:**
+- Token olmadan Items/Vehicles/Plans/Me endpoint'lerine istek → **401**
+- `SuperAdmin` token ile bu endpoint'lere istek → **403** (CompanyMember policy dışı)
+- `CompanyAdmin/CompanyWorker/Individual` token ile istek → **200**, yalnızca kendi company'sinin verisi
+
+### Kanıtlar
+- `CargoPilot.Application/Common/Interfaces/ICompanyRepository.cs`
+- `CargoPilot.Infrastructure/Persistence/Repositories/CompanyRepository.cs`
+- `CargoPilot.Infrastructure/DependencyInjection.cs`
+- `CargoPilot.Application/Features/Auth/Register/RegisterCommandHandler.cs`
+- `CargoPilot.WebAPI/DependencyInjection.cs`
+- `CargoPilot.WebAPI/Controllers/ItemsController.cs`
+- `CargoPilot.WebAPI/Controllers/VehiclesController.cs`
+- `CargoPilot.WebAPI/Controllers/PlansController.cs`
+- `CargoPilot.WebAPI/Controllers/MeController.cs`

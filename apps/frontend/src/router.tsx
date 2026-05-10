@@ -14,10 +14,17 @@ import { ProductEditPage } from '@/pages/ProductEditPage';
 import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleCreatePage } from '@/pages/VehicleCreatePage';
 import { VehicleEditPage } from '@/pages/VehicleEditPage';
+import { LoadingPlansPage } from '@/pages/LoadingPlansPage';
+import { LoadingPlanDetailPage } from '@/pages/LoadingPlanDetailPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
+import { SecurityRedirect } from '@/pages/SecurityRedirect';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { SettingsPage } from '@/pages/SettingsPage';
+import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
+import { ReportsPage } from '@/pages/ReportsPage';
+import { ReportDetailPage } from '@/pages/ReportDetailPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
+import { ShareLinksPage } from '@/pages/ShareLinksPage';
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +56,10 @@ export const router = createBrowserRouter([
     element: <SharePage />,
   },
   {
+    path: '/security/revoke',
+    element: <SecurityRedirect />,
+  },
+  {
     path: '/error',
     element: <ErrorPage />,
   },
@@ -65,14 +76,17 @@ export const router = createBrowserRouter([
           { path: '/vehicles', element: <VehiclesPage /> },
           { path: '/vehicles/new', element: <VehicleCreatePage /> },
           { path: '/vehicles/:id/edit', element: <VehicleEditPage /> },
-          { path: '/planning', element: <DashboardPage /> },
+          { path: '/planning', element: <LoadingPlansPage /> },
           { path: '/planning/new', element: <NewPlanPage /> },
-          { path: '/reports', element: <DashboardPage /> },
+          { path: '/reports', element: <ReportsPage /> },
+          { path: '/reports/:id', element: <ReportDetailPage /> },
+          { path: '/planning/shares', element: <ShareLinksPage /> },
+          { path: '/planning/:id', element: <LoadingPlanDetailPage /> },
           { path: '/integrations', element: <DashboardPage /> },
           { path: '/erp', element: <DashboardPage /> },
-          { path: '/notifications', element: <DashboardPage /> },
+          { path: '/notifications', element: <NotificationsPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
-          { path: '/settings', element: <SettingsPage /> },
+          { path: '/settings', element: <SystemSettingsPage /> },
           { path: '/profile', element: <ProfilePage /> },
         ],
       },

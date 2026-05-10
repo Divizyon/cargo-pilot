@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Application.Features.Auth.DTOs;
@@ -29,6 +30,9 @@ public sealed class AuthController : BaseController
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
     private readonly IWebHostEnvironment _env;
+    private readonly IGoogleOAuthService _googleOAuthService;
+    private readonly string? _frontendCallbackUrl;
+    private const string OAuthStateCookie = "oauth_state";
 
     public AuthController(
         IMediator mediator,
@@ -36,7 +40,9 @@ public sealed class AuthController : BaseController
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
         IValidator<ResetPasswordRequest> resetPasswordValidator,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        IGoogleOAuthService googleOAuthService,
+        IConfiguration configuration)
     {
         _mediator = mediator;
         _authService = authService;
@@ -44,6 +50,8 @@ public sealed class AuthController : BaseController
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
         _env = env;
+        _googleOAuthService = googleOAuthService;
+        _frontendCallbackUrl = configuration["OAuth:Google:FrontendCallbackUrl"];
     }
 
     [HttpPost("register")]
@@ -92,6 +100,61 @@ public sealed class AuthController : BaseController
             SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
 
         return HandleResult(result);
+    }
+
+    [HttpGet("google")]
+    [AllowAnonymous]
+    public IActionResult GoogleOAuthRedirect()
+    {
+        var state = Guid.NewGuid().ToString("N");
+        Response.Cookies.Append(OAuthStateCookie, state, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure   = !_env.IsDevelopment(),
+            SameSite = SameSiteMode.Lax,
+            MaxAge   = TimeSpan.FromMinutes(10),
+        });
+        return Redirect(_googleOAuthService.BuildAuthorizationUrl(state));
+    }
+
+    [HttpGet("google/callback")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GoogleOAuthCallback(
+        [FromQuery] string? code,
+        [FromQuery] string? state,
+        [FromQuery] string? error,
+        CancellationToken cancellationToken)
+    {
+        var callbackBase = string.IsNullOrWhiteSpace(_frontendCallbackUrl)
+            ? "/auth/callback"
+            : _frontendCallbackUrl;
+
+        if (!string.IsNullOrEmpty(error))
+            return Redirect(BuildFrontendRedirect(callbackBase, error: error));
+
+        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
+            return Redirect(BuildFrontendRedirect(callbackBase, error: "invalid_request"));
+
+        var storedState = Request.Cookies[OAuthStateCookie];
+        Response.Cookies.Delete(OAuthStateCookie);
+
+        if (storedState != state)
+            return Redirect(BuildFrontendRedirect(callbackBase, error: "invalid_state"));
+
+        var idToken = await _googleOAuthService.ExchangeCodeForIdTokenAsync(code, cancellationToken);
+        if (idToken is null)
+            return Redirect(BuildFrontendRedirect(callbackBase, error: "token_exchange_failed"));
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var command = new OAuthLoginCommand(idToken, AuthProvider.Google, ipAddress, userAgent);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result.IsSuccess)
+            return Redirect(BuildFrontendRedirect(callbackBase, error: result.Error?.Code ?? "auth_failed"));
+
+        SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
+        return Redirect(BuildFrontendRedirect(callbackBase, data: result.Data));
     }
 
     [HttpPost("google")]
@@ -220,6 +283,19 @@ public sealed class AuthController : BaseController
             return HandleResult(result);
 
         return Redirect(result.Data!);
+    }
+
+    private static string BuildFrontendRedirect(string baseUrl, string? error = null, LoginResponse? data = null)
+    {
+        if (error is not null)
+            return $"{baseUrl}?error={Uri.EscapeDataString(error)}";
+
+        return $"{baseUrl}" +
+               $"?accessToken={Uri.EscapeDataString(data!.AccessToken)}" +
+               $"&userId={data.UserId}" +
+               $"&email={Uri.EscapeDataString(data.Email)}" +
+               $"&fullName={Uri.EscapeDataString(data.FullName)}" +
+               $"&role={Uri.EscapeDataString(data.Role)}";
     }
 
     private void SetRefreshTokenCookie(string token, DateTime expiresAt)

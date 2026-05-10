@@ -19,6 +19,8 @@ public sealed class LoadingPlan : BaseEntity {
     public decimal? CenterOfGravityY { get; private set; }
     public decimal? CenterOfGravityZ { get; private set; }
     public Guid? CompanyId { get; private set; }
+    public Guid? ReportId { get; private set; }
+    public string? ReportUrl { get; private set; }
 #pragma warning restore S1144
 
     public Vehicle Vehicle { get; private set; } = null!;

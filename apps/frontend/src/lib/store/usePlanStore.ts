@@ -89,6 +89,7 @@ function buildPlacements(
           depth: d,
           weight: item.weight,
           color,
+          productType: item.productType,
         });
         continue;
       }
@@ -113,6 +114,7 @@ function buildPlacements(
       depth: d,
       weight: item.weight,
       color,
+      productType: item.productType,
     });
 
     curX += w;
@@ -166,6 +168,7 @@ interface PlanStore {
    */
   mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
+  reorderItems: (activeId: string, overId: string) => void;
   setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
   clearPreview: () => void;
   reset: () => void;
@@ -359,6 +362,18 @@ export const usePlanStore = create<PlanStore>((set) => ({
         i === idx ? { ...p, positionX: x, positionY: y, positionZ: z } : p,
       );
       return { placements: computeViolations(next) };
+    }),
+
+  reorderItems: (activeId, overId) =>
+    set((s) => {
+      const items = [...s.selectedItems];
+      const oldIdx = items.findIndex((si) => si.item.id === activeId);
+      const newIdx = items.findIndex((si) => si.item.id === overId);
+      if (oldIdx === -1 || newIdx === -1) return {};
+      const [removed] = items.splice(oldIdx, 1);
+      const insertIdx = oldIdx < newIdx ? newIdx - 1 : newIdx;
+      items.splice(insertIdx, 0, removed);
+      return { selectedItems: items };
     }),
 
   setPreview: (itemId, item, qty, color) =>

@@ -10,15 +10,18 @@ namespace CargoPilot.Application.Features.Auth.Register;
 public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<RegisterResponse>>
 {
     private readonly IUserRepository _userRepository;
+    private readonly ICompanyRepository _companyRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IValidator<RegisterCommand> _validator;
 
     public RegisterCommandHandler(
         IUserRepository userRepository,
+        ICompanyRepository companyRepository,
         IPasswordHasher passwordHasher,
         IValidator<RegisterCommand> validator)
     {
         _userRepository = userRepository;
+        _companyRepository = companyRepository;
         _passwordHasher = passwordHasher;
         _validator = validator;
     }
@@ -48,10 +51,14 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Re
 
         var passwordHash = _passwordHasher.HashPassword(request.Password);
 
-        // Self-register: bireysel kullanıcı, şirketsiz. Davet akışı ayrıca implement edilecek.
+        var company = new Company(
+            id: Guid.NewGuid(),
+            name: $"Personal - {emailNormalized}",
+            subscriptionType: SubscriptionType.Free);
+
         var user = new AppUser(
             id: Guid.NewGuid(),
-            companyId: null,
+            companyId: company.Id,
             firstName: request.FirstName.Trim(),
             lastName: request.LastName.Trim(),
             email: emailNormalized,
@@ -60,6 +67,7 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Re
             externalSystemId: null,
             authProvider: AuthProvider.Local);
 
+        _companyRepository.Add(company);
         _userRepository.Add(user);
         await _userRepository.SaveChangesAsync(cancellationToken);
 
