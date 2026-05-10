@@ -156,7 +156,7 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@v4
 
-      - name: Image tag belirle (immutable: test-{short-sha})
+      - name: "Image tag belirle (immutable: test-{short-sha})"
         id: sha
         run: echo "tag=test-$(echo '${{ github.sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
 
