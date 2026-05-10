@@ -69,10 +69,30 @@ function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: numbe
     const z = -(DOOR_THICKNESS + 0.5);
     const ex = sign * panelW;
     const pts = [
-      0, 0, z, ex, 0, z,
-      ex, 0, z, ex, height, z,
-      ex, height, z, 0, height, z,
-      0, height, z, 0, 0, z,
+      0,
+      0,
+      z,
+      ex,
+      0,
+      z,
+      ex,
+      0,
+      z,
+      ex,
+      height,
+      z,
+      ex,
+      height,
+      z,
+      0,
+      height,
+      z,
+      0,
+      height,
+      z,
+      0,
+      0,
+      z,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -171,10 +191,30 @@ function SideDoorFrame({
     const x = -(DOOR_THICKNESS + 0.5);
     const ez = sign * panelDepth;
     const pts = [
-      x, 0, 0, x, 0, ez,
-      x, 0, ez, x, height, ez,
-      x, height, ez, x, height, 0,
-      x, height, 0, x, 0, 0,
+      x,
+      0,
+      0,
+      x,
+      0,
+      ez,
+      x,
+      0,
+      ez,
+      x,
+      height,
+      ez,
+      x,
+      height,
+      ez,
+      x,
+      height,
+      0,
+      x,
+      height,
+      0,
+      x,
+      0,
+      0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -279,10 +319,30 @@ function TopCoverFrame({
     const y = DOOR_THICKNESS + 0.5;
     const ez = sign * panelLength;
     const pts = [
-      0, y, 0, width, y, 0,
-      width, y, 0, width, y, ez,
-      width, y, ez, 0, y, ez,
-      0, y, ez, 0, y, 0,
+      0,
+      y,
+      0,
+      width,
+      y,
+      0,
+      width,
+      y,
+      0,
+      width,
+      y,
+      ez,
+      width,
+      y,
+      ez,
+      0,
+      y,
+      ez,
+      0,
+      y,
+      ez,
+      0,
+      y,
+      0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));

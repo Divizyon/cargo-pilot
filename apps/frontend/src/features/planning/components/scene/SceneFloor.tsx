@@ -62,16 +62,16 @@ const fragmentShader = /* glsl */ `
 // Uniforms module scope'ta yaşar — React render döngüsünün dışında.
 // Bu sayede ESLint immutability kuralı tetiklenmez.
 const sharedUniforms = {
-  uCellSize:  { value: GRID_CELL_CM },
+  uCellSize: { value: GRID_CELL_CM },
   uLineColor: { value: new THREE.Color('#374151') },
   uLineWidth: { value: 0.04 },
-  uFadeNear:  { value: 3000 },
-  uFadeFar:   { value: 6000 },
+  uFadeNear: { value: 3000 },
+  uFadeFar: { value: 6000 },
   uCameraPos: { value: new THREE.Vector3() },
-  uBoxMinX:   { value: 0 },
-  uBoxMaxX:   { value: 0 },
-  uBoxMinY:   { value: 0 },
-  uBoxMaxY:   { value: 0 },
+  uBoxMinX: { value: 0 },
+  uBoxMaxX: { value: 0 },
+  uBoxMinY: { value: 0 },
+  uBoxMaxY: { value: 0 },
 };
 
 export function SceneFloor({ y = -1 }: { y?: number }) {
@@ -113,11 +113,7 @@ export function SceneFloor({ y = -1 }: { y?: number }) {
     meshRef.current.position.x = camera.position.x;
     meshRef.current.position.z = camera.position.z;
 
-    sharedUniforms.uCameraPos.value.set(
-      camera.position.x,
-      camera.position.y,
-      camera.position.z,
-    );
+    sharedUniforms.uCameraPos.value.set(camera.position.x, camera.position.y, camera.position.z);
 
     if (vehicle) {
       sharedUniforms.uBoxMinX.value = 0;
