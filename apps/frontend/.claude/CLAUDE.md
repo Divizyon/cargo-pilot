@@ -222,7 +222,7 @@ UI Kit token'ları `global.css` içinde CSS değişkeni olarak tanımlanır, `ta
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
     --primary: 221.2 83.2% 53.3%;
-    
+
     /* Yüzen paneller (Modal, Toast, Drawer) ve katmanlar arası geçişler için (Geçici skeleton değerler) */
     --surface-overlay: 255 255 255 / 0.13;
     --overlay-blur: 12px;
