@@ -52,8 +52,9 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
         var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
-        var existingItemIds = await _itemRepository.GetExistingIdsAsync(requestedItemIds, companyId, cancellationToken);
-        var missingIds = requestedItemIds.Except(existingItemIds).ToList();
+        var items = await _itemRepository.GetByIdsAsync(requestedItemIds, companyId, cancellationToken);
+
+        var missingIds = requestedItemIds.Except(items.Select(i => i.Id)).ToList();
         if (missingIds.Count > 0)
         {
             var failures = missingIds
@@ -63,27 +64,42 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                 new Error(ErrorType.NotFound, "Items.NotFound", "Bir veya daha fazla item bulunamadı.", failures));
         }
 
+        var itemMap = items.ToDictionary(i => i.Id);
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
+
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap);
+        var result = _optimizationEngine.Run(optimizationInput);
+
         var planId = Guid.NewGuid();
-
-        var plan = new LoadingPlan(
-            id: planId,
-            planName: request.PlanName,
-            vehicleId: request.VehicleId,
-            optimizationCriteria: request.OptimizationCriteria,
-            inputTotalQuantity: inputTotalQuantity,
-            companyId: companyId);
-
+        var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
         var inputItems = request.Items
             .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity))
             .ToList();
 
-        _planRepository.Add(plan);
-        _planRepository.AddInputItems(inputItems);
-        await _planRepository.SaveChangesAsync(cancellationToken);
+        await _planRepository.SaveWithResultAsync(plan, inputItems, result, cancellationToken);
 
-        await _optimizationEngine.RunOptimizationAsync(plan.Id, cancellationToken);
+        return Result<Guid>.Success(planId);
+    }
 
-        return Result<Guid>.Success(plan.Id);
+    private static OptimizationInput BuildInput(
+        Vehicle vehicle,
+        IReadOnlyList<CreatePlanItemRequest> requestItems,
+        Dictionary<Guid, Item> itemMap)
+    {
+        var inputs = requestItems
+            .Select(r =>
+            {
+                var item = itemMap[r.ItemId];
+                return new OptimizationItemInput(
+                    item.Id, item.SKU, item.Name, item.ImageUrl,
+                    item.Width, item.Height, item.Length, item.Weight,
+                    item.IsStackable, item.AllowedRotations, r.Quantity);
+            })
+            .ToList();
+
+        return new OptimizationInput(
+            vehicle.InternalWidth, vehicle.InternalHeight,
+            vehicle.InternalLength, vehicle.MaxWeightCapacity,
+            inputs);
     }
 }
