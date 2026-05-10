@@ -103,6 +103,9 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@v4
 
+      - name: Docker Buildx kur
+        uses: docker/setup-buildx-action@v3
+
       - name: GHCR'a giriş yap
         uses: docker/login-action@v3
         with:
@@ -111,30 +114,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Backend Docker image build
-        run: |
-          for attempt in 1 2 3; do
-            echo "==> Backend build, deneme $attempt/3"
-            if docker build \
-              --build-arg DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0 \
-              --build-arg DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0 \
-              -t cargo-pilot-backend:ci \
-              ./apps/backend/; then
-              echo "Build başarılı"; break
-            fi
-            [ $attempt -lt 3 ] && { echo "Başarısız, 20s bekleniyor..."; sleep 20; } \
-              || { echo "3 denemede build başarısız"; exit 1; }
-          done
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/backend/
+          push: false
+          tags: cargo-pilot-backend:ci
+          build-args: |
+            DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
+            DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
+          cache-from: type=gha,scope=cargo-pilot-backend-ci
+          cache-to: type=gha,mode=max,scope=cargo-pilot-backend-ci
 
       - name: Frontend Docker image build
-        run: |
-          for attempt in 1 2 3; do
-            echo "==> Frontend build, deneme $attempt/3"
-            if docker build \
-              --build-arg VITE_API_BASE_URL=http://localhost:8080/api/v1 \
-              -t cargo-pilot-frontend:ci \
-              ./apps/frontend/; then
-              echo "Build başarılı"; break
-            fi
-            [ $attempt -lt 3 ] && { echo "Başarısız, 20s bekleniyor..."; sleep 20; } \
-              || { echo "3 denemede build başarısız"; exit 1; }
-          done
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/frontend/
+          push: false
+          tags: cargo-pilot-frontend:ci
+          build-args: |
+            VITE_API_BASE_URL=http://localhost:8080/api/v1
+          cache-from: type=gha,scope=cargo-pilot-frontend-ci
+          cache-to: type=gha,mode=max,scope=cargo-pilot-frontend-ci
