@@ -2,6 +2,7 @@ name: cargo-pilot-prod
 
 services:
   backend:
+    image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-backend:${IMAGE_TAG:-prod}
     build:
       context: ../../apps/backend
       dockerfile: Dockerfile
@@ -28,6 +29,7 @@ services:
       - cargo-pilot-prod
 
   frontend:
+    image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-frontend:${IMAGE_TAG:-prod}
     build:
       context: ../../apps/frontend
       dockerfile: Dockerfile
