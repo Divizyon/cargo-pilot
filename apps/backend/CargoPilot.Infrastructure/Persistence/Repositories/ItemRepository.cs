@@ -33,6 +33,18 @@ internal sealed class ItemRepository : IItemRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Item>> GetByIdsAsync(
+        IEnumerable<Guid> ids,
+        Guid? companyId,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _dbContext.Items
+            .AsNoTracking()
+            .Where(i => idList.Contains(i.Id) && i.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsBySkuAsync(string sku, Guid? companyId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
