@@ -40,7 +40,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
                 <Input
                   {...field}
                   className="h-9 border-input bg-background"
-                  placeholder="Örn: 34 ABC 123 veya Filo Tır 1"
+                  placeholder="Filo Tır 1"
                   onBlur={(e) => {
                     field.onBlur();
                     const trimmed = e.target.value.trim();

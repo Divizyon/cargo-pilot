@@ -63,10 +63,10 @@ export function VehiclePreviewPanel({ form }: Props) {
 
   const dims =
     length && width && height
-      ? `${(length / 100).toFixed(1)}m × ${(width / 100).toFixed(2)}m × ${(height / 100).toFixed(1)}m`
+      ? `${(length / 100).toFixed(1)}m × ${(height / 100).toFixed(1)}m × ${(width / 100).toFixed(2)}m`
       : '—';
 
-  const dimsRaw = length && width && height ? `${length} × ${width} × ${height} cm` : '—';
+  const dimsRaw = length && width && height ? `${length} × ${height} × ${width} cm` : '—';
   const cargo = maxCargoWeight ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg` : '—';
   const gross = grossWeight ? `${Number(grossWeight).toLocaleString('tr-TR')} kg` : '—';
   const tare = tareWeight ? `${Number(tareWeight).toLocaleString('tr-TR')} kg` : '—';
@@ -90,7 +90,7 @@ export function VehiclePreviewPanel({ form }: Props) {
   ];
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-screen flex-col rounded-xl border border-border bg-background p-3">
       {/* Başlık + operasyonel durum */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground">Araç Önizleme</p>

@@ -29,17 +29,19 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-3">
+        {/* X — Uzunluk */}
         <FormField
           control={form.control}
           name="length"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Uzunluk ({dimensionUnit})</FormLabel>
+              <FormLabel>Uzunluk (X)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
+                    placeholder="1350"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -57,45 +59,49 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="width"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Genişlik ({dimensionUnit})</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="1"
-                    className="h-9 border-input bg-background pr-10"
-                    {...field}
-                    value={field.value ?? ''}
-                    onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
-                    }}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {dimensionUnit}
-                  </span>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Y — Yükseklik */}
         <FormField
           control={form.control}
           name="height"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Yükseklik ({dimensionUnit})</FormLabel>
+              <FormLabel>Yükseklik (Y)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
+                    placeholder="270"
+                    className="h-9 border-input bg-background pr-10"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(Number.isNaN(v) ? undefined : v);
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {dimensionUnit}
+                  </span>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {/* Z — Derinlik */}
+        <FormField
+          control={form.control}
+          name="width"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Derinlik (Z)</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="240"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}

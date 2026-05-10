@@ -267,7 +267,7 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
 
       <TableCell className={cell}>
         <span className="text-xs text-foreground">
-          {formatDimension(item.length, unit)} {unit}
+          {item.productType === 'varil' ? '—' : `${formatDimension(item.length, unit)} ${unit}`}
         </span>
       </TableCell>
 
@@ -570,13 +570,13 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Genişlik/Çap
+                  Uzunluk/Çap
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk
+                  Derinlik
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim

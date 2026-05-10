@@ -180,14 +180,17 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
   const maxStackCount = isStackable ? (values.maxStackCount ?? 1) : 0;
   const trimmedNotes = values.notes?.trim();
 
+  const widthCm = toCentimeters(values.width, values.widthUnit);
+  const isVaril = values.productType === 'varil';
+
   return {
     sku: values.sku,
     name: values.name,
     productType: values.productType,
     category: toCategory(values.productType),
-    width: toCentimeters(values.width, values.widthUnit),
+    width: widthCm,
     height: toCentimeters(values.height, values.heightUnit),
-    length: toCentimeters(values.length, values.lengthUnit),
+    length: isVaril ? widthCm : toCentimeters(values.length, values.lengthUnit),
     weight: values.weight,
     fragilityType: values.fragility,
     isStackable,

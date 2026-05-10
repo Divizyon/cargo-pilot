@@ -44,6 +44,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                   <Input
                     type="number"
                     min="1"
+                    placeholder="26000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -72,6 +73,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                   <Input
                     type="number"
                     min="1"
+                    placeholder="40000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -100,6 +102,7 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                   <Input
                     type="number"
                     min="0"
+                    placeholder="14000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
