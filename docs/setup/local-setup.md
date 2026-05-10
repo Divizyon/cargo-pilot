@@ -104,11 +104,7 @@ Eğer proje kökünde compose dosyası varsa doğrudan `docker compose up -d` ye
 
 > **GHCR Image Notu:** Docker Compose, image'ları GHCR'dan çeker:
 > `ghcr.io/divizyon/cargo-pilot-backend:test` ve `ghcr.io/divizyon/cargo-pilot-frontend:test`.
-> Image'ları çekebilmek için önce GHCR'a giriş yapılmalıdır:
-> ```bash
-> echo "<GHCR_PAT>" | docker login ghcr.io -u <github-kullanici-adi> --password-stdin
-> ```
-> `<GHCR_PAT>`: `read:packages` scope'una sahip GitHub classic PAT.
+> Image'lar **public**'tir — herhangi bir login veya PAT gerekmez, direkt çekilir.
 > Local build için `docker compose ... up --build -d` kullanılabilir (bkz. Bölüm 7).
 
 Container'ların durumunu kontrol etmek için:
@@ -180,7 +176,47 @@ Eğer Min.IO console açıksa ayrıca ayrı bir port üzerinden erişilebilir.
 
 ---
 
-## 7. Geliştirme Sırasında Sık Kullanılan Komutlar
+## 7. Frontend Vite ile, Backend Docker'da Çalıştırma
+
+Frontend ekibi `npm run dev` ile Vite üzerinden çalışırken backend'i Docker'da local olarak kaldırabilir. Bu durumda CORS sorunu yoktur — Vite'ın kendi proxy'si `/api` isteklerini backend container'a yönlendirir.
+
+### Adımlar
+
+**1. Backend stack'i kaldır (sadece backend + DB + MinIO)**
+
+```bash
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d mssql minio backend
+```
+
+**2. Frontend'i Vite ile başlat**
+
+```bash
+cd apps/frontend
+npm install
+npm run dev
+```
+
+Vite varsayılan olarak `http://localhost:8081`'e proxy yapar (`vite.config.ts`'te tanımlı).
+
+**Farklı bir port kullanıyorsanız** shell'de veya `.env.local` dosyasında ayarlayın:
+
+```bash
+VITE_DEV_PROXY_TARGET=http://localhost:8081 npm run dev
+```
+
+**3. Erişim**
+
+| Servis | Adres |
+|--------|-------|
+| Frontend (Vite) | `http://localhost:3001` |
+| Backend API | `http://localhost:8081` |
+| MinIO Console | `http://localhost:9003` |
+
+> **Not:** `npm run dev` ile başlatıldığında hot-reload aktiftir. Backend container durdurulursa API çağrıları hata verir.
+
+---
+
+## 9. Geliştirme Sırasında Sık Kullanılan Komutlar
 
 Container'ları durdurmak için:
 
@@ -208,7 +244,7 @@ docker compose restart <service-name>
 
 ---
 
-## 8. Sık Karşılaşılan Problemler
+## 10. Sık Karşılaşılan Problemler
 
 ### Port çakışması
 
@@ -250,19 +286,19 @@ Aşağıdakiler kontrol edilmelidir:
 
 ---
 
-## 9. Beklenen Geliştirme Akışı
+## 11. Beklenen Geliştirme Akışı
 
 Local geliştirme sırasında önerilen temel akış:
 
 1. `git fetch origin` ile remote güncellenir
-2. `git checkout --no-track -b feature/US-XXX-description origin/dev` ile yeni branch açılır
+2. `git checkout -b feature/US-XXX-description origin/test` ile yeni branch açılır
 3. Gerekli geliştirme yapılır
 4. Local ortamda test edilir
 5. Gerekirse migration / seed uygulanır
 6. Commit atılır
-7. `git pull origin dev` ile son değişiklikler alınır
+7. `git pull origin test` ile son değişiklikler alınır
 8. `git push origin feature/US-XXX-description` ile push yapılır
-9. Pull Request açılır (önce `dev` hedefli, ardından `test` hedefli)
+9. Pull Request açılır (önce `dev` hedefli, ardından aynı branch'ten `test` hedefli)
 
 Branch ve commit kuralları için ilgili dokümanlara bakılmalıdır.
 
