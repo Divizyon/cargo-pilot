@@ -37,7 +37,7 @@ export const SCENE = {
     NORMAL_STR: '#2563eb',
     CONTAINER_EDGE: '#334155',
     CONTAINER_DOOR: '#f59e0b',
-    CONTAINER_INSIDE: '#e7e2d4',
+    CONTAINER_INSIDE: '#d4c9a8',
     GRID: '#94a3b8',
     GROUPS: {
       A: 0xef4444,
