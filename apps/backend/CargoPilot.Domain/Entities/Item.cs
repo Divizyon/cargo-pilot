@@ -90,6 +90,37 @@ public sealed class Item : BaseEntity {
 
     public void SetRuleAssigned(bool isRuleAssigned) => IsRuleAssigned = isRuleAssigned;
 
+    public void ApplyErpConstraints(IReadOnlyDictionary<string, string> resolvedValues)
+    {
+        foreach (var (field, value) in resolvedValues)
+        {
+            switch (field)
+            {
+                case "AllowedRotations":
+                    if (Enum.TryParse<AllowedRotations>(value, true, out var rotations))
+                        AllowedRotations = rotations;
+                    break;
+                case "FragilityType":
+                    if (Enum.TryParse<FragilityType>(value, true, out var fragility))
+                        FragilityType = fragility;
+                    break;
+                case "IsStackable":
+                    if (bool.TryParse(value, out var stackable))
+                        IsStackable = stackable;
+                    break;
+                case "MaxStackCount":
+                    if (int.TryParse(value, out var stackCount))
+                        MaxStackCount = stackCount;
+                    break;
+                case "MaxWeightOnTop":
+                    if (decimal.TryParse(value, System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out var weightOnTop))
+                        MaxWeightOnTop = weightOnTop;
+                    break;
+            }
+        }
+    }
+
     public void Update(
         string sku,
         string? barcode,
