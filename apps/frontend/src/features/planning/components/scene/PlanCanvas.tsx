@@ -10,6 +10,7 @@ import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { SCENE } from '@/lib/config/scene-config';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
+import { SceneFloor } from '@/features/planning/components/scene/SceneFloor';
 
 interface PlanCanvasProps {
   className?: string;
@@ -80,6 +81,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
         <Suspense fallback={<SceneLoader />}>
           <SceneLights />
           <SceneControls />
+          <SceneFloor />
           <ContainerMesh />
           <CargoMeshInstanced planId={planId} />
           <CogMarker />
