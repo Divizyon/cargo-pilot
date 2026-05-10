@@ -13,6 +13,7 @@ const CAB_LENGTH_RATIO_KAMYON = 0.3;
 const CAB_LENGTH_RATIO_TIR = 0.25;
 const CAB_GAP_TIR = 100; // Tır: kabin-kargo arası boşluk; king pimi bu alanda görünür
 const CAB_COLOR = '#6b7280';
+const CAB_FRONT_AXLE_RATIO = 0.65; // Ön dingil, kabin uzunluğunun bu oranında konumlanır
 const KINGPIN_RADIUS_CM = 25;
 const KINGPIN_HEIGHT_CM = 120;
 const KINGPIN_COLOR = '#1a1a1a';
@@ -119,7 +120,8 @@ function CargoBody({ width, height, length }: { width: number; height: number; l
 
 // ─── Cab (Kamyon / Tır) ────────────────────────────────────────────────────────
 
-// Kabin, kargo alanının önüne (Z > cargoLength) yerleştirilir.
+// Kabin yamuk prizma: arka yüz tam yükseklik, kabin ortasından ön yüze eğimli çatı.
+// Arka yarı dikdörtgen prizma, ön yarı eğimli → gerçekçi kamyon silüeti.
 function CabMesh({
   width,
   height,
@@ -133,29 +135,93 @@ function CabMesh({
   cabLength: number;
   gapLength?: number;
 }) {
-  const edgesGeo = useMemo(() => {
-    const box = new THREE.BoxGeometry(width, height, cabLength);
-    const edges = new THREE.EdgesGeometry(box);
-    box.dispose();
-    return edges;
+  const [cabGeo, edgesGeo] = useMemo(() => {
+    const w = width;
+    const h = height;
+    const hf = height / 2; // ön yüz yarı yükseklik
+    const d = cabLength;
+    const dm = cabLength / 2; // eğimin başladığı Z noktası
+
+    // 12 köşe: arka (z=0) tam yükseklik, orta ridge (z=dm) tam yükseklik, ön (z=d) yarı yükseklik
+    const positions = new Float32Array([
+      0,
+      0,
+      0, // 0 arka-alt-sol
+      w,
+      0,
+      0, // 1 arka-alt-sağ
+      0,
+      h,
+      0, // 2 arka-üst-sol
+      w,
+      h,
+      0, // 3 arka-üst-sağ
+      0,
+      0,
+      dm, // 4 orta-alt-sol
+      w,
+      0,
+      dm, // 5 orta-alt-sağ
+      0,
+      h,
+      dm, // 6 orta-üst-sol (eğim başlangıcı)
+      w,
+      h,
+      dm, // 7 orta-üst-sağ (eğim başlangıcı)
+      0,
+      hf,
+      d, // 8 ön-üst-sol
+      w,
+      hf,
+      d, // 9 ön-üst-sağ
+      0,
+      0,
+      d, // 10 ön-alt-sol
+      w,
+      0,
+      d, // 11 ön-alt-sağ
+    ]);
+
+    const indices = [
+      // Alt (normal -Y)
+      0, 1, 5, 0, 5, 4, 4, 5, 11, 4, 11, 10,
+      // Arka yüz (normal -Z)
+      0, 2, 1, 1, 2, 3,
+      // Sol yüz (normal -X)
+      0, 4, 6, 0, 6, 2, 4, 10, 8, 4, 8, 6,
+      // Sağ yüz (normal +X)
+      1, 3, 7, 1, 7, 5, 5, 7, 9, 5, 9, 11,
+      // Üst-düz arka (normal +Y)
+      2, 6, 7, 2, 7, 3,
+      // Üst-eğim ön (normal +Y+Z)
+      6, 8, 9, 6, 9, 7,
+      // Ön yüz (normal +Z)
+      10, 11, 9, 10, 9, 8,
+    ];
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+
+    const edges = new THREE.EdgesGeometry(geo);
+    return [geo, edges] as const;
   }, [width, height, cabLength]);
 
   useEffect(
     () => () => {
+      cabGeo.dispose();
       edgesGeo.dispose();
     },
-    [edgesGeo],
+    [cabGeo, edgesGeo],
   );
 
-  const cz = cargoLength + gapLength + cabLength / 2;
-
   return (
-    <group>
-      <mesh position={[width / 2, height / 2, cz]} castShadow>
-        <boxGeometry args={[width, height, cabLength]} />
+    <group position={[0, 0, cargoLength + gapLength]}>
+      <mesh castShadow geometry={cabGeo}>
         <meshStandardMaterial color={CAB_COLOR} metalness={0.2} roughness={0.7} />
       </mesh>
-      <lineSegments geometry={edgesGeo} position={[width / 2, height / 2, cz]}>
+      <lineSegments geometry={edgesGeo}>
         <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
       </lineSegments>
     </group>
@@ -312,7 +378,9 @@ function VehicleScene({
     hasAxleVehicle &&
     ((axleBDistance !== undefined && axleBDistance > 0 && axleBDistance <= length) ||
       (axleDistances ?? []).some((d) => d > 0 && d <= length));
-  const shadowY = hasRenderedAxles ? -wheelRadius * 2 - 2 : -0.5;
+  // Kabin olan araçlarda ön dingil her zaman görünür; gölge buna göre ayarlanır
+  const cabFrontAxleZ = hasCab ? length + cabGap + cabLength * CAB_FRONT_AXLE_RATIO : 0;
+  const shadowY = hasRenderedAxles || hasCab ? -wheelRadius * 2 - 2 : -0.5;
 
   return (
     <>
@@ -341,6 +409,8 @@ function VehicleScene({
       )}
 
       {hasKingpin && <KingPinMesh width={width} zPos={kingpinZ} />}
+
+      {hasCab && <AxleWheelAssembly width={width} height={height} zPos={cabFrontAxleZ} />}
 
       {hasAxleVehicle &&
         axleBDistance !== undefined &&
