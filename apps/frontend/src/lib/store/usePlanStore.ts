@@ -3,7 +3,7 @@ import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
-import { computeViolations } from '@/lib/utils/geometry';
+import { computeViolations, findFreeSlot } from '@/lib/utils/geometry';
 import {
   rotatedDimensions,
   isOrientationAllowed,
@@ -42,72 +42,46 @@ function applySurfaceViolations(
   return { result, violatingNames };
 }
 
+interface BuildResult {
+  placed: PlacementWithDimensions[];
+  noFitCount: number;
+}
+
 function buildPlacements(
   item: Item,
   qty: number,
   color: string,
   vehicle: Vehicle,
   existingPlacements: PlacementWithDimensions[],
-): PlacementWithDimensions[] {
+): BuildResult {
   const w = item.width;
   const h = item.height;
   const d = item.length;
 
-  // Start cursor after the last occupied Z in existing placements
-  let curX = 0;
-  let curY = 0;
-  let curZ =
-    existingPlacements.length > 0
-      ? Math.max(...existingPlacements.map((p) => p.positionZ + p.depth))
-      : 0;
-  let rowMaxDepth = d;
-
-  const result: PlacementWithDimensions[] = [];
+  const placed: PlacementWithDimensions[] = [];
+  let noFitCount = 0;
 
   for (let i = 0; i < qty; i++) {
-    // X overflow → wrap to next row
-    if (curX + w > vehicle.width) {
-      curX = 0;
-      curZ += rowMaxDepth;
-      rowMaxDepth = d;
+    const occupied = [...existingPlacements, ...placed];
+    const slot = findFreeSlot(
+      { width: w, height: h, depth: d },
+      vehicle,
+      occupied,
+      item.isStackable,
+    );
+
+    if (!slot.fits) {
+      noFitCount++;
+      continue;
     }
 
-    // Z overflow → new layer (only if stackable)
-    if (curZ + d > vehicle.length) {
-      if (!item.isStackable || curY + h * 2 > vehicle.height) {
-        // No space left: mark remaining as violations placed at origin
-        result.push({
-          itemId: item.id,
-          positionX: 0,
-          positionY: 0,
-          positionZ: 0,
-          orientationIndex: 0,
-          layer: 1,
-          isViolation: true,
-          width: w,
-          height: h,
-          depth: d,
-          weight: item.weight,
-          color,
-          productType: item.productType,
-        });
-        continue;
-      }
-      curY += h;
-      curX = 0;
-      curZ = 0;
-      rowMaxDepth = d;
-    }
-
-    rowMaxDepth = Math.max(rowMaxDepth, d);
-
-    result.push({
+    placed.push({
       itemId: item.id,
-      positionX: curX,
-      positionY: curY,
-      positionZ: curZ,
+      positionX: slot.positionX,
+      positionY: slot.positionY,
+      positionZ: slot.positionZ,
       orientationIndex: 0,
-      layer: Math.round(curY / h) + 1,
+      layer: Math.round(slot.positionY / h) + 1,
       isViolation: false,
       width: w,
       height: h,
@@ -116,11 +90,9 @@ function buildPlacements(
       color,
       productType: item.productType,
     });
-
-    curX += w;
   }
 
-  return result;
+  return { placed, noFitCount };
 }
 
 interface PlanStore {
@@ -194,10 +166,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
         const entry = s.selectedItems.find((si) => si.item.id === itemId);
         if (!entry) continue;
         const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-        rebuilt = [
-          ...rebuilt,
-          ...buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt),
-        ];
+        const { placed } = buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt);
+        rebuilt = [...rebuilt, ...placed];
       }
       return { selectedVehicle: vehicle, placements: computeViolations(rebuilt) };
     }),
@@ -214,19 +184,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (!s.selectedVehicle)
         return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
-      const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, s.placements);
-      const overflowCount = newBoxes.filter((p) => p.isViolation).length;
-      if (overflowCount > 0) {
-        const fitsCount = qty - overflowCount;
+      const { placed, noFitCount } = buildPlacements(
+        item,
+        qty,
+        color,
+        s.selectedVehicle,
+        s.placements,
+      );
+      if (noFitCount > 0) {
+        const fitsCount = qty - noFitCount;
         useUIStore.getState().addNotification({
           variant: 'warning',
           message:
             fitsCount > 0
-              ? `${item.name}: ${fitsCount} adet yerleştirildi, ${overflowCount} adet araca sığmadı.`
+              ? `${item.name}: ${fitsCount} adet yerleştirildi, ${noFitCount} adet araca sığmadı.`
               : `${item.name}: ${qty} adet araca sığmadı.`,
         });
       }
-      const next = [...s.placements, ...newBoxes];
+      const next = [...s.placements, ...placed];
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],
         skuColorMap: updatedColorMap,
@@ -248,8 +223,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
       }
 
       const otherPlacements = s.placements.filter((p) => p.itemId !== itemId);
-      const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, otherPlacements);
-      const next = [...otherPlacements, ...newBoxes];
+      const { placed, noFitCount } = buildPlacements(
+        item,
+        qty,
+        color,
+        s.selectedVehicle,
+        otherPlacements,
+      );
+      if (noFitCount > 0) {
+        useUIStore.getState().addNotification({
+          variant: 'warning',
+          message: `${item.name}: ${noFitCount} adet araca sığmadı.`,
+        });
+      }
+      const next = [...otherPlacements, ...placed];
       const withCollisions = computeViolations(next);
       const { result: withSurface, violatingNames } = applySurfaceViolations(
         withCollisions,
@@ -284,14 +271,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const newBoxes = buildPlacements(
+      const { placed, noFitCount } = buildPlacements(
         entry.item,
         entry.quantity,
         color,
         s.selectedVehicle,
         s.placements,
       );
-      const next = [...s.placements, ...newBoxes];
+      if (noFitCount > 0) {
+        useUIStore.getState().addNotification({
+          variant: 'warning',
+          message:
+            noFitCount === entry.quantity
+              ? `${entry.item.name}: araca sığmadı.`
+              : `${entry.item.name}: ${entry.quantity - noFitCount} adet yerleştirildi, ${noFitCount} adet araca sığmadı.`,
+        });
+      }
+      if (placed.length === 0) return {};
+      const next = [...s.placements, ...placed];
       return { placements: computeViolations(next) };
     }),
 
@@ -395,16 +392,18 @@ export const usePlanStore = create<PlanStore>((set) => ({
         }));
         // If qty increased, append extra boxes after existing ones
         if (qty > existing.length) {
-          previewBoxes = [
-            ...previewBoxes,
-            ...buildPlacements(item, qty - existing.length, color, s.selectedVehicle, [
-              ...others,
-              ...previewBoxes,
-            ]),
-          ];
+          const { placed } = buildPlacements(
+            item,
+            qty - existing.length,
+            color,
+            s.selectedVehicle,
+            [...others, ...previewBoxes],
+          );
+          previewBoxes = [...previewBoxes, ...placed];
         }
       } else {
-        previewBoxes = buildPlacements(item, qty, color, s.selectedVehicle, others);
+        const { placed } = buildPlacements(item, qty, color, s.selectedVehicle, others);
+        previewBoxes = placed;
       }
 
       const allChecked = computeViolations([...others, ...previewBoxes]);
