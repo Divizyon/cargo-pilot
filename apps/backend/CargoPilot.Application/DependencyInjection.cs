@@ -1,3 +1,5 @@
+using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,6 +13,8 @@ public static class DependencyInjection
             cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

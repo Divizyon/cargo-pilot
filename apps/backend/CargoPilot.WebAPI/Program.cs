@@ -1,7 +1,9 @@
 using CargoPilot.Application;
 using CargoPilot.Infrastructure;
+using CargoPilot.Infrastructure.Jobs;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.WebAPI;
+using Hangfire;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -33,6 +35,19 @@ if (!useInMemory) {
     await dbInitializer.InitializeAsync();
 }
 
-app.UsePresentation();
+app.UsePresentation(useInMemory);
+
+if (!useInMemory)
+{
+    RecurringJob.AddOrUpdate<TrialExpiryNotificationJob>(
+        "trial-expiry-notification",
+        job => job.RunAsync(),
+        Cron.Daily);
+
+    RecurringJob.AddOrUpdate<NotificationCleanupJob>(
+        "notification-cleanup",
+        job => job.RunAsync(),
+        Cron.Daily);
+}
 
 await app.RunAsync();

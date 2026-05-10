@@ -3,10 +3,13 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using CargoPilot.Application.Abstractions;
+using CargoPilot.WebAPI.Filters;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
 using CargoPilot.WebAPI.Swagger;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -231,12 +234,28 @@ public static class DependencyInjection {
                 "database",
                 failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
+
+            services.AddHangfire(cfg => cfg
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    new SqlServerStorageOptions
+                    {
+                        CommandBatchMaxTimeout       = TimeSpan.FromMinutes(5),
+                        SlidingInvisibilityTimeout   = TimeSpan.FromMinutes(5),
+                        QueuePollInterval            = TimeSpan.Zero,
+                        UseRecommendedIsolationLevel = true,
+                        DisableGlobalLocks           = true,
+                    }));
+            services.AddHangfireServer();
         }
 
         return services;
     }
 
-    public static WebApplication UsePresentation(this WebApplication app)
+    public static WebApplication UsePresentation(this WebApplication app, bool useInMemoryRepository = false)
     {
         app.UseRouting();
         app.UseRateLimiter();
@@ -257,6 +276,15 @@ public static class DependencyInjection {
         app.UseAuthentication();
         app.UseHttpMetrics();
         app.UseAuthorization();
+
+        if (!useInMemoryRepository)
+        {
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = [new HangfireSuperAdminFilter()],
+            });
+        }
+
         app.MapControllers();
         app.MapMetrics("/metrics");
 
