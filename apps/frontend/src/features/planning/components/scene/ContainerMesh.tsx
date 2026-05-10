@@ -1,4 +1,6 @@
-import { useRef, useMemo } from 'react';
+// BoxWrapper kuralı kargo kutuları içindir; konteyner kabuğu için geçerli değil.
+/* eslint-disable no-restricted-syntax */
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
@@ -32,29 +34,79 @@ function ContainerEdges({
 }
 
 // ─── ContainerGrid ─────────────────────────────────────────────────────────────
+// Shader tabanlı grid: 1 hücre = 100cm (1m). PlaneGeometry XZ düzlemi, Y=1 offset (z-fight önleme).
+
+const GRID_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const GRID_FRAGMENT = /* glsl */ `
+  varying vec2 vUv;
+  uniform vec2  uRepeat;
+  uniform vec3  uBgColor;
+  uniform vec3  uLineColor;
+  uniform float uLineWidth;
+  uniform float uOpacity;
+
+  float gridLine(float coord, float width) {
+    float f = abs(fract(coord) - 0.5);
+    float fw = fwidth(coord);
+    return 1.0 - smoothstep(width - fw, width + fw, f);
+  }
+
+  void main() {
+    vec2 g = vUv * uRepeat;
+    float line = max(gridLine(g.x, uLineWidth), gridLine(g.y, uLineWidth));
+    vec3 color = mix(uBgColor, uLineColor, line);
+    gl_FragColor = vec4(color, uOpacity);
+  }
+`;
+
+// Sahne birimi cm — 1m = 100cm
+const GRID_CELL_CM = 100;
 
 function ContainerGrid({ width, length }: { width: number; length: number }) {
+  const repeatX = width / GRID_CELL_CM;
+  const repeatZ = length / GRID_CELL_CM;
+
   const geometry = useMemo(() => {
-    const step = SCENE.GRID_STEP_CM;
-    const points: number[] = [];
-
-    for (let z = 0; z <= length; z += step) {
-      points.push(0, 0, z, width, 0, z);
-    }
-    for (let x = 0; x <= width; x += step) {
-      points.push(x, 0, 0, x, 0, length);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    const geo = new THREE.PlaneGeometry(width, length);
+    geo.rotateX(-Math.PI / 2);
     return geo;
   }, [width, length]);
 
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.45} transparent />
-    </lineSegments>
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: GRID_VERTEX,
+        fragmentShader: GRID_FRAGMENT,
+        uniforms: {
+          uRepeat: { value: new THREE.Vector2(repeatX, repeatZ) },
+          uBgColor: { value: new THREE.Color('#1e293b') },
+          uLineColor: { value: new THREE.Color('#475569') },
+          uLineWidth: { value: 0.03 },
+          uOpacity: { value: 0.9 },
+        },
+        transparent: true,
+        side: THREE.FrontSide,
+        extensions: { derivatives: true } as unknown as { derivatives: boolean },
+      }),
+    [repeatX, repeatZ],
   );
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [geometry, material]);
+
+  // position: konteyner tabanının ortası, Y=1 (z-fighting önleme)
+  return <mesh position={[width / 2, 1, length / 2]} geometry={geometry} material={material} />;
 }
 
 // ─── Shared door constants (values from scene-config) ─────────────────────────

@@ -1,11 +1,19 @@
 // BoxWrapper kuralı kargo kutuları içindir; konteyner kabuğu için geçerli değil.
 /* eslint-disable no-restricted-syntax */
+import { useEffect } from 'react';
+import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { SCENE } from '@/lib/config/scene-config';
+
+import colorUrl from '@/assets/textures/container-steel/color.jpg';
+import normalUrl from '@/assets/textures/container-steel/normal.jpg';
+import roughnessUrl from '@/assets/textures/container-steel/roughness.jpg';
+import metalnessUrl from '@/assets/textures/container-steel/metalness.jpg';
+import aoUrl from '@/assets/textures/container-steel/ao.jpg';
 
 const WALL_GAP_CM = 0.5;
-const INNER_METALNESS = 0.1;
-const INNER_ROUGHNESS = 0.8;
+
+// 1m = 100cm. UV_SCALE ile konteyner boyutuna göre texture tekrar sayısı hesaplanır.
+const UV_SCALE = 0.008;
 
 interface ContainerBodyProps {
   width: number;
@@ -13,22 +21,44 @@ interface ContainerBodyProps {
   length: number;
 }
 
-// Origin = sol-alt-arka. Konteyner x∈[0,width], y∈[0,height], z∈[0,length].
-// BackSide-only render: kameraya yakın yüzler atlanır, uzak iç duvarlar çizilir → doğal "X-ray".
-// Konteynerin dış silueti ContainerEdges (wireframe) tarafından korunur.
+// BackSide render'da texture çalışır — normal vektörler ters gelir ama map görünür.
+// ContainerBody iç duvarları texture'lı metal olarak render eder.
+// ContainerExterior'a gerek yok: dışarıdan zaten BackSide culled, içeriden texture görünür.
 export function ContainerBody({ width, height, length }: ContainerBodyProps) {
   const innerW = width - 2 * WALL_GAP_CM;
   const innerH = height - 2 * WALL_GAP_CM;
   const innerL = length - 2 * WALL_GAP_CM;
 
+  const [colorMap, normalMap, roughnessMap, metalnessMap, aoMap] = useTexture([
+    colorUrl,
+    normalUrl,
+    roughnessUrl,
+    metalnessUrl,
+    aoUrl,
+  ]);
+
+  useEffect(() => {
+    const maxSide = Math.max(width, length);
+    for (const tex of [colorMap, normalMap, roughnessMap, metalnessMap, aoMap]) {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(maxSide * UV_SCALE, height * UV_SCALE);
+      tex.needsUpdate = true;
+    }
+  }, [width, height, length, colorMap, normalMap, roughnessMap, metalnessMap, aoMap]);
+
   return (
     <mesh position={[width / 2, height / 2, length / 2]} receiveShadow>
       <boxGeometry args={[innerW, innerH, innerL]} />
       <meshStandardMaterial
-        color={SCENE.COLORS.CONTAINER_INSIDE}
+        map={colorMap}
+        normalMap={normalMap}
+        roughnessMap={roughnessMap}
+        metalnessMap={metalnessMap}
+        aoMap={aoMap}
         side={THREE.BackSide}
-        metalness={INNER_METALNESS}
-        roughness={INNER_ROUGHNESS}
+        metalness={0.45}
+        roughness={0.7}
       />
     </mesh>
   );
