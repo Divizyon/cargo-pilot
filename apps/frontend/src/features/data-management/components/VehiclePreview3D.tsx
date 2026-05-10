@@ -11,13 +11,18 @@ import type { VehicleType as VehicleTypeValue, DoorDirection } from '@/lib/types
 
 const CAB_LENGTH_RATIO_KAMYON = 0.3;
 const CAB_LENGTH_RATIO_TIR = 0.25;
-const CAB_GAP_TIR = 100; // Tır: kabin-kargo arası boşluk; king pimi bu alanda görünür
+const CAB_HEIGHT_RATIO = 16 / 15; // Kabin görsel yüksekliği = kargo yüksekliği * 6/5
+const CAB_GAP_RATIO_TIR = 0.14; // Tır kabin-kargo boşluğu = cabLength * oran (ref: 50/350)
 const CAB_COLOR = '#6b7280';
 const CAB_FRONT_AXLE_RATIO = 0.65; // Ön dingil, kabin uzunluğunun bu oranında konumlanır
-const KINGPIN_RADIUS_CM = 25;
-const KINGPIN_HEIGHT_CM = 120;
+const KINGPIN_RADIUS_RATIO = 0.42; // King pimi yarıçapı = kingpinHeight * oran (ref: 25/60)
+const KINGPIN_HEIGHT_RATIO = 0.22; // King pimi yüksekliği = cabH * oran (ref: 60/267)
 const KINGPIN_COLOR = '#1a1a1a';
 const DOOR_PANEL_T = 3;
+const WINDOW_COLOR = '#b8dff0';
+const WINDOW_OPACITY = 0.55;
+const WINDOW_INSET_RATIO = 0.08; // çerçeve boşluğu — min(w, cabH) * oran
+const SIDE_WIN_SLIDE_RATIO = 0.12; // yan camı eğime dik kaydır — min(w, cabH) * oran
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -135,12 +140,18 @@ function CabMesh({
   cabLength: number;
   gapLength?: number;
 }) {
-  const [cabGeo, edgesGeo] = useMemo(() => {
+  // Bileşen kapsamında hesapla — hem useMemo hem JSX kullanır
+  const cabH = height * CAB_HEIGHT_RATIO;
+  const d = cabLength;
+
+  const [cabGeo, edgesGeo, leftWinGeo, rightWinGeo] = useMemo(() => {
     const w = width;
-    const h = height;
-    const hf = height / 2; // ön yüz yarı yükseklik
-    const d = cabLength;
-    const dm = cabLength / 2; // eğimin başladığı Z noktası
+    const h = height * CAB_HEIGHT_RATIO;
+    const hfL = h / 2;
+    const dL = cabLength;
+    const dmL = cabLength / 2;
+    const ins = Math.min(w, h) * WINDOW_INSET_RATIO;
+    const slideCm = Math.min(w, h) * SIDE_WIN_SLIDE_RATIO;
 
     // 12 köşe: arka (z=0) tam yükseklik, orta ridge (z=dm) tam yükseklik, ön (z=d) yarı yükseklik
     const positions = new Float32Array([
@@ -158,28 +169,28 @@ function CabMesh({
       0, // 3 arka-üst-sağ
       0,
       0,
-      dm, // 4 orta-alt-sol
+      dmL, // 4 orta-alt-sol
       w,
       0,
-      dm, // 5 orta-alt-sağ
+      dmL, // 5 orta-alt-sağ
       0,
       h,
-      dm, // 6 orta-üst-sol (eğim başlangıcı)
+      dmL, // 6 orta-üst-sol (eğim başlangıcı)
       w,
       h,
-      dm, // 7 orta-üst-sağ (eğim başlangıcı)
+      dmL, // 7 orta-üst-sağ (eğim başlangıcı)
       0,
-      hf,
-      d, // 8 ön-üst-sol
+      hfL,
+      dL, // 8 ön-üst-sol
       w,
-      hf,
-      d, // 9 ön-üst-sağ
+      hfL,
+      dL, // 9 ön-üst-sağ
       0,
       0,
-      d, // 10 ön-alt-sol
+      dL, // 10 ön-alt-sol
       w,
       0,
-      d, // 11 ön-alt-sağ
+      dL, // 11 ön-alt-sağ
     ]);
 
     const indices = [
@@ -205,16 +216,68 @@ function CabMesh({
     geo.computeVertexNormals();
 
     const edges = new THREE.EdgesGeometry(geo);
-    return [geo, edges] as const;
+
+    // Slope'a dik kaydırma vektörü: (-h, -dL) yönü normalize edilir
+    const slopeNorm2D = Math.sqrt(h * h + dL * dL);
+    const slideZ = (-slideCm * h) / slopeNorm2D;
+    const slideY = (-slideCm * dL) / slopeNorm2D;
+
+    // Sol yan cam: üçgen (eğimli bölge z=dm→d arası üst köşe)
+    const lPts = new Float32Array([
+      -1,
+      h - ins + slideY,
+      dmL + ins + slideZ,
+      -1,
+      hfL + ins + slideY,
+      dL - ins + slideZ,
+      -1,
+      hfL + ins + slideY,
+      dmL + ins + slideZ,
+    ]);
+    const leftWin = new THREE.BufferGeometry();
+    leftWin.setAttribute('position', new THREE.BufferAttribute(lPts, 3));
+    leftWin.computeVertexNormals();
+
+    // Sağ yan cam: aynı şekil, x=w+1
+    const rPts = new Float32Array([
+      w + 1,
+      h - ins + slideY,
+      dmL + ins + slideZ,
+      w + 1,
+      hfL + ins + slideY,
+      dL - ins + slideZ,
+      w + 1,
+      hfL + ins + slideY,
+      dmL + ins + slideZ,
+    ]);
+    const rightWin = new THREE.BufferGeometry();
+    rightWin.setAttribute('position', new THREE.BufferAttribute(rPts, 3));
+    rightWin.computeVertexNormals();
+
+    return [geo, edges, leftWin, rightWin] as const;
   }, [width, height, cabLength]);
 
   useEffect(
     () => () => {
       cabGeo.dispose();
       edgesGeo.dispose();
+      leftWinGeo.dispose();
+      rightWinGeo.dispose();
     },
-    [cabGeo, edgesGeo],
+    [cabGeo, edgesGeo, leftWinGeo, rightWinGeo],
   );
+
+  // Eğimli yüzey (z=dm→d, y=h→hf) — ön cam bu yüzeye oturur
+  const slopeLen = Math.sqrt((cabH / 2) ** 2 + (d / 2) ** 2);
+  const winInset = Math.min(width, cabH) * WINDOW_INSET_RATIO;
+  const frontWinW = width - 2 * winInset;
+  const frontWinSlopeH = slopeLen - 2 * winInset;
+  // Normal (0, d, cabH)/norm → plane'i -atan2(d, cabH) kadar X ekseni etrafında döndür
+  const slopeRotX = -Math.atan2(d, cabH);
+  // Z-fighting önlemek için düzlemi normal yönünde 3 cm dışarı kaydır
+  const slopeNorm = Math.sqrt(d * d + cabH * cabH);
+  const winOffsetY = (3 * d) / slopeNorm;
+  const winOffsetZ = (3 * cabH) / slopeNorm;
 
   return (
     <group position={[0, 0, cargoLength + gapLength]}>
@@ -224,6 +287,40 @@ function CabMesh({
       <lineSegments geometry={edgesGeo}>
         <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
       </lineSegments>
+
+      {/* Ön cam — dikdörtgen, eğimli üst yüzeye (z=dm→d) oturur */}
+      {frontWinW > 0 && frontWinSlopeH > 0 && (
+        <mesh
+          position={[width / 2, (cabH * 3) / 4 + winOffsetY, (d * 3) / 4 + winOffsetZ]}
+          rotation={[slopeRotX, 0, 0]}
+        >
+          <planeGeometry args={[frontWinW, frontWinSlopeH]} />
+          <meshStandardMaterial
+            color={WINDOW_COLOR}
+            transparent
+            opacity={WINDOW_OPACITY}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
+
+      {/* Yan camlar — üçgen, eğimli yüzlerin hemen dışında */}
+      <mesh geometry={leftWinGeo}>
+        <meshStandardMaterial
+          color={WINDOW_COLOR}
+          transparent
+          opacity={WINDOW_OPACITY}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh geometry={rightWinGeo}>
+        <meshStandardMaterial
+          color={WINDOW_COLOR}
+          transparent
+          opacity={WINDOW_OPACITY}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   );
 }
@@ -279,10 +376,19 @@ function DoorFaceIndicator({
 // Kargo gövdesinin dışında, boşluk (gap) veya ön yüz ötesinde konumlandırılır.
 // Y merkezi = -KINGPIN_HEIGHT_CM/2: silindir kargo tabanından (Y=0) aşağı sarkar.
 // Z konumu hesabı: kargo geometrisiyle çakışmayan bölge → her zaman görünür.
-function KingPinMesh({ width, zPos }: { width: number; zPos: number }) {
+function KingPinMesh({
+  width,
+  zPos,
+  kingpinHeight,
+}: {
+  width: number;
+  zPos: number;
+  kingpinHeight: number;
+}) {
+  const kingpinRadius = kingpinHeight * KINGPIN_RADIUS_RATIO;
   return (
-    <mesh position={[width / 2, -KINGPIN_HEIGHT_CM / 2, zPos]}>
-      <cylinderGeometry args={[KINGPIN_RADIUS_CM, KINGPIN_RADIUS_CM, KINGPIN_HEIGHT_CM, 24]} />
+    <mesh position={[width / 2, -kingpinHeight / 2, zPos]}>
+      <cylinderGeometry args={[kingpinRadius, kingpinRadius, kingpinHeight, 24]} />
       <meshStandardMaterial color={KINGPIN_COLOR} metalness={0.7} roughness={0.3} />
     </mesh>
   );
@@ -358,7 +464,10 @@ function VehicleScene({
       ? length * CAB_LENGTH_RATIO_KAMYON
       : length * CAB_LENGTH_RATIO_TIR;
   // Tır: kabin ile kargo arası boşluk; king pimi bu aralıkta görünür
-  const cabGap = isTir ? CAB_GAP_TIR : 0;
+  const cabGap = isTir ? cabLength * CAB_GAP_RATIO_TIR : 0;
+  const kingpinHeight = isTir
+    ? height * CAB_HEIGHT_RATIO * KINGPIN_HEIGHT_RATIO
+    : height * KINGPIN_HEIGHT_RATIO;
   // Tır ve Römork: king pimi her zaman gösterilir; mesafe girilmemişse ön yüze (Z=length) yerleşir
   const hasKingpin = isTir || isKamposet;
   const hasAxleVehicle = isTir || vehicleType === VehicleType.Kamyon || isKamposet;
@@ -367,11 +476,12 @@ function VehicleScene({
   const cx = width / 2;
   const cy = height / 2;
   const cz = totalLength / 2;
-  const maxDim = Math.max(totalLength, width, height);
+  const effectiveHeight = hasCab ? height * CAB_HEIGHT_RATIO : height;
+  const maxDim = Math.max(totalLength, width, effectiveHeight);
 
   // Tır: king pimi boşluğun ortasına (length + gap/2); kargo gövdesiyle çakışmaz → kesinlikle görünür.
-  // Römork: ön yüzden KINGPIN_RADIUS_CM kadar öteye; zemin yüzeyi örtmez.
-  const kingpinZ = isTir ? length + cabGap / 2 : length + KINGPIN_RADIUS_CM;
+  // Römork: ön yüzden kingpinHeight*KINGPIN_RADIUS_RATIO kadar öteye; zemin yüzeyi örtmez.
+  const kingpinZ = isTir ? length + cabGap / 2 : length + kingpinHeight * KINGPIN_RADIUS_RATIO;
 
   const wheelRadius = height * 0.2;
   const hasRenderedAxles =
@@ -408,7 +518,7 @@ function VehicleScene({
         />
       )}
 
-      {hasKingpin && <KingPinMesh width={width} zPos={kingpinZ} />}
+      {hasKingpin && <KingPinMesh width={width} zPos={kingpinZ} kingpinHeight={kingpinHeight} />}
 
       {hasCab && <AxleWheelAssembly width={width} height={height} zPos={cabFrontAxleZ} />}
 
