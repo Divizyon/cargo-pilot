@@ -29,7 +29,7 @@ export function VehicleLayerCountField({ form }: VehicleLayerCountFieldProps) {
       render={({ field }) => (
         <FormItem>
           <div className="flex items-center justify-between">
-            <FormLabel>Maks. İstif Katmanı</FormLabel>
+            <FormLabel>Katman Sayısı</FormLabel>
             <Controller
               control={form.control}
               name="maxLayerCount"
@@ -51,6 +51,7 @@ export function VehicleLayerCountField({ form }: VehicleLayerCountFieldProps) {
               min="1"
               step="1"
               disabled={unlimited}
+              placeholder="3"
               className="h-9 border-input bg-background"
               value={field.value ?? ''}
               onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}

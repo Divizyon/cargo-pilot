@@ -287,19 +287,19 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
         <span className="block truncate text-xs text-muted-foreground">{vehicle.plate ?? '—'}</span>
       </TableCell>
 
-      {/* Genişlik */}
+      {/* Uzunluk (X) */}
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatDim(vehicle.width)} mm</span>
+        <span className="text-xs text-foreground">{formatDim(vehicle.length)} mm</span>
       </TableCell>
 
-      {/* Yükseklik */}
+      {/* Yükseklik (Y) */}
       <TableCell className={cell}>
         <span className="text-xs text-foreground">{formatDim(vehicle.height)} mm</span>
       </TableCell>
 
-      {/* Uzunluk */}
+      {/* Derinlik (Z) */}
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatDim(vehicle.length)} mm</span>
+        <span className="text-xs text-foreground">{formatDim(vehicle.width)} mm</span>
       </TableCell>
 
       {/* Maks Yük */}
@@ -568,13 +568,13 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   Plaka
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Genişlik
+                  Uzunluk (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik
+                  Yükseklik (Y)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk
+                  Derinlik (Z)
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Maks Yük

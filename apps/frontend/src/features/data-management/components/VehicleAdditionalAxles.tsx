@@ -1,19 +1,27 @@
-import { useFieldArray, useWatch } from 'react-hook-form';
-import type { UseFormReturn } from 'react-hook-form';
+import { forwardRef, useImperativeHandle } from 'react';
+import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { validateAxleDistances } from '@/lib/utils/validateAxleSum';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
+
+export interface VehicleAdditionalAxlesHandle {
+  addAxle: () => void;
+  canAdd: boolean;
+}
 
 interface VehicleAdditionalAxlesProps {
   form: UseFormReturn<VehicleFormValues>;
 }
 
-export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
+export const VehicleAdditionalAxles = forwardRef<
+  VehicleAdditionalAxlesHandle,
+  VehicleAdditionalAxlesProps
+>(function VehicleAdditionalAxles({ form }, ref) {
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
@@ -31,22 +39,19 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
   const showDistanceWarning =
     fields.length > 0 && !!vehicleLength && !validateAxleDistances([distanceSum], vehicleLength);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      addAxle: () => append({ distance: 0, tareWeight: 0, maxLoad: 0 }),
+      canAdd: fields.length < 1,
+    }),
+    [append, fields.length],
+  );
+
+  if (fields.length === 0) return null;
+
   return (
-    <div className="mt-3 flex flex-col gap-3">
-      {fields.length < 1 && (
-        <div className="flex items-center justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => append({ distance: 0, tareWeight: 0, maxLoad: 0 })}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Ek Aks Ekle
-          </Button>
-        </div>
-      )}
+    <div className="flex flex-col gap-3">
 
       {fields.map((fieldItem, index) => (
         <div key={fieldItem.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
@@ -55,12 +60,13 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
             name={`axles.${index}.maxLoad`}
             render={({ field }) => (
               <FormItem>
-                {index === 0 && <FormLabel>Kapasite ({weightUnit})</FormLabel>}
+                {index === 0 && <FormLabel>Kapasite</FormLabel>}
                 <FormControl>
                   <div className="relative">
                     <Input
                       type="number"
                       min="1"
+                      placeholder="11500"
                       className="h-9 border-input bg-background pr-8"
                       {...field}
                       value={field.value ?? ''}
@@ -83,12 +89,13 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
             name={`axles.${index}.tareWeight`}
             render={({ field }) => (
               <FormItem>
-                {index === 0 && <FormLabel>Dara Ağırlığı ({weightUnit})</FormLabel>}
+                {index === 0 && <FormLabel>Dara Ağırlığı</FormLabel>}
                 <FormControl>
                   <div className="relative">
                     <Input
                       type="number"
                       min="0"
+                      placeholder="3000"
                       className="h-9 border-input bg-background pr-8"
                       {...field}
                       value={field.value ?? ''}
@@ -111,12 +118,13 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
             name={`axles.${index}.distance`}
             render={({ field }) => (
               <FormItem>
-                {index === 0 && <FormLabel>Mesafe ({dimensionUnit})</FormLabel>}
+                {index === 0 && <FormLabel>Mesafe</FormLabel>}
                 <FormControl>
                   <div className="relative">
                     <Input
                       type="number"
                       min="1"
+                      placeholder="850"
                       className="h-9 border-input bg-background pr-8"
                       {...field}
                       value={field.value ?? ''}
@@ -156,4 +164,4 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
       )}
     </div>
   );
-}
+});

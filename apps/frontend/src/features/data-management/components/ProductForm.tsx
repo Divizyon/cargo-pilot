@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProductForm } from '@/features/data-management/hooks/useProductForm';
 import {
@@ -350,6 +351,8 @@ export function ProductForm({
     return match ? [match.value] : [];
   });
 
+  const [unlimitedStack, setUnlimitedStack] = useState(false);
+
   const [
     width,
     widthUnit,
@@ -410,28 +413,6 @@ export function ProductForm({
     form.setValue('incompatibleGroups', next, { shouldDirty: true });
   }
 
-  const productTypeOnChange = (value: string) => {
-    if (!value) return;
-    form.setValue('productType', value as 'koli' | 'varil' | 'palet', { shouldDirty: true });
-    if (value === 'palet') {
-      form.setValue('allowRotateY', false, { shouldValidate: false });
-      form.setValue('allowRotateZ', false, { shouldValidate: false });
-    } else {
-      form.setValue('allowRotateY', true, { shouldValidate: false });
-      if ((form.getValues('fragility') ?? 0) < 1) {
-        form.setValue('allowRotateZ', true, { shouldValidate: false });
-      }
-    }
-    if (value === 'varil') {
-      const w = form.getValues('width');
-      const wu = form.getValues('widthUnit');
-      if (w !== undefined && Number.isFinite(w)) {
-        form.setValue('length', w, { shouldDirty: false, shouldValidate: false });
-        form.setValue('lengthUnit', wu ?? 'mm', { shouldDirty: false, shouldValidate: false });
-      }
-    }
-  };
-
   const formFields = (
     <div className="divide-y divide-border">
       {/* 0. ÜRÜN TİPİ — tam genişlik */}
@@ -446,7 +427,30 @@ export function ProductForm({
                 <ToggleGroup
                   type="single"
                   value={field.value}
-                  onValueChange={productTypeOnChange}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    field.onChange(value);
+                    if (value === 'palet') {
+                      form.setValue('allowRotateY', false, { shouldValidate: false });
+                      form.setValue('allowRotateZ', false, { shouldValidate: false });
+                    } else {
+                      form.setValue('allowRotateY', true, { shouldValidate: false });
+                      if ((form.getValues('fragility') ?? 0) < 1) {
+                        form.setValue('allowRotateZ', true, { shouldValidate: false });
+                      }
+                    }
+                    if (value === 'varil') {
+                      const w = form.getValues('width');
+                      const wu = form.getValues('widthUnit');
+                      if (w !== undefined && Number.isFinite(w)) {
+                        form.setValue('length', w, { shouldDirty: false, shouldValidate: false });
+                        form.setValue('lengthUnit', wu ?? 'mm', {
+                          shouldDirty: false,
+                          shouldValidate: false,
+                        });
+                      }
+                    }
+                  }}
                   className="flex gap-2"
                 >
                   {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
@@ -470,7 +474,7 @@ export function ProductForm({
 
       {/* 1. KİMLİK — 4 eşit sütun */}
       <div className="space-y-4 py-6">
-        <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
+        <SectionTitle>Kimlik Bilgileri</SectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <FormField
             control={form.control}
@@ -483,6 +487,7 @@ export function ProductForm({
                     className={COMPACT_INPUT}
                     placeholder={t('forms.product.namePlaceholder')}
                     {...field}
+                    value={field.value ?? ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -500,6 +505,7 @@ export function ProductForm({
                     className={COMPACT_INPUT}
                     placeholder={t('forms.product.skuPlaceholder')}
                     {...field}
+                    value={field.value ?? ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -535,12 +541,28 @@ export function ProductForm({
             name="maxStackCount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Katman Sayısı</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Katman Sayısı</FormLabel>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Sınırsız</span>
+                    <Switch
+                      checked={unlimitedStack}
+                      onCheckedChange={(checked) => {
+                        setUnlimitedStack(checked);
+                        if (checked) {
+                          field.onChange(undefined);
+                          form.clearErrors('maxStackCount');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
                 <FormControl>
                   <Input
                     type="number"
                     min={1}
                     step={1}
+                    disabled={unlimitedStack}
                     className={COMPACT_INPUT}
                     placeholder="3"
                     value={field.value ?? ''}
@@ -1028,7 +1050,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   ];
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-screen flex-col rounded-xl border border-border bg-background p-3">
       {/* Başlık */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground">Ürün Önizleme</p>

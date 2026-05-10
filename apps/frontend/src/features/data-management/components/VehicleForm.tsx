@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
@@ -9,7 +9,7 @@ import { VehicleDimensionsFields } from './VehicleDimensionsFields';
 import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleWeightFields } from './VehicleWeightFields';
 import { VehicleAxleBSection } from './VehicleAxleBSection';
-import { VehicleAdditionalAxles } from './VehicleAdditionalAxles';
+import { VehicleAdditionalAxles, type VehicleAdditionalAxlesHandle } from './VehicleAdditionalAxles';
 import { VehicleKingpinSection } from './VehicleKingpinSection';
 import { VehicleFormActions } from './VehicleFormActions';
 import { VehiclePreviewPanel } from './VehiclePreviewPanel';
@@ -18,6 +18,9 @@ import { useVehicleFormVisibility } from '@/features/data-management/hooks/useVe
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { VehicleType } from '@/lib/types/vehicle';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VehicleFormProps {
@@ -52,6 +55,7 @@ export function VehicleForm({
 }: VehicleFormProps) {
   const form = useVehicleForm(defaultValues);
   const { showAxleSection, showKingpinSection } = useVehicleFormVisibility(form.control);
+  const axlesRef = useRef<VehicleAdditionalAxlesHandle>(null);
   const vehicleType = useWatch({ control: form.control, name: 'vehicleType' });
 
   useEffect(() => {
@@ -93,7 +97,7 @@ export function VehicleForm({
         )}
       </div>
 
-      {/* 1. KİMLİK — ad, plaka, maks. istif katmanı + açıklama */}
+      {/* 1. KİMLİK — ad, plaka, maks. istif katmanı */}
       <div className="space-y-4 py-6">
         <SectionTitle>Kimlik Bilgileri</SectionTitle>
         <div className="grid grid-cols-3 gap-3">
@@ -101,16 +105,12 @@ export function VehicleForm({
           <VehiclePlateOrSerialField form={form} hideHeading />
           <VehicleLayerCountField form={form} />
         </div>
-        <VehicleIdentityFields form={form} section="description-only" />
       </div>
 
-      {/* 2. FİZİKSEL BOYUTLAR + KAPI — 50/50 */}
+      {/* 2. FİZİKSEL BOYUTLAR */}
       <div className="space-y-4 py-6">
-        <SectionTitle>Fiziksel Boyutlar</SectionTitle>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <VehicleDimensionsFields form={form} />
-          <VehicleDoorDirectionField form={form} />
-        </div>
+        <SectionTitle>Fiziksel Özellikler</SectionTitle>
+        <VehicleDimensionsFields form={form} />
       </div>
 
       {/* 3. AĞIRLIK LİMİTLERİ */}
@@ -122,27 +122,60 @@ export function VehicleForm({
       {/* 4. AKS YÖNETİMİ (koşullu) */}
       {showAxleSection && (
         <div className="space-y-4 py-6">
-          <SectionTitle>Aks Yönetimi</SectionTitle>
-          <p className="text-xs text-muted-foreground">Ana Aks (Dingil B)</p>
+          <div className="flex items-center justify-between">
+            <SectionTitle className="mb-0">Aks Yönetimi</SectionTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto gap-1 px-1 py-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              onClick={() => axlesRef.current?.addAxle()}
+              disabled={!axlesRef.current?.canAdd}
+            >
+              + Ek Aks Ekle
+            </Button>
+          </div>
           <VehicleAxleBSection form={form} />
-          <VehicleAdditionalAxles form={form} />
+          <VehicleAdditionalAxles ref={axlesRef} form={form} />
         </div>
       )}
 
       {/* 5. KİNG PİMİ (koşullu) */}
       {showKingpinSection && (
         <div className="space-y-4 py-6">
-          <SectionTitle>King Pimi (A)</SectionTitle>
-          <p className="text-xs text-muted-foreground">
-            Aracın ön noktasına göre king pimi konumunu ve taşıma limitlerini tanımlayın.
-          </p>
+          <div className="flex items-center gap-1">
+            <SectionTitle className="mb-0">King Pimi (A)</SectionTitle>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-auto w-auto p-0">
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Aracın ön noktasına göre king pimi konumunu ve taşıma limitlerini tanımlayın.
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <VehicleKingpinSection form={form} />
         </div>
       )}
+
+      {/* 6. KAPI YÖNÜ */}
+      <div className="space-y-4 py-6">
+        <SectionTitle>Kapı Yönü</SectionTitle>
+        <VehicleDoorDirectionField form={form} />
+      </div>
+
+      {/* ÖZEL TAŞIMA NOTLARI */}
+      <div className="space-y-4 pt-6">
+        <SectionTitle>Özel Taşıma Notları</SectionTitle>
+        <VehicleIdentityFields form={form} section="description-only" />
+      </div>
     </div>
   );
 
   return (
+    <TooltipProvider delayDuration={150}>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormWithPreviewLayout
@@ -161,5 +194,6 @@ export function VehicleForm({
         </div>
       </form>
     </Form>
+    </TooltipProvider>
   );
 }
