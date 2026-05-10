@@ -4,6 +4,7 @@ using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence.Repositories;
@@ -245,6 +246,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.CenterOfGravityX,
             plan.CenterOfGravityY,
             plan.CenterOfGravityZ,
+            CalcBalanceOffset(plan.CenterOfGravityX, plan.Vehicle.InternalWidth),
+            CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
             plan.CreatedAtUtc,
             vehicleDto,
             placementDtos,
@@ -257,14 +260,48 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         => await _context.LoadingPlans
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
-    public void Add(LoadingPlan plan) => _context.LoadingPlans.Add(plan);
-
-    public void AddInputItems(IEnumerable<LoadingPlanInputItem> items) =>
-        _context.LoadingPlanInputItems.AddRange(items);
-
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
 
+    public async Task SaveWithResultAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> inputItems,
+        OptimizationResult result,
+        CancellationToken cancellationToken = default)
+    {
+        var placements = result.Placements
+            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation))
+            .ToList();
+
+        var unplacedItems = result.UnplacedItems
+            .Select(u => new LoadingPlanUnplacedItem(Guid.NewGuid(), plan.Id, u.ItemId, u.Quantity, u.Reason))
+            .ToList();
+
+        plan.ApplyOptimizationResult(
+            LoadingPlanOptimizationStatus.Calculated,
+            result.TotalWeight,
+            result.FillRate,
+            result.Placements.Count,
+            result.UnplacedItems.Sum(u => u.Quantity),
+            result.CenterOfGravityX,
+            result.CenterOfGravityY,
+            result.CenterOfGravityZ);
+
+        _context.LoadingPlans.Add(plan);
+        _context.LoadingPlanInputItems.AddRange(inputItems);
+        _context.LoadingPlanPlacements.AddRange(placements);
+        _context.LoadingPlanUnplacedItems.AddRange(unplacedItems);
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
         new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
+
+    private static decimal? CalcBalanceOffset(decimal? cog, decimal dimension)
+    {
+        if (!cog.HasValue || dimension <= 0) return null;
+        var half = dimension / 2;
+        return Math.Round(Math.Abs(cog.Value - half) / half * 100, 1);
+    }
 }
