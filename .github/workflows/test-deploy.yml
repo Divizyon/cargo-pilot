@@ -130,6 +130,8 @@ jobs:
 
   # ─── Build job: sadece test'e giden PR'da veya test'e push'ta çalışır ────────
   # US-D27-I: test branch push'ta image'lar GHCR'a push edilir.
+  # Her push'ta hem :test (mutable, latest) hem :test-{sha} (immutable) tag'i push edilir.
+  # deploy-test-server job'u immutable tag'i kullanır; rollback için geçmişe erişim sağlar.
   build:
     name: Image Build
     runs-on: ubuntu-latest
@@ -147,14 +149,21 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      image-tag: ${{ steps.sha.outputs.tag }}
+
     steps:
       - name: Kodu al
         uses: actions/checkout@v4
 
+      - name: Image tag belirle (immutable: test-{short-sha})
+        id: sha
+        run: echo "tag=test-$(echo '${{ github.sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
+
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@v3
 
-      # Base image pull için de GHCR auth gerekli; GITHUB_TOKEN her trigger'da geçerli
+      # Base image pull + push için GHCR auth; GITHUB_TOKEN her trigger'da geçerli
       - name: GHCR'a giriş yap
         uses: docker/login-action@v3
         with:
@@ -163,13 +172,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # push: PR'larda false, test branch push'ta true
+      # :test → mutable (latest), :test-{sha} → immutable (rollback için)
       - name: Backend image build ve GHCR push
         uses: docker/build-push-action@v5
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
-          tags: ghcr.io/divizyon/cargo-pilot-backend:test
+          tags: |
+            ghcr.io/divizyon/cargo-pilot-backend:test
+            ghcr.io/divizyon/cargo-pilot-backend:${{ steps.sha.outputs.tag }}
           build-args: |
             DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
             DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
@@ -182,7 +194,9 @@ jobs:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
-          tags: ghcr.io/divizyon/cargo-pilot-frontend:test
+          tags: |
+            ghcr.io/divizyon/cargo-pilot-frontend:test
+            ghcr.io/divizyon/cargo-pilot-frontend:${{ steps.sha.outputs.tag }}
           cache-from: type=gha,scope=frontend-test
           cache-to: type=gha,mode=max,scope=frontend-test
 
@@ -346,17 +360,16 @@ jobs:
 
     steps:
       # US-D27-I: Sunucu artık build yapmıyor; GHCR'dan pull edilen image'ı kullanıyor.
-      # Gerekli GitHub Secret'lar: TEST_GHCR_PAT (read:packages scope'lu PAT), TEST_GHCR_USER (PAT sahibi kullanıcı adı)
+      # Packages public olduğundan PAT login gerekmez; IMAGE_TAG ile immutable tag kullanılır.
       - name: Sunucuya bağlan ve test stack'ini güncelle
         uses: appleboy/ssh-action@v1.0.3
         env:
-          GHCR_PAT: ${{ secrets.TEST_GHCR_PAT }}
-          GHCR_USER: ${{ secrets.TEST_GHCR_USER }}
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: root
           key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
-          envs: GHCR_PAT,GHCR_USER
+          envs: IMAGE_TAG
           script: |
             set -e
             cd /opt/cargo-pilot
@@ -367,11 +380,8 @@ jobs:
             git checkout test
             git reset --hard origin/test
 
-            echo "==> GHCR'a giriş yapılıyor..."
-            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-            echo "==> Image'lar GHCR'dan çekiliyor (build yok)..."
-            docker compose \
+            echo "==> Image'lar GHCR'dan çekiliyor (tag: ${IMAGE_TAG})..."
+            IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
               pull backend frontend
@@ -382,8 +392,8 @@ jobs:
               --env-file infra/env/.env.test \
               down --remove-orphans 2>/dev/null || true
 
-            echo "==> Stack ayağa kaldırılıyor..."
-            docker compose \
+            echo "==> Stack ayağa kaldırılıyor (tag: ${IMAGE_TAG})..."
+            IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
               up -d --no-build
