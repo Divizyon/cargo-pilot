@@ -36,7 +36,24 @@ sunucuya SSH ile bağlanarak el ile oluşturulur. VPS konsolunda saklanır.
 
 ---
 
-## 3. Backend Geliştirme (Local .NET)
+## 3. GHCR Package Erişimi
+
+**Durum (2026-05-10):** GHCR package'ları **public** yapıldı.
+
+| Package | Visibility |
+|---------|------------|
+| `ghcr.io/divizyon/cargo-pilot-backend` | 🌐 Public |
+| `ghcr.io/divizyon/cargo-pilot-frontend` | 🌐 Public |
+| `ghcr.io/divizyon/cargo-pilot-dotnet-sdk` | 🌐 Public |
+| `ghcr.io/divizyon/cargo-pilot-dotnet-aspnet` | 🌐 Public |
+
+Geliştiricilerin GHCR'a login olmasına veya PAT oluşturmasına **gerek yoktur**. `docker compose pull` ve `docker compose up -d` doğrudan çalışır.
+
+Sunucunun GHCR'dan image çekmesi için kullandığı `TEST_GHCR_PAT` GitHub secret'ı hâlâ geçerlidir ve CI pipeline tarafından kullanılmaktadır.
+
+---
+
+## 4. Backend Geliştirme (Local .NET)
 
 ### `appsettings.Development.json`
 
@@ -85,7 +102,7 @@ ASP.NET Core ortam değişkenlerini `appsettings.json`'ın üstüne otomatik uyg
 
 ---
 
-## 4. CI/CD Secret'ları (GitHub Actions)
+## 5. CI/CD Secret'ları (GitHub Actions)
 
 | Secret | Kullanıldığı Yer |
 |--------|-----------------|
@@ -103,7 +120,7 @@ GitHub → Settings → Secrets and variables → Actions altında yönetilir.
 
 ---
 
-## 5. Google OAuth ve Resend Yapılandırması
+## 6. Google OAuth ve Resend Yapılandırması
 
 ### Google OAuth (US-D32-C)
 
@@ -133,7 +150,7 @@ GitHub → Settings → Secrets and variables → Actions altında yönetilir.
 
 ---
 
-## 6. Güvenlik İhlali Durumunda
+## 7. Güvenlik İhlali Durumunda
 
 Bir secret repoya commit edildiyse:
 
@@ -146,7 +163,7 @@ Bir secret repoya commit edildiyse:
 
 ---
 
-## 7. Mevcut Durum (2026-04-30)
+## 8. Mevcut Durum (2026-05-10)
 
 | Bulgu | Durum |
 |-------|-------|
