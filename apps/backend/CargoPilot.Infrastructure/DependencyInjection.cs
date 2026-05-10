@@ -33,6 +33,11 @@ public static class DependencyInjection {
             .Validate(s => !string.IsNullOrWhiteSpace(s.FromEmail), "Resend:FromEmail is required.")
             .ValidateOnStart();
 
+        services.AddOptions<ErpEncryptionSettings>()
+            .Bind(configuration.GetSection("ErpEncryption"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.Key), "ErpEncryption:Key is required.")
+            .ValidateOnStart();
+
         services.AddOptions<PasswordResetSettings>()
             .Bind(configuration.GetSection("PasswordReset"))
             .PostConfigure(settings =>
@@ -59,6 +64,9 @@ public static class DependencyInjection {
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
         services.AddScoped<IOptimizationEngine, NoOpOptimizationEngine>();
         services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
+        services.AddScoped<IErpEncryptionService, AesEncryptionService>();
+        services.AddScoped<IErpSettingsRepository, ErpSettingsRepository>();
+        services.AddScoped<IErpConnectionTester, ErpConnectionTester>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
