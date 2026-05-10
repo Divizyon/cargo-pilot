@@ -1,5 +1,8 @@
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Me.ChangePassword;
+using CargoPilot.Application.Features.Me.ConfirmEmailChange;
 using CargoPilot.Application.Features.Me.GetMyProfile;
+using CargoPilot.Application.Features.Me.RequestEmailChange;
 using CargoPilot.Application.Features.Me.UpdateMyProfile;
 using CargoPilot.Application.Features.Me.UpdateTourCompleted;
 using MediatR;
@@ -42,6 +45,56 @@ public sealed class MeController : BaseController
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>Giriş yapmış kullanıcının şifresini değiştirir ve diğer tüm oturumları sonlandırır.</summary>
+    [HttpPost("change-password")]
+    [EnableRateLimiting("change-password")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangeMyPasswordCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>Giriş yapmış kullanıcı için e-posta değişikliği isteği başlatır; mevcut e-postaya onay bağlantısı gönderir.</summary>
+    [HttpPost("request-email-change")]
+    [EnableRateLimiting("email-change-request")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> RequestEmailChange(
+        [FromBody] RequestEmailChangeCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>E-posta değişikliğini token ile onaylar. Anonim erişime açıktır (bağlantıya tıklama akışı).</summary>
+    [HttpGet("confirm-email-change")]
+    [AllowAnonymous]
+    [EnableRateLimiting("confirm-email-change")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ConfirmEmailChange(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new ConfirmEmailChangeCommand(token), cancellationToken);
         return HandleResult(result);
     }
 

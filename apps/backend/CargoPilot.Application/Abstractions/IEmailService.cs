@@ -13,4 +13,15 @@ public interface IEmailService {
         DateTime loginTime,
         string secureAccountLink,
         CancellationToken cancellationToken = default);
+
+    Task SendPasswordChangedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default);
+
+    Task SendEmailChangeConfirmationEmailAsync(
+        string toEmail,
+        string toName,
+        string confirmLink,
+        CancellationToken cancellationToken = default);
 }

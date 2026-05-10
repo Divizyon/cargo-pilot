@@ -34,6 +34,15 @@ public static class DependencyInjection {
             .Validate(s => !string.IsNullOrWhiteSpace(s.FromEmail), "Resend:FromEmail is required.")
             .ValidateOnStart();
 
+        services.AddOptions<EmailChangeSettings>()
+            .Bind(configuration.GetSection("EmailChange"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.FrontendConfirmUrl), "EmailChange:FrontendConfirmUrl is required.")
+            .Validate(s => s.TokenExpiryMinutes > 0, "EmailChange:TokenExpiryMinutes must be greater than 0.")
+            .ValidateOnStart();
+
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailChangeSettings>>().Value);
+
         services.AddOptions<PasswordResetSettings>()
             .Bind(configuration.GetSection("PasswordReset"))
             .PostConfigure(settings =>
@@ -63,7 +72,8 @@ public static class DependencyInjection {
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
-        services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+        services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
