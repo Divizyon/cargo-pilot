@@ -24,7 +24,7 @@ internal sealed class NotificationRepository : INotificationRepository
     public async Task<IReadOnlyList<Notification>> GetPagedAsync(
         Guid userId,
         DateTime? cursor,
-        NotificationType? type,
+        IReadOnlyList<NotificationType>? types,
         NotificationSeverity? severity,
         bool? isRead,
         string? searchText,
@@ -37,8 +37,8 @@ internal sealed class NotificationRepository : INotificationRepository
         if (cursor.HasValue)
             query = query.Where(n => n.CreatedAtUtc < cursor.Value);
 
-        if (type.HasValue)
-            query = query.Where(n => n.Type == type.Value);
+        if (types != null && types.Count > 0)
+            query = query.Where(n => types.Contains(n.Type));
 
         if (severity.HasValue)
             query = query.Where(n => n.Severity == severity.Value);
@@ -64,10 +64,10 @@ internal sealed class NotificationRepository : INotificationRepository
             .CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
     }
 
-    public Task<Notification?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    public Task<Notification?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _dbContext.Notifications
-            .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId, cancellationToken);
+            .FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
     }
 
     public async Task MarkAsReadAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
@@ -115,6 +115,25 @@ internal sealed class NotificationRepository : INotificationRepository
                     .SetProperty(n => n.IsActive, false)
                     .SetProperty(n => n.DeletedAtUtc, now),
                 cancellationToken);
+    }
+
+    public Task<bool> ExistsTodayByTypeAsync(Guid userId, NotificationType type, CancellationToken cancellationToken = default)
+    {
+        var todayStart = DateTime.UtcNow.Date;
+        var todayEnd   = todayStart.AddDays(1);
+        return _dbContext.Notifications
+            .AnyAsync(
+                n => n.UserId == userId && n.Type == type &&
+                     n.CreatedAtUtc >= todayStart && n.CreatedAtUtc < todayEnd,
+                cancellationToken);
+    }
+
+    public Task HardDeleteOlderThanAsync(DateTime cutoff, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Notifications
+            .IgnoreQueryFilters()
+            .Where(n => n.IsDeleted && n.DeletedAtUtc != null && n.DeletedAtUtc < cutoff)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -5,14 +5,13 @@ namespace CargoPilot.Application.Common.Interfaces;
 
 public interface INotificationRepository
 {
-    // Returns up to PageSize+1 items; caller checks count > PageSize to determine hasMore.
     void Add(Notification notification);
 
     // Returns up to PageSize+1 items; caller checks count > PageSize to determine hasMore.
     Task<IReadOnlyList<Notification>> GetPagedAsync(
         Guid userId,
         DateTime? cursor,
-        NotificationType? type,
+        IReadOnlyList<NotificationType>? types,
         NotificationSeverity? severity,
         bool? isRead,
         string? searchText,
@@ -20,7 +19,7 @@ public interface INotificationRepository
 
     Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<Notification?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+    Task<Notification?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task MarkAsReadAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
 
@@ -29,6 +28,10 @@ public interface INotificationRepository
     Task SoftDeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
 
     Task BulkSoftDeleteAsync(IEnumerable<Guid> ids, Guid userId, CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsTodayByTypeAsync(Guid userId, NotificationType type, CancellationToken cancellationToken = default);
+
+    Task HardDeleteOlderThanAsync(DateTime cutoff, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
