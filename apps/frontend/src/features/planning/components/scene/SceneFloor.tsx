@@ -31,6 +31,7 @@ const fragmentShader = /* glsl */ `
   uniform float uBoxMaxX;
   uniform float uBoxMinY;
   uniform float uBoxMaxY;
+  uniform vec3  uBaseColor;
 
   float gridLine(float coord, float width) {
     float f = abs(fract(coord / uCellSize) - 0.5);
@@ -53,9 +54,10 @@ const fragmentShader = /* glsl */ `
     float dist = length(vWorldPos.xy - uCameraPos.xz);
     float fade = 1.0 - smoothstep(uFadeNear, uFadeFar, dist);
 
-    float alpha = line * fade;
+    vec3 color = mix(uBaseColor, uLineColor, line);
+    float alpha = fade;
     if (alpha < 0.01) discard;
-    gl_FragColor = vec4(uLineColor, alpha);
+    gl_FragColor = vec4(color, alpha);
   }
 `;
 
@@ -63,8 +65,8 @@ const fragmentShader = /* glsl */ `
 // Bu sayede ESLint immutability kuralı tetiklenmez.
 const sharedUniforms = {
   uCellSize: { value: GRID_CELL_CM },
-  uLineColor: { value: new THREE.Color('#374151') },
-  uLineWidth: { value: 0.04 },
+  uLineColor: { value: new THREE.Color('#3f3f46') },
+  uLineWidth: { value: 0.005 },
   uFadeNear: { value: 3000 },
   uFadeFar: { value: 6000 },
   uCameraPos: { value: new THREE.Vector3() },
@@ -72,6 +74,7 @@ const sharedUniforms = {
   uBoxMaxX: { value: 0 },
   uBoxMinY: { value: 0 },
   uBoxMaxY: { value: 0 },
+  uBaseColor: { value: new THREE.Color('#f4f4f5') },
 };
 
 export function SceneFloor({ y = -1 }: { y?: number }) {
