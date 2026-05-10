@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using CargoPilot.Application.Abstractions;
+using Hangfire;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
@@ -231,6 +232,8 @@ public static class DependencyInjection {
                 "database",
                 failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
+
+            services.AddHangfireServer();
         }
 
         return services;

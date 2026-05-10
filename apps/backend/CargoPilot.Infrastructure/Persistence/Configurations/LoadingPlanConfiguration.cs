@@ -76,6 +76,10 @@ internal sealed class LoadingPlanConfiguration : IEntityTypeConfiguration<Loadin
         builder.Property(plan => plan.ReportUrl)
             .HasMaxLength(2048);
 
+        builder.Property(plan => plan.ErpExportStatus)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
         builder.Property(plan => plan.CompanyId);
 
         builder.HasOne(plan => plan.Vehicle)

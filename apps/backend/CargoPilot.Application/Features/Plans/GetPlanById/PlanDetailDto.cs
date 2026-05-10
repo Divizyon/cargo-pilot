@@ -18,6 +18,7 @@ public sealed record PlanDetailDto(
     decimal? CenterOfGravityY,
     decimal? CenterOfGravityZ,
     DateTime CreatedAtUtc,
+    ErpExportStatus? ErpExportStatus,
     VehicleInPlanDto Vehicle,
     IReadOnlyList<PlacementDto> Placements,
     IReadOnlyList<UnplacedItemDto> UnplacedItems,

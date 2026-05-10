@@ -246,6 +246,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.CenterOfGravityY,
             plan.CenterOfGravityZ,
             plan.CreatedAtUtc,
+            plan.ErpExportStatus,
             vehicleDto,
             placementDtos,
             unplacedItemDtos,
