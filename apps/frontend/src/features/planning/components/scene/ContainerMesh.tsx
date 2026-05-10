@@ -31,32 +31,6 @@ function ContainerEdges({
   );
 }
 
-// ─── ContainerGrid ─────────────────────────────────────────────────────────────
-
-function ContainerGrid({ width, length }: { width: number; length: number }) {
-  const geometry = useMemo(() => {
-    const step = SCENE.GRID_STEP_CM;
-    const points: number[] = [];
-
-    for (let z = 0; z <= length; z += step) {
-      points.push(0, 0, z, width, 0, z);
-    }
-    for (let x = 0; x <= width; x += step) {
-      points.push(x, 0, 0, x, 0, length);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-    return geo;
-  }, [width, length]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.45} transparent />
-    </lineSegments>
-  );
-}
-
 // ─── Shared door constants (values from scene-config) ─────────────────────────
 
 const DOOR_THICKNESS = SCENE.DOOR_THICKNESS_CM;
@@ -65,8 +39,6 @@ const DOOR_EASING = SCENE.DOOR_EASING;
 
 // ─── Rear door helpers (X-axis panel on Z=0 face) ─────────────────────────────
 
-// Grid lines on the outer face of a rear door panel.
-// sign=+1 → x runs 0…panelW (left door); sign=-1 → x runs 0…-panelW (right door).
 function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
@@ -97,30 +69,10 @@ function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: numbe
     const z = -(DOOR_THICKNESS + 0.5);
     const ex = sign * panelW;
     const pts = [
-      0,
-      0,
-      z,
-      ex,
-      0,
-      z,
-      ex,
-      0,
-      z,
-      ex,
-      height,
-      z,
-      ex,
-      height,
-      z,
-      0,
-      height,
-      z,
-      0,
-      height,
-      z,
-      0,
-      0,
-      z,
+      0, 0, z, ex, 0, z,
+      ex, 0, z, ex, height, z,
+      ex, height, z, 0, height, z,
+      0, height, z, 0, 0, z,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -173,12 +125,8 @@ function RearDoors({ width, height }: { width: number; height: number }) {
 
 // ─── Side door (X face) ────────────────────────────────────────────────────────
 
-// Same visual style as rear doors: grid lines + frame outline on the outer face.
-// Front panel hinges at Z=0, rear panel hinges at Z=length — both swing outward (−X).
 const SIDE_DOOR_OPEN_ANGLE = SCENE.DOOR_SIDE_OPEN_ANGLE;
 
-// Grid drawn on the outer face of the panel (facing −X, at x = −(DOOR_THICKNESS+0.5)).
-// sign=1 → panel extends +Z; sign=−1 → panel extends −Z.
 function SideDoorGrid({
   panelDepth,
   height,
@@ -223,30 +171,10 @@ function SideDoorFrame({
     const x = -(DOOR_THICKNESS + 0.5);
     const ez = sign * panelDepth;
     const pts = [
-      x,
-      0,
-      0,
-      x,
-      0,
-      ez,
-      x,
-      0,
-      ez,
-      x,
-      height,
-      ez,
-      x,
-      height,
-      ez,
-      x,
-      height,
-      0,
-      x,
-      height,
-      0,
-      x,
-      0,
-      0,
+      x, 0, 0, x, 0, ez,
+      x, 0, ez, x, height, ez,
+      x, height, ez, x, height, 0,
+      x, height, 0, x, 0, 0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -307,10 +235,6 @@ function SideDoors({ width, height, length }: { width: number; height: number; l
 
 // ─── Top cover (open-top vehicles) ────────────────────────────────────────────
 
-// Same visual style as rear doors. Grid + frame on the outer face (facing +Y).
-// Rear half hinges at Z=0, front half at Z=length.
-// Rotation: −X lifts +Z edge upward, +X lifts −Z edge upward.
-
 function TopCoverGrid({
   width,
   panelLength,
@@ -355,30 +279,10 @@ function TopCoverFrame({
     const y = DOOR_THICKNESS + 0.5;
     const ez = sign * panelLength;
     const pts = [
-      0,
-      y,
-      0,
-      width,
-      y,
-      0,
-      width,
-      y,
-      0,
-      width,
-      y,
-      ez,
-      width,
-      y,
-      ez,
-      0,
-      y,
-      ez,
-      0,
-      y,
-      ez,
-      0,
-      y,
-      0,
+      0, y, 0, width, y, 0,
+      width, y, 0, width, y, ez,
+      width, y, ez, 0, y, ez,
+      0, y, ez, 0, y, 0,
     ];
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -418,9 +322,7 @@ function TopCover({ width, height, length }: { width: number; height: number; le
     const diff = SCENE.DOOR_SIDE_OPEN_ANGLE - angleRef.current;
     if (Math.abs(diff) > 0.0005) {
       angleRef.current += diff * DOOR_EASING;
-      // −X rotation: +Z edge lifts upward (away from container)
       if (rearRef.current) rearRef.current.rotation.x = -angleRef.current;
-      // +X rotation: −Z edge lifts upward (away from container)
       if (frontRef.current) frontRef.current.rotation.x = angleRef.current;
     }
   });
@@ -447,22 +349,18 @@ export function ContainerMesh() {
   if (!vehicle) return null;
 
   const { width, height, length, doorSide } = vehicle;
-  // Default to 'rear' when doorDirection is absent (API not yet mapped)
   const doorDirection = vehicle.doorDirection ?? 'rear';
 
   return (
     <group>
       <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
-      <ContainerGrid width={width} length={length} />
 
-      {/* key resets door animation when vehicle changes */}
       {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
         <RearDoors key={`rear-${vehicle.id}`} width={width} height={height} />
       )}
 
       {(doorDirection === 'side' || doorDirection === 'rearAndSide') && (
-        // For right-side doors: translate to X=width and mirror X so geometry faces outward
         <group
           key={`side-${vehicle.id}`}
           position={[doorSide === 'left' ? 0 : width, 0, 0]}
