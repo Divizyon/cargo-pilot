@@ -32,21 +32,13 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Aks Yönetimi
-        </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">Ana Aks (Dingil B)</p>
-      </div>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}
           name="axleB.maxLoad"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Kapasite ({weightUnit})
-              </FormLabel>
+              <FormLabel>Kapasite ({weightUnit})</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -74,9 +66,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           name="axleB.tareWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Dara Ağırlığı ({weightUnit})
-              </FormLabel>
+              <FormLabel>Dara Ağırlığı ({weightUnit})</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -104,9 +94,7 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           name="axleB.distance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Mesafe ({dimensionUnit})
-              </FormLabel>
+              <FormLabel>Mesafe ({dimensionUnit})</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input

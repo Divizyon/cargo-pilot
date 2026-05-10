@@ -12,9 +12,9 @@ export function ProductEditPage() {
 
   if (isLoading) {
     return (
-      <div className="flex w-full flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-80" />
         </div>
         <Skeleton className="h-96 w-full rounded-2xl" />
@@ -24,17 +24,17 @@ export function ProductEditPage() {
 
   if (isError || !item) {
     return (
-      <div className="flex w-full flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <p className="text-sm text-destructive">Ürün yüklenemedi.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           {item.name} — fiziksel özelliklerini ve kısıtlarını görüntüleyin veya güncelleyin.
         </p>
       </div>

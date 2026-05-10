@@ -23,9 +23,6 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Kapı Yönü
-      </h3>
       <Controller
         control={form.control}
         name="doorDirection"

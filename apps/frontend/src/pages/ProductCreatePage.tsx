@@ -7,10 +7,10 @@ export function ProductCreatePage() {
   const createItem = useCreateItem();
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Yeni Ürün Ekle</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Yeni Ürün Ekle</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Ürünün kimliğini, fiziksel özelliklerini ve kısıtlarını tanımlayın.
         </p>
       </div>

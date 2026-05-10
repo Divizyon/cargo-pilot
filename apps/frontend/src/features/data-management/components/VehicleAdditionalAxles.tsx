@@ -33,18 +33,20 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
 
   return (
     <div className="mt-3 flex flex-col gap-3">
-      <div className="flex items-center justify-end">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => append({ distance: 0, tareWeight: 0, maxLoad: 0 })}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Yeni Aks Ekle
-        </Button>
-      </div>
+      {fields.length < 1 && (
+        <div className="flex items-center justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => append({ distance: 0, tareWeight: 0, maxLoad: 0 })}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Ek Aks Ekle
+          </Button>
+        </div>
+      )}
 
       {fields.map((fieldItem, index) => (
         <div key={fieldItem.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
@@ -53,11 +55,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
             name={`axles.${index}.maxLoad`}
             render={({ field }) => (
               <FormItem>
-                {index === 0 && (
-                  <FormLabel className="text-xs font-medium text-foreground">
-                    Kapasite ({weightUnit})
-                  </FormLabel>
-                )}
+                {index === 0 && <FormLabel>Kapasite ({weightUnit})</FormLabel>}
                 <FormControl>
                   <div className="relative">
                     <Input
@@ -85,11 +83,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
             name={`axles.${index}.tareWeight`}
             render={({ field }) => (
               <FormItem>
-                {index === 0 && (
-                  <FormLabel className="text-xs font-medium text-foreground">
-                    Dara Ağırlığı ({weightUnit})
-                  </FormLabel>
-                )}
+                {index === 0 && <FormLabel>Dara Ağırlığı ({weightUnit})</FormLabel>}
                 <FormControl>
                   <div className="relative">
                     <Input
@@ -117,11 +111,7 @@ export function VehicleAdditionalAxles({ form }: VehicleAdditionalAxlesProps) {
             name={`axles.${index}.distance`}
             render={({ field }) => (
               <FormItem>
-                {index === 0 && (
-                  <FormLabel className="text-xs font-medium text-foreground">
-                    Mesafe ({dimensionUnit})
-                  </FormLabel>
-                )}
+                {index === 0 && <FormLabel>Mesafe ({dimensionUnit})</FormLabel>}
                 <FormControl>
                   <div className="relative">
                     <Input

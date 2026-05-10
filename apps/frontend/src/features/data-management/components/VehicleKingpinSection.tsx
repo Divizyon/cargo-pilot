@@ -22,16 +22,6 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* AC1 (US-VY-09): Başlık US ile eşleşecek şekilde güncellendi */}
-      <div>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          King Pimi (A)
-        </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Aracın ön noktasına göre king pimi konumunu ve taşıma limitlerini tanımlayın.
-        </p>
-      </div>
-
       {'message' in (form.formState.errors.kingpin ?? {}) && (
         <p className="text-sm font-medium text-destructive">
           {(form.formState.errors.kingpin as { message?: string }).message}

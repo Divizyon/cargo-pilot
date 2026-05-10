@@ -8,10 +8,10 @@ export function VehicleCreatePage() {
   const createVehicle = useCreateVehicle();
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Yeni Araç Ekle</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Yeni Araç Ekle</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Araç tipini, kimlik bilgilerini ve özelliklerini tanımlayın.
         </p>
       </div>
