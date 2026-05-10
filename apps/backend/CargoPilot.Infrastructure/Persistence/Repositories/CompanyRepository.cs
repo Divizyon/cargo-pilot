@@ -13,6 +13,11 @@ internal sealed class CompanyRepository : ICompanyRepository
         _dbContext = dbContext;
     }
 
+    public void Add(Company company)
+    {
+        _dbContext.Companies.Add(company);
+    }
+
     public async Task<IReadOnlyList<Company>> GetExpiringTrialCompaniesAsync(
         int daysAhead,
         CancellationToken cancellationToken = default)

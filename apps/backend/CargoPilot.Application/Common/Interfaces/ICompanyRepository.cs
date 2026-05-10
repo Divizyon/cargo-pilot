@@ -4,6 +4,8 @@ namespace CargoPilot.Application.Common.Interfaces;
 
 public interface ICompanyRepository
 {
+    void Add(Company company);
+
     Task<IReadOnlyList<Company>> GetExpiringTrialCompaniesAsync(int daysAhead, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Company>> GetExpiredTrialCompaniesAsync(CancellationToken cancellationToken = default);

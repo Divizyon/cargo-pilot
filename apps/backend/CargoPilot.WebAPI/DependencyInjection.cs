@@ -117,6 +117,25 @@ public static class DependencyInjection {
                 };
             });
 
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("SuperAdmin", policy =>
+                policy.RequireClaim("role", "SuperAdmin"));
+
+            options.AddPolicy("CompanyAdmin", policy =>
+                policy.RequireClaim("role", "CompanyAdmin"));
+
+            options.AddPolicy("CompanyWorker", policy =>
+                policy.RequireClaim("role", "CompanyWorker"));
+
+            options.AddPolicy("Individual", policy =>
+                policy.RequireClaim("role", "Individual"));
+
+            // SuperAdmin | CompanyAdmin | CompanyWorker | Individual
+            options.AddPolicy("CompanyMember", policy =>
+                policy.RequireClaim("role", "SuperAdmin", "CompanyAdmin", "CompanyWorker", "Individual"));
+        });
+
         services.AddControllers().AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
