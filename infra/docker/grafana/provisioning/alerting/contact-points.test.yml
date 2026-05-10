@@ -1,0 +1,12 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: cargo-pilot-email
+    receivers:
+      - uid: email-receiver-test
+        type: email
+        settings:
+          addresses: devops@divizyon.org
+          singleEmail: false
+        disableResolveMessage: false
