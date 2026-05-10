@@ -71,4 +71,12 @@ internal sealed class UserRepository : IUserRepository {
             .ToListAsync(cancellationToken);
         return users.ToDictionary(u => u.Id);
     }
+
+    public Task<AppUser?> GetCompanyAdminAsync(Guid companyId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users
+            .FirstOrDefaultAsync(
+                u => u.CompanyId == companyId && u.UserType == UserType.CompanyAdmin,
+                cancellationToken);
+    }
 }

@@ -44,6 +44,8 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company> {
             .IsRequired()
             .HasDefaultValue(5);
 
+        builder.Property(company => company.TrialEndsAt);
+
         builder.HasIndex(company => company.Name);
         builder.HasIndex(company => company.IsDeleted);
 
