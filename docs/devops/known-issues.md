@@ -8,7 +8,27 @@ Bu doküman, Cargo Pilot altyapısında tespit edilmiş bilinen sorunları ve me
 
 ---
 
-## 1. Resend Domain Doğrulaması Tamamlanmadı
+## 1. `test` Branch'ine Doğrudan Push Koruması Eksik
+
+**Durum:** ⚠️ Açık
+
+**Açıklama:**
+`test` branch'inde doğrudan push'u engelleyen bir branch protection kuralı henüz yapılandırılmamıştır.
+
+**Etkisi:**
+- `git push origin test` ile doğrudan push mümkündür; `enforce-test-base` tetiklenmez.
+
+**Geçici Çözüm:**
+Ekip olarak doğrudan `test`'e push yapılmamaktadır.
+
+**Kalıcı Çözüm:**
+GitHub → Settings → Branches → `test` branch protection rule:
+- "Require a pull request before merging" aktif edilmeli
+- Required status checks: `Test PR Dev Kontrolü`, `Image Build`, `Deploy (Test)` eklenmeli
+
+---
+
+## 2. Resend Domain Doğrulaması Tamamlanmadı
 
 **Durum:** ⚠️ Açık
 
@@ -26,7 +46,7 @@ resend.com → Domains → `divizyon.org` için DNS kayıtları eklenmeli. `RESE
 
 ---
 
-## 2. Production Stack Henüz Deploy Edilmedi
+## 3. Production Stack Henüz Deploy Edilmedi
 
 **Durum:** ⚠️ Açık — Kritik
 
@@ -41,11 +61,11 @@ Sunucuda `.env.prod` dosyası ve production stack hiç kurulmamıştır.
 Test ortamı ürün demosu için kullanılmaktadır.
 
 **Kalıcı Çözüm:**
-`infra/env/.env.prod.example` → `.env.prod` oluşturulmalı, `docker-compose.prod.yml` ayağa kaldırılmalı. Detaylar: [devops-backlog.md](devops-backlog.md) madde 2.1–2.3.
+`infra/env/.env.prod.example` → `.env.prod` oluşturulmalı, `docker-compose.prod.yml` ayağa kaldırılmalı. Detaylar: [devops-backlog.md](devops-backlog.md) madde 1–4.
 
 ---
 
-## 3. MSSQL SA Parolası Git Geçmişinde
+## 4. MSSQL SA Parolası Git Geçmişinde
 
 **Durum:** ⚠️ Açık — Güvenlik
 
@@ -63,7 +83,7 @@ Sunucudaki SA parolası döndürülmeli (rotate). Geçmiş temizliği için `git
 
 ---
 
-## 4. Node.js 20 Deprecation Uyarısı (CI)
+## 5. Node.js 20 Deprecation Uyarısı (CI)
 
 **Durum:** ℹ️ Bilgi
 
@@ -71,42 +91,22 @@ Sunucudaki SA parolası döndürülmeli (rotate). Geçmiş temizliği için `git
 CI pipeline'da Node.js 20 kullanılıyor; deprecation uyarısı alınmaktadır. Build'i bozmaz.
 
 **Kalıcı Çözüm:**
-`ci.yml` ve `Dockerfile`'da Node.js 22'ye geçilmeli. Bkz. [devops-backlog.md](devops-backlog.md) madde 3.7.
+`ci.yml` ve `Dockerfile`'da Node.js 22'ye geçilmeli. Bkz. [devops-backlog.md](devops-backlog.md) madde 18.
 
 ---
 
-## 5. `docker-compose.prod.yml` — Eksik Env Var'lar ve Healthcheck
+## 6. `TEST_GHCR_PAT` Sona Erme Tarihi
 
-**Durum:** ⚠️ Açık
+**Durum:** ℹ️ Bilgi
 
 **Açıklama:**
-Prod compose'da backend için healthcheck bloğu yok; OAuth, CORS, Resend ve MSSQL env var'ları eksik. MSSQL healthcheck'te `SA_PASSWORD` ile `MSSQL_SA_PASSWORD` uyumsuzluğu var.
+Sunucunun GHCR'dan image çekmek için kullandığı `TEST_GHCR_PAT` classic PAT'ın süresi dolabilir.
 
 **Etkisi:**
-- Prod deploy edildiğinde Google OAuth, e-posta gönderimi ve CORS ayarları çalışmaz.
-- MSSQL healthcheck fail ederse bağımlı servisler başlamaz.
+Süresi dolduğunda `test-deploy.yml` pipeline fail eder; sunucu image çekemez.
 
 **Kalıcı Çözüm:**
-Bkz. [devops-backlog.md](devops-backlog.md) madde 1.2, 1.3, 1.4.
-
----
-
-## 6. `dev` Branch'inin Test'in Gerisine Düşme Riski
-
-**Durum:** ℹ️ Süreç Uyarısı
-
-**Açıklama:**
-`US-REP-04` (#482) dev'i atlayarak doğrudan test'e merge edildi. Bu, dev'in test'in gerisinde kalmasına neden oldu. PR #493 (`sync/test-to-dev`) ile giderildi.
-
-**Etkisi:**
-- Dev'den test'e geçmek isteyen PR'lar, dev'de olmayan commit'leri içerebilir.
-- `enforce-test-base` CI kontrolü yanlış sonuç verebilir.
-
-**Süreç Kuralı:**
-Feature branch'ler **her zaman** önce `dev`'e, ardından aynı branch'ten `test`'e PR açılmalı. Hiçbir değişiklik dev'i atlayarak test'e gitmemelidir.
-
-**Geçici Çözüm:**
-Uyumsuzluk tespit edildiğinde `sync/test-to-dev` branch'i açılarak test → dev sync yapılır.
+PAT sona erme tarihi takvime eklenmeli; dolmadan `TEST_GHCR_PAT` ve `TEST_GHCR_USER` secret'ları güncellenmeli.
 
 ---
 
@@ -114,11 +114,6 @@ Uyumsuzluk tespit edildiğinde `sync/test-to-dev` branch'i açılarak test → d
 
 | Tarih | Sorun | Çözüm |
 |-------|-------|-------|
-| 2026-05-10 | Frontend local dev CORS sorunu | Nginx `/api/` proxy (#440) + Vite proxy |
+| 2026-05-10 | Frontend local dev CORS sorunu | Nginx `/api` proxy (#440) + Vite proxy (`vite.config.ts` zaten mevcuttu) |
 | 2026-05-10 | GHCR developer login gerekliliği | Package'lar public yapıldı |
-| 2026-05-10 | `test` branch'ine direct push koruması yoktu | GitHub branch protection kuralı eklendi |
-| 2026-05-10 | `TEST_GHCR_PAT` sona erme riski | Package'lar public; PAT login `test-deploy.yml`'den kaldırıldı (#483) |
-| 2026-05-10 | GHCR rollback için immutable tag yoktu | `test-{sha}` tag CI'da üretiliyor (#483) |
-| 2026-05-10 | GHA cache 10 GB limitine yaklaşmıştı (320 cache) | Cache cleanup workflow eklendi (#489/#492) |
-| 2026-05-10 | `dev` branch test'in gerisine düştü | `sync/test-to-dev` PR açıldı (#493) |
-| 2026-04-25 | `appsettings.Development.json` SA parolası | Placeholder ile değiştirildi (git geçmişi hala sorunlu — madde 3) |
+| 2026-04-25 | `appsettings.Development.json` SA parolası | Placeholder ile değiştirildi (git geçmişi hala sorunlu — madde 4) |
