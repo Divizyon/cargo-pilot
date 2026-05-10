@@ -68,7 +68,21 @@ export const productSchema = z
   .refine((data) => !data.isStackable || data.maxStackCount !== undefined, {
     message: 'validations.product.maxStackRequired',
     path: ['maxStackCount'],
-  });
+  })
+  .refine(
+    (data) => {
+      if (data.productType !== 'palet') return true;
+      const toCm: Record<DimensionUnitKey, number> = {
+        cm: 1,
+        mm: 0.1,
+        m: 100,
+        inch: 2.54,
+        ft: 30.48,
+      };
+      return data.height * (toCm[data.heightUnit] ?? 1) <= 20;
+    },
+    { message: 'validations.product.paletMaxHeight', path: ['height'] },
+  );
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
