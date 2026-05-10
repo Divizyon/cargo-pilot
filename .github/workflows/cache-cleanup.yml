@@ -4,6 +4,7 @@ name: Cache Cleanup
 #
 #   1. PR kapandığında (merge veya close) → o PR'a ait tüm cache'ler anında silinir.
 #      PR cache'leri refs/pull/<number>/merge ve refs/pull/<number>/head ref'leri altında oluşur.
+#      Not: fork PR'larında GITHUB_TOKEN write yetkisi olmadığından sadece aynı repo PR'ları işlenir.
 #   2. Her Pazartesi 03:00 UTC (schedule) → artık var olmayan branch'lere ait
 #      ve 7 günden eski cache'ler taranıp silinir.
 #
@@ -21,7 +22,10 @@ jobs:
   cleanup-on-pr-close:
     name: PR Cache Temizliği
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # Fork PR'larında GITHUB_TOKEN write yetkisi olmaz; sadece aynı repo PR'larında çalış
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       actions: write
 
@@ -77,12 +81,14 @@ jobs:
             "/repos/${REPO}/git/refs/heads" \
             --jq '.[].ref' 2>/dev/null || true)
 
-          echo "==> Tüm cache'ler taranıyor..."
+          echo "==> Tüm cache'ler taranıyor (JSON formatında)..."
+          # Tab ayırıcı kullanılır; ref null ise sabit "__NO_REF__" placeholder yazılır.
+          # Böylece awk sütun kayması yaşamaz.
           ALL_CACHES=$(gh api \
             --paginate \
             -H "Accept: application/vnd.github+json" \
             "/repos/${REPO}/actions/caches?per_page=100" \
-            --jq '.actions_caches[] | "\(.id) \(.ref // "") \(.last_accessed_at)"' \
+            --jq '.actions_caches[] | [(.id | tostring), (.ref // "__NO_REF__"), .last_accessed_at] | join("\t")' \
             2>/dev/null || true)
 
           CUTOFF=$(date -u -d "${MAX_AGE_DAYS} days ago" +%s 2>/dev/null || \
@@ -91,12 +97,8 @@ jobs:
           DELETED=0
           SKIPPED=0
 
-          while IFS= read -r line; do
-            [[ -z "$line" ]] && continue
-
-            CACHE_ID=$(echo "$line" | awk '{print $1}')
-            CACHE_REF=$(echo "$line" | awk '{print $2}')
-            CACHE_DATE=$(echo "$line" | awk '{print $3}')
+          while IFS=$'\t' read -r CACHE_ID CACHE_REF CACHE_DATE; do
+            [[ -z "${CACHE_ID}" ]] && continue
 
             # Son erişim tarihi kontrolü
             CACHE_TS=$(date -u -d "${CACHE_DATE}" +%s 2>/dev/null || \
@@ -105,8 +107,8 @@ jobs:
             [[ "${CACHE_TS}" -lt "${CUTOFF}" ]] && IS_OLD=true
 
             # Orphan kontrolü: SADECE refs/heads/* cache'lerine uygulanır.
-            # refs/pull/* (açık PR) ve refs/tags/* ref'leri orphan sayılmaz;
-            # ref'i olmayan (boş) cache'ler de orphan sayılmaz — sadece yaş kriteri geçerlidir.
+            # refs/pull/* (açık PR), refs/tags/* ve ref'siz (__NO_REF__) cache'ler
+            # orphan sayılmaz — sadece yaş kriteri geçerlidir.
             IS_ORPHAN=false
             if [[ "${CACHE_REF}" == refs/heads/* ]]; then
               echo "${LIVE_BRANCHES}" | grep -qxF "${CACHE_REF}" || IS_ORPHAN=true
@@ -117,10 +119,11 @@ jobs:
               [[ "${IS_ORPHAN}" == "true" ]] && REASON="orphan branch"
               [[ "${IS_OLD}" == "true" ]] && REASON="${REASON:+$REASON + }>${MAX_AGE_DAYS}d old"
 
+              DISPLAY_REF="${CACHE_REF/__NO_REF__/no-ref}"
               if gh api --method DELETE \
                 -H "Accept: application/vnd.github+json" \
                 "/repos/${REPO}/actions/caches/${CACHE_ID}" > /dev/null 2>&1; then
-                echo "Silindi: cache #${CACHE_ID} (${CACHE_REF:-no-ref}) — ${REASON}"
+                echo "Silindi: cache #${CACHE_ID} (${DISPLAY_REF}) — ${REASON}"
                 DELETED=$((DELETED + 1))
               else
                 echo "Atlandı: cache #${CACHE_ID} (silinemedi, devam ediliyor)"
