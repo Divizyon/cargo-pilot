@@ -5,17 +5,14 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Ban,
   Box,
+  Cpu,
   Cylinder,
   Droplets,
   Flame,
   FlaskConical,
   HelpCircle,
   Leaf,
-  Minus,
-  Move3d,
   Package,
-  Plus,
-  ShieldOff,
   Sun,
   Utensils,
   Wind,
@@ -53,6 +50,7 @@ import {
 } from '@/features/data-management/schemas/productSchema';
 import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
+import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
 
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormValues>;
@@ -79,18 +77,24 @@ const ROTATION_AXES = [
     labelKey: 'forms.product.allowRotateX',
     tooltipKey: 'forms.product.axisXTooltip',
     axis: 'x' as AxisKey,
+    axisLabel: 'X',
+    subtitle: 'Sol / Sağ',
   },
   {
     name: 'allowRotateY',
     labelKey: 'forms.product.allowRotateY',
     tooltipKey: 'forms.product.axisYTooltip',
     axis: 'y' as AxisKey,
+    axisLabel: 'Y',
+    subtitle: 'Yukarı / Aşağı',
   },
   {
     name: 'allowRotateZ',
     labelKey: 'forms.product.allowRotateZ',
     tooltipKey: 'forms.product.axisZTooltip',
     axis: 'z' as AxisKey,
+    axisLabel: 'Z',
+    subtitle: 'Öne / Arkaya',
   },
 ] as const;
 
@@ -110,13 +114,6 @@ type ConstraintOption = {
 };
 
 const CONSTRAINT_OPTIONS: ConstraintOption[] = [
-  {
-    value: 'none',
-    label: 'Kısıt Yok',
-    color: 'default',
-    Icon: ShieldOff,
-    fragilityValue: FRAGILITY_LEVELS.NonFragile,
-  },
   {
     value: 'fragile',
     label: 'Kırılgan',
@@ -176,25 +173,18 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
 ];
 
 const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
-const INCOMPATIBLE_GROUPS = ['Gıda', 'Genel', 'Tehlikeli Madde', 'Kimya', 'Elektronik'];
+const INCOMPATIBLE_GROUPS = [
+  { value: 'Gıda', Icon: Utensils },
+  { value: 'Genel', Icon: Package },
+  { value: 'Tehlikeli Madde', Icon: Flame },
+  { value: 'Kimya', Icon: FlaskConical },
+  { value: 'Elektronik', Icon: Cpu },
+] as const;
 
 function formatVolume(cm3: number): string {
   if (cm3 >= 1_000_000) return `${(cm3 / 1_000_000).toFixed(2)} m³`;
   if (cm3 >= 1_000) return `${(cm3 / 1_000).toFixed(2)} dm³`;
   return `${cm3.toFixed(1)} cm³`;
-}
-
-interface SectionCardProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function SectionCard({ children, className }: SectionCardProps) {
-  return (
-    <div className={cn('rounded-xl border border-border bg-background p-5', className)}>
-      {children}
-    </div>
-  );
 }
 
 interface SectionTitleProps {
@@ -355,9 +345,9 @@ export function ProductForm({
 
   const [selectedConstraints, setSelectedConstraints] = useState<string[]>(() => {
     const frag = defaultValues?.fragility ?? 0;
-    if (frag === 0) return ['none'];
+    if (frag === 0) return [];
     const match = CONSTRAINT_OPTIONS.find((o) => o.fragilityValue === frag);
-    return match ? [match.value] : ['none'];
+    return match ? [match.value] : [];
   });
 
   const [
@@ -420,532 +410,518 @@ export function ProductForm({
     form.setValue('incompatibleGroups', next, { shouldDirty: true });
   }
 
-  return (
-    <TooltipProvider delayDuration={150}>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            {/* SOL — Form alanları */}
-            <div className="space-y-4">
-              {/* KİMLİK */}
-              <SectionCard>
-                <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('forms.product.name')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            className={COMPACT_INPUT}
-                            placeholder={t('forms.product.namePlaceholder')}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sku"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('forms.product.sku')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            className={COMPACT_INPUT}
-                            placeholder={t('forms.product.skuPlaceholder')}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </SectionCard>
+  const productTypeOnChange = (value: string) => {
+    if (!value) return;
+    form.setValue('productType', value as 'koli' | 'varil' | 'palet', { shouldDirty: true });
+    if (value === 'palet') {
+      form.setValue('allowRotateY', false, { shouldValidate: false });
+      form.setValue('allowRotateZ', false, { shouldValidate: false });
+    } else {
+      form.setValue('allowRotateY', true, { shouldValidate: false });
+      if ((form.getValues('fragility') ?? 0) < 1) {
+        form.setValue('allowRotateZ', true, { shouldValidate: false });
+      }
+    }
+    if (value === 'varil') {
+      const w = form.getValues('width');
+      const wu = form.getValues('widthUnit');
+      if (w !== undefined && Number.isFinite(w)) {
+        form.setValue('length', w, { shouldDirty: false, shouldValidate: false });
+        form.setValue('lengthUnit', wu ?? 'mm', { shouldDirty: false, shouldValidate: false });
+      }
+    }
+  };
 
-              {/* ÜRÜN TİPİ & KISITLAR */}
-              <SectionCard>
-                <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {/* Ürün Tipi */}
-                  <FormField
-                    control={form.control}
-                    name="productType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="block">{t('forms.product.sectionType')}</FormLabel>
-                        <FormControl>
-                          <ToggleGroup
-                            type="single"
-                            value={field.value}
-                            onValueChange={(value) => {
-                              if (!value) return;
-                              field.onChange(value);
-                              if (value === 'palet') {
-                                form.setValue('allowRotateY', false, { shouldValidate: false });
-                                form.setValue('allowRotateZ', false, { shouldValidate: false });
-                              } else {
-                                form.setValue('allowRotateY', true, { shouldValidate: false });
-                                if ((form.getValues('fragility') ?? 0) < 1) {
-                                  form.setValue('allowRotateZ', true, { shouldValidate: false });
-                                }
-                              }
-                              if (value === 'varil') {
-                                const w = form.getValues('width');
-                                const wu = form.getValues('widthUnit');
-                                if (w !== undefined && Number.isFinite(w)) {
-                                  form.setValue('length', w, {
-                                    shouldDirty: false,
-                                    shouldValidate: false,
-                                  });
-                                  form.setValue('lengthUnit', wu ?? 'mm', {
-                                    shouldDirty: false,
-                                    shouldValidate: false,
-                                  });
-                                }
-                              }
-                            }}
-                            className="flex flex-wrap gap-1"
-                          >
-                            {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-                              <ToggleGroupItem key={value} value={value} aria-label={t(labelKey)}>
-                                <Icon className="h-5 w-5" strokeWidth={1.5} />
-                                <span className="text-xs">{t(labelKey)}</span>
-                              </ToggleGroupItem>
-                            ))}
-                          </ToggleGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Kısıtlar — multi-select chip */}
-                  <div>
-                    <p className="mb-1.5 block text-sm font-medium leading-none">KISITLAR</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {CONSTRAINT_OPTIONS.map((opt) => {
-                        const isActive = selectedConstraints.includes(opt.value);
-                        return (
-                          <Button
-                            key={opt.value}
-                            type="button"
-                            variant="outline"
-                            className={cn(
-                              'h-auto rounded-full px-2.5 py-1 text-xs font-medium',
-                              isActive
-                                ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                                : 'text-muted-foreground hover:text-muted-foreground',
-                            )}
-                            onClick={() => {
-                              let next: string[];
-                              if (opt.value === 'none') {
-                                next = ['none'];
-                              } else {
-                                const without = selectedConstraints.filter((v) => v !== 'none');
-                                next = isActive
-                                  ? without.filter((v) => v !== opt.value)
-                                  : [...without, opt.value];
-                                if (next.length === 0) next = ['none'];
-                              }
-                              setSelectedConstraints(next);
-                              const maxFragility = next.reduce((acc, v) => {
-                                const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
-                                return Math.max(acc, o?.fragilityValue ?? 0);
-                              }, 0);
-                              form.setValue('fragility', maxFragility, { shouldValidate: false });
-                              if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
-                                form.setValue('allowRotateZ', false, { shouldValidate: false });
-                              } else if (!isPallet) {
-                                form.setValue('allowRotateZ', true, { shouldValidate: false });
-                              }
-                            }}
-                          >
-                            <opt.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            {opt.label}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </SectionCard>
-
-              {/* YÜK KATEGORİSİ */}
-              <SectionCard>
-                <SectionTitle>YÜK KATEGORİSİ</SectionTitle>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
-                  <div className="space-y-3">
-                    {/* Yük Grubu */}
-                    <div>
-                      <p className="mb-1.5 text-sm font-medium leading-none">Yük Grubu</p>
-                      <Controller
-                        control={form.control}
-                        name="stackGroup"
-                        render={({ field }) => (
-                          <Select
-                            value={field.value ?? ''}
-                            onValueChange={(v) => field.onChange(v)}
-                          >
-                            <SelectTrigger className="h-9 border-input bg-background">
-                              <SelectValue placeholder="Yük grubu seçin…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CARGO_GROUPS.map((g) => (
-                                <SelectItem key={g} value={g}>
-                                  {g}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-
-                    {/* Uyumsuz Yük Grupları */}
-                    <div>
-                      <p className="mb-1.5 text-sm font-medium leading-none">
-                        Uyumsuz Yük Grupları
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {INCOMPATIBLE_GROUPS.map((g) => {
-                          const selected = (incompatibleGroups ?? []).includes(g);
-                          return (
-                            <Button
-                              key={g}
-                              type="button"
-                              variant="outline"
-                              className={cn(
-                                'h-auto rounded-full px-2.5 py-1 text-xs font-medium',
-                                selected
-                                  ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive'
-                                  : 'text-muted-foreground hover:text-muted-foreground',
-                              )}
-                              onClick={() => toggleIncompatibleGroup(g)}
-                            >
-                              {g}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Katman Sayısı — +/- sayacı */}
-                  <FormField
-                    control={form.control}
-                    name="maxStackCount"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col items-center">
-                        <FormLabel className="text-center">Katman Sayısı</FormLabel>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            aria-label="Azalt"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              const next = Math.max(1, (field.value ?? 1) - 1);
-                              field.onChange(next);
-                              form.setValue('isStackable', next > 1, { shouldValidate: false });
-                            }}
-                          >
-                            <Minus className="h-3.5 w-3.5" />
-                          </Button>
-                          <span className="w-8 text-center text-sm font-semibold tabular-nums">
-                            {field.value ?? 1}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            aria-label="Artır"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              const next = (field.value ?? 1) + 1;
-                              field.onChange(next);
-                              form.setValue('isStackable', next > 1, { shouldValidate: false });
-                            }}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </SectionCard>
-
-              {/* Fiziksel Özellikler — Boyutlar / Ağırlık / Katman Sayısı */}
-              <SectionCard>
-                <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
-                <div
-                  className={cn(
-                    'grid gap-3',
-                    isVaril
-                      ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-4'
-                      : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-                  )}
+  const formFields = (
+    <div className="divide-y divide-border">
+      {/* 0. ÜRÜN TİPİ — tam genişlik */}
+      <div className="space-y-4 pb-6">
+        <SectionTitle>{t('forms.product.sectionType')}</SectionTitle>
+        <FormField
+          control={form.control}
+          name="productType"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <ToggleGroup
+                  type="single"
+                  value={field.value}
+                  onValueChange={productTypeOnChange}
+                  className="flex gap-2"
                 >
-                  {isVaril ? (
-                    <>
-                      <DimensionField
-                        form={form}
-                        name="width"
-                        unitName="widthUnit"
-                        label={t('forms.product.diameter')}
-                        onAfterChange={(v, unit) => {
-                          if (v !== undefined && Number.isFinite(v)) {
-                            form.setValue('length', v, {
-                              shouldDirty: false,
-                              shouldValidate: false,
-                            });
-                            form.setValue('lengthUnit', unit, {
-                              shouldDirty: false,
-                              shouldValidate: false,
-                            });
+                  {PRODUCT_TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
+                    <ToggleGroupItem
+                      key={value}
+                      value={value}
+                      aria-label={t(labelKey)}
+                      className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+                    >
+                      <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
+                      {t(labelKey)}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      {/* 1. KİMLİK — 4 eşit sütun */}
+      <div className="space-y-4 py-6">
+        <SectionTitle>{t('forms.product.sectionIdentity')}</SectionTitle>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('forms.product.name')}</FormLabel>
+                <FormControl>
+                  <Input
+                    className={COMPACT_INPUT}
+                    placeholder={t('forms.product.namePlaceholder')}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="sku"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('forms.product.sku')}</FormLabel>
+                <FormControl>
+                  <Input
+                    className={COMPACT_INPUT}
+                    placeholder={t('forms.product.skuPlaceholder')}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="stackGroup"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Yük Grubu</FormLabel>
+                <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v)}>
+                  <FormControl>
+                    <SelectTrigger className={COMPACT_INPUT}>
+                      <SelectValue placeholder="Kimya, Gıda…" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {CARGO_GROUPS.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="maxStackCount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Katman Sayısı</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    className={COMPACT_INPUT}
+                    placeholder="3"
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const v =
+                        e.target.value === '' ? undefined : Math.max(1, e.target.valueAsNumber);
+                      field.onChange(v);
+                      form.setValue('isStackable', (v ?? 0) > 1, { shouldValidate: false });
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      {/* 2. FİZİKSEL ÖZELLİKLER — 4 eşit sütun */}
+      <div className="space-y-4 py-6">
+        <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
+        <div
+          className={cn(
+            'grid gap-3',
+            isVaril ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4',
+          )}
+        >
+          {isVaril ? (
+            <>
+              <DimensionField
+                form={form}
+                name="width"
+                unitName="widthUnit"
+                label={t('forms.product.diameter')}
+                placeholder="60"
+                onAfterChange={(v, unit) => {
+                  if (v !== undefined && Number.isFinite(v)) {
+                    form.setValue('length', v, { shouldDirty: false, shouldValidate: false });
+                    form.setValue('lengthUnit', unit, {
+                      shouldDirty: false,
+                      shouldValidate: false,
+                    });
+                  }
+                }}
+              />
+              <DimensionField
+                form={form}
+                name="height"
+                unitName="heightUnit"
+                label={t('forms.product.height')}
+                placeholder="120"
+              />
+            </>
+          ) : (
+            <>
+              <DimensionField
+                form={form}
+                name="width"
+                unitName="widthUnit"
+                label={`${t('forms.product.width')} (X)`}
+                placeholder="120"
+              />
+              <DimensionField
+                form={form}
+                name="height"
+                unitName="heightUnit"
+                label={`${t('forms.product.height')} (Y)`}
+                placeholder="80"
+              />
+              <DimensionField
+                form={form}
+                name="length"
+                unitName="lengthUnit"
+                label={`${t('forms.product.depth')} (Z)`}
+                placeholder="100"
+              />
+            </>
+          )}
+          <FormField
+            control={form.control}
+            name="weight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('forms.product.weight')}</FormLabel>
+                <div className="relative">
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min={0}
+                      placeholder="15.5"
+                      className={COMPACT_INPUT_WITH_UNIT}
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)
+                      }
+                    />
+                  </FormControl>
+                  <Controller
+                    control={form.control}
+                    name="weightUnit"
+                    render={({ field: unitField }) => (
+                      <Select value={unitField.value} onValueChange={unitField.onChange}>
+                        <SelectTrigger className={UNIT_TRIGGER}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WEIGHT_KEYS.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {unit}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      {/* 3. KISITLAR — sol: yük kısıtları, sağ: uyumsuz yük grupları */}
+      <div className="space-y-4 py-6">
+        <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Sol: yük kısıtı chip'leri */}
+          <FormField
+            control={form.control}
+            name="fragility"
+            render={() => (
+              <FormItem>
+                <FormLabel>Yük Kısıtları</FormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {CONSTRAINT_OPTIONS.map((opt) => {
+                    const isActive = selectedConstraints.includes(opt.value);
+                    return (
+                      <Button
+                        key={opt.value}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
+                          isActive
+                            ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                            : 'text-muted-foreground hover:text-foreground',
+                        )}
+                        onClick={() => {
+                          const next = isActive
+                            ? selectedConstraints.filter((v) => v !== opt.value)
+                            : [...selectedConstraints, opt.value];
+                          setSelectedConstraints(next);
+                          const maxFragility = next.reduce((acc, v) => {
+                            const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
+                            return Math.max(acc, o?.fragilityValue ?? 0);
+                          }, 0);
+                          form.setValue('fragility', maxFragility, { shouldValidate: false });
+                          if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
+                            form.setValue('allowRotateZ', false, { shouldValidate: false });
+                          } else if (!isPallet) {
+                            form.setValue('allowRotateZ', true, { shouldValidate: false });
                           }
                         }}
-                      />
-                      <DimensionField
-                        form={form}
-                        name="height"
-                        unitName="heightUnit"
-                        label={t('forms.product.height')}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <DimensionField
-                        form={form}
-                        name="width"
-                        unitName="widthUnit"
-                        label={`${t('forms.product.width')} (X)`}
-                      />
-                      <DimensionField
-                        form={form}
-                        name="height"
-                        unitName="heightUnit"
-                        label={`${t('forms.product.height')} (Y)`}
-                      />
-                      <DimensionField
-                        form={form}
-                        name="length"
-                        unitName="lengthUnit"
-                        label={`${t('forms.product.depth')} (Z)`}
-                      />
-                    </>
-                  )}
-                  <FormField
-                    control={form.control}
-                    name="weight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('forms.product.weight')}</FormLabel>
-                        <div className="relative">
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              min={0}
-                              className={COMPACT_INPUT_WITH_UNIT}
-                              {...field}
-                              value={field.value ?? ''}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value === '' ? undefined : e.target.valueAsNumber,
-                                )
-                              }
-                            />
-                          </FormControl>
-                          <Controller
-                            control={form.control}
-                            name="weightUnit"
-                            render={({ field: unitField }) => (
-                              <Select value={unitField.value} onValueChange={unitField.onChange}>
-                                <SelectTrigger className={UNIT_TRIGGER}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {WEIGHT_KEYS.map((unit) => (
-                                    <SelectItem key={unit} value={unit}>
-                                      {unit}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          />
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      >
+                        <opt.Icon className="h-4 w-4" strokeWidth={1.8} />
+                        {opt.label}
+                      </Button>
+                    );
+                  })}
                 </div>
-              </SectionCard>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* KISITLAR — eksen rotasyonu */}
-              <SectionCard>
-                <div className="mb-4 flex items-center justify-between">
-                  <SectionTitle className="mb-0">
-                    {t('forms.product.sectionConstraints')}
-                  </SectionTitle>
+          {/* Sağ: uyumsuz yük grupları */}
+          <FormField
+            control={form.control}
+            name="incompatibleGroups"
+            render={() => (
+              <FormItem>
+                <FormLabel>Uyumsuz Yük Grupları</FormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {INCOMPATIBLE_GROUPS.map(({ value: g, Icon }) => {
+                    const selected = (incompatibleGroups ?? []).includes(g);
+                    return (
+                      <Button
+                        key={g}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
+                          selected
+                            ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive'
+                            : 'text-muted-foreground hover:text-foreground',
+                        )}
+                        onClick={() => toggleIncompatibleGroup(g)}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={1.5} />
+                        {g}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Eksen rotasyonu — ürün tipi butonlarıyla tutarlı */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1">
+            <p className="text-sm font-medium leading-none">Eksen Rotasyonu</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  aria-label={t('forms.product.axisGuideAria')}
+                >
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-1">
+                  <p className="font-medium">{t('forms.product.axisGuideTitle')}</p>
+                  <p>{t('forms.product.axisXTooltip')}</p>
+                  <p>{t('forms.product.axisYTooltip')}</p>
+                  <p>{t('forms.product.axisZTooltip')}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="flex gap-2">
+            {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle }) => {
+              const isDisabled =
+                (axisFieldName === 'allowRotateZ' && isZLocked) ||
+                (axisFieldName === 'allowRotateY' && isYLocked);
+              return (
+                <FormField
+                  key={axisFieldName}
+                  control={form.control}
+                  name={axisFieldName}
+                  render={({ field }) => (
+                    <FormItem className="m-0 flex-1 space-y-0">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            aria-pressed={field.value}
+                            aria-label={
+                              isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)
+                            }
+                            disabled={isDisabled}
+                            onClick={() => field.onChange(!field.value)}
+                            className={cn(
+                              'h-12 w-full gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground',
+                              field.value ? 'border-primary bg-primary/10 text-primary' : '',
+                              isDisabled && 'cursor-not-allowed opacity-40',
+                            )}
+                          >
+                            <AxisBoxIllustration axis={axis} active={field.value && !isDisabled} />
+                            <span className="font-semibold">{axisLabel}</span>
+                            <span className="text-xs font-normal opacity-70">{subtitle}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)}
+                        </TooltipContent>
+                      </Tooltip>
+                    </FormItem>
+                  )}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ÖZEL TAŞIMA NOTLARI */}
+      <div className="space-y-4 pt-6">
+        <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => {
+            const value = field.value ?? '';
+            const charCount = value.length;
+            const isOverLimit = charCount >= NOTES_MAX_LENGTH;
+            return (
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormLabel>{t('forms.product.notesLabel')}</FormLabel>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
-                        aria-label={t('forms.product.axisGuideAria')}
+                        className="h-5 w-5"
+                        aria-label={t('forms.product.notesHelper')}
                       >
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="space-y-1">
-                        <p className="font-medium">{t('forms.product.axisGuideTitle')}</p>
-                        <p>{t('forms.product.axisXTooltip')}</p>
-                        <p>{t('forms.product.axisYTooltip')}</p>
-                        <p>{t('forms.product.axisZTooltip')}</p>
-                      </div>
+                    <TooltipContent className="max-w-xs">
+                      {t('forms.product.notesHelper')}
                     </TooltipContent>
                   </Tooltip>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {ROTATION_AXES.map(({ name: axisFieldName, labelKey, tooltipKey, axis }) => {
-                    const isDisabled =
-                      (axisFieldName === 'allowRotateZ' && isZLocked) ||
-                      (axisFieldName === 'allowRotateY' && isYLocked);
-                    return (
-                      <FormField
-                        key={axisFieldName}
-                        control={form.control}
-                        name={axisFieldName}
-                        render={({ field }) => (
-                          <FormItem className="m-0 space-y-0">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  aria-pressed={field.value}
-                                  aria-label={
-                                    isDisabled
-                                      ? t('forms.product.rotateZLockedWarning')
-                                      : t(tooltipKey)
-                                  }
-                                  disabled={isDisabled}
-                                  onClick={() => field.onChange(!field.value)}
-                                  className={cn(
-                                    'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md px-2 py-3',
-                                    field.value
-                                      ? 'border-primary text-primary shadow-sm ring-1 ring-primary/20 hover:bg-primary/5 hover:text-primary'
-                                      : 'text-muted-foreground',
-                                    isDisabled && 'cursor-not-allowed opacity-50',
-                                  )}
-                                >
-                                  <AxisBoxIllustration axis={axis} active={field.value} />
-                                  <span className="text-xs font-medium leading-none text-foreground">
-                                    {t(labelKey)}
-                                  </span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {isDisabled
-                                  ? t('forms.product.rotateZLockedWarning')
-                                  : t(tooltipKey)}
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormItem>
-                        )}
-                      />
-                    );
-                  })}
+                <div className="relative">
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      maxLength={NOTES_MAX_LENGTH}
+                      placeholder={t('forms.product.notesPlaceholder')}
+                      className="resize-none overflow-y-auto border-input bg-background pb-6 focus-visible:ring-2 focus-visible:ring-primary/40"
+                      {...field}
+                      value={value}
+                      onChange={(e) => {
+                        const next = e.target.value.slice(0, NOTES_MAX_LENGTH);
+                        field.onChange(next);
+                      }}
+                    />
+                  </FormControl>
+                  <span
+                    aria-live="polite"
+                    className={cn(
+                      'pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums',
+                      isOverLimit ? 'font-semibold text-destructive' : 'text-muted-foreground',
+                    )}
+                  >
+                    {t('forms.product.notesCounter', { count: charCount, max: NOTES_MAX_LENGTH })}
+                  </span>
                 </div>
-              </SectionCard>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
+        />
+      </div>
+    </div>
+  );
 
-              {/* ÖZEL TAŞIMA NOTLARI */}
-              <SectionCard>
-                <SectionTitle>{t('forms.product.sectionNotes')}</SectionTitle>
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => {
-                    const value = field.value ?? '';
-                    const charCount = value.length;
-                    const isOverLimit = charCount >= NOTES_MAX_LENGTH;
-                    return (
-                      <FormItem>
-                        <FormLabel className="sr-only">{t('forms.product.notesLabel')}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            rows={3}
-                            maxLength={NOTES_MAX_LENGTH}
-                            placeholder={t('forms.product.notesPlaceholder')}
-                            className="resize-none overflow-y-auto border-input bg-background focus-visible:ring-2 focus-visible:ring-primary/40"
-                            {...field}
-                            value={value}
-                            onChange={(e) => {
-                              const next = e.target.value.slice(0, NOTES_MAX_LENGTH);
-                              field.onChange(next);
-                            }}
-                          />
-                        </FormControl>
-                        <div className="mt-1 flex items-start justify-between gap-3 text-xs">
-                          <p className="text-muted-foreground">{t('forms.product.notesHelper')}</p>
-                          <span
-                            aria-live="polite"
-                            className={cn(
-                              'shrink-0 tabular-nums',
-                              isOverLimit
-                                ? 'font-semibold text-destructive'
-                                : 'text-muted-foreground',
-                            )}
-                          >
-                            {t('forms.product.notesCounter', {
-                              count: charCount,
-                              max: NOTES_MAX_LENGTH,
-                            })}
-                          </span>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-              </SectionCard>
-            </div>
-
-            {/* SAĞ — Önizleme */}
-            <PreviewPanel
-              name={name}
-              productType={productType ?? 'koli'}
-              length={length}
-              lengthUnit={lengthUnit}
-              width={width}
-              widthUnit={widthUnit}
-              height={height}
-              heightUnit={heightUnit}
-              weight={weight}
-              weightUnit={weightUnit}
-              volumeCm3={volumeCm3}
-              maxStackCount={maxStackCount ?? 1}
-              fragility={fragility ?? 0}
-              allowRotateX={allowRotateX}
-              allowRotateY={allowRotateY}
-              allowRotateZ={allowRotateZ}
-              notes={notes}
-            />
-          </div>
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormWithPreviewLayout
+            formContent={formFields}
+            previewContent={
+              <PreviewPanel
+                name={name}
+                productType={productType ?? 'koli'}
+                length={length}
+                lengthUnit={lengthUnit}
+                width={width}
+                widthUnit={widthUnit}
+                height={height}
+                heightUnit={heightUnit}
+                weight={weight}
+                weightUnit={weightUnit}
+                volumeCm3={volumeCm3}
+                maxStackCount={maxStackCount ?? 1}
+                fragility={fragility ?? 0}
+                allowRotateX={allowRotateX}
+                allowRotateY={allowRotateY}
+                allowRotateZ={allowRotateZ}
+                notes={notes}
+              />
+            }
+          />
 
           <div className="flex justify-end gap-3 border-t pt-4">
             {onCancel && (
@@ -1035,110 +1011,88 @@ function PreviewPanel(props: PreviewPanelProps) {
       ? widthCm > 0 && heightCm > 0
       : widthCm > 0 && heightCm > 0 && depthCm > 0;
 
+  const summaryRows = [
+    { label: t('forms.product.name'), value: name || '—', bold: true },
+    { label: t('forms.product.width'), value: fmt(width, widthUnit) },
+    { label: t('forms.product.height'), value: fmt(height, heightUnit) },
+    { label: t('forms.product.length'), value: fmt(length, lengthUnit) },
+    { label: t('forms.product.weight'), value: fmt(weight, weightUnit) },
+    { label: 'Kısıtlar', value: fragilityLabel },
+    { label: 'Katman', value: maxStackCount > 0 ? String(maxStackCount) : '—' },
+    {
+      label: 'Rotasyon',
+      value: allRotationsFree
+        ? t('forms.product.summaryRotationFree')
+        : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') }),
+    },
+  ];
+
   return (
-    <aside className="lg:sticky lg:top-6 lg:self-start">
-      <div className="flex flex-col gap-3">
-        {/* Önizleme kartı */}
-        <div className="overflow-hidden rounded-xl border border-border bg-background">
-          {/* Başlık */}
-          <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              ÜRÜN ÖNİZLEME
-            </span>
-            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground">
-              3D Önizleme
-            </span>
-          </div>
+    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
+      {/* Başlık */}
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[10px] text-muted-foreground">Ürün Önizleme</p>
+        <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          3D
+        </span>
+      </div>
 
-          {/* 3D Alan */}
-          <div className="relative aspect-square overflow-hidden bg-muted/30">
-            {hasDimensions ? (
-              <ProductPreview3D
-                widthCm={widthCm}
-                heightCm={heightCm}
-                depthCm={depthCm}
-                productType={productType}
-              />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                <div>
-                  <ProductTypeIllustration type={productType} />
-                </div>
-                <p className="px-6 text-center text-xs uppercase tracking-wide">
-                  {t('forms.product.previewPlaceholder')}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Hacim */}
-          <div className="flex items-baseline justify-between border-t border-border/60 px-4 py-3">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              HACİM
-            </span>
-            <span className="text-xl font-semibold tabular-nums text-foreground">
-              {volumeCm3 > 0 ? formatVolume(volumeCm3) : '0.00 m³'}
-            </span>
-          </div>
-        </div>
-
-        {/* Özet kartı */}
-        <div className="overflow-hidden rounded-xl border border-border bg-background">
-          <div className="border-b border-border/60 px-4 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              ÜRÜN ÖZETİ
-            </span>
-          </div>
-          <dl className="divide-y divide-border/40 px-4">
-            <PreviewRow label={t('forms.product.name')} value={name || '—'} emphasize />
-            <PreviewRow label={t('forms.product.width')} value={fmt(width, widthUnit)} />
-            <PreviewRow label={t('forms.product.height')} value={fmt(height, heightUnit)} />
-            <PreviewRow label={t('forms.product.length')} value={fmt(length, lengthUnit)} />
-            <PreviewRow label={t('forms.product.weight')} value={fmt(weight, weightUnit)} />
-            <PreviewRow label="Kısıtlar" value={fragilityLabel} />
-            <PreviewRow label={t('forms.product.layerCount')} value={String(maxStackCount)} />
-            <PreviewRow
-              label={<Move3d className="h-4 w-4" aria-hidden />}
-              value={
-                allRotationsFree
-                  ? t('forms.product.summaryRotationFree')
-                  : t('forms.product.summaryRotationLocked', { axes: lockedAxes.join(', ') })
-              }
-            />
-          </dl>
-        </div>
-
-        {notes && notes.trim().length > 0 && (
-          <div className="rounded-xl border border-dashed border-border bg-background p-3 text-xs text-foreground">
-            <p className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('forms.product.notesSummaryLabel')}
+      {/* 3D Alan — flex-1 ile kalan alanı doldurur */}
+      <div className="relative min-h-[160px] flex-1 overflow-hidden rounded-lg bg-muted/40">
+        {hasDimensions ? (
+          <ProductPreview3D
+            widthCm={widthCm}
+            heightCm={heightCm}
+            depthCm={depthCm}
+            productType={productType}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <ProductTypeIllustration type={productType} />
+            <p className="px-4 text-center text-[10px] uppercase tracking-wide">
+              {t('forms.product.previewPlaceholder')}
             </p>
-            <p className="whitespace-pre-wrap break-words">{notes}</p>
           </div>
         )}
       </div>
-    </aside>
-  );
-}
 
-interface PreviewRowProps {
-  label: ReactNode;
-  value: ReactNode;
-  emphasize?: boolean;
-}
+      {/* Hacim */}
+      <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
+        <span className="text-[10px] text-muted-foreground">Hacim</span>
+        <span className="text-xs font-semibold tabular-nums text-foreground">
+          {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
+        </span>
+      </div>
 
-function PreviewRow({ label, value, emphasize = false }: PreviewRowProps) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 py-2">
-      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd
-        className={cn(
-          'truncate text-right',
-          emphasize ? 'text-base font-semibold text-foreground' : 'text-sm text-foreground',
-        )}
-      >
-        {value}
-      </dd>
+      {/* Özet satırları */}
+      <div className="mt-1 flex flex-col">
+        {summaryRows.map((r) => (
+          <div
+            key={r.label as string}
+            className="flex items-center justify-between border-b border-border/50 py-1 last:border-0"
+          >
+            <span className="text-[10px] text-muted-foreground">{r.label}</span>
+            <span
+              className={cn(
+                'text-xs tabular-nums',
+                r.bold ? 'font-medium text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {r.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Notlar */}
+      {notes && notes.trim().length > 0 && (
+        <div className="mt-2 rounded-lg border border-border/50 bg-muted/40 p-2">
+          <p className="mb-1 text-[10px] font-medium text-muted-foreground">
+            {t('forms.product.notesSummaryLabel')}
+          </p>
+          <p className="whitespace-pre-wrap break-words text-[10px] text-foreground">{notes}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1148,10 +1102,18 @@ interface DimensionFieldProps {
   name: 'width' | 'height' | 'length';
   unitName: 'widthUnit' | 'heightUnit' | 'lengthUnit';
   label: string;
+  placeholder?: string;
   onAfterChange?: (value: number | undefined, unit: DimensionUnitKey) => void;
 }
 
-function DimensionField({ form, name, unitName, label, onAfterChange }: DimensionFieldProps) {
+function DimensionField({
+  form,
+  name,
+  unitName,
+  label,
+  placeholder,
+  onAfterChange,
+}: DimensionFieldProps) {
   return (
     <FormField
       control={form.control}
@@ -1165,6 +1127,7 @@ function DimensionField({ form, name, unitName, label, onAfterChange }: Dimensio
                 type="number"
                 step="0.1"
                 min={0}
+                placeholder={placeholder}
                 className={COMPACT_INPUT_WITH_UNIT}
                 {...field}
                 value={field.value ?? ''}

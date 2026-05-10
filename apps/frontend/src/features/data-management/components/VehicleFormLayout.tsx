@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
@@ -31,41 +30,24 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
 
   return (
     <div className="space-y-6">
-      {/* Fiziksel İç Ölçüler */}
-      <FormCard>
-        <VehicleDimensionsFields form={form} />
-      </FormCard>
+      <VehicleDimensionsFields form={form} />
 
-      {/* Maks. İstif Katmanı + Kapı Yönü + Aks Yönetimi */}
-      <FormCard>
-        <div className="grid grid-cols-2 gap-6 divide-x divide-border">
-          <div className="flex flex-col gap-6">
-            <VehicleLayerCountField form={form} hideHeading={false} />
-            <VehicleDoorDirectionField form={form} hideHeading={false} />
-          </div>
-          {showAxleSection && (
-            <div className="pl-6">
-              <VehicleAxleBSection form={form} />
-              <VehicleAdditionalAxles form={form} />
-            </div>
-          )}
+      <div className="grid grid-cols-2 gap-6 divide-x divide-border">
+        <div className="flex flex-col gap-6">
+          <VehicleLayerCountField form={form} hideHeading={false} />
+          <VehicleDoorDirectionField form={form} hideHeading={false} />
         </div>
-      </FormCard>
+        {showAxleSection && (
+          <div className="pl-6">
+            <VehicleAxleBSection form={form} />
+            <VehicleAdditionalAxles form={form} />
+          </div>
+        )}
+      </div>
 
-      {showKingpinSection && (
-        <FormCard>
-          <VehicleKingpinSection form={form} />
-        </FormCard>
-      )}
+      {showKingpinSection && <VehicleKingpinSection form={form} />}
 
-      {/* Ağırlık Limitleri */}
-      <FormCard>
-        <VehicleWeightFields form={form} />
-      </FormCard>
+      <VehicleWeightFields form={form} />
     </div>
   );
-}
-
-function FormCard({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-border bg-card p-4 shadow-sm">{children}</div>;
 }

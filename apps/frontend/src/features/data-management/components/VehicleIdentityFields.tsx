@@ -33,7 +33,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
+              <FormLabel>
                 Araç Adı <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
@@ -63,7 +63,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
+              <FormLabel>
                 Açıklama{' '}
                 <span className="text-xs font-normal text-muted-foreground">(Opsiyonel)</span>
               </FormLabel>

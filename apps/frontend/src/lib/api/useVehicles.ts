@@ -178,20 +178,14 @@ export function useVehicles(filters?: VehicleFilters) {
 }
 
 export function useVehicle(id: string, initialData?: Vehicle) {
-  const queryClient = useQueryClient();
   const companyId = useCompanyId();
   return useQuery({
     queryKey: ['vehicles', companyId, id] as const,
-    queryFn: (): Vehicle => {
-      const caches = queryClient.getQueriesData<VehiclesPage>({
-        queryKey: ['vehicles', companyId],
-      });
-      for (const [, data] of caches) {
-        if (!data?.items) continue;
-        const found = data.items.find((v) => v.id === id);
-        if (found) return found;
-      }
-      throw new Error('Araç bulunamadı');
+    queryFn: async (): Promise<Vehicle> => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles/${id}`);
+      const parsed = singleVehicleApiSchema.safeParse(data);
+      if (!parsed.success) throw new Error('Araç bulunamadı');
+      return fromApiVehicle(parsed.data.data);
     },
     initialData,
     enabled: Boolean(id),

@@ -28,18 +28,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Fiziksel İç Ölçüler
-      </h3>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}
           name="length"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Uzunluk ({dimensionUnit})
-              </FormLabel>
+              <FormLabel>Uzunluk ({dimensionUnit})</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -67,9 +62,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
           name="width"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Genişlik ({dimensionUnit})
-              </FormLabel>
+              <FormLabel>Genişlik ({dimensionUnit})</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -97,9 +90,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
           name="height"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Yükseklik ({dimensionUnit})
-              </FormLabel>
+              <FormLabel>Yükseklik ({dimensionUnit})</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input

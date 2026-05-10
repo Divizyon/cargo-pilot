@@ -47,7 +47,7 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
       lengthUnit: dimensionUnit,
       weightUnit: weightUnit === 'ton' ? 'kg' : weightUnit,
       isStackable: false,
-      maxStackCount: 1,
+      maxStackCount: undefined,
       fragility: 0,
       allowRotateX: true,
       allowRotateY: true,
