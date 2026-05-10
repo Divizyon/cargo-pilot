@@ -150,7 +150,7 @@ jobs:
       packages: write
 
     outputs:
-      image-tag: ${{ steps.sha.outputs.tag }}
+      image_tag: ${{ steps.sha.outputs.tag }}
 
     steps:
       - name: Kodu al
@@ -364,7 +364,7 @@ jobs:
       - name: Sunucuya bağlan ve test stack'ini güncelle
         uses: appleboy/ssh-action@v1.0.3
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: root
