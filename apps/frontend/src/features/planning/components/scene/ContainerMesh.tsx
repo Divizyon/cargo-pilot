@@ -1,10 +1,59 @@
-import { useRef, useMemo } from 'react';
+// BoxWrapper kuralı kargo kutuları içindir; konteyner kapakları için geçerli değil.
+/* eslint-disable no-restricted-syntax */
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { ContainerBody } from './ContainerBody';
+
+import normalUrl from '@/assets/textures/container-steel/normal.jpg';
+import roughnessUrl from '@/assets/textures/container-steel/roughness.jpg';
+import metalnessUrl from '@/assets/textures/container-steel/metalness.jpg';
+import aoUrl from '@/assets/textures/container-steel/ao.jpg';
+
+const UV_SCALE = 0.008;
+
+function DoorPanel({
+  width,
+  height,
+  depth = 0.1,
+}: {
+  width: number;
+  height: number;
+  depth?: number;
+}) {
+  const [normalMap, roughnessMap, metalnessMap, aoMap] = useTexture([
+    normalUrl,
+    roughnessUrl,
+    metalnessUrl,
+    aoUrl,
+  ]);
+
+  useEffect(() => {
+    for (const tex of [normalMap, roughnessMap, metalnessMap, aoMap]) {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(width * UV_SCALE, height * UV_SCALE);
+      tex.needsUpdate = true;
+    }
+  }, [width, height, normalMap, roughnessMap, metalnessMap, aoMap]);
+
+  return (
+    <mesh position={[width / 2, height / 2, 0]}>
+      <boxGeometry args={[width, height, depth]} />
+      <meshStandardMaterial
+        normalMap={normalMap}
+        roughnessMap={roughnessMap}
+        metalnessMap={metalnessMap}
+        aoMap={aoMap}
+        metalness={0.45}
+        roughness={0.7}
+      />
+    </mesh>
+  );
+}
 
 // ─── ContainerEdges ────────────────────────────────────────────────────────────
 
@@ -59,7 +108,7 @@ function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} opacity={0.18} transparent />
     </lineSegments>
   );
 }
@@ -109,6 +158,9 @@ function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: numbe
 function RearDoorPanel({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   return (
     <group>
+      <group scale={[sign, 1, 1]}>
+        <DoorPanel width={panelW} height={height} />
+      </group>
       <RearDoorGrid panelW={panelW} height={height} sign={sign} />
       <RearDoorFrame panelW={panelW} height={height} sign={sign} />
     </group>
@@ -173,7 +225,7 @@ function SideDoorGrid({
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} opacity={0.18} transparent />
     </lineSegments>
   );
 }
@@ -239,6 +291,10 @@ function SideHalfDoor({
 }) {
   return (
     <group>
+      {/* Panel: X ekseni boyunca, Z yönünde uzanır — DoorPanel X=width Z=depth olduğu için rotate et */}
+      <group rotation={[0, -Math.PI / 2, 0]} position={[0, 0, 0]} scale={[sign, 1, 1]}>
+        <DoorPanel width={panelDepth} height={height} />
+      </group>
       <SideDoorGrid panelDepth={panelDepth} height={height} sign={sign} />
       <SideDoorFrame panelDepth={panelDepth} height={height} sign={sign} />
     </group>
@@ -301,7 +357,7 @@ function TopCoverGrid({
 
   return (
     <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={SCENE.COLORS.GRID} opacity={0.35} transparent />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} opacity={0.18} transparent />
     </lineSegments>
   );
 }
@@ -367,6 +423,10 @@ function TopCoverHalf({
 }) {
   return (
     <group>
+      {/* Panel: XZ düzleminde, rotate ile yatay yap */}
+      <group rotation={[-Math.PI / 2, 0, 0]} scale={[1, sign, 1]}>
+        <DoorPanel width={width} height={panelLength} />
+      </group>
       <TopCoverGrid width={width} panelLength={panelLength} sign={sign} />
       <TopCoverFrame width={width} panelLength={panelLength} sign={sign} />
     </group>
