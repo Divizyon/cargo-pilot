@@ -8,6 +8,7 @@ public sealed class Company : BaseEntity {
     public string? LogoUrl { get; private set; }
     public SubscriptionType SubscriptionType { get; private set; }
     public int MaxUserCount { get; private set; }
+    public DateTime? TrialEndsAt { get; private set; }
     public ICollection<AppUser> Users { get; } = [];
     public ICollection<Vehicle> Vehicles { get; } = [];
     public ICollection<Item> Items { get; } = [];
@@ -30,4 +31,5 @@ public sealed class Company : BaseEntity {
     }
 
     public void UpdateName(string name) => Name = name.Trim();
+    public void SetTrial(DateTime trialEndsAt) => TrialEndsAt = trialEndsAt;
 }
