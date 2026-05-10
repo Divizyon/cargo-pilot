@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Integrations.ApplyErpConstraints;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
 using CargoPilot.Application.Features.Integrations.ListIntegrations;
 using CargoPilot.Application.Features.Integrations.TriggerSync;
@@ -96,6 +97,31 @@ public sealed class IntegrationsController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new TriggerSyncCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// ERP ürün kısıt verilerini Cargo Pilot kural alanlarına eşler ve Item kayıtlarını günceller.
+    /// Eşleşemeyen veya kısıt verisi eksik ürünler IsRuleAssigned=false olarak işaretlenir.
+    /// Sync sonucu kural atanan/atanmayan sayaçlarıyla birlikte döner.
+    /// </summary>
+    /// <param name="id">Integration ID.</param>
+    /// <param name="products">ERP ürün kısıt listesi.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Eşleştirme tamamlandı; işlenen, kural atanan, atanmayan ve eşleşmeyen ürün sayıları döner.</response>
+    /// <response code="400">Boş liste gönderildi.</response>
+    /// <response code="404">Integration bulunamadı.</response>
+    [HttpPost("{id:guid}/apply-constraints")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApplyConstraints(
+        [FromRoute] Guid id,
+        [FromBody] List<ErpProductConstraintInput> products,
+        CancellationToken cancellationToken)
+    {
+        var command = new ApplyErpConstraintsCommand(id, products);
+        var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
 }

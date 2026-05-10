@@ -18,6 +18,17 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         => _dbContext.Integrations
             .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == companyId, cancellationToken);
 
+    public async Task<IReadOnlyList<Item>> GetItemsByErpIdsAsync(
+        Guid integrationId,
+        IEnumerable<string> erpIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = erpIds.ToList();
+        return await _dbContext.Items
+            .Where(i => i.IntegrationId == integrationId && i.ErpId != null && ids.Contains(i.ErpId))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> HasAnyRunningSyncAsync(Guid companyId, CancellationToken cancellationToken = default)
         => _dbContext.Integrations
             .AnyAsync(i => i.CompanyId == companyId && i.SyncStatus == ErpSyncStatus.Running, cancellationToken);
@@ -28,7 +39,7 @@ internal sealed class IntegrationRepository : IIntegrationRepository
             .Where(i => i.CompanyId == companyId)
             .ToListAsync(cancellationToken);
 
-    public void AddSyncLog(SyncLog log) => _dbContext.SyncLogs.Add(log);
+    public void AddSyncLog(SyncLog syncLog) => _dbContext.SyncLogs.Add(syncLog);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _dbContext.SaveChangesAsync(cancellationToken);
