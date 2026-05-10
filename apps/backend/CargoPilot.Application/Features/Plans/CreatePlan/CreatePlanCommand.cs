@@ -1,5 +1,4 @@
 using CargoPilot.Application.Common.Models;
-using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Domain.Enums;
 using MediatR;
 
@@ -10,4 +9,4 @@ public sealed record CreatePlanCommand(
     Guid VehicleId,
     IReadOnlyList<CreatePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst)
-    : IRequest<Result<PlanDetailDto>>;
+    : IRequest<Result<Guid>>;
