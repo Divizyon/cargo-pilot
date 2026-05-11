@@ -4,6 +4,7 @@ using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260509182435_AddSyncFieldsToIntegration")]
+    partial class AddSyncFieldsToIntegration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -93,16 +96,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("MustChangePassword")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("PasswordHash")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -174,9 +167,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("TrialEndsAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -314,17 +304,19 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<string>("MappingTable")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("SyncInterval")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("NextScheduledSyncAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int?>("SyncFrequency")
                         .HasColumnType("int");
 
-                    b.Property<int>("SyncStatus")
+                    b.Property<int?>("SyncInterval")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("NextScheduledSyncAt")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("SyncStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("SystemName")
                         .IsRequired()

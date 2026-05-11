@@ -63,6 +63,7 @@ public static class DependencyInjection {
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
