@@ -271,6 +271,7 @@ internal sealed class AuthService : IAuthService
             RefreshToken = refreshToken,
             AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
             RefreshTokenExpiresAt = sessionExpiry,
+            MustChangePassword = user.MustChangePassword,
         });
     }
 
@@ -430,6 +431,65 @@ internal sealed class AuthService : IAuthService
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<ForceChangePasswordResponse>> ForceChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
+            return Result<ForceChangePasswordResponse>.Failure(AuthErrors.InvalidCredentials);
+
+        if (user.PasswordHash is null || !_passwordHasher.VerifyPassword(currentPassword, user.PasswordHash))
+            return Result<ForceChangePasswordResponse>.Failure(AuthErrors.InvalidCredentials);
+
+        var recentHashes = await _passwordHistoryRepository.GetLastHashesAsync(user.Id, 3, cancellationToken);
+        if (recentHashes.Any(h => _passwordHasher.VerifyPassword(newPassword, h)))
+            return Result<ForceChangePasswordResponse>.Failure(AuthErrors.PasswordAlreadyUsed);
+
+        if (user.PasswordHash is not null)
+        {
+            _passwordHistoryRepository.Add(new UserPasswordHistory(
+                id: Guid.NewGuid(),
+                userId: user.Id,
+                passwordHash: user.PasswordHash));
+        }
+
+        user.SetPassword(_passwordHasher.HashPassword(newPassword));
+        user.SetMustChangePassword(false);
+
+        var activeSessions = await _context.UserSessions
+            .Where(s => s.UserId == user.Id && !s.IsRevoked)
+            .ToListAsync(cancellationToken);
+        foreach (var session in activeSessions)
+            session.Revoke();
+
+        var now = DateTime.UtcNow;
+        var accessToken = _jwtTokenService.GenerateAccessToken(user);
+        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+        var sessionExpiry = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes);
+
+        _context.UserSessions.Add(new UserSession(
+            id: Guid.NewGuid(),
+            userId: user.Id,
+            token: refreshToken,
+            expiresAt: sessionExpiry,
+            lastUsedAt: now,
+            createdByIp: null,
+            deviceSummary: null));
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<ForceChangePasswordResponse>.Success(new ForceChangePasswordResponse
+        {
+            AccessToken = accessToken,
+            AccessTokenExpiresAt = now.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+            RefreshToken = refreshToken,
+            RefreshTokenExpiresAt = sessionExpiry,
+        });
     }
 
     public async Task<Result<string>> SecureAccountAsync(
