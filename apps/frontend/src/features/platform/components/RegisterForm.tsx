@@ -373,7 +373,6 @@ export function RegisterForm() {
           variant="outline"
           className="w-full"
           onClick={() => handleOAuth(OAUTH_GOOGLE_URL)}
-          disabled={!OAUTH_GOOGLE_URL}
         >
           <GoogleIcon />
           Google ile Kayıt Ol

@@ -14,3 +14,10 @@ export const PLAN_FEATURES = {
 } as const satisfies Record<string, SubscriptionPlan>;
 
 export type FeatureKey = keyof typeof PLAN_FEATURES;
+
+export const PLAN_MAX_MEMBERS: Record<SubscriptionPlan, number> = {
+  free: 1,
+  starter: 5,
+  pro: 25,
+  enterprise: Number.MAX_SAFE_INTEGER,
+};
