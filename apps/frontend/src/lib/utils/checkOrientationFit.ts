@@ -1,16 +1,32 @@
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Vehicle } from '@/lib/types/vehicle';
 
+/**
+ * Dikdörtgenler prizması collision — tüm ürün tipleri için geçerli.
+ * Varil: width=depth=çap, height=yükseklik olarak çağrılır.
+ */
+export function fitsInVehicle(
+  posX: number,
+  posY: number,
+  posZ: number,
+  w: number,
+  h: number,
+  d: number,
+  vehicle: Vehicle,
+): boolean {
+  return (
+    posX >= 0 &&
+    posY >= 0 &&
+    posZ >= 0 &&
+    posX + w <= vehicle.width &&
+    posY + h <= vehicle.height &&
+    posZ + d <= vehicle.length
+  );
+}
+
 // Sol-alt-arka origin: kutunun bounds'u positionX..positionX+width gibi.
 export function isInsideContainer(p: PlacementWithDimensions, vehicle: Vehicle): boolean {
-  return (
-    p.positionX >= 0 &&
-    p.positionY >= 0 &&
-    p.positionZ >= 0 &&
-    p.positionX + p.width <= vehicle.width &&
-    p.positionY + p.height <= vehicle.height &&
-    p.positionZ + p.depth <= vehicle.length
-  );
+  return fitsInVehicle(p.positionX, p.positionY, p.positionZ, p.width, p.height, p.depth, vehicle);
 }
 
 /**
