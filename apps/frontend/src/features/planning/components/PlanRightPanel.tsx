@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
+import { toast } from 'sonner';
 import {
   DndContext,
   closestCenter,
@@ -38,6 +39,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -55,7 +63,10 @@ import {
   type VehicleType as VehicleTypeValue,
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
+import { useCreateLoadingPlan, useOptimizedPlacements } from '@/lib/api/useLoadingPlans';
 import { useUnitStore } from '@/lib/store/useUnitStore';
+import { rotatedDimensions, type OrientationIndex } from '@/lib/utils/boxOrientations';
+import { SCENE } from '@/lib/config/scene-config';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
@@ -77,6 +88,15 @@ const vehicleEditSchema = z.object({
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   payload: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
 });
+
+const planNameSchema = z.object({
+  planName: z
+    .string()
+    .min(1, 'Plan adı zorunludur')
+    .max(100, 'En fazla 100 karakter girebilirsiniz'),
+});
+
+type PlanNameValues = z.infer<typeof planNameSchema>;
 
 type VehicleEditValues = z.infer<typeof vehicleEditSchema>;
 
@@ -406,7 +426,76 @@ interface PlanRightPanelProps {
 export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
+  const criteria = usePlanStore((s) => s.criteria);
+  const skuColorMap = usePlanStore((s) => s.skuColorMap);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+
+  const createPlan = useCreateLoadingPlan();
+  const [showPlanNameDialog, setShowPlanNameDialog] = useState(false);
+  const [optimizedPlanId, setOptimizedPlanId] = useState<string | null>(null);
+  const { data: optimizedPlacements, isLoading: optimizationLoading } =
+    useOptimizedPlacements(optimizedPlanId);
+
+  // Backend placements gelince sahneye uygula
+  useEffect(() => {
+    if (!optimizedPlacements || optimizedPlacements.length === 0) return;
+    const scenePlacements = optimizedPlacements.map((p) => {
+      const orientIdx = (p.rotation ?? 0) as OrientationIndex;
+      const dims = rotatedDimensions(p.item.width, p.item.height, p.item.length, orientIdx);
+      const color = skuColorMap[p.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+      return {
+        itemId: p.itemId,
+        positionX: p.positionX,
+        positionY: p.positionY,
+        positionZ: p.positionZ,
+        orientationIndex: orientIdx,
+        layer: dims.height > 0 ? Math.round(p.positionY / dims.height) + 1 : 1,
+        isViolation: false,
+        width: dims.width,
+        height: dims.height,
+        depth: dims.depth,
+        weight: p.item.weight,
+        color,
+      };
+    });
+    usePlanStore.getState().setPlacements(scenePlacements);
+    setOptimizedPlanId(null);
+    toast.success(`Optimizasyon tamamlandı — ${scenePlacements.length} kutu yerleştirildi.`, {
+      position: 'bottom-right',
+    });
+  // skuColorMap'in referans değişimi gereksiz tetiklemelere yol açmaması için sadece optimizedPlacements değişince çalış
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optimizedPlacements]);
+
+  const planNameForm = useForm<PlanNameValues>({
+    resolver: zodResolver(planNameSchema),
+    defaultValues: { planName: '' },
+  });
+
+  function handleOptimizeClick() {
+    planNameForm.reset();
+    setShowPlanNameDialog(true);
+  }
+
+  function handlePlanNameSubmit(values: PlanNameValues) {
+    if (!selectedVehicle) return;
+    createPlan.mutate(
+      {
+        planName: values.planName,
+        vehicleId: selectedVehicle.id,
+        items: selectedItems.map(({ item, quantity }) => ({ itemId: item.id, quantity })),
+        optimizationCriteria: criteria,
+      },
+      {
+        onSuccess: (planId) => {
+          setShowPlanNameDialog(false);
+          toast.info('Optimizasyon sonuçları yükleniyor…', { position: 'bottom-right' });
+          setOptimizedPlanId(planId);
+        },
+      },
+    );
+  }
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
@@ -731,12 +820,75 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
         <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle}
+            disabled={
+              !selectedVehicle ||
+              selectedItems.length === 0 ||
+              createPlan.isPending ||
+              optimizationLoading
+            }
+            onClick={handleOptimizeClick}
           >
-            Optimizasyonu Başlat
+            {createPlan.isPending || optimizationLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                {createPlan.isPending ? 'Oluşturuluyor…' : 'Sonuçlar yükleniyor…'}
+              </>
+            ) : (
+              'Optimizasyonu Başlat'
+            )}
           </Button>
         </div>
       </div>
+
+      <Dialog open={showPlanNameDialog} onOpenChange={setShowPlanNameDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Plan Adı</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={planNameForm.handleSubmit(handlePlanNameSubmit)} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-zinc-600">Plan adı girin</Label>
+              <Input
+                {...planNameForm.register('planName')}
+                placeholder="Örn: İstanbul Sevkiyatı"
+                className="h-8 text-sm"
+                autoFocus
+              />
+              {planNameForm.formState.errors.planName && (
+                <p className="text-[11px] text-destructive">
+                  {planNameForm.formState.errors.planName.message}
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPlanNameDialog(false)}
+                disabled={createPlan.isPending}
+              >
+                İptal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="bg-zinc-900 text-white hover:bg-zinc-700"
+                disabled={createPlan.isPending}
+              >
+                {createPlan.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    Oluşturuluyor…
+                  </>
+                ) : (
+                  'Optimizasyonu Başlat'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AddVehicleModal
         open={showVehicleModal}

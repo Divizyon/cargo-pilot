@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
-import { loadingPlanSchema, type LoadingPlanListItem } from '@/lib/types/loadingPlan';
+import {
+  loadingPlanSchema,
+  type LoadingPlanListItem,
+  type OptimizationCriteria,
+} from '@/lib/types/loadingPlan';
 import { apiFetch } from './fetcher';
 import { axiosInstance } from './axiosInstance';
 import {
@@ -211,6 +215,127 @@ function applyClientFilters(
     result = result.filter((p) => p.status === filters.status);
   }
   return result;
+}
+
+// ─── Create mutation ───────────────────────────────────────────────────────────
+
+export interface CreateLoadingPlanInput {
+  planName: string;
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number }>;
+  optimizationCriteria: OptimizationCriteria;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function extractPlanId(data: unknown): string | undefined {
+  // Plain UUID string (e.g. text/plain response or bare JSON string)
+  if (typeof data === 'string' && UUID_RE.test(data.trim())) return data.trim();
+
+  if (typeof data !== 'object' || data === null) return undefined;
+  const d = data as Record<string, unknown>;
+
+  // { id: "uuid" }
+  if (typeof d['id'] === 'string' && UUID_RE.test(d['id'])) return d['id'];
+
+  // { data: "uuid" }
+  if (typeof d['data'] === 'string' && UUID_RE.test(d['data'])) return d['data'];
+
+  // { data: { id: "uuid" } }
+  if (typeof d['data'] === 'object' && d['data'] !== null) {
+    const inner = d['data'] as Record<string, unknown>;
+    if (typeof inner['id'] === 'string' && UUID_RE.test(inner['id'])) return inner['id'];
+  }
+
+  return undefined;
+}
+
+export function useCreateLoadingPlan() {
+  const queryClient = useQueryClient();
+  return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
+    mutationKey: ['create-loading-plan'],
+    mutationFn: async (payload) => {
+      const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', payload);
+      const id = extractPlanId(data);
+      if (!id) throw new Error('Plan ID alınamadı — API yanıtı beklenen formatta değil');
+      return id;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      toast.success('Plan oluşturuldu, optimizasyon başlatıldı.', { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+      if (status === 404) {
+        toast.error('Araç bulunamadı.', { position: 'bottom-right' });
+        return;
+      }
+      if (status === 400) {
+        toast.error(detail ?? 'Geçersiz plan verisi.', { position: 'bottom-right' });
+        return;
+      }
+      toast.error(detail ?? error.message ?? 'Plan oluşturulamadı. Lütfen tekrar deneyin.', {
+        position: 'bottom-right',
+      });
+    },
+  });
+}
+
+// ─── Optimized scene placements (GET after POST) ──────────────────────────────
+
+export interface OptimizedScenePlacement {
+  itemId: string;
+  positionX: number;
+  positionY: number;
+  positionZ: number;
+  rotation: number;
+  item: {
+    sku: string;
+    width: number;
+    height: number;
+    length: number;
+    weight: number;
+  };
+}
+
+export function useOptimizedPlacements(planId: string | null) {
+  return useQuery({
+    queryKey: ['optimized-placements', planId] as const,
+    queryFn: async (): Promise<OptimizedScenePlacement[]> => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
+      const parsed = planDetailApiResponseSchema.safeParse(data);
+      if (!parsed.success) {
+        console.error('[useOptimizedPlacements] parse error', parsed.error);
+        return [];
+      }
+      const rawPlacements = parsed.data.data.placements ?? [];
+      return rawPlacements
+        .map((p) => {
+          const raw = p as Record<string, unknown>;
+          const item = p.item as Record<string, unknown> | null | undefined;
+          if (!item || !raw['itemId']) return null;
+          return {
+            itemId: raw['itemId'] as string,
+            positionX: (raw['positionX'] as number) ?? 0,
+            positionY: (raw['positionY'] as number) ?? 0,
+            positionZ: (raw['positionZ'] as number) ?? 0,
+            rotation: (raw['rotation'] as number) ?? 0,
+            item: {
+              sku: (item['sku'] as string) ?? '',
+              width: (item['width'] as number) ?? 0,
+              height: (item['height'] as number) ?? 0,
+              length: (item['length'] as number) ?? 0,
+              weight: (item['weight'] as number) ?? 0,
+            },
+          };
+        })
+        .filter((p): p is OptimizedScenePlacement => p !== null);
+    },
+    enabled: Boolean(planId),
+    staleTime: Infinity,
+    gcTime: 5 * 60 * 1000,
+  });
 }
 
 export function useLoadingPlanProducts(planId: string) {
