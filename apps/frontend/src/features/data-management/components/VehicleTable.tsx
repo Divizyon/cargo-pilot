@@ -27,6 +27,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useVehicles, useToggleFavorite } from '@/lib/api/useVehicles';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
 import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
 import { SearchInput } from './SearchInput';
@@ -190,12 +192,6 @@ const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
   { value: 'rearAndSide', label: 'Arka + Yan' },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDim(mm: number): string {
-  return Math.round(mm).toLocaleString('tr-TR');
-}
-
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function VehicleTableSkeleton() {
@@ -259,7 +255,8 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
   const navigate = useNavigate();
   const cfg = TYPE_CONFIG[vehicle.vehicleType];
   const door = DOOR_CONFIG[vehicle.doorDirection] ?? { label: vehicle.doorDirection };
-  const weightKg = Math.round(vehicle.maxCargoWeight / 1000).toLocaleString('tr-TR');
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
   const cell = 'py-0 px-3';
 
   return (
@@ -287,24 +284,32 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
         <span className="block truncate text-xs text-muted-foreground">{vehicle.plate ?? '—'}</span>
       </TableCell>
 
-      {/* Genişlik */}
+      {/* Uzunluk (X) */}
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatDim(vehicle.width)} mm</span>
+        <span className="text-xs text-foreground">
+          {formatDimensionDisplay(vehicle.length, dimensionUnit)}
+        </span>
       </TableCell>
 
-      {/* Yükseklik */}
+      {/* Yükseklik (Y) */}
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatDim(vehicle.height)} mm</span>
+        <span className="text-xs text-foreground">
+          {formatDimensionDisplay(vehicle.height, dimensionUnit)}
+        </span>
       </TableCell>
 
-      {/* Uzunluk */}
+      {/* Derinlik (Z) */}
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatDim(vehicle.length)} mm</span>
+        <span className="text-xs text-foreground">
+          {formatDimensionDisplay(vehicle.width, dimensionUnit)}
+        </span>
       </TableCell>
 
       {/* Maks Yük */}
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{weightKg} kg</span>
+        <span className="text-xs text-foreground">
+          {formatWeightDisplay(vehicle.maxCargoWeight, weightUnit)}
+        </span>
       </TableCell>
 
       {/* Kapı Yönü */}
@@ -565,16 +570,16 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   Tip
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Plaka
+                  Plaka/Seri No
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Genişlik
+                  Uzunluk (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik
+                  Yükseklik (Y)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk
+                  Derinlik (Z)
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Maks Yük

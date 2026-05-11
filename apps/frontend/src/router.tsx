@@ -72,7 +72,7 @@ export const router = createBrowserRouter([
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/products', element: <ProductsPage /> },
           { path: '/products/new', element: <ProductCreatePage /> },
-          { path: '/products/:id', element: <ProductEditPage /> },
+          { path: '/products/:id/edit', element: <ProductEditPage /> },
           { path: '/vehicles', element: <VehiclesPage /> },
           { path: '/vehicles/new', element: <VehicleCreatePage /> },
           { path: '/vehicles/:id/edit', element: <VehicleEditPage /> },

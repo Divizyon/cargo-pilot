@@ -17,6 +17,7 @@ export function useVehicleForm(
       description: '',
       status: 'active',
       isActive: true,
+      vehicleType: 'Tir',
       doorDirection: 'rear',
       ...defaultValues,
     },

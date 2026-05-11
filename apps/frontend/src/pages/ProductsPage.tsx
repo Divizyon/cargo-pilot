@@ -6,7 +6,7 @@ export function ProductsPage() {
   const navigate = useNavigate();
 
   function handleRowClick(item: Item) {
-    navigate(`/products/${item.id}`);
+    navigate(`/products/${item.id}/edit`);
   }
 
   return (
