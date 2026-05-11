@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { VehicleType, type VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 function TirIcon({ className }: { className?: string }) {
   return (
@@ -93,45 +93,25 @@ interface VehicleTypeSelectorProps {
 
 export function VehicleTypeSelector({ value, onChange }: VehicleTypeSelectorProps) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {VEHICLE_OPTIONS.map(({ value: optionValue, label, icon: Icon }) => {
-        const isSelected = value === optionValue;
-        return (
-          <button
-            key={optionValue}
-            type="button"
-            onClick={() => onChange(optionValue)}
-            className={cn(
-              'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-4 text-sm font-medium transition-all',
-              isSelected
-                ? 'border-foreground bg-background shadow-sm'
-                : 'border-border bg-muted text-muted-foreground hover:border-foreground/40 hover:bg-background',
-            )}
-          >
-            {isSelected && (
-              <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-foreground">
-                <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3" aria-hidden>
-                  <path
-                    d="M2 6l3 3 5-5"
-                    stroke="white"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-            )}
-            <Icon
-              className={cn('h-8 w-8', isSelected ? 'text-foreground' : 'text-muted-foreground')}
-            />
-            <span
-              className={cn('text-xs', isSelected ? 'text-foreground' : 'text-muted-foreground')}
-            >
-              {label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+    <ToggleGroup
+      type="single"
+      value={value ?? ''}
+      onValueChange={(val) => {
+        if (val) onChange(val as VehicleTypeValue);
+      }}
+      className="flex gap-2"
+    >
+      {VEHICLE_OPTIONS.map(({ value: optionValue, label, icon: Icon }) => (
+        <ToggleGroupItem
+          key={optionValue}
+          value={optionValue}
+          aria-label={label}
+          className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+        >
+          <Icon className="h-5 w-5 shrink-0" />
+          {label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

@@ -39,6 +39,8 @@ import {
 } from '@/lib/api/useLoadingPlans';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import type { LoadingPlanFiltersHook } from '../hooks/useLoadingPlanFilters';
 
 // ─── Vehicle icon ─────────────────────────────────────────────────────────────
@@ -124,13 +126,6 @@ function FillBar({ pct }: { pct: number }) {
       <span className="w-8 text-right text-xs font-medium text-foreground">%{pct}</span>
     </div>
   );
-}
-
-// ─── Weight formatter ─────────────────────────────────────────────────────────
-
-function formatWeight(kg: number): string {
-  const t = kg / 1000;
-  return `${t % 1 === 0 ? t.toFixed(0) : t.toFixed(1)}t`;
 }
 
 function formatDate(iso: string): string {
@@ -379,6 +374,7 @@ function PlanRow({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const deletePlan = useDeleteLoadingPlan();
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   function handleRowClick() {
     if (onSelect) {
@@ -429,14 +425,9 @@ function PlanRow({
 
         {/* Total weight */}
         <TableCell>
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {formatWeight(plan.totalWeightKg)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {plan.totalWeightKg.toLocaleString('tr-TR')} kg
-            </p>
-          </div>
+          <p className="text-sm font-medium text-foreground">
+            {formatWeightDisplay(plan.totalWeightKg, weightUnit)}
+          </p>
         </TableCell>
 
         {/* Fill percentage */}

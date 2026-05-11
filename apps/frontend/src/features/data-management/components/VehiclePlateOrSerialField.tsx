@@ -47,6 +47,8 @@ export function VehiclePlateOrSerialField({ form, hideHeading }: VehiclePlateOrS
             <FormLabel>Seri Numarası</FormLabel>
             <FormControl>
               <Input
+                className="h-9 border-input bg-background"
+                placeholder="TCKU-123456"
                 {...f}
                 value={f.value ?? ''}
                 onBlur={(e) => {
@@ -74,6 +76,8 @@ export function VehiclePlateOrSerialField({ form, hideHeading }: VehiclePlateOrS
             <FormLabel>Plaka</FormLabel>
             <FormControl>
               <Input
+                className="h-9 border-input bg-background"
+                placeholder="34 ABC 123"
                 {...f}
                 value={f.value ?? ''}
                 onBlur={(e) => {

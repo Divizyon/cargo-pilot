@@ -15,7 +15,7 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/loading-plans")]
 [Tags("Plans")]
-[Authorize]
+[Authorize(Policy = "CompanyMember")]
 public sealed class PlansController : BaseController
 {
     private readonly IMediator _mediator;
@@ -98,7 +98,7 @@ public sealed class PlansController : BaseController
     {
         var result = await _mediator.Send(command, cancellationToken);
         if (!result.IsSuccess) return HandleResult(result);
-        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result.Data);
     }
 
     /// <summary>

@@ -15,6 +15,7 @@ const AUTH_ENDPOINTS = {
   refresh: '/api/v1/auth/refresh',
   forgotPassword: '/api/v1/auth/request-password-reset',
   resetPassword: '/api/v1/auth/reset-password',
+  revokeAllSessions: '/api/v1/auth/revoke-all-sessions',
 } as const;
 
 // --- Login types (Result<T> wrapper) ---
@@ -218,7 +219,7 @@ export function useProfile() {
 interface UpdateProfilePayload {
   firstName: string;
   lastName: string;
-  companyName?: string;
+  companyName?: string | null;
 }
 
 interface UpdateProfileResponse {
@@ -262,6 +263,41 @@ export function useRequestEmailChange() {
   return useMutation<void, AxiosError, RequestEmailChangePayload>({
     mutationFn: (payload) =>
       axiosInstance.post('/api/v1/me/email-change-request', payload).then((r) => r.data),
+  });
+}
+
+// --- Change password (profile sayfası) ---
+
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export function useChangePassword() {
+  return useMutation<void, AxiosError, ChangePasswordPayload>({
+    mutationFn: (payload) =>
+      axiosInstance.post('/api/v1/me/change-password', payload).then((r) => r.data),
+  });
+}
+
+// --- Revoke all sessions (AC3: "Bu giriş benim değil" akışı) ---
+
+interface RevokeAllSessionsPayload {
+  token: string;
+}
+
+export function useRevokeAllSessions() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AxiosError, RevokeAllSessionsPayload>({
+    mutationFn: ({ token }) =>
+      axiosInstance.post<void>(AUTH_ENDPOINTS.revokeAllSessions, { token }).then((r) => r.data),
+    onSuccess: () => {
+      useAuthStore.getState().clearAuth();
+      queryClient.clear();
+      navigate('/auth/reset-password', { replace: true });
+    },
   });
 }
 

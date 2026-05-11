@@ -2,7 +2,7 @@ import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { FormItem } from '@/components/ui/form';
-import { cn } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DoorDirection } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
@@ -23,44 +23,36 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Kapı Yönü
-      </h3>
       <Controller
         control={form.control}
         name="doorDirection"
         render={({ field, fieldState }) => (
           <FormItem>
-            <div className="flex flex-wrap gap-2">
-              {Object.values(DoorDirection).map((dir) => {
-                const isSelected = field.value === dir;
-                return (
-                  <button
-                    key={dir}
-                    type="button"
-                    onClick={() => {
-                      field.onChange(dir);
-                      form.clearErrors('doorDirection');
-                      if (dir !== DoorDirection.Side && dir !== DoorDirection.RearAndSide) {
-                        form.setValue('doorSide', undefined);
-                        form.clearErrors('doorSide');
-                      }
-                    }}
-                    className={cn(
-                      'flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-all',
-                      isSelected
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-border bg-background text-foreground hover:border-foreground/40',
-                    )}
-                  >
-                    {isSelected && (
-                      <span className="inline-block h-2 w-2 rounded-sm bg-background" aria-hidden />
-                    )}
-                    {DIRECTION_LABELS[dir]}
-                  </button>
-                );
-              })}
-            </div>
+            <ToggleGroup
+              type="single"
+              value={field.value ?? ''}
+              onValueChange={(val) => {
+                if (!val) return;
+                field.onChange(val);
+                form.clearErrors('doorDirection');
+                if (val !== DoorDirection.Side && val !== DoorDirection.RearAndSide) {
+                  form.setValue('doorSide', undefined);
+                  form.clearErrors('doorSide');
+                }
+              }}
+              className="flex gap-2"
+            >
+              {Object.values(DoorDirection).map((dir) => (
+                <ToggleGroupItem
+                  key={dir}
+                  value={dir}
+                  aria-label={DIRECTION_LABELS[dir]}
+                  className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+                >
+                  {DIRECTION_LABELS[dir]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
             {fieldState.error && (
               <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
             )}
@@ -74,35 +66,28 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
           name="doorSide"
           render={({ field, fieldState }) => (
             <FormItem>
-              <div className="flex flex-wrap gap-2">
+              <ToggleGroup
+                type="single"
+                value={field.value ?? ''}
+                onValueChange={(val) => {
+                  if (val) field.onChange(val);
+                }}
+                className="flex gap-2"
+              >
                 {[
                   { value: 'right', label: 'Sağ + Yan Kapı' },
                   { value: 'left', label: 'Sol + Yan Kapı' },
-                ].map(({ value, label }) => {
-                  const isSelected = field.value === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => field.onChange(value)}
-                      className={cn(
-                        'flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-all',
-                        isSelected
-                          ? 'border-foreground bg-foreground text-background'
-                          : 'border-border bg-background text-foreground hover:border-foreground/40',
-                      )}
-                    >
-                      {isSelected && (
-                        <span
-                          className="inline-block h-2 w-2 rounded-sm bg-background"
-                          aria-hidden
-                        />
-                      )}
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+                ].map(({ value, label }) => (
+                  <ToggleGroupItem
+                    key={value}
+                    value={value}
+                    aria-label={label}
+                    className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+                  >
+                    {label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
               {fieldState.error && (
                 <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
               )}

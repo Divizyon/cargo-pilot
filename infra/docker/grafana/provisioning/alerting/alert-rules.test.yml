@@ -149,7 +149,7 @@ groups:
             model:
               conditions:
                 - evaluator:
-                    params: [90]
+                    params: [75]
                     type: gt
                   operator:
                     type: and
@@ -161,11 +161,11 @@ groups:
               type: classic_conditions
         for: 5m
         annotations:
-          summary: "CPU kullanımı %90 üzerinde (5 dakika sürdü)"
+          summary: "CPU kullanımı %75 üzerinde (5 dakika sürdü)"
         labels:
           severity: critical
-        noDataState: NoData
-        execErrState: Error
+        noDataState: Alerting
+        execErrState: Alerting
 
       - uid: high-ram-usage-test
         title: Yüksek RAM Kullanımı
@@ -189,7 +189,7 @@ groups:
             model:
               conditions:
                 - evaluator:
-                    params: [85]
+                    params: [80]
                     type: gt
                   operator:
                     type: and
@@ -201,11 +201,11 @@ groups:
               type: classic_conditions
         for: 5m
         annotations:
-          summary: "RAM kullanımı %85 üzerinde (5 dakika sürdü)"
+          summary: "RAM kullanımı %80 üzerinde (5 dakika sürdü)"
         labels:
           severity: critical
-        noDataState: NoData
-        execErrState: Error
+        noDataState: Alerting
+        execErrState: Alerting
 
       - uid: high-disk-usage-test
         title: Yüksek Disk Kullanımı
@@ -244,5 +244,5 @@ groups:
           summary: "Disk kullanımı %80 üzerinde (5 dakika sürdü)"
         labels:
           severity: warning
-        noDataState: NoData
-        execErrState: Error
+        noDataState: Alerting
+        execErrState: Alerting

@@ -9,7 +9,7 @@ import {
   isOrientationAllowed,
   type OrientationIndex,
 } from '@/lib/utils/boxOrientations';
-import { applyContainerOverflow } from '@/lib/utils/checkOrientationFit';
+import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/checkOrientationFit';
 import { useUIStore } from '@/lib/store/useUIStore';
 
 export function assignSkuColor(
@@ -42,72 +42,116 @@ function applySurfaceViolations(
   return { result, violatingNames };
 }
 
+interface BuildResult {
+  placed: PlacementWithDimensions[];
+  noFitCount: number;
+}
+
+function gravityY(
+  x: number,
+  z: number,
+  w: number,
+  d: number,
+  others: PlacementWithDimensions[],
+): number {
+  let maxY = 0;
+  for (const o of others) {
+    const xOv = x < o.positionX + o.width && o.positionX < x + w;
+    const zOv = z < o.positionZ + o.depth && o.positionZ < z + d;
+    if (xOv && zOv) {
+      const top = o.positionY + o.height;
+      if (top > maxY) maxY = top;
+    }
+  }
+  return maxY;
+}
+
+function maxZInLayer(placements: PlacementWithDimensions[], y: number): number {
+  let max = 0;
+  for (const p of placements) {
+    if (!p.isViolation && p.positionY === y) {
+      const zEnd = p.positionZ + p.depth;
+      if (zEnd > max) max = zEnd;
+    }
+  }
+  return max;
+}
+
+// Bir katmandaki en uzun kutunun üst kenarını döndürür.
+// Bu değer yeni katmanın başlangıç Y'si olur — alttaki en büyük kutuya göre.
+function maxTopInLayer(placements: PlacementWithDimensions[], y: number): number {
+  let max = y;
+  for (const p of placements) {
+    if (!p.isViolation && p.positionY === y) {
+      const top = p.positionY + p.height;
+      if (top > max) max = top;
+    }
+  }
+  return max;
+}
+
 function buildPlacements(
   item: Item,
   qty: number,
   color: string,
   vehicle: Vehicle,
   existingPlacements: PlacementWithDimensions[],
-): PlacementWithDimensions[] {
+): BuildResult {
   const w = item.width;
   const h = item.height;
   const d = item.length;
 
-  // Start cursor after the last occupied Z in existing placements
+  // Violation'ları hariç tut — cursor hesabı için sadece geçerli yerleşimler
+  const valid = existingPlacements.filter((p) => !p.isViolation);
+
+  // En üst katmandan devam et
+  const curY_init = valid.length > 0 ? Math.max(...valid.map((p) => p.positionY)) : 0;
+  const curZ_init = maxZInLayer(valid, curY_init);
+
   let curX = 0;
-  let curY = 0;
-  let curZ =
-    existingPlacements.length > 0
-      ? Math.max(...existingPlacements.map((p) => p.positionZ + p.depth))
-      : 0;
+  let curY = curY_init;
+  let curZ = curZ_init;
   let rowMaxDepth = d;
+  let noFitCount = 0;
 
   const result: PlacementWithDimensions[] = [];
 
   for (let i = 0; i < qty; i++) {
-    // X overflow → wrap to next row
-    if (curX + w > vehicle.width) {
-      curX = 0;
-      curZ += rowMaxDepth;
-      rowMaxDepth = d;
-    }
-
     // Z overflow → new layer (only if stackable)
     if (curZ + d > vehicle.length) {
-      if (!item.isStackable || curY + h * 2 > vehicle.height) {
-        // No space left: mark remaining as violations placed at origin
-        result.push({
-          itemId: item.id,
-          positionX: 0,
-          positionY: 0,
-          positionZ: 0,
-          orientationIndex: 0,
-          layer: 1,
-          isViolation: true,
-          width: w,
-          height: h,
-          depth: d,
-          weight: item.weight,
-          color,
-          productType: item.productType,
-        });
+      if (!item.isStackable) {
+        noFitCount++;
         continue;
       }
-      curY += h;
+      const allSoFar = [...valid, ...result.filter((p) => !p.isViolation)];
+      const newLayerY = maxTopInLayer(allSoFar, curY);
+      if (newLayerY + h > vehicle.height) {
+        noFitCount++;
+        continue;
+      }
+      curY = newLayerY;
       curX = 0;
-      curZ = 0;
+      curZ = maxZInLayer(allSoFar, curY);
       rowMaxDepth = d;
     }
 
     rowMaxDepth = Math.max(rowMaxDepth, d);
 
+    const soFar = [...valid, ...result.filter((p) => !p.isViolation)];
+    const posY = gravityY(curX, curZ, w, d, soFar);
+
+    if (!fitsInVehicle(curX, posY, curZ, w, h, d, vehicle)) {
+      noFitCount++;
+      continue;
+    }
+
     result.push({
       itemId: item.id,
       positionX: curX,
-      positionY: curY,
+      positionY: posY,
       positionZ: curZ,
       orientationIndex: 0,
-      layer: Math.round(curY / h) + 1,
+      layer: Math.round(posY / h) + 1,
       isViolation: false,
       width: w,
       height: h,
@@ -118,9 +162,14 @@ function buildPlacements(
     });
 
     curX += w;
+    if (curX + w > vehicle.width) {
+      curX = 0;
+      curZ += rowMaxDepth;
+      rowMaxDepth = d;
+    }
   }
 
-  return result;
+  return { placed: result, noFitCount };
 }
 
 interface PlanStore {
@@ -194,10 +243,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
         const entry = s.selectedItems.find((si) => si.item.id === itemId);
         if (!entry) continue;
         const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-        rebuilt = [
-          ...rebuilt,
-          ...buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt),
-        ];
+        const { placed } = buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt);
+        rebuilt = [...rebuilt, ...placed];
       }
       return { selectedVehicle: vehicle, placements: computeViolations(rebuilt) };
     }),
@@ -214,19 +261,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (!s.selectedVehicle)
         return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
-      const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, s.placements);
-      const overflowCount = newBoxes.filter((p) => p.isViolation).length;
-      if (overflowCount > 0) {
-        const fitsCount = qty - overflowCount;
+      const { placed, noFitCount } = buildPlacements(
+        item,
+        qty,
+        color,
+        s.selectedVehicle,
+        s.placements,
+      );
+      if (noFitCount > 0) {
+        const fitsCount = qty - noFitCount;
         useUIStore.getState().addNotification({
           variant: 'warning',
           message:
             fitsCount > 0
-              ? `${item.name}: ${fitsCount} adet yerleştirildi, ${overflowCount} adet araca sığmadı.`
+              ? `${item.name}: ${fitsCount} adet yerleştirildi, ${noFitCount} adet araca sığmadı.`
               : `${item.name}: ${qty} adet araca sığmadı.`,
         });
       }
-      const next = [...s.placements, ...newBoxes];
+      const next = [...s.placements, ...placed];
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],
         skuColorMap: updatedColorMap,
@@ -248,8 +300,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
       }
 
       const otherPlacements = s.placements.filter((p) => p.itemId !== itemId);
-      const newBoxes = buildPlacements(item, qty, color, s.selectedVehicle, otherPlacements);
-      const next = [...otherPlacements, ...newBoxes];
+      const { placed, noFitCount } = buildPlacements(
+        item,
+        qty,
+        color,
+        s.selectedVehicle,
+        otherPlacements,
+      );
+      if (noFitCount > 0) {
+        useUIStore.getState().addNotification({
+          variant: 'warning',
+          message: `${item.name}: ${noFitCount} adet araca sığmadı.`,
+        });
+      }
+      const next = [...otherPlacements, ...placed];
       const withCollisions = computeViolations(next);
       const { result: withSurface, violatingNames } = applySurfaceViolations(
         withCollisions,
@@ -284,14 +348,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const newBoxes = buildPlacements(
+      const { placed, noFitCount } = buildPlacements(
         entry.item,
         entry.quantity,
         color,
         s.selectedVehicle,
         s.placements,
       );
-      const next = [...s.placements, ...newBoxes];
+      if (noFitCount > 0) {
+        useUIStore.getState().addNotification({
+          variant: 'warning',
+          message:
+            noFitCount === entry.quantity
+              ? `${entry.item.name}: araca sığmadı.`
+              : `${entry.item.name}: ${entry.quantity - noFitCount} adet yerleştirildi, ${noFitCount} adet araca sığmadı.`,
+        });
+      }
+      if (placed.length === 0) return {};
+      const next = [...s.placements, ...placed];
       return { placements: computeViolations(next) };
     }),
 
@@ -395,16 +469,18 @@ export const usePlanStore = create<PlanStore>((set) => ({
         }));
         // If qty increased, append extra boxes after existing ones
         if (qty > existing.length) {
-          previewBoxes = [
-            ...previewBoxes,
-            ...buildPlacements(item, qty - existing.length, color, s.selectedVehicle, [
-              ...others,
-              ...previewBoxes,
-            ]),
-          ];
+          const { placed } = buildPlacements(
+            item,
+            qty - existing.length,
+            color,
+            s.selectedVehicle,
+            [...others, ...previewBoxes],
+          );
+          previewBoxes = [...previewBoxes, ...placed];
         }
       } else {
-        previewBoxes = buildPlacements(item, qty, color, s.selectedVehicle, others);
+        const { placed } = buildPlacements(item, qty, color, s.selectedVehicle, others);
+        previewBoxes = placed;
       }
 
       const allChecked = computeViolations([...others, ...previewBoxes]);

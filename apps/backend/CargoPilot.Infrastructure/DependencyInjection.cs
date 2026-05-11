@@ -3,6 +3,7 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
 using CargoPilot.Infrastructure.Auth;
+using CargoPilot.Infrastructure.Jobs;
 using CargoPilot.Infrastructure.Persistence;
 using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
@@ -54,22 +55,27 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IPendingVehicleMappingRepository, PendingVehicleMappingRepository>();
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
-        services.AddScoped<IOptimizationEngine, NoOpOptimizationEngine>();
+        services.AddScoped<IOptimizationEngine, OptimizationEngine>();
         services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
         });
+        services.AddTransient<TrialExpiryNotificationJob>();
+        services.AddTransient<NotificationCleanupJob>();
 
         if (!useInMemoryRepository)
         {
+
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
@@ -79,8 +85,8 @@ public static class DependencyInjection
                         errorNumbersToAdd: null)));
             services.AddScoped<DbInitializer>();
             services.AddScoped<IAuthService, AuthService>();
-
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
+            services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
         }
 
         return services;

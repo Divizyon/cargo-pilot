@@ -23,4 +23,6 @@ public sealed record LoginResponse
     /// </summary>
     [JsonIgnore]
     public DateTime RefreshTokenExpiresAt { get; init; }
+
+    public bool MustChangePassword { get; init; }
 }

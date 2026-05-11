@@ -2,6 +2,7 @@ using CargoPilot.Application.Features.Vehicles.AddVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.CreateVehicle;
 using CargoPilot.Application.Features.Vehicles.DeleteVehicle;
 using CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
+using CargoPilot.Application.Features.Vehicles.GetVehicleById;
 using CargoPilot.Application.Features.Vehicles.RemoveVehicleFavorite;
 using CargoPilot.Application.Features.Vehicles.SearchVehicles;
 using CargoPilot.Application.Features.Vehicles.UpdateVehicle;
@@ -17,7 +18,7 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/vehicles")]
 [Tags("Vehicles")]
-[Authorize]
+[Authorize(Policy = "CompanyMember")]
 public sealed class VehiclesController : BaseController
 {
     private readonly IMediator _mediator;
@@ -61,6 +62,25 @@ public sealed class VehiclesController : BaseController
             Page: page,
             PageSize: pageSize,
             IsExport: isExport);
+        var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Bir aracın tüm teknik detaylarını ve kayıt bilgilerini döndürür.
+    /// </summary>
+    /// <param name="id">Araç ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç detayı döner.</response>
+    /// <response code="404">Araç bulunamadı.</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetVehicleByIdQuery(id);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

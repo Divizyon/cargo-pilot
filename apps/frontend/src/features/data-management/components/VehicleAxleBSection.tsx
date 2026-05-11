@@ -1,9 +1,6 @@
-import { useMemo } from 'react';
-import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { calculateTotalTare } from '@/lib/utils/calculateTotalTare';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
@@ -15,43 +12,21 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
-  const [axleB, kingpin, mainTare] = useWatch({
-    control: form.control,
-    name: ['axleB', 'kingpin', 'tareWeight'],
-  });
-
-  const totalTare = useMemo(
-    () =>
-      calculateTotalTare([
-        { tareWeight: mainTare },
-        { tareWeight: axleB?.tareWeight },
-        { tareWeight: kingpin?.tareWeight },
-      ]),
-    [mainTare, axleB, kingpin],
-  );
-
   return (
     <div className="flex flex-col gap-3">
-      <div>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Aks Yönetimi
-        </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">Ana Aks (Dingil B)</p>
-      </div>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}
           name="axleB.maxLoad"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Kapasite ({weightUnit})
-              </FormLabel>
+              <FormLabel>Kapasite</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
+                    placeholder="11500"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -74,14 +49,13 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           name="axleB.tareWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Dara Ağırlığı ({weightUnit})
-              </FormLabel>
+              <FormLabel>Dara Ağırlığı</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="0"
+                    placeholder="3000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -104,14 +78,13 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
           name="axleB.distance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Mesafe ({dimensionUnit})
-              </FormLabel>
+              <FormLabel>Mesafe</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
+                    placeholder="850"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -133,14 +106,6 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
       {'message' in (form.formState.errors.axleB ?? {}) && (
         <p className="text-sm font-medium text-destructive">
           {(form.formState.errors.axleB as { message?: string }).message}
-        </p>
-      )}
-      {totalTare > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Toplam boş ağırlık:{' '}
-          <span className="font-semibold text-foreground">
-            {totalTare.toLocaleString('tr-TR')} {weightUnit}
-          </span>
         </p>
       )}
     </div>

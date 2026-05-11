@@ -60,6 +60,8 @@ function buildEdgesGeometry(
   const positions: number[] = [];
 
   placements.forEach((p, i) => {
+    // Palet kendi BoxWrapper'ı içinde kenar çizgileri çizer
+    if (p.productType === 'palet') return;
     const visible = isPlacementVisible(p, i, { selectedInstanceId, selectedItemId, hiddenItemIds });
     const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
     if (!visible || ghosted) return;
@@ -127,16 +129,19 @@ function InstancedBoxes() {
     [rawPlacements, previewItemId, previewPlacements],
   );
 
-  // Varil / box index mapping: globalIdx ↔ per-geometry instanceIdx
+  // Varil / box / palet index mapping: globalIdx ↔ per-geometry instanceIdx
   // boxIndices[instanceIdx] = globalIdx, cylIndices[instanceIdx] = globalIdx
-  const { boxIndices, cylIndices } = useMemo(() => {
+  // paletIndices: globalIdx listesi (InstancedMesh yerine BoxWrapper ile render edilir)
+  const { boxIndices, cylIndices, paletIndices } = useMemo(() => {
     const box: number[] = [];
     const cyl: number[] = [];
+    const pal: number[] = [];
     placements.forEach((p, i) => {
       if (p.productType === 'varil') cyl.push(i);
+      else if (p.productType === 'palet') pal.push(i);
       else box.push(i);
     });
-    return { boxIndices: box, cylIndices: cyl };
+    return { boxIndices: box, cylIndices: cyl, paletIndices: pal };
   }, [placements]);
 
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
@@ -282,14 +287,16 @@ function InstancedBoxes() {
 
   useEffect(() => () => edgesLineGeo.dispose(), [edgesLineGeo]);
 
+  // Palet seçimini kendi BoxWrapper render döngüsü yönetir
   const selectedPlacements = useMemo(
     () =>
       placements
         .map((p, idx) => ({ p, idx }))
         .filter(
           ({ p, idx }) =>
-            (selectedInstanceId !== null && idx === selectedInstanceId) ||
-            (selectedInstanceId === null && p.itemId === selectedItemId),
+            p.productType !== 'palet' &&
+            ((selectedInstanceId !== null && idx === selectedInstanceId) ||
+              (selectedInstanceId === null && p.itemId === selectedItemId)),
         ),
     [placements, selectedItemId, selectedInstanceId],
   );
@@ -441,6 +448,50 @@ function InstancedBoxes() {
         );
       })}
 
+      {/* Palet items — InstancedMesh yerine ayrı BoxWrapper (tahtalı yapı için) */}
+      {paletIndices.map((globalIdx) => {
+        const p = placements[globalIdx];
+        const visible = isPlacementVisible(p, globalIdx, {
+          selectedInstanceId,
+          selectedItemId,
+          hiddenItemIds,
+        });
+        if (!visible) return null;
+        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const isItemSelected =
+          selectedInstanceId === globalIdx ||
+          (selectedInstanceId === null && p.itemId === selectedItemId);
+        const ds = dragState?.idx === globalIdx ? dragState : null;
+        return (
+          <BoxWrapper
+            key={`palet-${globalIdx}`}
+            width={p.width}
+            height={p.height}
+            depth={p.depth}
+            positionX={ds ? ds.x : p.positionX}
+            positionY={ds ? ds.y : p.positionY}
+            positionZ={ds ? ds.z : p.positionZ}
+            color={
+              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+            }
+            itemId={p.itemId}
+            isSelected={isItemSelected}
+            isGhosted={ghosted}
+            productType={p.productType}
+            onClick={() => {
+              setSelectedItemId(null);
+              setSelectedInstanceId(selectedInstanceId === globalIdx ? null : globalIdx);
+            }}
+            onPointerDown={(e) => {
+              if (!vehicle) return;
+              setSelectedItemId(null);
+              setSelectedInstanceId(globalIdx);
+              startDrag(globalIdx, placements, vehicle, setDragState, e);
+            }}
+          />
+        );
+      })}
+
       {/* Selected box — BoxWrapper ile glow */}
       {selectedPlacements.map(({ p, idx }) => {
         const ds = dragState?.idx === idx ? dragState : null;
@@ -461,6 +512,7 @@ function InstancedBoxes() {
             }
             itemId={p.itemId}
             isSelected={true}
+            productType={p.productType}
             onClick={() => {
               setSelectedItemId(null);
               setSelectedInstanceId(selectedInstanceId === idx ? null : idx);

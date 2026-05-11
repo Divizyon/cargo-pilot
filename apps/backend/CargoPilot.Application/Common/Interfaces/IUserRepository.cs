@@ -23,4 +23,10 @@ public interface IUserRepository
     /// <summary>Kullanıcıyı Company navigation ile birlikte getirir; yoksa null döner.</summary>
     Task<AppUser?> GetByIdWithCompanyAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, AppUser>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    Task<AppUser?> GetCompanyAdminAsync(Guid companyId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AppUser>> GetCompanyUsersAsync(Guid companyId, CancellationToken cancellationToken = default);
+    Task<int> GetCompanyUserCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+    Task<int> GetActiveAdminCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+    Task RevokeAllSessionsAsync(Guid userId, CancellationToken cancellationToken = default);
 }

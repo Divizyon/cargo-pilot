@@ -33,6 +33,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   manager: 'Yönetici',
   viewer: 'Görüntüleyici',
+  operator: 'Operatör',
 };
 
 interface NavItemDef {
@@ -223,11 +224,11 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
               ? 'lg:justify-center py-2'
               : 'gap-3 px-2 py-2.5 hover:bg-sidebar-accent cursor-pointer',
           )}
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate('/settings?tab=bireysel-hesap')}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/profile')}
-          title="Profili görüntüle"
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings?tab=bireysel-hesap')}
+          title="Hesap ayarları"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
             {user ? getInitials(user.fullName) : '?'}

@@ -6,6 +6,7 @@ export const SCENE = {
 
   ORBIT_MIN_DISTANCE: 50,
   ORBIT_MAX_DISTANCE: 4000,
+  ORBIT_MAX_POLAR_ANGLE: Math.PI / 2,
   ORBIT_AUTO_ROTATE_SPEED: 0.6,
   ORBIT_DAMPING_FACTOR: 0.05,
 
@@ -37,7 +38,7 @@ export const SCENE = {
     NORMAL_STR: '#2563eb',
     CONTAINER_EDGE: '#334155',
     CONTAINER_DOOR: '#f59e0b',
-    CONTAINER_INSIDE: '#e7e2d4',
+    CONTAINER_INSIDE: '#d4c9a8',
     GRID: '#94a3b8',
     GROUPS: {
       A: 0xef4444,

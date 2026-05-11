@@ -67,4 +67,14 @@ public interface IAuthService
     Task<Result<bool>> LogoutAsync(
         string refreshToken,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// MustChangePassword=true olan kullanıcı için zorunlu şifre değişimi.
+    /// Mevcut şifre doğrulandıktan sonra yeni şifre set edilir, flag temizlenir ve yeni token çifti döner.
+    /// </summary>
+    Task<Result<ForceChangePasswordResponse>> ForceChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default);
 }

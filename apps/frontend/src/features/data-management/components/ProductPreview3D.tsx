@@ -23,22 +23,34 @@ const TYPE_COLORS: Record<ProductType, string> = {
 const PREVIEW_DIST_FACTOR = 2.5;
 const MESH_OPACITY = 0.85;
 
-function SceneSetup({ maxDim }: { maxDim: number }) {
+function SceneSetup({
+  maxDim,
+  center = [0, 0, 0],
+  distFactor = PREVIEW_DIST_FACTOR,
+}: {
+  maxDim: number;
+  center?: [number, number, number];
+  distFactor?: number;
+}) {
   const { camera } = useThree();
   const orbitRef = useRef<OrbitControlsImpl>(null);
-  const dist = maxDim * PREVIEW_DIST_FACTOR;
+  const dist = maxDim * distFactor;
+  const [cx, cy, cz] = center;
 
   useEffect(() => {
-    camera.position.set(dist * 0.55, dist * 0.5, dist * 0.9);
-    camera.lookAt(0, 0, 0);
-    orbitRef.current?.update();
-  }, [camera, dist]);
+    camera.position.set(cx + dist * 0.55, cy + dist * 0.5, cz + dist * 0.9);
+    camera.lookAt(cx, cy, cz);
+    if (orbitRef.current) {
+      orbitRef.current.target.set(cx, cy, cz);
+      orbitRef.current.update();
+    }
+  }, [camera, cx, cy, cz, dist]);
 
   return (
     <>
       <ambientLight intensity={SCENE.AMBIENT_INTENSITY} />
       <directionalLight
-        position={[maxDim * 2, maxDim * 2, maxDim]}
+        position={[cx + maxDim * 2, cy + maxDim * 2, cz + maxDim]}
         intensity={SCENE.DIRECTIONAL_INTENSITY}
       />
       <OrbitControls
@@ -133,52 +145,98 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
 }
 
 function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
-  // Palet yüksekliği girilmemişse tabanın %8'i kadar ince göster
-  const h = heightCm > 0 ? heightCm : Math.max(widthCm, depthCm) * 0.08;
+  const h = Math.min(Math.max(heightCm, 1), 20);
   const maxDim = Math.max(widthCm, h, depthCm);
 
-  const edgesGeo = useMemo(() => {
-    const box = new THREE.BoxGeometry(widthCm, h, depthCm);
-    const edges = new THREE.EdgesGeometry(box);
-    box.dispose();
-    return edges;
-  }, [widthCm, h, depthCm]);
+  // Genişlik: 6 tahta + 5 boşluk, tahta eni = 3x, boşluk = x
+  // 6*(3x) + 5*(x) = widthCm => 23x = widthCm => x = widthCm/23
+  const xUnit = widthCm / 23;
+  const slatW = 3 * xUnit;
+  const slatGapW = xUnit;
 
-  const boardLinesGeo = useMemo(() => {
-    const positions: number[] = [];
-    const yTop = h / 2;
-    const slats = 5;
-    for (let i = 1; i < slats; i++) {
-      const x = -widthCm / 2 + (widthCm / slats) * i;
-      positions.push(x, yTop, -depthCm / 2, x, yTop, depthCm / 2);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    return geo;
-  }, [widthCm, h, depthCm]);
+  // Derinlik: 3 tahta + 2 boşluk, tahta derinliği = 5y, boşluk = y
+  // 3*(5y) + 2*(y) = depthCm => 17y = depthCm => y = depthCm/17
+  const yUnit = depthCm / 3.5;
+  const crossD = 0.5 * yUnit;
+  const crossGapD = yUnit;
+
+  const slatH = h * 2;
+  const carrierH = h * 0.25;
+  const crossH = h;
+
+  const [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges] = useMemo(() => {
+    const sg = new THREE.BoxGeometry(slatW, slatH, depthCm);
+    const se = new THREE.EdgesGeometry(sg);
+    const cg = new THREE.BoxGeometry(slatW, carrierH, depthCm);
+    const ce = new THREE.EdgesGeometry(cg);
+    const xg = new THREE.BoxGeometry(widthCm, crossH, crossD);
+    const xe = new THREE.EdgesGeometry(xg);
+    return [sg, se, cg, ce, xg, xe] as const;
+  }, [slatW, slatH, carrierH, crossH, depthCm, widthCm, crossD]);
 
   useEffect(
     () => () => {
-      edgesGeo.dispose();
-      boardLinesGeo.dispose();
+      slatGeo.dispose();
+      slatEdges.dispose();
+      carrierGeo.dispose();
+      carrierEdges.dispose();
+      crossGeo.dispose();
+      crossEdges.dispose();
     },
-    [edgesGeo, boardLinesGeo],
+    [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges],
   );
+
+  // 6 tahtanın merkez X konumları
+  const slatCentersX = Array.from({ length: 6 }, (_, i) => i * (slatW + slatGapW) + slatW / 2);
+
+  // 3 çapraz tahtanın merkez Z konumları
+  const crossZCenters = Array.from({ length: 3 }, (_, i) => i * (crossD + crossGapD) + crossD / 2);
+
+  const topCenterY = h - slatH / 2;
+  const carrierCenterY = carrierH / 2;
+  const crossCenterY = h / 2;
+
+  const paletCenter: [number, number, number] = [widthCm / 2, h / 2, depthCm / 2];
 
   return (
     <>
-      <SceneSetup maxDim={maxDim} />
+      <SceneSetup maxDim={maxDim} center={paletCenter} distFactor={PREVIEW_DIST_FACTOR / 2} />
       <group>
-        <mesh>
-          <boxGeometry args={[widthCm, h, depthCm]} />
-          <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
-        </mesh>
-        <lineSegments geometry={edgesGeo}>
-          <lineBasicMaterial color="#000000" />
-        </lineSegments>
-        <lineSegments geometry={boardLinesGeo}>
-          <lineBasicMaterial color="#000000" opacity={0.5} transparent />
-        </lineSegments>
+        {/* Üst tahtalar */}
+        {slatCentersX.map((cx, i) => (
+          <group key={`top-${i}`} position={[cx, topCenterY, depthCm / 2]}>
+            <mesh geometry={slatGeo}>
+              <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+            </mesh>
+            <lineSegments geometry={slatEdges}>
+              <lineBasicMaterial color="#000000" />
+            </lineSegments>
+          </group>
+        ))}
+
+        {/* Alt taşıyıcı tahtalar */}
+        {slatCentersX.map((cx, i) => (
+          <group key={`carrier-${i}`} position={[cx, carrierCenterY, depthCm / 2]}>
+            <mesh geometry={carrierGeo}>
+              <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+            </mesh>
+            <lineSegments geometry={carrierEdges}>
+              <lineBasicMaterial color="#000000" />
+            </lineSegments>
+          </group>
+        ))}
+
+        {/* Çapraz bağlantı tahtaları */}
+        {crossZCenters.map((cz, i) => (
+          <group key={`cross-${i}`} position={[widthCm / 2, crossCenterY, cz]}>
+            <mesh geometry={crossGeo}>
+              <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+            </mesh>
+            <lineSegments geometry={crossEdges}>
+              <lineBasicMaterial color="#000000" />
+            </lineSegments>
+          </group>
+        ))}
       </group>
     </>
   );

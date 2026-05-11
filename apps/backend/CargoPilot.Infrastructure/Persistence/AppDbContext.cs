@@ -33,6 +33,7 @@ public class AppDbContext : DbContext
     public DbSet<Integration> Integrations => Set<Integration>();
     public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
     public DbSet<ErpUserMapping> ErpUserMappings => Set<ErpUserMapping>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -66,6 +67,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new IntegrationConfiguration());
         modelBuilder.ApplyConfiguration(new SyncLogConfiguration());
         modelBuilder.ApplyConfiguration(new ErpUserMappingConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
     }
 
     private void ApplyAuditFields()
