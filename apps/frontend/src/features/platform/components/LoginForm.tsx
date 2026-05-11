@@ -313,7 +313,6 @@ export function LoginForm() {
           variant="outline"
           className="w-full"
           onClick={() => handleOAuth(OAUTH_GOOGLE_URL)}
-          disabled={!OAUTH_GOOGLE_URL}
         >
           <GoogleIcon />
           Google ile Giriş Yap
