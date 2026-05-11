@@ -219,7 +219,7 @@ export function useProfile() {
 interface UpdateProfilePayload {
   firstName: string;
   lastName: string;
-  companyName?: string;
+  companyName?: string | null;
 }
 
 interface UpdateProfileResponse {
@@ -263,6 +263,20 @@ export function useRequestEmailChange() {
   return useMutation<void, AxiosError, RequestEmailChangePayload>({
     mutationFn: (payload) =>
       axiosInstance.post('/api/v1/me/email-change-request', payload).then((r) => r.data),
+  });
+}
+
+// --- Change password (profile sayfası) ---
+
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export function useChangePassword() {
+  return useMutation<void, AxiosError, ChangePasswordPayload>({
+    mutationFn: (payload) =>
+      axiosInstance.post('/api/v1/me/change-password', payload).then((r) => r.data),
   });
 }
 
