@@ -52,7 +52,6 @@ export const VehicleAdditionalAxles = forwardRef<
 
   return (
     <div className="flex flex-col gap-3">
-
       {fields.map((fieldItem, index) => (
         <div key={fieldItem.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
           <FormField

@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Package2, Truck } from 'lucide-react';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +30,7 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
   const Icon = type === 'Konteyner' ? Package2 : Truck;
   const iconClass = type === 'Konteyner' ? 'text-sky-500' : 'text-zinc-600';
   const volumeM3 = cm3ToM3(vehicleVolumeCm3(vehicle)).toFixed(1);
-  const payloadTon = ((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   return (
     <div className="bg-white border border-zinc-200 rounded-xl p-3">
@@ -57,7 +59,10 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
         <div className="grid grid-cols-2 gap-1.5">
           {[
             { label: 'İç Hacim', value: `${volumeM3} m³` },
-            { label: 'Max Yük', value: `${payloadTon} t` },
+            {
+              label: 'Max Yük',
+              value: formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit),
+            },
           ].map((r) => (
             <div key={r.label} className="bg-zinc-50 rounded-lg px-2 py-1.5">
               <p className="text-[10px] text-zinc-400">{r.label}</p>
@@ -81,6 +86,7 @@ function StatisticsCard({
   weightPct: number;
   remainingM3: number;
 }) {
+  const weightUnit = useUnitStore((s) => s.weightUnit);
   return (
     <div className="bg-white border border-zinc-200 rounded-xl p-3">
       <p className="text-[10px] text-zinc-500 mb-2">İstatistikler</p>
@@ -101,7 +107,7 @@ function StatisticsCard({
 
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] text-zinc-500">
-          Ağırlık · {(weightKg / 1000).toFixed(2)} t
+          Ağırlık · {formatWeightDisplay(weightKg, weightUnit)}
         </span>
         <span className="text-xs text-zinc-800">%{weightPct}</span>
       </div>
@@ -134,6 +140,7 @@ function SummaryCard({
   remainingM3: number;
   volumePct: number;
 }) {
+  const weightUnit = useUnitStore((s) => s.weightUnit);
   const statusOk = volumePct <= 100;
   return (
     <div className="bg-white border border-zinc-200 rounded-xl p-3">
@@ -154,7 +161,7 @@ function SummaryCard({
       <div className="flex flex-col">
         {[
           { label: 'Yerleştirilen kutu', value: `${placedCount} adet` },
-          { label: 'Toplam ağırlık', value: `${(totalWeight / 1000).toFixed(2)} t` },
+          { label: 'Toplam ağırlık', value: formatWeightDisplay(totalWeight, weightUnit) },
           { label: 'Kalan boş alan', value: `${remainingM3} m³` },
           { label: 'Doluluk oranı', value: `%${volumePct}` },
         ].map((r) => (

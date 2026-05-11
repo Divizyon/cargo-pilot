@@ -4,6 +4,8 @@ import { AlertCircle, Clock, Package2, Truck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useShareByToken, useRecordShareView } from '@/lib/api/useShareLinks';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import type { AxiosError } from 'axios';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -20,6 +22,7 @@ export function SharePage() {
   const { token } = useParams<{ token: string }>();
   const { data: plan, isLoading, isError, error } = useShareByToken(token ?? '');
   const { mutate: recordView } = useRecordShareView();
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   useEffect(() => {
     if (token) recordView(token);
@@ -126,13 +129,13 @@ export function SharePage() {
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-zinc-400">Toplam Ağırlık</span>
               <span className="text-sm font-medium text-zinc-600">
-                {(plan.totalWeightKg / 1000).toFixed(1)} t
+                {formatWeightDisplay(plan.totalWeightKg, weightUnit)}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-zinc-400">Araç Kapasitesi</span>
               <span className="text-sm font-medium text-zinc-600">
-                {(plan.vehicleCapacityKg / 1000).toFixed(1)} t
+                {formatWeightDisplay(plan.vehicleCapacityKg, weightUnit)}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">

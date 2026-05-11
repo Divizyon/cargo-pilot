@@ -35,6 +35,7 @@ export const itemSchema = z.object({
   allowFaceRight: z.boolean().default(true),
   specialNotes: z.string().nullable().optional(),
   stackGroup: z.string().nullable().optional(),
+  constraintIds: z.array(z.number().int()).optional(),
 });
 
 export type Item = z.infer<typeof itemSchema>;

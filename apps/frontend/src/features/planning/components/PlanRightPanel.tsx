@@ -55,6 +55,8 @@ import {
   type VehicleType as VehicleTypeValue,
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 
@@ -103,6 +105,7 @@ function VehicleListItem({
 }: VehicleListItemProps) {
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
   const iconClass = cn('w-4 h-4 shrink-0', isSelected ? 'text-white' : 'text-zinc-500');
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   return (
     <div
@@ -149,7 +152,7 @@ function VehicleListItem({
           >
             {vehicle.length}×{vehicle.width}×{vehicle.height} cm
             {' · '}
-            {((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1)} t
+            {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
           </p>
         </div>
       </button>
@@ -223,6 +226,7 @@ function PlanSummaryPanel() {
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   // AC4: debounce 200ms so rapid quantity changes don't cause jank
   const debouncedPlacements = useDebounce(placements, 200);
@@ -249,7 +253,7 @@ function PlanSummaryPanel() {
 
   const rows = [
     { label: 'Hacim doluluk', value: `%${stats.volumePct}` },
-    { label: 'Ağırlık', value: `${(stats.totalWeight / 1000).toFixed(2)} t` },
+    { label: 'Ağırlık', value: formatWeightDisplay(stats.totalWeight, weightUnit) },
     { label: 'Yerleştirilen kutu', value: `${stats.placedCount} adet` },
     { label: 'Kalan boş hacim', value: `${stats.remainingM3} m³` },
   ];
@@ -288,7 +292,7 @@ interface VehicleDetailsProps {
 function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDetailsProps) {
   const [isEditing, setIsEditing] = useState(defaultEditing);
   const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
-  const payloadTon = ((vehicle.payload ?? vehicle.maxCargoWeight) / 1000).toFixed(1);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const {
     register,
@@ -383,7 +387,10 @@ function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDe
       <VehicleSpec label="Uzunluk" value={`${vehicle.length} cm`} />
       <VehicleSpec label="Genişlik" value={`${vehicle.width} cm`} />
       <VehicleSpec label="Yükseklik" value={`${vehicle.height} cm`} />
-      <VehicleSpec label="Maks. Yük" value={`${payloadTon} ton`} />
+      <VehicleSpec
+        label="Maks. Yük"
+        value={formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
+      />
       <VehicleSpec label="İç Hacim" value={`${volumeM3} m³`} />
     </div>
   );

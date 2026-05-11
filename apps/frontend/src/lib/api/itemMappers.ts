@@ -5,6 +5,7 @@ import {
   type ProductType,
 } from '@/features/data-management/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 
 export const ITEM_CATEGORY = {
   Package: 0,
@@ -39,6 +40,7 @@ export interface CreateItemRequest {
   imageUrl?: string | null;
   stackGroup?: string | null;
   specialNotes?: string | null;
+  constraintIds?: number[];
 }
 
 export function toCategory(productType: ProductType): ItemCategoryValue {
@@ -88,6 +90,7 @@ export const itemApiSchema = z.object({
   imageUrl: z.string().nullable().optional(),
   stackGroup: z.string().nullable().optional(),
   specialNotes: z.string().nullable().optional(),
+  constraintIds: z.array(z.number().int()).optional(),
 });
 
 export type ItemApi = z.infer<typeof itemApiSchema>;
@@ -148,6 +151,7 @@ export function fromApiItem(api: ItemApi): Item {
     allowFaceRight: true,
     specialNotes: api.specialNotes ?? null,
     stackGroup: api.stackGroup ?? null,
+    constraintIds: api.constraintIds ?? [],
   };
 }
 
@@ -157,13 +161,9 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     sku: item.sku,
     productType: item.productType,
     width: item.width,
-    widthUnit: 'cm',
     height: item.height,
-    heightUnit: 'cm',
     length: item.length,
-    lengthUnit: 'cm',
     weight: item.weight,
-    weightUnit: 'kg',
     fragility: item.fragility,
     isStackable: item.isStackable,
     maxStackCount: item.maxStackCount,
@@ -172,6 +172,7 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     allowRotateZ: item.allowRotateZ,
     notes: item.specialNotes ?? '',
     stackGroup: item.stackGroup ?? undefined,
+    constraintIds: item.constraintIds ?? [],
   };
 }
 
@@ -180,7 +181,8 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
   const maxStackCount = isStackable ? (values.maxStackCount ?? 1) : 0;
   const trimmedNotes = values.notes?.trim();
 
-  const widthCm = toCentimeters(values.width, values.widthUnit);
+  const { dimensionUnit } = useUnitStore.getState();
+  const widthCm = toCentimeters(values.width, dimensionUnit);
   const isVaril = values.productType === 'varil';
 
   return {
@@ -189,8 +191,8 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     productType: values.productType,
     category: toCategory(values.productType),
     width: widthCm,
-    height: toCentimeters(values.height, values.heightUnit),
-    length: isVaril ? widthCm : toCentimeters(values.length, values.lengthUnit),
+    height: toCentimeters(values.height, dimensionUnit),
+    length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
     weight: values.weight,
     fragilityType: values.fragility,
     isStackable,
@@ -203,6 +205,7 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     ),
     specialNotes: trimmedNotes && trimmedNotes.length > 0 ? trimmedNotes : null,
     stackGroup: values.stackGroup?.trim() || null,
+    constraintIds: (values.constraintIds ?? []).filter((id) => id > 0 && id <= 9),
   };
 }
 
