@@ -19,8 +19,7 @@ import { LoadingPlanDetailPage } from '@/pages/LoadingPlanDetailPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 import { SecurityRedirect } from '@/pages/SecurityRedirect';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { SystemSettingsPage } from '@/pages/SystemSettingsPage';
+import { UnifiedSettingsPage } from '@/pages/UnifiedSettingsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { ReportDetailPage } from '@/pages/ReportDetailPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
@@ -86,8 +85,8 @@ export const router = createBrowserRouter([
           { path: '/erp', element: <DashboardPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
-          { path: '/settings', element: <SystemSettingsPage /> },
-          { path: '/profile', element: <ProfilePage /> },
+          { path: '/settings', element: <UnifiedSettingsPage /> },
+          { path: '/profile', element: <Navigate to="/settings?tab=bireysel-hesap" replace /> },
         ],
       },
     ],
