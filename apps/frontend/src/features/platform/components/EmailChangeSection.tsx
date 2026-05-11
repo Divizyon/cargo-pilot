@@ -1,12 +1,27 @@
-import { useState } from 'react';
-import { Mail, MailCheck } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { MailCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useRequestEmailChange } from '@/lib/api/useAuth';
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="pb-1 pt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground first:pt-0">
+      {children}
+    </p>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-6 border-b border-border py-2.5 last:border-0">
+      <div className="w-44 shrink-0 pt-1.5 text-sm text-foreground">{label}</div>
+      <div className="w-52">{children}</div>
+    </div>
+  );
+}
 
 export function EmailChangeSection() {
   const user = useAuthStore((s) => s.user);
@@ -19,52 +34,47 @@ export function EmailChangeSection() {
   }
 
   return (
-    <Card className="rounded-xl">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">E-posta Değişikliği</CardTitle>
-        <CardDescription>
-          Yeni e-posta adresinize doğrulama bağlantısı gönderilir. Mevcut e-posta doğrulanmadan yeni
-          adres aktif olmaz.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-foreground">Mevcut E-posta</Label>
-          <div className="relative">
-            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={user?.email ?? ''} disabled className="bg-muted pl-10" />
-          </div>
-        </div>
+    <div className="max-w-xl">
+      <SectionLabel>E-posta Değişikliği</SectionLabel>
+      <p className="mb-2 text-xs text-muted-foreground">
+        Yeni e-posta adresinize doğrulama bağlantısı gönderilir. Mevcut e-posta doğrulanmadan yeni
+        adres aktif olmaz.
+      </p>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="newEmail" className="text-sm font-medium text-foreground">
-            Yeni E-posta
-          </Label>
-          <Input
-            id="newEmail"
-            type="email"
-            placeholder="yeni@email.com"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-          />
-        </div>
+      <Row label="Mevcut E-posta">
+        <Input value={user?.email ?? ''} disabled className="h-8 bg-muted text-sm" />
+      </Row>
 
-        {sent && (
-          <Alert>
-            <MailCheck className="h-4 w-4" />
-            <AlertDescription>Doğrulama bağlantısı gönderildi.</AlertDescription>
-          </Alert>
-        )}
+      <Row label="Yeni E-posta">
+        <Input
+          id="newEmail"
+          type="email"
+          placeholder="yeni@email.com"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          className="h-8 text-sm"
+        />
+      </Row>
 
+      {sent && (
+        <Alert className="mt-3 max-w-xl">
+          <MailCheck className="h-4 w-4" />
+          <AlertDescription>Doğrulama bağlantısı gönderildi.</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex justify-end pt-4">
         <Button
           type="button"
           variant="outline"
+          size="sm"
           disabled={isPending || !newEmail}
           onClick={handleSend}
+          className="min-w-36"
         >
           Doğrulama Gönder
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
