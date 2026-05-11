@@ -42,17 +42,18 @@ internal sealed class ApprovePendingVehicleMappingCommandHandler
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "PendingVehicleMapping.NotFound", "Bekleyen mapping bulunamadı."));
 
+
         var vehicle = new Vehicle(
             Guid.NewGuid(),
             mapping.VehicleName,
-            Domain.Enums.VehicleType.Truck,
+            mapping.VehicleType,
             mapping.PlateNumber,
-            0,
-            0,
-            0,
-            0,
-            1,
-            Domain.Enums.LoadingType.Rear,
+            mapping.InternalWidth,
+            mapping.InternalHeight,
+            mapping.InternalLength,
+            mapping.MaxWeightCapacity,
+            mapping.LayerCount,
+            mapping.LoadingType,
             companyId);
 
         vehicle.SetErpSource(mapping.ErpId, mapping.IntegrationId);

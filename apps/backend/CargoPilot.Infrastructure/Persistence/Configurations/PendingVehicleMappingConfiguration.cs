@@ -38,6 +38,30 @@ internal sealed class PendingVehicleMappingConfiguration : IEntityTypeConfigurat
 
         builder.Property(x => x.RawPayload)
             .HasColumnType("nvarchar(max)");
+        builder.Property(x => x.InternalWidth)
+.IsRequired()
+.HasPrecision(18, 4);
+
+        builder.Property(x => x.InternalHeight)
+            .IsRequired()
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.InternalLength)
+            .IsRequired()
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.MaxWeightCapacity)
+            .IsRequired()
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.LayerCount)
+            .IsRequired();
+
+        builder.Property(x => x.VehicleType)
+            .IsRequired();
+
+        builder.Property(x => x.LoadingType)
+            .IsRequired();
 
         builder.Property(x => x.CompanyId);
         builder.Property(x => x.IntegrationId);

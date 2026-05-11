@@ -1,3 +1,5 @@
+using CargoPilot.Domain.Enums;
+
 namespace CargoPilot.Domain.Entities;
 
 public sealed class PendingVehicleMapping : BaseEntity
@@ -8,6 +10,13 @@ public sealed class PendingVehicleMapping : BaseEntity
     public string PlateNumber { get; private set; } = null!;
     public string? RawPayload { get; private set; }
     public Guid? CompanyId { get; private set; }
+    public decimal InternalWidth { get; private set; }
+    public decimal InternalHeight { get; private set; }
+    public decimal InternalLength { get; private set; }
+    public decimal MaxWeightCapacity { get; private set; }
+    public int LayerCount { get; private set; }
+    public VehicleType VehicleType { get; private set; }
+    public LoadingType LoadingType { get; private set; }
 
 #pragma warning disable S1144
     public Integration? Integration { get; private set; }
@@ -21,6 +30,13 @@ public sealed class PendingVehicleMapping : BaseEntity
         string erpId,
         string vehicleName,
         string plateNumber,
+        decimal internalWidth,
+        decimal internalHeight,
+        decimal internalLength,
+        decimal maxWeightCapacity,
+        int layerCount,
+        VehicleType vehicleType,
+        LoadingType loadingType,
         string? rawPayload,
         Guid? companyId) : base(id)
     {
@@ -28,6 +44,13 @@ public sealed class PendingVehicleMapping : BaseEntity
         ErpId = erpId;
         VehicleName = vehicleName;
         PlateNumber = plateNumber;
+        InternalWidth = internalWidth;
+        InternalHeight = internalHeight;
+        InternalLength = internalLength;
+        MaxWeightCapacity = maxWeightCapacity;
+        LayerCount = layerCount;
+        VehicleType = vehicleType;
+        LoadingType = loadingType;
         RawPayload = rawPayload;
         CompanyId = companyId;
     }
