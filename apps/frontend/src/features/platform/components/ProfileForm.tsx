@@ -5,9 +5,21 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useProfile, useUpdateProfile, useRequestEmailChange, useChangePassword } from '@/lib/api/useAuth';
+import {
+  useProfile,
+  useUpdateProfile,
+  useRequestEmailChange,
+  useChangePassword,
+} from '@/lib/api/useAuth';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { profileSchema } from '@/features/platform/schemas/profileSchema';
 import type { ProfileFormValues } from '@/features/platform/schemas/profileSchema';
@@ -114,7 +126,13 @@ function EmailChangeSection({ currentEmail, onClose }: EmailChangeSectionProps) 
             )}
           />
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isPending}
+            >
               İptal
             </Button>
             <Button type="submit" size="sm" disabled={isPending}>
@@ -237,7 +255,13 @@ function PasswordChangeSection({ onClose }: PasswordChangeSectionProps) {
             )}
           />
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isPending}
+            >
               İptal
             </Button>
             <Button type="submit" size="sm" disabled={isPending}>
@@ -295,7 +319,11 @@ export function ProfileForm() {
       <h2 className="text-base font-semibold text-foreground">Kişisel Bilgiler</h2>
 
       <Form {...form}>
-        <form id="profile-form" onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
+        <form
+          id="profile-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-6"
+        >
           {/* Ad / Soyad */}
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -366,10 +394,7 @@ export function ProfileForm() {
             </Button>
           </div>
           {emailOpen && (
-            <EmailChangeSection
-              currentEmail={currentEmail}
-              onClose={() => setEmailOpen(false)}
-            />
+            <EmailChangeSection currentEmail={currentEmail} onClose={() => setEmailOpen(false)} />
           )}
         </div>
       </div>
@@ -393,9 +418,7 @@ export function ProfileForm() {
               {passwordOpen ? 'Kapat' : 'Güncelle'}
             </Button>
           </div>
-          {passwordOpen && (
-            <PasswordChangeSection onClose={() => setPasswordOpen(false)} />
-          )}
+          {passwordOpen && <PasswordChangeSection onClose={() => setPasswordOpen(false)} />}
         </div>
       </div>
 

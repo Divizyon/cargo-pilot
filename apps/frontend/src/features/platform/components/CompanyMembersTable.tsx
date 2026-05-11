@@ -169,10 +169,9 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
     const target = members?.find((m) => m.id === pendingRemoveId);
     removeMutation.mutate(pendingRemoveId, {
       onSuccess: () => {
-        toast.success(
-          `${target?.fullName ?? 'Kullanıcı'} erişimi kaldırıldı.`,
-          { position: 'bottom-right' },
-        );
+        toast.success(`${target?.fullName ?? 'Kullanıcı'} erişimi kaldırıldı.`, {
+          position: 'bottom-right',
+        });
         setPendingRemoveId(null);
       },
       onError: () => {
@@ -244,9 +243,7 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
                 <TableHead className="w-24 px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Durum
                 </TableHead>
-                {isCurrentUserAdmin && (
-                  <TableHead className="w-12 px-3 py-0" />
-                )}
+                {isCurrentUserAdmin && <TableHead className="w-12 px-3 py-0" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -263,8 +260,7 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
                 members.map((member) => {
                   const isMe = member.id === currentUserId;
                   const isRoleUpdating =
-                    updateRoleMutation.isPending &&
-                    updateRoleMutation.variables?.id === member.id;
+                    updateRoleMutation.isPending && updateRoleMutation.variables?.id === member.id;
                   const isRemoving =
                     removeMutation.isPending && removeMutation.variables === member.id;
 

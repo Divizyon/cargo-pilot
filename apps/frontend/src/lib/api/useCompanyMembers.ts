@@ -109,9 +109,7 @@ export function useUpdateMemberRole() {
 
   return useMutation<void, Error, UpdateRolePayload>({
     mutationFn: ({ id, role }) =>
-      axiosInstance
-        .patch(`/api/v1/company-members/${id}`, { role })
-        .then(() => undefined),
+      axiosInstance.patch(`/api/v1/company-members/${id}`, { role }).then(() => undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-members', companyId] });
     },
@@ -123,8 +121,7 @@ export function useRemoveMemberAccess() {
   const companyId = useAuthStore((s) => s.user?.companyId ?? 'guest');
 
   return useMutation<void, Error, string>({
-    mutationFn: (id) =>
-      axiosInstance.delete(`/api/users/${id}`).then(() => undefined),
+    mutationFn: (id) => axiosInstance.delete(`/api/users/${id}`).then(() => undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-members', companyId] });
     },

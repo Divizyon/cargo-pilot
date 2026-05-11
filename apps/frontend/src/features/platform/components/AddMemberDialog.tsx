@@ -35,11 +35,14 @@ interface AddMemberDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ROLE_OPTIONS: { value: CreateMemberFormValues['role']; label: string; description: string }[] =
-  [
-    { value: 'admin', label: 'Admin', description: 'Tüm yönetim yetkilerine sahip' },
-    { value: 'operator', label: 'Operatör', description: 'Yükleme planı oluşturabilir' },
-  ];
+const ROLE_OPTIONS: {
+  value: CreateMemberFormValues['role'];
+  label: string;
+  description: string;
+}[] = [
+  { value: 'admin', label: 'Admin', description: 'Tüm yönetim yetkilerine sahip' },
+  { value: 'operator', label: 'Operatör', description: 'Yükleme planı oluşturabilir' },
+];
 
 export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [showPassword, setShowPassword] = useState(false);

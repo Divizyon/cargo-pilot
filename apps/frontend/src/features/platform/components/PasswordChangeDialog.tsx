@@ -148,10 +148,7 @@ export function PasswordChangeDialog({ open, onOpenChange }: PasswordChangeDialo
                         className="pr-10"
                         {...field}
                       />
-                      <PasswordToggleButton
-                        show={showNew}
-                        onToggle={() => setShowNew((v) => !v)}
-                      />
+                      <PasswordToggleButton show={showNew} onToggle={() => setShowNew((v) => !v)} />
                     </div>
                   </FormControl>
                   <FormMessage />

@@ -32,12 +32,12 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'bireysel-hesap',    label: 'Bireysel Hesap'                     },
-  { id: 'kullanicilar',       label: 'Kullanıcılar'                      },
-  { id: 'abonelik',           label: 'Abonelik'                          },
-  { id: 'bolgesel-ayarlar',   label: 'Bölgesel ve Birim Ayarları'        },
-  { id: 'goruntu-ayarlari',   label: 'Görselleştirme ve Arayüz'           },
-  { id: 'raporlama-ayarlari', label: 'Raporlama ve Çıktı Standartları'   },
+  { id: 'bireysel-hesap', label: 'Bireysel Hesap' },
+  { id: 'kullanicilar', label: 'Kullanıcılar' },
+  { id: 'abonelik', label: 'Abonelik' },
+  { id: 'bolgesel-ayarlar', label: 'Bölgesel ve Birim Ayarları' },
+  { id: 'goruntu-ayarlari', label: 'Görselleştirme ve Arayüz' },
+  { id: 'raporlama-ayarlari', label: 'Raporlama ve Çıktı Standartları' },
 ];
 
 const VALID_TAB_IDS = new Set<string>(TABS.map((t) => t.id));
