@@ -20,6 +20,7 @@ public sealed record PlanDetailDto(
     decimal? WeightBalanceOffsetX,
     decimal? WeightBalanceOffsetZ,
     DateTime CreatedAtUtc,
+    ErpExportStatus? ErpExportStatus,
     VehicleInPlanDto Vehicle,
     IReadOnlyList<PlacementDto> Placements,
     IReadOnlyList<UnplacedItemDto> UnplacedItems,

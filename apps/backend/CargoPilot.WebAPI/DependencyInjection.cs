@@ -251,20 +251,6 @@ public static class DependencyInjection {
                 failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
 
-            services.AddHangfire(cfg => cfg
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()
-                .UseSqlServerStorage(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    new SqlServerStorageOptions
-                    {
-                        CommandBatchMaxTimeout       = TimeSpan.FromMinutes(5),
-                        SlidingInvisibilityTimeout   = TimeSpan.FromMinutes(5),
-                        QueuePollInterval            = TimeSpan.Zero,
-                        UseRecommendedIsolationLevel = true,
-                        DisableGlobalLocks           = true,
-                    }));
             services.AddHangfireServer();
         }
 
