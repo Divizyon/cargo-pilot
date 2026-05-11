@@ -64,6 +64,10 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser> {
             .IsRequired()
             .HasDefaultValue(false);
 
+        builder.Property(user => user.MustChangePassword)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.HasIndex(user => user.Email)
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");

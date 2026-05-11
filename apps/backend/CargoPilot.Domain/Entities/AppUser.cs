@@ -29,6 +29,7 @@ public sealed class AppUser : BaseEntity {
     public DateTime? LockoutEndUtc { get; private set; }
     /// <summary>Kullanıcının ürün turunu tamamlayıp tamamlamadığı.</summary>
     public bool TourCompleted { get; private set; }
+    public bool MustChangePassword { get; private set; }
 
     // EF Core sets navigation properties via materialization.
 #pragma warning disable S1144
@@ -76,6 +77,8 @@ public sealed class AppUser : BaseEntity {
     public void SetPassword(string passwordHash) => PasswordHash = passwordHash;
 
     public void SetTourCompleted(bool value) => TourCompleted = value;
+
+    public void SetMustChangePassword(bool value) => MustChangePassword = value;
 
     public void UpdateProfile(string firstName, string lastName) {
         FirstName = firstName.Trim();
