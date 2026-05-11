@@ -143,6 +143,37 @@ public static class DependencyInjection {
                         Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!)),
                     ClockSkew = TimeSpan.Zero,
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        var isExpired = context.AuthenticateFailure is SecurityTokenExpiredException;
+                        var body = JsonSerializer.Serialize(new
+                        {
+                            isSuccess = false,
+                            data = (object?)null,
+                            error = isExpired
+                                ? new { type = "Unauthorized", code = "AUTH_TOKEN_EXPIRED", description = "Oturum süresi doldu." }
+                                : new { type = "Unauthorized", code = "AUTH_UNAUTHORIZED", description = "Yetkilendirme gereklidir." }
+                        });
+                        return context.Response.WriteAsync(body);
+                    },
+                    OnForbidden = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        var body = JsonSerializer.Serialize(new
+                        {
+                            isSuccess = false,
+                            data = (object?)null,
+                            error = new { type = "Forbidden", code = "AUTH_FORBIDDEN", description = "Bu işlem için yetkiniz yok." }
+                        });
+                        return context.Response.WriteAsync(body);
+                    }
+                };
             });
 
         services.AddAuthorization(options =>
