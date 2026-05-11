@@ -69,7 +69,9 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
               <ToggleGroup
                 type="single"
                 value={field.value ?? ''}
-                onValueChange={(val) => { if (val) field.onChange(val); }}
+                onValueChange={(val) => {
+                  if (val) field.onChange(val);
+                }}
                 className="flex gap-2"
               >
                 {[

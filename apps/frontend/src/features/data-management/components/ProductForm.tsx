@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Controller, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -41,14 +41,13 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProductForm } from '@/features/data-management/hooks/useProductForm';
 import {
-  DIMENSION_UNITS,
   FRAGILITY_LEVELS,
   NOTES_MAX_LENGTH,
-  WEIGHT_UNITS,
   toCentimeters,
-  type DimensionUnitKey,
   type ProductFormValues,
 } from '@/features/data-management/schemas/productSchema';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
 import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
@@ -60,9 +59,6 @@ interface ProductFormProps {
   isSubmitting?: boolean;
   disableSubmitWhenPristine?: boolean;
 }
-
-const DIMENSION_KEYS = Object.keys(DIMENSION_UNITS) as DimensionUnitKey[];
-const WEIGHT_KEYS = Object.keys(WEIGHT_UNITS) as Array<keyof typeof WEIGHT_UNITS>;
 
 const PRODUCT_TYPE_OPTIONS = [
   { value: 'koli', labelKey: 'forms.product.typeBox', Icon: Box },
@@ -100,9 +96,7 @@ const ROTATION_AXES = [
 ] as const;
 
 const COMPACT_INPUT = 'h-9 border-input bg-background';
-const COMPACT_INPUT_WITH_UNIT = 'h-9 border-input bg-background pr-16';
-const UNIT_TRIGGER =
-  'absolute right-1 top-1/2 h-7 w-14 -translate-y-1/2 gap-1 border-0 bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0';
+const COMPACT_INPUT_WITH_UNIT = 'h-9 border-input bg-background pr-10';
 
 type ConstraintColor = 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
 
@@ -181,12 +175,6 @@ const INCOMPATIBLE_GROUPS = [
   { value: 'Kimya', Icon: FlaskConical },
   { value: 'Elektronik', Icon: Cpu },
 ] as const;
-
-function formatVolume(cm3: number): string {
-  if (cm3 >= 1_000_000) return `${(cm3 / 1_000_000).toFixed(2)} m³`;
-  if (cm3 >= 1_000) return `${(cm3 / 1_000).toFixed(2)} dm³`;
-  return `${cm3.toFixed(1)} cm³`;
-}
 
 interface SectionTitleProps {
   children: ReactNode;
@@ -345,6 +333,12 @@ export function ProductForm({
   const form = useProductForm(defaultValues);
 
   const [selectedConstraints, setSelectedConstraints] = useState<string[]>(() => {
+    if (defaultValues?.constraintIds && defaultValues.constraintIds.length > 0) {
+      return CONSTRAINT_OPTIONS.filter(
+        (o) =>
+          o.fragilityValue !== undefined && defaultValues.constraintIds!.includes(o.fragilityValue),
+      ).map((o) => o.value);
+    }
     const frag = defaultValues?.fragility ?? 0;
     if (frag === 0) return [];
     const match = CONSTRAINT_OPTIONS.find((o) => o.fragilityValue === frag);
@@ -353,18 +347,17 @@ export function ProductForm({
 
   const [unlimitedStack, setUnlimitedStack] = useState(false);
 
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   const [
     width,
-    widthUnit,
     height,
-    heightUnit,
     length,
-    lengthUnit,
     maxStackCount,
     productType,
     name,
     weight,
-    weightUnit,
     fragility,
     allowRotateX,
     allowRotateY,
@@ -375,16 +368,12 @@ export function ProductForm({
     control: form.control,
     name: [
       'width',
-      'widthUnit',
       'height',
-      'heightUnit',
       'length',
-      'lengthUnit',
       'maxStackCount',
       'productType',
       'name',
       'weight',
-      'weightUnit',
       'fragility',
       'allowRotateX',
       'allowRotateY',
@@ -400,9 +389,9 @@ export function ProductForm({
   const isZLocked = (fragility ?? 0) >= 1 || isPallet;
   const isYLocked = isPallet;
 
-  const widthCm = Number.isFinite(width) ? toCentimeters(width, widthUnit ?? 'cm') : 0;
-  const heightCm = Number.isFinite(height) ? toCentimeters(height, heightUnit ?? 'cm') : 0;
-  const lengthCm = Number.isFinite(length) ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
+  const widthCm = Number.isFinite(width) ? toCentimeters(width, dimensionUnit) : 0;
+  const heightCm = Number.isFinite(height) ? toCentimeters(height, dimensionUnit) : 0;
+  const lengthCm = Number.isFinite(length) ? toCentimeters(length, dimensionUnit) : 0;
   const volumeCm3 = isVaril
     ? Math.PI * (widthCm / 2) ** 2 * heightCm
     : widthCm * heightCm * lengthCm;
@@ -441,13 +430,8 @@ export function ProductForm({
                     }
                     if (value === 'varil') {
                       const w = form.getValues('width');
-                      const wu = form.getValues('widthUnit');
                       if (w !== undefined && Number.isFinite(w)) {
                         form.setValue('length', w, { shouldDirty: false, shouldValidate: false });
-                        form.setValue('lengthUnit', wu ?? 'mm', {
-                          shouldDirty: false,
-                          shouldValidate: false,
-                        });
                       }
                     }
                   }}
@@ -595,23 +579,19 @@ export function ProductForm({
               <DimensionField
                 form={form}
                 name="width"
-                unitName="widthUnit"
+                dimensionUnit={dimensionUnit}
                 label={t('forms.product.diameter')}
                 placeholder="60"
-                onAfterChange={(v, unit) => {
+                onAfterChange={(v) => {
                   if (v !== undefined && Number.isFinite(v)) {
                     form.setValue('length', v, { shouldDirty: false, shouldValidate: false });
-                    form.setValue('lengthUnit', unit, {
-                      shouldDirty: false,
-                      shouldValidate: false,
-                    });
                   }
                 }}
               />
               <DimensionField
                 form={form}
                 name="height"
-                unitName="heightUnit"
+                dimensionUnit={dimensionUnit}
                 label={t('forms.product.height')}
                 placeholder="120"
               />
@@ -621,21 +601,21 @@ export function ProductForm({
               <DimensionField
                 form={form}
                 name="width"
-                unitName="widthUnit"
+                dimensionUnit={dimensionUnit}
                 label={`${t('forms.product.width')} (X)`}
                 placeholder="120"
               />
               <DimensionField
                 form={form}
                 name="height"
-                unitName="heightUnit"
+                dimensionUnit={dimensionUnit}
                 label={`${t('forms.product.height')} (Y)`}
                 placeholder="80"
               />
               <DimensionField
                 form={form}
                 name="length"
-                unitName="lengthUnit"
+                dimensionUnit={dimensionUnit}
                 label={`${t('forms.product.depth')} (Z)`}
                 placeholder="100"
               />
@@ -662,24 +642,9 @@ export function ProductForm({
                       }
                     />
                   </FormControl>
-                  <Controller
-                    control={form.control}
-                    name="weightUnit"
-                    render={({ field: unitField }) => (
-                      <Select value={unitField.value} onValueChange={unitField.onChange}>
-                        <SelectTrigger className={UNIT_TRIGGER}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {WEIGHT_KEYS.map((unit) => (
-                            <SelectItem key={unit} value={unit}>
-                              {unit}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    {weightUnit}
+                  </span>
                 </div>
                 <FormMessage />
               </FormItem>
@@ -724,6 +689,13 @@ export function ProductForm({
                             return Math.max(acc, o?.fragilityValue ?? 0);
                           }, 0);
                           form.setValue('fragility', maxFragility, { shouldValidate: false });
+                          const ids = next
+                            .map(
+                              (v) =>
+                                CONSTRAINT_OPTIONS.find((c) => c.value === v)?.fragilityValue ?? 0,
+                            )
+                            .filter((id) => id > 0);
+                          form.setValue('constraintIds', ids, { shouldValidate: false });
                           if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
                             form.setValue('allowRotateZ', false, { shouldValidate: false });
                           } else if (!isPallet) {
@@ -927,13 +899,9 @@ export function ProductForm({
                 name={name}
                 productType={productType ?? 'koli'}
                 length={length}
-                lengthUnit={lengthUnit}
                 width={width}
-                widthUnit={widthUnit}
                 height={height}
-                heightUnit={heightUnit}
                 weight={weight}
-                weightUnit={weightUnit}
                 volumeCm3={volumeCm3}
                 maxStackCount={maxStackCount ?? 1}
                 fragility={fragility ?? 0}
@@ -968,13 +936,9 @@ interface PreviewPanelProps {
   name?: string;
   productType: 'koli' | 'varil' | 'palet';
   length?: number;
-  lengthUnit?: DimensionUnitKey;
   width?: number;
-  widthUnit?: DimensionUnitKey;
   height?: number;
-  heightUnit?: DimensionUnitKey;
   weight?: number;
-  weightUnit?: keyof typeof WEIGHT_UNITS;
   volumeCm3: number;
   maxStackCount: number;
   fragility: number;
@@ -990,13 +954,9 @@ function PreviewPanel(props: PreviewPanelProps) {
     name,
     productType,
     length,
-    lengthUnit,
     width,
-    widthUnit,
     height,
-    heightUnit,
     weight,
-    weightUnit,
     volumeCm3,
     maxStackCount,
     fragility,
@@ -1005,6 +965,10 @@ function PreviewPanel(props: PreviewPanelProps) {
     allowRotateZ,
     notes,
   } = props;
+
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+  const volumeUnit = useUnitStore((s) => s.volumeUnit);
 
   const fmt = (val?: number, unit?: string) =>
     val !== undefined && Number.isFinite(val) && unit ? `${val} ${unit}` : '—';
@@ -1023,11 +987,11 @@ function PreviewPanel(props: PreviewPanelProps) {
   const allRotationsFree = lockedAxes.length === 0;
 
   const widthCm =
-    Number.isFinite(width) && width !== undefined ? toCentimeters(width, widthUnit ?? 'cm') : 0;
+    Number.isFinite(width) && width !== undefined ? toCentimeters(width, dimensionUnit) : 0;
   const heightCm =
-    Number.isFinite(height) && height !== undefined ? toCentimeters(height, heightUnit ?? 'cm') : 0;
+    Number.isFinite(height) && height !== undefined ? toCentimeters(height, dimensionUnit) : 0;
   const depthCm =
-    Number.isFinite(length) && length !== undefined ? toCentimeters(length, lengthUnit ?? 'cm') : 0;
+    Number.isFinite(length) && length !== undefined ? toCentimeters(length, dimensionUnit) : 0;
   const hasDimensions =
     productType === 'varil'
       ? widthCm > 0 && heightCm > 0
@@ -1035,9 +999,9 @@ function PreviewPanel(props: PreviewPanelProps) {
 
   const summaryRows = [
     { label: t('forms.product.name'), value: name || '—', bold: true },
-    { label: t('forms.product.width'), value: fmt(width, widthUnit) },
-    { label: t('forms.product.height'), value: fmt(height, heightUnit) },
-    { label: t('forms.product.length'), value: fmt(length, lengthUnit) },
+    { label: t('forms.product.width'), value: fmt(width, dimensionUnit) },
+    { label: t('forms.product.height'), value: fmt(height, dimensionUnit) },
+    { label: t('forms.product.length'), value: fmt(length, dimensionUnit) },
     { label: t('forms.product.weight'), value: fmt(weight, weightUnit) },
     { label: 'Kısıtlar', value: fragilityLabel },
     { label: 'Katman', value: maxStackCount > 0 ? String(maxStackCount) : '—' },
@@ -1082,7 +1046,7 @@ function PreviewPanel(props: PreviewPanelProps) {
       <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
         <span className="text-[10px] text-muted-foreground">Hacim</span>
         <span className="text-xs font-semibold tabular-nums text-foreground">
-          {volumeCm3 > 0 ? formatVolume(volumeCm3) : '—'}
+          {volumeCm3 > 0 ? formatVolumeDisplay(volumeCm3, volumeUnit) : '—'}
         </span>
       </div>
 
@@ -1122,16 +1086,16 @@ function PreviewPanel(props: PreviewPanelProps) {
 interface DimensionFieldProps {
   form: ReturnType<typeof useProductForm>;
   name: 'width' | 'height' | 'length';
-  unitName: 'widthUnit' | 'heightUnit' | 'lengthUnit';
+  dimensionUnit: string;
   label: string;
   placeholder?: string;
-  onAfterChange?: (value: number | undefined, unit: DimensionUnitKey) => void;
+  onAfterChange?: (value: number | undefined) => void;
 }
 
 function DimensionField({
   form,
   name,
-  unitName,
+  dimensionUnit,
   label,
   placeholder,
   onAfterChange,
@@ -1157,37 +1121,14 @@ function DimensionField({
                   const v = e.target.value === '' ? undefined : e.target.valueAsNumber;
                   field.onChange(v);
                   if (onAfterChange) {
-                    onAfterChange(v, form.getValues(unitName) ?? 'mm');
+                    onAfterChange(v);
                   }
                 }}
               />
             </FormControl>
-            <Controller
-              control={form.control}
-              name={unitName}
-              render={({ field: unitField }) => (
-                <Select
-                  value={unitField.value}
-                  onValueChange={(u) => {
-                    unitField.onChange(u);
-                    if (onAfterChange) {
-                      onAfterChange(form.getValues(name), u as DimensionUnitKey);
-                    }
-                  }}
-                >
-                  <SelectTrigger className={UNIT_TRIGGER}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DIMENSION_KEYS.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {unit}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+              {dimensionUnit}
+            </span>
           </div>
           <FormMessage />
         </FormItem>

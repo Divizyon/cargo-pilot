@@ -531,7 +531,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                   Tarih
                 </TableHead>
                 <TableHead className="w-32 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
-                  Plaka
+                  Plaka/Seri No
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Durum

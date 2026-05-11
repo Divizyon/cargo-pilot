@@ -111,13 +111,15 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
         }
       : undefined;
 
+  const vehicleType = VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir;
+  const isContainer = vehicleType === VehicleType.Konteyner;
   return {
     id: api.id,
     name: api.vehicleName,
-    vehicleType: VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir,
+    vehicleType,
     description: api.description ?? undefined,
-    plate: api.plateNumber ?? undefined,
-    serialNumber: api.serialNumber ?? undefined,
+    plate: isContainer ? undefined : (api.plateNumber ?? undefined),
+    serialNumber: isContainer ? (api.plateNumber ?? undefined) : undefined,
     length: api.internalLength,
     width: api.internalWidth,
     height: api.internalHeight,
@@ -170,9 +172,8 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
 export interface CreateVehicleRequest {
   vehicleName: string;
   vehicleType: number;
-  description?: string | null;
-  plateNumber: string | null;
-  serialNumber?: string | null;
+  description?: string;
+  plateNumber: string;
   internalLength: number;
   internalWidth: number;
   internalHeight: number;
@@ -198,16 +199,18 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
   return {
     vehicleName: values.name,
     vehicleType: VEHICLE_TYPE_INT[values.vehicleType],
-    description: values.description?.trim() || null,
-    plateNumber: values.plate?.trim() || null,
-    serialNumber: values.serialNumber?.trim() || null,
-    internalLength: values.length,
-    internalWidth: values.width,
-    internalHeight: values.height,
-    maxWeightCapacity: values.maxCargoWeight,
-    grossWeight: values.grossWeight ?? null,
-    tareWeight: values.tareWeight ?? null,
-    layerCount: values.maxLayerCount ?? 1,
+    description: values.description?.trim() ?? '',
+    plateNumber:
+      values.vehicleType === VehicleType.Konteyner
+        ? (values.serialNumber?.trim() ?? '')
+        : (values.plate?.trim() ?? ''),
+    internalLength: Number.isFinite(values.length) ? values.length : 0,
+    internalWidth: Number.isFinite(values.width) ? values.width : 0,
+    internalHeight: Number.isFinite(values.height) ? values.height : 0,
+    maxWeightCapacity: Number.isFinite(values.maxCargoWeight) ? values.maxCargoWeight : 0,
+    grossWeight: Number.isFinite(values.grossWeight) ? values.grossWeight : null,
+    tareWeight: Number.isFinite(values.tareWeight) ? values.tareWeight : null,
+    layerCount: Number.isFinite(values.maxLayerCount) ? (values.maxLayerCount ?? 1) : 1,
     loadingType: (() => {
       if (values.doorDirection === 'side') {
         return values.doorSide === 'left' ? 2 : 1; // SideLeft=2, SideRight=1
@@ -217,16 +220,22 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     })(),
     isActive: values.isActive ?? true,
     ...(values.status === 'draft' ? { status: 'draft' } : {}),
-    kingPinDistanceMm: values.kingpin?.distance ?? null,
-    kingPinTareWeightKg: values.kingpin?.tareWeight ?? null,
-    kingPinMaxLoadKg: values.kingpin?.maxLoad ?? null,
-    mainAxleDistanceMm: values.axleB?.distance ?? null,
+    kingPinDistanceMm: Number.isFinite(values.kingpin?.distance) ? values.kingpin!.distance : null,
+    kingPinTareWeightKg: Number.isFinite(values.kingpin?.tareWeight)
+      ? values.kingpin!.tareWeight
+      : null,
+    kingPinMaxLoadKg: Number.isFinite(values.kingpin?.maxLoad) ? values.kingpin!.maxLoad : null,
+    mainAxleDistanceMm: Number.isFinite(values.axleB?.distance) ? values.axleB!.distance : null,
     mainAxleTareWeightKg: values.axleB != null ? (values.axleB.tareWeight ?? 0) : null,
-    mainAxleMaxLoadKg: values.axleB?.maxLoad ?? null,
-    additionalAxleDistanceMm: values.axles?.[0]?.distance ?? null,
+    mainAxleMaxLoadKg: Number.isFinite(values.axleB?.maxLoad) ? values.axleB!.maxLoad : null,
+    additionalAxleDistanceMm: Number.isFinite(values.axles?.[0]?.distance)
+      ? values.axles![0].distance
+      : null,
     additionalAxleTareWeightKg:
       values.axles?.[0] != null ? (values.axles[0].tareWeight ?? 0) : null,
-    additionalAxleMaxLoadKg: values.axles?.[0]?.maxLoad ?? null,
+    additionalAxleMaxLoadKg: Number.isFinite(values.axles?.[0]?.maxLoad)
+      ? values.axles![0].maxLoad
+      : null,
   };
 }
 
