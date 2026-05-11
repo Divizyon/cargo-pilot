@@ -3,13 +3,13 @@ import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
-import { computeViolations, findFreeSlot } from '@/lib/utils/geometry';
+import { computeViolations } from '@/lib/utils/geometry';
 import {
   rotatedDimensions,
   isOrientationAllowed,
   type OrientationIndex,
 } from '@/lib/utils/boxOrientations';
-import { applyContainerOverflow } from '@/lib/utils/checkOrientationFit';
+import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/checkOrientationFit';
 import { useUIStore } from '@/lib/store/useUIStore';
 
 export function assignSkuColor(
@@ -47,6 +47,49 @@ interface BuildResult {
   noFitCount: number;
 }
 
+function gravityY(
+  x: number,
+  z: number,
+  w: number,
+  d: number,
+  others: PlacementWithDimensions[],
+): number {
+  let maxY = 0;
+  for (const o of others) {
+    const xOv = x < o.positionX + o.width && o.positionX < x + w;
+    const zOv = z < o.positionZ + o.depth && o.positionZ < z + d;
+    if (xOv && zOv) {
+      const top = o.positionY + o.height;
+      if (top > maxY) maxY = top;
+    }
+  }
+  return maxY;
+}
+
+function maxZInLayer(placements: PlacementWithDimensions[], y: number): number {
+  let max = 0;
+  for (const p of placements) {
+    if (!p.isViolation && p.positionY === y) {
+      const zEnd = p.positionZ + p.depth;
+      if (zEnd > max) max = zEnd;
+    }
+  }
+  return max;
+}
+
+// Bir katmandaki en uzun kutunun üst kenarını döndürür.
+// Bu değer yeni katmanın başlangıç Y'si olur — alttaki en büyük kutuya göre.
+function maxTopInLayer(placements: PlacementWithDimensions[], y: number): number {
+  let max = y;
+  for (const p of placements) {
+    if (!p.isViolation && p.positionY === y) {
+      const top = p.positionY + p.height;
+      if (top > max) max = top;
+    }
+  }
+  return max;
+}
+
 function buildPlacements(
   item: Item,
   qty: number,
@@ -58,30 +101,57 @@ function buildPlacements(
   const h = item.height;
   const d = item.length;
 
-  const placed: PlacementWithDimensions[] = [];
+  // Violation'ları hariç tut — cursor hesabı için sadece geçerli yerleşimler
+  const valid = existingPlacements.filter((p) => !p.isViolation);
+
+  // En üst katmandan devam et
+  const curY_init = valid.length > 0 ? Math.max(...valid.map((p) => p.positionY)) : 0;
+  const curZ_init = maxZInLayer(valid, curY_init);
+
+  let curX = 0;
+  let curY = curY_init;
+  let curZ = curZ_init;
+  let rowMaxDepth = d;
   let noFitCount = 0;
 
-  for (let i = 0; i < qty; i++) {
-    const occupied = [...existingPlacements, ...placed];
-    const slot = findFreeSlot(
-      { width: w, height: h, depth: d },
-      vehicle,
-      occupied,
-      item.isStackable,
-    );
+  const result: PlacementWithDimensions[] = [];
 
-    if (!slot.fits) {
+  for (let i = 0; i < qty; i++) {
+    // Z overflow → new layer (only if stackable)
+    if (curZ + d > vehicle.length) {
+      if (!item.isStackable) {
+        noFitCount++;
+        continue;
+      }
+      const allSoFar = [...valid, ...result.filter((p) => !p.isViolation)];
+      const newLayerY = maxTopInLayer(allSoFar, curY);
+      if (newLayerY + h > vehicle.height) {
+        noFitCount++;
+        continue;
+      }
+      curY = newLayerY;
+      curX = 0;
+      curZ = maxZInLayer(allSoFar, curY);
+      rowMaxDepth = d;
+    }
+
+    rowMaxDepth = Math.max(rowMaxDepth, d);
+
+    const soFar = [...valid, ...result.filter((p) => !p.isViolation)];
+    const posY = gravityY(curX, curZ, w, d, soFar);
+
+    if (!fitsInVehicle(curX, posY, curZ, w, h, d, vehicle)) {
       noFitCount++;
       continue;
     }
 
-    placed.push({
+    result.push({
       itemId: item.id,
-      positionX: slot.positionX,
-      positionY: slot.positionY,
-      positionZ: slot.positionZ,
+      positionX: curX,
+      positionY: posY,
+      positionZ: curZ,
       orientationIndex: 0,
-      layer: Math.round(slot.positionY / h) + 1,
+      layer: Math.round(posY / h) + 1,
       isViolation: false,
       width: w,
       height: h,
@@ -90,9 +160,16 @@ function buildPlacements(
       color,
       productType: item.productType,
     });
+
+    curX += w;
+    if (curX + w > vehicle.width) {
+      curX = 0;
+      curZ += rowMaxDepth;
+      rowMaxDepth = d;
+    }
   }
 
-  return { placed, noFitCount };
+  return { placed: result, noFitCount };
 }
 
 interface PlanStore {
