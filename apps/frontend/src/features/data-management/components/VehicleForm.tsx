@@ -57,6 +57,8 @@ export function VehicleForm({
   const { showAxleSection, showKingpinSection } = useVehicleFormVisibility(form.control);
   const axlesRef = useRef<VehicleAdditionalAxlesHandle>(null);
   const vehicleType = useWatch({ control: form.control, name: 'vehicleType' });
+  const axles = useWatch({ control: form.control, name: 'axles' });
+  const canAddAxle = (axles?.length ?? 0) < 1;
 
   useEffect(() => {
     if (!showAxleSection) {
@@ -130,7 +132,7 @@ export function VehicleForm({
               size="sm"
               className="h-auto gap-1 px-1 py-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
               onClick={() => axlesRef.current?.addAxle()}
-              disabled={!axlesRef.current?.canAdd}
+              disabled={!canAddAxle}
             >
               + Ek Aks Ekle
             </Button>
