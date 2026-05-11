@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -69,14 +69,15 @@ export function PasswordChangeDialog({ open, onOpenChange }: PasswordChangeDialo
     mode: 'onBlur',
   });
 
-  useEffect(() => {
-    if (!open) {
+  function handleOpenChange(value: boolean) {
+    if (!value) {
       form.reset();
       setShowCurrent(false);
       setShowNew(false);
       setShowConfirm(false);
     }
-  }, [open, form]);
+    onOpenChange(value);
+  }
 
   function onSubmit({ currentPassword, newPassword }: PasswordChangeFormValues) {
     changePassword(
@@ -96,7 +97,7 @@ export function PasswordChangeDialog({ open, onOpenChange }: PasswordChangeDialo
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Şifreni Güncelle</DialogTitle>
