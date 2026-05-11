@@ -13,4 +13,11 @@ public interface IEmailService {
         DateTime loginTime,
         string secureAccountLink,
         CancellationToken cancellationToken = default);
+
+    Task SendCompanyUserInvitationEmailAsync(
+        string toEmail,
+        string toName,
+        string temporaryPassword,
+        string loginUrl,
+        CancellationToken cancellationToken = default);
 }
