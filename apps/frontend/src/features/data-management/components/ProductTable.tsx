@@ -36,13 +36,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useDeleteItem, useItems } from '@/lib/api/useItems';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
-import {
-  calcVolume,
-  formatDimension,
-  formatVolume,
-  type DimensionUnit,
-} from '@/lib/utils/calcVolume';
+import { calcVolume } from '@/lib/utils/calcVolume';
+import { formatDimensionDisplay, formatVolumeDisplay } from '@/lib/utils/unitConversion';
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
@@ -220,14 +217,15 @@ function ProductTableSkeleton() {
 
 interface ProductRowProps {
   item: Item;
-  unit: DimensionUnit;
   searchTerm: string;
   onRowClick?: (item: Item) => void;
   onDelete?: (item: Item) => void;
 }
 
-function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRowProps) {
+function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const volumeUnit = useUnitStore((s) => s.volumeUnit);
   const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
 
   const cell = 'py-0 px-3';
@@ -255,24 +253,24 @@ function ProductRow({ item, unit, searchTerm, onRowClick, onDelete }: ProductRow
 
       <TableCell className={cell}>
         <span className="text-xs text-foreground">
-          {formatDimension(item.width, unit)} {unit}
+          {formatDimensionDisplay(item.width, dimensionUnit)}
         </span>
       </TableCell>
 
       <TableCell className={cell}>
         <span className="text-xs text-foreground">
-          {formatDimension(item.height, unit)} {unit}
+          {formatDimensionDisplay(item.height, dimensionUnit)}
         </span>
       </TableCell>
 
       <TableCell className={cell}>
         <span className="text-xs text-foreground">
-          {formatDimension(item.length, unit)} {unit}
+          {item.productType === 'varil' ? '—' : formatDimensionDisplay(item.length, dimensionUnit)}
         </span>
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolume(volume, unit)}</span>
+        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, volumeUnit)}</span>
       </TableCell>
 
       <TableCell className={cell}>
@@ -352,23 +350,25 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const unit: DimensionUnit = 'mm';
-
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
     setPage(1);
   }, []);
   const deleteItem = useDeleteItem();
 
+  const hasClientFilters = category !== 'all' || constraintFilters.size > 0;
+
   const {
     data: itemsPage,
     isLoading,
     isFetching,
-  } = useItems({ search: searchTerm || undefined, page, pageSize: PAGE_SIZE });
+  } = useItems({
+    search: searchTerm || undefined,
+    page: hasClientFilters ? 1 : page,
+    pageSize: hasClientFilters ? 100 : PAGE_SIZE,
+  });
 
   const items = itemsPage?.items;
-  const totalCount = itemsPage?.totalCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // Close filter panel on outside click
   useEffect(() => {
@@ -412,13 +412,24 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           [...constraintFilters].some((f) => matchesConstraintFilter(item, f)),
         );
 
+  const totalCount = hasClientFilters ? (filteredItems?.length ?? 0) : (itemsPage?.totalCount ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const displayedItems = hasClientFilters
+    ? filteredItems?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    : filteredItems;
+
   const showSkeleton = isLoading || isFetching;
   const isEmpty =
-    !showSkeleton && filteredItems?.length === 0 && !searchTerm && constraintFilters.size === 0;
+    !showSkeleton &&
+    displayedItems?.length === 0 &&
+    !searchTerm &&
+    constraintFilters.size === 0 &&
+    category === 'all';
   const noResults =
     !showSkeleton &&
-    filteredItems?.length === 0 &&
-    (Boolean(searchTerm) || constraintFilters.size > 0);
+    displayedItems?.length === 0 &&
+    (Boolean(searchTerm) || constraintFilters.size > 0 || category !== 'all');
   const hasActiveFilters = constraintFilters.size > 0;
 
   return (
@@ -570,13 +581,13 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Genişlik/Çap
+                  Uzunluk/Çap
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk
+                  Derinlik
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim
@@ -606,11 +617,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   </TableCell>
                 </TableRow>
               )}
-              {filteredItems?.map((item) => (
+              {displayedItems?.map((item) => (
                 <ProductRow
                   key={item.id}
                   item={item}
-                  unit={unit}
                   searchTerm={searchTerm}
                   onRowClick={onRowClick}
                   onDelete={handleDelete}

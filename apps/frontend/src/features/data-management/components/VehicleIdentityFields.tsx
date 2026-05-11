@@ -33,14 +33,14 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
+              <FormLabel>
                 Araç Adı <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
                 <Input
                   {...field}
                   className="h-9 border-input bg-background"
-                  placeholder="Örn: 34 ABC 123 veya Filo Tır 1"
+                  placeholder="Filo Tır 1"
                   onBlur={(e) => {
                     field.onBlur();
                     const trimmed = e.target.value.trim();
@@ -63,7 +63,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
+              <FormLabel>
                 Açıklama{' '}
                 <span className="text-xs font-normal text-muted-foreground">(Opsiyonel)</span>
               </FormLabel>

@@ -20,9 +20,6 @@ export type ProductType = (typeof PRODUCT_TYPES)[number];
 export const DIMENSION_UNITS = {
   cm: 1,
   mm: 2,
-  m: 3,
-  inch: 4,
-  ft: 5,
 } as const;
 
 export type DimensionUnitKey = keyof typeof DIMENSION_UNITS;
@@ -30,8 +27,6 @@ export type DimensionUnitId = (typeof DIMENSION_UNITS)[DimensionUnitKey];
 
 export const WEIGHT_UNITS = {
   kg: 1,
-  g: 2,
-  lb: 3,
 } as const;
 
 export type WeightUnitKey = keyof typeof WEIGHT_UNITS;
@@ -48,13 +43,9 @@ export const productSchema = z
     sku: z.string().min(1, 'validations.product.skuRequired'),
     productType: z.enum(PRODUCT_TYPES, { message: 'validations.product.typeRequired' }),
     width: numField('validations.product.widthPositive'),
-    widthUnit: z.enum(Object.keys(DIMENSION_UNITS) as [DimensionUnitKey, ...DimensionUnitKey[]]),
     height: numField('validations.product.heightPositive'),
-    heightUnit: z.enum(Object.keys(DIMENSION_UNITS) as [DimensionUnitKey, ...DimensionUnitKey[]]),
     length: numField('validations.product.lengthPositive'),
-    lengthUnit: z.enum(Object.keys(DIMENSION_UNITS) as [DimensionUnitKey, ...DimensionUnitKey[]]),
     weight: numField('validations.product.weightPositive'),
-    weightUnit: z.enum(Object.keys(WEIGHT_UNITS) as [WeightUnitKey, ...WeightUnitKey[]]),
     fragility: z.number().int().min(0),
     isStackable: z.boolean(),
     maxStackCount: z.number().int().min(1, 'validations.product.maxStackMin').optional(),
@@ -64,6 +55,7 @@ export const productSchema = z
     notes: z.string().max(NOTES_MAX_LENGTH, 'validations.product.notesTooLong').optional(),
     stackGroup: z.string().optional(),
     incompatibleGroups: z.array(z.string()).optional(),
+    constraintIds: z.array(z.number().int()).optional(),
   })
   .refine((data) => !data.isStackable || data.maxStackCount !== undefined, {
     message: 'validations.product.maxStackRequired',
@@ -72,14 +64,7 @@ export const productSchema = z
   .refine(
     (data) => {
       if (data.productType !== 'palet') return true;
-      const toCm: Record<DimensionUnitKey, number> = {
-        cm: 1,
-        mm: 0.1,
-        m: 100,
-        inch: 2.54,
-        ft: 30.48,
-      };
-      return data.height * (toCm[data.heightUnit] ?? 1) <= 20;
+      return data.height <= 20;
     },
     { message: 'validations.product.paletMaxHeight', path: ['height'] },
   );
@@ -89,9 +74,6 @@ export type ProductFormValues = z.infer<typeof productSchema>;
 const TO_CM: Record<DimensionUnitKey, number> = {
   cm: 1,
   mm: 0.1,
-  m: 100,
-  inch: 2.54,
-  ft: 30.48,
 };
 
 export function toCentimeters(value: number, unit: DimensionUnitKey): number {
@@ -100,8 +82,6 @@ export function toCentimeters(value: number, unit: DimensionUnitKey): number {
 
 const TO_KG: Record<WeightUnitKey, number> = {
   kg: 1,
-  g: 0.001,
-  lb: 0.45359237,
 };
 
 export function toKilograms(value: number, unit: WeightUnitKey): number {
