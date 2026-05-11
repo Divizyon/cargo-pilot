@@ -95,4 +95,24 @@ internal sealed class UserRepository : IUserRepository {
         return _dbContext.Users
             .CountAsync(u => u.CompanyId == companyId, cancellationToken);
     }
+
+    public Task<int> GetActiveAdminCountAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) {
+        return _dbContext.Users
+            .CountAsync(u => u.CompanyId == companyId
+                          && u.UserType == UserType.CompanyAdmin
+                          && u.IsActive,
+                cancellationToken);
+    }
+
+    public async Task RevokeAllSessionsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default) {
+        var sessions = await _dbContext.UserSessions
+            .Where(s => s.UserId == userId && !s.IsRevoked)
+            .ToListAsync(cancellationToken);
+        foreach (var session in sessions)
+            session.Revoke();
+    }
 }

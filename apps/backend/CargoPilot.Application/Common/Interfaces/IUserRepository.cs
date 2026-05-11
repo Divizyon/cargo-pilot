@@ -27,4 +27,6 @@ public interface IUserRepository
     Task<AppUser?> GetCompanyAdminAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AppUser>> GetCompanyUsersAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<int> GetCompanyUserCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+    Task<int> GetActiveAdminCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+    Task RevokeAllSessionsAsync(Guid userId, CancellationToken cancellationToken = default);
 }

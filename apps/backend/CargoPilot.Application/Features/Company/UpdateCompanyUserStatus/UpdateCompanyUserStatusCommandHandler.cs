@@ -2,6 +2,7 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Errors;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Enums;
 using MediatR;
 
 namespace CargoPilot.Application.Features.CompanyManagement.UpdateCompanyUserStatus;
@@ -32,7 +33,21 @@ internal sealed class UpdateCompanyUserStatusCommandHandler
         if (user is null || user.CompanyId != companyId)
             return Result<bool>.Failure(CompanyErrors.UserNotFound);
 
+        if (!request.IsActive && user.UserType == UserType.CompanyAdmin)
+        {
+            var activeAdminCount = await _userRepository.GetActiveAdminCountAsync(companyId, cancellationToken);
+            if (activeAdminCount <= 1)
+                return Result<bool>.Failure(
+                    new Error(ErrorType.BusinessRule, "CompanyUser.LastAdmin",
+                        "Firmada en az bir admin bulunması zorunludur. Son admin pasife alınamaz."));
+        }
+
+        var wasActive = user.IsActive;
         user.SetIsActive(request.IsActive);
+
+        if (wasActive && !request.IsActive)
+            await _userRepository.RevokeAllSessionsAsync(user.Id, cancellationToken);
+
         await _userRepository.SaveChangesAsync(cancellationToken);
 
         return Result<bool>.Success(true);
