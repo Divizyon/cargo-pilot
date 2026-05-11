@@ -6,7 +6,7 @@ using MediatR;
 
 namespace CargoPilot.Application.Features.Plans.ApprovePlan;
 
-public sealed class ApprovePlanCommandHandler : IRequestHandler<ApprovePlanCommand, Result<Guid>>
+internal sealed class ApprovePlanCommandHandler : IRequestHandler<ApprovePlanCommand, Result<Guid>>
 {
     private readonly ILoadingPlanRepository _planRepository;
     private readonly ICurrentUserService _currentUserService;

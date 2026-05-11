@@ -5,7 +5,7 @@ using MediatR;
 
 namespace CargoPilot.Application.Features.Integrations.ListIntegrations;
 
-public sealed class ListIntegrationsQueryHandler : IRequestHandler<ListIntegrationsQuery, Result<IReadOnlyList<IntegrationSummary>>>
+internal sealed class ListIntegrationsQueryHandler : IRequestHandler<ListIntegrationsQuery, Result<IReadOnlyList<IntegrationSummary>>>
 {
     private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;

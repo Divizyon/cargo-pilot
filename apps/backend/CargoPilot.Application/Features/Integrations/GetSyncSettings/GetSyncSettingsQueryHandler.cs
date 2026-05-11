@@ -5,7 +5,7 @@ using MediatR;
 
 namespace CargoPilot.Application.Features.Integrations.GetSyncSettings;
 
-public sealed class GetSyncSettingsQueryHandler : IRequestHandler<GetSyncSettingsQuery, Result<SyncSettingsResponse>>
+internal sealed class GetSyncSettingsQueryHandler : IRequestHandler<GetSyncSettingsQuery, Result<SyncSettingsResponse>>
 {
     private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
