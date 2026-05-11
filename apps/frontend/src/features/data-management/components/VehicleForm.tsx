@@ -9,7 +9,10 @@ import { VehicleDimensionsFields } from './VehicleDimensionsFields';
 import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleWeightFields } from './VehicleWeightFields';
 import { VehicleAxleBSection } from './VehicleAxleBSection';
-import { VehicleAdditionalAxles, type VehicleAdditionalAxlesHandle } from './VehicleAdditionalAxles';
+import {
+  VehicleAdditionalAxles,
+  type VehicleAdditionalAxlesHandle,
+} from './VehicleAdditionalAxles';
 import { VehicleKingpinSection } from './VehicleKingpinSection';
 import { VehicleFormActions } from './VehicleFormActions';
 import { VehiclePreviewPanel } from './VehiclePreviewPanel';
@@ -178,24 +181,24 @@ export function VehicleForm({
 
   return (
     <TooltipProvider delayDuration={150}>
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormWithPreviewLayout
-          formContent={formContent}
-          previewContent={<VehiclePreviewPanel form={form} />}
-        />
-
-        <div className="flex justify-end border-t pt-4">
-          <VehicleFormActions
-            form={form}
-            isSubmitting={isSubmitting}
-            onCancel={onCancel}
-            onDraftSubmit={onDraftSubmit ?? (() => undefined)}
-            disableSubmitWhenPristine={disableSubmitWhenPristine}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormWithPreviewLayout
+            formContent={formContent}
+            previewContent={<VehiclePreviewPanel form={form} />}
           />
-        </div>
-      </form>
-    </Form>
+
+          <div className="flex justify-end border-t pt-4">
+            <VehicleFormActions
+              form={form}
+              isSubmitting={isSubmitting}
+              onCancel={onCancel}
+              onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+              disableSubmitWhenPristine={disableSubmitWhenPristine}
+            />
+          </div>
+        </form>
+      </Form>
     </TooltipProvider>
   );
 }
