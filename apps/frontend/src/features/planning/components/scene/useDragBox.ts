@@ -139,12 +139,13 @@ export function useDragBox() {
         const finalX = Math.max(0, Math.min(snapped.x, vehicle.width - p.width));
         const finalZ = Math.max(0, Math.min(snapped.z, vehicle.length - p.depth));
         const gy = gravityY(finalX, finalZ, p.width, p.depth, others);
+        const finalY = Math.max(0, Math.min(gy, vehicle.height - p.height));
 
-        livePosRef.current = { x: finalX, y: gy, z: finalZ };
-        const next: DragState = { idx, x: finalX, y: gy, z: finalZ };
+        livePosRef.current = { x: finalX, y: finalY, z: finalZ };
+        const next: DragState = { idx, x: finalX, y: finalY, z: finalZ };
         dragStateRef.current = next;
         setDragState(next);
-        setDragLivePosition({ x: finalX, y: gy, z: finalZ });
+        setDragLivePosition({ x: finalX, y: finalY, z: finalZ });
 
         if (!hasDragMovedRef.current) {
           hasDragMovedRef.current = true;

@@ -91,6 +91,18 @@ public static class DependencyInjection {
                         SegmentsPerWindow = 2,
                         QueueLimit        = 0,
                     }));
+
+            // Company user create: 20 istek / 1 dk / IP
+            options.AddPolicy("company-user-create", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 20,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
         });
         var corsOrigins = Enumerable.Range(1, 10)
             .Select(i => configuration[$"CORS_ALLOWED_ORIGIN_{i}"])
@@ -110,6 +122,7 @@ public static class DependencyInjection {
 
 
         services.AddTransient<GlobalExceptionMiddleware>();
+        services.AddTransient<MustChangePasswordMiddleware>();
 
         // Override Infrastructure's AnonymousCurrentUserService with the JWT-aware implementation.
         services.AddHttpContextAccessor();
@@ -291,6 +304,7 @@ public static class DependencyInjection {
         }
 
         app.UseAuthentication();
+        app.UseMiddleware<MustChangePasswordMiddleware>();
         app.UseHttpMetrics();
         app.UseAuthorization();
 
