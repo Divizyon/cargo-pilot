@@ -7,7 +7,8 @@ using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.SearchVehicles;
 
-public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQuery, Result<PagedResult<VehicleSummaryDto>>> {
+public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQuery, Result<PagedResult<VehicleSummaryDto>>>
+{
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IUserRepository _userRepository;
     private readonly IUserVehicleFavoriteRepository _favoriteRepository;
@@ -19,7 +20,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
         IUserRepository userRepository,
         IUserVehicleFavoriteRepository favoriteRepository,
         ICurrentUserService currentUserService,
-        IValidator<SearchVehiclesQuery> validator) {
+        IValidator<SearchVehiclesQuery> validator)
+    {
         _vehicleRepository = vehicleRepository;
         _userRepository = userRepository;
         _favoriteRepository = favoriteRepository;
@@ -29,9 +31,11 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
 
     public async Task<Result<PagedResult<VehicleSummaryDto>>> Handle(
         SearchVehiclesQuery request,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken)
+    {
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid) {
+        if (!validationResult.IsValid)
+        {
             var failures = validationResult.Errors
                 .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
                 .ToList();
@@ -42,7 +46,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
         var (page, pageSize) = request.IsExport ? (1, int.MaxValue) : (request.Page, request.PageSize);
 
         IReadOnlyList<Guid>? favoriteIds = null;
-        if (_currentUserService.UserId is { } userId) {
+        if (_currentUserService.UserId is { } userId)
+        {
             favoriteIds = await _favoriteRepository.GetFavoriteVehicleIdsAsync(userId, cancellationToken);
         }
 
@@ -95,7 +100,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                 v.AdditionalAxleDistanceMm,
                 v.AdditionalAxleTareWeightKg,
                 v.AdditionalAxleMaxLoadKg,
-                ResolveAuditUser(v, userMap)))
+                ResolveAuditUser(v, userMap),
+                v.ErpId))
             .ToList();
 
         var result = new PagedResult<VehicleSummaryDto>(
@@ -109,7 +115,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
 
     private static AuditUserDto? ResolveAuditUser(
         Vehicle v,
-        IReadOnlyDictionary<Guid, AppUser> userMap) {
+        IReadOnlyDictionary<Guid, AppUser> userMap)
+    {
         var userId = v.UpdatedBy ?? v.CreatedBy;
         if (userId is null || !userMap.TryGetValue(userId.Value, out var user))
             return null;
