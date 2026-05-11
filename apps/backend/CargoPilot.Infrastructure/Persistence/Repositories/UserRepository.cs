@@ -79,4 +79,20 @@ internal sealed class UserRepository : IUserRepository {
                 u => u.CompanyId == companyId && u.UserType == UserType.CompanyAdmin,
                 cancellationToken);
     }
+
+    public async Task<IReadOnlyList<AppUser>> GetCompanyUsersAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) {
+        return await _dbContext.Users
+            .Where(u => u.CompanyId == companyId)
+            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<int> GetCompanyUserCountAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) {
+        return _dbContext.Users
+            .CountAsync(u => u.CompanyId == companyId, cancellationToken);
+    }
 }
