@@ -24,30 +24,12 @@ function DoorPanel({
   height: number;
   depth?: number;
 }) {
-  const [normalMapRaw, roughnessMapRaw, metalnessMapRaw, aoMapRaw] = useTexture([
+  const [normalMap, roughnessMap, metalnessMap, aoMap] = useTexture([
     normalUrl,
     roughnessUrl,
     metalnessUrl,
     aoUrl,
   ]);
-
-  // useTexture paylaşımlı cache döner — her instance kendi klonuna ihtiyaç duyar
-  // yoksa son çalışan useEffect'in repeat değeri tüm panellere yazılır.
-  const [normalMap, roughnessMap, metalnessMap, aoMap] = useMemo(
-    () =>
-      [normalMapRaw, roughnessMapRaw, metalnessMapRaw, aoMapRaw].map((t) => {
-        const c = t.clone();
-        c.needsUpdate = true;
-        return c;
-      }) as [THREE.Texture, THREE.Texture, THREE.Texture, THREE.Texture],
-    [normalMapRaw, roughnessMapRaw, metalnessMapRaw, aoMapRaw],
-  );
-
-  useEffect(() => {
-    return () => {
-      for (const t of [normalMap, roughnessMap, metalnessMap, aoMap]) t.dispose();
-    };
-  }, [normalMap, roughnessMap, metalnessMap, aoMap]);
 
   useEffect(() => {
     for (const tex of [normalMap, roughnessMap, metalnessMap, aoMap]) {
@@ -68,9 +50,6 @@ function DoorPanel({
         aoMap={aoMap}
         metalness={0.45}
         roughness={0.7}
-        transparent
-        opacity={SCENE.CONTAINER_WALL_OPACITY}
-        depthWrite={false}
       />
     </mesh>
   );
@@ -96,7 +75,7 @@ function ContainerEdges({
 
   return (
     <lineSegments geometry={edgesGeo} position={[width / 2, height / 2, length / 2]}>
-      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE_OUTER} />
+      <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
     </lineSegments>
   );
 }
@@ -444,8 +423,8 @@ function TopCoverHalf({
 }) {
   return (
     <group>
-      {/* Panel: XZ düzleminde, rotate ile yatay yap — +PI/2: [x,y,z]→[x,-z,y], sign yönüyle grid eşleşir */}
-      <group rotation={[Math.PI / 2, 0, 0]} scale={[1, sign, 1]}>
+      {/* Panel: XZ düzleminde, rotate ile yatay yap */}
+      <group rotation={[-Math.PI / 2, 0, 0]} scale={[1, sign, 1]}>
         <DoorPanel width={width} height={panelLength} />
       </group>
       <TopCoverGrid width={width} panelLength={panelLength} sign={sign} />
@@ -494,23 +473,16 @@ export function ContainerMesh() {
 
   return (
     <group>
-      <ContainerBody
-        width={width}
-        height={height}
-        length={length}
-        doorDirection={doorDirection}
-        doorSide={doorSide}
-        color={vehicle.color}
-      />
+      <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
 
-      {doorDirection === 'rear' && (
+      {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
         <group key={`rear-${vehicle.id}`} position={[0, 0, length]} scale={[1, 1, -1]}>
           <RearDoors width={width} height={height} />
         </group>
       )}
 
-      {doorDirection === 'side' && (
+      {(doorDirection === 'side' || doorDirection === 'rearAndSide') && (
         <group
           key={`side-${vehicle.id}`}
           position={[doorSide === 'left' ? 0 : width, 0, 0]}
