@@ -2,6 +2,13 @@ import { z } from 'zod';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 
+export const VEHICLE_TYPE_COLOR: Record<string, string> = {
+  Tir: '#3b82f6',
+  Kamyon: '#16a34a',
+  Kamposet: '#f59e0b',
+  Konteyner: '#0891b2',
+};
+
 // Backend: Trailer=0, Truck=1, Container=2, Romork=3
 export const VEHICLE_TYPE_INT = {
   Tir: 0, // Trailer
@@ -26,7 +33,7 @@ export const LOADING_TYPE_FROM_INT: Record<
   0: { direction: DoorDirection.Rear },
   1: { direction: DoorDirection.Side, doorSide: 'right' },
   2: { direction: DoorDirection.Side, doorSide: 'left' },
-  3: { direction: DoorDirection.RearAndSide },
+  3: { direction: DoorDirection.AllSides },
   4: { direction: DoorDirection.Top },
 };
 
@@ -117,6 +124,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     id: api.id,
     name: api.vehicleName,
     vehicleType,
+    color: VEHICLE_TYPE_COLOR[vehicleType],
     description: api.description ?? undefined,
     plate: isContainer ? undefined : (api.plateNumber ?? undefined),
     serialNumber: isContainer ? (api.plateNumber ?? undefined) : undefined,
@@ -215,7 +223,7 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       if (values.doorDirection === 'side') {
         return values.doorSide === 'left' ? 2 : 1; // SideLeft=2, SideRight=1
       }
-      const map: Record<string, number> = { rear: 0, rearAndSide: 3, top: 4 };
+      const map: Record<string, number> = { rear: 0, allSides: 3, top: 4 };
       return map[values.doorDirection] ?? 0;
     })(),
     isActive: values.isActive ?? true,
