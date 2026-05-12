@@ -19,7 +19,7 @@ const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Arka+Yan',
+  allSides: 'Tüm Kapılar',
 };
 
 const cell = 'py-0 px-3';
@@ -50,7 +50,9 @@ export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
       </TableCell>
       <TableCell className={cell}>
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          {TYPE_ICONS[vehicle.vehicleType]}
+          <span style={vehicle.color ? { color: vehicle.color } : undefined}>
+            {TYPE_ICONS[vehicle.vehicleType]}
+          </span>
           <span className="text-xs">{vehicle.vehicleType}</span>
         </div>
       </TableCell>

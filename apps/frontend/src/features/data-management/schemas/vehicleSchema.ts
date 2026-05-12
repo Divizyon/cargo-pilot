@@ -63,7 +63,7 @@ export const vehicleFormSchema = z
       .optional(),
 
     // VY-07: Kapı yönü
-    doorDirection: z.enum(['rear', 'side', 'top', 'rearAndSide'] as const, {
+    doorDirection: z.enum(['rear', 'side', 'top', 'allSides'] as const, {
       message: 'Lütfen kapı yönünü seçiniz',
     }),
     doorSide: z.enum(['right', 'left'] as const).optional(),
@@ -120,7 +120,7 @@ export const vehicleFormSchema = z
     }
 
     // VY-07: Yan kapı seçilince taraf zorunlu
-    if ((data.doorDirection === 'side' || data.doorDirection === 'rearAndSide') && !data.doorSide) {
+    if (data.doorDirection === 'side' && !data.doorSide) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Kapı tarafı seçiniz (Sağ veya Sol)',
