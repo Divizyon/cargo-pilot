@@ -341,8 +341,9 @@ function DoorFaceIndicator({
   doorDirection: DoorDirection;
   doorSide?: 'left' | 'right';
 }) {
-  const isRear = doorDirection === 'rear' || doorDirection === 'rearAndSide';
-  const isSide = doorDirection === 'side' || doorDirection === 'rearAndSide';
+  const isAllSides = doorDirection === 'allSides';
+  const isRear = doorDirection === 'rear' || isAllSides;
+  const isSide = doorDirection === 'side';
   const isTop = doorDirection === 'top';
 
   const sideX = doorSide === 'right' ? width + DOOR_PANEL_T / 2 : -DOOR_PANEL_T / 2;
@@ -355,11 +356,29 @@ function DoorFaceIndicator({
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
       )}
+      {isAllSides && (
+        <mesh position={[width / 2, height / 2, length + DOOR_PANEL_T / 2]}>
+          <boxGeometry args={[width, height, DOOR_PANEL_T]} />
+          <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
+        </mesh>
+      )}
       {isSide && (
         <mesh position={[sideX, height / 2, length / 2]}>
           <boxGeometry args={[DOOR_PANEL_T, height, length]} />
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
+      )}
+      {isAllSides && (
+        <>
+          <mesh position={[-DOOR_PANEL_T / 2, height / 2, length / 2]}>
+            <boxGeometry args={[DOOR_PANEL_T, height, length]} />
+            <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
+          </mesh>
+          <mesh position={[width + DOOR_PANEL_T / 2, height / 2, length / 2]}>
+            <boxGeometry args={[DOOR_PANEL_T, height, length]} />
+            <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
+          </mesh>
+        </>
       )}
       {isTop && (
         <mesh position={[width / 2, height + DOOR_PANEL_T / 2, length / 2]}>
