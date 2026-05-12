@@ -28,7 +28,10 @@ interface ContainerBodyProps {
 
 // BoxGeometry face sırası: +X=0, -X=1, +Y=2, -Y=3, +Z=4, -Z=5
 // Konteyner mesh merkezi [width/2, height/2, length/2] — kapı tarafı face'i tespit et.
-function getDoorFaceIndices(doorDirection: DoorDirection, doorSide?: 'left' | 'right'): Set<number> {
+function getDoorFaceIndices(
+  doorDirection: DoorDirection,
+  doorSide?: 'left' | 'right',
+): Set<number> {
   const indices = new Set<number>();
   if (doorDirection === 'rear') {
     indices.add(4); // +Z face: Z=length tarafı (arka kapı)
@@ -50,10 +53,13 @@ function getDoorFaceIndices(doorDirection: DoorDirection, doorSide?: 'left' | 'r
 }
 
 // Kapının karşısındaki yüz — yön hissi için daha opak render edilir.
-function getOppositeFaceIndex(doorDirection: DoorDirection, doorSide?: 'left' | 'right'): number | null {
-  if (doorDirection === 'rear') return 5;   // -Z: ön duvar
+function getOppositeFaceIndex(
+  doorDirection: DoorDirection,
+  doorSide?: 'left' | 'right',
+): number | null {
+  if (doorDirection === 'rear') return 5; // -Z: ön duvar
   if (doorDirection === 'side') return doorSide === 'right' ? 1 : 0; // karşı yan
-  if (doorDirection === 'top') return 3;    // -Y: taban
+  if (doorDirection === 'top') return 3; // -Y: taban
   return null; // allSides: tüm yüzler açık
 }
 
@@ -141,7 +147,18 @@ export function ContainerBody({
       backMat.dispose();
       invisMat.dispose();
     };
-  }, [width, height, length, color, normalMap, roughnessMap, metalnessMap, aoMap, doorFaceIndices, oppositeFaceIndex]);
+  }, [
+    width,
+    height,
+    length,
+    color,
+    normalMap,
+    roughnessMap,
+    metalnessMap,
+    aoMap,
+    doorFaceIndices,
+    oppositeFaceIndex,
+  ]);
 
   return (
     <mesh ref={meshRef} position={[width / 2, height / 2, length / 2]} receiveShadow>

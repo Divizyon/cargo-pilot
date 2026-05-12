@@ -494,7 +494,14 @@ export function ContainerMesh() {
 
   return (
     <group>
-      <ContainerBody width={width} height={height} length={length} doorDirection={doorDirection} doorSide={doorSide} color={vehicle.color} />
+      <ContainerBody
+        width={width}
+        height={height}
+        length={length}
+        doorDirection={doorDirection}
+        doorSide={doorSide}
+        color={vehicle.color}
+      />
       <ContainerEdges width={width} height={height} length={length} />
 
       {doorDirection === 'rear' && (
