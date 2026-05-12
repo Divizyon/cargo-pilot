@@ -32,6 +32,12 @@ public sealed class LoadingPlan : BaseEntity {
 
     public void UpdatePlanName(string planName) => PlanName = planName;
 
+    public void Reoptimize(Guid vehicleId, LoadingPlanOptimizationCriteria optimizationCriteria, int inputTotalQuantity) {
+        VehicleId = vehicleId;
+        OptimizationCriteria = optimizationCriteria;
+        InputTotalQuantity = inputTotalQuantity;
+    }
+
     public void ApplyOptimizationResult(
         LoadingPlanOptimizationStatus status,
         decimal totalWeight,

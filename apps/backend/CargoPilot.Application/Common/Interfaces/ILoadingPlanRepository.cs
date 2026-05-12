@@ -45,4 +45,10 @@ public interface ILoadingPlanRepository
         IReadOnlyList<LoadingPlanInputItem> inputItems,
         OptimizationResult result,
         CancellationToken cancellationToken = default);
+
+    Task ReOptimizeWithResultAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> newInputItems,
+        OptimizationResult result,
+        CancellationToken cancellationToken = default);
 }
