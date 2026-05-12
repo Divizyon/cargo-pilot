@@ -9,7 +9,6 @@ using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
 using CargoPilot.WebAPI.Swagger;
 using Hangfire;
-using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -264,20 +263,6 @@ public static class DependencyInjection {
                 failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
 
-            services.AddHangfire(cfg => cfg
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()
-                .UseSqlServerStorage(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    new SqlServerStorageOptions
-                    {
-                        CommandBatchMaxTimeout       = TimeSpan.FromMinutes(5),
-                        SlidingInvisibilityTimeout   = TimeSpan.FromMinutes(5),
-                        QueuePollInterval            = TimeSpan.Zero,
-                        UseRecommendedIsolationLevel = true,
-                        DisableGlobalLocks           = true,
-                    }));
             services.AddHangfireServer();
         }
 
