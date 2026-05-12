@@ -62,17 +62,11 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
           rx={isContainer ? 2 : 6}
         />
 
-        {(doorDirection === 'rear' || doorDirection === 'allSides') && (
+        {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
           <rect x={bx + bw - 5} y={by} width={5} height={bh} fill="var(--primary)" opacity={0.6} />
         )}
-        {doorDirection === 'allSides' && (
-          <rect x={bx} y={by} width={5} height={bh} fill="var(--primary)" opacity={0.6} />
-        )}
-        {(doorDirection === 'side' || doorDirection === 'allSides') && (
+        {(doorDirection === 'side' || doorDirection === 'rearAndSide') && (
           <rect x={bx} y={by + bh - 5} width={bw} height={5} fill="var(--primary)" opacity={0.6} />
-        )}
-        {doorDirection === 'allSides' && (
-          <rect x={bx} y={by} width={bw} height={5} fill="var(--primary)" opacity={0.6} />
         )}
         {doorDirection === 'top' && (
           <text
