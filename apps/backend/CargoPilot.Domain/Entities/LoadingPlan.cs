@@ -33,6 +33,11 @@ public sealed class LoadingPlan : BaseEntity {
 
     public void UpdatePlanName(string planName) => PlanName = planName;
 
+    public void Reoptimize(Guid vehicleId, LoadingPlanOptimizationCriteria optimizationCriteria, int inputTotalQuantity) {
+        VehicleId = vehicleId;
+        OptimizationCriteria = optimizationCriteria;
+        InputTotalQuantity = inputTotalQuantity;
+    }
     public void MarkErpPending() => ErpExportStatus = Enums.ErpExportStatus.Pending;
     public void MarkErpSent()    => ErpExportStatus = Enums.ErpExportStatus.Sent;
     public void MarkErpFailed()  => ErpExportStatus = Enums.ErpExportStatus.Failed;

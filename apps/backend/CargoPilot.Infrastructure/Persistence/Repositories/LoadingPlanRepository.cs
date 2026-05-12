@@ -296,6 +296,57 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task ReOptimizeWithResultAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> newInputItems,
+        OptimizationResult result,
+        CancellationToken cancellationToken = default)
+    {
+        var oldInputItems = await _context.LoadingPlanInputItems
+            .Where(i => i.LoadingPlanId == plan.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var i in oldInputItems) i.MarkAsDeleted();
+
+        var oldPlacements = await _context.LoadingPlanPlacements
+            .Where(p => p.LoadingPlanId == plan.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var p in oldPlacements) p.MarkAsDeleted();
+
+        var oldUnplacedItems = await _context.LoadingPlanUnplacedItems
+            .Where(u => u.LoadingPlanId == plan.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var u in oldUnplacedItems) u.MarkAsDeleted();
+
+        var oldWarnings = await _context.LoadingPlanWarnings
+            .Where(w => w.LoadingPlanId == plan.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var w in oldWarnings) w.MarkAsDeleted();
+
+        var newPlacements = result.Placements
+            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation))
+            .ToList();
+
+        var newUnplacedItems = result.UnplacedItems
+            .Select(u => new LoadingPlanUnplacedItem(Guid.NewGuid(), plan.Id, u.ItemId, u.Quantity, u.Reason))
+            .ToList();
+
+        plan.ApplyOptimizationResult(
+            LoadingPlanOptimizationStatus.Calculated,
+            result.TotalWeight,
+            result.FillRate,
+            result.Placements.Count,
+            result.UnplacedItems.Sum(u => u.Quantity),
+            result.CenterOfGravityX,
+            result.CenterOfGravityY,
+            result.CenterOfGravityZ);
+
+        _context.LoadingPlanInputItems.AddRange(newInputItems);
+        _context.LoadingPlanPlacements.AddRange(newPlacements);
+        _context.LoadingPlanUnplacedItems.AddRange(newUnplacedItems);
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
         new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
 
