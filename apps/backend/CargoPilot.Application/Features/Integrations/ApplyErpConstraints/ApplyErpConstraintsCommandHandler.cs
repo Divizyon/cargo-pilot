@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -10,24 +11,32 @@ public sealed class ApplyErpConstraintsCommandHandler
 {
     private readonly IIntegrationRepository _integrationRepository;
     private readonly IErpConstraintMappingService _mappingService;
+    private readonly ICurrentUserService _currentUserService;
 
     public ApplyErpConstraintsCommandHandler(
         IIntegrationRepository integrationRepository,
-        IErpConstraintMappingService mappingService)
+        IErpConstraintMappingService mappingService,
+        ICurrentUserService currentUserService)
     {
         _integrationRepository = integrationRepository;
         _mappingService = mappingService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<ApplyErpConstraintsResponse>> Handle(
         ApplyErpConstraintsCommand request,
         CancellationToken cancellationToken)
     {
+        var companyId = _currentUserService.CompanyId;
+        if (companyId is null)
+            return Result<ApplyErpConstraintsResponse>.Failure(
+                new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
+
         if (request.Products is null || request.Products.Count == 0)
             return Result<ApplyErpConstraintsResponse>.Failure(
                 new Error(ErrorType.Validation, "ApplyErpConstraints.EmptyList", "En az bir ürün gönderilmelidir."));
 
-        var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, cancellationToken);
+        var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId.Value, cancellationToken);
         if (integration is null)
             return Result<ApplyErpConstraintsResponse>.Failure(
                 new Error(ErrorType.NotFound, "Integration.NotFound", "Integration bulunamadı."));
