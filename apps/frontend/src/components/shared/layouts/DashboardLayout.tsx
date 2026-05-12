@@ -270,13 +270,20 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
 // ─── DashboardLayout ──────────────────────────────────────────────────────────
 
 const FOCUS_ROUTES = ['/planning/new'];
+const PLANNING_NON_FOCUS = new Set(['/planning/shares']);
+
+function checkIsFocusRoute(pathname: string): boolean {
+  if (FOCUS_ROUTES.some((r) => pathname.startsWith(r))) return true;
+  if (/^\/planning\/[^/]+$/.test(pathname) && !PLANNING_NON_FOCUS.has(pathname)) return true;
+  return false;
+}
 
 export function DashboardLayout() {
   const [windowCollapsed, setWindowCollapsed] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { showWarning, countdown, extendSession } = useSessionTimeout();
   const { pathname } = useLocation();
-  const isFocusRoute = FOCUS_ROUTES.some((r) => pathname.startsWith(r));
+  const isFocusRoute = checkIsFocusRoute(pathname);
   const isCollapsed = isFocusRoute || windowCollapsed;
 
   useEffect(() => {

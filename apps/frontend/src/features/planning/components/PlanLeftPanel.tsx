@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -210,7 +211,7 @@ function StoreItemRow({
           )}
         >
           <span className="tabular-nums">
-            {item.width}×{item.length}×{item.height} cm
+            {item.width}×{item.height}×{item.length} cm
           </span>
           <span>·</span>
           <span className="tabular-nums">{item.weight} kg</span>
@@ -348,6 +349,7 @@ export function PlanLeftPanel() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
 
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
   const apiItems = itemsPage?.items ?? [];
@@ -373,7 +375,7 @@ export function PlanLeftPanel() {
   const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
 
-  const placedIds = new Set(placements.map((p) => p.itemId));
+  const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
   // Seed the store from API data
   useEffect(() => {
@@ -398,21 +400,25 @@ export function PlanLeftPanel() {
   const allKnownIds = new Set([...groupedIds, ...ungroupedIds]);
   const extraItems = selectedItems.filter((si) => !allKnownIds.has(si.item.id));
 
-  // Filtered lists — name search + constraint toggles
+  // Filtered lists — name search + constraint toggles + tab
   const filteredUngroupedIds = useMemo(() => {
-    const hasFilter = search.trim() || activeConstraints.size > 0;
-    if (!hasFilter) return ungroupedIds;
     return ungroupedIds.filter((id) => {
+      const isPlaced = placedIds.has(id);
+      if (activeTab === 'loaded' && !isPlaced) return false;
+      if (activeTab === 'unloaded' && isPlaced) return false;
       const entry = selectedItems.find((si) => si.item.id === id);
       return entry ? itemMatchesFilters(entry.item, search, activeConstraints) : false;
     });
-  }, [ungroupedIds, selectedItems, search, activeConstraints]);
+  }, [ungroupedIds, selectedItems, search, activeConstraints, activeTab, placedIds]);
 
   const filteredExtraItems = useMemo(() => {
-    const hasFilter = search.trim() || activeConstraints.size > 0;
-    if (!hasFilter) return extraItems;
-    return extraItems.filter((si) => itemMatchesFilters(si.item, search, activeConstraints));
-  }, [extraItems, search, activeConstraints]);
+    return extraItems.filter((si) => {
+      const isPlaced = placedIds.has(si.item.id);
+      if (activeTab === 'loaded' && !isPlaced) return false;
+      if (activeTab === 'unloaded' && isPlaced) return false;
+      return itemMatchesFilters(si.item, search, activeConstraints);
+    });
+  }, [extraItems, search, activeConstraints, activeTab, placedIds]);
 
   // Virtual list — activated when ungrouped count reaches threshold
   const shouldVirtualize = filteredUngroupedIds.length >= VIRTUAL_THRESHOLD;
@@ -521,8 +527,28 @@ export function PlanLeftPanel() {
         </div>
       </div>
 
+      {/* Tab — Yüklü / Yüklü Değil */}
+      <div className="px-2 pt-2 shrink-0">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
+          <TabsList className="w-full h-7 bg-zinc-100">
+            <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
+              Yüklü Değil
+              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+                ({selectedItems.filter((si) => !placedIds.has(si.item.id)).length})
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
+              Yüklü
+              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+                ({placedIds.size})
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {/* Search + constraint filter */}
-      <div className="px-2 pt-2 pb-1 shrink-0 flex items-center gap-1.5">
+      <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
           <Input

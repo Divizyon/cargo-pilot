@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
@@ -7,11 +7,9 @@ import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 import { cn } from '@/lib/utils';
-import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
-import { useItems } from '@/lib/api/useItems';
-import { SCENE } from '@/lib/config/scene-config';
-import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { useLoadingPlanDetail, useCreateLoadingPlan } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { planningDetailRoute } from '@/lib/config/routes';
 
 // ─── PlanAutoLoader ───────────────────────────────────────────────────────────
 
@@ -21,97 +19,30 @@ interface PlanAutoLoaderProps {
 }
 
 function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
-  const { data: plan } = useLoadingPlanListItem(planId);
-  const { data: productGroups = [], isLoading: productsLoading } = useLoadingPlanProducts(planId);
-  const { data: itemsPage } = useItems({ pageSize: 100 });
-  const allItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
-
-  const vehicle = useMemo(
-    (): Vehicle | null =>
-      plan && plan.vehicleId
-        ? {
-            id: plan.vehicleId,
-            name: plan.vehicleName,
-            plate: plan.vehiclePlate,
-            width: plan.interiorWidthM,
-            height: plan.interiorHeightM,
-            length: plan.interiorDepthM,
-            maxCargoWeight: plan.vehicleCapacityKg,
-            vehicleType: plan.vehicleType ?? VehicleType.Tir,
-            doorDirection: plan.doorDirection ?? DoorDirection.Rear,
-            doorSide: plan.doorSide,
-            isFavorite: false,
-            isActive: true,
-            isDeleted: false,
-            createdAt: new Date(0).toISOString(),
-            createdBy: { id: '', fullName: '' },
-          }
-        : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plan?.vehicleId],
-  );
+  const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const initItems = usePlanStore((s) => s.initItems);
-  const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
 
-  const vehicleSetRef = useRef(false);
-  const placementsAppliedRef = useRef(false);
+  const appliedRef = useRef(false);
 
-  // Reset on planId change
   useEffect(() => {
-    vehicleSetRef.current = false;
-    placementsAppliedRef.current = false;
+    appliedRef.current = false;
     usePlanStore.getState().reset();
   }, [planId]);
 
-  // Step 1: araç seç
   useEffect(() => {
-    if (vehicleSetRef.current || !vehicle || selectedVehicle) return;
-    setVehicle(vehicle);
-    vehicleSetRef.current = true;
+    if (appliedRef.current || !isSuccess || !data) return;
+    if (!data.vehicle) return;
+
+    appliedRef.current = true;
+
+    setVehicle(data.vehicle);
     onVehicleSelected();
-  }, [vehicle, selectedVehicle, setVehicle, onVehicleSelected]);
-
-  // Step 2: ürünleri doğrudan items API'sinden al, plan miktarlarıyla eşleştir, sahneye ekle
-  // vehicle.id kontrolü: reset öncesi eski araçla erken tetiklenmeyi önler
-  useEffect(() => {
-    if (
-      placementsAppliedRef.current ||
-      !selectedVehicle ||
-      selectedVehicle.id !== vehicle?.id ||
-      productsLoading ||
-      productGroups.length === 0 ||
-      allItems.length === 0
-    )
-      return;
-
-    placementsAppliedRef.current = true;
-
-    const quantityMap = new Map<string, number>(
-      productGroups.flatMap((g) => g.products.map((p) => [p.id, p.quantity])),
-    );
-
-    const planItemIds = new Set(productGroups.flatMap((g) => g.products.map((p) => p.id)));
-
-    const storeItems = allItems
-      .filter((item) => planItemIds.has(item.id))
-      .map((item) => ({ item, quantity: quantityMap.get(item.id) ?? 1 }));
-
-    if (storeItems.length === 0) return;
-
-    const colorMap: Record<string, string> = {};
-    storeItems.forEach((si, i) => {
-      colorMap[si.item.sku] = SCENE.COLORS.SKU_PALETTE[i % SCENE.COLORS.SKU_PALETTE.length];
-    });
-
-    initItems(storeItems, colorMap);
-
-    const { selectedItems: current } = usePlanStore.getState();
-    for (const { item } of current) {
-      usePlanStore.getState().togglePlacement(item.id);
-    }
-  }, [selectedVehicle, vehicle, productsLoading, productGroups, allItems, initItems]);
+    initItems(data.inputItems, data.skuColorMap);
+    setPlacements(data.placements);
+  }, [isSuccess, data, setVehicle, initItems, setPlacements, onVehicleSelected]);
 
   return null;
 }
@@ -120,8 +51,33 @@ export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [searchParams] = useSearchParams();
-  const fromPlanId = searchParams.get('fromPlan');
+  const { id: fromPlanId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
+
+  const resetDoneRef = useRef(false);
+  if (!fromPlanId && !resetDoneRef.current) {
+    resetDoneRef.current = true;
+    usePlanStore.getState().reset();
+  }
+
+  const handleOptimize = useCallback(async () => {
+    const { selectedVehicle, selectedItems, placements, criteria } = usePlanStore.getState();
+    if (!selectedVehicle || selectedItems.length === 0) return;
+
+    const placedIds = new Set(placements.map((p) => p.itemId));
+    const itemsToSend = selectedItems.filter((si) => placedIds.has(si.item.id));
+    if (itemsToSend.length === 0) return;
+
+    const planName = `${selectedVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
+    const id = await createPlan({
+      planName,
+      vehicleId: selectedVehicle.id,
+      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      optimizationCriteria: criteria,
+    });
+    navigate(planningDetailRoute(id), { replace: true });
+  }, [createPlan, navigate]);
 
   return (
     <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
@@ -180,6 +136,8 @@ export function NewPlanPage() {
           <PlanRightPanel
             vehiclesOpen={rightOpen}
             onToggleVehicles={() => setRightOpen((v) => !v)}
+            onOptimize={fromPlanId ? undefined : handleOptimize}
+            isOptimizing={isCreating}
           />
         </div>
       </div>
