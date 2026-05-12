@@ -10,7 +10,7 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/company/users")]
 [Tags("CompanyUsers")]
-[Authorize]
+[Authorize(Policy = "CompanyMember")]
 public sealed class CompanyUsersController : BaseController
 {
     private readonly IMediator _mediator;
@@ -33,7 +33,7 @@ public sealed class CompanyUsersController : BaseController
     /// <response code="403">Bu işlemi yapmaya yetkiniz yok.</response>
     /// <response code="404">Kullanıcı bulunamadı veya bu firmaya ait değil.</response>
     /// <response code="422">Son admin koruması veya başka bir iş kuralı ihlali.</response>
-    [HttpPut("{userId:guid}")]
+    [HttpPatch("{userId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
