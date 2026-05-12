@@ -249,6 +249,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             CalcBalanceOffset(plan.CenterOfGravityX, plan.Vehicle.InternalWidth),
             CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
             plan.CreatedAtUtc,
+            plan.ErpExportStatus,
             vehicleDto,
             placementDtos,
             unplacedItemDtos,

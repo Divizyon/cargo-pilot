@@ -9,6 +9,8 @@ using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,8 +62,10 @@ public static class DependencyInjection {
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
         services.AddScoped<IOptimizationEngine, OptimizationEngine>();
         services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
+        services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
+        services.AddScoped<IErpExportService, ErpExportService>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
@@ -72,9 +76,11 @@ public static class DependencyInjection {
         services.AddTransient<NotificationCleanupJob>();
 
         if (!useInMemoryRepository) {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
+                    connectionString,
                     sqlOptions => sqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(30),
@@ -83,6 +89,23 @@ public static class DependencyInjection {
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IOAuthTokenValidator, GoogleTokenValidator>();
             services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
+
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(connectionString, new SqlServerStorageOptions {
+                    CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                    SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                    QueuePollInterval = TimeSpan.Zero,
+                    UseRecommendedIsolationLevel = true,
+                    DisableGlobalLocks = true
+                }));
+
+            services.AddTransient<ErpExportJob>();
+            services.AddScoped<IErpExportJobScheduler, HangfireErpExportJobScheduler>();
+        } else {
+            services.AddScoped<IErpExportJobScheduler, NoOpErpExportJobScheduler>();
         }
 
         return services;

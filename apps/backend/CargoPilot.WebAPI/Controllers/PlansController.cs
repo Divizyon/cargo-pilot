@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
@@ -176,6 +177,26 @@ public sealed class PlansController : BaseController
     {
         var query = new GetLoadingPlanReportsQuery(startDate, endDate, vehicleId, minFillRate, maxFillRate, page, pageSize);
         var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Hesaplanmış bir yükleme planını onaylar ve ERP aktarımını tetikler.
+    /// </summary>
+    /// <param name="id">Onaylanacak planın ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Plan onaylandı, ERP aktarımı kuyruğa alındı.</response>
+    /// <response code="400">Plan hesaplanmış durumda değil.</response>
+    /// <response code="404">Plan bulunamadı.</response>
+    [HttpPost("{id:guid}/approve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApprovePlan(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new ApprovePlanCommand(id), cancellationToken);
         return HandleResult(result);
     }
 

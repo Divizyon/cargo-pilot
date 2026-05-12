@@ -28,6 +28,8 @@ internal sealed class SyncLogConfiguration : IEntityTypeConfiguration<SyncLog> {
         builder.Property(s => s.IntegrationId)
             .IsRequired();
 
+        builder.Property(s => s.LoadingPlanId);
+
         builder.Property(s => s.StartedAt)
             .IsRequired();
 
@@ -58,8 +60,17 @@ internal sealed class SyncLogConfiguration : IEntityTypeConfiguration<SyncLog> {
             .HasForeignKey(s => s.IntegrationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<LoadingPlan>()
+            .WithMany()
+            .HasForeignKey(s => s.LoadingPlanId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
         builder.HasIndex(s => s.IntegrationId)
             .HasDatabaseName("IX_SyncLogs_IntegrationId");
+
+        builder.HasIndex(s => s.LoadingPlanId)
+            .HasDatabaseName("IX_SyncLogs_LoadingPlanId");
 
         builder.HasQueryFilter(s => !s.IsDeleted);
     }

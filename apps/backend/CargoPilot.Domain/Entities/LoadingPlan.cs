@@ -21,6 +21,7 @@ public sealed class LoadingPlan : BaseEntity {
     public Guid? CompanyId { get; private set; }
     public Guid? ReportId { get; private set; }
     public string? ReportUrl { get; private set; }
+    public ErpExportStatus? ErpExportStatus { get; private set; }
 #pragma warning restore S1144
 
     public Vehicle Vehicle { get; private set; } = null!;
@@ -37,6 +38,9 @@ public sealed class LoadingPlan : BaseEntity {
         OptimizationCriteria = optimizationCriteria;
         InputTotalQuantity = inputTotalQuantity;
     }
+    public void MarkErpPending() => ErpExportStatus = Enums.ErpExportStatus.Pending;
+    public void MarkErpSent()    => ErpExportStatus = Enums.ErpExportStatus.Sent;
+    public void MarkErpFailed()  => ErpExportStatus = Enums.ErpExportStatus.Failed;
 
     public void ApplyOptimizationResult(
         LoadingPlanOptimizationStatus status,
