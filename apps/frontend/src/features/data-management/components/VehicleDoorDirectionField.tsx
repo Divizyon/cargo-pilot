@@ -15,7 +15,7 @@ const DIRECTION_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  allSides: 'Tüm Kapılar',
+  rearAndSide: 'Arka + Yan',
 };
 
 export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldProps) {
@@ -35,7 +35,7 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
                 if (!val) return;
                 field.onChange(val);
                 form.clearErrors('doorDirection');
-                if (val !== DoorDirection.Side) {
+                if (val !== DoorDirection.Side && val !== DoorDirection.RearAndSide) {
                   form.setValue('doorSide', undefined);
                   form.clearErrors('doorSide');
                 }
@@ -60,7 +60,7 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
         )}
       />
 
-      {doorDirection === DoorDirection.Side && (
+      {(doorDirection === DoorDirection.Side || doorDirection === DoorDirection.RearAndSide) && (
         <Controller
           control={form.control}
           name="doorSide"

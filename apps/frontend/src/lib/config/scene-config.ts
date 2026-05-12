@@ -27,9 +27,6 @@ export const SCENE = {
   CONTACT_SHADOW_BLUR: 2.5,
   CONTACT_SHADOW_SCALE_FACTOR: 2,
 
-  CONTAINER_WALL_OPACITY: 0.3,
-  CONTAINER_WALL_OPACITY_BACK: 0.2,
-
   COLORS: {
     VIOLATION: 0xdc2626,
     VIOLATION_STR: '#dc2626',
@@ -40,7 +37,6 @@ export const SCENE = {
     NORMAL: 0x2563eb,
     NORMAL_STR: '#2563eb',
     CONTAINER_EDGE: '#334155',
-    CONTAINER_EDGE_OUTER: '#ffffff',
     CONTAINER_DOOR: '#f59e0b',
     CONTAINER_INSIDE: '#d4c9a8',
     GRID: '#94a3b8',
@@ -88,8 +84,8 @@ export const SCENE = {
 
   CAMERA_PRESETS: {
     TOP: { dir: [0, 1, 0.001] as const, label: 'Üstten' },
-    FRONT: { dir: [0, 0.25, 1] as const, label: 'Önden' },
-    BACK: { dir: [0, 0.25, -1] as const, label: 'Arkadan' },
+    FRONT: { dir: [0, 0.25, -1] as const, label: 'Önden' },
+    BACK: { dir: [0, 0.25, 1] as const, label: 'Arkadan' },
     SIDE_RIGHT: { dir: [1, 0.25, 0] as const, label: 'Sağ Yan' },
     SIDE_LEFT: { dir: [-1, 0.25, 0] as const, label: 'Sol Yan' },
     ISO: { dir: [0.55, 0.5, 0.9] as const, label: 'İzometrik' },

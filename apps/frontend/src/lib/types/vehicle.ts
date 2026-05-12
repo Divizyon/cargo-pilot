@@ -12,7 +12,7 @@ export const DoorDirection = {
   Rear: 'rear',
   Side: 'side',
   Top: 'top',
-  AllSides: 'allSides',
+  RearAndSide: 'rearAndSide',
 } as const;
 export type DoorDirection = (typeof DoorDirection)[keyof typeof DoorDirection];
 
@@ -44,7 +44,6 @@ export const vehicleSchema = z.object({
   kingpin: axleSchema.optional(),
   axleB: axleSchema.optional(),
   axles: z.array(axleSchema).optional(),
-  color: z.string().optional(),
   isFavorite: z.boolean().default(false),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
