@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
-import { ROUTES } from '@/lib/config/routes';
+import { planningDetailRoute } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import type {
   LoadingPlanListItem,
@@ -172,7 +172,7 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
     if (onSelect) {
       onSelect();
     } else {
-      navigate(`${ROUTES.PLANNING_NEW}?fromPlan=${plan.id}`);
+      navigate(planningDetailRoute(plan.id));
     }
   }
 

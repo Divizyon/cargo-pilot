@@ -78,7 +78,7 @@ export function SubscriptionTab() {
       {/* Current plan banner */}
       <div className="flex items-center justify-between rounded-xl border bg-card p-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Mevcut Plan
           </p>
           <p className="mt-1 text-base font-bold text-foreground">{PLAN_LABELS[currentPlan]}</p>

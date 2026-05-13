@@ -401,9 +401,18 @@ function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDe
 interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
+  onOptimize?: () => void;
+  isOptimizing?: boolean;
+  canOptimize?: boolean;
 }
 
-export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRightPanelProps) {
+export function PlanRightPanel({
+  vehiclesOpen = true,
+  onToggleVehicles,
+  onOptimize,
+  isOptimizing = false,
+  canOptimize = true,
+}: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
@@ -731,8 +740,10 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
         <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle}
+            disabled={!selectedVehicle || isOptimizing || !canOptimize}
+            onClick={onOptimize}
           >
+            {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
             Optimizasyonu Başlat
           </Button>
         </div>
