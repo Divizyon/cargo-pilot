@@ -9,6 +9,7 @@ public interface IItemRepository
     Task<IReadOnlyList<Guid>> GetExistingIdsAsync(IEnumerable<Guid> ids, Guid? companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Item>> GetByIdsAsync(IEnumerable<Guid> ids, Guid? companyId, CancellationToken cancellationToken = default);
     Task<Item?> GetBySkuAsync(string sku, Guid? companyId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Item>> GetBySkusAsync(IEnumerable<string> skus, Guid? companyId, CancellationToken cancellationToken = default);
     Task<bool> ExistsBySkuAsync(string sku, Guid? companyId, CancellationToken cancellationToken = default);
     Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, Guid? companyId, CancellationToken cancellationToken = default);
     Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default);

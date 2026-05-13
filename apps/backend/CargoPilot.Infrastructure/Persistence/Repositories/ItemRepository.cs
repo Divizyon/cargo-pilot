@@ -51,6 +51,17 @@ internal sealed class ItemRepository : IItemRepository
             .FirstOrDefaultAsync(i => i.SKU == sku && i.CompanyId == companyId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Item>> GetBySkusAsync(
+        IEnumerable<string> skus,
+        Guid? companyId,
+        CancellationToken cancellationToken = default)
+    {
+        var skuList = skus.ToList();
+        return await _dbContext.Items
+            .Where(i => skuList.Contains(i.SKU) && i.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsBySkuAsync(string sku, Guid? companyId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items

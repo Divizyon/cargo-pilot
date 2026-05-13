@@ -35,6 +35,13 @@ internal sealed class PendingItemMappingRepository : IPendingItemMappingReposito
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PendingItemMapping>> GetAllByIntegrationAsync(Guid integrationId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.PendingItemMappings
+            .Where(m => m.IntegrationId == integrationId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<PendingItemMapping>> GetPagedAsync(
         Guid integrationId,
         PendingItemMappingStatus? status,

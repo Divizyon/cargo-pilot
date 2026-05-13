@@ -111,6 +111,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpPost("{id:guid}/items/sync")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -157,7 +158,7 @@ public sealed class IntegrationsController : BaseController
     /// </summary>
     /// <param name="id">Entegrasyon ID'si.</param>
     /// <param name="mappingId">Eşleştirme ID'si.</param>
-    /// <param name="cargoPilotItemId">Bağlanacak Cargo Pilot ürün ID'si.</param>
+    /// <param name="body">Bağlanacak Cargo Pilot ürün ID'sini içeren istek gövdesi.</param>
     /// <param name="cancellationToken">İptal token'ı.</param>
     /// <response code="200">Eşleştirme onaylandı.</response>
     /// <response code="400">Doğrulama hatası.</response>
@@ -169,10 +170,10 @@ public sealed class IntegrationsController : BaseController
     public async Task<IActionResult> ApprovePendingItemMapping(
         Guid id,
         Guid mappingId,
-        [FromQuery] Guid cargoPilotItemId,
+        [FromBody] ApproveMappingRequest body,
         CancellationToken cancellationToken = default)
     {
-        var command = new ApprovePendingItemMappingCommand(id, mappingId, cargoPilotItemId);
+        var command = new ApprovePendingItemMappingCommand(id, mappingId, body.CargoPilotItemId);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
