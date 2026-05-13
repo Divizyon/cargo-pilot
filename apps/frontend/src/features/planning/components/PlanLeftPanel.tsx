@@ -100,7 +100,6 @@ function StoreItemRow({
   const constraints = getItemConstraints(item);
   const hasConstraints = constraints.length > 0;
 
-  useEffect(() => { setLocalQty(quantity); }, [quantity]);
 
   return (
     <div className={cn(
@@ -244,7 +243,7 @@ export function PlanLeftPanel() {
   const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
 
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
-  const apiItems = itemsPage?.items ?? [];
+  const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -300,7 +299,7 @@ export function PlanLeftPanel() {
   }, [apiItems, selectedItems, ungroupedIds.length]);
 
   // All known grouped IDs (for DnD context)
-  const groupedIds = new Set(groups.flatMap((g) => g.itemIdler));
+  const groupedIds = useMemo(() => new Set(groups.flatMap((g) => g.itemIdler)), [groups]);
 
   // Catalog items not in the plan at all → shown in "Yüklü Değil" tab only
   const filteredCatalogOnlyItems = useMemo(() => {

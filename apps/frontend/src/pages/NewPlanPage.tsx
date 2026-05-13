@@ -77,11 +77,13 @@ export function NewPlanPage() {
 
   const initialStateRef = useRef<{ vehicleId: string; itemsKey: string } | null>(null);
 
-  const resetDoneRef = useRef(false);
-  if (!fromPlanId && !resetDoneRef.current) {
-    resetDoneRef.current = true;
-    usePlanStore.getState().reset();
-  }
+  useEffect(() => {
+    if (!fromPlanId) {
+      usePlanStore.getState().reset();
+    }
+  // fromPlanId is from URL params and stable per mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
