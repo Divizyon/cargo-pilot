@@ -184,7 +184,7 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
   const pendingRemoveMember = members?.find((m) => m.id === pendingRemoveId) ?? null;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-baseline gap-1.5">
