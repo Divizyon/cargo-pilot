@@ -14,7 +14,7 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         _dbContext = dbContext;
     }
 
-    public Task<Integration?> GetByIdAsync(Guid id, Guid companyId, CancellationToken cancellationToken = default)
+    public Task<Integration?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
         => _dbContext.Integrations
             .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == companyId, cancellationToken);
 
@@ -28,7 +28,7 @@ internal sealed class IntegrationRepository : IIntegrationRepository
             .Where(i => i.CompanyId == companyId)
             .ToListAsync(cancellationToken);
 
-    public void AddSyncLog(SyncLog log) => _dbContext.SyncLogs.Add(log);
+    public void AddSyncLog(SyncLog syncLog) => _dbContext.SyncLogs.Add(syncLog);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _dbContext.SaveChangesAsync(cancellationToken);
