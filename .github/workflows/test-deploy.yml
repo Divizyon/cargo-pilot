@@ -240,7 +240,6 @@ jobs:
       RESEND_FROM_NAME: ${{ secrets.RESEND_FROM_NAME || 'Cargo Pilot CI' }}
       PASSWORD_RESET_FRONTEND_URL: ${{ secrets.PASSWORD_RESET_FRONTEND_URL || 'http://localhost:3001/auth/reset-password' }}
       EMAIL_CHANGE_FRONTEND_CONFIRM_URL: ${{ secrets.EMAIL_CHANGE_FRONTEND_CONFIRM_URL || 'http://localhost:3001/confirm-email-change' }}
-      EMAIL_CHANGE_FRONTEND_CONFIRM_URL: ${{ secrets.EMAIL_CHANGE_FRONTEND_CONFIRM_URL || 'http://localhost:3001/confirm-email-change' }}
 
     steps:
       - name: Kodu al
