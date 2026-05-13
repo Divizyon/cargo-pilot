@@ -32,6 +32,8 @@ services:
       Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
       Resend__FromName: ${RESEND_FROM_NAME:-}
       PasswordReset__FrontendResetUrl: ${PASSWORD_RESET_FRONTEND_URL:-}
+      EmailChange__FrontendConfirmUrl: ${EMAIL_CHANGE_FRONTEND_CONFIRM_URL:-}
+      EmailChange__TokenExpiryMinutes: ${EMAIL_CHANGE_TOKEN_EXPIRY_MINUTES:-60}
     ports:
       - "${BACKEND_PORT}:8080"
     depends_on:
