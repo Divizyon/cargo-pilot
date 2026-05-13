@@ -2,6 +2,7 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 
@@ -67,7 +68,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         var itemMap = items.ToDictionary(i => i.Id);
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap);
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, request.OptimizationCriteria);
         var result = _optimizationEngine.Run(optimizationInput);
 
         var planId = Guid.NewGuid();
@@ -84,7 +85,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private static OptimizationInput BuildInput(
         Vehicle vehicle,
         IReadOnlyList<CreatePlanItemRequest> requestItems,
-        Dictionary<Guid, Item> itemMap)
+        Dictionary<Guid, Item> itemMap,
+        LoadingPlanOptimizationCriteria criteria)
     {
         var inputs = requestItems
             .Select(r =>
@@ -100,6 +102,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         return new OptimizationInput(
             vehicle.InternalWidth, vehicle.InternalHeight,
             vehicle.InternalLength, vehicle.MaxWeightCapacity,
-            inputs);
+            inputs, criteria);
     }
 }

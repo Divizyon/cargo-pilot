@@ -1,4 +1,6 @@
-import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, type HTMLAttributes } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   DndContext,
   closestCenter,
@@ -55,7 +57,9 @@ import {
   type VehicleType as VehicleTypeValue,
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
+import { useCreateLoadingPlan } from '@/lib/api/useLoadingPlans';
 import { useUnitStore } from '@/lib/store/useUnitStore';
+import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
@@ -404,9 +408,31 @@ interface PlanRightPanelProps {
 }
 
 export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRightPanelProps) {
+  const navigate = useNavigate();
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
+  const criteria = usePlanStore((s) => s.criteria);
+  const setCriteria = usePlanStore((s) => s.setCriteria);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+
+  const createPlan = useCreateLoadingPlan();
+
+  const handleOptimize = useCallback(async () => {
+    if (!selectedVehicle || selectedItems.length === 0) {
+      toast.warning('Araç ve en az bir ürün seçmelisiniz.', { position: 'bottom-right' });
+      return;
+    }
+    const planName = `Plan - ${selectedVehicle.name} - ${new Date().toLocaleDateString('tr-TR')}`;
+    const planId = await createPlan.mutateAsync({
+      planName,
+      vehicleId: selectedVehicle.id,
+      items: selectedItems.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      optimizationCriteria: criteria as 0 | 1 | 2,
+    });
+    toast.success('Optimizasyon tamamlandı.', { position: 'bottom-right' });
+    navigate(`/planning/new?fromPlan=${planId}`);
+  }, [selectedVehicle, selectedItems, criteria, createPlan, navigate]);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
@@ -728,12 +754,54 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
           </div>
         )}
 
-        <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
+        <div className="px-3 pt-3 pb-2 border-t border-zinc-100 shrink-0 flex gap-2">
+          <button
+            onClick={() =>
+              setCriteria(
+                criteria === OptimizationCriteria.Lifo
+                  ? OptimizationCriteria.VolumeFirst
+                  : OptimizationCriteria.Lifo,
+              )
+            }
+            className={cn(
+              'flex-1 h-7 rounded-md text-[11px] font-medium border transition-colors',
+              criteria === OptimizationCriteria.Lifo
+                ? 'bg-zinc-900 text-white border-zinc-900'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700',
+            )}
+          >
+            Lifo
+          </button>
+          <button
+            onClick={() =>
+              setCriteria(
+                criteria === OptimizationCriteria.WeightBalance
+                  ? OptimizationCriteria.VolumeFirst
+                  : OptimizationCriteria.WeightBalance,
+              )
+            }
+            className={cn(
+              'flex-1 h-7 rounded-md text-[11px] font-medium border transition-colors',
+              criteria === OptimizationCriteria.WeightBalance
+                ? 'bg-zinc-900 text-white border-zinc-900'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700',
+            )}
+          >
+            Ağırlık Dengesi
+          </button>
+        </div>
+
+        <div className="px-3 pb-3 shrink-0">
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle}
+            disabled={!selectedVehicle || selectedItems.length === 0 || createPlan.isPending}
+            onClick={() => void handleOptimize()}
           >
-            Optimizasyonu Başlat
+            {createPlan.isPending ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Optimizasyon çalışıyor...</>
+            ) : (
+              'Optimizasyonu Başlat'
+            )}
           </Button>
         </div>
       </div>

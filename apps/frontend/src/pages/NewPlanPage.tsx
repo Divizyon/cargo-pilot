@@ -7,7 +7,12 @@ import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 import { cn } from '@/lib/utils';
-import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
+import {
+  useLoadingPlanListItem,
+  useLoadingPlanProducts,
+  useLoadingPlanScenePlacements,
+  useLoadingPlanUnplaced,
+} from '@/lib/api/useLoadingPlans';
 import { useItems } from '@/lib/api/useItems';
 import { SCENE } from '@/lib/config/scene-config';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
@@ -25,6 +30,17 @@ function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
   const { data: productGroups = [], isLoading: productsLoading } = useLoadingPlanProducts(planId);
   const { data: itemsPage } = useItems({ pageSize: 100 });
   const allItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
+
+  // colorMap: sku → renk (sol panelde tutarlılık için)
+  const colorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    productGroups.flatMap((g) => g.products).forEach((p, i) => {
+      map[p.id] = SCENE.COLORS.SKU_PALETTE[i % SCENE.COLORS.SKU_PALETTE.length];
+    });
+    return map;
+  }, [productGroups]);
+
+  const { data: scenePlacements } = useLoadingPlanScenePlacements(planId, colorMap);
 
   const vehicle = useMemo(
     (): Vehicle | null =>
@@ -51,8 +67,12 @@ function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
     [plan?.vehicleId],
   );
 
+  const { data: unplacedData = [] } = useLoadingPlanUnplaced(planId);
+
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const initItems = usePlanStore((s) => s.initItems);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
+  const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
 
   const vehicleSetRef = useRef(false);
@@ -73,8 +93,7 @@ function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
     onVehicleSelected();
   }, [vehicle, selectedVehicle, setVehicle, onVehicleSelected]);
 
-  // Step 2: ürünleri doğrudan items API'sinden al, plan miktarlarıyla eşleştir, sahneye ekle
-  // vehicle.id kontrolü: reset öncesi eski araçla erken tetiklenmeyi önler
+  // Step 2: backend placement koordinatlarını doğrudan sahneye yaz
   useEffect(() => {
     if (
       placementsAppliedRef.current ||
@@ -82,36 +101,33 @@ function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
       selectedVehicle.id !== vehicle?.id ||
       productsLoading ||
       productGroups.length === 0 ||
-      allItems.length === 0
+      !scenePlacements ||
+      scenePlacements.length === 0
     )
       return;
 
     placementsAppliedRef.current = true;
 
+    // Sol paneli doldur
     const quantityMap = new Map<string, number>(
       productGroups.flatMap((g) => g.products.map((p) => [p.id, p.quantity])),
     );
-
     const planItemIds = new Set(productGroups.flatMap((g) => g.products.map((p) => p.id)));
-
     const storeItems = allItems
       .filter((item) => planItemIds.has(item.id))
       .map((item) => ({ item, quantity: quantityMap.get(item.id) ?? 1 }));
 
-    if (storeItems.length === 0) return;
-
-    const colorMap: Record<string, string> = {};
+    const skuColorMap: Record<string, string> = {};
     storeItems.forEach((si, i) => {
-      colorMap[si.item.sku] = SCENE.COLORS.SKU_PALETTE[i % SCENE.COLORS.SKU_PALETTE.length];
+      skuColorMap[si.item.sku] = SCENE.COLORS.SKU_PALETTE[i % SCENE.COLORS.SKU_PALETTE.length];
     });
 
-    initItems(storeItems, colorMap);
+    if (storeItems.length > 0) initItems(storeItems, skuColorMap);
 
-    const { selectedItems: current } = usePlanStore.getState();
-    for (const { item } of current) {
-      usePlanStore.getState().togglePlacement(item.id);
-    }
-  }, [selectedVehicle, vehicle, productsLoading, productGroups, allItems, initItems]);
+    // Backend'den gelen koordinatları sahneye yaz — client-side algoritma çalışmaz
+    setPlacements(scenePlacements);
+    setUnplacedItems(unplacedData);
+  }, [selectedVehicle, vehicle, productsLoading, productGroups, allItems, scenePlacements, unplacedData, initItems, setPlacements, setUnplacedItems]);
 
   return null;
 }

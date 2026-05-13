@@ -4,6 +4,7 @@ services:
   backend:
     # US-D27-I: Image GHCR'dan çekilir; build yalnızca local geliştirme için.
     image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-backend:${IMAGE_TAG:-test}
+    platform: linux/amd64
     build:
       context: ../../apps/backend
       dockerfile: Dockerfile
@@ -52,6 +53,7 @@ services:
   frontend:
     # US-D27-I: Image GHCR'dan çekilir; build yalnızca local geliştirme için.
     image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-frontend:${IMAGE_TAG:-test}
+    platform: linux/amd64
     build:
       context: ../../apps/frontend
       dockerfile: Dockerfile
@@ -100,6 +102,7 @@ services:
 
   minio:
     image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
+    platform: linux/amd64
     container_name: cargo-pilot-minio-test
     command: server /data --console-address ":9001"
     environment:

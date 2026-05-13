@@ -124,10 +124,10 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
         vehicleName: data.name,
         plateNumber: data.plateNumber,
         vehicleType: FORM_VEHICLE_TYPE_INT[data.vehicleType] ?? 1,
-        internalWidth: Math.round(data.width * 10),
-        internalHeight: Math.round(data.height * 10),
-        internalLength: Math.round(data.length * 10),
-        maxWeightCapacity: Math.round(data.payload * 1000),
+        internalWidth: Math.round(data.width),
+        internalHeight: Math.round(data.height),
+        internalLength: Math.round(data.length),
+        maxWeightCapacity: Math.round(data.payload),
         layerCount: data.layerCount,
         loadingType: LOADING_AREA_INT[data.loadingArea] ?? 0,
       });
@@ -140,7 +140,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
       const detail =
         axiosErr?.response?.data?.detail ??
         axiosErr?.response?.data?.title ??
-        'Araç kaydedilemedi. Lütfen tekrar deneyin.';
+        'Araç kaydedilemedi. Lütfen tekrar deneyin.'; 
       toast.error(detail, { position: 'bottom-right' });
     }
   }
