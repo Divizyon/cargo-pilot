@@ -21,6 +21,7 @@ public sealed class LoadingPlan : BaseEntity {
     public Guid? CompanyId { get; private set; }
     public Guid? ReportId { get; private set; }
     public string? ReportUrl { get; private set; }
+    public ErpExportStatus? ErpExportStatus { get; private set; }
 #pragma warning restore S1144
 
     public Vehicle Vehicle { get; private set; } = null!;
@@ -31,6 +32,39 @@ public sealed class LoadingPlan : BaseEntity {
     private LoadingPlan() { }
 
     public void UpdatePlanName(string planName) => PlanName = planName;
+
+    public void Reoptimize(Guid vehicleId, LoadingPlanOptimizationCriteria optimizationCriteria, int inputTotalQuantity) {
+        VehicleId = vehicleId;
+        OptimizationCriteria = optimizationCriteria;
+        InputTotalQuantity = inputTotalQuantity;
+    }
+    public void MarkErpPending() => ErpExportStatus = Enums.ErpExportStatus.Pending;
+    public void MarkErpSent()    => ErpExportStatus = Enums.ErpExportStatus.Sent;
+    public void MarkErpFailed()  => ErpExportStatus = Enums.ErpExportStatus.Failed;
+
+    public void ApplyOptimizationResult(
+        LoadingPlanOptimizationStatus status,
+        decimal totalWeight,
+        decimal fillRate,
+        int placedQuantity,
+        int unplacedQuantity,
+        decimal? centerOfGravityX,
+        decimal? centerOfGravityY,
+        decimal? centerOfGravityZ,
+        string? errorCode = null,
+        string? errorMessage = null)
+    {
+        OptimizationStatus = status;
+        TotalWeight = totalWeight;
+        FillRate = fillRate;
+        PlacedQuantity = placedQuantity;
+        UnplacedQuantity = unplacedQuantity;
+        CenterOfGravityX = centerOfGravityX;
+        CenterOfGravityY = centerOfGravityY;
+        CenterOfGravityZ = centerOfGravityZ;
+        ErrorCode = errorCode;
+        ErrorMessage = errorMessage;
+    }
 
     public LoadingPlan(
         Guid id,

@@ -18,6 +18,11 @@ internal sealed class CompanyRepository : ICompanyRepository
         _dbContext.Companies.Add(company);
     }
 
+    public Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Companies.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Company>> GetExpiringTrialCompaniesAsync(
         int daysAhead,
         CancellationToken cancellationToken = default)

@@ -1,4 +1,5 @@
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -42,6 +43,14 @@ internal sealed class IntegrationConfiguration : IEntityTypeConfiguration<Integr
         builder.Property(i => i.SyncInterval);
 
         builder.Property(i => i.LastSyncDate);
+
+        builder.Property(i => i.SyncFrequency);
+
+        builder.Property(i => i.NextScheduledSyncAt);
+
+        builder.Property(i => i.SyncStatus)
+            .IsRequired()
+            .HasDefaultValue(ErpSyncStatus.Idle);
 
         builder.Property(i => i.AuthCredentials)
             .HasColumnType("nvarchar(max)");

@@ -24,4 +24,11 @@ public interface IEmailService {
         string toName,
         string confirmLink,
         CancellationToken cancellationToken = default);
+
+    Task SendCompanyUserInvitationEmailAsync(
+        string toEmail,
+        string toName,
+        string temporaryPassword,
+        string loginUrl,
+        CancellationToken cancellationToken = default);
 }

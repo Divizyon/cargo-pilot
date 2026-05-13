@@ -4,6 +4,7 @@ namespace CargoPilot.Domain.Entities;
 
 public sealed class SyncLog : BaseEntity {
     public Guid IntegrationId { get; private set; }
+    public Guid? LoadingPlanId { get; private set; }
     public DateTime StartedAt { get; private set; }
     public DateTime? CompletedAt { get; private set; }
     public SyncLogStatus Status { get; private set; }
@@ -22,6 +23,10 @@ public sealed class SyncLog : BaseEntity {
         IntegrationId = integrationId;
         StartedAt = DateTime.UtcNow;
         Status = SyncLogStatus.Running;
+    }
+
+    public SyncLog(Guid id, Guid integrationId, Guid loadingPlanId) : this(id, integrationId) {
+        LoadingPlanId = loadingPlanId;
     }
 
     public void Complete(int syncedRecordCount, int ruleAssignedCount = 0, int ruleNotAssignedCount = 0) {

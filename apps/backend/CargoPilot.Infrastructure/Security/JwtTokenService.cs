@@ -43,6 +43,9 @@ internal sealed class JwtTokenService : IJwtTokenService
         if (user.CompanyId.HasValue)
             claims.Add(new Claim("company_id", user.CompanyId.Value.ToString()));
 
+        if (user.MustChangePassword)
+            claims.Add(new Claim("mcp", "true"));
+
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
             audience: _settings.Audience,

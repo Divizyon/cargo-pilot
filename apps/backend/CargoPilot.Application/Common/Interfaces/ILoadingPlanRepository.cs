@@ -38,9 +38,17 @@ public interface ILoadingPlanRepository
 
     Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
 
-    void Add(LoadingPlan plan);
-
-    void AddInputItems(IEnumerable<LoadingPlanInputItem> items);
-
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    Task SaveWithResultAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> inputItems,
+        OptimizationResult result,
+        CancellationToken cancellationToken = default);
+
+    Task ReOptimizeWithResultAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> newInputItems,
+        OptimizationResult result,
+        CancellationToken cancellationToken = default);
 }

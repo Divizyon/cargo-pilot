@@ -32,23 +32,19 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Ağırlık Limitleri
-      </h3>
       <div className="grid grid-cols-3 gap-3">
         <FormField
           control={form.control}
           name="maxCargoWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">
-                Maks. Kargo Yükü
-              </FormLabel>
+              <FormLabel>Maks. Kargo Yükü</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
+                    placeholder="26000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -71,12 +67,13 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
           name="grossWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">Brüt Ağırlık</FormLabel>
+              <FormLabel>Brüt Ağırlık</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="1"
+                    placeholder="40000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
@@ -99,12 +96,13 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
           name="tareWeight"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-xs font-medium text-foreground">Dara Ağırlığı</FormLabel>
+              <FormLabel>Dara Ağırlığı</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type="number"
                     min="0"
+                    placeholder="14000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}

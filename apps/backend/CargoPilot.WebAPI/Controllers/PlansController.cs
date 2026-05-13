@@ -1,8 +1,10 @@
+using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
+using CargoPilot.Application.Features.Plans.ReOptimizePlan;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -98,7 +100,31 @@ public sealed class PlansController : BaseController
     {
         var result = await _mediator.Send(command, cancellationToken);
         if (!result.IsSuccess) return HandleResult(result);
-        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result.Data);
+    }
+
+    /// <summary>
+    /// Mevcut bir yükleme planını yeniden optimize eder. Araç, item listesi ve optimizasyon kriteri değiştirilebilir.
+    /// Eski yerleştirme sonuçları silinir, yeni optimizasyon sonuçları kaydedilir.
+    /// </summary>
+    /// <param name="id">Yeniden optimize edilecek planın ID'si.</param>
+    /// <param name="request">Yeni araç, item listesi ve optimizasyon kriteri.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Plan yeniden optimize edildi; plan ID'si döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Plan, araç veya item bulunamadı.</response>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReOptimize(
+        [FromRoute] Guid id,
+        [FromBody] ReOptimizePlanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new ReOptimizePlanCommand(id, request.VehicleId, request.Items, request.OptimizationCriteria);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
     }
 
     /// <summary>
@@ -155,6 +181,26 @@ public sealed class PlansController : BaseController
     }
 
     /// <summary>
+    /// Hesaplanmış bir yükleme planını onaylar ve ERP aktarımını tetikler.
+    /// </summary>
+    /// <param name="id">Onaylanacak planın ID'si.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Plan onaylandı, ERP aktarımı kuyruğa alındı.</response>
+    /// <response code="400">Plan hesaplanmış durumda değil.</response>
+    /// <response code="404">Plan bulunamadı.</response>
+    [HttpPost("{id:guid}/approve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApprovePlan(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new ApprovePlanCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Yükleme planını soft-delete ile siler.
     /// </summary>
     /// <param name="id">Silinecek planın ID'si.</param>
@@ -177,3 +223,4 @@ public sealed class PlansController : BaseController
 /// PATCH /api/v1/loading-plans/{id} için request body.
 /// </summary>
 public sealed record UpdatePlanNameRequest(string PlanName);
+

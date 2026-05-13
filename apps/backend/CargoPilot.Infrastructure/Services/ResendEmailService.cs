@@ -202,6 +202,55 @@ internal sealed class ResendEmailService : IEmailService
         }
     }
 
+    public async Task SendCompanyUserInvitationEmailAsync(
+        string toEmail,
+        string toName,
+        string temporaryPassword,
+        string loginUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var encodedPassword = WebUtility.HtmlEncode(temporaryPassword);
+        var encodedEmail = WebUtility.HtmlEncode(toEmail);
+
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — Hesabınız Oluşturuldu",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#1d4ed8;">Cargo Pilot'a Hoş Geldiniz</h2>
+                  <p>Merhaba {toName},</p>
+                  <p>Hesabınız oluşturuldu. Aşağıdaki bilgilerle giriş yapabilirsiniz:</p>
+                  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;width:140px;">E-posta</td>
+                      <td style="padding:8px;background:#fafafa;">{encodedEmail}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;">Geçici Şifre</td>
+                      <td style="padding:8px;background:#fafafa;font-family:monospace;">{encodedPassword}</td>
+                    </tr>
+                  </table>
+                  <p style="color:#dc2626;font-weight:bold;">İlk girişinizde şifrenizi değiştirmeniz zorunludur.</p>
+                  {(string.IsNullOrWhiteSpace(loginUrl) ? string.Empty : $"""<p style="text-align:center;margin:32px 0;"><a href="{loginUrl}" style="background-color:#1d4ed8;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">Giriş Yap</a></p>""")}
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Merhaba {toName},\n\nHesabınız oluşturuldu.\nE-posta: {toEmail}\nGeçici Şifre: {temporaryPassword}\n\nİlk girişinizde şifrenizi değiştirmeniz zorunludur.\n\n— Cargo Pilot Ekibi"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
     private sealed class ResendSendEmailRequest
     {
         [JsonPropertyName("from")]

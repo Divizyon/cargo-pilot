@@ -89,6 +89,7 @@ export function SceneControls() {
       dampingFactor={SCENE.ORBIT_DAMPING_FACTOR}
       minDistance={SCENE.ORBIT_MIN_DISTANCE}
       maxDistance={SCENE.ORBIT_MAX_DISTANCE}
+      maxPolarAngle={SCENE.ORBIT_MAX_POLAR_ANGLE}
     />
   );
 }

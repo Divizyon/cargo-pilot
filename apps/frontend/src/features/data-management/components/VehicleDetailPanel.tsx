@@ -44,9 +44,9 @@ export function VehicleDetailPanel({ vehicleId, onClose }: Props) {
               <dt className="text-muted-foreground">Plaka / Seri No</dt>
               <dd className="font-medium">{vehicle.plate ?? vehicle.serialNumber ?? '—'}</dd>
 
-              <dt className="text-muted-foreground">Boyutlar (U×G×Y)</dt>
+              <dt className="text-muted-foreground">Boyutlar (X×Y×Z)</dt>
               <dd className="font-medium">
-                {vehicle.length} × {vehicle.width} × {vehicle.height} cm
+                {vehicle.length} × {vehicle.height} × {vehicle.width} cm
               </dd>
 
               <dt className="text-muted-foreground">Maks Kargo</dt>

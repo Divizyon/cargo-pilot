@@ -197,6 +197,12 @@ jobs:
           tags: |
             ghcr.io/divizyon/cargo-pilot-frontend:test
             ghcr.io/divizyon/cargo-pilot-frontend:${{ steps.sha.outputs.tag }}
+          build-args: |
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_OAUTH_GOOGLE_URL=${{ secrets.VITE_OAUTH_GOOGLE_URL }}
+            VITE_OAUTH_MICROSOFT_URL=${{ secrets.VITE_OAUTH_MICROSOFT_URL }}
+            VITE_APP_ENV=test
+            VITE_APP_VERSION=${{ github.sha }}
           cache-from: type=gha,scope=frontend-test
           cache-to: type=gha,mode=max,scope=frontend-test
 
@@ -282,6 +288,12 @@ jobs:
           push: false
           load: true
           tags: ghcr.io/divizyon/cargo-pilot-frontend:test
+          build-args: |
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_OAUTH_GOOGLE_URL=${{ secrets.VITE_OAUTH_GOOGLE_URL }}
+            VITE_OAUTH_MICROSOFT_URL=${{ secrets.VITE_OAUTH_MICROSOFT_URL }}
+            VITE_APP_ENV=test
+            VITE_APP_VERSION=${{ github.sha }}
           cache-from: type=gha,scope=frontend-test
           cache-to: type=gha,mode=max,scope=frontend-test
 

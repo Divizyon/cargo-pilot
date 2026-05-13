@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Auth;
@@ -17,6 +18,9 @@ namespace CargoPilot.WebAPI.Controllers;
 /// <param name="IdToken">Google One Tap'tan alınan ID token.</param>
 public sealed record OAuthLoginRequest(string IdToken);
 
+/// <summary>Zorunlu şifre değişikliği isteği.</summary>
+public sealed record ForceChangePasswordRequest(string CurrentPassword, string NewPassword);
+
 /// <summary>
 /// Kimlik doğrulama ve oturum yönetimi endpoint'leri.
 /// </summary>
@@ -26,6 +30,7 @@ public sealed class AuthController : BaseController
 {
     private readonly IMediator _mediator;
     private readonly IAuthService _authService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RequestPasswordResetRequest> _requestResetValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
@@ -37,6 +42,7 @@ public sealed class AuthController : BaseController
     public AuthController(
         IMediator mediator,
         IAuthService authService,
+        ICurrentUserService currentUserService,
         IValidator<LoginRequest> loginValidator,
         IValidator<RequestPasswordResetRequest> requestResetValidator,
         IValidator<ResetPasswordRequest> resetPasswordValidator,
@@ -46,6 +52,7 @@ public sealed class AuthController : BaseController
     {
         _mediator = mediator;
         _authService = authService;
+        _currentUserService = currentUserService;
         _loginValidator = loginValidator;
         _requestResetValidator = requestResetValidator;
         _resetPasswordValidator = resetPasswordValidator;
@@ -187,7 +194,8 @@ public sealed class AuthController : BaseController
     {
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return Unauthorized();
+            return HandleResult(Result<RefreshResponse>.Failure(
+                new Error(ErrorType.Unauthorized, "AUTH_REFRESH_TOKEN_MISSING", "Refresh token bulunamadı.")));
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _authService.RefreshTokenAsync(refreshToken, ipAddress, cancellationToken);
@@ -206,7 +214,8 @@ public sealed class AuthController : BaseController
     {
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return Unauthorized();
+            return HandleResult(Result<bool>.Failure(
+                new Error(ErrorType.Unauthorized, "AUTH_REFRESH_TOKEN_MISSING", "Refresh token bulunamadı.")));
 
         await _authService.LogoutAsync(refreshToken, cancellationToken);
 
@@ -296,6 +305,28 @@ public sealed class AuthController : BaseController
                $"&email={Uri.EscapeDataString(data.Email)}" +
                $"&fullName={Uri.EscapeDataString(data.FullName)}" +
                $"&role={Uri.EscapeDataString(data.Role)}";
+    }
+
+    [HttpPost("force-change-password")]
+    [Authorize]
+    [ProducesResponseType(typeof(Result<ForceChangePasswordResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ForceChangePassword(
+        [FromBody] ForceChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_currentUserService.UserId is not { } userId)
+            return HandleResult(Result<bool>.Failure(
+                new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir.")));
+
+        var result = await _authService.ForceChangePasswordAsync(
+            userId, request.CurrentPassword, request.NewPassword, cancellationToken);
+
+        if (result.IsSuccess)
+            SetRefreshTokenCookie(result.Data!.RefreshToken, result.Data.RefreshTokenExpiresAt);
+
+        return HandleResult(result);
     }
 
     private void SetRefreshTokenCookie(string token, DateTime expiresAt)
