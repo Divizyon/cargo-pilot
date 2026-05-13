@@ -67,6 +67,9 @@ public static class DependencyInjection {
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();
         services.AddScoped<IErpExportService, ErpExportService>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IIntegrationRepository, IntegrationRepository>();
+        services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
+        services.AddScoped<IErpProductFetcher, MockErpProductFetcher>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
