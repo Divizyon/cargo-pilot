@@ -247,6 +247,59 @@ export function useRenameLoadingPlan() {
   });
 }
 
+// ─── Re-optimize mutation (PUT) ───────────────────────────────────────────────
+
+interface ReoptimizeLoadingPlanInput {
+  id: string;
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number }>;
+  optimizationCriteria: OptimizationCriteria;
+}
+
+export function useReoptimizeLoadingPlan() {
+  const queryClient = useQueryClient();
+  return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
+    mutationFn: async ({ id, vehicleId, items, optimizationCriteria }) => {
+      const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
+        vehicleId,
+        items,
+        optimizationCriteria,
+      });
+
+      if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
+        return data;
+      }
+
+      const raw = data as Record<string, unknown>;
+      if (raw['isSuccess'] === false) {
+        throw new Error((raw['message'] as string | undefined) ?? 'Plan optimize edilemedi');
+      }
+      const nested = raw['data'];
+      const planId =
+        (typeof nested === 'string' && nested !== '00000000-0000-0000-0000-000000000000'
+          ? nested
+          : undefined) ??
+        (typeof nested === 'object' && nested !== null
+          ? ((nested as Record<string, unknown>)['id'] as string | undefined)
+          : undefined) ??
+        (typeof raw['id'] === 'string' ? (raw['id'] as string) : undefined) ??
+        id;
+      return planId;
+    },
+    onSuccess: (planId) => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-detail', planId] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', planId] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const detail =
+        error.response?.data?.detail ?? error.message ?? 'Plan optimize edilemedi. Lütfen tekrar deneyin.';
+      toast.error(detail, { position: 'bottom-right' });
+    },
+  });
+}
+
 // ─── Client-side filter (API bu parametreleri desteklemiyor) ──────────────────
 
 function applyClientFilters(

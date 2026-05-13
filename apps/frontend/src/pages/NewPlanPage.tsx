@@ -6,8 +6,22 @@ import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useLoadingPlanDetail, useCreateLoadingPlan } from '@/lib/api/useLoadingPlans';
+import {
+  useLoadingPlanDetail,
+  useCreateLoadingPlan,
+  useReoptimizeLoadingPlan,
+} from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { planningDetailRoute } from '@/lib/config/routes';
 
@@ -15,10 +29,11 @@ import { planningDetailRoute } from '@/lib/config/routes';
 
 interface PlanAutoLoaderProps {
   planId: string;
+  refetchKey?: number;
   onVehicleSelected: () => void;
 }
 
-function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
+function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoLoaderProps) {
   const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
@@ -30,7 +45,7 @@ function PlanAutoLoader({ planId, onVehicleSelected }: PlanAutoLoaderProps) {
   useEffect(() => {
     appliedRef.current = false;
     usePlanStore.getState().reset();
-  }, [planId]);
+  }, [planId, refetchKey]);
 
   useEffect(() => {
     if (appliedRef.current || !isSuccess || !data) return;
@@ -51,9 +66,16 @@ export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
+  const [refetchKey, setRefetchKey] = useState(0);
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [planNameInput, setPlanNameInput] = useState('');
   const { id: fromPlanId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
+  const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
+
+  const initialStateRef = useRef<{ vehicleId: string; itemsKey: string } | null>(null);
 
   const resetDoneRef = useRef(false);
   if (!fromPlanId && !resetDoneRef.current) {
@@ -61,28 +83,124 @@ export function NewPlanPage() {
     usePlanStore.getState().reset();
   }
 
-  const handleOptimize = useCallback(async () => {
-    const { selectedVehicle, selectedItems, placements, criteria } = usePlanStore.getState();
-    if (!selectedVehicle || selectedItems.length === 0) return;
+  const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
+
+  // Detect changes from initial loaded state
+  useEffect(() => {
+    if (!fromPlanId || !initialStateRef.current) return;
+    const itemsKey = selectedItems
+      .map((si) => `${si.item.id}:${si.quantity}`)
+      .sort()
+      .join(',');
+    const vehicleId = selectedVehicle?.id ?? '';
+    setIsDirty(
+      vehicleId !== initialStateRef.current.vehicleId ||
+        itemsKey !== initialStateRef.current.itemsKey,
+    );
+  }, [selectedVehicle, selectedItems, fromPlanId]);
+
+  const handleVehicleSelected = useCallback(() => {
+    setRightOpen(false);
+    // Defer snapshot: PlanAutoLoader calls this before initItems/setPlacements complete
+    setTimeout(() => {
+      const state = usePlanStore.getState();
+      const itemsKey = state.selectedItems
+        .map((si) => `${si.item.id}:${si.quantity}`)
+        .sort()
+        .join(',');
+      initialStateRef.current = { vehicleId: state.selectedVehicle?.id ?? '', itemsKey };
+      setIsDirty(false);
+    }, 0);
+  }, []);
+
+  const handleOptimize = useCallback(() => {
+    const { selectedVehicle: vehicle, selectedItems: items, placements } = usePlanStore.getState();
+    if (!vehicle || items.length === 0) return;
+    const placedIds = new Set(placements.map((p) => p.itemId));
+    if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
+
+    const defaultName = `${vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
+    setPlanNameInput(defaultName);
+    setNameDialogOpen(true);
+  }, []);
+
+  const handleConfirmCreate = useCallback(async () => {
+    const { selectedVehicle: vehicle, selectedItems: items, placements, criteria } = usePlanStore.getState();
+    if (!vehicle || !planNameInput.trim()) return;
 
     const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = selectedItems.filter((si) => placedIds.has(si.item.id));
+    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
     if (itemsToSend.length === 0) return;
 
-    const planName = `${selectedVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
+    setNameDialogOpen(false);
     const id = await createPlan({
-      planName,
-      vehicleId: selectedVehicle.id,
+      planName: planNameInput.trim(),
+      vehicleId: vehicle.id,
       items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
     navigate(planningDetailRoute(id), { replace: true });
-  }, [createPlan, navigate]);
+  }, [planNameInput, createPlan, navigate]);
+
+  const handleReoptimize = useCallback(async () => {
+    if (!fromPlanId) return;
+    const { selectedVehicle: vehicle, selectedItems: items, criteria } = usePlanStore.getState();
+    if (!vehicle || items.length === 0) return;
+
+    await reoptimizePlan({
+      id: fromPlanId,
+      vehicleId: vehicle.id,
+      items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      optimizationCriteria: criteria,
+    });
+    setRefetchKey((k) => k + 1);
+  }, [fromPlanId, reoptimizePlan]);
 
   return (
     <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
+      <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Plan Adı</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="plan-name" className="text-xs text-zinc-500 mb-1.5 block">
+              Yükleme planına bir ad verin
+            </Label>
+            <Input
+              id="plan-name"
+              value={planNameInput}
+              onChange={(e) => setPlanNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleConfirmCreate();
+              }}
+              className="h-9 text-sm"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button
+              size="sm"
+              disabled={!planNameInput.trim() || isCreating}
+              onClick={() => void handleConfirmCreate()}
+              className="bg-zinc-900 text-white hover:bg-zinc-700"
+            >
+              {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {fromPlanId && (
-        <PlanAutoLoader planId={fromPlanId} onVehicleSelected={() => setRightOpen(false)} />
+        <PlanAutoLoader
+          planId={fromPlanId}
+          refetchKey={refetchKey}
+          onVehicleSelected={handleVehicleSelected}
+        />
       )}
       {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
       <div className="relative flex flex-1 min-h-0 overflow-hidden">
@@ -136,8 +254,9 @@ export function NewPlanPage() {
           <PlanRightPanel
             vehiclesOpen={rightOpen}
             onToggleVehicles={() => setRightOpen((v) => !v)}
-            onOptimize={fromPlanId ? undefined : handleOptimize}
-            isOptimizing={isCreating}
+            onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
+            isOptimizing={fromPlanId ? isReoptimizing : isCreating}
+            canOptimize={fromPlanId ? isDirty : true}
           />
         </div>
       </div>
