@@ -43,8 +43,17 @@ const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
   palet: Package,
 };
 
-function itemMatchesFilters(item: Item, query: string, activeConstraints: ReadonlySet<string>): boolean {
-  if (query && !item.name.toLowerCase().includes(query.toLowerCase()) && !item.sku.toLowerCase().includes(query.toLowerCase())) return false;
+function itemMatchesFilters(
+  item: Item,
+  query: string,
+  activeConstraints: ReadonlySet<string>,
+): boolean {
+  if (
+    query &&
+    !item.name.toLowerCase().includes(query.toLowerCase()) &&
+    !item.sku.toLowerCase().includes(query.toLowerCase())
+  )
+    return false;
   void activeConstraints;
   return true;
 }
@@ -59,13 +68,50 @@ interface ConstraintMeta {
 
 function getItemConstraints(item: Item): ConstraintMeta[] {
   const list: ConstraintMeta[] = [];
-  if (item.fragility === 1) list.push({ key: 'fragile', label: 'Kırılgan', Icon: AlertTriangle, colorClass: 'text-amber-500' });
-  if (item.fragility >= 2) list.push({ key: 'hazmat', label: 'Tehlikeli Madde', Icon: Flame, colorClass: 'text-rose-500' });
-  if (!item.isStackable) list.push({ key: 'nostack', label: 'Yığılamaz', Icon: Layers, colorClass: 'text-purple-500' });
-  if (!item.allowRotateX) list.push({ key: 'noRotX', label: 'X ekseni kısıtlı', Icon: RotateCcw, colorClass: 'text-blue-500' });
-  if (!item.allowRotateY) list.push({ key: 'noRotY', label: 'Y ekseni kısıtlı', Icon: RotateCcw, colorClass: 'text-blue-500' });
-  if (!item.allowRotateZ) list.push({ key: 'noRotZ', label: 'Z ekseni kısıtlı', Icon: RotateCcw, colorClass: 'text-blue-500' });
-  if (item.stackGroup?.trim()) list.push({ key: 'group', label: `Yük Grubu: ${item.stackGroup}`, Icon: Package, colorClass: 'text-zinc-400' });
+  if (item.fragility === 1)
+    list.push({
+      key: 'fragile',
+      label: 'Kırılgan',
+      Icon: AlertTriangle,
+      colorClass: 'text-amber-500',
+    });
+  if (item.fragility >= 2)
+    list.push({
+      key: 'hazmat',
+      label: 'Tehlikeli Madde',
+      Icon: Flame,
+      colorClass: 'text-rose-500',
+    });
+  if (!item.isStackable)
+    list.push({ key: 'nostack', label: 'Yığılamaz', Icon: Layers, colorClass: 'text-purple-500' });
+  if (!item.allowRotateX)
+    list.push({
+      key: 'noRotX',
+      label: 'X ekseni kısıtlı',
+      Icon: RotateCcw,
+      colorClass: 'text-blue-500',
+    });
+  if (!item.allowRotateY)
+    list.push({
+      key: 'noRotY',
+      label: 'Y ekseni kısıtlı',
+      Icon: RotateCcw,
+      colorClass: 'text-blue-500',
+    });
+  if (!item.allowRotateZ)
+    list.push({
+      key: 'noRotZ',
+      label: 'Z ekseni kısıtlı',
+      Icon: RotateCcw,
+      colorClass: 'text-blue-500',
+    });
+  if (item.stackGroup?.trim())
+    list.push({
+      key: 'group',
+      label: `Yük Grubu: ${item.stackGroup}`,
+      Icon: Package,
+      colorClass: 'text-zinc-400',
+    });
   return list;
 }
 
@@ -100,13 +146,14 @@ function StoreItemRow({
   const constraints = getItemConstraints(item);
   const hasConstraints = constraints.length > 0;
 
-
   return (
-    <div className={cn(
-      'rounded-lg overflow-hidden',
-      indent && 'ml-4',
-      isExpanded && 'ring-1 ring-zinc-200',
-    )}>
+    <div
+      className={cn(
+        'rounded-lg overflow-hidden',
+        indent && 'ml-4',
+        isExpanded && 'ring-1 ring-zinc-200',
+      )}
+    >
       {/* ── Collapsed header ─────────────────────────────────────────── */}
       <div
         onClick={onToggleExpand}
@@ -120,23 +167,27 @@ function StoreItemRow({
 
         <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
 
-
         <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
 
         {onEdit && (
           <button
             title="Düzenle"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 transition-colors"
           >
             <Pencil className="w-2.5 h-2.5" />
           </button>
         )}
 
-        <ChevronDown className={cn(
-          'w-3 h-3 shrink-0 text-zinc-300 transition-transform duration-150',
-          isExpanded && 'rotate-180',
-        )} />
+        <ChevronDown
+          className={cn(
+            'w-3 h-3 shrink-0 text-zinc-300 transition-transform duration-150',
+            isExpanded && 'rotate-180',
+          )}
+        />
       </div>
 
       {/* ── Expanded panel ────────────────────────────────────────────── */}
@@ -189,14 +240,22 @@ function StoreItemRow({
                   <span className="text-[10px] text-zinc-400">Adet</span>
                   <div className="flex items-center rounded border border-zinc-200 overflow-hidden ml-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setLocalQty((v) => Math.max(1, v - 1)); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocalQty((v) => Math.max(1, v - 1));
+                      }}
                       className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
                     >
                       <Minus className="w-2 h-2" />
                     </button>
-                    <span className="w-6 text-center text-[11px] tabular-nums text-zinc-700">{localQty}</span>
+                    <span className="w-6 text-center text-[11px] tabular-nums text-zinc-700">
+                      {localQty}
+                    </span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setLocalQty((v) => v + 1); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocalQty((v) => v + 1);
+                      }}
                       className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
                     >
                       <Plus className="w-2 h-2" />
@@ -206,7 +265,11 @@ function StoreItemRow({
                 <Button
                   size="sm"
                   disabled={!canPlace}
-                  onClick={(e) => { e.stopPropagation(); onPlace(localQty); onToggleExpand(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPlace(localQty);
+                    onToggleExpand();
+                  }}
                   className="h-6 text-[11px] px-2.5 bg-zinc-900 text-white hover:bg-zinc-700"
                 >
                   Ekle
@@ -214,7 +277,11 @@ function StoreItemRow({
               </>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); onRemove?.(); onToggleExpand(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove?.();
+                  onToggleExpand();
+                }}
                 className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-rose-600 transition-colors ml-auto"
               >
                 <PackageMinus className="w-3 h-3" />
@@ -430,9 +497,13 @@ export function PlanLeftPanel() {
               Yüklü Değil
               <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
                 {(() => {
-                  const planUnloaded = selectedItems.filter((si) => !placedIds.has(si.item.id)).length;
+                  const planUnloaded = selectedItems.filter(
+                    (si) => !placedIds.has(si.item.id),
+                  ).length;
                   const planIds = new Set(selectedItems.map((si) => si.item.id));
-                  const catalogOnly = apiItems.filter((i) => !planIds.has(i.id) && !placedIds.has(i.id)).length;
+                  const catalogOnly = apiItems.filter(
+                    (i) => !planIds.has(i.id) && !placedIds.has(i.id),
+                  ).length;
                   return `(${planUnloaded + catalogOnly})`;
                 })()}
               </span>
@@ -602,7 +673,9 @@ export function PlanLeftPanel() {
                   isPlaced={false}
                   canPlace={canPlace}
                   isExpanded={expandedId === item.id}
-                  onToggleExpand={() => setExpandedId((prev) => (prev === item.id ? null : item.id))}
+                  onToggleExpand={() =>
+                    setExpandedId((prev) => (prev === item.id ? null : item.id))
+                  }
                   onPlace={(qty) => {
                     addManualItem(item, qty, color);
                     setUngroupedIds((prev) => [...prev, item.id]);
@@ -655,10 +728,7 @@ export function PlanLeftPanel() {
         </div>
       )}
 
-      <AddItemModal
-        open={showItemModal}
-        onOpenChange={setShowItemModal}
-      />
+      <AddItemModal open={showItemModal} onOpenChange={setShowItemModal} />
     </div>
   );
 }

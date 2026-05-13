@@ -406,7 +406,13 @@ interface PlanRightPanelProps {
   canOptimize?: boolean;
 }
 
-export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles, onOptimize, isOptimizing = false, canOptimize = true }: PlanRightPanelProps) {
+export function PlanRightPanel({
+  vehiclesOpen = true,
+  onToggleVehicles,
+  onOptimize,
+  isOptimizing = false,
+  canOptimize = true,
+}: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);

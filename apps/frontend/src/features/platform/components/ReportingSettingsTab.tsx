@@ -446,7 +446,10 @@ export function ReportingSettingsTab() {
         {/* Signature toggle */}
         <div className="flex items-center justify-between gap-4 pt-6">
           <div>
-            <Label htmlFor="signature-toggle" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <Label
+              htmlFor="signature-toggle"
+              className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
+            >
               İmza Alanı
             </Label>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -185,7 +185,10 @@ export function useCreateLoadingPlan() {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail ?? error.message ?? 'Plan oluşturulamadı. Lütfen tekrar deneyin.';
+      const detail =
+        error.response?.data?.detail ??
+        error.message ??
+        'Plan oluşturulamadı. Lütfen tekrar deneyin.';
       toast.error(detail, { position: 'bottom-right' });
     },
   });
@@ -294,7 +297,9 @@ export function useReoptimizeLoadingPlan() {
     },
     onError: (error) => {
       const detail =
-        error.response?.data?.detail ?? error.message ?? 'Plan optimize edilemedi. Lütfen tekrar deneyin.';
+        error.response?.data?.detail ??
+        error.message ??
+        'Plan optimize edilemedi. Lütfen tekrar deneyin.';
       toast.error(detail, { position: 'bottom-right' });
     },
   });

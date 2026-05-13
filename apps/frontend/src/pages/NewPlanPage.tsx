@@ -81,8 +81,8 @@ export function NewPlanPage() {
     if (!fromPlanId) {
       usePlanStore.getState().reset();
     }
-  // fromPlanId is from URL params and stable per mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // fromPlanId is from URL params and stable per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
@@ -128,7 +128,12 @@ export function NewPlanPage() {
   }, []);
 
   const handleConfirmCreate = useCallback(async () => {
-    const { selectedVehicle: vehicle, selectedItems: items, placements, criteria } = usePlanStore.getState();
+    const {
+      selectedVehicle: vehicle,
+      selectedItems: items,
+      placements,
+      criteria,
+    } = usePlanStore.getState();
     if (!vehicle || !planNameInput.trim()) return;
 
     const placedIds = new Set(placements.map((p) => p.itemId));

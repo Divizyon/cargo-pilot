@@ -318,41 +318,49 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
 
 // ─── Full detail schema (3D planner) ─────────────────────────────────────────
 
-const planItemDimensionsSchema = z.object({
-  id: z.string(),
-  sku: z.string().catch(''),
-  name: z.string().catch(''),
-  width: z.number(),
-  height: z.number(),
-  length: z.number(),
-  weight: z.number().catch(0),
-  imageUrl: z.string().nullable().optional(),
-}).passthrough();
+const planItemDimensionsSchema = z
+  .object({
+    id: z.string(),
+    sku: z.string().catch(''),
+    name: z.string().catch(''),
+    width: z.number(),
+    height: z.number(),
+    length: z.number(),
+    weight: z.number().catch(0),
+    imageUrl: z.string().nullable().optional(),
+  })
+  .passthrough();
 
-const placementFullSchema = z.object({
-  itemId: z.string(),
-  positionX: z.number(),
-  positionY: z.number(),
-  positionZ: z.number(),
-  rotation: z.number().int().min(0).max(5).catch(0),
-  item: planItemDimensionsSchema,
-}).passthrough();
+const placementFullSchema = z
+  .object({
+    itemId: z.string(),
+    positionX: z.number(),
+    positionY: z.number(),
+    positionZ: z.number(),
+    rotation: z.number().int().min(0).max(5).catch(0),
+    item: planItemDimensionsSchema,
+  })
+  .passthrough();
 
-const inputItemFullSchema = z.object({
-  itemId: z.string(),
-  quantity: z.number().int().min(1).catch(1),
-  item: planItemDimensionsSchema,
-}).passthrough();
+const inputItemFullSchema = z
+  .object({
+    itemId: z.string(),
+    quantity: z.number().int().min(1).catch(1),
+    item: planItemDimensionsSchema,
+  })
+  .passthrough();
 
 export const planFullDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),
-  data: z.object({
-    id: z.string().uuid(),
-    planName: z.string(),
-    vehicle: planVehicleApiSchema,
-    placements: z.array(placementFullSchema).optional().default([]),
-    inputItems: z.array(inputItemFullSchema).optional().default([]),
-  }).passthrough(),
+  data: z
+    .object({
+      id: z.string().uuid(),
+      planName: z.string(),
+      vehicle: planVehicleApiSchema,
+      placements: z.array(placementFullSchema).optional().default([]),
+      inputItems: z.array(inputItemFullSchema).optional().default([]),
+    })
+    .passthrough(),
 });
 
 export type PlanFullDetail = {
@@ -398,14 +406,21 @@ export function fromApiFullDetail(
     ? {
         id: v.id,
         name: v.vehicleName ?? v.name ?? '—',
-        plate: (v.plateNumber ?? v.plate) ?? '',
+        plate: v.plateNumber ?? v.plate ?? '',
         width: v.internalWidth ?? 0,
         height: v.internalHeight ?? 0,
         length: v.internalLength ?? 0,
         maxCargoWeight: v.maxWeightCapacity ?? 0,
-        vehicleType: v.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir : VehicleType.Tir,
-        doorDirection: v.loadingType != null ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear) : DoorDirection.Rear,
-        doorSide: v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+        vehicleType:
+          v.vehicleType != null
+            ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
+            : VehicleType.Tir,
+        doorDirection:
+          v.loadingType != null
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
+            : DoorDirection.Rear,
+        doorSide:
+          v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
         isFavorite: false,
         isActive: true,
         isDeleted: false,
