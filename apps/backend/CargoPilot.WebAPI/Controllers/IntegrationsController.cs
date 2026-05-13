@@ -66,6 +66,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpPut("{id:guid}/sync-settings")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -89,6 +90,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="404">Entegrasyon bulunamadı.</response>
     /// <response code="409">Senkronizasyon zaten çalışıyor.</response>
     [HttpPost("{id:guid}/sync/run-now")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

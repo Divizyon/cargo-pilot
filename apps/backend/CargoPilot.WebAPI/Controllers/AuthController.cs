@@ -194,7 +194,8 @@ public sealed class AuthController : BaseController
     {
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return Unauthorized();
+            return HandleResult(Result<RefreshResponse>.Failure(
+                new Error(ErrorType.Unauthorized, "AUTH_REFRESH_TOKEN_MISSING", "Refresh token bulunamadı.")));
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _authService.RefreshTokenAsync(refreshToken, ipAddress, cancellationToken);
@@ -213,7 +214,8 @@ public sealed class AuthController : BaseController
     {
         var refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrWhiteSpace(refreshToken))
-            return Unauthorized();
+            return HandleResult(Result<bool>.Failure(
+                new Error(ErrorType.Unauthorized, "AUTH_REFRESH_TOKEN_MISSING", "Refresh token bulunamadı.")));
 
         await _authService.LogoutAsync(refreshToken, cancellationToken);
 
@@ -315,7 +317,8 @@ public sealed class AuthController : BaseController
         CancellationToken cancellationToken)
     {
         if (_currentUserService.UserId is not { } userId)
-            return Unauthorized();
+            return HandleResult(Result<bool>.Failure(
+                new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir.")));
 
         var result = await _authService.ForceChangePasswordAsync(
             userId, request.CurrentPassword, request.NewPassword, cancellationToken);

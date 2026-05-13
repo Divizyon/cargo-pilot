@@ -18,7 +18,7 @@ public sealed class MustChangePasswordMiddleware
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(
-                    """{"isSuccess":false,"data":null,"error":{"code":"AUTH_MUST_CHANGE_PASSWORD","description":"İlk girişinizde şifrenizi değiştirmeniz zorunludur."}}""");
+                    """{"isSuccess":false,"data":null,"error":{"type":"Forbidden","code":"AUTH_MUST_CHANGE_PASSWORD","description":"İlk girişinizde şifrenizi değiştirmeniz zorunludur."}}""");
                 return;
             }
         }
