@@ -93,6 +93,16 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -304,8 +314,19 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<string>("MappingTable")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("NextScheduledSyncAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SyncFrequency")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SyncInterval")
                         .HasColumnType("int");
+
+                    b.Property<int>("SyncStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("SystemName")
                         .IsRequired()
@@ -501,6 +522,10 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ErpExportStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("ErrorCode")
                         .HasMaxLength(64)
@@ -985,6 +1010,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid?>("LoadingPlanId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("RuleAssignedCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -1018,6 +1046,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("IntegrationId")
                         .HasDatabaseName("IX_SyncLogs_IntegrationId");
+
+                    b.HasIndex("LoadingPlanId")
+                        .HasDatabaseName("IX_SyncLogs_LoadingPlanId");
 
                     b.ToTable("SyncLogs", (string)null);
                 });
@@ -1528,6 +1559,12 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasForeignKey("IntegrationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", null)
+                        .WithMany()
+                        .HasForeignKey("LoadingPlanId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired(false);
 
                     b.Navigation("Integration");
                 });
