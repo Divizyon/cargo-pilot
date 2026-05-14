@@ -8,88 +8,84 @@ using MediatR;
 namespace CargoPilot.Application.Features.Me.GetMySubscription;
 
 internal sealed class GetMySubscriptionQueryHandler
-    : IRequestHandler<GetMySubscriptionQuery, Result<MySubscriptionResponse>>
+    : IRequestHandler<GetMySubscriptionQuery, Result<object>>
 {
-    private readonly ICurrentUserService _currentUserService;
-    private readonly ICompanyRepository _companyRepository;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IUserRepository _userRepository;
     private readonly IItemRepository _itemRepository;
     private readonly IVehicleRepository _vehicleRepository;
-    private readonly ILoadingPlanRepository _planRepository;
+    private readonly ILoadingPlanRepository _loadingPlanRepository;
 
     public GetMySubscriptionQueryHandler(
-        ICurrentUserService currentUserService,
-        ICompanyRepository companyRepository,
+        ICurrentUserService currentUser,
+        IUserRepository userRepository,
         IItemRepository itemRepository,
         IVehicleRepository vehicleRepository,
-        ILoadingPlanRepository planRepository)
+        ILoadingPlanRepository loadingPlanRepository)
     {
-        _currentUserService = currentUserService;
-        _companyRepository = companyRepository;
+        _currentUser = currentUser;
+        _userRepository = userRepository;
         _itemRepository = itemRepository;
         _vehicleRepository = vehicleRepository;
-        _planRepository = planRepository;
+        _loadingPlanRepository = loadingPlanRepository;
     }
 
-    public async Task<Result<MySubscriptionResponse>> Handle(
+    public async Task<Result<object>> Handle(
         GetMySubscriptionQuery request,
         CancellationToken cancellationToken)
     {
-        var userType = _currentUserService.UserType;
-        var userId = _currentUserService.UserId;
+        if (_currentUser.UserId is not { } userId)
+            return Result<object>.Failure(new Error(ErrorType.Unauthorized, "Auth.Unauthorized", "Kimlik doğrulama gereklidir."));
 
-        if (userId is null)
-            return Result<MySubscriptionResponse>.Failure(
-                new Error(ErrorType.Unauthorized, "Auth.Unauthorized", "Kimlik doğrulaması gereklidir."));
-
-        if (userType == UserType.Individual)
+        return _currentUser.UserType switch
         {
-            var subscriptionType = SubscriptionType.Free;
-            var maxItems = SubscriptionLimits.GetMaxItemCount(subscriptionType);
-            var maxVehicles = SubscriptionLimits.GetMaxVehicleCount(subscriptionType);
-            var maxPlans = SubscriptionLimits.GetMaxLoadingPlanCount(subscriptionType);
+            UserType.Individual => await HandleIndividualAsync(userId, cancellationToken),
+            UserType.CompanyAdmin => await HandleCompanyAdminAsync(userId, cancellationToken),
+            _ => Result<object>.Failure(new Error(ErrorType.Forbidden, "Auth.Forbidden", "Bu işlem için yetkiniz yok."))
+        };
+    }
 
-            var currentItems = await _itemRepository.CountByUserAsync(userId.Value, cancellationToken);
-            var currentVehicles = await _vehicleRepository.CountByUserAsync(userId.Value, cancellationToken);
-            var currentPlans = await _planRepository.CountByUserAsync(userId.Value, cancellationToken);
+    private async Task<Result<object>> HandleIndividualAsync(Guid userId, CancellationToken ct)
+    {
+        const SubscriptionType subscriptionType = SubscriptionType.Free;
 
-            return Result<MySubscriptionResponse>.Success(new MySubscriptionResponse(
-                subscriptionType,
-                maxItems,
-                Math.Max(0, maxItems - currentItems),
-                maxVehicles,
-                Math.Max(0, maxVehicles - currentVehicles),
-                maxPlans,
-                Math.Max(0, maxPlans - currentPlans),
-                TrialEndsAt: null));
-        }
+        var itemCount    = await _itemRepository.CountByUserAsync(userId, ct);
+        var vehicleCount = await _vehicleRepository.CountByUserAsync(userId, ct);
+        var planCount    = await _loadingPlanRepository.CountByUserAsync(userId, ct);
 
-        var companyId = _currentUserService.CompanyId;
-        if (companyId is null)
-            return Result<MySubscriptionResponse>.Failure(
-                new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
+        var maxItems    = SubscriptionLimits.GetMaxItemCount(subscriptionType);
+        var maxVehicles = SubscriptionLimits.GetMaxVehicleCount(subscriptionType);
+        var maxPlans    = SubscriptionLimits.GetMaxLoadingPlanCount(subscriptionType);
 
-        var company = await _companyRepository.GetByIdAsync(companyId.Value, cancellationToken);
-        if (company is null)
-            return Result<MySubscriptionResponse>.Failure(
-                new Error(ErrorType.NotFound, "Company.NotFound", "Şirket bulunamadı."));
+        var response = new IndividualSubscriptionResponse(
+            SubscriptionType:          subscriptionType,
+            MaxItemCount:              maxItems,
+            RemainingItemCount:        Math.Max(0, maxItems - itemCount),
+            MaxVehicleCount:           maxVehicles,
+            RemainingVehicleCount:     Math.Max(0, maxVehicles - vehicleCount),
+            MaxLoadingPlanCount:       maxPlans,
+            RemainingLoadingPlanCount: Math.Max(0, maxPlans - planCount),
+            TrialEndsAt:               null);
 
-        var compSubscription = company.SubscriptionType;
-        var maxItemsComp = SubscriptionLimits.GetMaxItemCount(compSubscription);
-        var maxVehiclesComp = SubscriptionLimits.GetMaxVehicleCount(compSubscription);
-        var maxPlansComp = SubscriptionLimits.GetMaxLoadingPlanCount(compSubscription);
+        return Result<object>.Success(response);
+    }
 
-        var currentItemsComp = await _itemRepository.CountByCompanyAsync(companyId.Value, cancellationToken);
-        var currentVehiclesComp = await _vehicleRepository.CountByCompanyAsync(companyId.Value, cancellationToken);
-        var currentPlansComp = await _planRepository.CountByCompanyAsync(companyId.Value, cancellationToken);
+    private async Task<Result<object>> HandleCompanyAdminAsync(Guid userId, CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdWithCompanyAsync(userId, ct);
+        if (user?.Company is not { } company)
+            return Result<object>.Failure(new Error(ErrorType.NotFound, "Company.NotFound", "Şirket bulunamadı."));
 
-        return Result<MySubscriptionResponse>.Success(new MySubscriptionResponse(
-            compSubscription,
-            maxItemsComp,
-            Math.Max(0, maxItemsComp - currentItemsComp),
-            maxVehiclesComp,
-            Math.Max(0, maxVehiclesComp - currentVehiclesComp),
-            maxPlansComp,
-            Math.Max(0, maxPlansComp - currentPlansComp),
-            company.TrialEndsAt));
+        var userCount = await _userRepository.GetCompanyUserCountAsync(company.Id, ct);
+        var planCount = await _loadingPlanRepository.CountByCompanyAsync(company.Id, ct);
+
+        var response = new CompanyAdminSubscriptionResponse(
+            SubscriptionType:     company.SubscriptionType,
+            MaxUserCount:         company.MaxUserCount,
+            CurrentUserCount:     userCount,
+            TotalLoadingPlanCount: planCount,
+            TrialEndsAt:          company.TrialEndsAt);
+
+        return Result<object>.Success(response);
     }
 }
