@@ -23,6 +23,7 @@ import { useUIStore } from '@/lib/store/useUIStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
+import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -130,6 +131,8 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
+  const { data: quota } = useUsageQuota();
+  const planLimitReached = quota ? isQuotaExceeded(quota.plans) : false;
 
   return (
     <aside
@@ -182,11 +185,21 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
       >
         {/* Primary CTA */}
         <button
-          onClick={() => navigate('/planning/new')}
-          title={isCollapsed ? 'Yeni Yükleme Planı' : undefined}
+          onClick={() => !planLimitReached && navigate('/planning/new')}
+          disabled={planLimitReached}
+          title={
+            planLimitReached
+              ? 'Plan limitinize ulaştınız. Planınızı yükseltin.'
+              : isCollapsed
+                ? 'Yeni Yükleme Planı'
+                : undefined
+          }
           className={cn(
-            'flex h-9 w-full items-center gap-3 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90',
+            'flex h-9 w-full items-center gap-3 rounded-lg text-sm font-semibold transition-colors',
             isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
+            planLimitReached
+              ? 'cursor-not-allowed bg-muted text-muted-foreground'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90',
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
