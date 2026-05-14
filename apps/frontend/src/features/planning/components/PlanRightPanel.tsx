@@ -1,6 +1,4 @@
-import { useMemo, useState, useEffect, useRef, useCallback, type HTMLAttributes } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -57,7 +55,6 @@ import {
   type VehicleType as VehicleTypeValue,
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
-import { useCreateLoadingPlan } from '@/lib/api/useLoadingPlans';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
@@ -405,34 +402,23 @@ function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDe
 interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
+  onOptimize?: () => void;
+  isOptimizing?: boolean;
+  canOptimize?: boolean;
 }
 
-export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRightPanelProps) {
-  const navigate = useNavigate();
+export function PlanRightPanel({
+  vehiclesOpen = true,
+  onToggleVehicles,
+  onOptimize,
+  isOptimizing = false,
+  canOptimize = true,
+}: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const selectedItems = usePlanStore((s) => s.selectedItems);
   const criteria = usePlanStore((s) => s.criteria);
   const setCriteria = usePlanStore((s) => s.setCriteria);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
-
-  const createPlan = useCreateLoadingPlan();
-
-  const handleOptimize = useCallback(async () => {
-    if (!selectedVehicle || selectedItems.length === 0) {
-      toast.warning('Araç ve en az bir ürün seçmelisiniz.', { position: 'bottom-right' });
-      return;
-    }
-    const planName = `Plan - ${selectedVehicle.name} - ${new Date().toLocaleDateString('tr-TR')}`;
-    const planId = await createPlan.mutateAsync({
-      planName,
-      vehicleId: selectedVehicle.id,
-      items: selectedItems.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
-      optimizationCriteria: criteria as 0 | 1 | 2,
-    });
-    toast.success('Optimizasyon tamamlandı.', { position: 'bottom-right' });
-    navigate(`/planning/new?fromPlan=${planId}`);
-  }, [selectedVehicle, selectedItems, criteria, createPlan, navigate]);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
@@ -794,14 +780,11 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
         <div className="px-3 pb-3 shrink-0">
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle || selectedItems.length === 0 || createPlan.isPending}
-            onClick={() => void handleOptimize()}
+            disabled={!selectedVehicle || isOptimizing || !canOptimize}
+            onClick={onOptimize}
           >
-            {createPlan.isPending ? (
-              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Optimizasyon çalışıyor...</>
-            ) : (
-              'Optimizasyonu Başlat'
-            )}
+            {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            Optimizasyonu Başlat
           </Button>
         </div>
       </div>

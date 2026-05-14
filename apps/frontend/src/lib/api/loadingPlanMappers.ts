@@ -5,7 +5,12 @@ import type {
   PlanProductItem,
   PlacementWithDimensions,
 } from '@/lib/types/loadingPlan';
+import type { Item } from '@/lib/types/item';
+import type { Vehicle } from '@/lib/types/vehicle';
+import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
+import { rotatedDimensions, type OrientationIndex } from '@/lib/utils/boxOrientations';
+import { SCENE } from '@/lib/config/scene-config';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -419,4 +424,158 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
       v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
     doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
   };
+}
+
+// ─── Full detail schema (3D planner) ─────────────────────────────────────────
+
+const planItemDimensionsSchema = z
+  .object({
+    id: z.string(),
+    sku: z.string().catch(''),
+    name: z.string().catch(''),
+    width: z.number(),
+    height: z.number(),
+    length: z.number(),
+    weight: z.number().catch(0),
+    imageUrl: z.string().nullable().optional(),
+  })
+  .passthrough();
+
+const placementFullSchema = z
+  .object({
+    itemId: z.string(),
+    positionX: z.number(),
+    positionY: z.number(),
+    positionZ: z.number(),
+    rotation: z.number().int().min(0).max(5).catch(0),
+    item: planItemDimensionsSchema,
+  })
+  .passthrough();
+
+const inputItemFullSchema = z
+  .object({
+    itemId: z.string(),
+    quantity: z.number().int().min(1).catch(1),
+    item: planItemDimensionsSchema,
+  })
+  .passthrough();
+
+export const planFullDetailApiResponseSchema = z.object({
+  isSuccess: z.boolean().optional(),
+  data: z
+    .object({
+      id: z.string().uuid(),
+      planName: z.string(),
+      vehicle: planVehicleApiSchema,
+      placements: z.array(placementFullSchema).optional().default([]),
+      inputItems: z.array(inputItemFullSchema).optional().default([]),
+    })
+    .passthrough(),
+});
+
+export type PlanFullDetail = {
+  vehicle: Vehicle | null;
+  inputItems: Array<{ item: Item; quantity: number }>;
+  placements: PlacementWithDimensions[];
+  skuColorMap: Record<string, string>;
+};
+
+function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
+  return {
+    id: raw.id,
+    name: raw.name,
+    sku: raw.sku,
+    productType: 'koli',
+    width: raw.width,
+    height: raw.height,
+    length: raw.length,
+    weight: raw.weight,
+    isStackable: true,
+    maxStackCount: 1,
+    maxWeightOnTop: null,
+    fragility: 0,
+    allowRotateX: true,
+    allowRotateY: true,
+    allowRotateZ: true,
+    allowFaceBottom: true,
+    allowFaceTop: true,
+    allowFaceFront: true,
+    allowFaceBack: true,
+    allowFaceLeft: true,
+    allowFaceRight: true,
+    imageUrl: raw.imageUrl ?? undefined,
+  } as Item;
+}
+
+export function fromApiFullDetail(
+  data: z.infer<typeof planFullDetailApiResponseSchema>['data'],
+): PlanFullDetail {
+  const v = data.vehicle;
+
+  const vehicle: Vehicle | null = v?.id
+    ? {
+        id: v.id,
+        name: v.vehicleName ?? v.name ?? '—',
+        plate: v.plateNumber ?? v.plate ?? '',
+        width: v.internalWidth ?? 0,
+        height: v.internalHeight ?? 0,
+        length: v.internalLength ?? 0,
+        maxCargoWeight: v.maxWeightCapacity ?? 0,
+        vehicleType:
+          v.vehicleType != null
+            ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
+            : VehicleType.Tir,
+        doorDirection:
+          v.loadingType != null
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
+            : DoorDirection.Rear,
+        doorSide:
+          v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+        isFavorite: false,
+        isActive: true,
+        isDeleted: false,
+        createdAt: new Date(0).toISOString(),
+        createdBy: { id: '', fullName: '' },
+      }
+    : null;
+
+  // Build color map from inputItems order
+  const skuColorMap: Record<string, string> = {};
+  const palette = SCENE.COLORS.SKU_PALETTE;
+  let colorIdx = 0;
+  const inputItems = (data.inputItems ?? []).map((ii) => {
+    const item = apiItemToItem(ii.item);
+    if (!skuColorMap[item.sku]) {
+      skuColorMap[item.sku] = palette[colorIdx % palette.length];
+      colorIdx++;
+    }
+    return { item, quantity: ii.quantity };
+  });
+
+  const placements: PlacementWithDimensions[] = (data.placements ?? []).map((p) => {
+    const orientationIndex = p.rotation as OrientationIndex;
+    const { width, height, depth } = rotatedDimensions(
+      p.item.width,
+      p.item.height,
+      p.item.length,
+      orientationIndex,
+    );
+    const color = skuColorMap[p.item.sku] ?? palette[0];
+    return {
+      itemId: p.itemId,
+      positionX: p.positionX,
+      positionY: p.positionY,
+      positionZ: p.positionZ,
+      orientationIndex,
+      layer: height > 0 ? Math.round(p.positionY / height) + 1 : 1,
+      isViolation: false,
+      width,
+      height,
+      depth,
+      weight: p.item.weight,
+      color,
+    };
+  });
+
+  return { vehicle, inputItems, placements, skuColorMap };
 }
