@@ -73,7 +73,8 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
+      {/* Geri butonu */}
       <button
         type="button"
         onClick={onBack}
@@ -83,124 +84,122 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
         Plan seçimine dön
       </button>
 
-      {/* Plan özeti */}
-      <div className="rounded-xl border bg-card p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Seçilen Plan
-        </p>
-        <div className="mt-2 flex items-baseline justify-between">
-          <span className="text-base font-bold text-foreground">{plan.label}</span>
-          <div className="flex items-baseline gap-0.5">
-            <span className="text-xl font-bold text-foreground">{plan.price}</span>
-            {plan.period && <span className="text-xs text-muted-foreground">{plan.period}</span>}
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
+        {/* Kart bilgileri */}
+        <div className="flex flex-col gap-4">
+          <p className="text-sm font-semibold text-foreground">Kart Bilgileri</p>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cardHolder" className="text-xs">
+              Kart Sahibi
+            </Label>
+            <Input
+              id="cardHolder"
+              placeholder="Ad Soyad"
+              autoComplete="cc-name"
+              className={cn('text-sm', form.formState.errors.cardHolder && 'border-destructive')}
+              {...form.register('cardHolder')}
+            />
+            {form.formState.errors.cardHolder && (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.cardHolder.message}
+              </p>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Ödeme formu */}
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        <div className="rounded-xl border bg-card p-5">
-          <p className="mb-4 text-sm font-semibold text-foreground">Kart Bilgileri</p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cardNumber" className="text-xs">
+              Kart Numarası
+            </Label>
+            <Input
+              id="cardNumber"
+              placeholder="1234 5678 9012 3456"
+              autoComplete="cc-number"
+              inputMode="numeric"
+              maxLength={19}
+              className={cn('text-sm', form.formState.errors.cardNumber && 'border-destructive')}
+              {...form.register('cardNumber', {
+                onChange(e) {
+                  e.target.value = formatCardNumber(e.target.value);
+                },
+              })}
+            />
+            {form.formState.errors.cardNumber && (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.cardNumber.message}
+              </p>
+            )}
+          </div>
 
-          <div className="flex flex-col gap-3">
-            {/* Kart sahibi */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cardHolder" className="text-xs">
-                Kart Sahibi
+              <Label htmlFor="expiry" className="text-xs">
+                Son Kullanma Tarihi
               </Label>
               <Input
-                id="cardHolder"
-                placeholder="Ad Soyad"
-                autoComplete="cc-name"
-                className={cn('text-sm', form.formState.errors.cardHolder && 'border-destructive')}
-                {...form.register('cardHolder')}
-              />
-              {form.formState.errors.cardHolder && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.cardHolder.message}
-                </p>
-              )}
-            </div>
-
-            {/* Kart numarası */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cardNumber" className="text-xs">
-                Kart Numarası
-              </Label>
-              <Input
-                id="cardNumber"
-                placeholder="1234 5678 9012 3456"
-                autoComplete="cc-number"
+                id="expiry"
+                placeholder="AA/YY"
+                autoComplete="cc-exp"
                 inputMode="numeric"
-                maxLength={19}
-                className={cn('text-sm', form.formState.errors.cardNumber && 'border-destructive')}
-                {...form.register('cardNumber', {
+                maxLength={5}
+                className={cn('text-sm', form.formState.errors.expiry && 'border-destructive')}
+                {...form.register('expiry', {
                   onChange(e) {
-                    e.target.value = formatCardNumber(e.target.value);
+                    e.target.value = formatExpiry(e.target.value);
                   },
                 })}
               />
-              {form.formState.errors.cardNumber && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.cardNumber.message}
-                </p>
+              {form.formState.errors.expiry && (
+                <p className="text-xs text-destructive">{form.formState.errors.expiry.message}</p>
               )}
             </div>
 
-            {/* Son kullanma tarihi + CVC */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="expiry" className="text-xs">
-                  Son Kullanma Tarihi
-                </Label>
-                <Input
-                  id="expiry"
-                  placeholder="AA/YY"
-                  autoComplete="cc-exp"
-                  inputMode="numeric"
-                  maxLength={5}
-                  className={cn('text-sm', form.formState.errors.expiry && 'border-destructive')}
-                  {...form.register('expiry', {
-                    onChange(e) {
-                      e.target.value = formatExpiry(e.target.value);
-                    },
-                  })}
-                />
-                {form.formState.errors.expiry && (
-                  <p className="text-xs text-destructive">{form.formState.errors.expiry.message}</p>
-                )}
-              </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="cvc" className="text-xs">
+                CVC
+              </Label>
+              <Input
+                id="cvc"
+                placeholder="123"
+                autoComplete="cc-csc"
+                inputMode="numeric"
+                maxLength={4}
+                className={cn('text-sm', form.formState.errors.cvc && 'border-destructive')}
+                {...form.register('cvc', {
+                  onChange(e) {
+                    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  },
+                })}
+              />
+              {form.formState.errors.cvc && (
+                <p className="text-xs text-destructive">{form.formState.errors.cvc.message}</p>
+              )}
+            </div>
+          </div>
+        </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="cvc" className="text-xs">
-                  CVC
-                </Label>
-                <Input
-                  id="cvc"
-                  placeholder="123"
-                  autoComplete="cc-csc"
-                  inputMode="numeric"
-                  maxLength={4}
-                  className={cn('text-sm', form.formState.errors.cvc && 'border-destructive')}
-                  {...form.register('cvc', {
-                    onChange(e) {
-                      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
-                    },
-                  })}
-                />
-                {form.formState.errors.cvc && (
-                  <p className="text-xs text-destructive">{form.formState.errors.cvc.message}</p>
-                )}
-              </div>
+        {/* Ayırıcı */}
+        <div className="border-t border-border" />
+
+        {/* Plan özeti */}
+        <div className="flex flex-col gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Seçilen Plan
+          </p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-semibold text-foreground">{plan.label}</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-base font-bold text-foreground">{plan.price}</span>
+              {plan.period && (
+                <span className="text-xs text-muted-foreground">{plan.period}</span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Sunucu hatası */}
         {serverError && (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {serverError}
-          </p>
+          <p className="text-sm text-destructive">{serverError}</p>
         )}
 
         <div className="flex flex-col gap-2">

@@ -91,7 +91,7 @@ export function SubscriptionTab() {
   return (
     <div className="flex flex-col gap-6">
       {/* Current plan banner */}
-      <div className="flex items-center justify-between rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between pb-4 border-b border-border">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Mevcut Plan
@@ -122,7 +122,7 @@ export function SubscriptionTab() {
         )}
       </div>
 
-      {/* Plan cards */}
+      {/* Plan listesi */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const isActive = plan.key === currentPlan;
@@ -131,18 +131,18 @@ export function SubscriptionTab() {
             <div
               key={plan.key}
               className={cn(
-                'relative flex flex-col rounded-xl border p-4',
-                plan.highlighted ? 'border-primary bg-primary/5' : 'bg-card',
-                isActive && 'ring-2 ring-primary',
+                'relative flex flex-col p-4',
+                plan.highlighted ? 'border-l-2 border-primary pl-4' : 'border-l-2 border-transparent pl-4',
+                isActive && 'border-l-2 border-emerald-500',
               )}
             >
-              {plan.highlighted && (
-                <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              {plan.highlighted && !isActive && (
+                <span className="mb-2 w-fit rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                   Önerilen
                 </span>
               )}
               {isActive && (
-                <span className="absolute -top-2.5 right-4 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                <span className="mb-2 w-fit rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
                   Aktif
                 </span>
               )}
