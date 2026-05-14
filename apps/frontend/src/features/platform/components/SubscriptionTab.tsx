@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';
 import { PaymentCheckout } from './PaymentCheckout';
+import { UsageQuotaSection } from './UsageQuotaSection';
 import type { Purchaseableplan } from '@/lib/api/useSubscription';
 
 interface PlanDef {
@@ -121,6 +122,11 @@ export function SubscriptionTab() {
           </Button>
         )}
       </div>
+
+      {/* Kullanım kotası */}
+      <UsageQuotaSection />
+
+      <div className="border-t border-border" />
 
       {/* Plan listesi */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

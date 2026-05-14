@@ -1,8 +1,19 @@
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { VehicleTable } from '@/features/data-management/components/VehicleTable';
+import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 
 export function VehiclesPage() {
   const navigate = useNavigate();
+  const { data: quota } = useUsageQuota();
+
+  function handleCreateClick() {
+    if (quota && isQuotaExceeded(quota.vehicles)) {
+      toast.error('Plan limitinize ulaştınız. Planınızı yükseltin.', { position: 'bottom-right' });
+      return;
+    }
+    navigate('/vehicles/new');
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -13,7 +24,7 @@ export function VehiclesPage() {
         </p>
       </div>
 
-      <VehicleTable onCreateClick={() => navigate('/vehicles/new')} />
+      <VehicleTable onCreateClick={handleCreateClick} />
     </div>
   );
 }
