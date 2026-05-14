@@ -14,6 +14,7 @@ public interface IItemRepository
     Task<bool> ExistsBySkuAsync(string sku, Guid excludeItemId, Guid? companyId, CancellationToken cancellationToken = default);
     Task<bool> IsUsedInActiveLoadingPlanAsync(Guid itemId, CancellationToken cancellationToken = default);
     Task<PagedResult<Item>> SearchAsync(string? searchTerm, int page, int pageSize, Guid? companyId, CancellationToken cancellationToken = default);
+    Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     void Add(Item item);
     void Update(Item item);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

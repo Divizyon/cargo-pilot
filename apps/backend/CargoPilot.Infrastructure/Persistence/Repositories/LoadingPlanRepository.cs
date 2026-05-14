@@ -347,6 +347,12 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        => _context.LoadingPlans.CountAsync(p => p.CompanyId == null && p.CreatedBy == userId, cancellationToken);
+
+    public Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
+        => _context.LoadingPlans.CountAsync(p => p.CompanyId == companyId, cancellationToken);
+
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
         new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
 

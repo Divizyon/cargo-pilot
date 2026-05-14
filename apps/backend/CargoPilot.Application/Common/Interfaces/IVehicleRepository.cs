@@ -24,6 +24,8 @@ public interface IVehicleRepository {
 
     Task<bool> IsUsedInActiveLoadingPlanAsync(Guid vehicleId, CancellationToken cancellationToken = default);
 
+    Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default);
+
     void Add(Vehicle vehicle);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

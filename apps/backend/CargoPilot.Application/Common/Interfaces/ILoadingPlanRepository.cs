@@ -38,6 +38,9 @@ public interface ILoadingPlanRepository
 
     Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
 
+    Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     Task SaveWithResultAsync(
