@@ -6,10 +6,14 @@ public sealed class LoadingPlanInputItem : BaseEntity
     public Guid LoadingPlanId { get; private set; }
     public Guid ItemId { get; private set; }
     public int Quantity { get; private set; }
+    public Guid? GroupId { get; private set; }
 #pragma warning restore S1144
 
     public LoadingPlan LoadingPlan { get; private set; } = null!;
     public Item Item { get; private set; } = null!;
+#pragma warning disable S1144
+    public LoadingPlanItemGroup? Group { get; private set; }
+#pragma warning restore S1144
 
     private LoadingPlanInputItem() { }
 
@@ -19,4 +23,6 @@ public sealed class LoadingPlanInputItem : BaseEntity
         ItemId = itemId;
         Quantity = quantity;
     }
+
+    public void AssignGroup(Guid? groupId) => GroupId = groupId;
 }
