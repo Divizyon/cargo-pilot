@@ -38,6 +38,14 @@ internal sealed class LoadingPlanInputItemConfiguration : IEntityTypeConfigurati
             .HasForeignKey(i => i.ItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(i => i.GroupId);
+
+        builder.HasOne(i => i.Group)
+            .WithMany()
+            .HasForeignKey(i => i.GroupId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(i => i.LoadingPlanId)
             .HasDatabaseName("IX_LoadingPlanInputItems_LoadingPlanId");
 

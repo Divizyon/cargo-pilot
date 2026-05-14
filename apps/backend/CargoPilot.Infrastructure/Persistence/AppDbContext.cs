@@ -23,6 +23,7 @@ public class AppDbContext : DbContext {
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<UserVehicleFavorite> UserVehicleFavorites => Set<UserVehicleFavorite>();
     public DbSet<LoadingPlan> LoadingPlans => Set<LoadingPlan>();
+    public DbSet<LoadingPlanItemGroup> LoadingPlanItemGroups => Set<LoadingPlanItemGroup>();
     public DbSet<LoadingPlanInputItem> LoadingPlanInputItems => Set<LoadingPlanInputItem>();
     public DbSet<LoadingPlanPlacement> LoadingPlanPlacements => Set<LoadingPlanPlacement>();
     public DbSet<LoadingPlanUnplacedItem> LoadingPlanUnplacedItems => Set<LoadingPlanUnplacedItem>();
@@ -54,6 +55,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
         modelBuilder.ApplyConfiguration(new UserVehicleFavoriteConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanItemGroupConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanInputItemConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanPlacementConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanUnplacedItemConfiguration());
