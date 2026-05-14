@@ -119,7 +119,13 @@ type ConstraintOption = {
   fragilityValue?: number;
 };
 
-function CorrosiveIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: string | number }) {
+function CorrosiveIcon({
+  className,
+  strokeWidth = 2,
+}: {
+  className?: string;
+  strokeWidth?: string | number;
+}) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -333,14 +339,44 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
       >
         {axis === 'x' && (
           <>
-            <path d="M50 4 L82 20 L50 36 L18 20 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M82 20 L82 82 L50 94 L50 36 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M18 20 L18 82 L50 94 L50 36 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path
+              d="M50 4 L82 20 L50 36 L18 20 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M82 20 L82 82 L50 94 L50 36 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M18 20 L18 82 L50 94 L50 36 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {!isLocked && (
               <>
-                <path d="M10 26 A 22 26 0 0 0 10 72" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M10 26 A 22 26 0 0 0 10 72"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="10,82 3,70 17,70" fill={arrowCol} />
-                <path d="M90 70 A 22 26 0 0 0 90 26" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M90 70 A 22 26 0 0 0 90 26"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="90,16 83,28 97,28" fill={arrowCol} />
               </>
             )}
@@ -348,14 +384,44 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
         {axis === 'y' && (
           <>
-            <path d="M50 26 L90 40 L50 54 L10 40 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M90 40 L90 68 L50 78 L50 54 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M10 40 L10 68 L50 78 L50 54 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path
+              d="M50 26 L90 40 L50 54 L10 40 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M90 40 L90 68 L50 78 L50 54 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10 40 L10 68 L50 78 L50 54 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {!isLocked && (
               <>
-                <path d="M20 37 A 34 12 0 0 1 78 37" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M20 37 A 34 12 0 0 1 78 37"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="88,37 77,30 77,44" fill={arrowCol} />
-                <path d="M80 47 A 34 12 0 0 1 22 47" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M80 47 A 34 12 0 0 1 22 47"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="12,47 23,40 23,54" fill={arrowCol} />
               </>
             )}
@@ -363,23 +429,51 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
         {axis === 'z' && (
           <>
-            <path d="M50 10 L84 26 L50 42 L16 26 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M84 26 L84 72 L50 88 L50 42 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M16 26 L16 72 L50 88 L50 42 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path
+              d="M50 10 L84 26 L50 42 L16 26 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M84 26 L84 72 L50 88 L50 42 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M16 26 L16 72 L50 88 L50 42 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {!isLocked && (
               <>
-                <path d="M90 30 A 20 24 0 0 1 90 70" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M90 30 A 20 24 0 0 1 90 70"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="90,80 83,68 97,68" fill={arrowCol} />
-                <path d="M10 68 A 20 24 0 0 1 10 28" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M10 68 A 20 24 0 0 1 10 28"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="10,18 3,30 17,30" fill={arrowCol} />
               </>
             )}
           </>
         )}
       </svg>
-      {isLocked && (
-        <Lock className="absolute h-4 w-4 text-muted-foreground/60" />
-      )}
+      {isLocked && <Lock className="absolute h-4 w-4 text-muted-foreground/60" />}
     </div>
   );
 }
@@ -886,7 +980,9 @@ export function ProductForm({
                                 active={!isLocked && !isAutoDisabled}
                               />
                               <div className="flex flex-col items-center gap-0.5">
-                                <span className="text-sm font-semibold leading-none">{axisLabel}</span>
+                                <span className="text-sm font-semibold leading-none">
+                                  {axisLabel}
+                                </span>
                                 <span className="text-xs font-normal opacity-70">{subtitle}</span>
                               </div>
                             </Button>
