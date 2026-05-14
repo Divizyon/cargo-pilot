@@ -132,7 +132,9 @@ export function SubscriptionTab() {
               key={plan.key}
               className={cn(
                 'relative flex flex-col p-4',
-                plan.highlighted ? 'border-l-2 border-primary pl-4' : 'border-l-2 border-transparent pl-4',
+                plan.highlighted
+                  ? 'border-l-2 border-primary pl-4'
+                  : 'border-l-2 border-transparent pl-4',
                 isActive && 'border-l-2 border-emerald-500',
               )}
             >
