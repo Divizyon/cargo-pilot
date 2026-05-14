@@ -85,5 +85,7 @@ public sealed class AppUser : BaseEntity {
         LastName = lastName.Trim();
     }
 
+    public void UpdateEmail(string email) => Email = email.Trim().ToLowerInvariant();
+
     public void AssignToCompany(Guid companyId) => CompanyId = companyId;
 }
