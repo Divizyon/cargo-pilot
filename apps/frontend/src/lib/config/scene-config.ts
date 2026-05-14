@@ -69,20 +69,6 @@ export const SCENE = {
   DOOR_SIDE_PANEL_W_CM: 15,
 
   INSTANCED_THRESHOLD: 50,
-
-  // Yükleme animasyonu: HTML prototipindeki adaptive schedule mantığı
-  // totalDuration = clamp(ANIM_MIN_MS..ANIM_MAX_MS, ANIM_BASE_MS + count * ANIM_PER_BOX_MS)
-  // perBoxStagger = totalDuration / count
-  // boxFlight = clamp(ANIM_FLIGHT_MIN_MS..ANIM_FLIGHT_MAX_MS, perBoxStagger * ANIM_FLIGHT_RATIO)
-  ANIM_BASE_MS: 2000,
-  ANIM_PER_BOX_MS: 70,
-  ANIM_MIN_MS: 2500,
-  ANIM_MAX_MS: 4500,
-  ANIM_FLIGHT_MIN_MS: 500,
-  ANIM_FLIGHT_MAX_MS: 900,
-  ANIM_FLIGHT_RATIO: 1.8,
-  // Kapı dışı başlangıç ofseti (cm) — Z ekseninde aracın önüne göre
-  ANIM_DOOR_OFFSET_CM: 200,
   LANDING_START_OFFSET: 150,
   GRID_STEP_CM: 50,
   LEVEL_FILTER_STEP_CM: 10,

@@ -28,7 +28,6 @@ import {
   Loader2,
   Package2,
   Pencil,
-  Play,
   Plus,
   Search,
   SlidersHorizontal,
@@ -57,6 +56,7 @@ import {
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
+import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
@@ -403,7 +403,6 @@ interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
   onOptimize?: () => void;
-  onLoadAnimation?: () => void;
   isOptimizing?: boolean;
   canOptimize?: boolean;
 }
@@ -412,15 +411,14 @@ export function PlanRightPanel({
   vehiclesOpen = true,
   onToggleVehicles,
   onOptimize,
-  onLoadAnimation,
   isOptimizing = false,
   canOptimize = true,
 }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const criteria = usePlanStore((s) => s.criteria);
+  const setCriteria = usePlanStore((s) => s.setCriteria);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
-  const animationReady = useSceneStore((s) => s.animationReady);
-  const animationMode = useSceneStore((s) => s.animationMode);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
@@ -742,30 +740,52 @@ export function PlanRightPanel({
           </div>
         )}
 
-        <div className="px-3 py-3 border-t border-zinc-100 shrink-0 flex flex-col gap-2">
-          {animationReady ? (
-            <Button
-              className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
-              disabled={animationMode === 'playing'}
-              onClick={onLoadAnimation}
-            >
-              {animationMode === 'playing' ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Play className="h-3.5 w-3.5 fill-white" />
-              )}
-              {animationMode === 'playing' ? 'Yükleniyor…' : 'Yükle'}
-            </Button>
-          ) : (
-            <Button
-              className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-              disabled={!selectedVehicle || isOptimizing || !canOptimize}
-              onClick={onOptimize}
-            >
-              {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-              Optimizasyonu Başlat
-            </Button>
-          )}
+        <div className="px-3 pt-3 pb-2 border-t border-zinc-100 shrink-0 flex gap-2">
+          <button
+            onClick={() =>
+              setCriteria(
+                criteria === OptimizationCriteria.Lifo
+                  ? OptimizationCriteria.VolumeFirst
+                  : OptimizationCriteria.Lifo,
+              )
+            }
+            className={cn(
+              'flex-1 h-7 rounded-md text-[11px] font-medium border transition-colors',
+              criteria === OptimizationCriteria.Lifo
+                ? 'bg-zinc-900 text-white border-zinc-900'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700',
+            )}
+          >
+            Lifo
+          </button>
+          <button
+            onClick={() =>
+              setCriteria(
+                criteria === OptimizationCriteria.WeightBalance
+                  ? OptimizationCriteria.VolumeFirst
+                  : OptimizationCriteria.WeightBalance,
+              )
+            }
+            className={cn(
+              'flex-1 h-7 rounded-md text-[11px] font-medium border transition-colors',
+              criteria === OptimizationCriteria.WeightBalance
+                ? 'bg-zinc-900 text-white border-zinc-900'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700',
+            )}
+          >
+            Ağırlık Dengesi
+          </button>
+        </div>
+
+        <div className="px-3 pb-3 shrink-0">
+          <Button
+            className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
+            disabled={!selectedVehicle || isOptimizing || !canOptimize}
+            onClick={onOptimize}
+          >
+            {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            Optimizasyonu Başlat
+          </Button>
         </div>
       </div>
 

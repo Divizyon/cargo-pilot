@@ -23,7 +23,6 @@ import {
   useReoptimizeLoadingPlan,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
-import { useSceneStore } from '@/lib/store/useSceneStore';
 import { planningDetailRoute } from '@/lib/config/routes';
 
 // ─── PlanAutoLoader ───────────────────────────────────────────────────────────
@@ -40,6 +39,7 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
+  const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
 
   const appliedRef = useRef(false);
 
@@ -58,7 +58,8 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
     onVehicleSelected();
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
-  }, [isSuccess, data, setVehicle, initItems, setPlacements, onVehicleSelected]);
+    setUnplacedItems(data.unplacedItems);
+  }, [isSuccess, data, setVehicle, initItems, setPlacements, setUnplacedItems, onVehicleSelected]);
 
   return null;
 }
@@ -67,7 +68,7 @@ export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [isDirty, setIsDirty] = useState(false);
+
   const [refetchKey, setRefetchKey] = useState(0);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [planNameInput, setPlanNameInput] = useState('');
@@ -75,8 +76,6 @@ export function NewPlanPage() {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
-
-  const initialStateRef = useRef<{ vehicleId: string; itemsKey: string } | null>(null);
 
   useEffect(() => {
     if (!fromPlanId) {
@@ -86,37 +85,8 @@ export function NewPlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const selectedItems = usePlanStore((s) => s.selectedItems);
-  const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
-  const startAnimation = useSceneStore((s) => s.startAnimation);
-
-  // Detect changes from initial loaded state
-  useEffect(() => {
-    if (!fromPlanId || !initialStateRef.current) return;
-    const itemsKey = selectedItems
-      .map((si) => `${si.item.id}:${si.quantity}`)
-      .sort()
-      .join(',');
-    const vehicleId = selectedVehicle?.id ?? '';
-    setIsDirty(
-      vehicleId !== initialStateRef.current.vehicleId ||
-        itemsKey !== initialStateRef.current.itemsKey,
-    );
-  }, [selectedVehicle, selectedItems, fromPlanId]);
-
   const handleVehicleSelected = useCallback(() => {
     setRightOpen(false);
-    // Defer snapshot: PlanAutoLoader calls this before initItems/setPlacements complete
-    setTimeout(() => {
-      const state = usePlanStore.getState();
-      const itemsKey = state.selectedItems
-        .map((si) => `${si.item.id}:${si.quantity}`)
-        .sort()
-        .join(',');
-      initialStateRef.current = { vehicleId: state.selectedVehicle?.id ?? '', itemsKey };
-      setIsDirty(false);
-    }, 0);
   }, []);
 
   const handleOptimize = useCallback(() => {
@@ -153,11 +123,6 @@ export function NewPlanPage() {
     navigate(planningDetailRoute(id), { replace: true });
   }, [planNameInput, createPlan, navigate]);
 
-  const handleLoadAnimation = useCallback(() => {
-    if (usePlanStore.getState().placements.length === 0) return;
-    startAnimation();
-  }, [startAnimation]);
-
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
     const { selectedVehicle: vehicle, selectedItems: items, criteria } = usePlanStore.getState();
@@ -170,8 +135,7 @@ export function NewPlanPage() {
       optimizationCriteria: criteria,
     });
     setRefetchKey((k) => k + 1);
-    setAnimationReady(true);
-  }, [fromPlanId, reoptimizePlan, setAnimationReady]);
+  }, [fromPlanId, reoptimizePlan]);
 
   return (
     <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
@@ -271,9 +235,8 @@ export function NewPlanPage() {
             vehiclesOpen={rightOpen}
             onToggleVehicles={() => setRightOpen((v) => !v)}
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
-            onLoadAnimation={handleLoadAnimation}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
-            canOptimize={fromPlanId ? isDirty : true}
+            canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
           />
         </div>
       </div>
