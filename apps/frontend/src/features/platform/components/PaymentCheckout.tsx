@@ -101,9 +101,7 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
               {...form.register('cardHolder')}
             />
             {form.formState.errors.cardHolder && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.cardHolder.message}
-              </p>
+              <p className="text-xs text-destructive">{form.formState.errors.cardHolder.message}</p>
             )}
           </div>
 
@@ -125,9 +123,7 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
               })}
             />
             {form.formState.errors.cardNumber && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.cardNumber.message}
-              </p>
+              <p className="text-xs text-destructive">{form.formState.errors.cardNumber.message}</p>
             )}
           </div>
 
@@ -190,17 +186,13 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
             <span className="text-sm font-semibold text-foreground">{plan.label}</span>
             <div className="flex items-baseline gap-0.5">
               <span className="text-base font-bold text-foreground">{plan.price}</span>
-              {plan.period && (
-                <span className="text-xs text-muted-foreground">{plan.period}</span>
-              )}
+              {plan.period && <span className="text-xs text-muted-foreground">{plan.period}</span>}
             </div>
           </div>
         </div>
 
         {/* Sunucu hatası */}
-        {serverError && (
-          <p className="text-sm text-destructive">{serverError}</p>
-        )}
+        {serverError && <p className="text-sm text-destructive">{serverError}</p>}
 
         <div className="flex flex-col gap-2">
           <Button type="submit" disabled={isPending} className="w-full">

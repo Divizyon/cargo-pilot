@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';
 import { PaymentCheckout } from './PaymentCheckout';
+import { UsageQuotaSection } from './UsageQuotaSection';
 import type { Purchaseableplan } from '@/lib/api/useSubscription';
 
 interface PlanDef {
@@ -122,6 +123,11 @@ export function SubscriptionTab() {
         )}
       </div>
 
+      {/* Kullanım kotası */}
+      <UsageQuotaSection />
+
+      <div className="border-t border-border" />
+
       {/* Plan listesi */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan) => {
@@ -132,7 +138,9 @@ export function SubscriptionTab() {
               key={plan.key}
               className={cn(
                 'relative flex flex-col p-4',
-                plan.highlighted ? 'border-l-2 border-primary pl-4' : 'border-l-2 border-transparent pl-4',
+                plan.highlighted
+                  ? 'border-l-2 border-primary pl-4'
+                  : 'border-l-2 border-transparent pl-4',
                 isActive && 'border-l-2 border-emerald-500',
               )}
             >
