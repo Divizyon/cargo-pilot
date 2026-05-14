@@ -1,4 +1,3 @@
-using CargoPilot.Application.Features.Integrations.GetIntegrationStatus;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
 using CargoPilot.Application.Features.Integrations.ListIntegrations;
 using CargoPilot.Application.Features.Integrations.PendingItemMappings;
@@ -37,26 +36,6 @@ public sealed class IntegrationsController : BaseController
     public async Task<IActionResult> List(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new ListIntegrationsQuery(), cancellationToken);
-        return HandleResult(result);
-    }
-
-    /// <summary>
-    /// Entegrasyonun bağlantı durumunu döndürür (Aktif / Kesik).
-    /// CompanyWorker bu endpoint'e erişebilir; yalnızca okuma amaçlıdır.
-    /// </summary>
-    /// <param name="id">Entegrasyon ID'si.</param>
-    /// <param name="cancellationToken">İptal token'ı.</param>
-    /// <response code="200">Bağlantı durumu döner.</response>
-    /// <response code="404">Entegrasyon bulunamadı.</response>
-    [HttpGet("{id:guid}/status")]
-    [Authorize(Policy = "CompanyMember")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetStatus(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(new GetIntegrationStatusQuery(id), cancellationToken);
         return HandleResult(result);
     }
 

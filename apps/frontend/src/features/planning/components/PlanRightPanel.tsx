@@ -28,7 +28,6 @@ import {
   Loader2,
   Package2,
   Pencil,
-  Play,
   Plus,
   Search,
   SlidersHorizontal,
@@ -404,7 +403,6 @@ interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
   onOptimize?: () => void;
-  onLoadAnimation?: () => void;
   isOptimizing?: boolean;
   canOptimize?: boolean;
 }
@@ -413,7 +411,6 @@ export function PlanRightPanel({
   vehiclesOpen = true,
   onToggleVehicles,
   onOptimize,
-  onLoadAnimation,
   isOptimizing = false,
   canOptimize = true,
 }: PlanRightPanelProps) {
@@ -422,8 +419,6 @@ export function PlanRightPanel({
   const criteria = usePlanStore((s) => s.criteria);
   const setCriteria = usePlanStore((s) => s.setCriteria);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
-  const animationReady = useSceneStore((s) => s.animationReady);
-  const animationMode = useSceneStore((s) => s.animationMode);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
