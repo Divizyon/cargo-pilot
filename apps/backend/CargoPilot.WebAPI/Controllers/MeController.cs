@@ -2,6 +2,7 @@ using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Me.ChangePassword;
 using CargoPilot.Application.Features.Me.ConfirmEmailChange;
 using CargoPilot.Application.Features.Me.GetMyProfile;
+using CargoPilot.Application.Features.Me.GetMySubscription;
 using CargoPilot.Application.Features.Me.RequestEmailChange;
 using CargoPilot.Application.Features.Me.UpdateMyProfile;
 using CargoPilot.Application.Features.Me.UpdateTourCompleted;
@@ -14,7 +15,7 @@ namespace CargoPilot.WebAPI.Controllers;
 
 /// <summary>Giriş yapmış kullanıcıya ait profil endpoint'leri.</summary>
 [Route("api/v1/me")]
-[Authorize(Policy = "CompanyMember")]
+[Authorize]
 public sealed class MeController : BaseController
 {
     private readonly IMediator _mediator;
@@ -45,6 +46,19 @@ public sealed class MeController : BaseController
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>Giriş yapmış kullanıcının abonelik bilgilerini ve kalan limitlerini döndürür.</summary>
+    [HttpGet("subscription")]
+    [ProducesResponseType(typeof(Result<IndividualSubscriptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<CompanyAdminSubscriptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSubscription(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetMySubscriptionQuery(), cancellationToken);
         return HandleResult(result);
     }
 

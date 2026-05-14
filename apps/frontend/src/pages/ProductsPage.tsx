@@ -1,12 +1,23 @@
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ProductTable } from '@/features/data-management/components/ProductTable';
+import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 import type { Item } from '@/lib/types/item';
 
 export function ProductsPage() {
   const navigate = useNavigate();
+  const { data: quota } = useUsageQuota();
 
   function handleRowClick(item: Item) {
     navigate(`/products/${item.id}/edit`);
+  }
+
+  function handleCreateClick() {
+    if (quota && isQuotaExceeded(quota.products)) {
+      toast.error('Plan limitinize ulaştınız. Planınızı yükseltin.', { position: 'bottom-right' });
+      return;
+    }
+    navigate('/products/new');
   }
 
   return (
@@ -18,7 +29,7 @@ export function ProductsPage() {
         </p>
       </div>
 
-      <ProductTable onRowClick={handleRowClick} onCreateClick={() => navigate('/products/new')} />
+      <ProductTable onRowClick={handleRowClick} onCreateClick={handleCreateClick} />
     </div>
   );
 }
