@@ -16,9 +16,8 @@ export function SubscriptionExpiredBanner() {
     <div className="flex items-center gap-3 border-b border-destructive/30 bg-destructive/10 px-6 py-2.5">
       <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
       <p className="flex-1 text-sm text-foreground">
-        <span className="font-medium">Aboneliğiniz sona erdi.</span>{' '}
-        Mevcut planlarınızı ve raporlarınızı görüntüleyebilirsiniz; yeni plan oluşturmak için
-        aboneliğinizi yenileyin.
+        <span className="font-medium">Aboneliğiniz sona erdi.</span> Mevcut planlarınızı ve
+        raporlarınızı görüntüleyebilirsiniz; yeni plan oluşturmak için aboneliğinizi yenileyin.
       </p>
       <Button
         size="sm"

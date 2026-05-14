@@ -131,9 +131,7 @@ export function SubscriptionTab() {
           </p>
           <p className="mt-1 text-base font-bold text-foreground">{PLAN_LABELS[currentPlan]}</p>
           {expiresAt && !willCancelAtPeriodEnd && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Bitiş: {formattedExpiry}
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Bitiş: {formattedExpiry}</p>
           )}
         </div>
         <div className="flex items-center gap-2">

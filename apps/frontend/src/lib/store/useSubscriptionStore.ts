@@ -6,7 +6,11 @@ interface SubscriptionStore {
   plan: SubscriptionPlan;
   expiresAt: string | null;
   willCancelAtPeriodEnd: boolean;
-  setPlan: (plan: SubscriptionPlan, expiresAt?: string | null, willCancelAtPeriodEnd?: boolean) => void;
+  setPlan: (
+    plan: SubscriptionPlan,
+    expiresAt?: string | null,
+    willCancelAtPeriodEnd?: boolean,
+  ) => void;
   setWillCancelAtPeriodEnd: (value: boolean) => void;
   clear: () => void;
 }

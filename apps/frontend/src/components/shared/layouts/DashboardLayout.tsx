@@ -20,7 +20,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUIStore } from '@/lib/store/useUIStore';
-import { useSubscriptionStore, selectIsSubscriptionExpired } from '@/lib/store/useSubscriptionStore';
+import {
+  useSubscriptionStore,
+  selectIsSubscriptionExpired,
+} from '@/lib/store/useSubscriptionStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
