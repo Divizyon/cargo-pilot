@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -17,13 +17,21 @@ import {
   MoveHorizontal,
   ArrowUpDown,
   Copy,
+  Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
+import {
+  useLoadingPlanListItem,
+  useLoadingPlanProducts,
+  useLoadingPlanDetail,
+} from '@/lib/api/useLoadingPlans';
+import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
+import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
 import { PlanStatus } from '@/lib/types/loadingPlan';
 import type {
   LoadingPlanListItem,
@@ -153,21 +161,7 @@ function InfoCard({ icon, label, primary, children }: InfoCardProps) {
   );
 }
 
-// ─── Three.js Placeholder ─────────────────────────────────────────────────────
 
-interface ThreeDPlaceholderProps {
-  label: string;
-}
-
-function ThreeDPlaceholder({ label }: ThreeDPlaceholderProps) {
-  return (
-    <div className="w-full h-[220px] rounded-lg bg-zinc-50 border border-dashed border-zinc-300 flex flex-col items-center justify-center gap-2 select-none">
-      <Box className="w-8 h-8 text-zinc-300" strokeWidth={1.5} />
-      <span className="text-xs text-zinc-400 font-medium">{label} — 3D Görünüm</span>
-      <span className="text-[10px] text-zinc-300">Three.js canvas buraya gelecek</span>
-    </div>
-  );
-}
 
 // ─── Constraint icons ─────────────────────────────────────────────────────────
 
@@ -225,8 +219,8 @@ function ContainerPanel({ plan, index, productGroups, cogText }: ContainerPanelP
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-2">
-      {/* 3D Viewport placeholder */}
-      <ThreeDPlaceholder label={plan.vehicleName} />
+      {/* 3D Viewport — planId dışarıdan gelecek, ContainerPanel bunu bilmiyor;
+          ThreeDPlannerContent seviyesinde canvas render ediliyor */}
 
       {/* CoG indicator */}
       <p className="text-[11px] font-medium text-amber-600 px-1">{cogText}</p>
@@ -302,6 +296,7 @@ function ContainerPanel({ plan, index, productGroups, cogText }: ContainerPanelP
 // ─── 3D Planner Tab Content ───────────────────────────────────────────────────
 
 interface ThreeDPlannerContentProps {
+  planId: string;
   plan: LoadingPlanListItem;
   productGroups: PlanProductGroup[];
   search: string;
@@ -311,6 +306,7 @@ interface ThreeDPlannerContentProps {
 }
 
 function ThreeDPlannerContent({
+  planId,
   plan,
   productGroups,
   search,
@@ -318,13 +314,72 @@ function ThreeDPlannerContent({
   editMode,
   onEditModeChange,
 }: ThreeDPlannerContentProps) {
+  // Backend'den gelen placement verilerini store'a yükle
+  const { data: detail } = useLoadingPlanDetail(planId);
+  const setVehicle = usePlanStore((s) => s.setVehicle);
+  const initItems = usePlanStore((s) => s.initItems);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
+  const startAnimation = useSceneStore((s) => s.startAnimation);
+  const animationMode = useSceneStore((s) => s.animationMode);
+  const appliedRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      // Sayfa ayrılırken store'u temizle
+      usePlanStore.getState().reset();
+      useSceneStore.getState().reset();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (appliedRef.current || !detail?.vehicle) return;
+    appliedRef.current = true;
+    setVehicle(detail.vehicle);
+    initItems(detail.inputItems, detail.skuColorMap);
+    setPlacements(detail.placements);
+    useSceneStore.getState().setAnimationMode('idle');
+    useSceneStore.getState().setAnimationStep(0);
+  }, [detail, setVehicle, initItems, setPlacements]);
+
+  function handlePlay() {
+    startAnimation();
+  }
   const totalVolume = plan.interiorWidthM * plan.interiorHeightM * plan.interiorDepthM;
   const loadedVolume = (plan.volumeFillPercentage / 100) * totalVolume;
   const remainingVolume = totalVolume - loadedVolume;
   const remainingWeight = plan.vehicleCapacityKg - plan.totalWeightKg;
 
+  const isLoaded = !!detail?.placements?.length;
+
   return (
     <div className="flex flex-col gap-4">
+      {/* 3D Canvas + Yükle butonu */}
+      <div className="relative rounded-xl overflow-hidden border border-zinc-200 bg-white" style={{ height: 400 }}>
+        {isLoaded ? (
+          <>
+            <PlanCanvas planId={planId} />
+            {animationMode !== 'playing' && animationMode !== 'stepped' && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
+                <Button
+                  size="sm"
+                  className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 shadow-md"
+                  onClick={handlePlay}
+                >
+                  <Play className="h-3.5 w-3.5 fill-white" />
+                  Yükle
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-400">
+            <Box className="w-8 h-8 text-zinc-300" strokeWidth={1.5} />
+            <span className="text-xs font-medium">{plan.vehicleName} — 3D Görünüm</span>
+            <span className="text-[10px] text-zinc-300">Yükleniyor…</span>
+          </div>
+        )}
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-3">
         <UtilizationCard
@@ -587,6 +642,7 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
       <div className="flex-1 px-6 py-5">
         {activeTab === '3d-planner' && (
           <ThreeDPlannerContent
+            planId={id}
             plan={plan}
             productGroups={productGroups}
             search={search}
