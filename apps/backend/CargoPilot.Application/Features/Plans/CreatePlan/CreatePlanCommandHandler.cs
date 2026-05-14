@@ -1,7 +1,9 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 
@@ -14,6 +16,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly IItemRepository _itemRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICompanyRepository _companyRepository;
     private readonly IValidator<CreatePlanCommand> _validator;
 
     public CreatePlanCommandHandler(
@@ -22,6 +25,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         IItemRepository itemRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
+        ICompanyRepository companyRepository,
         IValidator<CreatePlanCommand> validator)
     {
         _planRepository = planRepository;
@@ -29,6 +33,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         _itemRepository = itemRepository;
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
+        _companyRepository = companyRepository;
         _validator = validator;
     }
 
@@ -45,6 +50,31 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         }
 
         var companyId = _currentUserService.CompanyId;
+
+        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } planUserId)
+        {
+            var currentCount = await _planRepository.CountByUserAsync(planUserId, cancellationToken);
+            var maxCount = SubscriptionLimits.GetMaxLoadingPlanCount(SubscriptionType.Free);
+            if (currentCount >= maxCount)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
+                        "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
+        }
+
+        var userType = _currentUserService.UserType;
+        if (userType is UserType.CompanyAdmin or UserType.CompanyWorker && companyId is not null)
+        {
+            var company = await _companyRepository.GetByIdAsync(companyId.Value, cancellationToken);
+            if (company is not null)
+            {
+                var maxPlanCount = SubscriptionLimits.GetMaxLoadingPlanCount(company.SubscriptionType);
+                var currentCount = await _planRepository.CountByCompanyAsync(companyId.Value, cancellationToken);
+                if (currentCount >= maxPlanCount)
+                    return Result<Guid>.Failure(
+                        new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
+                            "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
+            }
+        }
 
         var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
         if (vehicle is null)

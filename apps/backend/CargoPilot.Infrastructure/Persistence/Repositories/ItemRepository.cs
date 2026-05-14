@@ -107,6 +107,12 @@ internal sealed class ItemRepository : IItemRepository
         return new PagedResult<Item>(items, totalCount, page, pageSize);
     }
 
+    public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        => _dbContext.Items.CountAsync(i => i.CompanyId == null && i.CreatedBy == userId, cancellationToken);
+
+    public Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
+        => _dbContext.Items.CountAsync(i => i.CompanyId == companyId, cancellationToken);
+
     public void Add(Item item)
     {
         _dbContext.Items.Add(item);
