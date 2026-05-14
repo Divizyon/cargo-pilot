@@ -83,7 +83,6 @@ public static class DependencyInjection {
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
         services.AddScoped<IErpProductFetcher, MockErpProductFetcher>();
-
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
