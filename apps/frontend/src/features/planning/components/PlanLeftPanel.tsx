@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   AlertTriangle,
   Box,
+  Check,
   ChevronDown,
   ChevronRight,
   Cylinder,
@@ -14,6 +15,7 @@ import {
   Minus,
   Package,
   PackageMinus,
+  PackagePlus,
   Pencil,
   Plus,
   RotateCcw,
@@ -21,6 +23,12 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,9 +38,9 @@ import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
 import { AddItemModal } from './AddItemModal';
+import { UnfitItemsPanel } from './UnfitItemsPanel';
 import type { Item } from '@/lib/types/item';
 
-// Minimum item count to switch from DnD to virtual list rendering
 const VIRTUAL_THRESHOLD = 100;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -42,6 +50,24 @@ const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
   varil: Cylinder,
   palet: Package,
 };
+
+const GROUP_ICON_COLORS = [
+  '#2DD4BF',
+  '#FB923C',
+  '#FBBF24',
+  '#818CF8',
+  '#FB7185',
+  '#34D399',
+  '#0EA5E9',
+  '#A855F7',
+  '#64748B',
+  '#E11D48',
+  '#84CC16',
+  '#D97706',
+  '#4338CA',
+  '#A7F3D0',
+  '#334155',
+] as const;
 
 function itemMatchesFilters(
   item: Item,
@@ -58,7 +84,6 @@ function itemMatchesFilters(
   return true;
 }
 
-// Derive a list of constraints from Item fields
 interface ConstraintMeta {
   key: string;
   label: string;
@@ -115,7 +140,46 @@ function getItemConstraints(item: Item): ConstraintMeta[] {
   return list;
 }
 
+// ─── GroupSelectionRow ────────────────────────────────────────────────────────
+
+interface GroupSelectionRowProps {
+  item: Item;
+  isSelected: boolean;
+  onToggle: () => void;
+}
+
+function GroupSelectionRow({ item, isSelected, onToggle }: GroupSelectionRowProps) {
+  const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
+  return (
+    <button
+      onClick={onToggle}
+      className={cn(
+        'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-colors text-left',
+        isSelected ? 'bg-zinc-100 ring-1 ring-zinc-300' : 'hover:bg-zinc-50',
+      )}
+    >
+      <div
+        className={cn(
+          'w-4 h-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors',
+          isSelected ? 'bg-zinc-900 border-zinc-900' : 'border-zinc-300',
+        )}
+      >
+        {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+      </div>
+      <TypeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-400" strokeWidth={1.5} />
+      <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
+      <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
+    </button>
+  );
+}
+
 // ─── StoreItemRow ─────────────────────────────────────────────────────────────
+
+interface GroupOption {
+  id: string;
+  ad: string;
+  color: string;
+}
 
 interface StoreItemRowProps {
   storeEntry: { item: Item; quantity: number };
@@ -123,10 +187,13 @@ interface StoreItemRowProps {
   canPlace: boolean;
   isExpanded: boolean;
   indent?: boolean;
+  iconColor?: string;
+  groups?: GroupOption[];
   onToggleExpand: () => void;
   onPlace: (qty: number) => void;
   onRemove?: () => void;
   onEdit?: () => void;
+  onAddToGroup?: (groupId: string) => void;
 }
 
 function StoreItemRow({
@@ -135,10 +202,13 @@ function StoreItemRow({
   canPlace,
   isExpanded,
   indent = false,
+  iconColor,
+  groups,
   onToggleExpand,
   onPlace,
   onRemove,
   onEdit,
+  onAddToGroup,
 }: StoreItemRowProps) {
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
@@ -154,7 +224,6 @@ function StoreItemRow({
         isExpanded && 'ring-1 ring-zinc-200',
       )}
     >
-      {/* ── Collapsed header ─────────────────────────────────────────── */}
       <div
         onClick={onToggleExpand}
         className={cn(
@@ -163,12 +232,13 @@ function StoreItemRow({
           isExpanded && 'bg-zinc-50',
         )}
       >
-        <TypeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-400" strokeWidth={1.5} />
-
+        <TypeIcon
+          className={cn('w-3.5 h-3.5 shrink-0', !iconColor && 'text-zinc-400')}
+          style={iconColor ? { color: iconColor } : undefined}
+          strokeWidth={1.5}
+        />
         <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
-
         <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
-
         {onEdit && (
           <button
             title="Düzenle"
@@ -181,7 +251,6 @@ function StoreItemRow({
             <Pencil className="w-2.5 h-2.5" />
           </button>
         )}
-
         <ChevronDown
           className={cn(
             'w-3 h-3 shrink-0 text-zinc-300 transition-transform duration-150',
@@ -190,15 +259,11 @@ function StoreItemRow({
         />
       </div>
 
-      {/* ── Expanded panel ────────────────────────────────────────────── */}
       {isExpanded && (
         <div className="px-2.5 pt-2 pb-2.5 bg-zinc-50 border-t border-zinc-100 space-y-2">
-          {/* Dimensions + weight */}
           <p className="text-[11px] text-zinc-500 tabular-nums">
             {item.width}×{item.height}×{item.length} cm · {item.weight} kg
           </p>
-
-          {/* Constraint icons with hover tooltips */}
           {hasConstraints && (
             <TooltipProvider delayDuration={100}>
               <div className="flex items-center gap-1.5">
@@ -217,8 +282,6 @@ function StoreItemRow({
               </div>
             </TooltipProvider>
           )}
-
-          {/* Yük grubu */}
           {item.stackGroup?.trim() && (
             <div className="flex items-center gap-1.5 text-[11px]">
               <Package className="w-3 h-3 text-zinc-400 shrink-0" />
@@ -226,13 +289,9 @@ function StoreItemRow({
               <span className="text-zinc-700 font-medium truncate">{item.stackGroup}</span>
             </div>
           )}
-
-          {/* Taşıma notu */}
           {item.specialNotes?.trim() && (
             <p className="text-[11px] text-zinc-500 italic leading-snug">{item.specialNotes}</p>
           )}
-
-          {/* Action row */}
           <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-zinc-100">
             {!isPlaced ? (
               <>
@@ -248,9 +307,17 @@ function StoreItemRow({
                     >
                       <Minus className="w-2 h-2" />
                     </button>
-                    <span className="w-6 text-center text-[11px] tabular-nums text-zinc-700">
-                      {localQty}
-                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={localQty}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (!isNaN(v) && v >= 1) setLocalQty(v);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-8 text-center text-[11px] tabular-nums text-zinc-700 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -262,18 +329,56 @@ function StoreItemRow({
                     </button>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  disabled={!canPlace}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPlace(localQty);
-                    onToggleExpand();
-                  }}
-                  className="h-6 text-[11px] px-2.5 bg-zinc-900 text-white hover:bg-zinc-700"
-                >
-                  Ekle
-                </Button>
+                <div className="flex items-center gap-1">
+                  {groups && groups.length > 0 && onAddToGroup && (
+                    <DropdownMenu>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                              >
+                                <FolderPlus className="w-3.5 h-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            Gruba Ekle
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <DropdownMenuContent side="top" align="end" className="w-44 p-1">
+                        {groups.map((g) => (
+                          <DropdownMenuItem
+                            key={g.id}
+                            className="flex items-center gap-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAddToGroup(g.id);
+                            }}
+                          >
+                            <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
+                            <span className="truncate">{g.ad}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  <Button
+                    size="sm"
+                    disabled={!canPlace}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPlace(localQty);
+                      onToggleExpand();
+                    }}
+                    className="h-6 text-[11px] px-2.5 bg-zinc-900 text-white hover:bg-zinc-700"
+                  >
+                    Ekle
+                  </Button>
+                </div>
               </>
             ) : (
               <button
@@ -300,7 +405,7 @@ function StoreItemRow({
 export function PlanLeftPanel() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<
-    Array<{ id: string; ad: string; acik: boolean; itemIdler: string[] }>
+    Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>
   >([]);
   const [ungroupedIds, setUngroupedIds] = useState<string[]>([]);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -308,6 +413,12 @@ export function PlanLeftPanel() {
   const [search, setSearch] = useState('');
   const [activeConstraints] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
+
+  // Group management state
+  const [groupSelectionMode, setGroupSelectionMode] = useState<string | null>(null);
+  const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupName, setEditingGroupName] = useState('');
 
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
   const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
@@ -330,10 +441,8 @@ export function PlanLeftPanel() {
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
 
-  // Binary "has any placement" — drives tab filter, row visual style, 3D scene actions
   const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
-  // Reset ungroupedIds when store is fully cleared (e.g. PlanAutoLoader resets on navigate)
   const prevSelectedLenRef = useRef(selectedItems.length);
   useEffect(() => {
     if (prevSelectedLenRef.current > 0 && selectedItems.length === 0 && placements.length === 0) {
@@ -342,9 +451,6 @@ export function PlanLeftPanel() {
     prevSelectedLenRef.current = selectedItems.length;
   }, [selectedItems.length, placements.length]);
 
-  // Seed ungroupedIds once:
-  // • Existing plan (selectedItems pre-populated by PlanAutoLoader): seed from store
-  // • New plan (selectedItems empty): seed from catalog API + call initItems
   useEffect(() => {
     if (ungroupedIds.length > 0) return;
     if (selectedItems.length > 0) {
@@ -365,10 +471,37 @@ export function PlanLeftPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiItems, selectedItems, ungroupedIds.length]);
 
-  // All known grouped IDs (for DnD context)
   const groupedIds = useMemo(() => new Set(groups.flatMap((g) => g.itemIdler)), [groups]);
 
-  // Catalog items not in the plan at all → shown in "Yüklü Değil" tab only
+  const itemIconColorMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const g of groups) {
+      for (const id of g.itemIdler) {
+        map[id] = g.color;
+      }
+    }
+    let idx = 0;
+    for (const id of ungroupedIds) {
+      if (!map[id]) {
+        map[id] = GROUP_ICON_COLORS[idx % GROUP_ICON_COLORS.length];
+        idx++;
+      }
+    }
+    for (const si of selectedItems) {
+      if (!map[si.item.id]) {
+        map[si.item.id] = GROUP_ICON_COLORS[idx % GROUP_ICON_COLORS.length];
+        idx++;
+      }
+    }
+    for (const item of apiItems) {
+      if (!map[item.id]) {
+        map[item.id] = GROUP_ICON_COLORS[idx % GROUP_ICON_COLORS.length];
+        idx++;
+      }
+    }
+    return map;
+  }, [groups, ungroupedIds, selectedItems, apiItems]);
+
   const filteredCatalogOnlyItems = useMemo(() => {
     if (activeTab !== 'unloaded') return [];
     const planIds = new Set(selectedItems.map((si) => si.item.id));
@@ -380,17 +513,14 @@ export function PlanLeftPanel() {
     );
   }, [apiItems, selectedItems, placedIds, activeTab, search, activeConstraints]);
 
-  // Single deduplicated flat list — merges ungroupedIds order with any extras from selectedItems.
-  // Explicit deduplication prevents double-rendering regardless of seeding timing.
   const flatDisplayItems = useMemo(() => {
     const seen = new Set<string>();
     const result: string[] = [];
 
-    // First: items in ungroupedIds order (DnD order)
     for (const id of ungroupedIds) {
       if (seen.has(id)) continue;
       seen.add(id);
-      if (groupedIds.has(id)) continue; // belongs to a group, skip here
+      if (groupedIds.has(id)) continue;
       const entry = selectedItems.find((si) => si.item.id === id);
       if (!entry) continue;
       const isPlaced = placedIds.has(id);
@@ -400,7 +530,6 @@ export function PlanLeftPanel() {
       result.push(id);
     }
 
-    // Then: any selectedItems not yet in ungroupedIds (e.g. just added via addManualItem)
     for (const si of selectedItems) {
       const id = si.item.id;
       if (seen.has(id)) continue;
@@ -416,7 +545,6 @@ export function PlanLeftPanel() {
     return result;
   }, [ungroupedIds, selectedItems, groupedIds, placedIds, activeTab, search, activeConstraints]);
 
-  // Virtual list — activated when total flat item count reaches threshold
   const shouldVirtualize = flatDisplayItems.length >= VIRTUAL_THRESHOLD;
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -426,6 +554,19 @@ export function PlanLeftPanel() {
     estimateSize: () => 36,
     overscan: 8,
   });
+
+  // All items available for group selection (plan items + catalog items in Ürün Listesi)
+  const groupSelectionItems = useMemo(() => {
+    if (!groupSelectionMode) return [];
+    const planIds = new Set(selectedItems.map((si) => si.item.id));
+    const catalogOnly = apiItems.filter(
+      (item) => !planIds.has(item.id) && itemMatchesFilters(item, search, activeConstraints),
+    );
+    const planUnplaced = selectedItems.filter(
+      (si) => !placedIds.has(si.item.id) && itemMatchesFilters(si.item, search, activeConstraints),
+    );
+    return [...planUnplaced.map((si) => si.item), ...catalogOnly];
+  }, [groupSelectionMode, selectedItems, apiItems, placedIds, search, activeConstraints]);
 
   function lookupEntry(id: string) {
     return selectedItems.find((si) => si.item.id === id);
@@ -440,6 +581,66 @@ export function PlanLeftPanel() {
     setFocusedGroupItemIds(isSameFocus ? null : itemIds);
   }
 
+  function handleAddGroup() {
+    const id = `g-${Date.now()}`;
+    const num = groups.length + 1;
+    const usedColors = groups.map((g) => g.color);
+    const available = GROUP_ICON_COLORS.filter((c) => !usedColors.includes(c));
+    const pool = available.length > 0 ? available : [...GROUP_ICON_COLORS];
+    const color = pool[Math.floor(Math.random() * pool.length)];
+    setGroups((prev) => [...prev, { id, ad: `Grup ${num}`, acik: true, itemIdler: [], color }]);
+  }
+
+  function handleStartGroupSelection(groupId: string) {
+    setGroupSelectionMode(groupId);
+    setSelectedForGroup(new Set());
+    setActiveTab('unloaded');
+  }
+
+  function handleConfirmGroupSelection() {
+    if (!groupSelectionMode) return;
+    const newItemIds: string[] = [];
+
+    selectedForGroup.forEach((itemId) => {
+      const planEntry = selectedItems.find((si) => si.item.id === itemId);
+      if (planEntry) {
+        if (!placedIds.has(itemId)) togglePlacement(itemId);
+        newItemIds.push(itemId);
+      } else {
+        const catalogItem = apiItems.find((i) => i.id === itemId);
+        if (catalogItem) {
+          const color =
+            SCENE.COLORS.SKU_PALETTE[
+              Object.keys(skuColorMap).length % SCENE.COLORS.SKU_PALETTE.length
+            ];
+          addManualItem(catalogItem, 1, color);
+          setUngroupedIds((prev) => [...prev, itemId]);
+          newItemIds.push(itemId);
+        }
+      }
+    });
+
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === groupSelectionMode
+          ? { ...g, itemIdler: [...new Set([...g.itemIdler, ...newItemIds])] }
+          : g,
+      ),
+    );
+    setGroupSelectionMode(null);
+    setSelectedForGroup(new Set());
+    setActiveTab('loaded');
+  }
+
+  function handleRenameGroup(groupId: string, name: string) {
+    if (name.trim()) {
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, ad: name.trim() } : g)));
+    }
+    setEditingGroupId(null);
+  }
+
+  const groupOptions: GroupOption[] = groups.map((g) => ({ id: g.id, ad: g.ad, color: g.color }));
+
   const commonRowProps = (id: string) => {
     const entry = lookupEntry(id);
     if (!entry) return null;
@@ -449,6 +650,7 @@ export function PlanLeftPanel() {
       isPlaced,
       canPlace,
       isExpanded: expandedId === id,
+      groups: groupOptions,
       onToggleExpand: () => setExpandedId((prev) => (prev === id ? null : id)),
       onPlace: (qty: number) => {
         if (qty !== entry.quantity) {
@@ -459,42 +661,40 @@ export function PlanLeftPanel() {
       },
       onRemove: () => togglePlacement(id),
       onEdit: () => navigate(`/products/${id}/edit`),
+      onAddToGroup: (groupId: string) => {
+        if (!placedIds.has(id)) togglePlacement(id);
+        setGroups((prev) =>
+          prev.map((g) =>
+            g.id === groupId ? { ...g, itemIdler: [...new Set([...g.itemIdler, id])] } : g,
+          ),
+        );
+      },
     };
   };
+
+  const activeGroupName = groups.find((g) => g.id === groupSelectionMode)?.ad ?? 'Grup';
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-zinc-100">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-800">Ürünler</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Grup Oluştur"
-            className="h-7 w-7 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            size="icon"
-            title="Ürün Ekle"
-            className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
-            onClick={() => setShowItemModal(true)}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <span className="text-sm text-zinc-800">Ürünler</span>
+        <Button
+          size="icon"
+          title="Ürün Ekle"
+          className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
+          onClick={() => setShowItemModal(true)}
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </Button>
       </div>
 
-      {/* Tab — Yüklü / Yüklü Değil */}
+      {/* Tabs */}
       <div className="px-2 pt-2 shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
           <TabsList className="w-full h-7 bg-zinc-100">
             <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
-              Yüklü Değil
+              Ürün Listesi
               <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
                 {(() => {
                   const planUnloaded = selectedItems.filter(
@@ -509,7 +709,7 @@ export function PlanLeftPanel() {
               </span>
             </TabsTrigger>
             <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
-              Yüklü
+              Yüklü Ürünler
               <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
                 ({placedIds.size})
               </span>
@@ -548,76 +748,164 @@ export function PlanLeftPanel() {
           </div>
         )}
 
-        {/* Groups */}
-        {groups.map((g) => {
-          const groupEntries = g.itemIdler
-            .map(lookupEntry)
-            .filter((e): e is { item: Item; quantity: number } => e !== undefined);
-          const hasFilter = search.trim() || activeConstraints.size > 0;
-          const filteredGroupEntries = hasFilter
-            ? groupEntries.filter((e) => itemMatchesFilters(e.item, search, activeConstraints))
-            : groupEntries;
-          const groupTotal = groupEntries.reduce((s, e) => s + e.quantity, 0);
-          const isFocused =
-            focusedGroupItemIds !== null &&
-            g.itemIdler.length === focusedGroupItemIds.length &&
-            g.itemIdler.every((id) => focusedGroupItemIds.includes(id));
-
-          return (
-            <div key={g.id} className="flex flex-col gap-0.5">
+        {/* ── Yüklü Ürünler tab content ──────────────────────────────── */}
+        {activeTab === 'loaded' && (
+          <>
+            {/* Grup Oluştur button */}
+            {!groupSelectionMode && (
               <button
-                onClick={() => toggleGroup(g.id, g.itemIdler)}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
-                  isFocused
-                    ? 'bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-100'
-                    : 'hover:bg-zinc-50',
-                )}
+                onClick={handleAddGroup}
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 px-2 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors self-start mb-0.5"
               >
-                <ChevronRight
-                  className={cn(
-                    'w-3.5 h-3.5 transition-transform duration-150',
-                    isFocused ? 'text-amber-500' : 'text-zinc-400',
-                    g.acik && 'rotate-90',
-                  )}
-                />
-                <Layers
-                  className={cn('w-4 h-4', isFocused ? 'text-amber-500' : 'text-zinc-400')}
-                  strokeWidth={2}
-                />
-                <span
-                  className={cn(
-                    'text-sm flex-1 text-left',
-                    isFocused ? 'text-amber-700 font-medium' : 'text-zinc-700',
-                  )}
-                >
-                  {g.ad}
-                </span>
-                <span className="text-xs text-zinc-400">{groupTotal} kalem</span>
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span>Grup Oluştur</span>
               </button>
+            )}
 
-              {g.acik &&
-                filteredGroupEntries.map((entry) => {
-                  const id = entry.item.id;
-                  const props = commonRowProps(id);
-                  if (!props) return null;
-                  return <StoreItemRow key={id} {...props} indent />;
-                })}
+            {/* Groups */}
+            {groups.map((g) => {
+              const groupEntries = g.itemIdler
+                .map(lookupEntry)
+                .filter((e): e is { item: Item; quantity: number } => e !== undefined);
+              const hasFilter = search.trim() || activeConstraints.size > 0;
+              const filteredGroupEntries = hasFilter
+                ? groupEntries.filter((e) => itemMatchesFilters(e.item, search, activeConstraints))
+                : groupEntries;
+              const groupTotal = groupEntries.length;
+              const isFocused =
+                focusedGroupItemIds !== null &&
+                g.itemIdler.length === focusedGroupItemIds.length &&
+                g.itemIdler.every((id) => focusedGroupItemIds.includes(id));
+
+              return (
+                <div key={g.id} className="flex flex-col gap-0.5">
+                  {/* Group header row */}
+                  <div
+                    className={cn(
+                      'group/grp flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
+                      isFocused
+                        ? 'bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-100'
+                        : 'hover:bg-zinc-50',
+                    )}
+                  >
+                    {/* Expand toggle + icon + name */}
+                    <button
+                      onClick={() => toggleGroup(g.id, g.itemIdler)}
+                      className="flex items-center gap-2 flex-1 min-w-0"
+                    >
+                      <ChevronRight
+                        className={cn(
+                          'w-3.5 h-3.5 shrink-0 transition-transform duration-150',
+                          isFocused ? 'text-amber-500' : 'text-zinc-400',
+                          g.acik && 'rotate-90',
+                        )}
+                      />
+                      <Layers
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: isFocused ? '#f59e0b' : g.color }}
+                        strokeWidth={2}
+                      />
+                      {editingGroupId === g.id ? (
+                        <input
+                          value={editingGroupName}
+                          autoFocus
+                          className="flex-1 min-w-0 text-sm bg-transparent border-b border-zinc-400 outline-none text-zinc-700 px-0"
+                          onChange={(e) => setEditingGroupName(e.target.value)}
+                          onBlur={() => handleRenameGroup(g.id, editingGroupName)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRenameGroup(g.id, editingGroupName);
+                            if (e.key === 'Escape') setEditingGroupId(null);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span
+                          className={cn(
+                            'text-sm flex-1 text-left truncate cursor-text',
+                            isFocused ? 'text-amber-700 font-medium' : 'text-zinc-700',
+                          )}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGroupId(g.id);
+                            setEditingGroupName(g.ad);
+                          }}
+                        >
+                          {g.ad}
+                        </span>
+                      )}
+                    </button>
+
+                    <span className="text-xs text-zinc-400 shrink-0">{groupTotal} kalem</span>
+
+                    {/* Add products to group */}
+                    <button
+                      title="Gruba Ürün Ekle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartGroupSelection(g.id);
+                      }}
+                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                    >
+                      <PackagePlus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {g.acik &&
+                    filteredGroupEntries.map((entry) => {
+                      const id = entry.item.id;
+                      const props = commonRowProps(id);
+                      if (!props) return null;
+                      return <StoreItemRow key={id} {...props} indent iconColor={g.color} />;
+                    })}
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* ── Ürün Listesi tab: group selection mode ──────────────────── */}
+        {activeTab === 'unloaded' && groupSelectionMode && (
+          <>
+            {/* Banner */}
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg mb-1">
+              <Layers className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span className="text-xs text-zinc-600 truncate">
+                <span className="font-medium">{activeGroupName}</span> için ürün seçin
+              </span>
             </div>
-          );
-        })}
 
-        {/* Flat item list — single deduplicated source, no section headers */}
-        {flatDisplayItems.length > 0 && (
+            {groupSelectionItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center gap-1.5">
+                <Package className="w-5 h-5 text-zinc-200" />
+                <p className="text-xs text-zinc-400">Eklenecek ürün bulunamadı</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-0.5">
+                {groupSelectionItems.map((item) => (
+                  <GroupSelectionRow
+                    key={item.id}
+                    item={item}
+                    isSelected={selectedForGroup.has(item.id)}
+                    onToggle={() =>
+                      setSelectedForGroup((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(item.id)) next.delete(item.id);
+                        else next.add(item.id);
+                        return next;
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Normal flat item list (no group selection mode) ─────────── */}
+        {!groupSelectionMode && flatDisplayItems.length > 0 && (
           <div className="flex flex-col gap-0.5">
             {shouldVirtualize ? (
-              // Virtual list mode — no DnD (impractical at this scale)
-              <div
-                style={{
-                  height: `${rowVirtualizer.getTotalSize()}px`,
-                  position: 'relative',
-                }}
-              >
+              <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                   const id = flatDisplayItems[virtualItem.index];
                   const props = commonRowProps(id);
@@ -635,7 +923,7 @@ export function PlanLeftPanel() {
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <StoreItemRow {...props} />
+                      <StoreItemRow {...props} iconColor={itemIconColorMap[id]} />
                     </div>
                   );
                 })}
@@ -645,15 +933,15 @@ export function PlanLeftPanel() {
                 {flatDisplayItems.map((id) => {
                   const props = commonRowProps(id);
                   if (!props) return null;
-                  return <StoreItemRow key={id} {...props} />;
+                  return <StoreItemRow key={id} {...props} iconColor={itemIconColorMap[id]} />;
                 })}
               </div>
             )}
           </div>
         )}
 
-        {/* Katalog — plan'a eklenmemiş tüm ürünler (sadece Yüklü Değil tabında) */}
-        {filteredCatalogOnlyItems.length > 0 && (
+        {/* Katalog — plan'a eklenmemiş tüm ürünler (sadece Yüklü Değil, normal mode) */}
+        {!groupSelectionMode && filteredCatalogOnlyItems.length > 0 && (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2 px-3 py-1.5">
               <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
@@ -673,12 +961,25 @@ export function PlanLeftPanel() {
                   isPlaced={false}
                   canPlace={canPlace}
                   isExpanded={expandedId === item.id}
+                  iconColor={itemIconColorMap[item.id]}
+                  groups={groupOptions}
                   onToggleExpand={() =>
                     setExpandedId((prev) => (prev === item.id ? null : item.id))
                   }
                   onPlace={(qty) => {
                     addManualItem(item, qty, color);
                     setUngroupedIds((prev) => [...prev, item.id]);
+                  }}
+                  onAddToGroup={(groupId) => {
+                    addManualItem(item, 1, color);
+                    setUngroupedIds((prev) => [...prev, item.id]);
+                    setGroups((prev) =>
+                      prev.map((g) =>
+                        g.id === groupId
+                          ? { ...g, itemIdler: [...new Set([...g.itemIdler, item.id])] }
+                          : g,
+                      ),
+                    );
                   }}
                 />
               );
@@ -688,6 +989,7 @@ export function PlanLeftPanel() {
 
         {/* No results */}
         {(search || activeConstraints.size > 0) &&
+          !groupSelectionMode &&
           flatDisplayItems.length === 0 &&
           filteredCatalogOnlyItems.length === 0 &&
           !itemsLoading && (
@@ -700,7 +1002,37 @@ export function PlanLeftPanel() {
           )}
       </div>
 
-      {/* Dev-only stres testi (US-OPT-14): InstancedMesh render path FPS ölçümü için. */}
+      {/* Sticky "Gruba Ekle" panel — shown when in group selection mode */}
+      {groupSelectionMode && (
+        <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center justify-between gap-2 bg-white">
+          <span className="text-xs text-zinc-500 shrink-0">
+            {selectedForGroup.size} ürün seçildi
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setGroupSelectionMode(null);
+                setSelectedForGroup(new Set());
+                setActiveTab('loaded');
+              }}
+              className="h-7 text-xs text-zinc-400 hover:text-zinc-600 px-2 transition-colors"
+            >
+              İptal
+            </button>
+            <Button
+              size="sm"
+              disabled={selectedForGroup.size === 0}
+              onClick={handleConfirmGroupSelection}
+              className="h-7 text-xs bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
+            >
+              Gruba Ekle ({selectedForGroup.size})
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <UnfitItemsPanel />
+
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center gap-2">
           <Button

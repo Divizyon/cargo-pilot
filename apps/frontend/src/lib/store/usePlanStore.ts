@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
-import type { OptimizationCriteria, PlacementWithDimensions } from '@/lib/types/loadingPlan';
+import type {
+  OptimizationCriteria,
+  PlacementWithDimensions,
+  UnfitItem,
+  UnfitReason,
+} from '@/lib/types/loadingPlan';
+import { UnfitReason as UnfitReasonConst } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
 import { computeViolations } from '@/lib/utils/geometry';
 import {
@@ -44,7 +50,7 @@ function applySurfaceViolations(
 
 interface BuildResult {
   placed: PlacementWithDimensions[];
-  noFitCount: number;
+  unfitByReason: Partial<Record<UnfitReason, number>>;
 }
 
 function gravityY(
@@ -112,21 +118,34 @@ function buildPlacements(
   let curY = curY_init;
   let curZ = curZ_init;
   let rowMaxDepth = d;
-  let noFitCount = 0;
+
+  const unfitByReason: Partial<Record<UnfitReason, number>> = {};
+  function addUnfit(reason: UnfitReason) {
+    unfitByReason[reason] = (unfitByReason[reason] ?? 0) + 1;
+  }
+
+  // Mevcut yerleşimlerin toplam ağırlığından başla
+  let cumulativeWeight = valid.reduce((sum, p) => sum + p.weight, 0);
 
   const result: PlacementWithDimensions[] = [];
 
   for (let i = 0; i < qty; i++) {
+    // Ağırlık kontrolü önce — limit aşılırsa geometri denenmez
+    if (vehicle.maxCargoWeight > 0 && cumulativeWeight + item.weight > vehicle.maxCargoWeight) {
+      addUnfit(UnfitReasonConst.Weight);
+      continue;
+    }
+
     // Z overflow → new layer (only if stackable)
     if (curZ + d > vehicle.length) {
       if (!item.isStackable) {
-        noFitCount++;
+        addUnfit(UnfitReasonConst.Stacking);
         continue;
       }
       const allSoFar = [...valid, ...result.filter((p) => !p.isViolation)];
       const newLayerY = maxTopInLayer(allSoFar, curY);
       if (newLayerY + h > vehicle.height) {
-        noFitCount++;
+        addUnfit(UnfitReasonConst.Volume);
         continue;
       }
       curY = newLayerY;
@@ -141,7 +160,7 @@ function buildPlacements(
     const posY = gravityY(curX, curZ, w, d, soFar);
 
     if (!fitsInVehicle(curX, posY, curZ, w, h, d, vehicle)) {
-      noFitCount++;
+      addUnfit(UnfitReasonConst.Volume);
       continue;
     }
 
@@ -161,6 +180,7 @@ function buildPlacements(
       productType: item.productType,
     });
 
+    cumulativeWeight += item.weight;
     curX += w;
     if (curX + w > vehicle.width) {
       curX = 0;
@@ -169,18 +189,43 @@ function buildPlacements(
     }
   }
 
-  return { placed: result, noFitCount };
+  return { placed: result, unfitByReason };
+}
+
+function primaryUnfitReason(unfitByReason: Partial<Record<UnfitReason, number>>): UnfitReason {
+  if (unfitByReason[UnfitReasonConst.Weight]) return UnfitReasonConst.Weight;
+  if (unfitByReason[UnfitReasonConst.Stacking]) return UnfitReasonConst.Stacking;
+  return UnfitReasonConst.Volume;
+}
+
+function mergeUnfitItem(
+  existing: UnfitItem[],
+  item: Item,
+  unfitByReason: Partial<Record<UnfitReason, number>>,
+): UnfitItem[] {
+  const total = Object.values(unfitByReason).reduce((s: number, v) => s + (v ?? 0), 0);
+  const filtered = existing.filter((u) => u.item.id !== item.id);
+  if (total === 0) return filtered;
+  return [...filtered, { item, quantity: total, reason: primaryUnfitReason(unfitByReason) }];
 }
 
 interface PlanStore {
   selectedVehicle: Vehicle | null;
+  selectedVehicles: Array<{ instanceId: string; vehicle: Vehicle }>;
   selectedItems: Array<{ item: Item; quantity: number }>;
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
   placements: PlacementWithDimensions[];
+  unfitItems: UnfitItem[];
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
   setVehicle: (vehicle: Vehicle | null) => void;
+  /** Show vehicle in 3D without adding to selectedVehicles list. */
+  peekVehicle: (vehicle: Vehicle) => void;
+  addVehicle: (vehicle: Vehicle) => void;
+  removeVehicle: (instanceId: string) => void;
+  setActiveVehicle: (instanceId: string) => void;
+  updateVehicle: (instanceId: string, vehicle: Vehicle) => void;
   /** Seed the catalog without touching placements (called once on panel mount). */
   initItems: (
     items: Array<{ item: Item; quantity: number }>,
@@ -218,35 +263,119 @@ interface PlanStore {
   mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
   reorderItems: (activeId: string, overId: string) => void;
+  removeUnfitItem: (itemId: string) => void;
+  retryUnfitItem: (itemId: string) => void;
   setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
   clearPreview: () => void;
   reset: () => void;
 }
 
+function rebuildForVehicle(
+  vehicle: Vehicle,
+  s: {
+    selectedItems: Array<{ item: Item; quantity: number }>;
+    placements: PlacementWithDimensions[];
+    skuColorMap: Record<string, string>;
+  },
+): { placements: PlacementWithDimensions[]; unfitItems: UnfitItem[] } | null {
+  const placedItemIds = [...new Set(s.placements.map((p) => p.itemId))];
+  if (placedItemIds.length === 0) return null;
+  let rebuilt: PlacementWithDimensions[] = [];
+  let newUnfitItems: UnfitItem[] = [];
+  for (const itemId of placedItemIds) {
+    const entry = s.selectedItems.find((si) => si.item.id === itemId);
+    if (!entry) continue;
+    const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+    const { placed, unfitByReason } = buildPlacements(
+      entry.item,
+      entry.quantity,
+      color,
+      vehicle,
+      rebuilt,
+    );
+    rebuilt = [...rebuilt, ...placed];
+    newUnfitItems = mergeUnfitItem(newUnfitItems, entry.item, unfitByReason);
+  }
+  return { placements: computeViolations(rebuilt), unfitItems: newUnfitItems };
+}
+
 export const usePlanStore = create<PlanStore>((set) => ({
   selectedVehicle: null,
+  selectedVehicles: [],
   selectedItems: [],
   skuColorMap: {},
   criteria: 0,
   placements: [],
+  unfitItems: [],
   previewItemId: null,
   previewPlacements: [],
 
   setVehicle: (vehicle) =>
     set((s) => {
-      if (!vehicle) return { selectedVehicle: null, placements: [] };
-      // Araç değişince tüm placed item'ları yeni araç boyutlarına göre yeniden yerleştir
-      const placedItemIds = [...new Set(s.placements.map((p) => p.itemId))];
-      if (placedItemIds.length === 0) return { selectedVehicle: vehicle };
-      let rebuilt: PlacementWithDimensions[] = [];
-      for (const itemId of placedItemIds) {
-        const entry = s.selectedItems.find((si) => si.item.id === itemId);
-        if (!entry) continue;
-        const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-        const { placed } = buildPlacements(entry.item, entry.quantity, color, vehicle, rebuilt);
-        rebuilt = [...rebuilt, ...placed];
+      if (!vehicle)
+        return { selectedVehicle: null, selectedVehicles: [], placements: [], unfitItems: [] };
+      const instanceId = `${vehicle.id}_${Date.now()}`;
+      const entry = { instanceId, vehicle };
+      const rebuild = rebuildForVehicle(vehicle, s);
+      const base = { selectedVehicle: vehicle, selectedVehicles: [entry] };
+      return rebuild ? { ...base, ...rebuild } : base;
+    }),
+
+  peekVehicle: (vehicle) => set({ selectedVehicle: vehicle }),
+
+  addVehicle: (vehicle) =>
+    set((s) => {
+      const instanceId = `${vehicle.id}_${Date.now()}`;
+      const newEntry = { instanceId, vehicle };
+      const newList = [...s.selectedVehicles, newEntry];
+      if (!s.selectedVehicle) {
+        const rebuild = rebuildForVehicle(vehicle, s);
+        return rebuild
+          ? { selectedVehicle: vehicle, selectedVehicles: newList, ...rebuild }
+          : { selectedVehicle: vehicle, selectedVehicles: newList };
       }
-      return { selectedVehicle: vehicle, placements: computeViolations(rebuilt) };
+      return { selectedVehicles: newList };
+    }),
+
+  removeVehicle: (instanceId) =>
+    set((s) => {
+      const remaining = s.selectedVehicles.filter((e) => e.instanceId !== instanceId);
+      const isFirst = s.selectedVehicles[0]?.instanceId === instanceId;
+      if (!isFirst) return { selectedVehicles: remaining };
+      const next = remaining[0] ?? null;
+      if (!next)
+        return { selectedVehicle: null, selectedVehicles: [], placements: [], unfitItems: [] };
+      if (next.vehicle.id === s.selectedVehicle?.id) return { selectedVehicles: remaining };
+      const rebuild = rebuildForVehicle(next.vehicle, s);
+      return rebuild
+        ? { selectedVehicle: next.vehicle, selectedVehicles: remaining, ...rebuild }
+        : { selectedVehicle: next.vehicle, selectedVehicles: remaining };
+    }),
+
+  setActiveVehicle: (instanceId) =>
+    set((s) => {
+      if (s.selectedVehicles[0]?.instanceId === instanceId) return {};
+      const entry = s.selectedVehicles.find((e) => e.instanceId === instanceId);
+      if (!entry) return {};
+      const reordered = [entry, ...s.selectedVehicles.filter((e) => e.instanceId !== instanceId)];
+      if (entry.vehicle.id === s.selectedVehicle?.id) return { selectedVehicles: reordered };
+      const rebuild = rebuildForVehicle(entry.vehicle, s);
+      return rebuild
+        ? { selectedVehicle: entry.vehicle, selectedVehicles: reordered, ...rebuild }
+        : { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
+    }),
+
+  updateVehicle: (instanceId, vehicle) =>
+    set((s) => {
+      const updated = s.selectedVehicles.map((e) =>
+        e.instanceId === instanceId ? { ...e, vehicle } : e,
+      );
+      const isFirst = s.selectedVehicles[0]?.instanceId === instanceId;
+      if (!isFirst) return { selectedVehicles: updated };
+      const rebuild = rebuildForVehicle(vehicle, s);
+      return rebuild
+        ? { selectedVehicle: vehicle, selectedVehicles: updated, ...rebuild }
+        : { selectedVehicle: vehicle, selectedVehicles: updated };
     }),
 
   initItems: (items, colorMap) => set({ selectedItems: items, skuColorMap: colorMap }),
@@ -261,28 +390,19 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (!s.selectedVehicle)
         return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
-      const { placed, noFitCount } = buildPlacements(
+      const { placed, unfitByReason } = buildPlacements(
         item,
         qty,
         color,
         s.selectedVehicle,
         s.placements,
       );
-      if (noFitCount > 0) {
-        const fitsCount = qty - noFitCount;
-        useUIStore.getState().addNotification({
-          variant: 'warning',
-          message:
-            fitsCount > 0
-              ? `${item.name}: ${fitsCount} adet yerleştirildi, ${noFitCount} adet araca sığmadı.`
-              : `${item.name}: ${qty} adet araca sığmadı.`,
-        });
-      }
       const next = [...s.placements, ...placed];
       return {
         selectedItems: [...s.selectedItems, { item, quantity: qty }],
         skuColorMap: updatedColorMap,
         placements: computeViolations(next),
+        unfitItems: mergeUnfitItem(s.unfitItems, item, unfitByReason),
       };
     }),
 
@@ -300,19 +420,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
       }
 
       const otherPlacements = s.placements.filter((p) => p.itemId !== itemId);
-      const { placed, noFitCount } = buildPlacements(
+      const { placed, unfitByReason } = buildPlacements(
         item,
         qty,
         color,
         s.selectedVehicle,
         otherPlacements,
       );
-      if (noFitCount > 0) {
-        useUIStore.getState().addNotification({
-          variant: 'warning',
-          message: `${item.name}: ${noFitCount} adet araca sığmadı.`,
-        });
-      }
       const next = [...otherPlacements, ...placed];
       const withCollisions = computeViolations(next);
       const { result: withSurface, violatingNames } = applySurfaceViolations(
@@ -329,6 +443,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
         selectedItems: updatedItems,
         skuColorMap: updatedColorMap,
         placements: withSurface,
+        unfitItems: mergeUnfitItem(s.unfitItems, item, unfitByReason),
       };
     }),
 
@@ -336,37 +451,37 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((s) => ({
       selectedItems: s.selectedItems.filter((si) => si.item.id !== itemId),
       placements: s.placements.filter((p) => p.itemId !== itemId),
+      unfitItems: s.unfitItems.filter((u) => u.item.id !== itemId),
     })),
 
   togglePlacement: (itemId) =>
     set((s) => {
       const alreadyPlaced = s.placements.some((p) => p.itemId === itemId);
       if (alreadyPlaced) {
-        return { placements: s.placements.filter((p) => p.itemId !== itemId) };
+        return {
+          placements: s.placements.filter((p) => p.itemId !== itemId),
+          unfitItems: s.unfitItems.filter((u) => u.item.id !== itemId),
+        };
       }
       if (!s.selectedVehicle) return {};
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const { placed, noFitCount } = buildPlacements(
+      const { placed, unfitByReason } = buildPlacements(
         entry.item,
         entry.quantity,
         color,
         s.selectedVehicle,
         s.placements,
       );
-      if (noFitCount > 0) {
-        useUIStore.getState().addNotification({
-          variant: 'warning',
-          message:
-            noFitCount === entry.quantity
-              ? `${entry.item.name}: araca sığmadı.`
-              : `${entry.item.name}: ${entry.quantity - noFitCount} adet yerleştirildi, ${noFitCount} adet araca sığmadı.`,
-        });
+      if (placed.length === 0) {
+        return { unfitItems: mergeUnfitItem(s.unfitItems, entry.item, unfitByReason) };
       }
-      if (placed.length === 0) return {};
       const next = [...s.placements, ...placed];
-      return { placements: computeViolations(next) };
+      return {
+        placements: computeViolations(next),
+        unfitItems: mergeUnfitItem(s.unfitItems, entry.item, unfitByReason),
+      };
     }),
 
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
@@ -450,6 +565,32 @@ export const usePlanStore = create<PlanStore>((set) => ({
       return { selectedItems: items };
     }),
 
+  removeUnfitItem: (itemId) =>
+    set((s) => ({
+      unfitItems: s.unfitItems.filter((u) => u.item.id !== itemId),
+    })),
+
+  retryUnfitItem: (itemId) =>
+    set((s) => {
+      if (!s.selectedVehicle) return {};
+      const unfitEntry = s.unfitItems.find((u) => u.item.id === itemId);
+      if (!unfitEntry) return {};
+      const color = s.skuColorMap[unfitEntry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+      const { placed, unfitByReason } = buildPlacements(
+        unfitEntry.item,
+        unfitEntry.quantity,
+        color,
+        s.selectedVehicle,
+        s.placements,
+      );
+      if (placed.length === 0) return {};
+      const next = [...s.placements, ...placed];
+      return {
+        placements: computeViolations(next),
+        unfitItems: mergeUnfitItem(s.unfitItems, unfitEntry.item, unfitByReason),
+      };
+    }),
+
   setPreview: (itemId, item, qty, color) =>
     set((s) => {
       if (!s.selectedVehicle) return {};
@@ -495,10 +636,12 @@ export const usePlanStore = create<PlanStore>((set) => ({
   reset: () =>
     set({
       selectedVehicle: null,
+      selectedVehicles: [],
       selectedItems: [],
       skuColorMap: {},
       criteria: 0,
       placements: [],
+      unfitItems: [],
       previewItemId: null,
       previewPlacements: [],
     }),

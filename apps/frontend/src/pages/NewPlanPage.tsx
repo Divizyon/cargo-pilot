@@ -246,7 +246,7 @@ export function NewPlanPage() {
 
         {/* Kamera presetleri — sağ üst */}
         <div className="absolute top-3 right-3 z-20">
-          <CameraPresetButtons getSnapshot={() => snapshotRef.current?.() ?? ''} />
+          <CameraPresetButtons />
         </div>
 
         {/* Merkez — 3D Viewport */}
@@ -264,6 +264,7 @@ export function NewPlanPage() {
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
             canOptimize={fromPlanId ? isDirty : true}
+            getSnapshot={() => snapshotRef.current?.() ?? ''}
           />
         </div>
       </div>
