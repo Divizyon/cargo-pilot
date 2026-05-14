@@ -49,6 +49,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="200">Bağlantı durumu döner.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpGet("{id:guid}/status")]
+    [Authorize(Policy = "CompanyMember")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetStatus(
