@@ -39,9 +39,9 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
 
         var companyId = _currentUserService.CompanyId;
 
-        if (_currentUserService.UserType == UserType.Individual)
+        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } userId)
         {
-            var currentCount = await _vehicleRepository.CountByUserAsync(_currentUserService.UserId.Value, cancellationToken);
+            var currentCount = await _vehicleRepository.CountByUserAsync(userId, cancellationToken);
             var maxCount = SubscriptionLimits.GetMaxVehicleCount(SubscriptionType.Free);
             if (currentCount >= maxCount)
                 return Result<Guid>.Failure(
