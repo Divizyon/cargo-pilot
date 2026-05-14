@@ -20,4 +20,6 @@ public sealed record ItemSummaryDto(
     int MaxStackCount,
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
-    string? ImageUrl);
+    string? ImageUrl,
+    string? StackGroup,
+    string? SpecialNotes);
