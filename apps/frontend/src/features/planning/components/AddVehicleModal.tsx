@@ -140,7 +140,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
       const detail =
         axiosErr?.response?.data?.detail ??
         axiosErr?.response?.data?.title ??
-        'Araç kaydedilemedi. Lütfen tekrar deneyin.'; 
+        'Araç kaydedilemedi. Lütfen tekrar deneyin.';
       toast.error(detail, { position: 'bottom-right' });
     }
   }

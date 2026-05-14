@@ -136,7 +136,13 @@ export function useLoadingPlanDetail(id: string | undefined) {
       const parsed = planFullDetailApiResponseSchema.safeParse(data);
       if (!parsed.success) {
         console.error('[useLoadingPlanDetail] parse error', parsed.error);
-        return { vehicle: null, inputItems: [], placements: [], skuColorMap: {}, unplacedItems: [] };
+        return {
+          vehicle: null,
+          inputItems: [],
+          placements: [],
+          skuColorMap: {},
+          unplacedItems: [],
+        };
       }
       return fromApiFullDetail(parsed.data.data);
     },
@@ -348,10 +354,7 @@ function applyClientFilters(
 
 // ─── Scene placements from backend result ─────────────────────────────────────
 
-export function useLoadingPlanScenePlacements(
-  planId: string,
-  colorMap?: Record<string, string>,
-) {
+export function useLoadingPlanScenePlacements(planId: string, colorMap?: Record<string, string>) {
   return useQuery({
     queryKey: ['loading-plan-scene-placements', planId, colorMap] as const,
     queryFn: async (): Promise<PlacementWithDimensions[]> => {
@@ -380,7 +383,9 @@ export function useLoadingPlanProducts(planId: string) {
       const d = parsed.data.data;
       // inputItems: orijinal istek adetleri — sığmayan ürünler dahil
       if (d.inputItems?.length) {
-        return fromApiDetailPlacements(d.inputItems as Parameters<typeof fromApiDetailPlacements>[0]);
+        return fromApiDetailPlacements(
+          d.inputItems as Parameters<typeof fromApiDetailPlacements>[0],
+        );
       }
       // Fallback: sadece yerleştirilen kutular (adetler eksik olabilir)
       const rawPlacements = d.placements?.length ? d.placements : (d.placementDetails ?? []);
@@ -398,7 +403,13 @@ export function useLoadingPlanUnplaced(planId: string | null) {
       const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
       const parsed = planDetailApiResponseSchema.safeParse(data);
       if (!parsed.success) return [];
-      type RawU = { id?: string; itemId?: string; quantity: number; reason?: number; item?: { name?: string } | null };
+      type RawU = {
+        id?: string;
+        itemId?: string;
+        quantity: number;
+        reason?: number;
+        item?: { name?: string } | null;
+      };
       return (parsed.data.data.unplacedItems ?? []).map((u: RawU) => ({
         itemId: u.itemId ?? u.id ?? '',
         quantity: u.quantity,

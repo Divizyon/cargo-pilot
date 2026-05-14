@@ -707,7 +707,8 @@ export function PlanLeftPanel() {
           <div className="px-3 py-2 flex items-center gap-1.5">
             <PackageMinus className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             <span className="text-[11px] font-semibold text-amber-700">
-              Araçta Yer Bulunamadı ({unplacedItems.reduce((s, u: UnplacedEntry) => s + u.quantity, 0)} adet)
+              Araçta Yer Bulunamadı (
+              {unplacedItems.reduce((s, u: UnplacedEntry) => s + u.quantity, 0)} adet)
             </span>
           </div>
           <div className="px-3 pb-2 flex flex-col gap-1">

@@ -77,7 +77,7 @@ export function NewPlanPage() {
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
 
-useEffect(() => {
+  useEffect(() => {
     if (!fromPlanId) {
       usePlanStore.getState().reset();
     }
