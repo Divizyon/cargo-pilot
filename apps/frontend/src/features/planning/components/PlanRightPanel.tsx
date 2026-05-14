@@ -57,7 +57,6 @@ import {
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
@@ -419,8 +418,6 @@ export function PlanRightPanel({
 }: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const criteria = usePlanStore((s) => s.criteria);
-  const setCriteria = usePlanStore((s) => s.setCriteria);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const animationReady = useSceneStore((s) => s.animationReady);
   const animationMode = useSceneStore((s) => s.animationMode);

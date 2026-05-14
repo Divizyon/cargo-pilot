@@ -86,24 +86,8 @@ export function NewPlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const selectedItems = usePlanStore((s) => s.selectedItems);
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
   const startAnimation = useSceneStore((s) => s.startAnimation);
-
-  // Detect changes from initial loaded state
-  useEffect(() => {
-    if (!fromPlanId || !initialStateRef.current) return;
-    const itemsKey = selectedItems
-      .map((si) => `${si.item.id}:${si.quantity}`)
-      .sort()
-      .join(',');
-    const vehicleId = selectedVehicle?.id ?? '';
-    setIsDirty(
-      vehicleId !== initialStateRef.current.vehicleId ||
-        itemsKey !== initialStateRef.current.itemsKey,
-    );
-  }, [selectedVehicle, selectedItems, fromPlanId]);
 
   const handleVehicleSelected = useCallback(() => {
     setRightOpen(false);
