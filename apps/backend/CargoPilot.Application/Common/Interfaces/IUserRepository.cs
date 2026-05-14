@@ -27,6 +27,8 @@ public interface IUserRepository
     Task<AppUser?> GetCompanyAdminAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AppUser>> GetCompanyUsersAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<int> GetCompanyUserCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+    /// <summary>Belirtilen şirkette aktif CompanyAdmin sayısını döner.</summary>
     Task<int> GetActiveAdminCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+    /// <summary>Kullanıcının tüm aktif oturumlarını iptal eder.</summary>
     Task RevokeAllSessionsAsync(Guid userId, CancellationToken cancellationToken = default);
 }
