@@ -161,8 +161,6 @@ function InfoCard({ icon, label, primary, children }: InfoCardProps) {
   );
 }
 
-
-
 // ─── Constraint icons ─────────────────────────────────────────────────────────
 
 const CONSTRAINT_ICON_MAP: Record<string, ReactNode> = {
@@ -354,7 +352,10 @@ function ThreeDPlannerContent({
   return (
     <div className="flex flex-col gap-4">
       {/* 3D Canvas + Yükle butonu */}
-      <div className="relative rounded-xl overflow-hidden border border-zinc-200 bg-white" style={{ height: 400 }}>
+      <div
+        className="relative rounded-xl overflow-hidden border border-zinc-200 bg-white"
+        style={{ height: 400 }}
+      >
         {isLoaded ? (
           <>
             <PlanCanvas planId={planId} />

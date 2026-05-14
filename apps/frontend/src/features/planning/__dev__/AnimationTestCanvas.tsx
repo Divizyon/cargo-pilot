@@ -43,7 +43,13 @@ function ContainerWireframe() {
 const SCALE_ZERO = new THREE.Vector3(0, 0, 0);
 const SCALE_ONE = new THREE.Vector3(1, 1, 1);
 
-function AnimatedBoxes({ placements, loadOrder }: { placements: PlacementWithDimensions[]; loadOrder: number[] }) {
+function AnimatedBoxes({
+  placements,
+  loadOrder,
+}: {
+  placements: PlacementWithDimensions[];
+  loadOrder: number[];
+}) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const animationStep = useSceneStore((s) => s.animationStep);
 
@@ -51,17 +57,21 @@ function AnimatedBoxes({ placements, loadOrder }: { placements: PlacementWithDim
   // (bu test sahnesinde kutu sayısı düşük, 50 altı)
   const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
   const posRef = useRef<THREE.Vector3[]>(
-    placements.map((p) => new THREE.Vector3(p.positionX + p.width / 2, p.positionY + p.height / 2, p.positionZ + p.depth / 2)),
+    placements.map(
+      (p) =>
+        new THREE.Vector3(
+          p.positionX + p.width / 2,
+          p.positionY + p.height / 2,
+          p.positionZ + p.depth / 2,
+        ),
+    ),
   );
   const _dummy = new THREE.Object3D();
   void _dummy;
 
-  const setPosition = useCallback(
-    (globalIdx: number, x: number, y: number, z: number) => {
-      posRef.current[globalIdx]?.set(x, y, z);
-    },
-    [],
-  );
+  const setPosition = useCallback((globalIdx: number, x: number, y: number, z: number) => {
+    posRef.current[globalIdx]?.set(x, y, z);
+  }, []);
 
   const onFrameUpdate = useCallback(() => {
     meshRefs.current.forEach((mesh, globalIdx) => {
@@ -172,10 +182,7 @@ function ControlBridge({
 export function AnimationTestCanvas() {
   const placements = MOCK_PLACEMENTS;
   const loadOrder = useMemo(
-    () =>
-      sortByLoadOrder(placements).map((sorted) =>
-        placements.indexOf(sorted),
-      ),
+    () => sortByLoadOrder(placements).map((sorted) => placements.indexOf(sorted)),
     [placements],
   );
 
@@ -225,10 +232,7 @@ export function AnimationTestCanvas() {
 
         {/* Overlay kontrol paneli */}
         <div className="absolute bottom-4 left-1/2 w-[480px] -translate-x-1/2">
-          <StepAnimationControls
-            totalSteps={totalSteps}
-            onPlay={() => controlRef.play()}
-          />
+          <StepAnimationControls totalSteps={totalSteps} onPlay={() => controlRef.play()} />
         </div>
       </div>
     </div>

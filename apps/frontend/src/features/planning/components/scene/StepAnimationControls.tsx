@@ -1,4 +1,12 @@
-import { ChevronLeft, ChevronRight, Play, RotateCcw, ChevronsLeft, ChevronsRight, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  RotateCcw,
+  ChevronsLeft,
+  ChevronsRight,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useSceneStore } from '@/lib/store/useSceneStore';

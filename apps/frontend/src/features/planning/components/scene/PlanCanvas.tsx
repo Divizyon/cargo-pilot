@@ -65,7 +65,8 @@ function SnapshotBridge({
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const totalSteps = usePlanStore((s) => s.placements.length);
-  const showControls = totalSteps > 0 && (animationMode === 'playing' || animationMode === 'stepped');
+  const showControls =
+    totalSteps > 0 && (animationMode === 'playing' || animationMode === 'stepped');
 
   return (
     <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>

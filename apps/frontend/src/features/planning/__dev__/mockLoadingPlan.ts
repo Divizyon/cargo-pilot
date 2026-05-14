@@ -323,9 +323,7 @@ export const MOCK_PLACEMENTS: PlacementWithDimensions[] = [
  * Yükleme sırası: arka duvardan kapıya, alt kattan üst kata, soldan sağa.
  * Backend bu sırayı zaten hesaplayıp gönderir; burada client-side sort ile simüle ediyoruz.
  */
-export function sortByLoadOrder(
-  placements: PlacementWithDimensions[],
-): PlacementWithDimensions[] {
+export function sortByLoadOrder(placements: PlacementWithDimensions[]): PlacementWithDimensions[] {
   return [...placements].sort((a, b) => {
     // Önce Z büyükten küçüğe (arka → ön)
     if (b.positionZ !== a.positionZ) return b.positionZ - a.positionZ;
