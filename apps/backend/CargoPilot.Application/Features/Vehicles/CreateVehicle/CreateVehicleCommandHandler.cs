@@ -1,7 +1,9 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 
@@ -36,6 +38,16 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));
 
         var companyId = _currentUserService.CompanyId;
+
+        if (_currentUserService.UserType == UserType.Individual)
+        {
+            var currentCount = await _vehicleRepository.CountByUserAsync(_currentUserService.UserId.Value, cancellationToken);
+            var maxCount = SubscriptionLimits.GetMaxVehicleCount(SubscriptionType.Free);
+            if (currentCount >= maxCount)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.BusinessRule, "Vehicle.LimitExceeded",
+                        "Abonelik planı kapsamındaki maksimum araç sayısına ulaşıldı."));
+        }
 
         var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
             request.PlateNumber, companyId, cancellationToken);
