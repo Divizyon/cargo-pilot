@@ -9,6 +9,8 @@ import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOr
 import { isGhosted, isPlacementVisible } from '@/lib/utils/sceneFilter';
 import { useDragBox } from '@/features/planning/components/scene/useDragBox';
 import { useLandingAnimation } from '@/features/planning/components/scene/useLandingAnimation';
+import { useLoadingAnimation } from '@/features/planning/components/scene/useLoadingAnimation';
+import { buildLoadOrder } from '@/lib/utils/loadOrder';
 import type { DragState } from '@/features/planning/components/scene/useDragBox';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
@@ -150,10 +152,138 @@ function InstancedBoxes() {
   const activeLayer = useSceneStore((s) => s.activeLayer);
   const xRayMode = useSceneStore((s) => s.xRayMode);
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
+  const animationMode = useSceneStore((s) => s.animationMode);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
   const { startDrag } = useDragBox();
   const [dragState, setDragState] = useState<DragState | null>(null);
+
+  // Animasyon için: globalIdx → geçerli pozisyon (cm, merkez)
+  // Animasyon aktif değilken placements'tan hedef pozisyon kullanılır
+  const animPositionsRef = useRef<Map<number, THREE.Vector3>>(new Map());
+
+  // Animasyon için yükleme sırası (arka→ön, alt→üst, sol→sağ)
+  const loadOrder = useMemo(() => buildLoadOrder(placements), [placements]);
+
+  const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
+
+  // setPosition callback — useLoadingAnimation tarafından her frame'de çağrılır
+  const setAnimPosition = useCallback((globalIdx: number, x: number, y: number, z: number) => {
+    let v = animPositionsRef.current.get(globalIdx);
+    if (!v) {
+      v = new THREE.Vector3();
+      animPositionsRef.current.set(globalIdx, v);
+    }
+    v.set(x, y, z);
+  }, []);
+
+  // onFrameUpdate — animasyon her frame bittikten sonra InstancedMesh matrislerini güncelle
+  const onFrameUpdate = useCallback(() => {
+    if (
+      !opaqueRef.current ||
+      !ghostWireRef.current ||
+      !violationRef.current ||
+      !opaqueCylRef.current ||
+      !ghostWireCylRef.current ||
+      !violationCylRef.current
+    )
+      return;
+
+    const matrix = new THREE.Matrix4();
+    const color = new THREE.Color();
+    const quaternion = new THREE.Quaternion();
+    const position = new THREE.Vector3();
+    const scale = new THREE.Vector3();
+
+    const currentAnimMode = useSceneStore.getState().animationMode;
+    const currentAnimStep = useSceneStore.getState().animationStep;
+    const isPlaying = currentAnimMode === 'playing';
+    const isStepped = currentAnimMode === 'stepped';
+
+    function writeAnimInstance(globalIdx: number, instanceIdx: number, isVaril: boolean) {
+      const p = placements[globalIdx];
+      if (!p) return;
+
+      const oRef = isVaril ? opaqueCylRef : opaqueRef;
+      const gRef = isVaril ? ghostWireCylRef : ghostWireRef;
+      const vRef = isVaril ? violationCylRef : violationRef;
+
+      const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+      const radius = Math.min(p.width, p.depth) / 2;
+      applyOrientationQuaternion(quaternion, p.orientationIndex);
+
+      const sw = isVaril ? radius * 2 : base.width;
+      const sh = isVaril ? p.height : base.height;
+      const sd = isVaril ? radius * 2 : base.depth;
+
+      // stepped: sadece animationStep'e kadar olanlar görünür
+      const seqIdx = loadOrder.indexOf(globalIdx);
+      const visibleInStep = isStepped ? seqIdx < currentAnimStep : true;
+      const visibleInPlay = isPlaying; // playing modda hook pozisyon set ettiğinde görünür
+
+      const show = visibleInStep || visibleInPlay;
+
+      if (show) {
+        const animPos = animPositionsRef.current.get(globalIdx);
+        if (animPos) {
+          position.copy(animPos);
+        } else {
+          position.set(
+            p.positionX + p.width / 2,
+            p.positionY + p.height / 2,
+            p.positionZ + p.depth / 2,
+          );
+        }
+        scale.set(sw, sh, sd);
+      } else {
+        position.set(
+          p.positionX + p.width / 2,
+          p.positionY + p.height / 2,
+          p.positionZ + p.depth / 2,
+        );
+        scale.copy(SCALE_ZERO);
+      }
+
+      matrix.compose(position, quaternion, scale);
+      oRef.current!.setMatrixAt(instanceIdx, matrix);
+
+      // Ghost ve violation her zaman gizli animasyon sırasında
+      scale.copy(SCALE_ZERO);
+      matrix.compose(position, quaternion, scale);
+      gRef.current!.setMatrixAt(instanceIdx, matrix);
+      vRef.current!.setMatrixAt(instanceIdx, matrix);
+
+      color.copy(p.isViolation ? COLOR_VIOLATION : p.color ? color.set(p.color) : COLOR_NORMAL);
+      oRef.current!.setColorAt(instanceIdx, color);
+    }
+
+    boxIndices.forEach((globalIdx, instanceIdx) =>
+      writeAnimInstance(globalIdx, instanceIdx, false),
+    );
+    cylIndices.forEach((globalIdx, instanceIdx) => writeAnimInstance(globalIdx, instanceIdx, true));
+
+    for (const ref of [
+      opaqueRef,
+      ghostWireRef,
+      violationRef,
+      opaqueCylRef,
+      ghostWireCylRef,
+      violationCylRef,
+    ]) {
+      if (ref.current) ref.current.instanceMatrix.needsUpdate = true;
+    }
+    if (opaqueRef.current?.instanceColor) opaqueRef.current.instanceColor.needsUpdate = true;
+    if (opaqueCylRef.current?.instanceColor) opaqueCylRef.current.instanceColor.needsUpdate = true;
+  }, [placements, boxIndices, cylIndices, loadOrder]);
+
+  useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
+
+  // Animasyon idle'a döndüğünde pozisyon cache'ini temizle
+  useEffect(() => {
+    if (animationMode === 'idle') {
+      animPositionsRef.current.clear();
+    }
+  }, [animationMode]);
 
   useEffect(() => {
     for (const ref of [
@@ -172,6 +302,9 @@ function InstancedBoxes() {
   }, []);
 
   useEffect(() => {
+    // Animasyon aktifken useFrame içindeki onFrameUpdate matris yazıyor — çift yazımı önle
+    if (isAnimActive) return;
+
     if (
       !opaqueRef.current ||
       !ghostWireRef.current ||
@@ -251,6 +384,7 @@ function InstancedBoxes() {
     if (opaqueRef.current?.instanceColor) opaqueRef.current.instanceColor.needsUpdate = true;
     if (opaqueCylRef.current?.instanceColor) opaqueCylRef.current.instanceColor.needsUpdate = true;
   }, [
+    isAnimActive,
     placements,
     boxIndices,
     cylIndices,
@@ -425,8 +559,8 @@ function InstancedBoxes() {
         />
       </instancedMesh>
 
-      {/* Edge lines — tüm görünür kutular için tek lineSegments çizimi */}
-      <lineSegments geometry={edgesLineGeo}>
+      {/* Edge lines — animasyon sırasında gizle, kutular hareket ederken statik durmasın */}
+      <lineSegments geometry={edgesLineGeo} visible={!isAnimActive}>
         <lineBasicMaterial color="#000000" />
       </lineSegments>
 
@@ -528,9 +662,12 @@ function InstancedBoxes() {
   );
 }
 
-// ─── CargoMeshInstanced ────────────────────────────────────────────────────────
+// ─── BoxPathBoxes ──────────────────────────────────────────────────────────────
+// < INSTANCED_THRESHOLD senaryosu için BoxWrapper tabanlı render.
+// BoxWrapper'da edge geo group pozisyonuna relatif olduğundan
+// animasyonu position prop'larından geçirmek yeterli — ayrı wireframe gizleme gerekmez.
 
-export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
+function BoxPathBoxes() {
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
   const previewPlacements = usePlanStore((s) => s.previewPlacements);
@@ -544,90 +681,142 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
         : rawPlacements,
     [rawPlacements, previewItemId, previewPlacements],
   );
+
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const activeLayer = useSceneStore((s) => s.activeLayer);
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
+  const animationMode = useSceneStore((s) => s.animationMode);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
   const { startDrag } = useDragBox();
   const [dragState, setDragState] = useState<DragState | null>(null);
 
-  const handleAllSettled = useCallback(() => {
-    clearPreview();
-  }, [clearPreview]);
-
-  // < INSTANCED_THRESHOLD yolu için landing animasyonu
+  const handleAllSettled = useCallback(() => clearPreview(), [clearPreview]);
   const landingMeshRefs = useLandingAnimation(
     previewPlacements,
     rawPlacements.length,
     handleAllSettled,
   );
 
+  const loadOrder = useMemo(() => buildLoadOrder(placements), [placements]);
+  const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
+
+  // Animasyonlu pozisyon state: globalIdx → merkez koordinatları
+  // useState olarak tutulur — render sırasında okunabilir (ref kuralı ihlali yok)
+  const [animPositions, setAnimPositions] = useState<
+    Map<number, { x: number; y: number; z: number }>
+  >(() => new Map());
+
+  const setAnimPosition = useCallback((globalIdx: number, x: number, y: number, z: number) => {
+    setAnimPositions((prev) => {
+      const next = new Map(prev);
+      next.set(globalIdx, { x, y, z });
+      return next;
+    });
+  }, []);
+
+  const onFrameUpdate = useCallback(() => {
+    // setAnimPosition zaten state update tetikliyor — ek forceUpdate gerekmez
+  }, []);
+
+  useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
+
+  return (
+    <>
+      {placements.map((p, i) => {
+        const isInstanceSelected = selectedInstanceId === i;
+        const isItemSelected = p.itemId === selectedItemId;
+        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const ds = dragState?.idx === i ? dragState : null;
+
+        // Animasyon aktifken stepped modda henüz gelmemiş kutuları gizle
+        const seqIdx = isAnimActive ? loadOrder.indexOf(i) : -1;
+        const hiddenByAnim =
+          animationMode === 'stepped' &&
+          seqIdx >= 0 &&
+          seqIdx >= useSceneStore.getState().animationStep;
+
+        // Animasyon pozisyonunu al (playing modunda hook tarafından set edilir)
+        const animPos = isAnimActive ? animPositions.get(i) : undefined;
+
+        // AnimPos merkez koordinatı — BoxWrapper bottom-left-rear bekliyor, ters çevir
+        let px: number, py: number, pz: number;
+        if (animPos) {
+          px = animPos.x - p.width / 2;
+          py = animPos.y - p.height / 2;
+          pz = animPos.z - p.depth / 2;
+        } else {
+          px = ds ? ds.x : p.positionX;
+          py = ds ? ds.y : p.positionY;
+          pz = ds ? ds.z : p.positionZ;
+        }
+
+        return (
+          <BoxWrapper
+            key={`${p.itemId}-${i}`}
+            width={p.width}
+            height={p.height}
+            depth={p.depth}
+            positionX={px}
+            positionY={py}
+            positionZ={pz}
+            color={
+              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+            }
+            itemId={p.itemId}
+            isSelected={isInstanceSelected || isItemSelected}
+            isHidden={hiddenItemIds.includes(p.itemId) || hiddenByAnim}
+            isGhosted={ghosted}
+            productType={p.productType}
+            onClick={() => {
+              setSelectedItemId(null);
+              setSelectedInstanceId(selectedInstanceId === i ? null : i);
+            }}
+            onPointerDown={(e) => {
+              if (!vehicle) return;
+              setSelectedItemId(null);
+              setSelectedInstanceId(i);
+              startDrag(i, placements, vehicle, setDragState, e);
+            }}
+          />
+        );
+      })}
+      {/* Landing wireframe — < threshold yolu */}
+      {previewPlacements.map((p, idx) => {
+        const key = `${p.itemId}-${idx}`;
+        return (
+          <LandingWireframe
+            key={`landing-${key}`}
+            placement={p}
+            meshRefCallback={(node) => {
+              if (node) landingMeshRefs.current.set(key, node);
+              else landingMeshRefs.current.delete(key);
+            }}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+// ─── CargoMeshInstanced ────────────────────────────────────────────────────────
+
+export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
+  const rawPlacements = usePlanStore((s) => s.placements);
+  const previewItemId = usePlanStore((s) => s.previewItemId);
+  const previewPlacements = usePlanStore((s) => s.previewPlacements);
+
+  const placements = useMemo(
+    () =>
+      previewItemId
+        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
+        : rawPlacements,
+    [rawPlacements, previewItemId, previewPlacements],
+  );
+
   if (placements.length === 0) return null;
-
-  if (placements.length < INSTANCED_THRESHOLD) {
-    return (
-      <>
-        {placements.map((p, i) => {
-          const isInstanceSelected = selectedInstanceId === i;
-          const isItemSelected = p.itemId === selectedItemId;
-          const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
-          const ds = dragState?.idx === i ? dragState : null;
-          const px = ds ? ds.x : p.positionX;
-          const py = ds ? ds.y : p.positionY;
-          const pz = ds ? ds.z : p.positionZ;
-          return (
-            <BoxWrapper
-              key={`${p.itemId}-${i}`}
-              width={p.width}
-              height={p.height}
-              depth={p.depth}
-              positionX={px}
-              positionY={py}
-              positionZ={pz}
-              color={
-                p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
-              }
-              itemId={p.itemId}
-              isSelected={isInstanceSelected || isItemSelected}
-              isHidden={hiddenItemIds.includes(p.itemId)}
-              isGhosted={ghosted}
-              productType={p.productType}
-              onClick={() => {
-                setSelectedItemId(null);
-                setSelectedInstanceId(selectedInstanceId === i ? null : i);
-              }}
-              onPointerDown={(e) => {
-                if (!vehicle) return;
-                setSelectedItemId(null);
-                setSelectedInstanceId(i);
-                startDrag(i, placements, vehicle, setDragState, e);
-              }}
-            />
-          );
-        })}
-        {/* Landing wireframe — < threshold yolu */}
-        {previewPlacements.map((p, idx) => {
-          const key = `${p.itemId}-${idx}`;
-          return (
-            <LandingWireframe
-              key={`landing-${key}`}
-              placement={p}
-              meshRefCallback={(node) => {
-                if (node) {
-                  landingMeshRefs.current.set(key, node);
-                } else {
-                  landingMeshRefs.current.delete(key);
-                }
-              }}
-            />
-          );
-        })}
-      </>
-    );
-  }
-
+  if (placements.length < INSTANCED_THRESHOLD) return <BoxPathBoxes />;
   return <InstancedBoxes />;
 }
