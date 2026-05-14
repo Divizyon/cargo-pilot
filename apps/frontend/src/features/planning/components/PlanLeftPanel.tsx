@@ -1,55 +1,29 @@
-import { useState, useRef, useEffect, useMemo, type ElementType, type HTMLAttributes } from 'react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useState, useRef, useEffect, useMemo, type ElementType } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   AlertTriangle,
-  ArrowDownToLine,
   Box,
+  ChevronDown,
   ChevronRight,
   Cylinder,
-  Eye,
-  EyeOff,
   Flame,
-  FlipHorizontal,
   FolderPlus,
-  GripVertical,
   Layers,
   Loader2,
+  Minus,
   Package,
   PackageMinus,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
-  SlidersHorizontal,
-  Trash2,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -61,7 +35,7 @@ import type { Item } from '@/lib/types/item';
 // Minimum item count to switch from DnD to virtual list rendering
 const VIRTUAL_THRESHOLD = 100;
 
-// ─── Constraint metadata ──────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
   koli: Box,
@@ -69,33 +43,76 @@ const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
   palet: Package,
 };
 
-const KISIT_META: Record<string, { icon: ElementType; label: string }> = {
-  fragile: { icon: AlertTriangle, label: 'Kırılgan' },
-  heavy_side: { icon: FlipHorizontal, label: 'Yan Yükleme' },
-  bottom_only: { icon: ArrowDownToLine, label: 'Alt Katman' },
-  hazmat: { icon: Flame, label: 'Tehlikeli Mad.' },
-};
-
-function getConstraints(item: Item): string[] {
-  const k: string[] = [];
-  if (item.fragility === 1) k.push('fragile');
-  if (item.fragility === 2) k.push('hazmat');
-  return k;
-}
-
 function itemMatchesFilters(
   item: Item,
   query: string,
   activeConstraints: ReadonlySet<string>,
 ): boolean {
-  if (query && !item.name.toLowerCase().includes(query.toLowerCase())) return false;
-  if (activeConstraints.size > 0) {
-    const constraints = new Set(getConstraints(item));
-    for (const k of activeConstraints) {
-      if (!constraints.has(k)) return false;
-    }
-  }
+  if (
+    query &&
+    !item.name.toLowerCase().includes(query.toLowerCase()) &&
+    !item.sku.toLowerCase().includes(query.toLowerCase())
+  )
+    return false;
+  void activeConstraints;
   return true;
+}
+
+// Derive a list of constraints from Item fields
+interface ConstraintMeta {
+  key: string;
+  label: string;
+  Icon: ElementType;
+  colorClass: string;
+}
+
+function getItemConstraints(item: Item): ConstraintMeta[] {
+  const list: ConstraintMeta[] = [];
+  if (item.fragility === 1)
+    list.push({
+      key: 'fragile',
+      label: 'Kırılgan',
+      Icon: AlertTriangle,
+      colorClass: 'text-amber-500',
+    });
+  if (item.fragility >= 2)
+    list.push({
+      key: 'hazmat',
+      label: 'Tehlikeli Madde',
+      Icon: Flame,
+      colorClass: 'text-rose-500',
+    });
+  if (!item.isStackable)
+    list.push({ key: 'nostack', label: 'Yığılamaz', Icon: Layers, colorClass: 'text-purple-500' });
+  if (!item.allowRotateX)
+    list.push({
+      key: 'noRotX',
+      label: 'X ekseni kısıtlı',
+      Icon: RotateCcw,
+      colorClass: 'text-blue-500',
+    });
+  if (!item.allowRotateY)
+    list.push({
+      key: 'noRotY',
+      label: 'Y ekseni kısıtlı',
+      Icon: RotateCcw,
+      colorClass: 'text-blue-500',
+    });
+  if (!item.allowRotateZ)
+    list.push({
+      key: 'noRotZ',
+      label: 'Z ekseni kısıtlı',
+      Icon: RotateCcw,
+      colorClass: 'text-blue-500',
+    });
+  if (item.stackGroup?.trim())
+    list.push({
+      key: 'group',
+      label: `Yük Grubu: ${item.stackGroup}`,
+      Icon: Package,
+      colorClass: 'text-zinc-400',
+    });
+  return list;
 }
 
 // ─── StoreItemRow ─────────────────────────────────────────────────────────────
@@ -103,236 +120,177 @@ function itemMatchesFilters(
 interface StoreItemRowProps {
   storeEntry: { item: Item; quantity: number };
   isPlaced: boolean;
-  isSelected: boolean;
-  isHidden: boolean;
   canPlace: boolean;
+  isExpanded: boolean;
   indent?: boolean;
-  dragHandleRef?: (el: HTMLElement | null) => void;
-  dragHandleListeners?: Record<string, unknown>;
-  dragHandleAttributes?: Record<string, unknown>;
-  onTogglePlace: () => void;
-  onSelect: () => void;
-  onToggleHide: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onToggleExpand: () => void;
+  onPlace: (qty: number) => void;
+  onRemove?: () => void;
+  onEdit?: () => void;
 }
 
 function StoreItemRow({
   storeEntry,
   isPlaced,
-  isSelected,
-  isHidden,
   canPlace,
+  isExpanded,
   indent = false,
-  dragHandleRef,
-  dragHandleListeners,
-  dragHandleAttributes,
-  onTogglePlace,
-  onSelect,
-  onToggleHide,
+  onToggleExpand,
+  onPlace,
+  onRemove,
   onEdit,
-  onDelete,
 }: StoreItemRowProps) {
   const { item, quantity } = storeEntry;
-  const kisitlar = getConstraints(item);
-  const clickable = isPlaced || canPlace;
+  const [localQty, setLocalQty] = useState(quantity);
   const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
+  const constraints = getItemConstraints(item);
+  const hasConstraints = constraints.length > 0;
 
   return (
     <div
-      title={!canPlace && !isPlaced ? 'Yük eklemek için önce bir konteyner seçin' : undefined}
       className={cn(
-        'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors group/item',
-        clickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
-        isSelected
-          ? 'bg-zinc-900 text-white'
-          : isPlaced
-            ? 'bg-zinc-50 hover:bg-zinc-100 text-zinc-700'
-            : clickable
-              ? 'hover:bg-zinc-50 text-zinc-700'
-              : '',
-        indent && 'ml-5',
+        'rounded-lg overflow-hidden',
+        indent && 'ml-4',
+        isExpanded && 'ring-1 ring-zinc-200',
       )}
-      onClick={() => {
-        if (!clickable) return;
-        onSelect();
-        if (!isPlaced) onTogglePlace();
-      }}
     >
-      {/* Drag handle */}
-      {dragHandleRef && (
-        <button
-          ref={dragHandleRef}
-          {...(dragHandleListeners as HTMLAttributes<HTMLButtonElement>)}
-          {...(dragHandleAttributes as HTMLAttributes<HTMLButtonElement>)}
-          className={cn(
-            'shrink-0 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none',
-            isSelected ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-200 hover:text-zinc-400',
-          )}
-          title="Sırasını değiştir"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="w-3.5 h-3.5" />
-        </button>
-      )}
-
-      {/* Tip ikonu */}
-      <TypeIcon
-        className={cn('w-4 h-4 shrink-0', isSelected ? 'text-white' : 'text-zinc-400')}
-        strokeWidth={1.5}
-      />
-
-      <div className="flex-1 min-w-0">
-        {/* Satır 1: isim + adet */}
-        <div className="flex items-center justify-between gap-2">
-          <span
-            className={cn(
-              'text-sm truncate',
-              isSelected ? 'text-white' : isPlaced ? 'text-zinc-900 font-medium' : 'text-zinc-700',
-            )}
-          >
-            {item.name}
-          </span>
-          <span
-            className={cn(
-              'text-[10px] shrink-0 tabular-nums',
-              isSelected ? 'text-zinc-300' : 'text-zinc-400',
-            )}
-          >
-            {quantity} adet
-          </span>
-        </div>
-        {/* Satır 2: boyut · ağırlık · kısıt ikonları */}
-        <div
-          className={cn(
-            'flex items-center gap-1.5 text-[10px] mt-0.5',
-            isSelected ? 'text-zinc-300' : 'text-zinc-400',
-          )}
-        >
-          <span className="tabular-nums">
-            {item.width}×{item.length}×{item.height} cm
-          </span>
-          <span>·</span>
-          <span className="tabular-nums">{item.weight} kg</span>
-          {kisitlar.map((k) => {
-            const meta = KISIT_META[k];
-            if (!meta) return null;
-            const Icon = meta.icon;
-            return (
-              <span
-                key={k}
-                title={meta.label}
-                className={cn(
-                  'inline-flex items-center px-1 py-px rounded',
-                  isSelected ? 'bg-white/10 text-zinc-300' : 'bg-zinc-100 text-zinc-500',
-                )}
-              >
-                <Icon className="w-2.5 h-2.5" />
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Actions — visible on hover (always visible if hidden), stop propagation so row click doesn't fire */}
+      {/* ── Collapsed header ─────────────────────────────────────────── */}
       <div
+        onClick={onToggleExpand}
         className={cn(
-          'flex flex-col items-center gap-0.5 shrink-0 transition-opacity',
-          isHidden ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100',
+          'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
+          isPlaced ? 'bg-zinc-50/80' : 'hover:bg-zinc-50',
+          isExpanded && 'bg-zinc-50',
         )}
-        onClick={(e) => e.stopPropagation()}
       >
-        <button
-          title="Düzenle"
-          onClick={onEdit}
-          className={cn(
-            'w-5 h-5 rounded flex items-center justify-center transition-colors',
-            isSelected
-              ? 'text-zinc-300 hover:text-white hover:bg-white/10'
-              : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100',
-          )}
-        >
-          <Pencil className="w-3 h-3" />
-        </button>
-        <button
-          title="Sil"
-          onClick={onDelete}
-          className={cn(
-            'w-5 h-5 rounded flex items-center justify-center transition-colors',
-            isSelected
-              ? 'text-zinc-300 hover:text-white hover:bg-white/10'
-              : 'text-zinc-400 hover:text-rose-600 hover:bg-rose-50',
-          )}
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
-        {isPlaced && (
-          <>
-            <button
-              title={isHidden ? 'Göster' : 'Gizle'}
-              onClick={onToggleHide}
-              className={cn(
-                'w-5 h-5 rounded flex items-center justify-center transition-colors',
-                isSelected
-                  ? 'text-zinc-300 hover:text-white hover:bg-white/10'
-                  : isHidden
-                    ? 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
-                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100',
-              )}
-            >
-              {isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            </button>
-            <button
-              title="Kamyondan Çıkar"
-              onClick={onTogglePlace}
-              className={cn(
-                'w-5 h-5 rounded flex items-center justify-center transition-colors',
-                isSelected
-                  ? 'text-zinc-300 hover:text-white hover:bg-white/10'
-                  : 'text-zinc-400 hover:text-amber-600 hover:bg-amber-50',
-              )}
-            >
-              <PackageMinus className="w-3 h-3" />
-            </button>
-          </>
+        <TypeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-400" strokeWidth={1.5} />
+
+        <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
+
+        <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
+
+        {onEdit && (
+          <button
+            title="Düzenle"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 transition-colors"
+          >
+            <Pencil className="w-2.5 h-2.5" />
+          </button>
         )}
+
+        <ChevronDown
+          className={cn(
+            'w-3 h-3 shrink-0 text-zinc-300 transition-transform duration-150',
+            isExpanded && 'rotate-180',
+          )}
+        />
       </div>
-    </div>
-  );
-}
 
-// ─── SortableStoreItemRow ─────────────────────────────────────────────────────
+      {/* ── Expanded panel ────────────────────────────────────────────── */}
+      {isExpanded && (
+        <div className="px-2.5 pt-2 pb-2.5 bg-zinc-50 border-t border-zinc-100 space-y-2">
+          {/* Dimensions + weight */}
+          <p className="text-[11px] text-zinc-500 tabular-nums">
+            {item.width}×{item.height}×{item.length} cm · {item.weight} kg
+          </p>
 
-interface SortableStoreItemRowProps extends Omit<
-  StoreItemRowProps,
-  'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'
-> {
-  id: string;
-}
+          {/* Constraint icons with hover tooltips */}
+          {hasConstraints && (
+            <TooltipProvider delayDuration={100}>
+              <div className="flex items-center gap-1.5">
+                {constraints.map((c) => (
+                  <Tooltip key={c.key}>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default">
+                        <c.Icon className={cn('w-3.5 h-3.5', c.colorClass)} strokeWidth={2} />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {c.label}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          )}
 
-function SortableStoreItemRow({ id, ...rowProps }: SortableStoreItemRowProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+          {/* Yük grubu */}
+          {item.stackGroup?.trim() && (
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <Package className="w-3 h-3 text-zinc-400 shrink-0" />
+              <span className="text-zinc-400 shrink-0">Yük Grubu</span>
+              <span className="text-zinc-700 font-medium truncate">{item.stackGroup}</span>
+            </div>
+          )}
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(isDragging && 'opacity-40 z-50 relative')}
-    >
-      <StoreItemRow
-        {...rowProps}
-        dragHandleRef={setActivatorNodeRef}
-        dragHandleListeners={listeners as Record<string, unknown>}
-        dragHandleAttributes={attributes as unknown as Record<string, unknown>}
-      />
+          {/* Taşıma notu */}
+          {item.specialNotes?.trim() && (
+            <p className="text-[11px] text-zinc-500 italic leading-snug">{item.specialNotes}</p>
+          )}
+
+          {/* Action row */}
+          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-zinc-100">
+            {!isPlaced ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-zinc-400">Adet</span>
+                  <div className="flex items-center rounded border border-zinc-200 overflow-hidden ml-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocalQty((v) => Math.max(1, v - 1));
+                      }}
+                      className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
+                    >
+                      <Minus className="w-2 h-2" />
+                    </button>
+                    <span className="w-6 text-center text-[11px] tabular-nums text-zinc-700">
+                      {localQty}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocalQty((v) => v + 1);
+                      }}
+                      className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
+                    >
+                      <Plus className="w-2 h-2" />
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={!canPlace}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPlace(localQty);
+                    onToggleExpand();
+                  }}
+                  className="h-6 text-[11px] px-2.5 bg-zinc-900 text-white hover:bg-zinc-700"
+                >
+                  Ekle
+                </Button>
+              </>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove?.();
+                  onToggleExpand();
+                }}
+                className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-rose-600 transition-colors ml-auto"
+              >
+                <PackageMinus className="w-3 h-3" />
+                Çıkar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -340,44 +298,60 @@ function SortableStoreItemRow({ id, ...rowProps }: SortableStoreItemRowProps) {
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
 export function PlanLeftPanel() {
+  const navigate = useNavigate();
   const [groups, setGroups] = useState<
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[] }>
   >([]);
   const [ungroupedIds, setUngroupedIds] = useState<string[]>([]);
   const [showItemModal, setShowItemModal] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [activeConstraints, setActiveConstraints] = useState<Set<string>>(new Set());
+  const [activeConstraints] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
 
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
-  const apiItems = itemsPage?.items ?? [];
+  const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const placements = usePlanStore((s) => s.placements);
-  const removeItem = usePlanStore((s) => s.removeItem);
   const togglePlacement = usePlanStore((s) => s.togglePlacement);
+  const addManualItem = usePlanStore((s) => s.addManualItem);
+  const updateItem = usePlanStore((s) => s.updateItem);
   const initItems = usePlanStore((s) => s.initItems);
-  const reorderItems = usePlanStore((s) => s.reorderItems);
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
+  const skuColorMap = usePlanStore((s) => s.skuColorMap);
 
   const canPlace = !!selectedVehicle;
 
-  const selectedItemId = useSceneStore((s) => s.selectedItemId);
-  const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
-  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
-  const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
 
-  const placedIds = new Set(placements.map((p) => p.itemId));
+  // Binary "has any placement" — drives tab filter, row visual style, 3D scene actions
+  const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
-  // Seed the store from API data
+  // Reset ungroupedIds when store is fully cleared (e.g. PlanAutoLoader resets on navigate)
+  const prevSelectedLenRef = useRef(selectedItems.length);
   useEffect(() => {
-    if (apiItems.length > 0 && selectedItems.length === 0) {
+    if (prevSelectedLenRef.current > 0 && selectedItems.length === 0 && placements.length === 0) {
+      setUngroupedIds([]);
+    }
+    prevSelectedLenRef.current = selectedItems.length;
+  }, [selectedItems.length, placements.length]);
+
+  // Seed ungroupedIds once:
+  // • Existing plan (selectedItems pre-populated by PlanAutoLoader): seed from store
+  // • New plan (selectedItems empty): seed from catalog API + call initItems
+  useEffect(() => {
+    if (ungroupedIds.length > 0) return;
+    if (selectedItems.length > 0) {
+      setUngroupedIds(selectedItems.map((si) => si.item.id));
+      return;
+    }
+    if (apiItems.length > 0) {
       const colorMap: Record<string, string> = {};
       apiItems.forEach((item, i) => {
         colorMap[item.sku] = SCENE.COLORS.SKU_PALETTE[i % SCENE.COLORS.SKU_PALETTE.length];
@@ -389,60 +363,69 @@ export function PlanLeftPanel() {
       setUngroupedIds(apiItems.map((item) => item.id));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiItems]);
+  }, [apiItems, selectedItems, ungroupedIds.length]);
 
-  // All known grouped IDs
-  const groupedIds = new Set(groups.flatMap((g) => g.itemIdler));
+  // All known grouped IDs (for DnD context)
+  const groupedIds = useMemo(() => new Set(groups.flatMap((g) => g.itemIdler)), [groups]);
 
-  // Items in store not yet assigned to any group or ungrouped list
-  const allKnownIds = new Set([...groupedIds, ...ungroupedIds]);
-  const extraItems = selectedItems.filter((si) => !allKnownIds.has(si.item.id));
+  // Catalog items not in the plan at all → shown in "Yüklü Değil" tab only
+  const filteredCatalogOnlyItems = useMemo(() => {
+    if (activeTab !== 'unloaded') return [];
+    const planIds = new Set(selectedItems.map((si) => si.item.id));
+    return apiItems.filter(
+      (item) =>
+        !planIds.has(item.id) &&
+        !placedIds.has(item.id) &&
+        itemMatchesFilters(item, search, activeConstraints),
+    );
+  }, [apiItems, selectedItems, placedIds, activeTab, search, activeConstraints]);
 
-  // Filtered lists — name search + constraint toggles
-  const filteredUngroupedIds = useMemo(() => {
-    const hasFilter = search.trim() || activeConstraints.size > 0;
-    if (!hasFilter) return ungroupedIds;
-    return ungroupedIds.filter((id) => {
+  // Single deduplicated flat list — merges ungroupedIds order with any extras from selectedItems.
+  // Explicit deduplication prevents double-rendering regardless of seeding timing.
+  const flatDisplayItems = useMemo(() => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    // First: items in ungroupedIds order (DnD order)
+    for (const id of ungroupedIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (groupedIds.has(id)) continue; // belongs to a group, skip here
       const entry = selectedItems.find((si) => si.item.id === id);
-      return entry ? itemMatchesFilters(entry.item, search, activeConstraints) : false;
-    });
-  }, [ungroupedIds, selectedItems, search, activeConstraints]);
+      if (!entry) continue;
+      const isPlaced = placedIds.has(id);
+      if (activeTab === 'loaded' && !isPlaced) continue;
+      if (activeTab === 'unloaded' && isPlaced) continue;
+      if (!itemMatchesFilters(entry.item, search, activeConstraints)) continue;
+      result.push(id);
+    }
 
-  const filteredExtraItems = useMemo(() => {
-    const hasFilter = search.trim() || activeConstraints.size > 0;
-    if (!hasFilter) return extraItems;
-    return extraItems.filter((si) => itemMatchesFilters(si.item, search, activeConstraints));
-  }, [extraItems, search, activeConstraints]);
+    // Then: any selectedItems not yet in ungroupedIds (e.g. just added via addManualItem)
+    for (const si of selectedItems) {
+      const id = si.item.id;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (groupedIds.has(id)) continue;
+      const isPlaced = placedIds.has(id);
+      if (activeTab === 'loaded' && !isPlaced) continue;
+      if (activeTab === 'unloaded' && isPlaced) continue;
+      if (!itemMatchesFilters(si.item, search, activeConstraints)) continue;
+      result.push(id);
+    }
 
-  // Virtual list — activated when ungrouped count reaches threshold
-  const shouldVirtualize = filteredUngroupedIds.length >= VIRTUAL_THRESHOLD;
+    return result;
+  }, [ungroupedIds, selectedItems, groupedIds, placedIds, activeTab, search, activeConstraints]);
+
+  // Virtual list — activated when total flat item count reaches threshold
+  const shouldVirtualize = flatDisplayItems.length >= VIRTUAL_THRESHOLD;
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
-    count: shouldVirtualize ? filteredUngroupedIds.length : 0,
+    count: shouldVirtualize ? flatDisplayItems.length : 0,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 52,
-    overscan: 5,
+    estimateSize: () => 36,
+    overscan: 8,
   });
-
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const activeId = active.id as string;
-    const overId = over.id as string;
-    setUngroupedIds((ids) => {
-      const oldIndex = ids.indexOf(activeId);
-      const newIndex = ids.indexOf(overId);
-      return arrayMove(ids, oldIndex, newIndex);
-    });
-    reorderItems(activeId, overId);
-  }
 
   function lookupEntry(id: string) {
     return selectedItems.find((si) => si.item.id === id);
@@ -457,37 +440,25 @@ export function PlanLeftPanel() {
     setFocusedGroupItemIds(isSameFocus ? null : itemIds);
   }
 
-  function handleDelete(itemId: string) {
-    removeItem(itemId);
-    setGroups((prev) =>
-      prev.map((g) => ({ ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) })),
-    );
-    setUngroupedIds((prev) => prev.filter((id) => id !== itemId));
-  }
-
-  function openEdit(itemId: string) {
-    setEditingItemId(itemId);
-    setShowItemModal(true);
-  }
-
-  const editingEntry = editingItemId
-    ? selectedItems.find((si) => si.item.id === editingItemId)
-    : undefined;
-
   const commonRowProps = (id: string) => {
     const entry = lookupEntry(id);
     if (!entry) return null;
+    const isPlaced = placedIds.has(id);
     return {
       storeEntry: entry,
-      isPlaced: placedIds.has(id),
-      isSelected: selectedItemId === id,
-      isHidden: hiddenItemIds.includes(id),
+      isPlaced,
       canPlace,
-      onTogglePlace: () => togglePlacement(id),
-      onSelect: () => setSelectedItemId(selectedItemId === id ? null : id),
-      onToggleHide: () => toggleHiddenItem(id),
-      onEdit: () => openEdit(id),
-      onDelete: () => handleDelete(id),
+      isExpanded: expandedId === id,
+      onToggleExpand: () => setExpandedId((prev) => (prev === id ? null : id)),
+      onPlace: (qty: number) => {
+        if (qty !== entry.quantity) {
+          const color = skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+          updateItem(id, entry.item, qty, color);
+        }
+        togglePlacement(id);
+      },
+      onRemove: () => togglePlacement(id),
+      onEdit: () => navigate(`/products/${id}/edit`),
     };
   };
 
@@ -511,25 +482,51 @@ export function PlanLeftPanel() {
             size="icon"
             title="Ürün Ekle"
             className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
-            onClick={() => {
-              setEditingItemId(null);
-              setShowItemModal(true);
-            }}
+            onClick={() => setShowItemModal(true)}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Search + constraint filter */}
-      <div className="px-2 pt-2 pb-1 shrink-0 flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+      {/* Tab — Yüklü / Yüklü Değil */}
+      <div className="px-2 pt-2 shrink-0">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
+          <TabsList className="w-full h-7 bg-zinc-100">
+            <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
+              Yüklü Değil
+              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+                {(() => {
+                  const planUnloaded = selectedItems.filter(
+                    (si) => !placedIds.has(si.item.id),
+                  ).length;
+                  const planIds = new Set(selectedItems.map((si) => si.item.id));
+                  const catalogOnly = apiItems.filter(
+                    (i) => !planIds.has(i.id) && !placedIds.has(i.id),
+                  ).length;
+                  return `(${planUnloaded + catalogOnly})`;
+                })()}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
+              Yüklü
+              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+                ({placedIds.size})
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Search */}
+      <div className="px-2 pt-1.5 pb-1 shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ürün adı ile ara…"
-            className="h-7 pl-8 pr-7 text-xs bg-zinc-50 border-zinc-200 focus-visible:ring-1 focus-visible:ring-zinc-300"
+            placeholder="İsim veya SKU ile ara…"
+            className="h-7 pl-7 pr-7 text-xs bg-zinc-50 border-zinc-200 focus-visible:ring-1 focus-visible:ring-zinc-300"
           />
           {search && (
             <button
@@ -540,67 +537,6 @@ export function PlanLeftPanel() {
             </button>
           )}
         </div>
-
-        {/* Constraint type filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              title="Kısıt tipine göre filtrele"
-              className={cn(
-                'h-7 w-7 shrink-0 border-zinc-200',
-                activeConstraints.size > 0
-                  ? 'bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-700 hover:border-zinc-700'
-                  : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100',
-              )}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              {activeConstraints.size > 0 && (
-                <span className="sr-only">{activeConstraints.size} filtre aktif</span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide py-1">
-              Kısıt Tipi
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {Object.entries(KISIT_META).map(([key, meta]) => {
-              const Icon = meta.icon;
-              return (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={activeConstraints.has(key)}
-                  onCheckedChange={(checked: boolean) => {
-                    setActiveConstraints((prev) => {
-                      const next = new Set(prev);
-                      if (checked) next.add(key);
-                      else next.delete(key);
-                      return next;
-                    });
-                  }}
-                  onSelect={(e: Event) => e.preventDefault()}
-                  className="text-xs gap-2"
-                >
-                  <Icon className="w-3.5 h-3.5 text-zinc-500" />
-                  {meta.label}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
-            {activeConstraints.size > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <button
-                  onClick={() => setActiveConstraints(new Set())}
-                  className="w-full text-[10px] text-zinc-400 hover:text-zinc-700 px-2 py-1.5 text-left transition-colors"
-                >
-                  Filtreleri temizle
-                </button>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Scrollable area */}
@@ -671,16 +607,9 @@ export function PlanLeftPanel() {
           );
         })}
 
-        {/* Ungrouped — virtual list when >= VIRTUAL_THRESHOLD, DnD otherwise */}
-        {filteredUngroupedIds.length > 0 && (
+        {/* Flat item list — single deduplicated source, no section headers */}
+        {flatDisplayItems.length > 0 && (
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
-                Grupsuz
-                {search && ` · ${filteredUngroupedIds.length} sonuç`}
-              </span>
-            </div>
-
             {shouldVirtualize ? (
               // Virtual list mode — no DnD (impractical at this scale)
               <div
@@ -690,7 +619,7 @@ export function PlanLeftPanel() {
                 }}
               >
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const id = filteredUngroupedIds[virtualItem.index];
+                  const id = flatDisplayItems[virtualItem.index];
                   const props = commonRowProps(id);
                   if (!props) return null;
                   return (
@@ -712,50 +641,45 @@ export function PlanLeftPanel() {
                 })}
               </div>
             ) : (
-              // DnD mode — drag handle on each row
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={filteredUngroupedIds}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {filteredUngroupedIds.map((id) => {
-                    const props = commonRowProps(id);
-                    if (!props) return null;
-                    return <SortableStoreItemRow key={id} id={id} {...props} />;
-                  })}
-                </SortableContext>
-              </DndContext>
+              <div className="flex flex-col gap-px">
+                {flatDisplayItems.map((id) => {
+                  const props = commonRowProps(id);
+                  if (!props) return null;
+                  return <StoreItemRow key={id} {...props} />;
+                })}
+              </div>
             )}
           </div>
         )}
 
-        {/* New items added via form (not in any group yet) */}
-        {filteredExtraItems.length > 0 && (
+        {/* Katalog — plan'a eklenmemiş tüm ürünler (sadece Yüklü Değil tabında) */}
+        {filteredCatalogOnlyItems.length > 0 && (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2 px-3 py-1.5">
               <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
-                Manuel Eklenen
+                Katalog
               </span>
             </div>
-            {filteredExtraItems.map((si) => {
-              const id = si.item.id;
+            {filteredCatalogOnlyItems.map((item) => {
+              const color =
+                SCENE.COLORS.SKU_PALETTE[
+                  Object.keys(usePlanStore.getState().skuColorMap).length %
+                    SCENE.COLORS.SKU_PALETTE.length
+                ];
               return (
                 <StoreItemRow
-                  key={id}
-                  storeEntry={si}
-                  isPlaced={placedIds.has(id)}
-                  isSelected={selectedItemId === id}
-                  isHidden={hiddenItemIds.includes(id)}
+                  key={item.id}
+                  storeEntry={{ item, quantity: 1 }}
+                  isPlaced={false}
                   canPlace={canPlace}
-                  onTogglePlace={() => togglePlacement(id)}
-                  onSelect={() => setSelectedItemId(selectedItemId === id ? null : id)}
-                  onToggleHide={() => toggleHiddenItem(id)}
-                  onEdit={() => openEdit(id)}
-                  onDelete={() => handleDelete(id)}
+                  isExpanded={expandedId === item.id}
+                  onToggleExpand={() =>
+                    setExpandedId((prev) => (prev === item.id ? null : item.id))
+                  }
+                  onPlace={(qty) => {
+                    addManualItem(item, qty, color);
+                    setUngroupedIds((prev) => [...prev, item.id]);
+                  }}
                 />
               );
             })}
@@ -764,8 +688,8 @@ export function PlanLeftPanel() {
 
         {/* No results */}
         {(search || activeConstraints.size > 0) &&
-          filteredUngroupedIds.length === 0 &&
-          filteredExtraItems.length === 0 &&
+          flatDisplayItems.length === 0 &&
+          filteredCatalogOnlyItems.length === 0 &&
           !itemsLoading && (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-1.5">
               <Search className="w-5 h-5 text-zinc-200" />
@@ -804,18 +728,7 @@ export function PlanLeftPanel() {
         </div>
       )}
 
-      <AddItemModal
-        open={showItemModal}
-        onOpenChange={(open) => {
-          setShowItemModal(open);
-          if (!open) setEditingItemId(null);
-        }}
-        editTarget={
-          editingItemId && editingEntry
-            ? { itemId: editingItemId, item: editingEntry.item, quantity: editingEntry.quantity }
-            : undefined
-        }
-      />
+      <AddItemModal open={showItemModal} onOpenChange={setShowItemModal} />
     </div>
   );
 }

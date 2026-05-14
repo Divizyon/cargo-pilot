@@ -56,14 +56,6 @@ function UnitTooltip({ text }: { text: string }) {
   );
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-4 pb-1 first:pt-0">
-      {children}
-    </p>
-  );
-}
-
 interface RowProps {
   label: string;
   tooltip?: string;
@@ -72,12 +64,12 @@ interface RowProps {
 
 function Row({ label, tooltip, children }: RowProps) {
   return (
-    <div className="flex items-center gap-6 border-b border-border py-2.5 last:border-0">
-      <div className="flex w-44 shrink-0 items-center gap-1.5">
+    <div className="flex items-start gap-6 border-b border-border py-3 last:border-0">
+      <div className="flex w-52 shrink-0 items-center gap-1.5 pt-2">
         <span className="text-sm text-foreground">{label}</span>
         {tooltip && <UnitTooltip text={tooltip} />}
       </div>
-      <div className="w-52">{children}</div>
+      <div className="flex-1 max-w-[280px]">{children}</div>
     </div>
   );
 }
@@ -130,173 +122,187 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-xl">
-        <SectionLabel>Dil ve Bölge</SectionLabel>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="divide-y divide-border">
+          {/* Dil ve Bölge */}
+          <div className="pb-6">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Dil ve Bölge
+            </p>
 
-        <FormField
-          control={form.control}
-          name="language"
-          render={({ field }) => (
-            <FormItem>
-              <Row label="Arayüz Dili">
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="tr">Türkçe</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </Row>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="language"
+              render={({ field }) => (
+                <FormItem>
+                  <Row label="Arayüz Dili">
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="tr">Türkçe</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </Row>
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="timezone"
-          render={({ field }) => (
-            <FormItem>
-              <Row label="Zaman Dilimi">
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Europe/Istanbul">Europe/Istanbul (UTC+3)</SelectItem>
-                    <SelectItem value="Europe/London">Europe/London (UTC+0)</SelectItem>
-                    <SelectItem value="America/New_York">America/New_York (UTC-5)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">America/Los_Angeles (UTC-8)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </Row>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="timezone"
+              render={({ field }) => (
+                <FormItem>
+                  <Row label="Zaman Dilimi">
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Europe/Istanbul">Europe/Istanbul (UTC+3)</SelectItem>
+                        <SelectItem value="Europe/London">Europe/London (UTC+0)</SelectItem>
+                        <SelectItem value="America/New_York">America/New_York (UTC-5)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">
+                          America/Los_Angeles (UTC-8)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </Row>
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="dateFormat"
-          render={({ field }) => (
-            <FormItem>
-              <Row label="Tarih Formatı">
-                <div className="flex items-center gap-2">
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="h-8 flex-1 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="DD.MM.YYYY">GG.AA.YYYY</SelectItem>
-                      <SelectItem value="MM/DD/YYYY">AA/GG/YYYY</SelectItem>
-                      <SelectItem value="YYYY-MM-DD">YYYY-AA-GG</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="shrink-0 rounded border bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
-                    {datePreview}
-                  </span>
-                </div>
-                <FormMessage />
-              </Row>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="dateFormat"
+              render={({ field }) => (
+                <FormItem>
+                  <Row label="Tarih Formatı">
+                    <div className="flex items-center gap-2">
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-9 flex-1 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="DD.MM.YYYY">GG.AA.YYYY</SelectItem>
+                          <SelectItem value="MM/DD/YYYY">AA/GG/YYYY</SelectItem>
+                          <SelectItem value="YYYY-MM-DD">YYYY-AA-GG</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="shrink-0 rounded border bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+                        {datePreview}
+                      </span>
+                    </div>
+                    <FormMessage />
+                  </Row>
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <SectionLabel>Ölçü Birimleri</SectionLabel>
+          {/* Ölçü Birimleri */}
+          <div className="py-6">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Ölçü Birimleri
+            </p>
 
-        <FormField
-          control={form.control}
-          name="dimensionUnit"
-          render={({ field }) => (
-            <FormItem>
-              <Row label="Ölçü Birimi" tooltip={UNIT_TOOLTIPS.dimensionUnit}>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="cm">Santimetre (cm)</SelectItem>
-                    <SelectItem value="mm">Milimetre (mm)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </Row>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="dimensionUnit"
+              render={({ field }) => (
+                <FormItem>
+                  <Row label="Ölçü Birimi" tooltip={UNIT_TOOLTIPS.dimensionUnit}>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="cm">Santimetre (cm)</SelectItem>
+                        <SelectItem value="mm">Milimetre (mm)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </Row>
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="weightUnit"
-          render={({ field }) => (
-            <FormItem>
-              <Row label="Ağırlık Birimi" tooltip={UNIT_TOOLTIPS.weightUnit}>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="kg">Kilogram (kg)</SelectItem>
-                    <SelectItem value="ton">Ton (ton)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </Row>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="weightUnit"
+              render={({ field }) => (
+                <FormItem>
+                  <Row label="Ağırlık Birimi" tooltip={UNIT_TOOLTIPS.weightUnit}>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="kg">Kilogram (kg)</SelectItem>
+                        <SelectItem value="ton">Ton (ton)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </Row>
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="volumeUnit"
-          render={({ field }) => (
-            <FormItem>
-              <Row label="Hacim Birimi" tooltip={UNIT_TOOLTIPS.volumeUnit}>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="m³">Metreküp (m³)</SelectItem>
-                    <SelectItem value="dm³">Desimetreküp (dm³)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </Row>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="volumeUnit"
+              render={({ field }) => (
+                <FormItem>
+                  <Row label="Hacim Birimi" tooltip={UNIT_TOOLTIPS.volumeUnit}>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="m³">Metreküp (m³)</SelectItem>
+                        <SelectItem value="dm³">Desimetreküp (dm³)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </Row>
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <div className="flex justify-end pt-4">
-          <Button
-            type="submit"
-            size="sm"
-            disabled={form.formState.isSubmitting}
-            className="min-w-36"
-          >
-            {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Kaydediliyor...
-              </>
-            ) : (
-              'Değişiklikleri Kaydet'
-            )}
-          </Button>
+          <div className="flex justify-end pt-6">
+            <Button
+              type="submit"
+              size="sm"
+              disabled={form.formState.isSubmitting}
+              className="min-w-36"
+            >
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Kaydediliyor...
+                </>
+              ) : (
+                'Değişiklikleri Kaydet'
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
