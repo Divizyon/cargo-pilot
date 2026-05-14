@@ -1,4 +1,5 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -46,6 +47,16 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         }
 
         var companyId = _currentUserService.CompanyId;
+
+        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } planUserId)
+        {
+            var currentCount = await _planRepository.CountByUserAsync(planUserId, cancellationToken);
+            var maxCount = SubscriptionLimits.GetMaxLoadingPlanCount(SubscriptionType.Free);
+            if (currentCount >= maxCount)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
+                        "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
+        }
 
         var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
         if (vehicle is null)
