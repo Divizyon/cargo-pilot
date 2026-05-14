@@ -2,7 +2,6 @@ import { useState, type ReactNode, type ComponentType } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
-  Ban,
   Box,
   Cpu,
   Cylinder,
@@ -10,6 +9,7 @@ import {
   Flame,
   FlaskConical,
   HelpCircle,
+  Lock,
   Package,
   Sun,
   Utensils,
@@ -307,56 +307,78 @@ interface AxisBoxIllustrationProps {
   axisColor?: string;
 }
 
-function AxisBoxIllustration({ axis, active, axisColor }: AxisBoxIllustrationProps) {
-  const stroke = 'currentColor';
-  const arrowColor = active ? (axisColor ?? 'hsl(var(--primary))') : 'currentColor';
+function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
+  const isLocked = !active;
+  const topFill = '#4b5563';
+  const sideFill = '#6b7280';
+  const sideDark = '#374151';
+  const strokeCol = '#1f2937';
+  const arrowCol = '#ffffff';
+  const AW = 2.5;
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center justify-center">
       <svg
-        width="32"
-        height="28"
-        viewBox="0 0 72 64"
+        viewBox="0 0 100 96"
         fill="none"
-        className={cn('transition-opacity', active ? 'opacity-100' : 'opacity-40')}
+        style={{
+          width: 66,
+          height: 60,
+          minWidth: 66,
+          flexShrink: 0,
+          opacity: isLocked ? 0.28 : 1,
+          filter: isLocked ? 'grayscale(1)' : 'none',
+          transition: 'opacity 0.15s, filter 0.15s',
+        }}
       >
-        <path
-          d="M14 22 L36 12 L58 22 L58 46 L36 56 L14 46 Z"
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        <path d="M14 22 L36 32 L58 22" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
-        <path d="M36 32 L36 56" stroke={stroke} strokeWidth="1.5" />
         {axis === 'x' && (
           <>
-            <path d="M2 34 L70 34" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M66 30 L70 34 L66 38" stroke={arrowColor} strokeWidth="1.5" fill="none" />
-            <path d="M6 30 L2 34 L6 38" stroke={arrowColor} strokeWidth="1.5" fill="none" />
+            <path d="M50 4 L82 20 L50 36 L18 20 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path d="M82 20 L82 82 L50 94 L50 36 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path d="M18 20 L18 82 L50 94 L50 36 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            {!isLocked && (
+              <>
+                <path d="M10 26 A 22 26 0 0 0 10 72" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <polygon points="10,82 3,70 17,70" fill={arrowCol} />
+                <path d="M90 70 A 22 26 0 0 0 90 26" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <polygon points="90,16 83,28 97,28" fill={arrowCol} />
+              </>
+            )}
           </>
         )}
         {axis === 'y' && (
           <>
-            <path d="M36 2 L36 62" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M32 6 L36 2 L40 6" stroke={arrowColor} strokeWidth="1.5" fill="none" />
-            <path d="M32 58 L36 62 L40 58" stroke={arrowColor} strokeWidth="1.5" fill="none" />
+            <path d="M50 26 L90 40 L50 54 L10 40 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path d="M90 40 L90 68 L50 78 L50 54 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path d="M10 40 L10 68 L50 78 L50 54 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            {!isLocked && (
+              <>
+                <path d="M20 37 A 34 12 0 0 1 78 37" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <polygon points="88,37 77,30 77,44" fill={arrowCol} />
+                <path d="M80 47 A 34 12 0 0 1 22 47" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <polygon points="12,47 23,40 23,54" fill={arrowCol} />
+              </>
+            )}
           </>
         )}
         {axis === 'z' && (
           <>
-            <path d="M8 56 L64 8" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M58 8 L64 8 L64 14" stroke={arrowColor} strokeWidth="1.5" fill="none" />
-            <path d="M14 50 L8 56 L8 50" stroke={arrowColor} strokeWidth="1.5" fill="none" />
+            <path d="M50 10 L84 26 L50 42 L16 26 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path d="M84 26 L84 72 L50 88 L50 42 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path d="M16 26 L16 72 L50 88 L50 42 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            {!isLocked && (
+              <>
+                <path d="M90 30 A 20 24 0 0 1 90 70" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <polygon points="90,80 83,68 97,68" fill={arrowCol} />
+                <path d="M10 68 A 20 24 0 0 1 10 28" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <polygon points="10,18 3,30 17,30" fill={arrowCol} />
+              </>
+            )}
           </>
         )}
       </svg>
-      {!active && (
-        <Ban
-          className="absolute inset-0 m-auto h-5 w-5 text-destructive"
-          strokeWidth={2}
-          aria-hidden
-        />
+      {isLocked && (
+        <Lock className="absolute h-4 w-4 text-muted-foreground/60" />
       )}
     </div>
   );
@@ -819,7 +841,7 @@ export function ProductForm({
             </Tooltip>
           </div>
           <div className="flex gap-2">
-            {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle, axisColor }) => {
+            {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle }) => {
               const isAutoDisabled =
                 (axisFieldName === 'allowRotateZ' && isZLocked) ||
                 (axisFieldName === 'allowRotateY' && isYLocked);
@@ -852,19 +874,16 @@ export function ProductForm({
                               disabled={isDisabled}
                               onClick={() => field.onChange(!field.value)}
                               className={cn(
-                                'h-auto w-full flex-col items-center gap-2 rounded-md px-2 py-4 text-muted-foreground transition-opacity',
-                                isLocked && !isAutoDisabled && 'opacity-50',
-                              )}
-                              style={
+                                'h-auto w-full flex-col items-center gap-1.5 rounded-md px-2 py-3 transition-all duration-150',
                                 !isLocked && !isAutoDisabled
-                                  ? { borderColor: axisColor }
-                                  : undefined
-                              }
+                                  ? 'border-foreground/30 text-foreground'
+                                  : 'text-muted-foreground',
+                                isAutoDisabled && 'opacity-40',
+                              )}
                             >
                               <AxisBoxIllustration
                                 axis={axis}
                                 active={!isLocked && !isAutoDisabled}
-                                axisColor={axisColor}
                               />
                               <div className="flex flex-col items-center gap-0.5">
                                 <span className="text-sm font-semibold leading-none">{axisLabel}</span>
