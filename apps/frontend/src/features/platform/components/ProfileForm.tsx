@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -29,14 +29,6 @@ import {
 } from '@/features/platform/schemas/passwordChangeSchema';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-      {children}
-    </p>
-  );
-}
 
 function PasswordToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
   return (
@@ -110,7 +102,7 @@ function EmailChangeSection({ currentEmail, onClose }: EmailChangeSectionProps) 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-medium text-foreground">Mevcut E-posta</p>
-            <Input value={currentEmail} disabled className="bg-muted" />
+            <Input value={currentEmail} disabled className="h-9 bg-muted" />
           </div>
           <FormField
             control={form.control}
@@ -119,7 +111,7 @@ function EmailChangeSection({ currentEmail, onClose }: EmailChangeSectionProps) 
               <FormItem>
                 <FormLabel>Yeni E-posta</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="yeni@eposta.com" {...field} />
+                  <Input type="email" className="h-9" placeholder="yeni@eposta.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -202,7 +194,7 @@ function PasswordChangeSection({ onClose }: PasswordChangeSectionProps) {
                     <Input
                       type={showCurrent ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pr-10"
+                      className="h-9 pr-10"
                       {...field}
                     />
                     <PasswordToggle show={showCurrent} onToggle={() => setShowCurrent((v) => !v)} />
@@ -223,7 +215,7 @@ function PasswordChangeSection({ onClose }: PasswordChangeSectionProps) {
                     <Input
                       type={showNew ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pr-10"
+                      className="h-9 pr-10"
                       {...field}
                     />
                     <PasswordToggle show={showNew} onToggle={() => setShowNew((v) => !v)} />
@@ -244,7 +236,7 @@ function PasswordChangeSection({ onClose }: PasswordChangeSectionProps) {
                     <Input
                       type={showConfirm ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pr-10"
+                      className="h-9 pr-10"
                       {...field}
                     />
                     <PasswordToggle show={showConfirm} onToggle={() => setShowConfirm((v) => !v)} />
@@ -315,27 +307,26 @@ export function ProfileForm() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h2 className="text-base font-semibold text-foreground">Kişisel Bilgiler</h2>
-
-      <Form {...form}>
-        <form
-          id="profile-form"
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col gap-6"
-        >
-          {/* Ad / Soyad */}
-          <div className="grid grid-cols-2 gap-4">
+    <div className="flex flex-col divide-y divide-border">
+      {/* Kişisel Bilgiler */}
+      <div className="pb-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Kişisel Bilgiler
+        </p>
+        <Form {...form}>
+          <form id="profile-form" onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
               name="firstName"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ad</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Adınız" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                <FormItem className="flex items-start gap-6 space-y-0 border-b border-border py-3">
+                  <span className="w-52 shrink-0 pt-2 text-sm text-foreground">Ad</span>
+                  <div className="flex flex-1 max-w-[280px] flex-col gap-1">
+                    <FormControl>
+                      <Input className="h-9" placeholder="Adınız" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -343,86 +334,98 @@ export function ProfileForm() {
               control={form.control}
               name="lastName"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Soyad</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Soyadınız" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                <FormItem className="flex items-start gap-6 space-y-0 border-b border-border py-3">
+                  <span className="w-52 shrink-0 pt-2 text-sm text-foreground">Soyad</span>
+                  <div className="flex flex-1 max-w-[280px] flex-col gap-1">
+                    <FormControl>
+                      <Input className="h-9" placeholder="Soyadınız" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
-          </div>
-
-          {/* Firma Adı */}
-          <FormField
-            control={form.control}
-            name="companyName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Firma Adı{' '}
-                  <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="Firma adı giriniz" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
+            <FormField
+              control={form.control}
+              name="companyName"
+              render={({ field }) => (
+                <FormItem className="flex items-start gap-6 space-y-0 py-3">
+                  <span className="w-52 shrink-0 pt-2 text-sm text-foreground">
+                    Firma Adı{' '}
+                    <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
+                  </span>
+                  <div className="flex flex-1 max-w-[280px] flex-col gap-1">
+                    <FormControl>
+                      <Input className="h-9" placeholder="Firma adı giriniz" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+      </div>
 
       {/* E-POSTA */}
-      <div className="flex flex-col gap-3">
-        <SectionLabel>E-Posta</SectionLabel>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-medium text-foreground">E-posta Adresi</p>
-          <div className="flex gap-2">
-            <Input value={currentEmail} disabled className="flex-1 bg-muted" />
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0"
-              onClick={() => {
-                setEmailOpen((v) => !v);
-                setPasswordOpen(false);
-              }}
-            >
-              {emailOpen ? 'Kapat' : 'Değiştir'}
-            </Button>
+      <div className="py-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          E-Posta
+        </p>
+        <div className="flex items-start gap-6 border-b border-border py-3 last:border-0">
+          <span className="w-52 shrink-0 pt-2 text-sm text-foreground">E-posta Adresi</span>
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex gap-2">
+              <Input value={currentEmail} disabled className="h-9 flex-1 bg-muted" />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0"
+                onClick={() => {
+                  setEmailOpen((v) => !v);
+                  setPasswordOpen(false);
+                }}
+              >
+                {emailOpen ? 'Kapat' : 'Değiştir'}
+              </Button>
+            </div>
+            {emailOpen && (
+              <EmailChangeSection currentEmail={currentEmail} onClose={() => setEmailOpen(false)} />
+            )}
           </div>
-          {emailOpen && (
-            <EmailChangeSection currentEmail={currentEmail} onClose={() => setEmailOpen(false)} />
-          )}
         </div>
       </div>
 
       {/* GÜVENLİK */}
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Güvenlik</SectionLabel>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-medium text-foreground">Şifre</p>
-          <div className="flex gap-2">
-            <Input value="••••••••••••" disabled className="flex-1 bg-muted" />
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0"
-              onClick={() => {
-                setPasswordOpen((v) => !v);
-                setEmailOpen(false);
-              }}
-            >
-              {passwordOpen ? 'Kapat' : 'Güncelle'}
-            </Button>
+      <div className="py-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Güvenlik
+        </p>
+        <div className="flex items-start gap-6 border-b border-border py-3 last:border-0">
+          <span className="w-52 shrink-0 pt-2 text-sm text-foreground">Şifre</span>
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex gap-2">
+              <Input value="••••••••••••" disabled className="h-9 flex-1 bg-muted" />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0"
+                onClick={() => {
+                  setPasswordOpen((v) => !v);
+                  setEmailOpen(false);
+                }}
+              >
+                {passwordOpen ? 'Kapat' : 'Güncelle'}
+              </Button>
+            </div>
+            {passwordOpen && <PasswordChangeSection onClose={() => setPasswordOpen(false)} />}
           </div>
-          {passwordOpen && <PasswordChangeSection onClose={() => setPasswordOpen(false)} />}
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-6">
         <Button form="profile-form" type="submit" disabled={isPending}>
           {isPending ? (
             <>

@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { SettingsTabShell } from '@/components/shared/SettingsTabShell';
 import { ProfileForm } from '@/features/platform/components/ProfileForm';
 import { CompanyMembersTable } from '@/features/platform/components/CompanyMembersTable';
 import { SubscriptionTab } from '@/features/platform/components/SubscriptionTab';
@@ -29,15 +30,40 @@ type TabId =
 interface TabDef {
   id: TabId;
   label: string;
+  description: string;
 }
 
 const TABS: TabDef[] = [
-  { id: 'bireysel-hesap', label: 'Bireysel Hesap' },
-  { id: 'kullanicilar', label: 'Kullanıcılar' },
-  { id: 'abonelik', label: 'Abonelik' },
-  { id: 'bolgesel-ayarlar', label: 'Bölgesel ve Birim Ayarları' },
-  { id: 'goruntu-ayarlari', label: 'Görselleştirme ve Arayüz' },
-  { id: 'raporlama-ayarlari', label: 'Raporlama ve Çıktı Standartları' },
+  {
+    id: 'bireysel-hesap',
+    label: 'Bireysel Hesap',
+    description: 'Ad, soyad ve hesap güvenliğinizi güncelleyin.',
+  },
+  {
+    id: 'kullanicilar',
+    label: 'Kullanıcılar',
+    description: 'Firma üyelerini ve erişim rollerini yönetin.',
+  },
+  {
+    id: 'abonelik',
+    label: 'Abonelik',
+    description: 'Mevcut planınızı görüntüleyin ve yükseltin.',
+  },
+  {
+    id: 'bolgesel-ayarlar',
+    label: 'Bölgesel ve Birim Ayarları',
+    description: 'Dil, saat dilimi ve ölçü birimlerini yapılandırın.',
+  },
+  {
+    id: 'goruntu-ayarlari',
+    label: 'Görselleştirme ve Arayüz',
+    description: 'Tema ve 3D sahne görünüm tercihlerini ayarlayın.',
+  },
+  {
+    id: 'raporlama-ayarlari',
+    label: 'Raporlama ve Çıktı Standartları',
+    description: 'PDF ve Excel raporlarında kullanılacak şirket bilgilerini girin.',
+  },
 ];
 
 const VALID_TAB_IDS = new Set<string>(TABS.map((t) => t.id));
@@ -49,6 +75,8 @@ export function UnifiedSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') ?? '';
   const activeTab: TabId = VALID_TAB_IDS.has(rawTab) ? (rawTab as TabId) : DEFAULT_TAB;
+
+  const activeTabDef = TABS.find((t) => t.id === activeTab)!;
 
   const [pendingTab, setPendingTab] = useState<TabId | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -122,22 +150,24 @@ export function UnifiedSettingsPage() {
 
         {/* Sağ içerik paneli */}
         <div className="min-w-0 flex-1">
-          {activeTab === 'bireysel-hesap' && <ProfileForm />}
-          {activeTab === 'kullanicilar' && (
-            <CompanyMembersTable onNavigateToBilling={() => navigateToTab('abonelik')} />
-          )}
-          {activeTab === 'abonelik' && <SubscriptionTab />}
-          {activeTab === 'bolgesel-ayarlar' && (
-            <RegionalSettingsTab
-              onDirtyChange={(dirty) => handleDirtyChange('bolgesel-ayarlar', dirty)}
-            />
-          )}
-          {activeTab === 'goruntu-ayarlari' && (
-            <VisualizationSettingsTab
-              onDirtyChange={(dirty) => handleDirtyChange('goruntu-ayarlari', dirty)}
-            />
-          )}
-          {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}
+          <SettingsTabShell title={activeTabDef.label} description={activeTabDef.description}>
+            {activeTab === 'bireysel-hesap' && <ProfileForm />}
+            {activeTab === 'kullanicilar' && (
+              <CompanyMembersTable onNavigateToBilling={() => navigateToTab('abonelik')} />
+            )}
+            {activeTab === 'abonelik' && <SubscriptionTab />}
+            {activeTab === 'bolgesel-ayarlar' && (
+              <RegionalSettingsTab
+                onDirtyChange={(dirty) => handleDirtyChange('bolgesel-ayarlar', dirty)}
+              />
+            )}
+            {activeTab === 'goruntu-ayarlari' && (
+              <VisualizationSettingsTab
+                onDirtyChange={(dirty) => handleDirtyChange('goruntu-ayarlari', dirty)}
+              />
+            )}
+            {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}
+          </SettingsTabShell>
         </div>
       </div>
 

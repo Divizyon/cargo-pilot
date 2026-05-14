@@ -9,7 +9,6 @@ using CargoPilot.WebAPI.Middlewares;
 using CargoPilot.WebAPI.Services;
 using CargoPilot.WebAPI.Swagger;
 using Hangfire;
-using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -144,6 +143,37 @@ public static class DependencyInjection {
                         Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!)),
                     ClockSkew = TimeSpan.Zero,
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        var isExpired = context.AuthenticateFailure is SecurityTokenExpiredException;
+                        var body = JsonSerializer.Serialize(new
+                        {
+                            isSuccess = false,
+                            data = (object?)null,
+                            error = isExpired
+                                ? new { type = "Unauthorized", code = "AUTH_TOKEN_EXPIRED", description = "Oturum süresi doldu." }
+                                : new { type = "Unauthorized", code = "AUTH_UNAUTHORIZED", description = "Yetkilendirme gereklidir." }
+                        });
+                        return context.Response.WriteAsync(body);
+                    },
+                    OnForbidden = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        var body = JsonSerializer.Serialize(new
+                        {
+                            isSuccess = false,
+                            data = (object?)null,
+                            error = new { type = "Forbidden", code = "AUTH_FORBIDDEN", description = "Bu işlem için yetkiniz yok." }
+                        });
+                        return context.Response.WriteAsync(body);
+                    }
+                };
             });
 
         services.AddAuthorization(options =>
@@ -264,20 +294,6 @@ public static class DependencyInjection {
                 failureStatus: HealthStatus.Degraded,
                 tags: ["db", "infrastructure"]);
 
-            services.AddHangfire(cfg => cfg
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()
-                .UseSqlServerStorage(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    new SqlServerStorageOptions
-                    {
-                        CommandBatchMaxTimeout       = TimeSpan.FromMinutes(5),
-                        SlidingInvisibilityTimeout   = TimeSpan.FromMinutes(5),
-                        QueuePollInterval            = TimeSpan.Zero,
-                        UseRecommendedIsolationLevel = true,
-                        DisableGlobalLocks           = true,
-                    }));
             services.AddHangfireServer();
         }
 
