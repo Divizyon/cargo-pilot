@@ -108,7 +108,7 @@ internal sealed class ItemRepository : IItemRepository
     }
 
     public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)
-        => _dbContext.Items.CountAsync(i => i.CreatedBy == userId, cancellationToken);
+        => _dbContext.Items.CountAsync(i => i.CompanyId == null && i.CreatedBy == userId, cancellationToken);
 
     public Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => _dbContext.Items.CountAsync(i => i.CompanyId == companyId, cancellationToken);

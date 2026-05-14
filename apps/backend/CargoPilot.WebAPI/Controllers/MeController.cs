@@ -49,10 +49,21 @@ public sealed class MeController : BaseController
         return HandleResult(result);
     }
 
+    /// <summary>Giriş yapmış kullanıcının UI izinlerini döndürür.</summary>
+    [HttpGet("permissions")]
+    [ProducesResponseType(typeof(UserPermissionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult GetPermissions()
+    {
+        return Ok(new UserPermissionsResponse(CanSeeDashboard: true, CanShareReport: false));
+    }
+
     /// <summary>Giriş yapmış kullanıcının abonelik bilgilerini ve kalan limitlerini döndürür.</summary>
     [HttpGet("subscription")]
-    [ProducesResponseType(typeof(Result<MySubscriptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<IndividualSubscriptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<CompanyAdminSubscriptionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSubscription(CancellationToken cancellationToken)
     {

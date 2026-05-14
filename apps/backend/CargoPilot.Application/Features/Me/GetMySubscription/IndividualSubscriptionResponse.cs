@@ -2,7 +2,7 @@ using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Features.Me.GetMySubscription;
 
-public sealed record MySubscriptionResponse(
+public sealed record IndividualSubscriptionResponse(
     SubscriptionType SubscriptionType,
     int MaxItemCount,
     int RemainingItemCount,

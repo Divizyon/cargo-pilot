@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tip 1 — İnteraktif Yerleşim Planlayıcı (Animasyonlu)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f0; color: #2c2c2a;
+    padding: 24px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #5f5e5a; }
+  .badge {
+    display: inline-block; background: #E6F1FB; color: #0C447C;
+    padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 500; margin-left: 8px;
+  }
+
+  .input-panel {
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    align-items: end;
+  }
+  .input-group label {
+    display: block; font-size: 12px; color: #5f5e5a;
+    margin-bottom: 4px; font-weight: 500;
+  }
+  .input-group input[type=number],
+  .input-group select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 15px;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 6px;
+    background: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .input-group input[type=number]:focus,
+  .input-group select:focus {
+    outline: none;
+    border-color: #185FA5;
+    box-shadow: 0 0 0 2px rgba(24,95,165,0.15);
+  }
+  .input-meta { font-size: 11px; color: #888780; margin-top: 3px; }
+
+  .action-btn {
+    background: #2c2c2a; color: #fff; border: none;
+    border-radius: 6px; padding: 10px 16px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: background 0.15s, transform 0.05s, opacity 0.2s;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; min-height: 40px;
+    width: 100%;
+  }
+  .action-btn:hover:not(:disabled) { background: #444441; }
+  .action-btn:active:not(:disabled) { transform: scale(0.98); }
+  .action-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+  .action-btn.success { background: #1D9E75; }
+  .action-btn.success:hover:not(:disabled) { background: #178563; }
+  .action-btn.loading { background: #5f5e5a; }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .checkmark {
+    width: 14px; height: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .checkmark::after {
+    content: '✓'; font-weight: bold; font-size: 14px;
+  }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 16px;
+  }
+  .stat {
+    background: #ffffff; border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .stat-label { font-size: 12px; color: #5f5e5a; margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 500; }
+  .stat.warning { background: #FCEBEB; border-color: #F09595; }
+  .stat.warning .stat-value { color: #A32D2D; }
+
+  .legend {
+    display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 14px; font-size: 13px;
+  }
+  .swatch {
+    display: inline-block; width: 14px; height: 14px;
+    border-radius: 3px; margin-right: 6px; vertical-align: -2px;
+  }
+  #scene-host {
+    width: 100%; height: 580px;
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px;
+    position: relative; overflow: hidden;
+  }
+  .overlay {
+    position: absolute; font-size: 12px;
+    background: rgba(255,255,255,0.95);
+    padding: 8px 12px; border-radius: 8px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    pointer-events: none; z-index: 2;
+  }
+  .overlay-help { top: 12px; left: 12px; color: #5f5e5a; }
+  .overlay-info { top: 12px; right: 12px; min-width: 180px; }
+  .overlay-info .title { font-weight: 500; margin-bottom: 4px; }
+  .overlay-info .row { color: #5f5e5a; }
+  .overlay-loading {
+    bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: #2c2c2a; color: #fff;
+    padding: 10px 18px;
+    font-size: 13px; font-weight: 500;
+    border: none;
+    display: none;
+  }
+  .overlay-loading.visible { display: block; }
+
+  .controls {
+    display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+  }
+  button.btn-secondary {
+    background: #ffffff; border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; cursor: pointer; color: #2c2c2a;
+    transition: background 0.15s, transform 0.05s;
+  }
+  button.btn-secondary:hover { background: #f0f0eb; }
+  button.btn-secondary:active { transform: scale(0.98); }
+
+  .meta {
+    margin-top: 20px; background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .meta h2 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+  .meta .note {
+    font-size: 12px; color: #5f5e5a; margin-bottom: 10px; line-height: 1.7;
+  }
+  table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  th, td {
+    text-align: left; padding: 5px 8px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  }
+  th { color: #5f5e5a; font-weight: 500; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.seq { font-weight: 500; color: #185FA5; }
+
+  .step-controls {
+    display: flex; gap: 10px; align-items: center;
+    margin-top: 14px; flex-wrap: wrap;
+  }
+  .step-controls label { font-size: 13px; color: #5f5e5a; }
+  .step-counter {
+    font-variant-numeric: tabular-nums; font-weight: 500;
+    min-width: 80px; text-align: center;
+  }
+  input[type=range] { flex: 1; min-width: 200px; max-width: 400px; }
+
+  .alert {
+    background: #FCEBEB; border: 0.5px solid #F09595;
+    color: #A32D2D; padding: 10px 14px; border-radius: 8px;
+    font-size: 13px; margin-bottom: 14px;
+    display: none;
+  }
+  .alert.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Tip 1 Konteyner — İnteraktif Yerleşim Planlayıcı <span class="badge">Extreme Point</span></h1>
+    <div class="subtitle">Sayıları değiştir, hesapla, ardından "Yükle" ile kapıdan içeri yükleme animasyonunu izle</div>
+  </header>
+
+  <div class="input-panel">
+    <div class="input-group">
+      <label for="count-a">A kutusu sayısı</label>
+      <input type="number" id="count-a" value="10" min="0" max="500" step="1">
+      <div class="input-meta">60×60×60 cm · 0.216 m³/adet</div>
+    </div>
+    <div class="input-group">
+      <label for="count-b">B kutusu sayısı</label>
+      <input type="number" id="count-b" value="4" min="0" max="100" step="1">
+      <div class="input-meta">200×100×100 cm · 2.000 m³/adet</div>
+    </div>
+    <div class="input-group">
+      <label>Konteyner</label>
+      <select id="container-type">
+        <option value="t1" selected>Tip 1 — 20ft (589×235×239)</option>
+        <option value="t2">Tip 2 — 40ft (1203×235×239)</option>
+        <option value="t3">Tip 3 — 10ft Mini (299×235×239)</option>
+        <option value="t4">Tip 4 — Hafif Kasa (400×210×210)</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>&nbsp;</label>
+      <button class="action-btn" id="main-btn" onclick="onMainBtn()">
+        <span id="btn-content">Yerleşimi hesapla</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="alert" id="alert-box"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Hacim doluluk</div><div class="stat-value" id="stat-fill">—</div></div>
+    <div class="stat"><div class="stat-label">Kullanılan</div><div class="stat-value" id="stat-used">—</div></div>
+    <div class="stat"><div class="stat-label">Kalan</div><div class="stat-value" id="stat-remain">—</div></div>
+    <div class="stat" id="stat-placed-card"><div class="stat-label">Yerleşen</div><div class="stat-value" id="stat-placed">—</div></div>
+  </div>
+
+  <div class="legend">
+    <div><span class="swatch" style="background:#E24B4A;"></span>A — 60×60×60</div>
+    <div><span class="swatch" style="background:#378ADD;"></span>B — 200×100×100</div>
+    <div><span class="swatch" style="background:#D85A30;"></span>Aktif EP'ler</div>
+    <div><span class="swatch" style="background:#1D9E75;"></span>Kapı (ön)</div>
+  </div>
+
+  <div id="scene-host">
+    <div class="overlay overlay-help">Sürükle: döndür · Tekerlek: yakınlaştır · Sağ tık: kaydır</div>
+    <div class="overlay overlay-info">
+      <div class="title">Yerleşim özeti</div>
+      <div class="row">Sıralama: hacim büyük→küçük</div>
+      <div class="row" id="info-order">—</div>
+      <div class="row">Başlangıç: sol-arka-taban</div>
+    </div>
+    <div class="overlay overlay-loading" id="overlay-loading">Yükleniyor: <span id="loading-progress">0/0</span></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-secondary" onclick="setView('iso')">İzometrik</button>
+    <button class="btn-secondary" onclick="setView('top')">Üstten</button>
+    <button class="btn-secondary" onclick="setView('side')">Yandan</button>
+    <button class="btn-secondary" onclick="setView('door')">Kapıdan bakış</button>
+    <button class="btn-secondary" onclick="setView('back')">Arkadan</button>
+    <button class="btn-secondary" onclick="toggleAxes()">Eksenler</button>
+    <button class="btn-secondary" onclick="toggleLabels()">Etiketler</button>
+    <button class="btn-secondary" onclick="toggleEPs()">EP noktaları</button>
+    <button class="btn-secondary" onclick="toggleContainer()">Konteyneri saydam</button>
+  </div>
+
+  <div class="step-controls">
+    <label>Manuel adım:</label>
+    <button class="btn-secondary" onclick="stepBack()">‹</button>
+    <span class="step-counter" id="step-counter">— / —</span>
+    <button class="btn-secondary" onclick="stepFwd()">›</button>
+    <input type="range" id="step-slider" min="0" max="0" value="0">
+    <button class="btn-secondary" onclick="resetSteps()">Tümü</button>
+    <button class="btn-secondary" onclick="clearSteps()">Boşalt</button>
+    <label style="margin-left: 10px;">
+      <input type="checkbox" id="show-eps-per-step" checked> Adım EP'leri
+    </label>
+  </div>
+
+  <div class="meta">
+    <h2>Yerleştirme tablosu</h2>
+    <div class="note">
+      <strong>EP Sırası:</strong> Algoritmanın yerleşim sırası (hacim büyük→küçük).
+      <strong>Yükleme Sırası:</strong> Forklift'in fiziksel olarak yükleyeceği sıra — en arka, alttan yukarı, soldan sağa.
+      Yerleşim noktaları aynı, sadece yükleme akışı farklı.
+    </div>
+    <div style="max-height: 400px; overflow-y: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>EP Sırası</th><th>Yükleme Sırası</th><th>Kutu</th><th>Boyut</th>
+            <th class="num">x</th><th class="num">y</th><th class="num">z</th>
+            <th class="num">U</th><th class="num">G</th><th class="num">Y</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// EXTREME POINT ALGORİTMASI
+// ============================================================
+
+const CONTAINERS = {
+  t1: { name: 'Tip 1 — 20ft Standart',  CL: 589,  CW: 235, CH: 239 },
+  t2: { name: 'Tip 2 — 40ft Standart',  CL: 1203, CW: 235, CH: 239 },
+  t3: { name: 'Tip 3 — 10ft Mini',      CL: 299,  CW: 235, CH: 239 },
+  t4: { name: 'Tip 4 — Hafif Kasa',     CL: 400,  CW: 210, CH: 210 }
+};
+
+let CL = 589, CW = 235, CH = 239;
+
+function fitsInContainer(x, y, z, dx, dy, dz) {
+  return x + dx <= CL && y + dy <= CW && z + dz <= CH;
+}
+function overlapsWith(x, y, z, dx, dy, dz, placed) {
+  for (const b of placed) {
+    if (x < b.x + b.dx && x + dx > b.x &&
+        y < b.y + b.dy && y + dy > b.y &&
+        z < b.z + b.dz && z + dz > b.z) return true;
+  }
+  return false;
+}
+function hasSupport(x, y, z, dx, dy, placed) {
+  if (z === 0) return true;
+  const boxArea = dx * dy;
+  let supported = 0;
+  for (const b of placed) {
+    if (Math.abs(b.z + b.dz - z) < 0.001) {
+      const ox1 = Math.max(x, b.x);
+      const ox2 = Math.min(x + dx, b.x + b.dx);
+      const oy1 = Math.max(y, b.y);
+      const oy2 = Math.min(y + dy, b.y + b.dy);
+      if (ox2 > ox1 && oy2 > oy1) supported += (ox2 - ox1) * (oy2 - oy1);
+    }
+  }
+  return supported / boxArea >= 0.5;
+}
+function selectEP(eps, dx, dy, dz, placed) {
+  const valid = [];
+  for (const ep of eps) {
+    const [x, y, z] = ep;
+    if (fitsInContainer(x, y, z, dx, dy, dz) &&
+        !overlapsWith(x, y, z, dx, dy, dz, placed) &&
+        hasSupport(x, y, z, dx, dy, placed)) valid.push(ep);
+  }
+  if (valid.length === 0) return null;
+  valid.sort((a, b) => a[2] - b[2] || a[0] - b[0] || a[1] - b[1]);
+  return valid[0];
+}
+function generateNewEPs(box) {
+  const { x, y, z, dx, dy, dz } = box;
+  return [[x + dx, y, z], [x, y + dy, z], [x, y, z + dz]];
+}
+function removeInvalidEPs(eps, placed) {
+  const result = []; const seen = new Set();
+  for (const ep of eps) {
+    const [x, y, z] = ep;
+    if (x >= CL || y >= CW || z >= CH || x < 0 || y < 0 || z < 0) continue;
+    let inside = false;
+    for (const b of placed) {
+      if (b.x <= x && x < b.x + b.dx &&
+          b.y <= y && y < b.y + b.dy &&
+          b.z <= z && z < b.z + b.dz) { inside = true; break; }
+    }
+    if (inside) continue;
+    const key = x + ',' + y + ',' + z;
+    if (seen.has(key)) continue;
+    seen.add(key); result.push(ep);
+  }
+  return result;
+}
+function runEP(countA, countB) {
+  const boxesToPlace = [];
+  for (let i = 0; i < countB; i++) boxesToPlace.push({ type: 'B', dx: 200, dy: 100, dz: 100, index: i + 1 });
+  for (let i = 0; i < countA; i++) boxesToPlace.push({ type: 'A', dx: 60, dy: 60, dz: 60, index: i + 1 });
+  const placed = [];
+  let eps = [[0, 0, 0]];
+  const epHistory = [eps.slice()];
+  const unplaced = [];
+  for (const box of boxesToPlace) {
+    const ep = selectEP(eps, box.dx, box.dy, box.dz, placed);
+    if (ep === null) { unplaced.push(box); epHistory.push(eps.slice()); continue; }
+    const [x, y, z] = ep;
+    const placedBox = {
+      seq: placed.length + 1, type: box.type, index: box.index,
+      label: (placed.length + 1) + '·' + box.type + '#' + box.index,
+      x, y, z, dx: box.dx, dy: box.dy, dz: box.dz,
+      color: box.type === 'B' ? 0x378ADD : 0xE24B4A
+    };
+    placed.push(placedBox);
+    eps = eps.filter(e => !(e[0] === ep[0] && e[1] === ep[1] && e[2] === ep[2]));
+    eps = eps.concat(generateNewEPs(placedBox));
+    eps = removeInvalidEPs(eps, placed);
+    epHistory.push(eps.slice());
+  }
+  return { placed, epHistory, unplaced };
+}
+
+// ============================================================
+// 3D SAHNE
+// ============================================================
+
+const host = document.getElementById('scene-host');
+let W = host.clientWidth, H = host.clientHeight;
+
+const scene = new THREE.Scene();
+scene.background = null;
+
+const camera = new THREE.PerspectiveCamera(40, W / H, 1, 8000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(window.devicePixelRatio);
+host.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(400, 600, 400);
+scene.add(dirLight);
+const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+dirLight2.position.set(-400, 300, -200);
+scene.add(dirLight2);
+
+function toScene(algX, algY, algZ) {
+  return { x: algX - CL/2, y: algZ - CH/2, z: CW/2 - algY };
+}
+
+let containerGroup = new THREE.Group();
+scene.add(containerGroup);
+let containerFillMat = null;
+
+function buildContainer() {
+  while (containerGroup.children.length > 0) containerGroup.remove(containerGroup.children[0]);
+
+  const containerGeom = new THREE.BoxGeometry(CL, CH, CW);
+  containerGroup.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(containerGeom),
+    new THREE.LineBasicMaterial({ color: 0x444444 })
+  ));
+  containerFillMat = new THREE.MeshBasicMaterial({
+    color: 0xb4b2a9, transparent: true, opacity: 0.06, side: THREE.DoubleSide
+  });
+  containerGroup.add(new THREE.Mesh(containerGeom, containerFillMat));
+
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(CL, CW),
+    new THREE.MeshBasicMaterial({ color: 0xd3d1c7, transparent: true, opacity: 0.4, side: THREE.DoubleSide }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -CH / 2 + 0.1;
+  containerGroup.add(floor);
+
+  const door = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH),
+    new THREE.MeshBasicMaterial({ color: 0x1D9E75, transparent: true, opacity: 0.18, side: THREE.DoubleSide }));
+  door.rotation.y = Math.PI / 2;
+  door.position.x = CL / 2;
+  containerGroup.add(door);
+
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH),
+    new THREE.MeshBasicMaterial({ color: 0x888780, transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
+  backWall.rotation.y = Math.PI / 2;
+  backWall.position.x = -CL / 2;
+  containerGroup.add(backWall);
+
+  const onLbl = makeTextSprite('ÖN (KAPI)', '#0F6E56', 36, 110);
+  onLbl.position.set(CL/2 + 40, 0, 0); containerGroup.add(onLbl);
+  const arkaLbl = makeTextSprite('ARKA', '#5F5E5A', 36, 80);
+  arkaLbl.position.set(-CL/2 - 40, 0, 0); containerGroup.add(arkaLbl);
+  const solLbl = makeTextSprite('SOL', '#185FA5', 32, 60);
+  solLbl.position.set(0, 0, CW/2 + 30); containerGroup.add(solLbl);
+  const sagLbl = makeTextSprite('SAĞ', '#185FA5', 32, 60);
+  sagLbl.position.set(0, 0, -CW/2 - 30); containerGroup.add(sagLbl);
+
+  const cornerMarker = new THREE.Mesh(new THREE.SphereGeometry(10, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xD85A30 }));
+  const cp = toScene(0, 0, 0);
+  cornerMarker.position.set(cp.x, cp.y, cp.z);
+  containerGroup.add(cornerMarker);
+}
+
+function makeTextSprite(text, color, fontSize, scale) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 96;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fillRect(0,0,256,96);
+  ctx.fillStyle = color;
+  ctx.font = 'bold ' + fontSize + 'px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 48);
+  const tex = new THREE.CanvasTexture(canvas);
+  // depthTest: false → her zaman üstte; depthWrite: false → diğerlerini engellemez
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true });
+  const s = new THREE.Sprite(mat);
+  s.scale.set(scale, scale * 0.375, 1);
+  s.renderOrder = 999;
+  return s;
+}
+
+function makeBoxLabel(text, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 160; canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fillRect(0,0,160,64);
+  const cs = '#' + color.toString(16).padStart(6,'0');
+  ctx.strokeStyle = cs; ctx.lineWidth = 2;
+  ctx.strokeRect(1,1,158,62);
+  ctx.fillStyle = cs;
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 80, 32);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(48, 20, 1);
+  sprite.renderOrder = 1000;
+  return sprite;
+}
+
+// Kutunun yüzeylerine yapıştırılan etiket (her yüzde aynı yazı)
+// Boyutlara göre dinamik canvas ölçeği, ki ufak A kutularında da büyük B'lerde de okunabilir kalsın
+function makeFaceLabelTexture(text, bgColor, textColor) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  // Arka plan: kutunun ana rengi
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, 256, 256);
+  // Beyaz şerit (yazının arkasında)
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  const stripH = 80;
+  ctx.fillRect(0, (256 - stripH) / 2, 256, stripH);
+  // Çerçeve
+  ctx.strokeStyle = textColor;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(8, (256 - stripH) / 2 + 4, 240, stripH - 8);
+  // Yazı
+  ctx.fillStyle = textColor;
+  ctx.font = 'bold 48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 128);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// 6 yüzlü kutu için, her yüze farklı rotasyon/yön ile aynı etiketin uygulandığı materials dizisi
+function makeBoxFaceMaterials(label, bgHex, polygonOffset) {
+  const bgColor = '#' + bgHex.toString(16).padStart(6, '0');
+  // Yazıyı koyu siyah ile yaz (her renkli arka planda okunsun)
+  const textColor = '#1a1a1a';
+  const tex = makeFaceLabelTexture(label, bgColor, textColor);
+  const matOpts = {
+    map: tex,
+    color: 0xffffff,
+    polygonOffset: polygonOffset === true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1
+  };
+  // BoxGeometry'nin 6 yüzü: +x, -x, +y, -y, +z, -z
+  // Her birine ayrı malzeme — hepsi aynı doku, sadece üst yüze farklı yön gerekiyor
+  const materials = [];
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.MeshLambertMaterial(matOpts);
+    materials.push(m);
+  }
+  return materials;
+}
+
+let boxesGroup = new THREE.Group();
+scene.add(boxesGroup);
+let epGroup = new THREE.Group();
+scene.add(epGroup);
+
+let boxMeshes = [];
+let labelSprites = [];
+let currentResult = null;
+
+function buildScene(result) {
+  while (boxesGroup.children.length > 0) boxesGroup.remove(boxesGroup.children[0]);
+  while (epGroup.children.length > 0) epGroup.remove(epGroup.children[0]);
+  boxMeshes = [];
+  labelSprites = [];
+
+  result.placed.forEach(b => {
+    const geom = new THREE.BoxGeometry(b.dx, b.dz, b.dy);
+
+    // 6 yüze etiket basılmış malzemeler
+    const materials = makeBoxFaceMaterials(b.label, b.color, true);
+    // Toggle için her malzemenin textürünü sakla
+    materials.forEach(m => {
+      m.userData.labelTex = m.map;
+      m.userData.bgHex = b.color;
+    });
+    const mesh = new THREE.Mesh(geom, materials);
+    mesh.renderOrder = 1;
+
+    const cx = b.x + b.dx/2, cy = b.y + b.dy/2, cz = b.z + b.dz/2;
+    const c = toScene(cx, cy, cz);
+    mesh.position.set(c.x, c.y, c.z);
+    boxesGroup.add(mesh);
+
+    // Kenarlar — polygonOffset KAPALI, böylece yüzeyin önünde kalır
+    const edges = new THREE.EdgesGeometry(geom);
+    const lineMat = new THREE.LineBasicMaterial({
+      color: 0x222222,
+      transparent: false,
+      depthTest: true
+    });
+    const line = new THREE.LineSegments(edges, lineMat);
+    line.position.copy(mesh.position);
+    line.renderOrder = 2;
+    boxesGroup.add(line);
+
+    // Hedef pozisyonu sakla (animasyon için) — label artık kutunun kendisinde, ayrı sprite yok
+    boxMeshes.push({
+      mesh, line, label: null, seq: b.seq,
+      targetX: c.x, targetY: c.y, targetZ: c.z,
+      boxData: b
+    });
+  });
+}
+
+function renderEPs(stepIdx) {
+  while (epGroup.children.length > 0) epGroup.remove(epGroup.children[0]);
+  if (!currentResult) return;
+  const eps = currentResult.epHistory[stepIdx] || [];
+  eps.forEach(p => {
+    const pos = toScene(p[0], p[1], p[2]);
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(4, 10, 10),
+      new THREE.MeshBasicMaterial({ color: 0xD85A30, depthTest: false }));
+    sphere.position.set(pos.x, pos.y, pos.z);
+    sphere.renderOrder = 500;
+    epGroup.add(sphere);
+  });
+}
+
+let axesGroup = new THREE.Group();
+scene.add(axesGroup);
+
+function buildAxes() {
+  while (axesGroup.children.length > 0) axesGroup.remove(axesGroup.children[0]);
+  const origin = new THREE.Vector3(-CL/2 - 20, -CH/2, CW/2 + 20);
+  axesGroup.add(new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 140, 0xE24B4A, 22, 12));
+  axesGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), origin, 140, 0x378ADD, 22, 12));
+  axesGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), origin, 140, 0x1D9E75, 22, 12));
+  const ux = makeTextSprite('U →', '#A32D2D', 28, 50);
+  ux.position.set(origin.x + 160, origin.y, origin.z); axesGroup.add(ux);
+  const gx = makeTextSprite('G', '#185FA5', 28, 40);
+  gx.position.set(origin.x, origin.y, origin.z - 160); axesGroup.add(gx);
+  const yx = makeTextSprite('Y ↑', '#0F6E56', 28, 50);
+  yx.position.set(origin.x, origin.y + 160, origin.z); axesGroup.add(yx);
+}
+
+// Orbit kontrol
+let theta = -Math.PI / 4, phi = Math.PI / 5, radius = 1400;
+let target = new THREE.Vector3(0, 0, 0);
+
+function updateCamera() {
+  camera.position.x = target.x + radius * Math.cos(phi) * Math.cos(theta);
+  camera.position.z = target.z + radius * Math.cos(phi) * Math.sin(theta);
+  camera.position.y = target.y + radius * Math.sin(phi);
+  camera.lookAt(target);
+}
+
+let isDown = false, isRight = false, lastMx = 0, lastMy = 0;
+renderer.domElement.addEventListener('mousedown', e => {
+  isDown = true; isRight = e.button === 2;
+  lastMx = e.clientX; lastMy = e.clientY;
+});
+window.addEventListener('mouseup', () => { isDown = false; });
+window.addEventListener('mousemove', e => {
+  if (!isDown) return;
+  const dx = e.clientX - lastMx, dy = e.clientY - lastMy;
+  lastMx = e.clientX; lastMy = e.clientY;
+  if (isRight) { target.x -= dx * 0.8; target.y += dy * 0.8; }
+  else {
+    theta -= dx * 0.008; phi += dy * 0.008;
+    phi = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, phi));
+  }
+  updateCamera();
+});
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault();
+  radius *= (1 + e.deltaY * 0.001);
+  radius = Math.max(300, Math.min(5000, radius));
+  updateCamera();
+}, { passive: false });
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+let touchLast = null, pinchLast = null;
+renderer.domElement.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) touchLast = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.touches.length === 2) {
+    pinchLast = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                           e.touches[0].clientY - e.touches[1].clientY);
+  }
+}, { passive: true });
+renderer.domElement.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && touchLast) {
+    const dx = e.touches[0].clientX - touchLast.x, dy = e.touches[0].clientY - touchLast.y;
+    touchLast = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    theta -= dx * 0.008; phi += dy * 0.008;
+    phi = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, phi));
+    updateCamera();
+  }
+  if (e.touches.length === 2 && pinchLast) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                         e.touches[0].clientY - e.touches[1].clientY);
+    radius *= pinchLast / d;
+    radius = Math.max(300, Math.min(5000, radius));
+    pinchLast = d; updateCamera();
+  }
+}, { passive: true });
+
+window.setView = function(v) {
+  target.set(0,0,0);
+  const baseRadius = Math.max(CL, 600) * 2.0;
+  if (v === 'iso')   { theta = -Math.PI/4; phi = Math.PI/5; radius = baseRadius; }
+  if (v === 'top')   { theta = -Math.PI/2; phi = Math.PI/2 - 0.05; radius = baseRadius * 0.85; }
+  if (v === 'side')  { theta = -Math.PI/2; phi = 0; radius = baseRadius * 0.85; }
+  if (v === 'door')  { theta = 0; phi = 0; radius = baseRadius * 0.85; }
+  if (v === 'back')  { theta = Math.PI; phi = 0; radius = baseRadius * 0.85; }
+  updateCamera();
+};
+
+let axesVisible = true;
+window.toggleAxes = function() { axesVisible = !axesVisible; axesGroup.visible = axesVisible; };
+let labelsVisible = true;
+window.toggleLabels = function() {
+  labelsVisible = !labelsVisible;
+  boxMeshes.forEach(bm => {
+    if (Array.isArray(bm.mesh.material)) {
+      bm.mesh.material.forEach(m => {
+        if (labelsVisible) {
+          // Etiketli textür, beyaz çarpan
+          m.map = m.userData.labelTex;
+          m.color.setHex(0xffffff);
+        } else {
+          // Düz renk, textür yok
+          m.map = null;
+          m.color.setHex(m.userData.bgHex);
+        }
+        m.needsUpdate = true;
+      });
+    }
+  });
+};
+let epsVisible = true;
+window.toggleEPs = function() { epsVisible = !epsVisible; epGroup.visible = epsVisible; };
+let containerOpaque = true;
+window.toggleContainer = function() {
+  containerOpaque = !containerOpaque;
+  if (containerFillMat) containerFillMat.opacity = containerOpaque ? 0.06 : 0.0;
+};
+
+// ============================================================
+// DURUM YÖNETİMİ
+// ============================================================
+// state: 'INITIAL' (henüz hesaplanmadı) | 'CALCULATING' (spinner) |
+//        'CALCULATED' (yükle butonu) | 'LOADING' (animasyon) | 'IDLE' (yüklendi, manuel kontrol)
+
+let state = 'INITIAL';
+let currentStep = 0;
+const slider = document.getElementById('step-slider');
+const mainBtn = document.getElementById('main-btn');
+const btnContent = document.getElementById('btn-content');
+const overlayLoading = document.getElementById('overlay-loading');
+const loadingProgress = document.getElementById('loading-progress');
+
+function setBtnState(newState) {
+  state = newState;
+  mainBtn.classList.remove('success', 'loading');
+  mainBtn.disabled = false;
+  if (newState === 'INITIAL') {
+    btnContent.innerHTML = 'Yerleşimi hesapla';
+  } else if (newState === 'CALCULATING') {
+    btnContent.innerHTML = '<span class="spinner"></span> Hesaplanıyor...';
+    mainBtn.classList.add('loading');
+    mainBtn.disabled = true;
+  } else if (newState === 'CALCULATED') {
+    btnContent.innerHTML = '<span class="checkmark"></span> Hesaplandı · Yükle';
+    mainBtn.classList.add('success');
+  } else if (newState === 'LOADING') {
+    btnContent.innerHTML = '<span class="spinner"></span> Yükleniyor...';
+    mainBtn.classList.add('loading');
+    mainBtn.disabled = true;
+  } else if (newState === 'IDLE') {
+    btnContent.innerHTML = 'Yeniden hesapla';
+  }
+}
+
+window.onMainBtn = function() {
+  if (state === 'INITIAL' || state === 'IDLE') {
+    runCalculation();
+  } else if (state === 'CALCULATED') {
+    runLoadingAnimation();
+  }
+};
+
+// Input değişirse durum sıfırlansın → tekrar hesaplama gerekli
+['count-a', 'count-b', 'container-type'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (state === 'CALCULATED' || state === 'IDLE' || state === 'LOADING') {
+      cancelAnimation();
+      setBtnState('INITIAL');
+    }
+  });
+});
+document.getElementById('count-a').addEventListener('keydown', e => { if (e.key === 'Enter') onMainBtn(); });
+document.getElementById('count-b').addEventListener('keydown', e => { if (e.key === 'Enter') onMainBtn(); });
+
+// ============================================================
+// HESAPLAMA
+// ============================================================
+
+function runCalculation() {
+  setBtnState('CALCULATING');
+  const countA = parseInt(document.getElementById('count-a').value) || 0;
+  const countB = parseInt(document.getElementById('count-b').value) || 0;
+  const ctype = document.getElementById('container-type').value;
+  const c = CONTAINERS[ctype];
+  CL = c.CL; CW = c.CW; CH = c.CH;
+
+  // Spinner görünür kalsın diye 400ms gecikme + setTimeout ile UI güncelle
+  setTimeout(() => {
+    buildContainer();
+    buildAxes();
+
+    const result = runEP(countA, countB);
+    currentResult = result;
+    buildScene(result);
+
+    // Stats
+    const totalVol = CL * CW * CH;
+    const usedVol = result.placed.reduce((s,b) => s + b.dx*b.dy*b.dz, 0);
+    const fillRate = totalVol > 0 ? (usedVol / totalVol * 100) : 0;
+
+    document.getElementById('stat-fill').textContent = '%' + fillRate.toFixed(2);
+    document.getElementById('stat-used').textContent = (usedVol/1e6).toFixed(2) + ' m³';
+    document.getElementById('stat-remain').textContent = ((totalVol-usedVol)/1e6).toFixed(2) + ' m³';
+    const totalCount = countA + countB;
+    document.getElementById('stat-placed').textContent = result.placed.length + ' / ' + totalCount;
+
+    const placedCard = document.getElementById('stat-placed-card');
+    const alertBox = document.getElementById('alert-box');
+    if (result.unplaced.length > 0) {
+      placedCard.classList.add('warning');
+      const aMissing = result.unplaced.filter(b => b.type === 'A').length;
+      const bMissing = result.unplaced.filter(b => b.type === 'B').length;
+      alertBox.textContent = result.unplaced.length + ' kutu yerleştirilemedi (A: ' + aMissing + ', B: ' + bMissing + '). Konteyner kapasitesi yetersiz veya algoritmanın boşluk değerlendirmesi sınırlı.';
+      alertBox.classList.add('visible');
+    } else {
+      placedCard.classList.remove('warning');
+      alertBox.classList.remove('visible');
+    }
+
+    document.getElementById('info-order').textContent = 'Sıra: ' + countB + '×B → ' + countA + '×A';
+
+    slider.max = result.placed.length;
+    currentStep = 0;
+    slider.value = 0;
+
+    // Tablo
+    // Önce her kutu için yükleme sırasını hesapla (forklift mantığı)
+    const sortedForLoad = result.placed.slice().sort((a, b) => {
+      if (a.x !== b.x) return a.x - b.x;
+      if (a.z !== b.z) return a.z - b.z;
+      return a.y - b.y;
+    });
+    const loadOrderMap = {};
+    sortedForLoad.forEach((b, i) => { loadOrderMap[b.seq] = i + 1; });
+
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+    result.placed.forEach(b => {
+      const cu = (b.x + b.dx/2 - CL/2).toFixed(1);
+      const cg = (-(b.y + b.dy/2 - CW/2)).toFixed(1);
+      const cy = (b.z + b.dz/2 - CH/2).toFixed(1);
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="seq">' + b.seq + '</td>' +
+        '<td class="seq" style="color:#0F6E56;">' + loadOrderMap[b.seq] + '</td>' +
+        '<td>' + b.type + '#' + b.index + '</td>' +
+        '<td>' + b.dx + '×' + b.dy + '×' + b.dz + '</td>' +
+        '<td class="num">' + b.x + '</td>' +
+        '<td class="num">' + b.y + '</td>' +
+        '<td class="num">' + b.z + '</td>' +
+        '<td class="num">' + (cu>=0?'+':'') + cu + '</td>' +
+        '<td class="num">' + (cg>=0?'+':'') + cg + '</td>' +
+        '<td class="num">' + (cy>=0?'+':'') + cy + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    // Boş başla — hiçbir kutu görünmesin
+    boxMeshes.forEach(bm => {
+      bm.mesh.visible = false;
+      bm.line.visible = false;
+      if (bm.label) bm.label.visible = false;
+    });
+    document.getElementById('step-counter').textContent = '0 / ' + result.placed.length;
+    renderEPs(0);
+
+    setView('iso');
+    setBtnState('CALCULATED');
+  }, 400);
+}
+
+// ============================================================
+// YÜKLEME ANİMASYONU
+// ============================================================
+
+let animationHandle = null;
+let animatingBoxes = []; // o an havada uçan kutular: { bm, startTime, duration, fromX, ... }
+
+function cancelAnimation() {
+  if (animationHandle) clearTimeout(animationHandle);
+  animationHandle = null;
+  animatingBoxes = [];
+  overlayLoading.classList.remove('visible');
+}
+
+function runLoadingAnimation() {
+  if (!currentResult) return;
+  setBtnState('LOADING');
+  overlayLoading.classList.add('visible');
+
+  const total = currentResult.placed.length;
+  // Toplam süre 3-4 saniye arasında, kutu sayısına göre uyarla
+  // 7 kutu = 3 sn, 30 kutu = 4 sn, lineer ölçek + clamp
+  const totalDurationMs = Math.min(4500, Math.max(2500, 2000 + total * 70));
+  const perBoxStagger = total > 0 ? totalDurationMs / total : 300;
+  // Kutuların kendi uçma süresi (paralel olarak): biraz daha uzun
+  const boxFlightDuration = Math.max(500, Math.min(900, perBoxStagger * 1.8));
+
+  // Kapı içi giriş noktası (kapının önünde, biraz dışarıda)
+  // Kapıdan girip yerine yerleşecek
+  const doorEntryX = CL/2 + 200; // kapıdan 200 cm öne çık
+
+  // Kutuları başta gizle
+  boxMeshes.forEach(bm => {
+    bm.mesh.visible = false;
+    bm.line.visible = false;
+    if (bm.label) bm.label.visible = false;
+  });
+
+  let placedCount = 0;
+  let startTime = performance.now();
+
+  // GERÇEKÇİ YÜKLEME SIRASI:
+  // Forklift kapıdan girer, en arka kutuyu en önce yerleştirmeli.
+  // Sonra arkadaki dilimi tamamlayıp bir adım öne çıkar.
+  //
+  // Sıralama önceliği:
+  //   1) algX küçük olan (arka) önce — forklift en uzaktan başlar
+  //   2) Aynı algX'de: algZ küçük olan (alt) önce — alttan yukarı
+  //   3) Aynı algX, algZ'de: algY küçük olan (sol) önce — soldan sağa
+  //
+  // Burada algX = b.x (kutunun arka-sol-alt köşesinin uzunluk eksenindeki konumu)
+  const loadOrder = boxMeshes.slice().sort((a, b) => {
+    const ax = a.boxData.x, bx = b.boxData.x;
+    if (ax !== bx) return ax - bx;
+    const az = a.boxData.z, bz = b.boxData.z;
+    if (az !== bz) return az - bz;
+    return a.boxData.y - b.boxData.y;
+  });
+
+  // Her kutu için zamanlama (yükleme sırasına göre)
+  const schedule = loadOrder.map((bm, i) => ({
+    bm,
+    startAt: i * perBoxStagger,
+    duration: boxFlightDuration,
+    loadOrder: i + 1
+  }));
+
+  function tick() {
+    const now = performance.now() - startTime;
+    let stillAnimating = false;
+    let newlyVisible = 0;
+
+    schedule.forEach((s, i) => {
+      const localT = now - s.startAt;
+      if (localT < 0) {
+        // Henüz başlamadı
+        s.bm.mesh.visible = false;
+        s.bm.line.visible = false;
+        if (s.bm.label) s.bm.label.visible = false;
+        stillAnimating = true;
+        return;
+      }
+      if (localT >= s.duration) {
+        // Tamamlandı, hedef pozisyonda dur
+        s.bm.mesh.visible = true;
+        s.bm.line.visible = true;
+        if (s.bm.label) s.bm.label.visible = labelsVisible;
+        s.bm.mesh.position.set(s.bm.targetX, s.bm.targetY, s.bm.targetZ);
+        s.bm.line.position.set(s.bm.targetX, s.bm.targetY, s.bm.targetZ);
+        if (s.bm.label) s.bm.label.position.set(s.bm.targetX, s.bm.targetY + s.bm.boxData.dz/2 + 12, s.bm.targetZ);
+        newlyVisible++;
+        return;
+      }
+      // Animasyon devam ediyor
+      stillAnimating = true;
+      const progress = localT / s.duration;
+      // Easing: easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      // Başlangıç: kapı önü (target Y'sinde, target Z'sinde, kapı dışında)
+      // Bitiş: target pozisyonu
+      const fromX = doorEntryX;
+      const fromY = s.bm.targetY; // aynı yükseklikte gir
+      const fromZ = s.bm.targetZ;
+
+      const x = fromX + (s.bm.targetX - fromX) * eased;
+      const y = s.bm.targetY; // yükseklik sabit (kayar gibi)
+      const z = fromZ + (s.bm.targetZ - fromZ) * eased;
+
+      s.bm.mesh.visible = true;
+      s.bm.line.visible = true;
+      if (s.bm.label) s.bm.label.visible = labelsVisible;
+      s.bm.mesh.position.set(x, y, z);
+      s.bm.line.position.set(x, y, z);
+      if (s.bm.label) s.bm.label.position.set(x, y + s.bm.boxData.dz/2 + 12, z);
+      newlyVisible++;
+    });
+
+    // Yerleşmiş kutu sayısı = animasyonu tamamlanmış olanlar
+    placedCount = schedule.filter(s => (now - s.startAt) >= s.duration).length;
+    loadingProgress.textContent = placedCount + '/' + total;
+
+    // EP'ler: yerleşmiş sayısına göre
+    const epStep = placedCount;
+    if (document.getElementById('show-eps-per-step').checked) {
+      renderEPs(epStep);
+    } else {
+      renderEPs(total);
+    }
+    document.getElementById('step-counter').textContent = placedCount + ' / ' + total;
+    slider.value = placedCount;
+
+    if (stillAnimating) {
+      animationHandle = requestAnimationFrame(tick);
+    } else {
+      // Bitti
+      currentStep = total;
+      overlayLoading.classList.remove('visible');
+      animationHandle = null;
+      setBtnState('IDLE');
+    }
+  }
+
+  animationHandle = requestAnimationFrame(tick);
+}
+
+// requestAnimationFrame için handle
+let _raf = null;
+const _origAnimHandle = animationHandle;
+// Yukarıdaki tick içinde requestAnimationFrame kullanılıyor; iptal için cancelAnimationFrame:
+function cancelAnimationFn() {
+  if (animationHandle) {
+    cancelAnimationFrame(animationHandle);
+    animationHandle = null;
+  }
+  overlayLoading.classList.remove('visible');
+}
+// cancelAnimation'ı override et (yukarıda setTimeout kullanmıştım, düzelt)
+window.cancelAnimation = cancelAnimationFn;
+// Override: input değişiminde cancelAnimation çağrılıyor
+// Yukarıdaki kapanış için yeniden tanımlama gerekmiyor — fonksiyon scope dışında
+
+// ============================================================
+// MANUEL ADIM KONTROLÜ (Animasyon bittikten sonra)
+// ============================================================
+
+function applyStep() {
+  if (!currentResult) return;
+  const total = currentResult.placed.length;
+  boxMeshes.forEach(bm => {
+    const visible = bm.seq <= currentStep;
+    bm.mesh.visible = visible;
+    bm.line.visible = visible;
+    if (bm.label) bm.label.visible = visible && labelsVisible;
+    // Hedef pozisyonda tut
+    if (visible) {
+      bm.mesh.position.set(bm.targetX, bm.targetY, bm.targetZ);
+      bm.line.position.set(bm.targetX, bm.targetY, bm.targetZ);
+      if (bm.label) bm.label.position.set(bm.targetX, bm.targetY + bm.boxData.dz/2 + 12, bm.targetZ);
+    }
+  });
+  document.getElementById('step-counter').textContent = currentStep + ' / ' + total;
+  slider.value = currentStep;
+  const showEpsPerStep = document.getElementById('show-eps-per-step').checked;
+  renderEPs(showEpsPerStep ? currentStep : total);
+}
+
+function applyAnimationVisibility() {
+  // Animasyon sırasında etiket toggle için
+  boxMeshes.forEach(bm => {
+    if (bm.mesh.visible && bm.label) bm.label.visible = labelsVisible;
+  });
+}
+
+document.getElementById('show-eps-per-step').addEventListener('change', () => {
+  if (state === 'IDLE') applyStep();
+});
+slider.addEventListener('input', e => {
+  if (state === 'LOADING') return;
+  currentStep = parseInt(e.target.value);
+  applyStep();
+});
+
+window.stepFwd  = function() {
+  if (!currentResult || state === 'LOADING') return;
+  if (currentStep < currentResult.placed.length) { currentStep++; applyStep(); }
+};
+window.stepBack = function() {
+  if (state === 'LOADING') return;
+  if (currentStep > 0) { currentStep--; applyStep(); }
+};
+window.resetSteps = function() {
+  if (!currentResult || state === 'LOADING') return;
+  currentStep = currentResult.placed.length; applyStep();
+};
+window.clearSteps = function() {
+  if (state === 'LOADING') return;
+  currentStep = 0; applyStep();
+};
+
+// ============================================================
+// İLK YÜKLEME
+// ============================================================
+
+buildContainer();
+buildAxes();
+setView('iso');
+setBtnState('INITIAL');
+
+// İlk hesaplama otomatik (kullanıcı butona basmadan da varsayılan gözüksün)
+runCalculation();
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  W = host.clientWidth; H = host.clientHeight;
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+});
+</script>
+</body>
+</html>
