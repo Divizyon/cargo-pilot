@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';
+import { PaymentCheckout } from './PaymentCheckout';
+import type { Purchaseableplan } from '@/lib/api/useSubscription';
 
 interface PlanDef {
   key: SubscriptionPlan;
@@ -72,6 +75,18 @@ const PLAN_LABELS: Record<SubscriptionPlan, string> = {
 
 export function SubscriptionTab() {
   const { plan: currentPlan, expiresAt } = useSubscriptionStore();
+  const [checkoutPlan, setCheckoutPlan] = useState<PlanDef | null>(null);
+
+  if (checkoutPlan) {
+    return (
+      <PaymentCheckout
+        plan={
+          checkoutPlan as { key: Purchaseableplan; label: string; price: string; period: string }
+        }
+        onBack={() => setCheckoutPlan(null)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,7 +109,14 @@ export function SubscriptionTab() {
           )}
         </div>
         {currentPlan !== 'enterprise' && (
-          <Button size="sm" variant="outline">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const pro = PLANS.find((p) => p.key === 'pro') ?? null;
+              setCheckoutPlan(pro);
+            }}
+          >
             Planı Yükselt
           </Button>
         )}
@@ -104,6 +126,7 @@ export function SubscriptionTab() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const isActive = plan.key === currentPlan;
+          const isPurchaseable = plan.key === 'starter' || plan.key === 'pro';
           return (
             <div
               key={plan.key}
@@ -148,6 +171,9 @@ export function SubscriptionTab() {
                 variant={isActive ? 'outline' : plan.highlighted ? 'default' : 'outline'}
                 className="mt-4 w-full text-xs"
                 disabled={isActive}
+                onClick={() => {
+                  if (isPurchaseable) setCheckoutPlan(plan);
+                }}
               >
                 {isActive ? 'Mevcut Plan' : plan.key === 'enterprise' ? 'İletişime Geç' : 'Seç'}
               </Button>
