@@ -91,6 +91,42 @@ public static class DependencyInjection {
                         QueueLimit        = 0,
                     }));
 
+            // Change password: 5 istek / 15 dk / IP
+            options.AddPolicy("change-password", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(15),
+                        SegmentsPerWindow = 3,
+                        QueueLimit        = 0,
+                    }));
+
+            // Email change request: 3 istek / 15 dk / IP
+            options.AddPolicy("email-change-request", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 3,
+                        Window            = TimeSpan.FromMinutes(15),
+                        SegmentsPerWindow = 3,
+                        QueueLimit        = 0,
+                    }));
+
+            // Confirm email change: 10 istek / 15 dk / IP (brute-force koruması)
+            options.AddPolicy("confirm-email-change", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 10,
+                        Window            = TimeSpan.FromMinutes(15),
+                        SegmentsPerWindow = 3,
+                        QueueLimit        = 0,
+                    }));
+
             // Company user create: 20 istek / 1 dk / IP
             options.AddPolicy("company-user-create", httpContext =>
                 RateLimitPartition.GetSlidingWindowLimiter(
