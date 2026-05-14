@@ -1,7 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type ComponentType } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import type { LucideIcon } from 'lucide-react';
 import {
   Ban,
   Box,
@@ -11,12 +10,12 @@ import {
   Flame,
   FlaskConical,
   HelpCircle,
-  Leaf,
   Package,
   Sun,
   Utensils,
   Wind,
   Wine,
+  Zap,
 } from 'lucide-react';
 import {
   Form,
@@ -76,6 +75,7 @@ const ROTATION_AXES = [
     axis: 'x' as AxisKey,
     axisLabel: 'X',
     subtitle: 'Sol / Sağ',
+    axisColor: '#3b82f6',
   },
   {
     name: 'allowRotateY',
@@ -84,6 +84,7 @@ const ROTATION_AXES = [
     axis: 'y' as AxisKey,
     axisLabel: 'Y',
     subtitle: 'Yukarı / Aşağı',
+    axisColor: '#22c55e',
   },
   {
     name: 'allowRotateZ',
@@ -92,6 +93,7 @@ const ROTATION_AXES = [
     axis: 'z' as AxisKey,
     axisLabel: 'Z',
     subtitle: 'Öne / Arkaya',
+    axisColor: '#ef4444',
   },
 ] as const;
 
@@ -100,13 +102,43 @@ const COMPACT_INPUT_WITH_UNIT = 'h-9 border-input bg-background pr-10';
 
 type ConstraintColor = 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
 
+const ICON_COLOR_CLASSES: Record<ConstraintColor, string> = {
+  default: 'text-foreground',
+  amber: 'text-amber-500',
+  blue: 'text-blue-500',
+  orange: 'text-orange-500',
+  green: 'text-green-500',
+  purple: 'text-purple-500',
+};
+
 type ConstraintOption = {
   value: string;
   label: string;
   color: ConstraintColor;
-  Icon: LucideIcon;
+  Icon: ComponentType<{ className?: string; strokeWidth?: string | number }>;
   fragilityValue?: number;
 };
+
+function CorrosiveIcon({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: string | number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M9 3H5v4l7 9 7-9V3h-4" />
+      <path d="M9 3l3 4 3-4" />
+      <path d="M5 21c2-2 4-2 7-2s5 0 7 2" />
+    </svg>
+  );
+}
 
 const CONSTRAINT_OPTIONS: ConstraintOption[] = [
   {
@@ -124,23 +156,37 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     fragilityValue: FRAGILITY_LEVELS.Liquid,
   },
   {
-    value: 'corrosive',
-    label: 'Aşındırıcı',
+    value: 'flammable',
+    label: 'Yanıcı',
     color: 'orange',
     Icon: Flame,
+    fragilityValue: FRAGILITY_LEVELS.Flammable,
+  },
+  {
+    value: 'oxidizing',
+    label: 'Yakıcı',
+    color: 'amber',
+    Icon: Zap,
+    fragilityValue: FRAGILITY_LEVELS.Oxidizing,
+  },
+  {
+    value: 'corrosive',
+    label: 'Aşındırıcı',
+    color: 'green',
+    Icon: CorrosiveIcon,
     fragilityValue: FRAGILITY_LEVELS.Corrosive,
   },
   {
     value: 'odor',
     label: 'Kokuya Hassas',
-    color: 'green',
+    color: 'purple',
     Icon: Wind,
     fragilityValue: FRAGILITY_LEVELS.OdorSensitive,
   },
   {
     value: 'food',
     label: 'Gıda Teması',
-    color: 'green',
+    color: 'default',
     Icon: Utensils,
     fragilityValue: FRAGILITY_LEVELS.FoodContact,
   },
@@ -157,13 +203,6 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'purple',
     Icon: FlaskConical,
     fragilityValue: FRAGILITY_LEVELS.Chemical,
-  },
-  {
-    value: 'organic',
-    label: 'Organik',
-    color: 'green',
-    Icon: Leaf,
-    fragilityValue: FRAGILITY_LEVELS.Organic,
   },
 ];
 
@@ -265,11 +304,12 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
 interface AxisBoxIllustrationProps {
   axis: AxisKey;
   active: boolean;
+  axisColor?: string;
 }
 
-function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
+function AxisBoxIllustration({ axis, active, axisColor }: AxisBoxIllustrationProps) {
   const stroke = 'currentColor';
-  const arrowColor = active ? 'hsl(var(--primary))' : 'currentColor';
+  const arrowColor = active ? (axisColor ?? 'hsl(var(--primary))') : 'currentColor';
 
   return (
     <div className="relative">
@@ -543,16 +583,15 @@ export function ProductForm({
                 </div>
                 <FormControl>
                   <Input
-                    type="number"
-                    min={1}
-                    step={1}
+                    type="text"
+                    inputMode="numeric"
                     disabled={unlimitedStack}
                     className={COMPACT_INPUT}
                     placeholder="3"
                     value={field.value ?? ''}
                     onChange={(e) => {
-                      const v =
-                        e.target.value === '' ? undefined : Math.max(1, e.target.valueAsNumber);
+                      const raw = e.target.value.replace(/\D/g, '');
+                      const v = raw === '' ? undefined : Math.max(1, parseInt(raw, 10));
                       field.onChange(v);
                       form.setValue('isStackable', (v ?? 0) > 1, { shouldValidate: false });
                     }}
@@ -676,7 +715,7 @@ export function ProductForm({
                         className={cn(
                           'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
                           isActive
-                            ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                            ? 'border-primary bg-primary/10 hover:bg-primary/20'
                             : 'text-muted-foreground hover:text-foreground',
                         )}
                         onClick={() => {
@@ -703,7 +742,10 @@ export function ProductForm({
                           }
                         }}
                       >
-                        <opt.Icon className="h-4 w-4" strokeWidth={1.8} />
+                        <opt.Icon
+                          className={cn('h-4 w-4 shrink-0', ICON_COLOR_CLASSES[opt.color])}
+                          strokeWidth={1.8}
+                        />
                         {opt.label}
                       </Button>
                     );
@@ -776,46 +818,87 @@ export function ProductForm({
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex gap-2">
-            {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle }) => {
-              const isDisabled =
+          <div className="flex flex-col gap-2">
+            {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle, axisColor }) => {
+              const isAutoDisabled =
                 (axisFieldName === 'allowRotateZ' && isZLocked) ||
                 (axisFieldName === 'allowRotateY' && isYLocked);
+              const totalLockedAxes = [allowRotateX, allowRotateY, allowRotateZ].filter(
+                (v) => v === false,
+              ).length;
               return (
                 <FormField
                   key={axisFieldName}
                   control={form.control}
                   name={axisFieldName}
-                  render={({ field }) => (
-                    <FormItem className="m-0 flex-1 space-y-0">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            aria-pressed={field.value}
-                            aria-label={
-                              isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)
-                            }
-                            disabled={isDisabled}
-                            onClick={() => field.onChange(!field.value)}
-                            className={cn(
-                              'h-12 w-full gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground',
-                              field.value ? 'border-primary bg-primary/10 text-primary' : '',
-                              isDisabled && 'cursor-not-allowed opacity-40',
-                            )}
-                          >
-                            <AxisBoxIllustration axis={axis} active={field.value && !isDisabled} />
-                            <span className="font-semibold">{axisLabel}</span>
-                            <span className="text-xs font-normal opacity-70">{subtitle}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)}
-                        </TooltipContent>
-                      </Tooltip>
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const wouldBeThirdLock = field.value === true && totalLockedAxes >= 2;
+                    const isDisabled = isAutoDisabled || wouldBeThirdLock;
+                    const tooltipMsg = isAutoDisabled
+                      ? t('forms.product.rotateZLockedWarning')
+                      : wouldBeThirdLock
+                        ? 'En fazla 2 dönüş kısıtı eklenebilir'
+                        : t(tooltipKey);
+                    const isLocked = field.value === false;
+                    return (
+                      <FormItem className="m-0 space-y-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              aria-pressed={isLocked}
+                              aria-label={tooltipMsg}
+                              disabled={isDisabled}
+                              onClick={() => field.onChange(!field.value)}
+                              className={cn(
+                                'h-auto w-full flex-row items-center gap-4 rounded-md px-4 py-2 text-sm font-medium text-muted-foreground',
+                                isDisabled && 'cursor-not-allowed opacity-40',
+                              )}
+                              style={
+                                isLocked && !isAutoDisabled
+                                  ? { borderColor: axisColor, backgroundColor: `${axisColor}15` }
+                                  : undefined
+                              }
+                            >
+                              <AxisBoxIllustration
+                                axis={axis}
+                                active={!isLocked && !isAutoDisabled}
+                                axisColor={axisColor}
+                              />
+                              <div className="flex flex-col items-start gap-1">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="text-lg font-extrabold leading-none"
+                                    style={isLocked && !isAutoDisabled ? { color: axisColor } : undefined}
+                                  >
+                                    {axisLabel}
+                                  </span>
+                                  {isLocked && !isAutoDisabled && (
+                                    <span
+                                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
+                                      style={{ backgroundColor: axisColor }}
+                                    >
+                                      Kısıtlı
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-normal text-muted-foreground">
+                                  {subtitle}
+                                </span>
+                                {wouldBeThirdLock && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    En fazla 2 eksen kısıtlanabilir
+                                  </span>
+                                )}
+                              </div>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{tooltipMsg}</TooltipContent>
+                        </Tooltip>
+                      </FormItem>
+                    );
+                  }}
                 />
               );
             })}
