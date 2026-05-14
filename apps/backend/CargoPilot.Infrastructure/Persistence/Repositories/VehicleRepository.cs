@@ -82,6 +82,9 @@ internal sealed class VehicleRepository : IVehicleRepository {
     public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)
         => _context.Vehicles.CountAsync(v => v.CompanyId == null && v.CreatedBy == userId, cancellationToken);
 
+    public Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
+        => _context.Vehicles.CountAsync(v => v.CompanyId == companyId, cancellationToken);
+
     public void Add(Vehicle vehicle) {
         _context.Vehicles.Add(vehicle);
     }

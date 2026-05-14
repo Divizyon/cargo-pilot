@@ -4,12 +4,13 @@ export const FRAGILITY_LEVELS = {
   NonFragile: 0,
   Fragile: 1,
   Liquid: 2,
+  Flammable: 3,
+  Oxidizing: 4,
   Corrosive: 5,
   OdorSensitive: 6,
   FoodContact: 7,
   KeepDry: 8,
   Chemical: 9,
-  Organic: 10,
 } as const;
 
 export type FragilityLevel = (typeof FRAGILITY_LEVELS)[keyof typeof FRAGILITY_LEVELS];

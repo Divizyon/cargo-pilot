@@ -80,11 +80,11 @@ internal sealed class GetMySubscriptionQueryHandler
         var planCount = await _loadingPlanRepository.CountByCompanyAsync(company.Id, ct);
 
         var response = new CompanyAdminSubscriptionResponse(
-            SubscriptionType:    company.SubscriptionType,
-            MaxUserCount:        company.MaxUserCount,
-            CurrentUserCount:    userCount,
+            SubscriptionType:     company.SubscriptionType,
+            MaxUserCount:         company.MaxUserCount,
+            CurrentUserCount:     userCount,
             TotalLoadingPlanCount: planCount,
-            TrialEndsAt:         company.TrialEndsAt);
+            TrialEndsAt:          company.TrialEndsAt);
 
         return Result<object>.Success(response);
     }
