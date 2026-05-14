@@ -81,7 +81,7 @@
       "notesHelper": "Use this to communicate constraints beyond the standard ones to handling teams.",
       "notesCounter": "{{count}} / {{max}}",
       "notesSummaryLabel": "Note",
-      "previewPlaceholder": "Three.js scene will be integrated here"
+      "previewPlaceholder": "Enter dimensions to enable 3D preview"
     },
     "vehicle": {
       "title": "Vehicle Definition",
