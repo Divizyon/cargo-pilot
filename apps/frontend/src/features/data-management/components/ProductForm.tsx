@@ -1,9 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type ComponentType } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import type { LucideIcon } from 'lucide-react';
 import {
-  Ban,
   Box,
   Cpu,
   Cylinder,
@@ -11,12 +9,13 @@ import {
   Flame,
   FlaskConical,
   HelpCircle,
-  Leaf,
+  Lock,
   Package,
   Sun,
   Utensils,
   Wind,
   Wine,
+  Zap,
 } from 'lucide-react';
 import {
   Form,
@@ -76,6 +75,7 @@ const ROTATION_AXES = [
     axis: 'x' as AxisKey,
     axisLabel: 'X',
     subtitle: 'Sol / Sağ',
+    axisColor: '#3b82f6',
   },
   {
     name: 'allowRotateY',
@@ -84,6 +84,7 @@ const ROTATION_AXES = [
     axis: 'y' as AxisKey,
     axisLabel: 'Y',
     subtitle: 'Yukarı / Aşağı',
+    axisColor: '#22c55e',
   },
   {
     name: 'allowRotateZ',
@@ -92,6 +93,7 @@ const ROTATION_AXES = [
     axis: 'z' as AxisKey,
     axisLabel: 'Z',
     subtitle: 'Öne / Arkaya',
+    axisColor: '#ef4444',
   },
 ] as const;
 
@@ -100,13 +102,49 @@ const COMPACT_INPUT_WITH_UNIT = 'h-9 border-input bg-background pr-10';
 
 type ConstraintColor = 'default' | 'amber' | 'blue' | 'orange' | 'green' | 'purple';
 
+const ICON_COLOR_CLASSES: Record<ConstraintColor, string> = {
+  default: 'text-foreground',
+  amber: 'text-amber-500',
+  blue: 'text-blue-500',
+  orange: 'text-orange-500',
+  green: 'text-green-500',
+  purple: 'text-purple-500',
+};
+
 type ConstraintOption = {
   value: string;
   label: string;
   color: ConstraintColor;
-  Icon: LucideIcon;
+  Icon: ComponentType<{ className?: string; strokeWidth?: string | number }>;
   fragilityValue?: number;
 };
+
+function CorrosiveIcon({
+  className,
+  strokeWidth = 2,
+}: {
+  className?: string;
+  strokeWidth?: string | number;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M9 3H5v4l7 9 7-9V3h-4" />
+      <path d="M9 3l3 4 3-4" />
+      <path d="M5 21c2-2 4-2 7-2s5 0 7 2" />
+    </svg>
+  );
+}
 
 const CONSTRAINT_OPTIONS: ConstraintOption[] = [
   {
@@ -124,23 +162,37 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     fragilityValue: FRAGILITY_LEVELS.Liquid,
   },
   {
-    value: 'corrosive',
-    label: 'Aşındırıcı',
+    value: 'flammable',
+    label: 'Yanıcı',
     color: 'orange',
     Icon: Flame,
+    fragilityValue: FRAGILITY_LEVELS.Flammable,
+  },
+  {
+    value: 'oxidizing',
+    label: 'Yakıcı',
+    color: 'amber',
+    Icon: Zap,
+    fragilityValue: FRAGILITY_LEVELS.Oxidizing,
+  },
+  {
+    value: 'corrosive',
+    label: 'Aşındırıcı',
+    color: 'green',
+    Icon: CorrosiveIcon,
     fragilityValue: FRAGILITY_LEVELS.Corrosive,
   },
   {
     value: 'odor',
     label: 'Kokuya Hassas',
-    color: 'green',
+    color: 'purple',
     Icon: Wind,
     fragilityValue: FRAGILITY_LEVELS.OdorSensitive,
   },
   {
     value: 'food',
     label: 'Gıda Teması',
-    color: 'green',
+    color: 'default',
     Icon: Utensils,
     fragilityValue: FRAGILITY_LEVELS.FoodContact,
   },
@@ -157,13 +209,6 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'purple',
     Icon: FlaskConical,
     fragilityValue: FRAGILITY_LEVELS.Chemical,
-  },
-  {
-    value: 'organic',
-    label: 'Organik',
-    color: 'green',
-    Icon: Leaf,
-    fragilityValue: FRAGILITY_LEVELS.Organic,
   },
 ];
 
@@ -265,59 +310,170 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
 interface AxisBoxIllustrationProps {
   axis: AxisKey;
   active: boolean;
+  axisColor?: string;
 }
 
 function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
-  const stroke = 'currentColor';
-  const arrowColor = active ? 'hsl(var(--primary))' : 'currentColor';
+  const isLocked = !active;
+  const topFill = '#4b5563';
+  const sideFill = '#6b7280';
+  const sideDark = '#374151';
+  const strokeCol = '#1f2937';
+  const arrowCol = '#ffffff';
+  const AW = 2.5;
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center justify-center">
       <svg
-        width="32"
-        height="28"
-        viewBox="0 0 72 64"
+        viewBox="0 0 100 96"
         fill="none"
-        className={cn('transition-opacity', active ? 'opacity-100' : 'opacity-40')}
+        style={{
+          width: 66,
+          height: 60,
+          minWidth: 66,
+          flexShrink: 0,
+          opacity: isLocked ? 0.28 : 1,
+          filter: isLocked ? 'grayscale(1)' : 'none',
+          transition: 'opacity 0.15s, filter 0.15s',
+        }}
       >
-        <path
-          d="M14 22 L36 12 L58 22 L58 46 L36 56 L14 46 Z"
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        <path d="M14 22 L36 32 L58 22" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
-        <path d="M36 32 L36 56" stroke={stroke} strokeWidth="1.5" />
         {axis === 'x' && (
           <>
-            <path d="M2 34 L70 34" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M66 30 L70 34 L66 38" stroke={arrowColor} strokeWidth="1.5" fill="none" />
-            <path d="M6 30 L2 34 L6 38" stroke={arrowColor} strokeWidth="1.5" fill="none" />
+            <path
+              d="M50 4 L82 20 L50 36 L18 20 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M82 20 L82 82 L50 94 L50 36 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M18 20 L18 82 L50 94 L50 36 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            {!isLocked && (
+              <>
+                <path
+                  d="M10 26 A 22 26 0 0 0 10 72"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <polygon points="10,82 3,70 17,70" fill={arrowCol} />
+                <path
+                  d="M90 70 A 22 26 0 0 0 90 26"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <polygon points="90,16 83,28 97,28" fill={arrowCol} />
+              </>
+            )}
           </>
         )}
         {axis === 'y' && (
           <>
-            <path d="M36 2 L36 62" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M32 6 L36 2 L40 6" stroke={arrowColor} strokeWidth="1.5" fill="none" />
-            <path d="M32 58 L36 62 L40 58" stroke={arrowColor} strokeWidth="1.5" fill="none" />
+            <path
+              d="M50 26 L90 40 L50 54 L10 40 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M90 40 L90 68 L50 78 L50 54 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10 40 L10 68 L50 78 L50 54 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            {!isLocked && (
+              <>
+                <path
+                  d="M20 37 A 34 12 0 0 1 78 37"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <polygon points="88,37 77,30 77,44" fill={arrowCol} />
+                <path
+                  d="M80 47 A 34 12 0 0 1 22 47"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <polygon points="12,47 23,40 23,54" fill={arrowCol} />
+              </>
+            )}
           </>
         )}
         {axis === 'z' && (
           <>
-            <path d="M8 56 L64 8" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M58 8 L64 8 L64 14" stroke={arrowColor} strokeWidth="1.5" fill="none" />
-            <path d="M14 50 L8 56 L8 50" stroke={arrowColor} strokeWidth="1.5" fill="none" />
+            <path
+              d="M50 10 L84 26 L50 42 L16 26 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M84 26 L84 72 L50 88 L50 42 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M16 26 L16 72 L50 88 L50 42 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            {!isLocked && (
+              <>
+                <path
+                  d="M90 30 A 20 24 0 0 1 90 70"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <polygon points="90,80 83,68 97,68" fill={arrowCol} />
+                <path
+                  d="M10 68 A 20 24 0 0 1 10 28"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <polygon points="10,18 3,30 17,30" fill={arrowCol} />
+              </>
+            )}
           </>
         )}
       </svg>
-      {!active && (
-        <Ban
-          className="absolute inset-0 m-auto h-5 w-5 text-destructive"
-          strokeWidth={2}
-          aria-hidden
-        />
-      )}
+      {isLocked && <Lock className="absolute h-4 w-4 text-muted-foreground/60" />}
     </div>
   );
 }
@@ -543,16 +699,15 @@ export function ProductForm({
                 </div>
                 <FormControl>
                   <Input
-                    type="number"
-                    min={1}
-                    step={1}
+                    type="text"
+                    inputMode="numeric"
                     disabled={unlimitedStack}
                     className={COMPACT_INPUT}
                     placeholder="3"
                     value={field.value ?? ''}
                     onChange={(e) => {
-                      const v =
-                        e.target.value === '' ? undefined : Math.max(1, e.target.valueAsNumber);
+                      const raw = e.target.value.replace(/\D/g, '');
+                      const v = raw === '' ? undefined : Math.max(1, parseInt(raw, 10));
                       field.onChange(v);
                       form.setValue('isStackable', (v ?? 0) > 1, { shouldValidate: false });
                     }}
@@ -676,7 +831,7 @@ export function ProductForm({
                         className={cn(
                           'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
                           isActive
-                            ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                            ? 'border-primary bg-primary/10 hover:bg-primary/20'
                             : 'text-muted-foreground hover:text-foreground',
                         )}
                         onClick={() => {
@@ -703,7 +858,10 @@ export function ProductForm({
                           }
                         }}
                       >
-                        <opt.Icon className="h-4 w-4" strokeWidth={1.8} />
+                        <opt.Icon
+                          className={cn('h-4 w-4 shrink-0', ICON_COLOR_CLASSES[opt.color])}
+                          strokeWidth={1.8}
+                        />
                         {opt.label}
                       </Button>
                     );
@@ -778,44 +936,62 @@ export function ProductForm({
           </div>
           <div className="flex gap-2">
             {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle }) => {
-              const isDisabled =
+              const isAutoDisabled =
                 (axisFieldName === 'allowRotateZ' && isZLocked) ||
                 (axisFieldName === 'allowRotateY' && isYLocked);
+              const totalLockedAxes = [allowRotateX, allowRotateY, allowRotateZ].filter(
+                (v) => v === false,
+              ).length;
               return (
                 <FormField
                   key={axisFieldName}
                   control={form.control}
                   name={axisFieldName}
-                  render={({ field }) => (
-                    <FormItem className="m-0 flex-1 space-y-0">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            aria-pressed={field.value}
-                            aria-label={
-                              isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)
-                            }
-                            disabled={isDisabled}
-                            onClick={() => field.onChange(!field.value)}
-                            className={cn(
-                              'h-12 w-full gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground',
-                              field.value ? 'border-primary bg-primary/10 text-primary' : '',
-                              isDisabled && 'cursor-not-allowed opacity-40',
-                            )}
-                          >
-                            <AxisBoxIllustration axis={axis} active={field.value && !isDisabled} />
-                            <span className="font-semibold">{axisLabel}</span>
-                            <span className="text-xs font-normal opacity-70">{subtitle}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isDisabled ? t('forms.product.rotateZLockedWarning') : t(tooltipKey)}
-                        </TooltipContent>
-                      </Tooltip>
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const wouldBeThirdLock = field.value === true && totalLockedAxes >= 2;
+                    const isDisabled = isAutoDisabled || wouldBeThirdLock;
+                    const tooltipMsg = isAutoDisabled
+                      ? t('forms.product.rotateZLockedWarning')
+                      : wouldBeThirdLock
+                        ? 'En fazla 2 dönüş kısıtı eklenebilir'
+                        : t(tooltipKey);
+                    const isLocked = field.value === false;
+                    return (
+                      <FormItem className="m-0 flex-1 space-y-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              aria-pressed={isLocked}
+                              aria-label={tooltipMsg}
+                              disabled={isDisabled}
+                              onClick={() => field.onChange(!field.value)}
+                              className={cn(
+                                'h-auto w-full flex-col items-center gap-1.5 rounded-md px-2 py-3 transition-all duration-150',
+                                !isLocked && !isAutoDisabled
+                                  ? 'border-foreground/30 text-foreground'
+                                  : 'text-muted-foreground',
+                                isAutoDisabled && 'opacity-40',
+                              )}
+                            >
+                              <AxisBoxIllustration
+                                axis={axis}
+                                active={!isLocked && !isAutoDisabled}
+                              />
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-sm font-semibold leading-none">
+                                  {axisLabel}
+                                </span>
+                                <span className="text-xs font-normal opacity-70">{subtitle}</span>
+                              </div>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{tooltipMsg}</TooltipContent>
+                        </Tooltip>
+                      </FormItem>
+                    );
+                  }}
                 />
               );
             })}

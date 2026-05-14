@@ -81,7 +81,7 @@
       "notesHelper": "Standart kısıtların dışında kalan spesifik uyarıları taşıma ekiplerine iletmek için kullanın.",
       "notesCounter": "{{count}} / {{max}}",
       "notesSummaryLabel": "Not",
-      "previewPlaceholder": "Buraya Three.js sahnesi entegre edilecek"
+      "previewPlaceholder": "Ürün boyutlarını girerek 3D önizlemeyi etkinleştirin"
     },
     "vehicle": {
       "title": "Araç Tanımlama",
