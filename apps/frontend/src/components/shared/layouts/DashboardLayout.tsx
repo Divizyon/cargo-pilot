@@ -20,9 +20,11 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { useSubscriptionStore, selectIsSubscriptionExpired } from '@/lib/store/useSubscriptionStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
+import { SubscriptionExpiredBanner } from '@/components/shared/SubscriptionExpiredBanner';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -129,6 +131,7 @@ function getInitials(name: string): string {
 function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: SidebarProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const isSubscriptionExpired = useSubscriptionStore(selectIsSubscriptionExpired);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
   return (
@@ -182,11 +185,21 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
       >
         {/* Primary CTA */}
         <button
-          onClick={() => navigate('/planning/new')}
-          title={isCollapsed ? 'Yeni Yükleme Planı' : undefined}
+          onClick={() => !isSubscriptionExpired && navigate('/planning/new')}
+          disabled={isSubscriptionExpired}
+          title={
+            isSubscriptionExpired
+              ? 'Aboneliğiniz sona erdi'
+              : isCollapsed
+                ? 'Yeni Yükleme Planı'
+                : undefined
+          }
           className={cn(
-            'flex h-9 w-full items-center gap-3 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90',
+            'flex h-9 w-full items-center gap-3 rounded-lg text-sm font-semibold transition-colors',
             isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
+            isSubscriptionExpired
+              ? 'cursor-not-allowed bg-muted text-muted-foreground'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90',
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
@@ -322,6 +335,7 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <SubscriptionExpiredBanner />
         <main
           className={cn(
             'flex-1',
