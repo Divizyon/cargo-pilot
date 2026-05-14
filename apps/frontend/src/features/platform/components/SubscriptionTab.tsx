@@ -78,7 +78,6 @@ export function SubscriptionTab() {
   const [changePlanKey, setChangePlanKey] = useState<SubscriptionPlan | null>(null);
 
   const currentIdx = PLAN_ORDER.indexOf(currentPlan);
-  const isOnPaidPlan = currentPlan !== 'free';
 
   return (
     <>
@@ -113,7 +112,7 @@ export function SubscriptionTab() {
               </p>
             )}
           </div>
-          {isOnPaidPlan && currentIdx < PLAN_ORDER.indexOf('pro') && (
+          {currentPlan !== 'enterprise' && currentIdx < PLAN_ORDER.indexOf('pro') && (
             <Button size="sm" variant="outline" onClick={() => setChangePlanKey('pro')}>
               Planı Yükselt
             </Button>
@@ -125,8 +124,7 @@ export function SubscriptionTab() {
           {PLANS.map((plan) => {
             const isActive = plan.key === currentPlan;
             const isPending = plan.key === pendingPlan;
-            const isChangeable =
-              isOnPaidPlan && (plan.key === 'starter' || plan.key === 'pro') && !isActive;
+            const isChangeable = (plan.key === 'starter' || plan.key === 'pro') && !isActive;
 
             return (
               <div
