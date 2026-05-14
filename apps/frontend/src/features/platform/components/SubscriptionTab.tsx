@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';
 import { PLAN_ORDER } from '@/lib/config/plan-features';
-import { PlanChangeDialog } from './PlanChangeDialog';
+import { PaymentCheckout } from './PaymentCheckout';
+import type { Purchaseableplan } from '@/lib/api/useSubscription';
 
 interface PlanDef {
   key: SubscriptionPlan;
@@ -74,68 +75,65 @@ const PLAN_LABELS: Record<SubscriptionPlan, string> = {
 };
 
 export function SubscriptionTab() {
-  const { plan: currentPlan, expiresAt, pendingPlan, pendingAt } = useSubscriptionStore();
-  const [changePlanKey, setChangePlanKey] = useState<SubscriptionPlan | null>(null);
+  const { plan: currentPlan, pendingPlan, pendingAt } = useSubscriptionStore();
+  const [checkoutPlan, setCheckoutPlan] = useState<PlanDef | null>(null);
 
   const currentIdx = PLAN_ORDER.indexOf(currentPlan);
+
+  if (checkoutPlan) {
+    return (
+      <PaymentCheckout
+        plan={
+          checkoutPlan as { key: Purchaseableplan; label: string; price: string; period: string }
+        }
+        onBack={() => setCheckoutPlan(null)}
+      />
+    );
+  }
 
   return (
     <>
       <div className="flex flex-col gap-6">
-        {/* Mevcut plan banner */}
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Mevcut Plan
-            </p>
-            <p className="mt-1 text-base font-bold text-foreground">{PLAN_LABELS[currentPlan]}</p>
-            {expiresAt && (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Bitiş:{' '}
-                {new Intl.DateTimeFormat('tr-TR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                }).format(new Date(expiresAt))}
-              </p>
-            )}
-            {pendingPlan && pendingAt && (
-              <p className="mt-1 text-xs text-amber-600">
-                Planınız{' '}
-                {new Intl.DateTimeFormat('tr-TR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                }).format(new Date(pendingAt))}{' '}
-                itibarıyla <span className="font-semibold">{PLAN_LABELS[pendingPlan]}</span>&apos;a
-                değişecektir.
-              </p>
-            )}
-          </div>
-          {currentPlan !== 'enterprise' && currentIdx < PLAN_ORDER.indexOf('pro') && (
-            <Button size="sm" variant="outline" onClick={() => setChangePlanKey('pro')}>
-              Planı Yükselt
-            </Button>
-          )}
-        </div>
+        {/* Bekleyen plan değişikliği bildirimi */}
+        {pendingPlan && pendingAt && (
+          <p className="text-xs text-amber-600">
+            Planınız{' '}
+            {new Intl.DateTimeFormat('tr-TR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            }).format(new Date(pendingAt))}{' '}
+            itibarıyla <span className="font-semibold">{PLAN_LABELS[pendingPlan]}</span>&apos;a
+            değişecektir.
+          </p>
+        )}
 
         {/* Plan listesi */}
+        {currentPlan !== 'enterprise' && currentIdx < PLAN_ORDER.indexOf('pro') && (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCheckoutPlan(PLANS.find((p) => p.key === 'pro') ?? null)}
+            >
+              Planı Yükselt
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {PLANS.map((plan) => {
             const isActive = plan.key === currentPlan;
             const isPending = plan.key === pendingPlan;
-            const isChangeable = (plan.key === 'starter' || plan.key === 'pro') && !isActive;
+            const isSelectable =
+              (plan.key === 'starter' || plan.key === 'pro') && !isActive && !isPending;
 
             return (
               <div
                 key={plan.key}
                 className={cn(
-                  'relative flex flex-col p-4',
-                  plan.highlighted
-                    ? 'border-l-2 border-primary pl-4'
-                    : 'border-l-2 border-transparent pl-4',
-                  isActive && 'border-l-2 border-emerald-500',
-                  isPending && !isActive && 'border-l-2 border-amber-400',
+                  'relative flex flex-col border-l-2 border-white p-4 pl-4',
+                  isActive && 'border-emerald-500',
+                  isPending && !isActive && 'border-amber-400',
                 )}
               >
                 {plan.highlighted && !isActive && !isPending && (
@@ -177,9 +175,9 @@ export function SubscriptionTab() {
                   size="sm"
                   variant={isActive ? 'outline' : plan.highlighted ? 'default' : 'outline'}
                   className="mt-4 w-full text-xs"
-                  disabled={isActive || isPending || !isChangeable}
+                  disabled={!isSelectable}
                   onClick={() => {
-                    if (isChangeable) setChangePlanKey(plan.key);
+                    if (isSelectable) setCheckoutPlan(plan);
                   }}
                 >
                   {isActive
@@ -195,10 +193,6 @@ export function SubscriptionTab() {
           })}
         </div>
       </div>
-
-      {changePlanKey && (
-        <PlanChangeDialog open targetPlan={changePlanKey} onClose={() => setChangePlanKey(null)} />
-      )}
     </>
   );
 }
