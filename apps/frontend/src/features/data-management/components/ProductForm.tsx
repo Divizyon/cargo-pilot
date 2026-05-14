@@ -818,7 +818,7 @@ export function ProductForm({
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
             {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle, axisColor }) => {
               const isAutoDisabled =
                 (axisFieldName === 'allowRotateZ' && isZLocked) ||
@@ -841,7 +841,7 @@ export function ProductForm({
                         : t(tooltipKey);
                     const isLocked = field.value === false;
                     return (
-                      <FormItem className="m-0 space-y-0">
+                      <FormItem className="m-0 flex-1 space-y-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -852,12 +852,12 @@ export function ProductForm({
                               disabled={isDisabled}
                               onClick={() => field.onChange(!field.value)}
                               className={cn(
-                                'h-auto w-full flex-row items-center gap-4 rounded-md px-4 py-2 text-sm font-medium text-muted-foreground',
-                                isDisabled && 'cursor-not-allowed opacity-40',
+                                'h-auto w-full flex-col items-center gap-2 rounded-md px-2 py-4 text-muted-foreground transition-opacity',
+                                isLocked && !isAutoDisabled && 'opacity-50',
                               )}
                               style={
-                                isLocked && !isAutoDisabled
-                                  ? { borderColor: axisColor, backgroundColor: `${axisColor}15` }
+                                !isLocked && !isAutoDisabled
+                                  ? { borderColor: axisColor }
                                   : undefined
                               }
                             >
@@ -866,31 +866,9 @@ export function ProductForm({
                                 active={!isLocked && !isAutoDisabled}
                                 axisColor={axisColor}
                               />
-                              <div className="flex flex-col items-start gap-1">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className="text-lg font-extrabold leading-none"
-                                    style={isLocked && !isAutoDisabled ? { color: axisColor } : undefined}
-                                  >
-                                    {axisLabel}
-                                  </span>
-                                  {isLocked && !isAutoDisabled && (
-                                    <span
-                                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
-                                      style={{ backgroundColor: axisColor }}
-                                    >
-                                      Kısıtlı
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-sm font-normal text-muted-foreground">
-                                  {subtitle}
-                                </span>
-                                {wouldBeThirdLock && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    En fazla 2 eksen kısıtlanabilir
-                                  </span>
-                                )}
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-sm font-semibold leading-none">{axisLabel}</span>
+                                <span className="text-xs font-normal opacity-70">{subtitle}</span>
                               </div>
                             </Button>
                           </TooltipTrigger>
