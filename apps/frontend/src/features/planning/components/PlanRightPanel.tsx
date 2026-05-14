@@ -28,6 +28,7 @@ import {
   Loader2,
   Package2,
   Pencil,
+  Play,
   Plus,
   Search,
   SlidersHorizontal,
@@ -401,12 +402,25 @@ function VehicleDetails({ vehicle, onUpdate, defaultEditing = false }: VehicleDe
 interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
+  onOptimize?: () => void;
+  onLoadAnimation?: () => void;
+  isOptimizing?: boolean;
+  canOptimize?: boolean;
 }
 
-export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRightPanelProps) {
+export function PlanRightPanel({
+  vehiclesOpen = true,
+  onToggleVehicles,
+  onOptimize,
+  onLoadAnimation,
+  isOptimizing = false,
+  canOptimize = true,
+}: PlanRightPanelProps) {
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+  const animationReady = useSceneStore((s) => s.animationReady);
+  const animationMode = useSceneStore((s) => s.animationMode);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
@@ -728,13 +742,30 @@ export function PlanRightPanel({ vehiclesOpen = true, onToggleVehicles }: PlanRi
           </div>
         )}
 
-        <div className="px-3 py-3 border-t border-zinc-100 shrink-0">
-          <Button
-            className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle}
-          >
-            Optimizasyonu Başlat
-          </Button>
+        <div className="px-3 py-3 border-t border-zinc-100 shrink-0 flex flex-col gap-2">
+          {animationReady ? (
+            <Button
+              className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
+              disabled={animationMode === 'playing'}
+              onClick={onLoadAnimation}
+            >
+              {animationMode === 'playing' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5 fill-white" />
+              )}
+              {animationMode === 'playing' ? 'Yükleniyor…' : 'Yükle'}
+            </Button>
+          ) : (
+            <Button
+              className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
+              disabled={!selectedVehicle || isOptimizing || !canOptimize}
+              onClick={onOptimize}
+            >
+              {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              Optimizasyonu Başlat
+            </Button>
+          )}
         </div>
       </div>
 

@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
 import {
   useReportingSettings,
   useUpdateReportingSettings,
@@ -262,10 +261,12 @@ export function ReportingSettingsTab() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_280px] gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
       {/* ── Left: form ── */}
-      <div className="space-y-4">
+      <div className="flex flex-col divide-y divide-border">
         {/* Logo */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Şirket Logosu</h3>
+        <div className="flex flex-col gap-3 pb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Şirket Logosu
+          </p>
 
           {!hasLogo ? (
             <div className="flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-muted-foreground">
@@ -320,14 +321,14 @@ export function ReportingSettingsTab() {
           </div>
         </div>
 
-        <Separator />
-
         {/* Company info */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">İletişim Bilgileri</h3>
+        <div className="flex flex-col gap-3 py-6">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            İletişim Bilgileri
+          </p>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
               <FormField
                 control={form.control}
                 name="companyName"
@@ -337,7 +338,7 @@ export function ReportingSettingsTab() {
                     <FormControl>
                       <div className="relative">
                         <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input placeholder="Şirket adınız" className="pl-9" {...field} />
+                        <Input placeholder="Şirket adınız" className="h-9 pl-9" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -355,7 +356,7 @@ export function ReportingSettingsTab() {
                       <FormControl>
                         <div className="relative">
                           <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input placeholder="+90 212 000 00 00" className="pl-9" {...field} />
+                          <Input placeholder="+90 212 000 00 00" className="h-9 pl-9" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -376,7 +377,7 @@ export function ReportingSettingsTab() {
                             type="email"
                             placeholder="info@sirketiniz.com"
                             className={cn(
-                              'pl-9',
+                              'h-9 pl-9',
                               form.formState.errors.email &&
                                 'border-destructive bg-destructive/5 focus-visible:ring-0 focus-visible:border-destructive',
                             )}
@@ -420,15 +421,15 @@ export function ReportingSettingsTab() {
           </Form>
         </div>
 
-        <Separator />
-
         {/* Date format */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Tarih Formatı</h3>
+        <div className="flex flex-col gap-3 py-6">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Tarih Formatı
+          </p>
           <div className="relative max-w-xs">
             <Calendar className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Select value={dateFormat} onValueChange={(v) => setDateFormat(v as DateFormat)}>
-              <SelectTrigger className="pl-9">
+              <SelectTrigger className="h-9 pl-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -442,15 +443,16 @@ export function ReportingSettingsTab() {
           </div>
         </div>
 
-        <Separator />
-
         {/* Signature toggle */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 pt-6">
           <div>
-            <Label htmlFor="signature-toggle" className="text-sm font-medium">
+            <Label
+              htmlFor="signature-toggle"
+              className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
+            >
               İmza Alanı
             </Label>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               Her raporun son sayfasına otomatik imza alanı eklenir.
             </p>
           </div>

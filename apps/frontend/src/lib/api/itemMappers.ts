@@ -177,7 +177,7 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
 }
 
 export function buildCreateItemPayload(values: ProductFormValues): CreateItemRequest {
-  const isStackable = values.isStackable && (values.maxStackCount ?? 1) > 1;
+  const isStackable = values.isStackable && (values.maxStackCount ?? 0) >= 1;
   const maxStackCount = isStackable ? (values.maxStackCount ?? 1) : 0;
   const trimmedNotes = values.notes?.trim();
 

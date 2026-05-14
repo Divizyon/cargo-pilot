@@ -15,7 +15,6 @@ import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleCreatePage } from '@/pages/VehicleCreatePage';
 import { VehicleEditPage } from '@/pages/VehicleEditPage';
 import { LoadingPlansPage } from '@/pages/LoadingPlansPage';
-import { LoadingPlanDetailPage } from '@/pages/LoadingPlanDetailPage';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { SharePage } from '@/pages/SharePage';
 import { SecurityRedirect } from '@/pages/SecurityRedirect';
@@ -80,7 +79,7 @@ export const router = createBrowserRouter([
           { path: '/reports', element: <ReportsPage /> },
           { path: '/reports/:id', element: <ReportDetailPage /> },
           { path: '/planning/shares', element: <ShareLinksPage /> },
-          { path: '/planning/:id', element: <LoadingPlanDetailPage /> },
+          { path: '/planning/:id', element: <NewPlanPage /> },
           { path: '/integrations', element: <DashboardPage /> },
           { path: '/erp', element: <DashboardPage /> },
           { path: '/notifications', element: <NotificationsPage /> },

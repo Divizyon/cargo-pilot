@@ -12,7 +12,11 @@ import {
   extractListData,
   fromApiPlanListItem,
   fromApiDetailPlacements,
+  planFullDetailApiResponseSchema,
+  fromApiFullDetail,
+  type PlanFullDetail,
 } from './loadingPlanMappers';
+import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
 
 // ─── Existing plan detail (3D viewer) ─────────────────────────────────────────
 
@@ -119,6 +123,77 @@ export function useLoadingPlanListItem(id: string) {
   });
 }
 
+// ─── Full detail hook (3D planner) ────────────────────────────────────────────
+
+export function useLoadingPlanDetail(id: string | undefined) {
+  return useQuery<PlanFullDetail>({
+    queryKey: ['loading-plan-detail', id] as const,
+    queryFn: async (): Promise<PlanFullDetail> => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${id}`);
+      const parsed = planFullDetailApiResponseSchema.safeParse(data);
+      if (!parsed.success) {
+        console.error('[useLoadingPlanDetail] parse error', parsed.error);
+        return { vehicle: null, inputItems: [], placements: [], skuColorMap: {} };
+      }
+      return fromApiFullDetail(parsed.data.data);
+    },
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Create mutation ───────────────────────────────────────────────────────────
+
+interface CreateLoadingPlanInput {
+  planName: string;
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number }>;
+  optimizationCriteria: OptimizationCriteria;
+}
+
+export function useCreateLoadingPlan() {
+  const queryClient = useQueryClient();
+  return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
+    mutationFn: async (input) => {
+      const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', input);
+
+      // API returns the UUID directly as a string
+      if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
+        return data;
+      }
+
+      // Fallback: wrapped response { isSuccess, message, data }
+      const raw = data as Record<string, unknown>;
+      if (raw['isSuccess'] === false) {
+        const msg = (raw['message'] as string | undefined) ?? 'Plan oluşturulamadı';
+        throw new Error(msg);
+      }
+      const nested = raw['data'];
+      const id =
+        (typeof nested === 'string' && nested !== '00000000-0000-0000-0000-000000000000'
+          ? nested
+          : undefined) ??
+        (typeof nested === 'object' && nested !== null
+          ? ((nested as Record<string, unknown>)['id'] as string | undefined)
+          : undefined) ??
+        (typeof raw['id'] === 'string' ? (raw['id'] as string) : undefined);
+
+      if (!id) throw new Error('Plan ID alınamadı');
+      return id;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+    },
+    onError: (error) => {
+      const detail =
+        error.response?.data?.detail ??
+        error.message ??
+        'Plan oluşturulamadı. Lütfen tekrar deneyin.';
+      toast.error(detail, { position: 'bottom-right' });
+    },
+  });
+}
+
 // ─── Delete mutation ───────────────────────────────────────────────────────────
 
 interface ProblemDetails {
@@ -171,6 +246,61 @@ export function useRenameLoadingPlan() {
         return;
       }
       toast.error(detail ?? 'Plan adı güncellenemedi.', { position: 'bottom-right' });
+    },
+  });
+}
+
+// ─── Re-optimize mutation (PUT) ───────────────────────────────────────────────
+
+interface ReoptimizeLoadingPlanInput {
+  id: string;
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number }>;
+  optimizationCriteria: OptimizationCriteria;
+}
+
+export function useReoptimizeLoadingPlan() {
+  const queryClient = useQueryClient();
+  return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
+    mutationFn: async ({ id, vehicleId, items, optimizationCriteria }) => {
+      const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
+        vehicleId,
+        items,
+        optimizationCriteria,
+      });
+
+      if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
+        return data;
+      }
+
+      const raw = data as Record<string, unknown>;
+      if (raw['isSuccess'] === false) {
+        throw new Error((raw['message'] as string | undefined) ?? 'Plan optimize edilemedi');
+      }
+      const nested = raw['data'];
+      const planId =
+        (typeof nested === 'string' && nested !== '00000000-0000-0000-0000-000000000000'
+          ? nested
+          : undefined) ??
+        (typeof nested === 'object' && nested !== null
+          ? ((nested as Record<string, unknown>)['id'] as string | undefined)
+          : undefined) ??
+        (typeof raw['id'] === 'string' ? (raw['id'] as string) : undefined) ??
+        id;
+      return planId;
+    },
+    onSuccess: (planId) => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-detail', planId] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', planId] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const detail =
+        error.response?.data?.detail ??
+        error.message ??
+        'Plan optimize edilemedi. Lütfen tekrar deneyin.';
+      toast.error(detail, { position: 'bottom-right' });
     },
   });
 }
