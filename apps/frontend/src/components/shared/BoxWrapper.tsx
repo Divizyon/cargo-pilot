@@ -198,16 +198,14 @@ export function BoxWrapper({
       emissive: isSelected ? color : '#000000',
       emissiveIntensity: isSelected ? 0.25 : 0,
     };
-    return Array.from({ length: 6 }, (_, i) => {
+    // Tüm 6 yüze aynı label texture — renk #ffffff ile texture gösterilir
+    return Array.from({ length: 6 }, () => {
       const mat = new THREE.MeshStandardMaterial(base);
-      // face index 4 = +Z (Z=0 yüzü — kapıya bakan)
-      if (i === 4) {
-        mat.map = labelTexture;
-        mat.color.set('#ffffff');
-        mat.transparent = false;
-        mat.opacity = 1;
-        mat.emissiveIntensity = 0;
-      }
+      mat.map = labelTexture;
+      mat.color.set('#ffffff');
+      mat.transparent = false;
+      mat.opacity = 1;
+      mat.emissiveIntensity = 0;
       return mat;
     });
   }, [isPalet, isVaril, labelTexture, color, opacity, isSelected]);
