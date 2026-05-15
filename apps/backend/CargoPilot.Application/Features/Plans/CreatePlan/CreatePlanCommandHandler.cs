@@ -151,7 +151,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                 return new OptimizationItemInput(
                     item.Id, item.SKU, item.Name, item.ImageUrl,
                     item.Width, item.Height, item.Length, item.Weight,
-                    item.IsStackable, item.AllowedRotations, r.Quantity,
+                    item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
+                    item.AllowedRotations, r.Quantity,
                     group?.Id, group?.UnloadingOrder);
             })
             .ToList();
