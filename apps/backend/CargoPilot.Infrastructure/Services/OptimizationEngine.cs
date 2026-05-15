@@ -57,6 +57,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     if (HasOverlap(placements, ex, ey, ez, w, h, d)) continue;
                     if (!HasSupport(placements, ex, ey, ez, w, d))   continue;
                     if (ViolatesStackability(placements, ex, ey, ez, w, d)) continue;
+                    if (ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
+                    if (ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
 
                     var score = ComputeScore(
                         input.Criteria,
@@ -68,7 +70,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     if (score < bestScore)
                     {
                         bestScore = score;
-                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable);
+                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop);
                     }
                 }
             }
@@ -256,6 +258,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         if (!HasSupportFor(a, others)) return false;
         if (!HasSupportFor(b, others)) return false;
 
+        // Takas sonrası istif kısıtı kontrolü: i ve j kendileri hariç tutularak
+        // kontrol edilir (others zaten bu listeyi oluşturmuş durumda).
+        if (ViolatesStackCount(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
+        if (ViolatesStackCount(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
+        if (ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
+        if (ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
+
         return true;
     }
 
@@ -342,6 +351,25 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                 (W, H, L, LoadingPlanPlacementRotation.NoRotation),
                 (L, H, W, LoadingPlanPlacementRotation.Yaw)
             ],
+            // Yaw yasak; Roll ve Pitch serbest.
+            AllowedRotations.NoYaw =>
+            [
+                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
+                (H, W, L, LoadingPlanPlacementRotation.Roll),
+                (W, L, H, LoadingPlanPlacementRotation.Pitch)
+            ],
+            // W her zaman X ekseninde — sadece Pitch (H↔L, W sabit).
+            AllowedRotations.PitchOnly =>
+            [
+                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
+                (W, L, H, LoadingPlanPlacementRotation.Pitch)
+            ],
+            // L her zaman Z ekseninde — sadece Roll (H↔W, L sabit).
+            AllowedRotations.RollOnly =>
+            [
+                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
+                (H, W, L, LoadingPlanPlacementRotation.Roll)
+            ],
             _ =>
             [
                 (W, H, L, LoadingPlanPlacementRotation.NoRotation),
@@ -407,13 +435,71 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         return false;
     }
 
+    // Yerleştirilecek ürünün altındaki her kutu için: o kutunun üzerinde halihazırda
+    // kaç ürün var, +1 (yeni ürün) MaxStackCount'u aşıyor mu?
+    private static bool ViolatesStackCount(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal w, decimal d)
+    {
+        foreach (var b in placed)
+        {
+            if (b.MaxStackCount <= 0) continue;
+            if (b.Y + b.H > y) continue;
+
+            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
+            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            if (ox <= 0m || oz <= 0m) continue;
+
+            var countAbove = placed.Count(c =>
+                c.Y >= b.Y + b.H &&
+                Math.Max(0m, Math.Min(c.X + c.W, b.X + b.W) - Math.Max(c.X, b.X)) > 0m &&
+                Math.Max(0m, Math.Min(c.Z + c.D, b.Z + b.D) - Math.Max(c.Z, b.Z)) > 0m);
+
+            if (countAbove + 1 > b.MaxStackCount) return true;
+        }
+        return false;
+    }
+
+    // Yerleştirilecek ürünün altındaki her kutu için: o kutunun üzerindeki mevcut
+    // toplam ağırlık + yeni ürünün ağırlığı MaxWeightOnTop'u aşıyor mu?
+    // Yalnızca bir altındakini değil, altındaki tüm kutuları kontrol eder.
+    private static bool ViolatesStackWeight(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal w, decimal d,
+        decimal newWeight)
+    {
+        foreach (var b in placed)
+        {
+            if (b.MaxWeightOnTop <= 0m) continue;
+            if (b.Y + b.H > y) continue;
+
+            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
+            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            if (ox <= 0m || oz <= 0m) continue;
+
+            var weightAbove = placed
+                .Where(c =>
+                    c.Y >= b.Y + b.H &&
+                    Math.Max(0m, Math.Min(c.X + c.W, b.X + b.W) - Math.Max(c.X, b.X)) > 0m &&
+                    Math.Max(0m, Math.Min(c.Z + c.D, b.Z + b.D) - Math.Max(c.Z, b.Z)) > 0m)
+                .Sum(c => c.Weight);
+
+            if (weightAbove + newWeight > b.MaxWeightOnTop) return true;
+        }
+        return false;
+    }
+
     private sealed record PlacedBox(
         Guid ItemId,
         decimal X, decimal Y, decimal Z,
         decimal W, decimal H, decimal D,
         LoadingPlanPlacementRotation Rotation,
         decimal Weight,
-        bool IsStackable);
+        bool IsStackable,
+        int MaxStackCount,
+        decimal MaxWeightOnTop);
 
     private sealed record UnplacedBox(Guid ItemId, UnplacedReason Reason);
 }
