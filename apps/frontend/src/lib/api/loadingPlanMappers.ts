@@ -9,7 +9,7 @@ import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
-import { rotatedDimensions, type OrientationIndex } from '@/lib/utils/boxOrientations';
+import { type OrientationIndex } from '@/lib/utils/boxOrientations';
 import { SCENE } from '@/lib/config/scene-config';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
@@ -162,6 +162,50 @@ export const planDetailApiResponseSchema = z.object({
       placements: z.array(placementItemApiSchema).optional(),
       placementDetails: z.array(placementItemApiSchema).optional(),
       items: z.array(placementItemApiSchema).optional(),
+      unplacedItems: z
+        .array(
+          z
+            .object({
+              id: z.string().optional(),
+              itemId: z.string().optional(),
+              quantity: z.number().int(),
+              reason: z.number().int().optional(),
+              item: z
+                .object({
+                  name: z.string().optional(),
+                })
+                .passthrough()
+                .nullable()
+                .optional(),
+            })
+            .passthrough(),
+        )
+        .optional(),
+      inputItems: z
+        .array(
+          z
+            .object({
+              id: z.string().optional(),
+              itemId: z.string().optional(),
+              quantity: z.number().int(),
+              item: z
+                .object({
+                  id: z.string().optional(),
+                  name: z.string().optional(),
+                  sku: z.string().optional(),
+                  width: z.number().optional(),
+                  height: z.number().optional(),
+                  length: z.number().optional(),
+                  weight: z.number().optional(),
+                  imageUrl: z.string().nullable().optional(),
+                })
+                .passthrough()
+                .nullable()
+                .optional(),
+            })
+            .passthrough(),
+        )
+        .optional(),
     })
     .passthrough(),
 });
@@ -276,6 +320,103 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
   return groups;
 }
 
+// ─── Mapper: API placements → PlacementWithDimensions[] ─────────────────────
+// Backend PlacementDto: { itemId, positionX/Y/Z, rotation(0-5), item: { width, height, length, weight, sku } }
+// rotation enum maps to placed dimensions:
+//   0=NoRotation(W,H,L)  1=Yaw(L,H,W)  2=Pitch(W,L,H)
+//   3=Roll(H,W,L)        4=YawPitch(H,L,W)  5=RollYaw(L,W,H)
+// We store placed dims directly and orientationIndex=0 so rendering needs no further rotation.
+
+const SKU_PALETTE = [
+  '#3b82f6',
+  '#f59e0b',
+  '#10b981',
+  '#ef4444',
+  '#8b5cf6',
+  '#06b6d4',
+  '#f97316',
+  '#84cc16',
+  '#ec4899',
+  '#6366f1',
+];
+
+function placedDimensions(
+  w: number,
+  h: number,
+  l: number,
+  rotation: number,
+): { pw: number; ph: number; pd: number } {
+  switch (rotation) {
+    case 1:
+      return { pw: l, ph: h, pd: w }; // Yaw
+    case 2:
+      return { pw: w, ph: l, pd: h }; // Pitch
+    case 3:
+      return { pw: h, ph: w, pd: l }; // Roll
+    case 4:
+      return { pw: h, ph: l, pd: w }; // YawPitch
+    case 5:
+      return { pw: l, ph: w, pd: h }; // RollYaw
+    default:
+      return { pw: w, ph: h, pd: l }; // NoRotation
+  }
+}
+
+export function fromApiPlacementsToScene(
+  rawPlacements: PlacementItemApi[],
+  colorMap?: Record<string, string>,
+): PlacementWithDimensions[] {
+  const skuColorIndex: Record<string, number> = {};
+  let colorIdx = 0;
+
+  return rawPlacements.flatMap((p) => {
+    const raw = p as Record<string, unknown>;
+    const itemId = (raw.itemId as string | undefined) ?? (raw.id as string | undefined) ?? '';
+    if (!itemId) return [];
+
+    const posX = Number(raw.positionX ?? 0);
+    const posY = Number(raw.positionY ?? 0);
+    const posZ = Number(raw.positionZ ?? 0);
+    const rotation = Number(raw.rotation ?? 0);
+
+    const item = (raw.item ?? {}) as Record<string, unknown>;
+    const origW = Number(item.width ?? 0);
+    const origH = Number(item.height ?? 0);
+    const origL = Number(item.length ?? 0);
+    const weight = Number(item.weight ?? item.unitWeight ?? 0);
+    const sku = String(item.sku ?? item.sKU ?? item.SKU ?? itemId);
+
+    if (origW <= 0 || origH <= 0 || origL <= 0) return [];
+
+    const { pw, ph, pd } = placedDimensions(origW, origH, origL, rotation);
+
+    let color = colorMap?.[sku];
+    if (!color) {
+      if (skuColorIndex[sku] === undefined) {
+        skuColorIndex[sku] = colorIdx++ % SKU_PALETTE.length;
+      }
+      color = SKU_PALETTE[skuColorIndex[sku]];
+    }
+
+    return [
+      {
+        itemId,
+        positionX: posX,
+        positionY: posY,
+        positionZ: posZ,
+        orientationIndex: 0,
+        layer: posY === 0 ? 1 : Math.ceil(posY / ph) + 1,
+        isViolation: false,
+        width: pw,
+        height: ph,
+        depth: pd,
+        weight,
+        color,
+      } satisfies PlacementWithDimensions,
+    ];
+  });
+}
+
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
@@ -321,7 +462,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
 const planItemDimensionsSchema = z
   .object({
     id: z.string(),
-    sku: z.string().catch(''),
+    sku: z.string().optional(),
+    sKU: z.string().optional(), // .NET CamelCase serializes SKU → sKU
     name: z.string().catch(''),
     width: z.number(),
     height: z.number(),
@@ -359,6 +501,20 @@ export const planFullDetailApiResponseSchema = z.object({
       vehicle: planVehicleApiSchema,
       placements: z.array(placementFullSchema).optional().default([]),
       inputItems: z.array(inputItemFullSchema).optional().default([]),
+      unplacedItems: z
+        .array(
+          z
+            .object({
+              id: z.string().optional(),
+              itemId: z.string().optional(),
+              quantity: z.number().int(),
+              reason: z.number().int().optional(),
+              item: z.object({ name: z.string().optional() }).passthrough().nullable().optional(),
+            })
+            .passthrough(),
+        )
+        .optional()
+        .default([]),
     })
     .passthrough(),
 });
@@ -368,13 +524,14 @@ export type PlanFullDetail = {
   inputItems: Array<{ item: Item; quantity: number }>;
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
+  unplacedItems: Array<{ itemId: string; quantity: number; reason: number; name: string }>;
 };
 
 function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
   return {
     id: raw.id,
     name: raw.name,
-    sku: raw.sku,
+    sku: raw.sku || raw.sKU || raw.id,
     productType: 'koli',
     width: raw.width,
     height: raw.height,
@@ -429,11 +586,14 @@ export function fromApiFullDetail(
       }
     : null;
 
+  type InputItemFull = z.infer<typeof inputItemFullSchema>;
+  type PlacementFull = z.infer<typeof placementFullSchema>;
+
   // Build color map from inputItems order
   const skuColorMap: Record<string, string> = {};
   const palette = SCENE.COLORS.SKU_PALETTE;
   let colorIdx = 0;
-  const inputItems = (data.inputItems ?? []).map((ii) => {
+  const inputItems = (data.inputItems ?? []).map((ii: InputItemFull) => {
     const item = apiItemToItem(ii.item);
     if (!skuColorMap[item.sku]) {
       skuColorMap[item.sku] = palette[colorIdx % palette.length];
@@ -442,21 +602,20 @@ export function fromApiFullDetail(
     return { item, quantity: ii.quantity };
   });
 
-  const placements: PlacementWithDimensions[] = (data.placements ?? []).map((p) => {
-    const orientationIndex = p.rotation as OrientationIndex;
-    const { width, height, depth } = rotatedDimensions(
-      p.item.width,
-      p.item.height,
-      p.item.length,
-      orientationIndex,
-    );
-    const color = skuColorMap[p.item.sku] ?? palette[0];
+  const placements: PlacementWithDimensions[] = (data.placements ?? []).map((p: PlacementFull) => {
+    const {
+      pw: width,
+      ph: height,
+      pd: depth,
+    } = placedDimensions(p.item.width, p.item.height, p.item.length, p.rotation);
+    const itemSku = p.item.sku || p.item.sKU || p.itemId;
+    const color = skuColorMap[itemSku] ?? palette[0];
     return {
       itemId: p.itemId,
       positionX: p.positionX,
       positionY: p.positionY,
       positionZ: p.positionZ,
-      orientationIndex,
+      orientationIndex: 0 as OrientationIndex,
       layer: height > 0 ? Math.round(p.positionY / height) + 1 : 1,
       isViolation: false,
       width,
@@ -467,5 +626,19 @@ export function fromApiFullDetail(
     };
   });
 
-  return { vehicle, inputItems, placements, skuColorMap };
+  type RawUnplaced = {
+    id?: string;
+    itemId?: string;
+    quantity: number;
+    reason?: number;
+    item?: { name?: string } | null;
+  };
+  const unplacedItems = (data.unplacedItems ?? []).map((u: RawUnplaced) => ({
+    itemId: u.itemId ?? u.id ?? '',
+    quantity: u.quantity,
+    reason: u.reason ?? 0,
+    name: u.item?.name ?? '',
+  }));
+
+  return { vehicle, inputItems, placements, skuColorMap, unplacedItems };
 }

@@ -127,6 +127,81 @@ internal sealed class ResendEmailService : IEmailService
         }
     }
 
+    public async Task SendPasswordChangedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — Şifreniz Başarıyla Değiştirildi",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#16a34a;">Şifreniz Başarıyla Değiştirildi</h2>
+                  <p>Merhaba {toName},</p>
+                  <p>Hesabınızın şifresi başarıyla güncellendi.</p>
+                  <p>Bu değişikliği siz yapmadıysanız lütfen hemen hesabınızı güvenceye alın ve şifrenizi sıfırlayın.</p>
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Merhaba {toName}, hesabınızın şifresi başarıyla güncellendi. Bu değişikliği siz yapmadıysanız lütfen hemen iletişime geçin."
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public async Task SendEmailChangeConfirmationEmailAsync(
+        string toEmail,
+        string toName,
+        string confirmLink,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — E-posta Adresi Değişikliği Onayı",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#d97706;">E-posta Adresi Değişikliği</h2>
+                  <p>Merhaba {toName},</p>
+                  <p>Hesabınızın e-posta adresini değiştirmek için bir istek aldık.</p>
+                  <p>Değişikliği onaylamak için aşağıdaki bağlantıya tıklayın.
+                  Bu bağlantı <strong>1 saat</strong> geçerlidir.</p>
+                  <p style="text-align:center;margin:32px 0;">
+                    <a href="{confirmLink}"
+                       style="background-color:#2563eb;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
+                      E-posta Değişikliğini Onayla
+                    </a>
+                  </p>
+                  <p>Bu isteği siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz. Hesabınızda herhangi bir değişiklik yapılmayacaktır.</p>
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Merhaba {toName}, e-posta adresinizi değiştirmek için şu bağlantıyı kullanın (1 saat geçerli): {confirmLink}"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
     public async Task SendCompanyUserInvitationEmailAsync(
         string toEmail,
         string toName,
@@ -165,6 +240,39 @@ internal sealed class ResendEmailService : IEmailService
                 </div>
                 """,
             Text = $"Merhaba {toName},\n\nHesabınız oluşturuldu.\nE-posta: {toEmail}\nGeçici Şifre: {temporaryPassword}\n\nİlk girişinizde şifrenizi değiştirmeniz zorunludur.\n\n— Cargo Pilot Ekibi"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public async Task SendAccessRemovedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — Hesap Erişiminiz Kaldırıldı",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#dc2626;">Erişiminiz Kaldırıldı</h2>
+                  <p>Merhaba {WebUtility.HtmlEncode(toName)},</p>
+                  <p>Firma yöneticiniz tarafından Cargo Pilot hesabınıza erişiminiz kaldırılmıştır.</p>
+                  <p>Bu konuda sorularınız varsa firma yöneticinizle iletişime geçebilirsiniz.</p>
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Merhaba {toName},\n\nErişiminiz kaldırılmıştır.\n\nFirma yöneticinizle iletişime geçebilirsiniz.\n\n— Cargo Pilot Ekibi"
         };
 
         using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);

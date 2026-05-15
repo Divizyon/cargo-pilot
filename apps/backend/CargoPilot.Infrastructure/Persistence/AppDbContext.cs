@@ -18,11 +18,13 @@ public class AppDbContext : DbContext {
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<UserLogin> UserLogins => Set<UserLogin>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmailChangeToken> EmailChangeTokens => Set<EmailChangeToken>();
     public DbSet<UserPasswordHistory> UserPasswordHistory => Set<UserPasswordHistory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<UserVehicleFavorite> UserVehicleFavorites => Set<UserVehicleFavorite>();
     public DbSet<LoadingPlan> LoadingPlans => Set<LoadingPlan>();
+    public DbSet<LoadingPlanItemGroup> LoadingPlanItemGroups => Set<LoadingPlanItemGroup>();
     public DbSet<LoadingPlanInputItem> LoadingPlanInputItems => Set<LoadingPlanInputItem>();
     public DbSet<LoadingPlanPlacement> LoadingPlanPlacements => Set<LoadingPlanPlacement>();
     public DbSet<LoadingPlanUnplacedItem> LoadingPlanUnplacedItems => Set<LoadingPlanUnplacedItem>();
@@ -49,11 +51,13 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new UserSessionConfiguration());
         modelBuilder.ApplyConfiguration(new UserLoginConfiguration());
         modelBuilder.ApplyConfiguration(new PasswordResetTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new EmailChangeTokenConfiguration());
         modelBuilder.ApplyConfiguration(new UserPasswordHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
         modelBuilder.ApplyConfiguration(new UserVehicleFavoriteConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanItemGroupConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanInputItemConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanPlacementConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanUnplacedItemConfiguration());

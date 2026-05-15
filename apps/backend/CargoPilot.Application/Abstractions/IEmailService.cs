@@ -14,10 +14,26 @@ public interface IEmailService {
         string secureAccountLink,
         CancellationToken cancellationToken = default);
 
+    Task SendPasswordChangedEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default);
+
+    Task SendEmailChangeConfirmationEmailAsync(
+        string toEmail,
+        string toName,
+        string confirmLink,
+        CancellationToken cancellationToken = default);
+
     Task SendCompanyUserInvitationEmailAsync(
         string toEmail,
         string toName,
         string temporaryPassword,
         string loginUrl,
+        CancellationToken cancellationToken = default);
+
+    Task SendAccessRemovedEmailAsync(
+        string toEmail,
+        string toName,
         CancellationToken cancellationToken = default);
 }

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CameraPreset } from '@/lib/config/scene-config';
 
 type DisplayMode = 'wireframe' | 'solid';
+type AnimationMode = 'idle' | 'playing' | 'stepped';
 
 interface SceneStore {
   activeLayer: number;
@@ -17,8 +18,18 @@ interface SceneStore {
   xRayMode: boolean;
   stressTestMode: boolean;
   focusedGroupItemIds: string[] | null;
+  animationMode: AnimationMode;
+  animationStep: number;
+  /** Optimizasyon tamamlandı, kullanıcı "Yükle" butonuna basmayı bekliyor */
+  animationReady: boolean;
   requestSnapshot: boolean;
   snapshotDataUrl: string | null;
+  setAnimationMode: (mode: AnimationMode) => void;
+  setAnimationStep: (step: number) => void;
+  setAnimationReady: (ready: boolean) => void;
+  /** Animasyonu sıfırdan başlatır — tek atomik update */
+  startAnimation: () => void;
+  resetAnimation: () => void;
   setActiveLayer: (layer: number) => void;
   setSelectedBoxId: (id: string | null) => void;
   setSelectedItemId: (id: string | null) => void;
@@ -53,12 +64,21 @@ const initialState = {
   xRayMode: false,
   stressTestMode: false,
   focusedGroupItemIds: null as string[] | null,
+  animationMode: 'idle' as AnimationMode,
+  animationStep: 0,
+  animationReady: false,
   requestSnapshot: false,
   snapshotDataUrl: null as string | null,
 };
 
 export const useSceneStore = create<SceneStore>((set) => ({
   ...initialState,
+  setAnimationMode: (mode) => set({ animationMode: mode }),
+  setAnimationStep: (step) => set({ animationStep: step }),
+  setAnimationReady: (ready) => set({ animationReady: ready }),
+  startAnimation: () => set({ animationMode: 'playing', animationStep: 0, animationReady: false }),
+  // stepped+0: barı kapatmaz, sadece başa sarar — idle yalnızca tam sıfırlama için
+  resetAnimation: () => set({ animationMode: 'stepped', animationStep: 0, animationReady: false }),
   setActiveLayer: (layer) => set({ activeLayer: layer }),
   setSelectedBoxId: (id) => set({ selectedBoxId: id }),
   setSelectedItemId: (id) => set({ selectedItemId: id }),
