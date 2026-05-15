@@ -14,6 +14,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly ILoadingPlanRepository _planRepository;
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IItemRepository _itemRepository;
+    private readonly ILoadingPlanItemGroupRepository _groupRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<CreatePlanCommand> _validator;
@@ -22,6 +23,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         ILoadingPlanRepository planRepository,
         IVehicleRepository vehicleRepository,
         IItemRepository itemRepository,
+        ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
         IValidator<CreatePlanCommand> validator)
@@ -29,6 +31,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
         _itemRepository = itemRepository;
+        _groupRepository = groupRepository;
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
         _validator = validator;
@@ -77,15 +80,55 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         }
 
         var itemMap = items.ToDictionary(i => i.Id);
-        var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, request.OptimizationCriteria);
+        // Load groups for any GroupId present in the request; filter out inactive ones
+        var requestedGroupIds = request.Items
+            .Where(i => i.GroupId.HasValue)
+            .Select(i => i.GroupId!.Value)
+            .Distinct()
+            .ToList();
+
+        Dictionary<Guid, LoadingPlanItemGroup> groupMap = [];
+        if (requestedGroupIds.Count > 0)
+        {
+            var groups = await _groupRepository.GetByIdsAsync(requestedGroupIds, companyId, cancellationToken);
+            groupMap = groups.ToDictionary(g => g.Id);
+
+            var missingGroupIds = requestedGroupIds.Except(groupMap.Keys).ToList();
+            if (missingGroupIds.Count > 0)
+            {
+                var failures = missingGroupIds
+                    .Select(id => new ValidationFailure("Items", $"Grup bulunamadı: {id}"))
+                    .ToList();
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.NotFound, "Groups.NotFound", "Bir veya daha fazla grup bulunamadı.", failures));
+            }
+        }
+
+        var inactiveGroupIds = groupMap.Values
+            .Where(g => !g.IsActive)
+            .Select(g => g.Id)
+            .ToHashSet();
+
+        var activeItems = request.Items
+            .Where(i => !i.GroupId.HasValue || !inactiveGroupIds.Contains(i.GroupId.Value))
+            .ToList();
+
+        var inputTotalQuantity = activeItems.Sum(i => i.Quantity);
+
+        var optimizationInput = BuildInput(vehicle, activeItems, itemMap, groupMap, request.OptimizationCriteria);
         var result = _optimizationEngine.Run(optimizationInput);
 
         var planId = Guid.NewGuid();
         var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
-        var inputItems = request.Items
-            .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity))
+        var inputItems = activeItems
+            .Select(i =>
+            {
+                var inputItem = new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity);
+                if (i.GroupId.HasValue && groupMap.ContainsKey(i.GroupId.Value))
+                    inputItem.AssignGroup(i.GroupId);
+                return inputItem;
+            })
             .ToList();
 
         await _planRepository.SaveWithResultAsync(plan, inputItems, result, cancellationToken);
@@ -97,16 +140,19 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         Vehicle vehicle,
         IReadOnlyList<CreatePlanItemRequest> requestItems,
         Dictionary<Guid, Item> itemMap,
+        Dictionary<Guid, LoadingPlanItemGroup> groupMap,
         LoadingPlanOptimizationCriteria criteria)
     {
         var inputs = requestItems
             .Select(r =>
             {
                 var item = itemMap[r.ItemId];
+                var group = r.GroupId.HasValue && groupMap.TryGetValue(r.GroupId.Value, out var g) ? g : null;
                 return new OptimizationItemInput(
                     item.Id, item.SKU, item.Name, item.ImageUrl,
                     item.Width, item.Height, item.Length, item.Weight,
-                    item.IsStackable, item.AllowedRotations, r.Quantity);
+                    item.IsStackable, item.AllowedRotations, r.Quantity,
+                    group?.Id, group?.UnloadingOrder);
             })
             .ToList();
 

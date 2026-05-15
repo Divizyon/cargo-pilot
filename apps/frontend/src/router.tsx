@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ConfirmEmailChangeRedirect } from '@/pages/ConfirmEmailChangeRedirect';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
+import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
@@ -31,7 +32,7 @@ import { ERPPage } from '@/pages/ERPPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <LandingPage />,
   },
   {
     path: '/auth/login',

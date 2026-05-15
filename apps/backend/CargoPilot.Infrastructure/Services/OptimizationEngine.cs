@@ -18,15 +18,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var expanded = input.Items
             .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i));
 
-        var instances = input.Criteria switch
-        {
-            LoadingPlanOptimizationCriteria.WeightBalance =>
-                expanded.OrderByDescending(i => i.Weight).ToList(),
-            LoadingPlanOptimizationCriteria.Lifo =>
-                expanded.ToList(),
-            _ =>
-                expanded.OrderByDescending(i => i.Width * i.Height * i.Length).ToList(),
-        };
+        var instances = SortForGroupPlacement(expanded, input.Criteria);
 
         var halfW = input.VehicleWidth  / 2m;
         var halfL = input.VehicleLength / 2m;
@@ -140,6 +132,55 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         return new OptimizationResult(placedResults, unplacedResults, totalWeight, fillRate, cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ);
     }
+
+    // ── Grup-bilinçli sıralama ────────────────────────────────────────────────
+    // GroupId'si olan items yükleme sırasına göre sıralanır:
+    // yüksek UnloadingOrder = araç arkası = önce yüklenir (DESC sıra).
+    // GroupId'si olmayan items en sona eklenir.
+    // Grup yoksa mevcut criteria-based sıralama uygulanır.
+    private static List<OptimizationItemInput> SortForGroupPlacement(
+        IEnumerable<OptimizationItemInput> expanded,
+        LoadingPlanOptimizationCriteria criteria)
+    {
+        var list = expanded.ToList();
+
+        var hasGroups = list.Any(i => i.GroupId.HasValue);
+        if (!hasGroups)
+        {
+            return criteria switch
+            {
+                LoadingPlanOptimizationCriteria.WeightBalance =>
+                    list.OrderByDescending(i => i.Weight).ToList(),
+                LoadingPlanOptimizationCriteria.Lifo =>
+                    list,
+                _ =>
+                    list.OrderByDescending(i => i.Width * i.Height * i.Length).ToList(),
+            };
+        }
+
+        var grouped = list
+            .Where(i => i.GroupId.HasValue)
+            .GroupBy(i => (i.GroupId!.Value, i.UnloadingOrder ?? 0))
+            .OrderByDescending(g => g.Key.Item2);
+
+        var sortedGrouped = grouped.SelectMany(g => ApplyCriteriaSort(g, criteria));
+        var ungrouped = ApplyCriteriaSort(list.Where(i => !i.GroupId.HasValue), criteria);
+
+        return sortedGrouped.Concat(ungrouped).ToList();
+    }
+
+    private static IEnumerable<OptimizationItemInput> ApplyCriteriaSort(
+        IEnumerable<OptimizationItemInput> items,
+        LoadingPlanOptimizationCriteria criteria)
+        => criteria switch
+        {
+            LoadingPlanOptimizationCriteria.WeightBalance =>
+                items.OrderByDescending(i => i.Weight),
+            LoadingPlanOptimizationCriteria.Lifo =>
+                items,
+            _ =>
+                items.OrderByDescending(i => i.Width * i.Height * i.Length),
+        };
 
     // ── İkinci geçiş: greedy swap balance iyileştirici ───────────────────────
     //
