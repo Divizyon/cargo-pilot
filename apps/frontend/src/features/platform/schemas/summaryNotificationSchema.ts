@@ -18,9 +18,7 @@ export type SummaryEventType = (typeof SummaryEventType)[keyof typeof SummaryEve
 export const summaryNotificationSchema = z.object({
   enabled: z.boolean(),
   frequency: z.enum(['Gunluk', 'Haftalik']),
-  sendTime: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/, 'Geçerli bir saat girin (ÖR: 08:00)'),
+  sendTime: z.string().regex(/^\d{2}:\d{2}$/, 'Geçerli bir saat girin (ÖR: 08:00)'),
   eventTypes: z.array(z.enum(['ErpExportError', 'PendingShipment', 'ProductChange'])),
 });
 

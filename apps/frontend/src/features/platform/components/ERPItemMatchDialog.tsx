@@ -57,8 +57,8 @@ export function ERPItemMatchDialog({
         <DialogHeader>
           <DialogTitle>Ürün Eşleştir</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{erpProductName}</span> için Cargo
-            Pilot ürünü seçin.
+            <span className="font-medium text-foreground">{erpProductName}</span> için Cargo Pilot
+            ürünü seçin.
           </p>
         </DialogHeader>
 
