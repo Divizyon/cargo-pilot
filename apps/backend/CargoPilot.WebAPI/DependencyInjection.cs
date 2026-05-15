@@ -219,6 +219,10 @@ public static class DependencyInjection {
             options.AddPolicy("CompanyAdmin", policy =>
                 policy.RequireClaim("role", "CompanyAdmin"));
 
+            // SuperAdmin | CompanyAdmin (company-scoped admin operations)
+            options.AddPolicy("CompanyAdminOrAbove", policy =>
+                policy.RequireClaim("role", "SuperAdmin", "CompanyAdmin"));
+
             options.AddPolicy("CompanyWorker", policy =>
                 policy.RequireClaim("role", "CompanyWorker"));
 

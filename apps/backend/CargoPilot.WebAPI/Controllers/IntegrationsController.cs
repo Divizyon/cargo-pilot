@@ -30,7 +30,7 @@ public sealed class IntegrationsController : BaseController
     /// </summary>
     /// <response code="200">Entegrasyon listesi döner.</response>
     [HttpGet]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(CancellationToken cancellationToken = default)
@@ -47,7 +47,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="200">Senkronizasyon ayarları döner.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpGet("{id:guid}/sync-settings")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -69,7 +69,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpPut("{id:guid}/sync-settings")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -93,7 +93,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="404">Entegrasyon bulunamadı.</response>
     /// <response code="409">Senkronizasyon zaten çalışıyor.</response>
     [HttpPost("{id:guid}/sync/run-now")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -116,7 +116,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpPost("{id:guid}/items/sync")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -143,7 +143,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpGet("{id:guid}/pending-item-mappings")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -171,7 +171,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon veya eşleştirme bulunamadı.</response>
     [HttpPut("{id:guid}/pending-item-mappings/{mappingId:guid}")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -196,7 +196,7 @@ public sealed class IntegrationsController : BaseController
     /// <response code="200">Eşleştirme reddedildi.</response>
     /// <response code="404">Entegrasyon veya eşleştirme bulunamadı.</response>
     [HttpDelete("{id:guid}/pending-item-mappings/{mappingId:guid}")]
-    [Authorize(Policy = "CompanyAdmin")]
+    [Authorize(Policy = "CompanyAdminOrAbove")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
