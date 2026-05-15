@@ -19,64 +19,58 @@ const SVG_PROPS = {
   viewBox: '0 0 16 16',
 };
 
-/** Üstten: araç tepe görünümü (portrat, ön altta, dikiz aynalı) */
+/** Üstten: yukarıdan ok + container üst yüzü */
 function TruckIconTop({ className }: TruckIconProps) {
   return (
     <svg className={className} {...SVG_PROPS}>
-      <rect x="4" y="1" width="8" height="14" rx="1" />
-      <line x1="4" y1="11" x2="12" y2="11" />
-      <rect x="1.5" y="12" width="2.5" height="2" rx="0.4" />
-      <rect x="12" y="12" width="2.5" height="2" rx="0.4" />
+      <rect x="3" y="8" width="10" height="6" rx="0.5" />
+      <path d="M8 1.5 v6" />
+      <path d="M5.5 5.5 L8 8 L10.5 5.5" />
     </svg>
   );
 }
 
-/** Önden: ön tampon, ön cam, farlar */
+/** Önden: soldan sağa ok + ön yüz */
 function TruckIconFront({ className }: TruckIconProps) {
   return (
     <svg className={className} {...SVG_PROPS}>
-      <rect x="1" y="2" width="14" height="12" rx="1" />
-      <rect x="2.5" y="3" width="11" height="5" rx="0.5" />
-      <line x1="1" y1="9.5" x2="15" y2="9.5" />
-      <rect x="1.5" y="10.5" width="3" height="2.5" rx="0.5" />
-      <rect x="11.5" y="10.5" width="3" height="2.5" rx="0.5" />
+      <rect x="8" y="3" width="6" height="10" rx="0.5" />
+      <path d="M1.5 8 h6" />
+      <path d="M5 5.5 L7.5 8 L5 10.5" />
     </svg>
   );
 }
 
-/** Arkadan: arka kapılar, stop lambaları, plaka */
+/** Arkadan: sağdan sola ok + çift kapılı arka yüz */
 function TruckIconBack({ className }: TruckIconProps) {
   return (
     <svg className={className} {...SVG_PROPS}>
-      <rect x="1" y="2" width="14" height="12" rx="1" />
-      <line x1="8" y1="2" x2="8" y2="14" />
-      <rect x="1.5" y="2.5" width="2" height="3.5" rx="0.5" />
-      <rect x="12.5" y="2.5" width="2" height="3.5" rx="0.5" />
-      <rect x="5.5" y="11.5" width="5" height="2" rx="0.5" />
+      <rect x="2" y="3" width="6" height="10" rx="0.5" />
+      <line x1="5" y1="3" x2="5" y2="13" />
+      <path d="M14.5 8 h-6" />
+      <path d="M11 5.5 L8.5 8 L11 10.5" />
     </svg>
   );
 }
 
-/** Sağdan: sağ yan profil — kabin solda (ön), kasa sağda (arka) */
+/** Sağ yandan: sağdan sola ok + yan profil */
 function TruckIconSideRight({ className }: TruckIconProps) {
   return (
     <svg className={className} {...SVG_PROPS}>
-      <path d="M1 11 V6 L4.5 1.5 H15 V11 Z" />
-      <line x1="5" y1="1.5" x2="5" y2="11" />
-      <circle cx="3" cy="13.5" r="1.8" />
-      <circle cx="12" cy="13.5" r="1.8" />
+      <rect x="1.5" y="4.5" width="10" height="7" rx="0.5" />
+      <path d="M14.5 8 h-3" />
+      <path d="M13 5.5 L11.5 8 L13 10.5" />
     </svg>
   );
 }
 
-/** Soldan: sol yan profil — kabin sağda (ön), kasa solda (arka) */
+/** Sol yandan: soldan sağa ok + yan profil */
 function TruckIconSideLeft({ className }: TruckIconProps) {
   return (
     <svg className={className} {...SVG_PROPS}>
-      <path d="M15 11 V6 L11.5 1.5 H1 V11 Z" />
-      <line x1="11" y1="1.5" x2="11" y2="11" />
-      <circle cx="13" cy="13.5" r="1.8" />
-      <circle cx="4" cy="13.5" r="1.8" />
+      <rect x="4.5" y="4.5" width="10" height="7" rx="0.5" />
+      <path d="M1.5 8 h3" />
+      <path d="M3 5.5 L4.5 8 L3 10.5" />
     </svg>
   );
 }
