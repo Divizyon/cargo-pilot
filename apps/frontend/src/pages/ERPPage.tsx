@@ -111,10 +111,10 @@ export function ERPPage() {
         </p>
       </div>
 
-      <div className="flex items-start gap-5">
-        {/* Sol sekme paneli */}
-        <div className="w-52 shrink-0">
-          <nav className="flex flex-col">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+        {/* Sekme paneli — mobil'de yatay scroll, sm'den itibaren dikey sol panel */}
+        <div className="w-full shrink-0 sm:w-52">
+          <nav className="flex gap-1 overflow-x-auto pb-1 sm:flex-col sm:overflow-x-visible sm:pb-0">
             {TABS.map((tab) => {
               const isActive = tab.id === activeTab;
               const badge = tabBadge(
@@ -129,7 +129,7 @@ export function ERPPage() {
                   type="button"
                   onClick={() => navigateToTab(tab.id)}
                   className={cn(
-                    'flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors',
+                    'flex shrink-0 items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors sm:w-full',
                     isActive
                       ? 'bg-accent font-medium text-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-foreground',

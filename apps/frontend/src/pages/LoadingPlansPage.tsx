@@ -52,7 +52,7 @@ function CardGrid({ filters }: CardGridProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
@@ -73,7 +73,7 @@ function CardGrid({ filters }: CardGridProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((plan, i) => (
           <VehicleCard key={plan.id} plan={plan} index={(page - 1) * pageSize + i} />
         ))}
@@ -126,7 +126,7 @@ export function LoadingPlansPage() {
   return (
     <div className="flex flex-col gap-5">
       {/* Başlık */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Yükleme Planları</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -135,7 +135,7 @@ export function LoadingPlansPage() {
         </div>
         <Link
           to="/planning/shares"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-1"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 sm:mt-1"
         >
           <Link2 className="w-3.5 h-3.5" />
           Paylaşım Bağlantıları
