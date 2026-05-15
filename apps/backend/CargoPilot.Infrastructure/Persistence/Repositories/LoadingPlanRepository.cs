@@ -267,6 +267,10 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     public Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => _context.LoadingPlans.CountAsync(p => p.CompanyId == companyId, cancellationToken);
 
+    public async Task<LoadingPlanInputItem?> GetInputItemByIdAsync(Guid inputItemId, Guid planId, CancellationToken cancellationToken = default)
+        => await _context.LoadingPlanInputItems
+            .FirstOrDefaultAsync(i => i.Id == inputItemId && i.LoadingPlanId == planId, cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
 
