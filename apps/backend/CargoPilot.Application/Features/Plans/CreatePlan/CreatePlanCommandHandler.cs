@@ -16,7 +16,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly IItemRepository _itemRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
-    private readonly ICompanyRepository _companyRepository;
     private readonly IValidator<CreatePlanCommand> _validator;
 
     public CreatePlanCommandHandler(
@@ -25,7 +24,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         IItemRepository itemRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
-        ICompanyRepository companyRepository,
         IValidator<CreatePlanCommand> validator)
     {
         _planRepository = planRepository;
@@ -33,7 +31,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         _itemRepository = itemRepository;
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
-        _companyRepository = companyRepository;
         _validator = validator;
     }
 
@@ -61,21 +58,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                         "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
         }
 
-        var userType = _currentUserService.UserType;
-        if (userType is UserType.CompanyAdmin or UserType.CompanyWorker && companyId is not null)
-        {
-            var company = await _companyRepository.GetByIdAsync(companyId.Value, cancellationToken);
-            if (company is not null)
-            {
-                var maxPlanCount = SubscriptionLimits.GetMaxLoadingPlanCount(company.SubscriptionType);
-                var currentCount = await _planRepository.CountByCompanyAsync(companyId.Value, cancellationToken);
-                if (currentCount >= maxPlanCount)
-                    return Result<Guid>.Failure(
-                        new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
-                            "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
-            }
-        }
-
         var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
         if (vehicle is null)
             return Result<Guid>.Failure(
@@ -97,7 +79,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         var itemMap = items.ToDictionary(i => i.Id);
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap);
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, request.OptimizationCriteria);
         var result = _optimizationEngine.Run(optimizationInput);
 
         var planId = Guid.NewGuid();
@@ -114,7 +96,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private static OptimizationInput BuildInput(
         Vehicle vehicle,
         IReadOnlyList<CreatePlanItemRequest> requestItems,
-        Dictionary<Guid, Item> itemMap)
+        Dictionary<Guid, Item> itemMap,
+        LoadingPlanOptimizationCriteria criteria)
     {
         var inputs = requestItems
             .Select(r =>
@@ -130,6 +113,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         return new OptimizationInput(
             vehicle.InternalWidth, vehicle.InternalHeight,
             vehicle.InternalLength, vehicle.MaxWeightCapacity,
-            inputs);
+            inputs, criteria);
     }
 }
