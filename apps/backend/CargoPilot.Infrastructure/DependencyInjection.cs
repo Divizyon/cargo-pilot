@@ -85,7 +85,7 @@ public static class DependencyInjection {
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();       
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
-        services.AddScoped<IErpProductFetcher, MockErpProductFetcher>();
+        services.AddScoped<IErpProductFetcher, SqlServerErpProductFetcher>();
         services.AddDataProtection();
         services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
         services.AddScoped<IErpSettingsRepository, ErpSettingsRepository>();
