@@ -67,8 +67,8 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
 
 export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
+  const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
   const [refetchKey, setRefetchKey] = useState(0);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
@@ -84,6 +84,17 @@ export function NewPlanPage() {
     }
     // fromPlanId is from URL params and stable per mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 1024) {
+        setLeftOpen(false);
+        setRightOpen(false);
+      }
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
