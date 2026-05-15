@@ -21,4 +21,6 @@ public sealed record OptimizationItemInput(
     decimal Weight,
     bool IsStackable,
     AllowedRotations AllowedRotations,
-    int Quantity);
+    int Quantity,
+    Guid? GroupId = null,
+    int? UnloadingOrder = null);
