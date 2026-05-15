@@ -4,6 +4,11 @@ import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { axiosInstance } from './axiosInstance';
 import {
+  planFullDetailApiResponseSchema,
+  fromApiFullDetail,
+  type PlanFullDetail,
+} from './loadingPlanMappers';
+import {
   shareLinkSchema,
   sharePlanSchema,
   type ShareValidity,
@@ -88,5 +93,22 @@ export function useShareByToken(token: string) {
 export function useRecordShareView() {
   return useMutation<void, AxiosError<ProblemDetails>, string>({
     mutationFn: (token) => axiosInstance.post(`/api/v1/shares/${token}/view`).then(() => undefined),
+  });
+}
+
+export function useSharePlanFullDetail(token: string) {
+  return useQuery<PlanFullDetail>({
+    queryKey: ['share-plan-full-detail', token] as const,
+    queryFn: async (): Promise<PlanFullDetail> => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/shares/${token}/plan`);
+      const parsed = planFullDetailApiResponseSchema.safeParse(data);
+      if (!parsed.success) {
+        return { planName: '—', vehicle: null, inputItems: [], placements: [], skuColorMap: {} };
+      }
+      return fromApiFullDetail(parsed.data.data);
+    },
+    enabled: Boolean(token),
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }

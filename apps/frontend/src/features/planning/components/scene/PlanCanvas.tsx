@@ -17,6 +17,7 @@ import { SceneFloor } from '@/features/planning/components/scene/SceneFloor';
 interface PlanCanvasProps {
   className?: string;
   planId?: string;
+  readOnly?: boolean;
   snapshotRef?: MutableRefObject<(() => string) | null>;
 }
 
@@ -62,7 +63,12 @@ function SnapshotBridge({
   return null;
 }
 
-export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
+export function PlanCanvas({
+  className,
+  planId = '',
+  readOnly = false,
+  snapshotRef,
+}: PlanCanvasProps) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const totalSteps = usePlanStore((s) => s.placements.length);
   const showControls =
@@ -90,7 +96,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
           <SceneControls />
           <SceneFloor />
           <ContainerMesh />
-          <CargoMeshInstanced planId={planId} />
+          <CargoMeshInstanced planId={planId} readOnly={readOnly} />
           <CogMarker />
         </Suspense>
       </Canvas>

@@ -93,11 +93,12 @@ function buildEdgesGeometry(
 
 interface CargoMeshInstancedProps {
   planId: string;
+  readOnly?: boolean;
 }
 
 // ─── InstancedBoxes ────────────────────────────────────────────────────────────
 
-function InstancedBoxes() {
+function InstancedBoxes({ readOnly = false }: { readOnly?: boolean }) {
   // Box (koli/palet) refs
   const opaqueRef = useRef<THREE.InstancedMesh>(null);
   const ghostWireRef = useRef<THREE.InstancedMesh>(null);
@@ -455,6 +456,7 @@ function InstancedBoxes() {
         }}
         onPointerDown={(e) => {
           e.stopPropagation();
+          if (readOnly) return;
           const iid = e.instanceId;
           if (iid === undefined || !vehicle) return;
           const globalIdx = boxIndices[iid];
@@ -516,6 +518,7 @@ function InstancedBoxes() {
         }}
         onPointerDown={(e) => {
           e.stopPropagation();
+          if (readOnly) return;
           const iid = e.instanceId;
           if (iid === undefined || !vehicle) return;
           const globalIdx = cylIndices[iid];
@@ -617,7 +620,7 @@ function InstancedBoxes() {
               setSelectedInstanceId(selectedInstanceId === globalIdx ? null : globalIdx);
             }}
             onPointerDown={(e) => {
-              if (!vehicle) return;
+              if (readOnly || !vehicle) return;
               setSelectedItemId(null);
               setSelectedInstanceId(globalIdx);
               startDrag(globalIdx, placements, vehicle, setDragState, e);
@@ -652,7 +655,7 @@ function InstancedBoxes() {
               setSelectedInstanceId(selectedInstanceId === idx ? null : idx);
             }}
             onPointerDown={(e) => {
-              if (!vehicle) return;
+              if (readOnly || !vehicle) return;
               startDrag(idx, placements, vehicle, setDragState, e);
             }}
           />
@@ -667,7 +670,7 @@ function InstancedBoxes() {
 // BoxWrapper'da edge geo group pozisyonuna relatif olduğundan
 // animasyonu position prop'larından geçirmek yeterli — ayrı wireframe gizleme gerekmez.
 
-function BoxPathBoxes() {
+function BoxPathBoxes({ readOnly = false }: { readOnly?: boolean }) {
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
   const previewPlacements = usePlanStore((s) => s.previewPlacements);
@@ -775,7 +778,7 @@ function BoxPathBoxes() {
               setSelectedInstanceId(selectedInstanceId === i ? null : i);
             }}
             onPointerDown={(e) => {
-              if (!vehicle) return;
+              if (readOnly || !vehicle) return;
               setSelectedItemId(null);
               setSelectedInstanceId(i);
               startDrag(i, placements, vehicle, setDragState, e);
@@ -803,7 +806,7 @@ function BoxPathBoxes() {
 
 // ─── CargoMeshInstanced ────────────────────────────────────────────────────────
 
-export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps) {
+export function CargoMeshInstanced({ planId: _planId, readOnly = false }: CargoMeshInstancedProps) {
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
   const previewPlacements = usePlanStore((s) => s.previewPlacements);
@@ -817,6 +820,6 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
   );
 
   if (placements.length === 0) return null;
-  if (placements.length < INSTANCED_THRESHOLD) return <BoxPathBoxes />;
-  return <InstancedBoxes />;
+  if (placements.length < INSTANCED_THRESHOLD) return <BoxPathBoxes readOnly={readOnly} />;
+  return <InstancedBoxes readOnly={readOnly} />;
 }

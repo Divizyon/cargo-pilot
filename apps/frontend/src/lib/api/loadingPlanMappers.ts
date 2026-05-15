@@ -354,7 +354,7 @@ export const planFullDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),
   data: z
     .object({
-      id: z.string().uuid(),
+      id: z.string().optional(),
       planName: z.string(),
       vehicle: planVehicleApiSchema,
       placements: z.array(placementFullSchema).optional().default([]),

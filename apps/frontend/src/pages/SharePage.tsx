@@ -1,12 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle, Clock, Package2, Truck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useShareByToken, useRecordShareView } from '@/lib/api/useShareLinks';
+import {
+  useShareByToken,
+  useRecordShareView,
+  useSharePlanFullDetail,
+} from '@/lib/api/useShareLinks';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
+import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
+import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
+import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import type { AxiosError } from 'axios';
+import type { PlanFullDetail } from '@/lib/api/loadingPlanMappers';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   tamamlandi: {
@@ -18,9 +27,64 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   iptal: { label: 'İptal', className: 'bg-rose-50 text-rose-700 border-rose-200' },
 };
 
+// ─── ShareAutoLoader ──────────────────────────────────────────────────────────
+
+function ShareAutoLoader({ detail }: { detail: PlanFullDetail }) {
+  const setVehicle = usePlanStore((s) => s.setVehicle);
+  const initItems = usePlanStore((s) => s.initItems);
+  const setPlacements = usePlanStore((s) => s.setPlacements);
+  const applied = useRef(false);
+
+  useEffect(() => {
+    if (applied.current || !detail.vehicle) return;
+    applied.current = true;
+    setVehicle(detail.vehicle);
+    initItems(detail.inputItems, detail.skuColorMap);
+    setPlacements(detail.placements);
+  }, [detail, setVehicle, initItems, setPlacements]);
+
+  return null;
+}
+
+// ─── ShareBoxInfo ─────────────────────────────────────────────────────────────
+
+function ShareBoxInfo() {
+  const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+  const placements = usePlanStore((s) => s.placements);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
+
+  if (selectedInstanceId === null) return null;
+  const placement = placements[selectedInstanceId];
+  if (!placement) return null;
+  const entry = selectedItems.find((si) => si.item.id === placement.itemId);
+  if (!entry) return null;
+  const { item } = entry;
+
+  return (
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+      <div className="flex items-center gap-3 rounded-lg bg-black/70 px-4 py-2.5 text-xs text-white backdrop-blur-sm whitespace-nowrap">
+        <span className="font-medium max-w-[220px] truncate">{item.name}</span>
+        <span className="text-zinc-500">·</span>
+        <span className="font-mono text-zinc-300">
+          {placement.width}×{placement.height}×{placement.depth} cm
+        </span>
+        {item.weight > 0 && (
+          <>
+            <span className="text-zinc-500">·</span>
+            <span className="font-mono text-zinc-300">{item.weight} kg</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── SharePage ────────────────────────────────────────────────────────────────
+
 export function SharePage() {
   const { token } = useParams<{ token: string }>();
   const { data: plan, isLoading, isError, error } = useShareByToken(token ?? '');
+  const { data: planDetail } = useSharePlanFullDetail(token ?? '');
   const { mutate: recordView } = useRecordShareView();
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
@@ -28,19 +92,30 @@ export function SharePage() {
     if (token) recordView(token);
   }, [token, recordView]);
 
+  useEffect(
+    () => () => {
+      usePlanStore.getState().reset();
+    },
+    [],
+  );
+
   const is404 = (error as AxiosError | null)?.response?.status === 404;
+  const has3D =
+    planDetail !== undefined &&
+    (planDetail.placements.length ?? 0) > 0 &&
+    planDetail.vehicle !== null;
 
   if (isLoading) {
     return (
       <main className="min-h-screen bg-zinc-50">
         <header className="bg-white border-b border-zinc-200 px-6 py-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <Skeleton className="h-5 w-48" />
           </div>
         </header>
-        <div className="max-w-3xl mx-auto px-6 py-8 space-y-4">
+        <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
           <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-[480px] w-full rounded-xl" />
           <Skeleton className="h-40 w-full rounded-xl" />
         </div>
       </main>
@@ -82,8 +157,10 @@ export function SharePage() {
 
   return (
     <main className="min-h-screen bg-zinc-50">
+      {has3D && <ShareAutoLoader detail={planDetail} />}
+
       <header className="bg-white border-b border-zinc-200 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-800">CargoPilot</span>
             <span className="text-zinc-300">·</span>
@@ -100,12 +177,29 @@ export function SharePage() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">{plan.planName}</h1>
           <p className="text-sm text-zinc-500 mt-1">{plan.planCode}</p>
         </div>
 
+        {/* 3D Viewer */}
+        {planDetail === undefined ? (
+          <Skeleton className="h-[480px] rounded-xl" />
+        ) : has3D ? (
+          <div className="space-y-2">
+            <CameraPresetButtons />
+            <div className="relative h-[480px] rounded-xl overflow-hidden border border-zinc-200 bg-white">
+              <PlanCanvas readOnly />
+              <ShareBoxInfo />
+            </div>
+            <p className="text-[11px] text-zinc-400 text-center">
+              Kutulara tıklayarak ürün detaylarını görebilirsiniz.
+            </p>
+          </div>
+        ) : null}
+
+        {/* Stats card */}
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
