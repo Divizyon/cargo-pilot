@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export function SummaryNotificationForm() {
     }
   }, [settings, form]);
 
-  const enabled = form.watch('enabled');
+  const enabled = useWatch({ control: form.control, name: 'enabled' });
 
   function onSubmit(values: SummaryNotificationValues) {
     saveSettings(values);
@@ -137,11 +137,7 @@ export function SummaryNotificationForm() {
             <FormItem className="max-w-[140px]">
               <FormLabel>Gönderim Saati</FormLabel>
               <FormControl>
-                <Input
-                  type="time"
-                  disabled={!enabled}
-                  {...field}
-                />
+                <Input type="time" disabled={!enabled} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

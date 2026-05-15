@@ -165,7 +165,7 @@ export function CreatePlanFromOrdersDialog({ selectedOrders, onClose }: Props) {
       planName: planName.trim(),
       vehicleId,
       items: aggregatedItems.map((i) => ({ itemId: i.cargoItemId, quantity: i.quantity })),
-      optimizationCriteria: OptimizationCriteria.Weight,
+      optimizationCriteria: OptimizationCriteria.WeightBalance,
     });
     onClose();
     navigate(planningDetailRoute(id));

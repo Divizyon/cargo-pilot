@@ -18,38 +18,28 @@ import {
   MoveHorizontal,
   ArrowUpDown,
   Copy,
-<<<<<<< HEAD
   CheckCircle2,
   Loader2,
+  Play,
   RefreshCw,
   XCircle,
-=======
-  Play,
->>>>>>> 0b9b150e9d20ed30c3b464e7791d679c8827fdb7
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-<<<<<<< HEAD
 import { toast } from 'sonner';
 import {
   useLoadingPlanListItem,
   useLoadingPlanProducts,
+  useLoadingPlanDetail,
   useApprovePlan,
   useExportPlanToERP,
-} from '@/lib/api/useLoadingPlans';
-=======
-import {
-  useLoadingPlanListItem,
-  useLoadingPlanProducts,
-  useLoadingPlanDetail,
 } from '@/lib/api/useLoadingPlans';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
->>>>>>> 0b9b150e9d20ed30c3b464e7791d679c8827fdb7
 import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useErpSettingsStore } from '@/lib/store/useErpSettingsStore';
 import type {
@@ -560,7 +550,7 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
         const now = new Date();
         setErpStatus('sent');
         setErpExportedAt(now);
-        toast.success('Plan ERP\'ye başarıyla iletildi.', { position: 'bottom-right' });
+        toast.success("Plan ERP'ye başarıyla iletildi.", { position: 'bottom-right' });
       } catch {
         setErpStatus('error');
         toast.error(
@@ -585,7 +575,7 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
       const now = new Date();
       setErpStatus('sent');
       setErpExportedAt(now);
-      toast.success('Plan ERP\'ye başarıyla iletildi.', { position: 'bottom-right' });
+      toast.success("Plan ERP'ye başarıyla iletildi.", { position: 'bottom-right' });
     } catch {
       setErpStatus('error');
     }
@@ -681,8 +671,7 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
             {erpStatus === 'sent' && erpExportedAt && (
               <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
                 <CheckCircle2 className="h-3 w-3" />
-                ERP'ye iletildi ·{' '}
-                {format(erpExportedAt, 'HH:mm', { locale: tr })}
+                ERP'ye iletildi · {format(erpExportedAt, 'HH:mm', { locale: tr })}
               </span>
             )}
             {erpStatus === 'error' && (
@@ -719,11 +708,7 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
 
             <SharePlanDropdown planId={plan.id} planName={plan.planName} />
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs border-zinc-200"
-            >
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs border-zinc-200">
               <Settings className="w-3.5 h-3.5" />
               Ayarlar
             </Button>
