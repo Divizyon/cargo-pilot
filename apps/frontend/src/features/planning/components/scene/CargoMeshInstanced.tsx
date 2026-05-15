@@ -212,24 +212,35 @@ function InstancedBoxes() {
 
   // Label atlas — box instance'ları için (palet/varil hariç)
   const labelPlaneRef = useRef<THREE.InstancedMesh>(null);
+  // globalIdx → atlasIdx (palet/varil hariç box'ların atlas tile sırası)
+  const atlasIndexMap = useMemo<Map<number, number>>(() => {
+    const map = new Map<number, number>();
+    let atlasIdx = 0;
+    loadOrder.forEach((globalIdx) => {
+      const p = placements[globalIdx];
+      if (!p || p.productType === 'palet' || p.productType === 'varil') return;
+      map.set(globalIdx, atlasIdx++);
+    });
+    return map;
+  }, [placements, loadOrder]);
+
   const atlas = useMemo<AtlasResult | null>(() => {
     const itemSkuMap = new Map(selectedItems.map(({ item }) => [item.id, item.sku]));
     const instanceCounter = new Map<string, number>();
-    const entries = loadOrder
-      .map((globalIdx) => {
-        const p = placements[globalIdx];
-        if (!p || p.productType === 'palet' || p.productType === 'varil') return null;
-        const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
-        const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
-        instanceCounter.set(p.itemId, instanceNo);
-        return {
-          sku,
-          seqNo: loadOrder.indexOf(globalIdx) + 1,
-          instanceNo,
-          bgColor: p.color ?? SCENE.COLORS.NORMAL_STR,
-        };
-      })
-      .filter(Boolean) as { sku: string; seqNo: number; instanceNo: number; bgColor: string }[];
+    const entries: { sku: string; seqNo: number; instanceNo: number; bgColor: string }[] = [];
+    loadOrder.forEach((globalIdx, seqIdx) => {
+      const p = placements[globalIdx];
+      if (!p || p.productType === 'palet' || p.productType === 'varil') return;
+      const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
+      const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
+      instanceCounter.set(p.itemId, instanceNo);
+      entries.push({
+        sku,
+        seqNo: seqIdx + 1,
+        instanceNo,
+        bgColor: p.color ?? SCENE.COLORS.NORMAL_STR,
+      });
+    });
     if (entries.length === 0) return null;
     return buildAtlasTexture(entries);
   }, [placements, loadOrder, selectedItems]);
@@ -251,12 +262,15 @@ function InstancedBoxes() {
     const total = boxCount * FACE_COUNT; // 6 yüz per box
 
     // Her 6 ardışık instance = aynı kutunun 6 yüzü → aynı UV offset paylaşır
+    // atlasIndexMap: globalIdx → atlasIdx (palet/varil boşlukları sayılmaz)
     const uvData = new Float32Array(total * 2);
     const cellSizeData = new Float32Array(total).fill(cellSize);
 
     for (let bi = 0; bi < boxCount; bi++) {
-      const u = uvOffsets[bi * 2];
-      const v = uvOffsets[bi * 2 + 1];
+      const globalIdx = boxIndices[bi];
+      const atlasIdx = atlasIndexMap.get(globalIdx) ?? -1;
+      const u = atlasIdx >= 0 ? uvOffsets[atlasIdx * 2] : 0;
+      const v = atlasIdx >= 0 ? uvOffsets[atlasIdx * 2 + 1] : 0;
       for (let f = 0; f < FACE_COUNT; f++) {
         uvData[(bi * FACE_COUNT + f) * 2] = u;
         uvData[(bi * FACE_COUNT + f) * 2 + 1] = v;
@@ -270,7 +284,7 @@ function InstancedBoxes() {
 
     labelPlaneGeo.setAttribute('aUvOffset', uvOffsetAttr);
     labelPlaneGeo.setAttribute('aCellSize', cellSizeAttr);
-  }, [atlas, boxIndices.length, labelPlaneGeo]);
+  }, [atlas, atlasIndexMap, boxIndices, labelPlaneGeo]);
 
   useEffect(
     () => () => {
@@ -336,12 +350,13 @@ function InstancedBoxes() {
           return;
         }
 
-        const seqIdx = loadOrder.indexOf(globalIdx);
-        if (seqIdx < 0 || seqIdx * 2 + 1 >= atlas.uvOffsets.length) {
+        const atlasIdx = atlasIndexMap.get(globalIdx) ?? -1;
+        if (atlasIdx < 0 || atlasIdx * 2 + 1 >= atlas.uvOffsets.length) {
           hide();
           return;
         }
 
+        const seqIdx = loadOrder.indexOf(globalIdx);
         if (isStepped && seqIdx >= currentAnimStep) {
           hide();
           return;
@@ -391,7 +406,7 @@ function InstancedBoxes() {
         });
       });
     },
-    [placements, boxIndices, loadOrder, atlas],
+    [placements, boxIndices, loadOrder, atlasIndexMap, atlas],
   );
 
   // onFrameUpdate — animasyon her frame bittikten sonra InstancedMesh matrislerini güncelle
