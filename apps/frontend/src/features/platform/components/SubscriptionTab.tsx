@@ -10,10 +10,6 @@ import { PlanChangeDialog } from './PlanChangeDialog';
 import { CancellationDialog } from './CancellationDialog';
 import { UsageStatsSection } from './UsageStatsSection';
 import { CancelledBanner, ExpiredBanner, PendingDowngradeBanner } from './SubscriptionStatusBanner';
-import { PaymentCheckout } from './PaymentCheckout';
-import { UsageQuotaSection } from './UsageQuotaSection';
-import type { Purchaseableplan } from '@/lib/api/useSubscription';
-
 
 interface PlanDef {
   key: SubscriptionPlan;
