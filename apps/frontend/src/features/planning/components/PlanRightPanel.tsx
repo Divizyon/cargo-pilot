@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   Activity,
+  Box,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -399,6 +400,7 @@ interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
   onOptimize?: () => void;
+  onLoadAnimation?: () => void;
   isOptimizing?: boolean;
   canOptimize?: boolean;
   getSnapshot?: () => string;
@@ -807,6 +809,17 @@ export function PlanRightPanel({
         </div>
 
         <PlanSummaryPanel />
+
+        {!selectedVehicle && selectedInstanceId === null && (
+          <div className="flex flex-col items-center justify-center gap-2 text-center py-4 border-t border-zinc-100">
+            <Box className="w-8 h-8 text-zinc-200" />
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Yükleme alanını görmek için
+              <br />
+              bir araç seçin
+            </p>
+          </div>
+        )}
 
         {selectedInstanceId !== null && (
           <div className="border-t border-zinc-100 overflow-y-auto shrink-0 max-h-[220px]">

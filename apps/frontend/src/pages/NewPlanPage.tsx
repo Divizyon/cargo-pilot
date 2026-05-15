@@ -23,6 +23,7 @@ import {
   useReoptimizeLoadingPlan,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import { useSceneStore } from '@/lib/store/useSceneStore';
 import { planningDetailRoute } from '@/lib/config/routes';
 
 // ─── PlanAutoLoader ───────────────────────────────────────────────────────────
@@ -87,6 +88,8 @@ export function NewPlanPage() {
 
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
+  const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
+  const startAnimation = useSceneStore((s) => s.startAnimation);
 
   // Detect changes from initial loaded state
   useEffect(() => {
@@ -150,6 +153,11 @@ export function NewPlanPage() {
     navigate(planningDetailRoute(id), { replace: true });
   }, [planNameInput, createPlan, navigate]);
 
+  const handleLoadAnimation = useCallback(() => {
+    if (usePlanStore.getState().placements.length === 0) return;
+    startAnimation();
+  }, [startAnimation]);
+
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
     const { selectedVehicle: vehicle, selectedItems: items, criteria } = usePlanStore.getState();
@@ -162,7 +170,8 @@ export function NewPlanPage() {
       optimizationCriteria: criteria,
     });
     setRefetchKey((k) => k + 1);
-  }, [fromPlanId, reoptimizePlan]);
+    setAnimationReady(true);
+  }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
     <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
@@ -262,6 +271,7 @@ export function NewPlanPage() {
             vehiclesOpen={rightOpen}
             onToggleVehicles={() => setRightOpen((v) => !v)}
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
+            onLoadAnimation={handleLoadAnimation}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
             canOptimize={fromPlanId ? isDirty : true}
             getSnapshot={() => snapshotRef.current?.() ?? ''}
