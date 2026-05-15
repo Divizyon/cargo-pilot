@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';
-import { PaymentCheckout } from './PaymentCheckout';
-import { UsageQuotaSection } from './UsageQuotaSection';
-import type { Purchaseableplan } from '@/lib/api/useSubscription';
+import { PLAN_ORDER } from '@/lib/config/plan-features';
+import { PaymentCheckoutInline } from './PaymentCheckoutDialog';
+import { PlanChangeDialog } from './PlanChangeDialog';
+import { CancellationDialog } from './CancellationDialog';
+import { UsageStatsSection } from './UsageStatsSection';
+import { CancelledBanner, ExpiredBanner, PendingDowngradeBanner } from './SubscriptionStatusBanner';
 
 interface PlanDef {
   key: SubscriptionPlan;
   label: string;
   price: string;
   period: string;
+  description: string;
   features: string[];
   highlighted?: boolean;
 }
@@ -22,6 +27,7 @@ const PLANS: PlanDef[] = [
     label: 'Ücretsiz',
     price: '₺0',
     period: '/ ay',
+    description: 'Başlamak için ihtiyacınız olan her şey.',
     features: ['3 yükleme planı / ay', '1 araç', '50 ürün', 'Temel raporlama'],
   },
   {
@@ -29,6 +35,7 @@ const PLANS: PlanDef[] = [
     label: 'Starter',
     price: '₺499',
     period: '/ ay',
+    description: 'Büyüyen ekipler için güçlü araçlar.',
     features: [
       '30 yükleme planı / ay',
       '5 araç',
@@ -42,6 +49,7 @@ const PLANS: PlanDef[] = [
     label: 'Pro',
     price: '₺1.299',
     period: '/ ay',
+    description: 'Profesyonel operasyonlar için sınırsız güç.',
     highlighted: true,
     features: [
       'Sınırsız yükleme planı',
@@ -57,6 +65,7 @@ const PLANS: PlanDef[] = [
     label: 'Enterprise',
     price: 'Özel',
     period: '',
+    description: 'Kurumsal ihtiyaçlara özel çözüm.',
     features: [
       'Pro özelliklerin tamamı',
       'Özel SLA',
@@ -74,33 +83,78 @@ const PLAN_LABELS: Record<SubscriptionPlan, string> = {
   enterprise: 'Enterprise',
 };
 
-export function SubscriptionTab() {
-  const { plan: currentPlan, expiresAt } = useSubscriptionStore();
-  const [checkoutPlan, setCheckoutPlan] = useState<PlanDef | null>(null);
+function isExpired(expiresAt: string | null): boolean {
+  if (!expiresAt) return false;
+  return new Date(expiresAt) < new Date();
+}
 
-  if (checkoutPlan) {
+type ViewState =
+  | { type: 'default' }
+  | { type: 'checkout'; plan: SubscriptionPlan }
+  | { type: 'change'; plan: PlanDef }
+  | { type: 'cancel' };
+
+export function SubscriptionTab() {
+  const {
+    plan: currentPlan,
+    expiresAt,
+    cancelAtPeriodEnd,
+    pendingDowngradePlan,
+    pendingDowngradeDate,
+    usage,
+  } = useSubscriptionStore();
+
+  const [view, setView] = useState<ViewState>({ type: 'default' });
+
+  const expired = isExpired(expiresAt);
+  const isPaid = currentPlan !== 'free';
+
+  function handlePlanAction(plan: PlanDef) {
+    if (plan.key === 'enterprise' || plan.key === currentPlan) return;
+    if (currentPlan === 'free' || expired) {
+      setView({ type: 'checkout', plan: plan.key });
+    } else {
+      setView({ type: 'change', plan });
+    }
+  }
+
+  function getPlanActionLabel(plan: PlanDef): string {
+    if (plan.key === currentPlan) return 'Mevcut Plan';
+    if (plan.key === 'enterprise') return 'İletişime Geç';
+    return PLAN_ORDER.indexOf(plan.key) > PLAN_ORDER.indexOf(currentPlan) ? 'Yükselt' : 'Düşür';
+  }
+
+  if (view.type === 'checkout') {
     return (
-      <PaymentCheckout
-        plan={
-          checkoutPlan as { key: Purchaseableplan; label: string; price: string; period: string }
-        }
-        onBack={() => setCheckoutPlan(null)}
+      <PaymentCheckoutInline
+        initialPlan={view.plan}
+        onCancel={() => setView({ type: 'default' })}
       />
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Current plan banner */}
-      <div className="flex items-center justify-between pb-4 border-b border-border">
+      {/* Status banners */}
+      {expired && <ExpiredBanner onRenew={() => setView({ type: 'checkout', plan: 'pro' })} />}
+      {!expired && cancelAtPeriodEnd && expiresAt && <CancelledBanner expiresAt={expiresAt} />}
+      {!expired && pendingDowngradePlan && pendingDowngradeDate && (
+        <PendingDowngradeBanner
+          targetPlan={PLAN_LABELS[pendingDowngradePlan]}
+          effectiveDate={pendingDowngradeDate}
+        />
+      )}
+
+      {/* Current plan summary */}
+      <div className="flex items-center justify-between rounded-xl border bg-card p-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Mevcut Plan
           </p>
           <p className="mt-1 text-base font-bold text-foreground">{PLAN_LABELS[currentPlan]}</p>
-          {expiresAt && (
+          {expiresAt && !expired && (
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Bitiş:{' '}
+              {cancelAtPeriodEnd ? 'Bitiş:' : 'Yenileme:'}{' '}
               {new Intl.DateTimeFormat('tr-TR', {
                 day: 'numeric',
                 month: 'long',
@@ -109,86 +163,127 @@ export function SubscriptionTab() {
             </p>
           )}
         </div>
-        {currentPlan !== 'enterprise' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              const pro = PLANS.find((p) => p.key === 'pro') ?? null;
-              setCheckoutPlan(pro);
-            }}
-          >
-            Planı Yükselt
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isPaid && !cancelAtPeriodEnd && !expired && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs text-muted-foreground hover:text-destructive"
+              onClick={() => setView({ type: 'cancel' })}
+            >
+              İptal Et
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Kullanım kotası */}
-      <UsageQuotaSection />
+      {/* Usage stats */}
+      {usage && (
+        <div className="rounded-xl border bg-card p-4">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Kullanım
+          </p>
+          <UsageStatsSection usage={usage} />
+        </div>
+      )}
 
-      <div className="border-t border-border" />
+      <Separator />
 
-      {/* Plan listesi */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Pricing — flat columns, no card borders */}
+      <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4">
         {PLANS.map((plan) => {
           const isActive = plan.key === currentPlan;
-          const isPurchaseable = plan.key === 'starter' || plan.key === 'pro';
-          return (
-            <div
-              key={plan.key}
-              className={cn(
-                'relative flex flex-col p-4',
-                plan.highlighted
-                  ? 'border-l-2 border-primary pl-4'
-                  : 'border-l-2 border-transparent pl-4',
-                isActive && 'border-l-2 border-emerald-500',
-              )}
-            >
-              {plan.highlighted && !isActive && (
-                <span className="mb-2 w-fit rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                  Önerilen
-                </span>
-              )}
-              {isActive && (
-                <span className="mb-2 w-fit rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
-                  Aktif
-                </span>
-              )}
+          const isPendingTarget = plan.key === pendingDowngradePlan && !isActive;
 
-              <div className="mb-4">
-                <p className="text-sm font-semibold text-foreground">{plan.label}</p>
-                <div className="mt-1 flex items-baseline gap-0.5">
-                  <span className="text-2xl font-bold text-foreground">{plan.price}</span>
-                  {plan.period && (
-                    <span className="text-xs text-muted-foreground">{plan.period}</span>
-                  )}
-                </div>
+          return (
+            <div key={plan.key} className="flex flex-col">
+              {/* Badge row */}
+              <div className="mb-2 h-5">
+                {plan.highlighted && !isActive && (
+                  <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-primary-foreground">
+                    En Popüler
+                  </span>
+                )}
+                {isActive && (
+                  <span className="rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-white">
+                    Aktif Plan
+                  </span>
+                )}
+                {isPendingTarget && (
+                  <span className="rounded-full bg-sky-500 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-white">
+                    Beklemede
+                  </span>
+                )}
               </div>
 
-              <ul className="flex flex-1 flex-col gap-1.5 text-xs text-muted-foreground">
+              {/* Plan name */}
+              <p
+                className={cn(
+                  'mb-0.5 text-xs font-semibold uppercase tracking-widest',
+                  plan.highlighted ? 'text-primary' : 'text-muted-foreground',
+                )}
+              >
+                {plan.label}
+              </p>
+
+              {/* Price */}
+              <div className="mb-3 flex items-end gap-1">
+                <span className="text-3xl font-extrabold tracking-tight text-foreground">
+                  {plan.price}
+                </span>
+                {plan.period && (
+                  <span className="mb-0.5 text-sm text-muted-foreground">{plan.period}</span>
+                )}
+              </div>
+
+              {/* Divider */}
+              <Separator className="mb-3" />
+
+              {/* Features */}
+              <ul className="flex flex-1 flex-col gap-2">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-1.5">
-                    <Check className="mt-px h-3 w-3 shrink-0 text-emerald-500" />
-                    {f}
+                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check
+                      className={cn(
+                        'mt-px h-3.5 w-3.5 shrink-0',
+                        plan.highlighted ? 'text-primary' : 'text-emerald-500',
+                      )}
+                    />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
 
+              {/* CTA — bottom */}
               <Button
                 size="sm"
-                variant={isActive ? 'outline' : plan.highlighted ? 'default' : 'outline'}
-                className="mt-4 w-full text-xs"
-                disabled={isActive}
-                onClick={() => {
-                  if (isPurchaseable) setCheckoutPlan(plan);
-                }}
+                variant={isActive ? 'secondary' : plan.highlighted ? 'default' : 'outline'}
+                className="mt-4 w-full"
+                disabled={isActive || plan.key === 'enterprise'}
+                onClick={() => handlePlanAction(plan)}
               >
-                {isActive ? 'Mevcut Plan' : plan.key === 'enterprise' ? 'İletişime Geç' : 'Seç'}
+                {getPlanActionLabel(plan)}
               </Button>
             </div>
           );
         })}
       </div>
+
+      {/* Dialogs */}
+      {view.type === 'change' && (
+        <PlanChangeDialog
+          open
+          onOpenChange={(v) => !v && setView({ type: 'default' })}
+          targetPlan={view.plan}
+        />
+      )}
+      {view.type === 'cancel' && (
+        <CancellationDialog
+          open
+          onOpenChange={(v) => !v && setView({ type: 'default' })}
+          expiresAt={expiresAt}
+        />
+      )}
     </div>
   );
 }
