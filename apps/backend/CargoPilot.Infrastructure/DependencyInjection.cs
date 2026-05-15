@@ -70,6 +70,7 @@ public static class DependencyInjection {
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
+        services.AddScoped<ILoadingPlanItemGroupRepository, LoadingPlanItemGroupRepository>();
         services.AddScoped<IOptimizationEngine, OptimizationEngine>();
         services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
