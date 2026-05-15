@@ -166,7 +166,7 @@ const DOOR_CONFIG: Record<string, { label: string }> = {
   rear: { label: 'Arka' },
   side: { label: 'Yan' },
   top: { label: 'Üst' },
-  rearAndSide: { label: 'Arka + Yan' },
+  all: { label: 'Tümü' },
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -183,13 +183,13 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 
 // ─── Door direction filter ────────────────────────────────────────────────────
 
-type DoorFilter = 'rear' | 'side' | 'top' | 'rearAndSide';
+type DoorFilter = 'rear' | 'side' | 'top' | 'all';
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
   { value: 'rear', label: 'Arka Kapı' },
   { value: 'side', label: 'Yan Kapı' },
   { value: 'top', label: 'Üst Kapı' },
-  { value: 'rearAndSide', label: 'Arka + Yan' },
+  { value: 'all', label: 'Tümü' },
 ];
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -504,7 +504,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                       />
                       <span
                         className={cn('inline-block h-2 w-2 rounded-full', {
-                          'bg-zinc-400': value === 'rear' || value === 'rearAndSide',
+                          'bg-zinc-400': value === 'rear' || value === 'all',
                           'bg-teal-500': value === 'side',
                           'bg-violet-500': value === 'top',
                         })}

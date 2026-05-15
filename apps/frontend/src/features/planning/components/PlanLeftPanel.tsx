@@ -29,7 +29,7 @@ import { usePlanStore, type UnplacedEntry } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
-import { AddItemModal } from './AddItemModal';
+
 import type { Item } from '@/lib/types/item';
 
 // Minimum item count to switch from DnD to virtual list rendering
@@ -303,7 +303,7 @@ export function PlanLeftPanel() {
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[] }>
   >([]);
   const [ungroupedIds, setUngroupedIds] = useState<string[]>([]);
-  const [showItemModal, setShowItemModal] = useState(false);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints] = useState<Set<string>>(new Set());
@@ -483,7 +483,7 @@ export function PlanLeftPanel() {
             size="icon"
             title="Ürün Ekle"
             className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
-            onClick={() => setShowItemModal(true)}
+            onClick={() => navigate('/products')}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
@@ -754,8 +754,6 @@ export function PlanLeftPanel() {
           )}
         </div>
       )}
-
-      <AddItemModal open={showItemModal} onOpenChange={setShowItemModal} />
     </div>
   );
 }

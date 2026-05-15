@@ -341,8 +341,8 @@ function DoorFaceIndicator({
   doorDirection: DoorDirection;
   doorSide?: 'left' | 'right';
 }) {
-  const isRear = doorDirection === 'rear' || doorDirection === 'rearAndSide';
-  const isSide = doorDirection === 'side' || doorDirection === 'rearAndSide';
+  const isRear = doorDirection === 'rear';
+  const isSide = doorDirection === 'side';
   const isTop = doorDirection === 'top';
 
   const sideX = doorSide === 'right' ? width + DOOR_PANEL_T / 2 : -DOOR_PANEL_T / 2;

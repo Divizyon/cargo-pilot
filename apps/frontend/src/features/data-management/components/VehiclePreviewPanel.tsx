@@ -10,7 +10,7 @@ const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Arka + Yan',
+  all: 'Tümü',
 };
 
 const TYPE_LABELS: Record<string, string> = {

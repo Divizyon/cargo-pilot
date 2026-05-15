@@ -26,7 +26,7 @@ export const LOADING_TYPE_FROM_INT: Record<
   0: { direction: DoorDirection.Rear },
   1: { direction: DoorDirection.Side, doorSide: 'right' },
   2: { direction: DoorDirection.Side, doorSide: 'left' },
-  3: { direction: DoorDirection.RearAndSide },
+  3: { direction: DoorDirection.All },
   4: { direction: DoorDirection.Top },
 };
 
@@ -215,7 +215,7 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       if (values.doorDirection === 'side') {
         return values.doorSide === 'left' ? 2 : 1; // SideLeft=2, SideRight=1
       }
-      const map: Record<string, number> = { rear: 0, rearAndSide: 3, top: 4 };
+      const map: Record<string, number> = { rear: 0, all: 3, top: 4 };
       return map[values.doorDirection] ?? 0;
     })(),
     isActive: values.isActive ?? true,

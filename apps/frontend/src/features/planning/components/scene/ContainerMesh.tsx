@@ -424,7 +424,7 @@ function TopCoverHalf({
   return (
     <group>
       {/* Panel: XZ düzleminde, rotate ile yatay yap */}
-      <group rotation={[-Math.PI / 2, 0, 0]} scale={[1, sign, 1]}>
+      <group rotation={[Math.PI / 2, 0, 0]} scale={[1, sign, 1]}>
         <DoorPanel width={width} height={panelLength} />
       </group>
       <TopCoverGrid width={width} panelLength={panelLength} sign={sign} />
@@ -473,20 +473,26 @@ export function ContainerMesh() {
 
   return (
     <group>
-      <ContainerBody width={width} height={height} length={length} />
+      <ContainerBody
+        width={width}
+        height={height}
+        length={length}
+        doorDirection={doorDirection}
+        doorSide={doorSide}
+      />
       <ContainerEdges width={width} height={height} length={length} />
 
-      {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
+      {doorDirection === 'rear' && (
         <group key={`rear-${vehicle.id}`} position={[0, 0, 0]}>
           <RearDoors width={width} height={height} />
         </group>
       )}
 
-      {(doorDirection === 'side' || doorDirection === 'rearAndSide') && (
+      {doorDirection === 'side' && (
         <group
           key={`side-${vehicle.id}`}
-          position={[doorSide === 'left' ? 0 : width, 0, 0]}
-          scale={[doorSide === 'left' ? 1 : -1, 1, 1]}
+          position={[doorSide === 'left' ? width : 0, 0, 0]}
+          scale={[doorSide === 'left' ? -1 : 1, 1, 1]}
         >
           <SideDoors width={width} height={height} length={length} />
         </group>

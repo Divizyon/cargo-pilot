@@ -9,24 +9,25 @@ import roughnessUrl from '@/assets/textures/container-steel/roughness.jpg';
 import metalnessUrl from '@/assets/textures/container-steel/metalness.jpg';
 import aoUrl from '@/assets/textures/container-steel/ao.jpg';
 
-const WALL_GAP_CM = 0.5;
-
-// 1m = 100cm. UV_SCALE ile konteyner boyutuna göre texture tekrar sayısı hesaplanır.
+// z-fighting'i önlemek için duvar yüzeylerini hafif içeriye çek
+const OFFSET = 0.1;
 const UV_SCALE = 0.008;
 
 interface ContainerBodyProps {
   width: number;
   height: number;
   length: number;
+  doorDirection?: 'rear' | 'side' | 'top';
+  doorSide?: 'left' | 'right';
 }
 
-// BackSide render'da texture çalışır — normal vektörler ters gelir ama map görünür.
-// ContainerBody iç duvarları texture'lı metal olarak render eder.
-export function ContainerBody({ width, height, length }: ContainerBodyProps) {
-  const innerW = width - 2 * WALL_GAP_CM;
-  const innerH = height - 2 * WALL_GAP_CM;
-  const innerL = length - 2 * WALL_GAP_CM;
-
+export function ContainerBody({
+  width,
+  height,
+  length,
+  doorDirection = 'rear',
+  doorSide,
+}: ContainerBodyProps) {
   const [normalMap, roughnessMap, metalnessMap, aoMap] = useTexture([
     normalUrl,
     roughnessUrl,
@@ -44,18 +45,92 @@ export function ContainerBody({ width, height, length }: ContainerBodyProps) {
     }
   }, [width, height, length, normalMap, roughnessMap, metalnessMap, aoMap]);
 
+  // Kapı tarafındaki duvarı atla
+  // side+left → kapı X=width duvarında → 'right' atlanır
+  // side+right → kapı X=0 duvarında → 'left' atlanır
+  const skipWall =
+    doorDirection === 'top'
+      ? 'ceiling'
+      : doorDirection === 'rear'
+        ? 'rear'
+        : doorSide === 'left'
+          ? 'right'
+          : 'left';
+
+  const matProps = {
+    normalMap,
+    roughnessMap,
+    metalnessMap,
+    aoMap,
+    metalness: 0.45,
+    roughness: 0.7,
+  };
+
   return (
-    <mesh position={[width / 2, height / 2, length / 2]} receiveShadow>
-      <boxGeometry args={[innerW, innerH, innerL]} />
-      <meshStandardMaterial
-        normalMap={normalMap}
-        roughnessMap={roughnessMap}
-        metalnessMap={metalnessMap}
-        aoMap={aoMap}
-        side={THREE.BackSide}
-        metalness={0.45}
-        roughness={0.7}
-      />
-    </mesh>
+    <group>
+      {/* Zemin — Y=0, normal +Y */}
+      <mesh
+        position={[width / 2, OFFSET, length / 2]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[width, length]} />
+        <meshStandardMaterial {...matProps} />
+      </mesh>
+
+      {/* Tavan — Y=height, normal -Y */}
+      {skipWall !== 'ceiling' && (
+        <mesh
+          position={[width / 2, height - OFFSET, length / 2]}
+          rotation={[Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[width, length]} />
+          <meshStandardMaterial {...matProps} />
+        </mesh>
+      )}
+
+      {/* Arka duvar — Z=0, normal +Z */}
+      {skipWall !== 'rear' && (
+        <mesh position={[width / 2, height / 2, OFFSET]} receiveShadow>
+          <planeGeometry args={[width, height]} />
+          <meshStandardMaterial {...matProps} />
+        </mesh>
+      )}
+
+      {/* Ön duvar — Z=length, normal -Z */}
+      <mesh
+        position={[width / 2, height / 2, length - OFFSET]}
+        rotation={[0, Math.PI, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[width, height]} />
+        <meshStandardMaterial {...matProps} />
+      </mesh>
+
+      {/* Sol duvar — X=0, normal +X */}
+      {skipWall !== 'left' && (
+        <mesh
+          position={[OFFSET, height / 2, length / 2]}
+          rotation={[0, Math.PI / 2, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[length, height]} />
+          <meshStandardMaterial {...matProps} />
+        </mesh>
+      )}
+
+      {/* Sağ duvar — X=width, normal -X */}
+      {skipWall !== 'right' && (
+        <mesh
+          position={[width - OFFSET, height / 2, length / 2]}
+          rotation={[0, -Math.PI / 2, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[length, height]} />
+          <meshStandardMaterial {...matProps} />
+        </mesh>
+      )}
+    </group>
   );
 }
