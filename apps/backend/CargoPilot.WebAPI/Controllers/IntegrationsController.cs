@@ -16,7 +16,6 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/integrations")]
 [Tags("Integrations")]
-[Authorize(Policy = "CompanyMember")]
 public sealed class IntegrationsController : BaseController
 {
     private readonly IMediator _mediator;
@@ -31,7 +30,9 @@ public sealed class IntegrationsController : BaseController
     /// </summary>
     /// <response code="200">Entegrasyon listesi döner.</response>
     [HttpGet]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new ListIntegrationsQuery(), cancellationToken);
@@ -46,7 +47,9 @@ public sealed class IntegrationsController : BaseController
     /// <response code="200">Senkronizasyon ayarları döner.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpGet("{id:guid}/sync-settings")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSyncSettings(
         [FromRoute] Guid id,
@@ -140,8 +143,10 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon bulunamadı.</response>
     [HttpGet("{id:guid}/pending-item-mappings")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPendingItemMappings(
         Guid id,
@@ -166,8 +171,10 @@ public sealed class IntegrationsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     /// <response code="404">Entegrasyon veya eşleştirme bulunamadı.</response>
     [HttpPut("{id:guid}/pending-item-mappings/{mappingId:guid}")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ApprovePendingItemMapping(
         Guid id,
@@ -189,7 +196,9 @@ public sealed class IntegrationsController : BaseController
     /// <response code="200">Eşleştirme reddedildi.</response>
     /// <response code="404">Entegrasyon veya eşleştirme bulunamadı.</response>
     [HttpDelete("{id:guid}/pending-item-mappings/{mappingId:guid}")]
+    [Authorize(Policy = "CompanyAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeletePendingItemMapping(
         Guid id,

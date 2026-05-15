@@ -58,9 +58,9 @@ export interface UnfitItem {
 }
 
 export const OptimizationCriteria = {
-  Weight: 0,
-  Volume: 1,
-  Balance: 2,
+  Lifo: 0,
+  WeightBalance: 1,
+  VolumeFirst: 2,
 } as const;
 
 export type OptimizationCriteria = (typeof OptimizationCriteria)[keyof typeof OptimizationCriteria];

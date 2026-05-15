@@ -1,7 +1,9 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 
@@ -38,6 +40,16 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
         }
 
         var companyId = _currentUserService.CompanyId;
+
+        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } userId)
+        {
+            var currentCount = await _itemRepository.CountByUserAsync(userId, cancellationToken);
+            var maxCount = SubscriptionLimits.GetMaxItemCount(SubscriptionType.Free);
+            if (currentCount >= maxCount)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.BusinessRule, "Item.LimitExceeded",
+                        "Abonelik planı kapsamındaki maksimum ürün sayısına ulaşıldı."));
+        }
 
         var skuExists = await _itemRepository.ExistsBySkuAsync(request.SKU, companyId, cancellationToken);
         if (skuExists)

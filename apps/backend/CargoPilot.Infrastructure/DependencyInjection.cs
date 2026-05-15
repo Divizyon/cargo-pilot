@@ -9,6 +9,7 @@ using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
+using CargoPilot.Infrastructure.Services.ErpConnectors;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +61,10 @@ public static class DependencyInjection {
             .Validate(s => s.TokenExpiryMinutes > 0, "PasswordReset:TokenExpiryMinutes must be greater than 0.")
             .ValidateOnStart();
 
+        services.AddOptions<SubscriptionPlanSettings>()
+            .Bind(configuration.GetSection("SubscriptionPlans"))
+            .ValidateOnStart();
+
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
@@ -69,6 +74,7 @@ public static class DependencyInjection {
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IUserVehicleFavoriteRepository, UserVehicleFavoriteRepository>();
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
+        services.AddScoped<ILoadingPlanItemGroupRepository, LoadingPlanItemGroupRepository>();
         services.AddScoped<IOptimizationEngine, OptimizationEngine>();
         services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
@@ -80,6 +86,11 @@ public static class DependencyInjection {
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
         services.AddScoped<IErpProductFetcher, MockErpProductFetcher>();
+        services.AddDataProtection();
+        services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
+        services.AddScoped<IErpSettingsRepository, ErpSettingsRepository>();
+        services.AddTransient<IErpConnector, LogoErpConnector>();
+        services.AddTransient<IErpConnector, NetsisErpConnector>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.

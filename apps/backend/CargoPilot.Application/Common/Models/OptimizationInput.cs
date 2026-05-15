@@ -7,7 +7,8 @@ public sealed record OptimizationInput(
     decimal VehicleHeight,
     decimal VehicleLength,
     decimal VehicleMaxWeight,
-    IReadOnlyList<OptimizationItemInput> Items);
+    IReadOnlyList<OptimizationItemInput> Items,
+    LoadingPlanOptimizationCriteria Criteria = LoadingPlanOptimizationCriteria.VolumeFirst);
 
 public sealed record OptimizationItemInput(
     Guid ItemId,

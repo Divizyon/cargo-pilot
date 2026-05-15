@@ -35,6 +35,7 @@ interface LoginData {
   companyId: string;
   accessToken: string;
   accessTokenExpiresAt: string;
+  mustChangePassword: boolean;
   // refreshToken is delivered as an HttpOnly Cookie by the server — not in the response body
 }
 
@@ -150,7 +151,11 @@ export function useLogin() {
         role: res.data.role as UserRole,
       };
       setAuth(user, res.data.accessToken);
-      navigate('/dashboard', { replace: true });
+      if (res.data.mustChangePassword) {
+        navigate('/auth/force-change-password', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     },
     // onError: component handles it (AC3/AC4 ayrımı için)
   });
@@ -194,6 +199,7 @@ interface ProfileData {
   fullName: string;
   email: string;
   companyName: string;
+  tourCompleted: boolean;
 }
 
 interface ProfileApiResponse {
@@ -210,7 +216,14 @@ export function useProfile() {
   return useQuery<ProfileData>({
     queryKey: ['profile', userId],
     queryFn: () =>
-      axiosInstance.get<ProfileApiResponse>('/api/v1/me/profile').then((r) => r.data.data),
+      axiosInstance.get<ProfileApiResponse>('/api/v1/me/profile').then((r) => {
+        const data = r.data.data;
+        const isDefaultCompany =
+          typeof data.companyName === 'string' &&
+          data.companyName.startsWith('Personal - ') &&
+          data.companyName.includes('@');
+        return { ...data, companyName: isDefaultCompany ? '' : data.companyName };
+      }),
     enabled: isAuthenticated && !!userId,
     staleTime: 10 * 60 * 1000,
   });
@@ -247,10 +260,17 @@ export function useUpdateProfile() {
         duration: 3000,
       });
     },
-    onError: () => {
-      toast.error('Profil güncellenirken bir hata oluştu. Lütfen tekrar deneyin.', {
-        position: 'bottom-right',
-      });
+    onError: (error) => {
+      const code = (error.response?.data as { error?: { code?: string } } | undefined)?.error?.code;
+      if (code === 'ME_COMPANY_UPDATE_FORBIDDEN') {
+        toast.error('Firma adını yalnızca şirket yöneticisi güncelleyebilir.', {
+          position: 'bottom-right',
+        });
+      } else {
+        toast.error('Profil güncellenirken bir hata oluştu. Lütfen tekrar deneyin.', {
+          position: 'bottom-right',
+        });
+      }
     },
   });
 }
@@ -262,7 +282,33 @@ interface RequestEmailChangePayload {
 export function useRequestEmailChange() {
   return useMutation<void, AxiosError, RequestEmailChangePayload>({
     mutationFn: (payload) =>
-      axiosInstance.post('/api/v1/me/email-change-request', payload).then((r) => r.data),
+      axiosInstance.post('/api/v1/me/request-email-change', payload).then((r) => r.data),
+  });
+}
+
+export function useTourCompleted() {
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id);
+
+  return useMutation<void, AxiosError, { tourCompleted: boolean }>({
+    mutationFn: (payload) =>
+      axiosInstance.patch('/api/v1/me/tour-completed', payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+    },
+  });
+}
+
+export function useConfirmEmailChange(token: string | null) {
+  return useQuery({
+    queryKey: ['confirm-email-change', token],
+    queryFn: () =>
+      axiosInstance
+        .get('/api/v1/me/confirm-email-change', { params: { token } })
+        .then((r) => r.data),
+    enabled: !!token,
+    retry: false,
+    staleTime: Infinity,
   });
 }
 
@@ -273,8 +319,15 @@ interface ChangePasswordPayload {
   newPassword: string;
 }
 
+interface ChangePasswordResponse {
+  isSuccess: boolean;
+  message: string;
+  data: boolean;
+  error?: BackendError;
+}
+
 export function useChangePassword() {
-  return useMutation<void, AxiosError, ChangePasswordPayload>({
+  return useMutation<ChangePasswordResponse, AxiosError, ChangePasswordPayload>({
     mutationFn: (payload) =>
       axiosInstance.post('/api/v1/me/change-password', payload).then((r) => r.data),
   });

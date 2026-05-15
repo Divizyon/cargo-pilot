@@ -18,3 +18,10 @@ export function checkFeatureAccess(feature: FeatureKey): boolean {
 export function getRequiredPlan(feature: FeatureKey): SubscriptionPlan {
   return PLAN_FEATURES[feature];
 }
+
+export function isSubscriptionExpired(): boolean {
+  const { expiresAt, plan } = useSubscriptionStore.getState();
+  if (plan === 'free') return false;
+  if (!expiresAt) return false;
+  return new Date(expiresAt) < new Date();
+}

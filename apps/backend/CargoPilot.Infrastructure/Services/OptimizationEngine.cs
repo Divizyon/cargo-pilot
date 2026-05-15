@@ -12,12 +12,36 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var unplaced = new List<UnplacedBox>();
         var totalWeight = 0m;
 
-        var instances = input.Items
-            .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i))
-            .OrderByDescending(i => i.Width * i.Height * i.Length)
-            .ToList();
+        var momentX = 0m;
+        var momentZ = 0m;
 
+        var expanded = input.Items
+            .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i));
+
+        var instances = input.Criteria switch
+        {
+            LoadingPlanOptimizationCriteria.WeightBalance =>
+                expanded.OrderByDescending(i => i.Weight).ToList(),
+            LoadingPlanOptimizationCriteria.Lifo =>
+                expanded.ToList(),
+            _ =>
+                expanded.OrderByDescending(i => i.Width * i.Height * i.Length).ToList(),
+        };
+
+        var halfW = input.VehicleWidth  / 2m;
+        var halfL = input.VehicleLength / 2m;
+
+        // ── Extreme-point tohumu ──────────────────────────────────────────────
+        // WeightBalance: aracın 4 kat-zemin köşesi tohumlanır; aksi hâlde greedy
+        // her zaman (0,0,0) yakınına yığılır ve ön-arka/sol-sağ denge bozulur.
         var extremePoints = new HashSet<(decimal x, decimal y, decimal z)> { (0m, 0m, 0m) };
+        if (input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance
+            && halfW > 0m && halfL > 0m)
+        {
+            extremePoints.Add((halfW, 0m, 0m));    // arka-sağ
+            extremePoints.Add((0m,    0m, halfL)); // ön-sol
+            extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
+        }
 
         foreach (var item in instances)
         {
@@ -42,7 +66,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     if (!HasSupport(placements, ex, ey, ez, w, d))   continue;
                     if (ViolatesStackability(placements, ex, ey, ez, w, d)) continue;
 
-                    var score = ey * 1_000_000m + ez * 1_000m + ex;
+                    var score = ComputeScore(
+                        input.Criteria,
+                        ex, ey, ez, w, d,
+                        item.Weight, totalWeight,
+                        momentX, momentZ,
+                        halfW, halfL);
+
                     if (score < bestScore)
                     {
                         bestScore = score;
@@ -59,6 +89,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
             placements.Add(best);
             totalWeight += best.Weight;
+            momentX += best.Weight * (best.X + best.W / 2m);
+            momentZ += best.Weight * (best.Z + best.D / 2m);
 
             extremePoints.Add((best.X + best.W, best.Y, best.Z));
             extremePoints.Add((best.X, best.Y + best.H, best.Z));
@@ -70,9 +102,18 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                 p.z >= input.VehicleLength);
         }
 
+        // ── İkinci geçiş: greedy swap ile denge iyileştirme ──────────────────
+        // WeightBalance modunda, greedy faz sonrası kutu çiftleri takas edilerek
+        // CoG sapması azaltılır. En fazla 3 tur çalışır, O(n²) her turda.
+        if (input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance && totalWeight > 0m)
+            placements = ImproveBalance(placements, input.VehicleWidth, input.VehicleHeight,
+                                        input.VehicleLength, totalWeight, halfW, halfL);
+
+        totalWeight = placements.Sum(p => p.Weight);
+
         var vehicleVolume = input.VehicleWidth * input.VehicleHeight * input.VehicleLength;
-        var placedVolume = placements.Sum(p => p.W * p.H * p.D);
-        var fillRate = vehicleVolume > 0 ? placedVolume / vehicleVolume : 0m;
+        var placedVolume  = placements.Sum(p => p.W * p.H * p.D);
+        var fillRate      = vehicleVolume > 0 ? placedVolume / vehicleVolume : 0m;
 
         decimal? cogX = null, cogY = null, cogZ = null;
         decimal? balanceOffsetX = null, balanceOffsetZ = null;
@@ -82,8 +123,6 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             cogY = placements.Sum(p => p.Weight * (p.Y + p.H / 2)) / totalWeight;
             cogZ = placements.Sum(p => p.Weight * (p.Z + p.D / 2)) / totalWeight;
 
-            var halfW = input.VehicleWidth  / 2;
-            var halfL = input.VehicleLength / 2;
             if (halfW > 0)
                 balanceOffsetX = Math.Round(Math.Abs(cogX.Value - halfW) / halfW * 100, 1);
             if (halfL > 0)
@@ -100,6 +139,150 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             .ToList();
 
         return new OptimizationResult(placedResults, unplacedResults, totalWeight, fillRate, cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ);
+    }
+
+    // ── İkinci geçiş: greedy swap balance iyileştirici ───────────────────────
+    //
+    // Her turda tüm kutu çiftleri taranır. İki kutu pozisyon değiştirdiğinde
+    // denge cezası azalıyorsa ve takas geçerliyse (sınır + çakışma + destek)
+    // takas kabul edilir. En fazla maxPasses tur çalışır.
+    private static List<PlacedBox> ImproveBalance(
+        List<PlacedBox> placements,
+        decimal vW, decimal vH, decimal vL,
+        decimal totalWeight, decimal halfW, decimal halfL,
+        int maxPasses = 3)
+    {
+        var current = placements.ToList();
+
+        for (int pass = 0; pass < maxPasses; pass++)
+        {
+            var improved = false;
+            var bestPenalty = GlobalBalancePenalty(current, totalWeight, halfW, halfL);
+
+            for (int i = 0; i < current.Count; i++)
+            {
+                for (int j = i + 1; j < current.Count; j++)
+                {
+                    var a = current[i];
+                    var b = current[j];
+
+                    // Sınır kontrolü: a, b'nin yerine sığıyor mu?
+                    if (b.X + a.W > vW || b.Y + a.H > vH || b.Z + a.D > vL) continue;
+                    // Sınır kontrolü: b, a'nın yerine sığıyor mu?
+                    if (a.X + b.W > vW || a.Y + b.H > vH || a.Z + b.D > vL) continue;
+
+                    var swapped = current.ToList();
+                    swapped[i] = a with { X = b.X, Y = b.Y, Z = b.Z };
+                    swapped[j] = b with { X = a.X, Y = a.Y, Z = a.Z };
+
+                    if (!SwapIsValid(swapped, i, j)) continue;
+
+                    var newPenalty = GlobalBalancePenalty(swapped, totalWeight, halfW, halfL);
+                    if (newPenalty < bestPenalty - 0.001m)
+                    {
+                        current      = swapped;
+                        bestPenalty  = newPenalty;
+                        improved     = true;
+                    }
+                }
+            }
+
+            if (!improved) break;
+        }
+
+        return current;
+    }
+
+    // Takas sonrası i ve j kutularının geçerli olup olmadığını doğrular:
+    // çakışma yok + zemin üzerinde veya %80 destek alıyor.
+    private static bool SwapIsValid(
+        List<PlacedBox> placements, int i, int j)
+    {
+        var a = placements[i];
+        var b = placements[j];
+
+        // Diğer kutularla çakışma kontrolü (i ve j hariç)
+        for (int k = 0; k < placements.Count; k++)
+        {
+            if (k == i || k == j) continue;
+            var c = placements[k];
+
+            if (BoxesOverlap(a, c) || BoxesOverlap(b, c)) return false;
+        }
+
+        // Destek kontrolü
+        var others = placements.Where((_, k) => k != i && k != j).ToList();
+        if (!HasSupportFor(a, others)) return false;
+        if (!HasSupportFor(b, others)) return false;
+
+        return true;
+    }
+
+    private static bool BoxesOverlap(PlacedBox a, PlacedBox b) =>
+        a.X < b.X + b.W && a.X + a.W > b.X &&
+        a.Y < b.Y + b.H && a.Y + a.H > b.Y &&
+        a.Z < b.Z + b.D && a.Z + a.D > b.Z;
+
+    private static bool HasSupportFor(PlacedBox box, List<PlacedBox> others)
+    {
+        if (box.Y == 0m) return true;
+        var footprint = box.W * box.D;
+        if (footprint == 0m) return true;
+        var supportedArea = 0m;
+        foreach (var b in others)
+        {
+            if (b.Y + b.H != box.Y) continue;
+            var ox = Math.Max(0m, Math.Min(box.X + box.W, b.X + b.W) - Math.Max(box.X, b.X));
+            var oz = Math.Max(0m, Math.Min(box.Z + box.D, b.Z + b.D) - Math.Max(box.Z, b.Z));
+            supportedArea += ox * oz;
+        }
+        return supportedArea / footprint >= 0.80m;
+    }
+
+    private static decimal GlobalBalancePenalty(
+        List<PlacedBox> placements, decimal totalWeight,
+        decimal halfW, decimal halfL)
+    {
+        if (totalWeight == 0m || halfW == 0m || halfL == 0m) return 0m;
+        var cogX = placements.Sum(p => p.Weight * (p.X + p.W / 2m)) / totalWeight;
+        var cogZ = placements.Sum(p => p.Weight * (p.Z + p.D / 2m)) / totalWeight;
+        return Math.Abs(cogX - halfW) / halfW + Math.Abs(cogZ - halfL) / halfL;
+    }
+
+    // ── Maliyet fonksiyonu ────────────────────────────────────────────────────
+    private static decimal ComputeScore(
+        LoadingPlanOptimizationCriteria criteria,
+        decimal ex, decimal ey, decimal ez,
+        decimal w,  decimal d,
+        decimal itemWeight, decimal totalWeight,
+        decimal momentX, decimal momentZ,
+        decimal halfW, decimal halfL)
+    {
+        var newTotal = totalWeight + itemWeight;
+
+        decimal normDevX = 0m, normDevZ = 0m;
+        if (newTotal > 0m && halfW > 0m && halfL > 0m)
+        {
+            var newCogX = (momentX + itemWeight * (ex + w / 2m)) / newTotal;
+            var newCogZ = (momentZ + itemWeight * (ez + d / 2m)) / newTotal;
+            normDevX = Math.Abs(newCogX - halfW) / halfW;
+            normDevZ = Math.Abs(newCogZ - halfL) / halfL;
+        }
+
+        var balancePenalty = normDevX + normDevZ;
+
+        return criteria switch
+        {
+            LoadingPlanOptimizationCriteria.VolumeFirst =>
+                ey * 1_000_000m + ez * 1_000m + balancePenalty * 500m + ex,
+
+            // Sadece yerçekimi ve denge — Z/X tercihi yok
+            LoadingPlanOptimizationCriteria.WeightBalance =>
+                ey * 1_000_000m + balancePenalty * 900_000m,
+
+            _ => // Lifo
+                ey * 1_000_000m + ez * 1_000m + ex,
+        };
     }
 
     private static (decimal w, decimal h, decimal d, LoadingPlanPlacementRotation rotation)[]

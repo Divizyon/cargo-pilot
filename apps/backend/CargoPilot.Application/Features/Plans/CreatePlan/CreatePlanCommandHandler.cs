@@ -1,7 +1,9 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 
@@ -46,6 +48,16 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var companyId = _currentUserService.CompanyId;
 
+        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } planUserId)
+        {
+            var currentCount = await _planRepository.CountByUserAsync(planUserId, cancellationToken);
+            var maxCount = SubscriptionLimits.GetMaxLoadingPlanCount(SubscriptionType.Free);
+            if (currentCount >= maxCount)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
+                        "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
+        }
+
         var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
         if (vehicle is null)
             return Result<Guid>.Failure(
@@ -67,7 +79,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         var itemMap = items.ToDictionary(i => i.Id);
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap);
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, request.OptimizationCriteria);
         var result = _optimizationEngine.Run(optimizationInput);
 
         var planId = Guid.NewGuid();
@@ -84,7 +96,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private static OptimizationInput BuildInput(
         Vehicle vehicle,
         IReadOnlyList<CreatePlanItemRequest> requestItems,
-        Dictionary<Guid, Item> itemMap)
+        Dictionary<Guid, Item> itemMap,
+        LoadingPlanOptimizationCriteria criteria)
     {
         var inputs = requestItems
             .Select(r =>
@@ -100,6 +113,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         return new OptimizationInput(
             vehicle.InternalWidth, vehicle.InternalHeight,
             vehicle.InternalLength, vehicle.MaxWeightCapacity,
-            inputs);
+            inputs, criteria);
     }
 }

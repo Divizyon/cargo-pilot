@@ -4,6 +4,10 @@ using CargoPilot.Application.Features.Plans.DeletePlan;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
+using CargoPilot.Application.Features.Plans.Groups.AssignItemToGroup;
+using CargoPilot.Application.Features.Plans.Groups.CreateGroup;
+using CargoPilot.Application.Features.Plans.Groups.DeleteGroup;
+using CargoPilot.Application.Features.Plans.Groups.UpdateGroup;
 using CargoPilot.Application.Features.Plans.ReOptimizePlan;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
 using MediatR;
@@ -201,6 +205,105 @@ public sealed class PlansController : BaseController
     }
 
     /// <summary>
+    /// Belirtilen yükleme planı altında yeni bir grup oluşturur.
+    /// </summary>
+    /// <param name="planId">Planın ID'si.</param>
+    /// <param name="request">Grup adı, rengi ve boşaltma sırası.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="201">Grup oluşturuldu; yeni grubun ID'si döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Plan bulunamadı.</response>
+    [HttpPost("{planId:guid}/groups")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateGroup(
+        [FromRoute] Guid planId,
+        [FromBody] CreateGroupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new CreateGroupCommand(planId, request.Name, request.Color, request.UnloadingOrder);
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess) return HandleResult(result);
+        return CreatedAtAction(nameof(GetById), new { id = planId }, result);
+    }
+
+    /// <summary>
+    /// Belirtilen grubu günceller.
+    /// </summary>
+    /// <param name="planId">Planın ID'si.</param>
+    /// <param name="groupId">Güncellenecek grubun ID'si.</param>
+    /// <param name="request">Yeni grup adı, rengi ve boşaltma sırası.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Grup güncellendi.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Plan veya grup bulunamadı.</response>
+    [HttpPut("{planId:guid}/groups/{groupId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateGroup(
+        [FromRoute] Guid planId,
+        [FromRoute] Guid groupId,
+        [FromBody] UpdateGroupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateGroupCommand(planId, groupId, request.Name, request.Color, request.UnloadingOrder);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Belirtilen grubu siler. moveItemsToNull true ise gruptaki ürünlerin grubu kaldırılır, false ise ürünler de silinir.
+    /// </summary>
+    /// <param name="planId">Planın ID'si.</param>
+    /// <param name="groupId">Silinecek grubun ID'si.</param>
+    /// <param name="request">moveItemsToNull parametresi.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Grup silindi.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Plan veya grup bulunamadı.</response>
+    [HttpDelete("{planId:guid}/groups/{groupId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteGroup(
+        [FromRoute] Guid planId,
+        [FromRoute] Guid groupId,
+        [FromBody] DeleteGroupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new DeleteGroupCommand(planId, groupId, request.MoveItemsToNull);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Bir ürünü gruba atar veya gruptan çıkarır. groupId null gönderilirse ürün gruptan çıkarılır.
+    /// </summary>
+    /// <param name="planId">Planın ID'si.</param>
+    /// <param name="inputItemId">Güncellenecek InputItem'ın ID'si.</param>
+    /// <param name="request">Atanacak grubun ID'si (null ise gruptan çıkarır).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Ürün gruba atandı veya gruptan çıkarıldı.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Plan, ürün veya grup bulunamadı.</response>
+    [HttpPut("{planId:guid}/items/{inputItemId:guid}/group")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignItemToGroup(
+        [FromRoute] Guid planId,
+        [FromRoute] Guid inputItemId,
+        [FromBody] AssignItemToGroupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new AssignItemToGroupCommand(planId, inputItemId, request.GroupId);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Yükleme planını soft-delete ile siler.
     /// </summary>
     /// <param name="id">Silinecek planın ID'si.</param>
@@ -223,4 +326,23 @@ public sealed class PlansController : BaseController
 /// PATCH /api/v1/loading-plans/{id} için request body.
 /// </summary>
 public sealed record UpdatePlanNameRequest(string PlanName);
+
+/// <summary>POST /groups request body.</summary>
+public sealed record CreateGroupRequest(
+    string Name,
+    string Color,
+    [property: System.Text.Json.Serialization.JsonRequired] int UnloadingOrder);
+
+/// <summary>PUT /groups/{groupId} request body.</summary>
+public sealed record UpdateGroupRequest(
+    string Name,
+    string Color,
+    [property: System.Text.Json.Serialization.JsonRequired] int UnloadingOrder);
+
+/// <summary>DELETE /groups/{groupId} request body.</summary>
+public sealed record DeleteGroupRequest(
+    [property: System.Text.Json.Serialization.JsonRequired] bool MoveItemsToNull);
+
+/// <summary>PUT /items/{inputItemId}/group request body.</summary>
+public sealed record AssignItemToGroupRequest(Guid? GroupId);
 

@@ -40,6 +40,7 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
   const setVehicle = usePlanStore((s) => s.setVehicle);
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
+  const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
 
   const appliedRef = useRef(false);
 
@@ -58,16 +59,17 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
     onVehicleSelected();
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
-  }, [isSuccess, data, setVehicle, initItems, setPlacements, onVehicleSelected]);
+    setUnplacedItems(data.unplacedItems);
+  }, [isSuccess, data, setVehicle, initItems, setPlacements, setUnplacedItems, onVehicleSelected]);
 
   return null;
 }
 
 export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
-  const [isDirty, setIsDirty] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
+  const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
+
   const [refetchKey, setRefetchKey] = useState(0);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [planNameInput, setPlanNameInput] = useState('');
@@ -75,8 +77,6 @@ export function NewPlanPage() {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
-
-  const initialStateRef = useRef<{ vehicleId: string; itemsKey: string } | null>(null);
 
   useEffect(() => {
     if (!fromPlanId) {
@@ -86,38 +86,23 @@ export function NewPlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
-  const selectedItems = usePlanStore((s) => s.selectedItems);
-  const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 1024) {
+        setLeftOpen(false);
+        setRightOpen(false);
+      }
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
   const startAnimation = useSceneStore((s) => s.startAnimation);
 
-  // Detect changes from initial loaded state
-  useEffect(() => {
-    if (!fromPlanId || !initialStateRef.current) return;
-    const itemsKey = selectedItems
-      .map((si) => `${si.item.id}:${si.quantity}`)
-      .sort()
-      .join(',');
-    const vehicleId = selectedVehicle?.id ?? '';
-    setIsDirty(
-      vehicleId !== initialStateRef.current.vehicleId ||
-        itemsKey !== initialStateRef.current.itemsKey,
-    );
-  }, [selectedVehicle, selectedItems, fromPlanId]);
-
   const handleVehicleSelected = useCallback(() => {
     setRightOpen(false);
-    // Defer snapshot: PlanAutoLoader calls this before initItems/setPlacements complete
-    setTimeout(() => {
-      const state = usePlanStore.getState();
-      const itemsKey = state.selectedItems
-        .map((si) => `${si.item.id}:${si.quantity}`)
-        .sort()
-        .join(',');
-      initialStateRef.current = { vehicleId: state.selectedVehicle?.id ?? '', itemsKey };
-      setIsDirty(false);
-    }, 0);
   }, []);
 
   const handleOptimize = useCallback(() => {
@@ -255,8 +240,11 @@ export function NewPlanPage() {
         </div>
 
         {/* Kamera presetleri — sağ üst */}
-        <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
-          <CameraPresetButtons />
+        <div className="absolute top-3 right-3 z-20">
+          <CameraPresetButtons
+            getSnapshot={() => snapshotRef.current?.() ?? ''}
+            planId={fromPlanId}
+          />
         </div>
 
         {/* Merkez — 3D Viewport */}
@@ -274,10 +262,7 @@ export function NewPlanPage() {
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
             onLoadAnimation={handleLoadAnimation}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
-            canOptimize={fromPlanId ? isDirty : true}
-            getSnapshot={() => snapshotRef.current?.() ?? ''}
-            planId={fromPlanId}
-            planName={planDetail?.planName}
+            canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
           />
         </div>
       </div>
