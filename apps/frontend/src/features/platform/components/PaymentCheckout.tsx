@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { paymentSchema, type PaymentFormValues } from '../schemas/paymentSchema';
-import { usePurchaseSubscription, type Purchaseableplan } from '@/lib/api/useSubscription';
-import { useSubscriptionStore } from '@/lib/store/useSubscriptionStore';
+import { usePurchaseSubscription } from '@/lib/api/useSubscription';
+import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';
 import axios from 'axios';
 
 interface PlanSummary {
-  key: Purchaseableplan;
+  key: SubscriptionPlan;
   label: string;
   price: string;
   period: string;
@@ -44,7 +44,7 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { cardHolder: '', cardNumber: '', expiry: '', cvc: '' },
+    defaultValues: { cardholderName: '', cardNumber: '', expiry: '', cvv: '' },
   });
 
   const serverError = error
@@ -56,11 +56,9 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
   function onSubmit(values: PaymentFormValues) {
     purchase(
       {
-        planKey: plan.key,
-        cardHolder: values.cardHolder,
-        cardNumber: values.cardNumber.replace(/\s/g, ''),
-        expiry: values.expiry,
-        cvc: values.cvc,
+        plan: plan.key,
+        cardholderName: values.cardholderName,
+        paymentMethodToken: values.cardNumber.replace(/\s/g, ''),
       },
       {
         onSuccess(data) {
@@ -90,18 +88,23 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
           <p className="text-sm font-semibold text-foreground">Kart Bilgileri</p>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="cardHolder" className="text-xs">
+            <Label htmlFor="cardholderName" className="text-xs">
               Kart Sahibi
             </Label>
             <Input
-              id="cardHolder"
+              id="cardholderName"
               placeholder="Ad Soyad"
               autoComplete="cc-name"
-              className={cn('text-sm', form.formState.errors.cardHolder && 'border-destructive')}
-              {...form.register('cardHolder')}
+              className={cn(
+                'text-sm',
+                form.formState.errors.cardholderName && 'border-destructive',
+              )}
+              {...form.register('cardholderName')}
             />
-            {form.formState.errors.cardHolder && (
-              <p className="text-xs text-destructive">{form.formState.errors.cardHolder.message}</p>
+            {form.formState.errors.cardholderName && (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.cardholderName.message}
+              </p>
             )}
           </div>
 
@@ -151,24 +154,24 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cvc" className="text-xs">
+              <Label htmlFor="cvv" className="text-xs">
                 CVC
               </Label>
               <Input
-                id="cvc"
+                id="cvv"
                 placeholder="123"
                 autoComplete="cc-csc"
                 inputMode="numeric"
                 maxLength={4}
-                className={cn('text-sm', form.formState.errors.cvc && 'border-destructive')}
-                {...form.register('cvc', {
+                className={cn('text-sm', form.formState.errors.cvv && 'border-destructive')}
+                {...form.register('cvv', {
                   onChange(e) {
                     e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
                   },
                 })}
               />
-              {form.formState.errors.cvc && (
-                <p className="text-xs text-destructive">{form.formState.errors.cvc.message}</p>
+              {form.formState.errors.cvv && (
+                <p className="text-xs text-destructive">{form.formState.errors.cvv.message}</p>
               )}
             </div>
           </div>
