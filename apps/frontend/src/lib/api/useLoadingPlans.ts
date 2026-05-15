@@ -12,11 +12,14 @@ import {
   extractListData,
   fromApiPlanListItem,
   fromApiDetailPlacements,
+  fromApiPlacementsToScene,
   planFullDetailApiResponseSchema,
   fromApiFullDetail,
   type PlanFullDetail,
 } from './loadingPlanMappers';
+import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import type { UnplacedEntry } from '@/lib/store/usePlanStore';
 
 // ─── Existing plan detail (3D viewer) ─────────────────────────────────────────
 
@@ -133,7 +136,13 @@ export function useLoadingPlanDetail(id: string | undefined) {
       const parsed = planFullDetailApiResponseSchema.safeParse(data);
       if (!parsed.success) {
         console.error('[useLoadingPlanDetail] parse error', parsed.error);
-        return { vehicle: null, inputItems: [], placements: [], skuColorMap: {} };
+        return {
+          vehicle: null,
+          inputItems: [],
+          placements: [],
+          skuColorMap: {},
+          unplacedItems: [],
+        };
       }
       return fromApiFullDetail(parsed.data.data);
     },
@@ -250,6 +259,26 @@ export function useRenameLoadingPlan() {
   });
 }
 
+// ─── Approve mutation ─────────────────────────────────────────────────────────
+
+export function useApprovePlan() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ProblemDetails>, string>({
+    mutationFn: (id) =>
+      axiosInstance
+        .patch(`/api/v1/loading-plans/${id}/status`, { status: 'tamamlandi' })
+        .then(() => undefined),
+    onSuccess: (_data, id) => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      toast.error(detail ?? 'Plan onaylanamadı.', { position: 'bottom-right' });
+    },
+  });
+}
+
 // ─── Re-optimize mutation (PUT) ───────────────────────────────────────────────
 
 interface ReoptimizeLoadingPlanInput {
@@ -343,6 +372,24 @@ function applyClientFilters(
   return result;
 }
 
+// ─── Scene placements from backend result ─────────────────────────────────────
+
+export function useLoadingPlanScenePlacements(planId: string, colorMap?: Record<string, string>) {
+  return useQuery({
+    queryKey: ['loading-plan-scene-placements', planId, colorMap] as const,
+    queryFn: async (): Promise<PlacementWithDimensions[]> => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
+      const parsed = planDetailApiResponseSchema.safeParse(data);
+      if (!parsed.success) return [];
+      const d = parsed.data.data;
+      const raw = d.placements?.length ? d.placements : (d.placementDetails ?? []);
+      return fromApiPlacementsToScene(raw, colorMap);
+    },
+    enabled: Boolean(planId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useLoadingPlanProducts(planId: string) {
   return useQuery({
     queryKey: ['loading-plan-products', planId] as const,
@@ -354,16 +401,71 @@ export function useLoadingPlanProducts(planId: string) {
         return [];
       }
       const d = parsed.data.data;
+      // inputItems: orijinal istek adetleri — sığmayan ürünler dahil
+      if (d.inputItems?.length) {
+        return fromApiDetailPlacements(
+          d.inputItems as Parameters<typeof fromApiDetailPlacements>[0],
+        );
+      }
+      // Fallback: sadece yerleştirilen kutular (adetler eksik olabilir)
       const rawPlacements = d.placements?.length ? d.placements : (d.placementDetails ?? []);
-      const rawInput = (d as Record<string, unknown>)['inputItems'];
-      const source = rawPlacements.length
-        ? rawPlacements
-        : Array.isArray(rawInput)
-          ? (rawInput as typeof rawPlacements)
-          : [];
-      return fromApiDetailPlacements(source);
+      return fromApiDetailPlacements(rawPlacements);
     },
     enabled: Boolean(planId),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useLoadingPlanUnplaced(planId: string | null) {
+  return useQuery({
+    queryKey: ['loading-plan-unplaced', planId] as const,
+    queryFn: async (): Promise<UnplacedEntry[]> => {
+      const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
+      const parsed = planDetailApiResponseSchema.safeParse(data);
+      if (!parsed.success) return [];
+      type RawU = {
+        id?: string;
+        itemId?: string;
+        quantity: number;
+        reason?: number;
+        item?: { name?: string } | null;
+      };
+      return (parsed.data.data.unplacedItems ?? []).map((u: RawU) => ({
+        itemId: u.itemId ?? u.id ?? '',
+        quantity: u.quantity,
+        reason: u.reason ?? 0,
+        name: u.item?.name ?? '',
+      }));
+    },
+    enabled: Boolean(planId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── ERP export mutation ───────────────────────────────────────────────────────
+
+export function useExportPlanToERP() {
+  return useMutation<void, AxiosError<ProblemDetails>, string>({
+    mutationFn: (planId) =>
+      axiosInstance.post(`/api/v1/plans/${planId}/export-erp`).then(() => undefined),
+    onSuccess: () => {
+      toast.success("Plan ERP'ye başarıyla aktarıldı", { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+      if (status === 409) {
+        toast.error("Bu plan daha önce ERP'ye aktarılmış.", { position: 'bottom-right' });
+        return;
+      }
+      if (status === 422) {
+        toast.error(
+          detail ?? 'Plan ERP aktarımı için uygun değil. Planın tamamlanmış olduğundan emin olun.',
+          { position: 'bottom-right' },
+        );
+        return;
+      }
+      toast.error(detail ?? 'ERP aktarımı başarısız', { position: 'bottom-right' });
+    },
   });
 }

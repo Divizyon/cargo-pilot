@@ -172,12 +172,20 @@ function buildPlacements(
   return { placed: result, noFitCount };
 }
 
+export interface UnplacedEntry {
+  itemId: string;
+  quantity: number;
+  reason: number;
+  name: string;
+}
+
 interface PlanStore {
   selectedVehicle: Vehicle | null;
   selectedItems: Array<{ item: Item; quantity: number }>;
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
   placements: PlacementWithDimensions[];
+  unplacedItems: UnplacedEntry[];
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
   setVehicle: (vehicle: Vehicle | null) => void;
@@ -205,6 +213,7 @@ interface PlanStore {
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
+  setUnplacedItems: (items: UnplacedEntry[]) => void;
   /**
    * Seçili instance için yeni face-down orientation uygular.
    * Effective W/H/L yeniden hesaplanır, violation pipeline tetiklenir.
@@ -227,8 +236,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
   selectedVehicle: null,
   selectedItems: [],
   skuColorMap: {},
-  criteria: 0,
+  criteria: 2,
   placements: [],
+  unplacedItems: [],
   previewItemId: null,
   previewPlacements: [],
 
@@ -373,6 +383,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+  setUnplacedItems: (unplacedItems) => set({ unplacedItems }),
 
   mockPlacements: (count) =>
     set((s) => {
@@ -497,8 +508,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
       selectedVehicle: null,
       selectedItems: [],
       skuColorMap: {},
-      criteria: 0,
+      criteria: 2,
       placements: [],
+      unplacedItems: [],
       previewItemId: null,
       previewPlacements: [],
     }),

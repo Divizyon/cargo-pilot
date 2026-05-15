@@ -100,15 +100,15 @@ internal sealed class UserRepository : IUserRepository {
         Guid companyId,
         CancellationToken cancellationToken = default) {
         return _dbContext.Users
-            .CountAsync(u => u.CompanyId == companyId
-                          && u.UserType == UserType.CompanyAdmin
-                          && u.IsActive,
+            .CountAsync(u =>
+                u.CompanyId == companyId &&
+                u.UserType == UserType.CompanyAdmin &&
+                u.IsActive &&
+                !u.IsDeleted,
                 cancellationToken);
     }
 
-    public async Task RevokeAllSessionsAsync(
-        Guid userId,
-        CancellationToken cancellationToken = default) {
+    public async Task RevokeAllSessionsAsync(Guid userId, CancellationToken cancellationToken = default) {
         var sessions = await _dbContext.UserSessions
             .Where(s => s.UserId == userId && !s.IsRevoked)
             .ToListAsync(cancellationToken);

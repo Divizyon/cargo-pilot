@@ -13,6 +13,7 @@ import {
   Printer,
   Loader2,
   Layers,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -22,6 +23,7 @@ import { SCENE, type CameraPreset } from '@/lib/config/scene-config';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { cn } from '@/lib/utils';
+import { useExportPlanToERP } from '@/lib/api/useLoadingPlans';
 
 const PRESETS: { key: CameraPreset; icon: typeof Box }[] = [
   { key: 'TOP', icon: ArrowDownToLine },
@@ -35,10 +37,12 @@ const PRESETS: { key: CameraPreset; icon: typeof Box }[] = [
 interface CameraPresetButtonsProps {
   className?: string;
   getSnapshot?: () => string;
+  planId?: string;
 }
 
-export function CameraPresetButtons({ className, getSnapshot }: CameraPresetButtonsProps) {
+export function CameraPresetButtons({ className, getSnapshot, planId }: CameraPresetButtonsProps) {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const { mutate: exportToERP, isPending: isExporting } = useExportPlanToERP();
   const [xrayOpen, setXrayOpen] = useState(false);
   const xrayPanelRef = useRef<HTMLDivElement>(null);
 
@@ -207,6 +211,24 @@ export function CameraPresetButtons({ className, getSnapshot }: CameraPresetButt
           <Printer className="h-4 w-4" />
         )}
       </Button>
+
+      {planId && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => exportToERP(planId)}
+          disabled={isExporting || placements.length === 0}
+          title="ERP'ye Aktar"
+          aria-label="ERP'ye Aktar"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
+        </Button>
+      )}
 
       {/* Ayraç */}
       <div className="w-px self-stretch bg-zinc-200 mx-0.5" />

@@ -88,4 +88,6 @@ public sealed class AppUser : BaseEntity {
     public void UpdateEmail(string email) => Email = email.Trim().ToLowerInvariant();
 
     public void AssignToCompany(Guid companyId) => CompanyId = companyId;
+
+    public void ChangeUserType(UserType newType) => UserType = newType;
 }

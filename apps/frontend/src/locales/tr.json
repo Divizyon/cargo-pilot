@@ -81,7 +81,7 @@
       "notesHelper": "Standart kısıtların dışında kalan spesifik uyarıları taşıma ekiplerine iletmek için kullanın.",
       "notesCounter": "{{count}} / {{max}}",
       "notesSummaryLabel": "Not",
-      "previewPlaceholder": "Buraya Three.js sahnesi entegre edilecek"
+      "previewPlaceholder": "Ürün boyutlarını girerek 3D önizlemeyi etkinleştirin"
     },
     "vehicle": {
       "title": "Araç Tanımlama",
@@ -111,6 +111,53 @@
     "multiUser": "Çoklu kullanıcı yönetimi",
     "erpIntegration": "ERP entegrasyonu",
     "apiAccess": "API erişimi"
+  },
+  "erp": {
+    "page": {
+      "title": "ERP Entegrasyonu",
+      "description": "ERP sisteminizi bağlayın, ürün verilerini senkronize edin ve eşleştirmeleri yönetin."
+    },
+    "tabs": {
+      "connection": "Bağlantı",
+      "matches": "Eşleştirmeler",
+      "sync": "Senkronizasyon"
+    },
+    "connection": {
+      "title": "ERP Bağlantı Ayarları",
+      "description": "Şirket kodunuzu, kullanıcı bilgilerinizi ve sunucu adresini girerek ERP sisteminize bağlanın.",
+      "systemType": "ERP Sistemi",
+      "companyCode": "Şirket Kodu",
+      "username": "Kullanıcı Adı",
+      "password": "Şifre",
+      "serverAddress": "Sunucu Adresi",
+      "testButton": "Bağlantıyı Test Et",
+      "saveButton": "Kaydet",
+      "testSuccess": "Bağlantı başarılı. ERP sistemine ulaşıldı.",
+      "testFailDefault": "Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin."
+    },
+    "matches": {
+      "pendingTab": "Bekleyenler",
+      "savedTab": "Kaydedilmiş Eşleştirmeler",
+      "noPending": "Bekleyen eşleştirme yok.",
+      "noSaved": "Kaydedilmiş eşleştirme yok.",
+      "matchButton": "Eşleştir",
+      "confirmTitle": "Ürün Eşleştir",
+      "searchPlaceholder": "Ürün adı veya SKU ara…",
+      "confirmButton": "Onayla",
+      "deleteTitle": "Eşleştirmeyi sil",
+      "deleteDescription": "Bu eşleştirme kalıcı olarak silinecek. Silmek istediğinizden emin misiniz?"
+    },
+    "sync": {
+      "title": "ERP Senkronizasyonu",
+      "description": "ERP'deki ürün verilerini Cargo Pilot'a aktarın. Senkronizasyon sonrasında özet bildirim gösterilir.",
+      "categoryFilter": "Kategori Filtresi",
+      "warehouseFilter": "Depo Filtresi",
+      "allCategories": "Tüm kategoriler",
+      "allWarehouses": "Tüm depolar",
+      "syncButton": "Şimdi Senkronize Et",
+      "syncing": "Senkronize ediliyor…",
+      "summaryToast": "Senkronizasyon tamamlandı — {{added}} eklendi, {{updated}} güncellendi, {{skipped}} atlandı"
+    }
   },
   "upgrade": {
     "title": "Bu özellik paketinizde bulunmuyor",
