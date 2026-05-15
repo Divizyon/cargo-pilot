@@ -477,7 +477,7 @@ export function ContainerMesh() {
       <ContainerEdges width={width} height={height} length={length} />
 
       {(doorDirection === 'rear' || doorDirection === 'rearAndSide') && (
-        <group key={`rear-${vehicle.id}`} position={[0, 0, length]} scale={[1, 1, -1]}>
+        <group key={`rear-${vehicle.id}`} position={[0, 0, 0]}>
           <RearDoors width={width} height={height} />
         </group>
       )}

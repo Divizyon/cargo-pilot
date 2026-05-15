@@ -209,6 +209,13 @@ function mergeUnfitItem(
   return [...filtered, { item, quantity: total, reason: primaryUnfitReason(unfitByReason) }];
 }
 
+export interface UnplacedEntry {
+  itemId: string;
+  quantity: number;
+  reason: number;
+  name: string;
+}
+
 interface PlanStore {
   selectedVehicle: Vehicle | null;
   selectedVehicles: Array<{ instanceId: string; vehicle: Vehicle }>;
@@ -250,6 +257,7 @@ interface PlanStore {
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
+  setUnplacedItems: (items: UnplacedEntry[]) => void;
   /**
    * Seçili instance için yeni face-down orientation uygular.
    * Effective W/H/L yeniden hesaplanır, violation pipeline tetiklenir.
@@ -304,7 +312,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   selectedVehicles: [],
   selectedItems: [],
   skuColorMap: {},
-  criteria: 0,
+  criteria: 2,
   placements: [],
   unfitItems: [],
   previewItemId: null,
@@ -488,6 +496,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setCriteria: (criteria) => set({ criteria }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+  setUnplacedItems: (_items) => set({}),
 
   mockPlacements: (count) =>
     set((s) => {
@@ -639,7 +648,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       selectedVehicles: [],
       selectedItems: [],
       skuColorMap: {},
-      criteria: 0,
+      criteria: 2,
       placements: [],
       unfitItems: [],
       previewItemId: null,

@@ -1033,6 +1033,7 @@ export function PlanLeftPanel() {
 
       <UnfitItemsPanel />
 
+
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center gap-2">
           <Button

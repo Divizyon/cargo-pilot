@@ -1,7 +1,8 @@
-import { FileText } from 'lucide-react';
+import { Bell, FileText } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
+import { SummaryNotificationForm } from '@/features/platform/components/SummaryNotificationForm';
 
 export function SettingsPage() {
   return (
@@ -19,6 +20,10 @@ export function SettingsPage() {
             <FileText className="h-4 w-4" />
             Raporlama
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Bildirimler
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="reporting">
@@ -31,6 +36,20 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent>
               <ReportingSettingsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Özet E-posta Bildirimleri</CardTitle>
+              <CardDescription>
+                Seçilen olaylar için düzenli aralıklarla özet e-posta alın.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SummaryNotificationForm />
             </CardContent>
           </Card>
         </TabsContent>

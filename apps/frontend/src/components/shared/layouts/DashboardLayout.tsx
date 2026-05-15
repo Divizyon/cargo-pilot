@@ -10,11 +10,14 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  Menu,
+  Monitor,
   Package,
   Plus,
   Settings,
   Truck,
   Waypoints,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +26,7 @@ import { useUIStore } from '@/lib/store/useUIStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
+import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -115,6 +119,7 @@ interface SidebarProps {
   isCollapsed: boolean;
   onCollapsedChange: (v: boolean) => void;
   toggleLocked?: boolean;
+  onClose?: () => void;
 }
 
 function getInitials(name: string): string {
@@ -126,10 +131,12 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: SidebarProps) {
+function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
+  const { data: quota } = useUsageQuota();
+  const planLimitReached = quota ? isQuotaExceeded(quota.plans) : false;
 
   return (
     <aside
@@ -153,25 +160,39 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
       </button>
 
       {/* Brand */}
-      <NavLink
-        to="/dashboard"
+      <div
         className={cn(
-          'flex items-center border-b border-sidebar-border px-3 py-5 transition-opacity hover:opacity-80',
+          'flex items-center border-b border-sidebar-border px-3 py-5',
           isCollapsed ? 'lg:justify-center' : 'gap-3',
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
-          <Waypoints className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-        </div>
-        <div className={cn(isCollapsed && 'lg:hidden')}>
-          <span className="block text-[15px] font-bold tracking-[0.15em] text-foreground">
-            CARGOPILOT
-          </span>
-          <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
-            Lojistik Platformu
-          </span>
-        </div>
-      </NavLink>
+        <NavLink
+          to="/dashboard"
+          className={cn(
+            'flex min-w-0 flex-1 items-center transition-opacity hover:opacity-80',
+            isCollapsed ? 'lg:justify-center' : 'gap-3',
+          )}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
+            <Waypoints className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
+          </div>
+          <div className={cn(isCollapsed && 'lg:hidden')}>
+            <span className="block text-[15px] font-bold tracking-[0.15em] text-foreground">
+              CARGOPILOT
+            </span>
+            <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
+              Lojistik Platformu
+            </span>
+          </div>
+        </NavLink>
+        <button
+          onClick={onClose}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground lg:hidden"
+          aria-label="Menüyü kapat"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
       {/* Navigation */}
       <nav
@@ -182,11 +203,21 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false }: Sideb
       >
         {/* Primary CTA */}
         <button
-          onClick={() => navigate('/planning/new')}
-          title={isCollapsed ? 'Yeni Yükleme Planı' : undefined}
+          onClick={() => !planLimitReached && navigate('/planning/new')}
+          disabled={planLimitReached}
+          title={
+            planLimitReached
+              ? 'Plan limitinize ulaştınız. Planınızı yükseltin.'
+              : isCollapsed
+                ? 'Yeni Yükleme Planı'
+                : undefined
+          }
           className={cn(
-            'flex h-9 w-full items-center gap-3 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90',
+            'flex h-9 w-full items-center gap-3 rounded-lg text-sm font-semibold transition-colors',
             isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
+            planLimitReached
+              ? 'cursor-not-allowed bg-muted text-muted-foreground'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90',
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
@@ -278,8 +309,41 @@ function checkIsFocusRoute(pathname: string): boolean {
   return false;
 }
 
+/** Below this width focus routes show a "not supported on mobile" screen. */
+const MOBILE_BREAKPOINT = 768;
+
+function MobileNotSupported() {
+  const navigate = useNavigate();
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-6 bg-page-background p-6 text-center">
+      <div className="relative">
+        <Monitor className="h-16 w-16 text-muted-foreground/40" strokeWidth={1} />
+        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive">
+          <X className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+        </div>
+      </div>
+      <div className="max-w-xs space-y-2">
+        <p className="text-base font-semibold text-foreground">
+          Bu sayfa mobil cihazlarda desteklenmiyor
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Yükleme planı düzenleyicisi için tablet veya masaüstü bir cihaz kullanın.
+        </p>
+      </div>
+      <button
+        onClick={() => navigate('/planning')}
+        className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+      >
+        Yükleme Planlarına Dön
+      </button>
+    </div>
+  );
+}
+
 export function DashboardLayout() {
   const [windowCollapsed, setWindowCollapsed] = useState(false);
+  const [isMobileWidth, setIsMobileWidth] = useState(false);
+  const [isBelowLg, setIsBelowLg] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { showWarning, countdown, extendSession } = useSessionTimeout();
   const { pathname } = useLocation();
@@ -287,12 +351,14 @@ export function DashboardLayout() {
   const isCollapsed = isFocusRoute || windowCollapsed;
 
   useEffect(() => {
-    function syncCollapse() {
+    function syncWidths() {
       setWindowCollapsed(window.innerWidth < ICON_ONLY_BREAKPOINT);
+      setIsMobileWidth(window.innerWidth < MOBILE_BREAKPOINT);
+      setIsBelowLg(window.innerWidth < 1024);
     }
-    syncCollapse();
-    window.addEventListener('resize', syncCollapse);
-    return () => window.removeEventListener('resize', syncCollapse);
+    syncWidths();
+    window.addEventListener('resize', syncWidths);
+    return () => window.removeEventListener('resize', syncWidths);
   }, []);
 
   return (
@@ -317,18 +383,44 @@ export function DashboardLayout() {
           isCollapsed={isCollapsed}
           onCollapsedChange={setWindowCollapsed}
           toggleLocked={isFocusRoute}
+          onClose={() => setSidebarOpen(false)}
         />
       </div>
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Mobile header — non-focus routes always; focus routes on tablet (below lg) */}
+        {(!isFocusRoute || isBelowLg) && (
+          <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 lg:hidden">
+            <button
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Menüyü aç"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <NavLink
+              to="/dashboard"
+              className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+                <Waypoints className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
+              </div>
+              <span className="text-sm font-bold tracking-[0.15em] text-foreground">
+                CARGOPILOT
+              </span>
+            </NavLink>
+          </header>
+        )}
         <main
           className={cn(
             'flex-1',
-            isFocusRoute ? 'overflow-hidden' : 'overflow-auto bg-page-background p-6',
+            isFocusRoute && !isMobileWidth
+              ? 'overflow-hidden'
+              : 'overflow-auto bg-page-background p-3 sm:p-4 lg:p-6',
           )}
         >
-          <Outlet />
+          {isFocusRoute && isMobileWidth ? <MobileNotSupported /> : <Outlet />}
         </main>
       </div>
 

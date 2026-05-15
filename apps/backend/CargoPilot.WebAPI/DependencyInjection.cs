@@ -157,7 +157,6 @@ public static class DependencyInjection {
 
 
         services.AddTransient<GlobalExceptionMiddleware>();
-        services.AddTransient<MustChangePasswordMiddleware>();
 
         // Override Infrastructure's AnonymousCurrentUserService with the JWT-aware implementation.
         services.AddHttpContextAccessor();
