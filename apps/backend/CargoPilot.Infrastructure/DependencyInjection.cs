@@ -61,6 +61,10 @@ public static class DependencyInjection {
             .Validate(s => s.TokenExpiryMinutes > 0, "PasswordReset:TokenExpiryMinutes must be greater than 0.")
             .ValidateOnStart();
 
+        services.AddOptions<SubscriptionPlanSettings>()
+            .Bind(configuration.GetSection("SubscriptionPlans"))
+            .ValidateOnStart();
+
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
