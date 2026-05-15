@@ -1,6 +1,7 @@
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Domain.Enums;
+using CargoPilot.Domain.Subscriptions;
 using MediatR;
 using Microsoft.Extensions.Options;
 
@@ -11,22 +12,17 @@ internal sealed class GetSubscriptionPlansQueryHandler
 {
     private readonly SubscriptionPlanSettings _settings;
 
-    // Plan başına sabit limitler ve özellikler
     private static readonly IReadOnlyList<(
         SubscriptionType Type,
         string DisplayName,
-        int? MaxUsers,
-        int? MaxLoadingPlans,
-        int? MaxVehicles,
-        int? MaxProducts,
         bool ErpAccess,
         bool ReportSharing,
         bool IsRecommended,
         bool IsEnterprise)> PlanFeatures =
     [
-        (SubscriptionType.Free,       "Başlangıç", 3,    10,   5,    100,  false, false, false, false),
-        (SubscriptionType.Pro,        "Büyüme",    10,   50,   20,   500,  true,  true,  true,  false),
-        (SubscriptionType.Enterprise, "Kurumsal",  null, null, null, null, true,  true,  false, true),
+        (SubscriptionType.Free,       "Başlangıç", false, false, false, false),
+        (SubscriptionType.Pro,        "Büyüme",    true,  true,  true,  false),
+        (SubscriptionType.Enterprise, "Kurumsal",  true,  true,  false, true),
     ];
 
     public GetSubscriptionPlansQueryHandler(IOptions<SubscriptionPlanSettings> settings)
@@ -63,10 +59,10 @@ internal sealed class GetSubscriptionPlansQueryHandler
                 p.IsEnterprise ? null : monthly,
                 p.IsEnterprise ? null : yearlyMonthly,
                 p.IsEnterprise ? null : discountPercent,
-                p.MaxUsers,
-                p.MaxLoadingPlans,
-                p.MaxVehicles,
-                p.MaxProducts,
+                SubscriptionLimits.GetMaxUserCount(p.Type),
+                SubscriptionLimits.GetMaxLoadingPlanCount(p.Type),
+                SubscriptionLimits.GetMaxVehicleCount(p.Type),
+                SubscriptionLimits.GetMaxItemCount(p.Type),
                 p.ErpAccess,
                 p.ReportSharing,
                 p.IsRecommended,
