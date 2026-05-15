@@ -6,7 +6,9 @@ import {
   type InfiniteData,
 } from '@tanstack/react-query';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { axiosInstance } from './axiosInstance';
+import type { SummaryNotificationValues } from '@/features/platform/schemas/summaryNotificationSchema';
 
 // ─── Domain constants ─────────────────────────────────────────────────────────
 
@@ -192,6 +194,49 @@ export function useBulkDeleteNotifications() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+    },
+  });
+}
+
+// ─── Summary notification preferences ────────────────────────────────────────
+
+const summaryPrefsResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.object({
+    enabled: z.boolean(),
+    frequency: z.enum(['Gunluk', 'Haftalik']),
+    sendTime: z.string(),
+    eventTypes: z.array(z.enum(['ErpExportError', 'PendingShipment', 'ProductChange'])),
+  }),
+});
+
+export function useSummaryNotificationSettings() {
+  return useQuery({
+    queryKey: ['notification-preferences-summary'] as const,
+    queryFn: async (): Promise<SummaryNotificationValues> => {
+      const { data: raw } = await axiosInstance.get('/api/v1/notification-preferences/summary');
+      const parsed = summaryPrefsResponseSchema.safeParse(raw);
+      if (!parsed.success) {
+        return { enabled: true, frequency: 'Gunluk', sendTime: '08:00', eventTypes: [] };
+      }
+      return parsed.data.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSaveSummaryNotificationSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: SummaryNotificationValues): Promise<void> => {
+      await axiosInstance.put('/api/v1/notification-preferences/summary', values);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notification-preferences-summary'] });
+      toast.success('Bildirim ayarları kaydedildi.', { position: 'bottom-right' });
+    },
+    onError: () => {
+      toast.error('Bildirim ayarları kaydedilemedi.', { position: 'bottom-right' });
     },
   });
 }

@@ -44,9 +44,9 @@ export function downloadItemImportTemplate(): void {
     'SKU',
     'Ürün Adı',
     'Tip (koli/varil/palet)',
-    'Genişlik(mm)',
-    'Yükseklik(mm)',
-    'Uzunluk(mm)',
+    'Genişlik(cm)',
+    'Yükseklik(cm)',
+    'Uzunluk(cm)',
     'Ağırlık(kg)',
     'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)',
     'İstiflenebilir (true/false)',
@@ -74,16 +74,6 @@ export function downloadItemImportTemplate(): void {
   ];
 
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-
-  // Dropdown validation: Tip (C), İstiflenebilir (I), X/Y/Z (K/L/M)
-  (ws as XLSX.WorkSheet & { '!dataValidations'?: unknown[] })['!dataValidations'] = [
-    { sqref: 'C2:C1000', type: 'list', formula1: '"koli,varil,palet"', showDropDown: false },
-    { sqref: 'I2:I1000', type: 'list', formula1: '"true,false"', showDropDown: false },
-    { sqref: 'K2:K1000', type: 'list', formula1: '"true,false"', showDropDown: false },
-    { sqref: 'L2:L1000', type: 'list', formula1: '"true,false"', showDropDown: false },
-    { sqref: 'M2:M1000', type: 'list', formula1: '"true,false"', showDropDown: false },
-  ];
-
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Şablon');
   XLSX.writeFile(wb, 'CargoPilot_Urun_Import_Sablon.xlsx');

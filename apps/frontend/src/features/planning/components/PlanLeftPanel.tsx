@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
-import { usePlanStore } from '@/lib/store/usePlanStore';
+import { usePlanStore, type UnplacedEntry } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
@@ -323,6 +323,7 @@ export function PlanLeftPanel() {
   const initItems = usePlanStore((s) => s.initItems);
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
+  const unplacedItems = usePlanStore((s) => s.unplacedItems);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
 
   const canPlace = !!selectedVehicle;
@@ -699,6 +700,32 @@ export function PlanLeftPanel() {
             </div>
           )}
       </div>
+
+      {/* Araca sığmayanlar */}
+      {unplacedItems.length > 0 && (
+        <div className="shrink-0 border-t border-amber-100 bg-amber-50">
+          <div className="px-3 py-2 flex items-center gap-1.5">
+            <PackageMinus className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="text-[11px] font-semibold text-amber-700">
+              Araçta Yer Bulunamadı (
+              {unplacedItems.reduce((s, u: UnplacedEntry) => s + u.quantity, 0)} adet)
+            </span>
+          </div>
+          <div className="px-3 pb-2 flex flex-col gap-1">
+            {unplacedItems.map((u: UnplacedEntry) => (
+              <div key={u.itemId} className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-amber-800 truncate flex-1">{u.name}</span>
+                <span className="text-[11px] text-amber-600 shrink-0 tabular-nums">
+                  {u.quantity} adet
+                </span>
+                <span className="text-[10px] text-amber-500 shrink-0">
+                  {u.reason === 2 ? 'Ağırlık' : 'Yer yok'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Dev-only stres testi (US-OPT-14): InstancedMesh render path FPS ölçümü için. */}
       {import.meta.env.DEV && (
