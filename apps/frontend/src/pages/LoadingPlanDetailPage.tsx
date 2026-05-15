@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 import {
   ChevronRight,
   Home,
@@ -17,14 +18,25 @@ import {
   MoveHorizontal,
   ArrowUpDown,
   Copy,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useLoadingPlanListItem, useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
+import { toast } from 'sonner';
+import {
+  useLoadingPlanListItem,
+  useLoadingPlanProducts,
+  useApprovePlan,
+  useExportPlanToERP,
+} from '@/lib/api/useLoadingPlans';
 import { PlanStatus } from '@/lib/types/loadingPlan';
+import { useErpSettingsStore } from '@/lib/store/useErpSettingsStore';
 import type {
   LoadingPlanListItem,
   PlanProductGroup,
@@ -458,14 +470,63 @@ interface PlanDetailContentProps {
   onBack?: () => void;
 }
 
+type ErpExportStatus = 'idle' | 'sending' | 'sent' | 'error';
+
 export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<PlanTab>('3d-planner');
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const [erpStatus, setErpStatus] = useState<ErpExportStatus>('idle');
+  const [erpExportedAt, setErpExportedAt] = useState<Date | null>(null);
+
+  const autoTriggerOnApproval = useErpSettingsStore((s) => s.autoTriggerOnApproval);
 
   const { data: plan, isLoading, isError } = useLoadingPlanListItem(id);
   const { data: productGroups = [] } = useLoadingPlanProducts(id);
+  const { mutateAsync: approvePlan, isPending: isApproving } = useApprovePlan();
+  const { mutateAsync: exportToERP } = useExportPlanToERP();
+
+  async function handleApprove() {
+    try {
+      await approvePlan(id);
+      if (!autoTriggerOnApproval) return;
+      setErpStatus('sending');
+      try {
+        await exportToERP(id);
+        const now = new Date();
+        setErpStatus('sent');
+        setErpExportedAt(now);
+        toast.success('Plan ERP\'ye başarıyla iletildi.', { position: 'bottom-right' });
+      } catch {
+        setErpStatus('error');
+        toast.error(
+          <span>
+            ERP aktarımı başarısız.{' '}
+            <Link to={`/planning/${id}`} className="underline font-medium">
+              Planı Görüntüle
+            </Link>
+          </span>,
+          { position: 'bottom-right', duration: 8000 },
+        );
+      }
+    } catch {
+      // approvePlan mutation handles its own error toast
+    }
+  }
+
+  async function handleRetryErp() {
+    setErpStatus('sending');
+    try {
+      await exportToERP(id);
+      const now = new Date();
+      setErpStatus('sent');
+      setErpExportedAt(now);
+      toast.success('Plan ERP\'ye başarıyla iletildi.', { position: 'bottom-right' });
+    } catch {
+      setErpStatus('error');
+    }
+  }
 
   function handleBack() {
     if (onBack) {
@@ -546,14 +607,64 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs border-zinc-200 shrink-0"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Ayarlar
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* ERP export status label */}
+            {erpStatus === 'sending' && (
+              <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                ERP'ye gönderiliyor…
+              </span>
+            )}
+            {erpStatus === 'sent' && erpExportedAt && (
+              <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" />
+                ERP'ye iletildi ·{' '}
+                {format(erpExportedAt, 'HH:mm', { locale: tr })}
+              </span>
+            )}
+            {erpStatus === 'error' && (
+              <span className="flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700">
+                <XCircle className="h-3 w-3" />
+                Aktarım başarısız
+                <button
+                  type="button"
+                  onClick={() => void handleRetryErp()}
+                  className="ml-1 flex items-center gap-0.5 underline hover:no-underline"
+                >
+                  <RefreshCw className="h-2.5 w-2.5" />
+                  Tekrar Dene
+                </button>
+              </span>
+            )}
+
+            {/* Onayla butonu — sadece 'aktif' planlarda */}
+            {plan.status === PlanStatus.Aktif && (
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={isApproving || erpStatus === 'sending'}
+                onClick={() => void handleApprove()}
+              >
+                {isApproving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
+                Onayla
+              </Button>
+            )}
+
+            <SharePlanDropdown planId={plan.id} planName={plan.planName} />
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs border-zinc-200"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Ayarlar
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
