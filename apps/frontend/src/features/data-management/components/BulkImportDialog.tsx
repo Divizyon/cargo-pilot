@@ -285,11 +285,11 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               <Button
                 size="sm"
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setRows([emptyRow()])}
                 className="gap-1.5"
               >
-                <FileUp className="h-3.5 w-3.5" />
-                Dosya Ekle
+                <Plus className="h-3.5 w-3.5" />
+                Manuel Ekle
               </Button>
             </div>
           </div>
@@ -344,7 +344,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         )}
 
         {/* Scrollable table */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
             <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
               <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

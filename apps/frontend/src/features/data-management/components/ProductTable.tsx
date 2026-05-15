@@ -225,6 +225,7 @@ interface ProductRowProps {
 function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const volumeUnit = useUnitStore((s) => s.volumeUnit);
   const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
 
   const cell = 'py-0 px-3';
@@ -269,7 +270,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, 'm³')}</span>
+        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, volumeUnit)}</span>
       </TableCell>
 
       <TableCell className={cell}>
@@ -533,7 +534,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           onClick={() => exportItemsToExcel(filteredItems ?? [])}
           disabled={!filteredItems || filteredItems.length === 0}
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           Dışa Aktar
         </Button>
 
@@ -544,7 +545,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           className="shrink-0 gap-1.5 text-xs"
           onClick={() => setShowBulkImport(true)}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Upload className="h-3.5 w-3.5" />
           İçe Aktar
         </Button>
 
@@ -563,7 +564,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       )}
 
       {/* Table card */}
-      <div className="overflow-x-auto rounded-2xl border border-border bg-background">
+      <div className="overflow-hidden rounded-2xl border border-border bg-background">
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
