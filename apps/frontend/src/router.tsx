@@ -1,4 +1,9 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useSearchParams } from 'react-router-dom';
+
+function ConfirmEmailChangeRedirect() {
+  const [searchParams] = useSearchParams();
+  return <Navigate to={`/auth/confirm-email-change?${searchParams.toString()}`} replace />;
+}
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
 import { LoginPage } from '@/pages/LoginPage';
@@ -23,6 +28,8 @@ import { ReportsPage } from '@/pages/ReportsPage';
 import { ReportDetailPage } from '@/pages/ReportDetailPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ShareLinksPage } from '@/pages/ShareLinksPage';
+import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage';
+import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage';
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +55,18 @@ export const router = createBrowserRouter([
   {
     path: '/auth/reset-password',
     element: <ResetPasswordPage />,
+  },
+  {
+    path: '/confirm-email-change',
+    element: <ConfirmEmailChangeRedirect />,
+  },
+  {
+    path: '/auth/confirm-email-change',
+    element: <ConfirmEmailChangePage />,
+  },
+  {
+    path: '/auth/force-change-password',
+    element: <ForceChangePasswordPage />,
   },
   {
     path: '/share/:token',
