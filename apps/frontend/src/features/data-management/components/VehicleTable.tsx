@@ -404,18 +404,23 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   );
 
   useEffect(() => {
+    let last = pageSize;
     const calculate = () => {
       if (!tableCardRef.current) return;
       const top = tableCardRef.current.getBoundingClientRect().top;
       const available = window.innerHeight - top - BELOW_TABLE_H - HEADER_ROW_H;
-      setPageSize(Math.max(5, Math.floor(available / ROW_H)));
+      const next = Math.max(5, Math.floor(available / ROW_H));
+      if (next !== last) {
+        last = next;
+        setPageSize(next);
+        setPage(1);
+      }
     };
     calculate();
     window.addEventListener('resize', calculate);
     return () => window.removeEventListener('resize', calculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => { setPage(1); }, [pageSize]);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -476,9 +481,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const isEmpty =
     !showSkeleton && filteredVehicles.length === 0 && !searchTerm && !hasActiveFilters;
   const noResults =
-    !showSkeleton &&
-    filteredVehicles.length === 0 &&
-    (Boolean(searchTerm) || hasActiveFilters);
+    !showSkeleton && filteredVehicles.length === 0 && (Boolean(searchTerm) || hasActiveFilters);
 
   return (
     <div className="flex flex-col gap-4">
@@ -633,7 +636,10 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       )}
 
       {/* Table card */}
-      <div ref={tableCardRef} className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
+      <div
+        ref={tableCardRef}
+        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+      >
         {showSkeleton ? (
           <VehicleTableSkeleton />
         ) : (

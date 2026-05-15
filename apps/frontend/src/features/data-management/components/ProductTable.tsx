@@ -358,18 +358,23 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   );
 
   useEffect(() => {
+    let last = pageSize;
     const calculate = () => {
       if (!tableCardRef.current) return;
       const top = tableCardRef.current.getBoundingClientRect().top;
       const available = window.innerHeight - top - BELOW_TABLE_H - HEADER_ROW_H;
-      setPageSize(Math.max(5, Math.floor(available / ROW_H)));
+      const next = Math.max(5, Math.floor(available / ROW_H));
+      if (next !== last) {
+        last = next;
+        setPageSize(next);
+        setPage(1);
+      }
     };
     calculate();
     window.addEventListener('resize', calculate);
     return () => window.removeEventListener('resize', calculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => { setPage(1); }, [pageSize]);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -585,7 +590,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       )}
 
       {/* Table card */}
-      <div ref={tableCardRef} className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
+      <div
+        ref={tableCardRef}
+        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+      >
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
