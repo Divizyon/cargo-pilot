@@ -17,7 +17,7 @@ interface ContainerBodyProps {
   width: number;
   height: number;
   length: number;
-  doorDirection?: 'rear' | 'side' | 'top';
+  doorDirection?: 'rear' | 'side' | 'top' | 'all';
   doorSide?: 'left' | 'right';
 }
 
