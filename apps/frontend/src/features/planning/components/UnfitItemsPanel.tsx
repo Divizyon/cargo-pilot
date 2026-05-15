@@ -24,7 +24,11 @@ const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
   palet: Package,
 };
 
-function UnfitItemRow({ unfitItem, onRetry, onRemove }: {
+function UnfitItemRow({
+  unfitItem,
+  onRetry,
+  onRemove,
+}: {
   unfitItem: UnfitItem;
   onRetry: () => void;
   onRemove: () => void;
@@ -42,7 +46,9 @@ function UnfitItemRow({ unfitItem, onRetry, onRemove }: {
           <span className="text-[10px] shrink-0 tabular-nums text-zinc-400">{quantity} adet</span>
         </div>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded', REASON_CLASS[reason])}>
+          <span
+            className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded', REASON_CLASS[reason])}
+          >
             {REASON_LABEL[reason]}
           </span>
           <span className="text-[10px] text-zinc-400 tabular-nums">
