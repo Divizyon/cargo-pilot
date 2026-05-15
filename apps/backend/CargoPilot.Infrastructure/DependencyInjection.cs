@@ -9,6 +9,7 @@ using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
+using CargoPilot.Infrastructure.Services.ErpConnectors;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
@@ -81,6 +82,11 @@ public static class DependencyInjection {
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
         services.AddScoped<IErpProductFetcher, MockErpProductFetcher>();
+        services.AddDataProtection();
+        services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
+        services.AddScoped<IErpSettingsRepository, ErpSettingsRepository>();
+        services.AddTransient<IErpConnector, LogoErpConnector>();
+        services.AddTransient<IErpConnector, NetsisErpConnector>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>
         {
             // BaseAddress constructor'da options üzerinden set ediliyor.
