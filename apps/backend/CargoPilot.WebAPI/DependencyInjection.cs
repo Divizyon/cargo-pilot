@@ -217,7 +217,7 @@ public static class DependencyInjection {
                 policy.RequireClaim("role", "SuperAdmin"));
 
             options.AddPolicy("CompanyAdmin", policy =>
-                policy.RequireClaim("role", "CompanyAdmin"));
+                policy.RequireClaim("role", "SuperAdmin", "CompanyAdmin"));
 
             options.AddPolicy("CompanyWorker", policy =>
                 policy.RequireClaim("role", "CompanyWorker"));
