@@ -259,6 +259,26 @@ export function useRenameLoadingPlan() {
   });
 }
 
+// ─── Approve mutation ─────────────────────────────────────────────────────────
+
+export function useApprovePlan() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ProblemDetails>, string>({
+    mutationFn: (id) =>
+      axiosInstance
+        .patch(`/api/v1/loading-plans/${id}/status`, { status: 'tamamlandi' })
+        .then(() => undefined),
+    onSuccess: (_data, id) => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      toast.error(detail ?? 'Plan onaylanamadı.', { position: 'bottom-right' });
+    },
+  });
+}
+
 // ─── Re-optimize mutation (PUT) ───────────────────────────────────────────────
 
 interface ReoptimizeLoadingPlanInput {
@@ -419,5 +439,33 @@ export function useLoadingPlanUnplaced(planId: string | null) {
     },
     enabled: Boolean(planId),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── ERP export mutation ───────────────────────────────────────────────────────
+
+export function useExportPlanToERP() {
+  return useMutation<void, AxiosError<ProblemDetails>, string>({
+    mutationFn: (planId) =>
+      axiosInstance.post(`/api/v1/plans/${planId}/export-erp`).then(() => undefined),
+    onSuccess: () => {
+      toast.success("Plan ERP'ye başarıyla aktarıldı", { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+      if (status === 409) {
+        toast.error("Bu plan daha önce ERP'ye aktarılmış.", { position: 'bottom-right' });
+        return;
+      }
+      if (status === 422) {
+        toast.error(
+          detail ?? 'Plan ERP aktarımı için uygun değil. Planın tamamlanmış olduğundan emin olun.',
+          { position: 'bottom-right' },
+        );
+        return;
+      }
+      toast.error(detail ?? 'ERP aktarımı başarısız', { position: 'bottom-right' });
+    },
   });
 }
