@@ -234,11 +234,6 @@ function InstancedBoxes() {
     return buildAtlasTexture(entries);
   }, [placements, loadOrder, selectedItems]);
 
-  // loadOrderIndex: boxIndices[instanceIdx] → loadOrder içindeki sıra (atlas index)
-  const boxLoadOrderIndex = useMemo(() => {
-    return boxIndices.map((globalIdx) => loadOrder.indexOf(globalIdx));
-  }, [boxIndices, loadOrder]);
-
   // ShaderMaterial + InstancedBufferAttribute'ları atlas değişince güncelle
   const labelMaterial = useMemo<THREE.ShaderMaterial | null>(() => {
     if (!atlas) return null;
@@ -341,13 +336,12 @@ function InstancedBoxes() {
           return;
         }
 
-        const atlasIdx = boxLoadOrderIndex[boxInstanceIdx];
-        if (atlasIdx < 0 || atlasIdx * 2 + 1 >= atlas.uvOffsets.length) {
+        const seqIdx = loadOrder.indexOf(globalIdx);
+        if (seqIdx < 0 || seqIdx * 2 + 1 >= atlas.uvOffsets.length) {
           hide();
           return;
         }
 
-        const seqIdx = loadOrder.indexOf(globalIdx);
         if (isStepped && seqIdx >= currentAnimStep) {
           hide();
           return;
@@ -397,7 +391,7 @@ function InstancedBoxes() {
         });
       });
     },
-    [placements, boxIndices, loadOrder, boxLoadOrderIndex, atlas],
+    [placements, boxIndices, loadOrder, atlas],
   );
 
   // onFrameUpdate — animasyon her frame bittikten sonra InstancedMesh matrislerini güncelle
@@ -503,15 +497,7 @@ function InstancedBoxes() {
       writeLabelPlaneMatrices(matrix, position, scale, quaternion, isStepped, currentAnimStep);
       labelPlaneRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [
-    placements,
-    boxIndices,
-    cylIndices,
-    loadOrder,
-    atlas,
-    boxLoadOrderIndex,
-    writeLabelPlaneMatrices,
-  ]);
+  }, [placements, boxIndices, cylIndices, loadOrder, atlas, writeLabelPlaneMatrices]);
 
   useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
 
