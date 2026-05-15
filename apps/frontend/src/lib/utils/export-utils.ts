@@ -79,6 +79,36 @@ export function downloadItemImportTemplate(): void {
   XLSX.writeFile(wb, 'CargoPilot_Urun_Import_Sablon.xlsx');
 }
 
+export function downloadVehicleImportTemplate(): void {
+  const headers = [
+    'Araç Tipi (Tır/Kamyon/Kamposet/Konteyner)',
+    'Araç Adı',
+    'Plaka (Tır/Kamyon/Kamposet için zorunlu)',
+    'Seri No (Konteyner için zorunlu)',
+    'Uzunluk (cm)',
+    'Genişlik (cm)',
+    'Yükseklik (cm)',
+    'Maks Yük (kg)',
+    'Kapı Yönü (rear/side/top/rearAndSide)',
+  ];
+  const example = [
+    'Tır',
+    'Ana Dorse',
+    '34ABC123',
+    '',
+    '1360',
+    '240',
+    '270',
+    '26000',
+    'rear',
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Şablon');
+  XLSX.writeFile(wb, 'CargoPilot_Arac_Import_Sablon.xlsx');
+}
+
 export function exportPlanToExcel(
   planId: string,
   placements: PlacementWithDimensions[],

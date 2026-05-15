@@ -1,6 +1,7 @@
 import { useState, type ReactNode, type ComponentType } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import {
   Box,
   Cpu,
@@ -785,7 +786,8 @@ export function ProductForm({
                 <div className="relative">
                   <FormControl>
                     <Input
-                      type="number"
+                      type="text"
+                inputMode="numeric"
                       step="0.1"
                       min={0}
                       placeholder="15.5"
@@ -793,7 +795,7 @@ export function ProductForm({
                       {...field}
                       value={field.value ?? ''}
                       onChange={(e) =>
-                        field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)
+                        field.onChange(e.target.value === '' || !Number.isFinite(parseFloat(e.target.value)) ? undefined : parseFloat(e.target.value))
                       }
                     />
                   </FormControl>
@@ -1064,11 +1066,37 @@ export function ProductForm({
     </div>
   );
 
+  const actions = (
+    <div className="flex items-center gap-1.5">
+      {onCancel && (
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSubmitting}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          {t('forms.product.cancel')}
+        </Button>
+      )}
+      <Button
+        type="submit"
+        size="sm"
+        className="flex-1"
+        disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+      >
+        {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
+      </Button>
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit, () => {
+            toast.error('Lütfen zorunlu alanları doldurunuz.', { position: 'bottom-right' });
+          })}
+          className="flex h-full flex-col"
+        >
           <FormWithPreviewLayout
+            className="flex-1 min-h-0"
             formContent={formFields}
             previewContent={
               <PreviewPanel
@@ -1087,21 +1115,8 @@ export function ProductForm({
                 notes={notes}
               />
             }
+            actions={actions}
           />
-
-          <div className="flex justify-end gap-3 border-t pt-4">
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                {t('forms.product.cancel')}
-              </Button>
-            )}
-            <Button
-              type="submit"
-              disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
-            >
-              {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
-            </Button>
-          </div>
         </form>
       </Form>
     </TooltipProvider>
@@ -1190,7 +1205,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   ];
 
   return (
-    <div className="flex h-screen flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
       {/* Başlık */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground">Ürün Önizleme</p>
@@ -1286,7 +1301,8 @@ function DimensionField({
           <div className="relative">
             <FormControl>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 step="0.1"
                 min={0}
                 placeholder={placeholder}
@@ -1294,10 +1310,11 @@ function DimensionField({
                 {...field}
                 value={field.value ?? ''}
                 onChange={(e) => {
-                  const v = e.target.value === '' ? undefined : e.target.valueAsNumber;
-                  field.onChange(v);
+                  const raw = e.target.value;
+                  const num = raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw);
+                  field.onChange(num);
                   if (onAfterChange) {
-                    onAfterChange(v);
+                    onAfterChange(num);
                   }
                 }}
               />

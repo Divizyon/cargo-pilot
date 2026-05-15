@@ -239,7 +239,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const { data: vehiclesData } = useVehicles({ pageSize: 200 });
+  const { data: vehiclesData } = useVehicles({ pageSize: 100 });
   const vehicles = vehiclesData?.items ?? [];
 
   const periodDates = useMemo(() => getPeriodDates(period), [period]);

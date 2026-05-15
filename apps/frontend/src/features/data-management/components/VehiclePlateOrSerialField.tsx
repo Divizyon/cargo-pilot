@@ -54,12 +54,10 @@ export function VehiclePlateOrSerialField({ form, hideHeading }: VehiclePlateOrS
                 onBlur={(e) => {
                   f.onBlur();
                   const trimmed = e.target.value.trim();
-                  form.setValue('serialNumber', trimmed);
                   if (trimmed) setSerialToCheck(trimmed);
                 }}
                 onChange={(e) => {
-                  f.onChange(e);
-                  form.clearErrors('serialNumber');
+                  f.onChange(e.target.value);
                 }}
               />
             </FormControl>
@@ -83,12 +81,10 @@ export function VehiclePlateOrSerialField({ form, hideHeading }: VehiclePlateOrS
                 onBlur={(e) => {
                   f.onBlur();
                   const trimmed = e.target.value.trim();
-                  form.setValue('plate', trimmed);
                   if (trimmed) setPlateToCheck(trimmed);
                 }}
                 onChange={(e) => {
-                  f.onChange(e);
-                  form.clearErrors('plate');
+                  f.onChange(e.target.value);
                 }}
               />
             </FormControl>

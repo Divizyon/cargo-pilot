@@ -32,15 +32,15 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="360"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -62,15 +62,15 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="8000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -92,16 +92,16 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     max={KINGPIN_LEGAL_MAX_LOAD}
                     placeholder="12000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
                     value={field.value ?? ''}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

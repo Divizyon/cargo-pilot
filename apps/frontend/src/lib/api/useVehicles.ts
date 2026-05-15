@@ -9,7 +9,9 @@ import { axiosInstance } from './axiosInstance';
 import {
   vehicleApiSchema,
   singleVehicleApiSchema,
+  singleVehicleDetailApiSchema,
   fromApiVehicle,
+  fromApiVehicleDetail,
   buildCreateVehiclePayload,
   VEHICLE_TYPE_INT,
   VEHICLE_TYPE_FROM_INT,
@@ -177,19 +179,22 @@ export function useVehicles(filters?: VehicleFilters) {
   });
 }
 
-export function useVehicle(id: string, initialData?: Vehicle) {
+export function useVehicle(id: string) {
   const companyId = useCompanyId();
   return useQuery({
     queryKey: ['vehicles', companyId, id] as const,
     queryFn: async (): Promise<Vehicle> => {
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles/${id}`);
-      const parsed = singleVehicleApiSchema.safeParse(data);
-      if (!parsed.success) throw new Error('Araç bulunamadı');
-      return fromApiVehicle(parsed.data.data);
+      const detail = singleVehicleDetailApiSchema.safeParse(data);
+      if (detail.success) return fromApiVehicleDetail(detail.data.data);
+      const wrapped = singleVehicleApiSchema.safeParse(data);
+      if (wrapped.success) return fromApiVehicle(wrapped.data.data);
+      const direct = vehicleApiSchema.safeParse(data);
+      if (direct.success) return fromApiVehicle(direct.data);
+      throw new Error('Araç bulunamadı');
     },
-    initialData,
     enabled: Boolean(id),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 }
 
@@ -227,6 +232,7 @@ export function useUpdateVehicle() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<VehicleFormValues> }) => {
       const payload = buildCreateVehiclePayload(data as VehicleFormValues);
+      console.debug('[useUpdateVehicle] payload', JSON.stringify(payload, null, 2));
       const { data: res } = await axiosInstance.put<unknown>(`/api/v1/vehicles/${id}`, payload);
       const parsed = singleVehicleApiSchema.safeParse(res);
       return parsed.success ? fromApiVehicle(parsed.data.data) : null;
@@ -237,6 +243,7 @@ export function useUpdateVehicle() {
     },
     onError: (err: unknown) => {
       if (axios.isAxiosError(err)) {
+        console.error('[useUpdateVehicle] error response', err.response?.status, JSON.stringify(err.response?.data, null, 2));
         if (err.response?.status === 409) {
           toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', {
             position: 'bottom-right',

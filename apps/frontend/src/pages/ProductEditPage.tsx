@@ -31,23 +31,25 @@ export function ProductEditPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex h-full flex-col gap-4">
+      <div className="shrink-0">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {item.name} — fiziksel özelliklerini ve kısıtlarını görüntüleyin veya güncelleyin.
         </p>
       </div>
 
-      <ProductForm
-        defaultValues={itemToFormValues(item)}
-        isSubmitting={updateItem.isPending}
-        disableSubmitWhenPristine
-        onCancel={() => navigate('/products')}
-        onSubmit={(values) =>
-          updateItem.mutate({ id: item.id, values }, { onSuccess: () => navigate('/products') })
-        }
-      />
+      <div className="flex-1 min-h-0">
+        <ProductForm
+          defaultValues={itemToFormValues(item)}
+          isSubmitting={updateItem.isPending}
+          disableSubmitWhenPristine
+          onCancel={() => navigate('/products')}
+          onSubmit={(values) =>
+            updateItem.mutate({ id: item.id, values }, { onSuccess: () => navigate('/products') })
+          }
+        />
+      </div>
     </div>
   );
 }

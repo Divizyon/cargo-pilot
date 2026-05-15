@@ -8,6 +8,7 @@ interface VehicleFormActionsProps {
   onCancel?: () => void;
   onDraftSubmit: (values: Partial<VehicleFormValues>) => void;
   disableSubmitWhenPristine?: boolean;
+  submitLabel?: string;
 }
 
 export function VehicleFormActions({
@@ -16,6 +17,7 @@ export function VehicleFormActions({
   onCancel,
   onDraftSubmit,
   disableSubmitWhenPristine,
+  submitLabel = 'Kaydet',
 }: VehicleFormActionsProps) {
   async function handleDraftSubmit() {
     const valid = await form.trigger(['name', 'vehicleType']);
@@ -24,7 +26,7 @@ export function VehicleFormActions({
   }
 
   return (
-    <div className="flex w-full items-center justify-end gap-1 ">
+    <div className="flex items-center gap-1.5">
       {onCancel && (
         <Button
           type="button"
@@ -43,6 +45,7 @@ export function VehicleFormActions({
         size="sm"
         onClick={() => void handleDraftSubmit()}
         disabled={isSubmitting}
+        className="flex-1"
       >
         Taslak Olarak Kaydet
       </Button>
@@ -50,9 +53,9 @@ export function VehicleFormActions({
         type="submit"
         size="sm"
         disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
-        className="px-5"
+        className="flex-1"
       >
-        {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+        {isSubmitting ? 'Kaydediliyor...' : submitLabel}
       </Button>
     </div>
   );
