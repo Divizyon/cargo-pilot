@@ -16,16 +16,16 @@ internal sealed class IntegrationRepository : IIntegrationRepository
 
     public Task<Integration?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
         => _dbContext.Integrations
-            .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == companyId, cancellationToken);
+            .FirstOrDefaultAsync(i => i.Id == id && (companyId == null || i.CompanyId == companyId), cancellationToken);
 
-    public Task<bool> HasAnyRunningSyncAsync(Guid companyId, CancellationToken cancellationToken = default)
+    public Task<bool> HasAnyRunningSyncAsync(Guid? companyId, CancellationToken cancellationToken = default)
         => _dbContext.Integrations
-            .AnyAsync(i => i.CompanyId == companyId && i.SyncStatus == ErpSyncStatus.Running, cancellationToken);
+            .AnyAsync(i => (companyId == null || i.CompanyId == companyId) && i.SyncStatus == ErpSyncStatus.Running, cancellationToken);
 
-    public async Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid? companyId, CancellationToken cancellationToken = default)
         => await _dbContext.Integrations
             .AsNoTracking()
-            .Where(i => i.CompanyId == companyId)
+            .Where(i => companyId == null || i.CompanyId == companyId)
             .ToListAsync(cancellationToken);
 
     public void AddSyncLog(SyncLog syncLog) => _dbContext.SyncLogs.Add(syncLog);

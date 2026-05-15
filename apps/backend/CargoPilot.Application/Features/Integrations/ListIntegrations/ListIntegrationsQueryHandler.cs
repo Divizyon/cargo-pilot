@@ -23,11 +23,8 @@ internal sealed class ListIntegrationsQueryHandler : IRequestHandler<ListIntegra
         CancellationToken cancellationToken)
     {
         var companyId = _currentUserService.CompanyId;
-        if (companyId is null)
-            return Result<IReadOnlyList<IntegrationSummary>>.Failure(
-                new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
 
-        var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);
+        var integrations = await _integrationRepository.ListByCompanyAsync(companyId, cancellationToken);
 
         var result = integrations
             .Select(i => new IntegrationSummary(i.Id, i.SystemName, i.ApiEndpoint))

@@ -21,11 +21,8 @@ internal sealed class GetSyncSettingsQueryHandler : IRequestHandler<GetSyncSetti
     public async Task<Result<SyncSettingsResponse>> Handle(GetSyncSettingsQuery request, CancellationToken cancellationToken)
     {
         var companyId = _currentUserService.CompanyId;
-        if (companyId is null)
-            return Result<SyncSettingsResponse>.Failure(
-                new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
 
-        var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId.Value, cancellationToken);
+        var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId, cancellationToken);
 
         if (integration is null)
             return Result<SyncSettingsResponse>.Failure(

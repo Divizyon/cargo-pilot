@@ -23,17 +23,14 @@ internal sealed class TriggerSyncCommandHandler : IRequestHandler<TriggerSyncCom
     public async Task<Result<SyncSettingsResponse>> Handle(TriggerSyncCommand request, CancellationToken cancellationToken)
     {
         var companyId = _currentUserService.CompanyId;
-        if (companyId is null)
-            return Result<SyncSettingsResponse>.Failure(
-                new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
 
         // Şirket genelinde çalışan başka bir sync varsa engelle.
-        var hasRunning = await _integrationRepository.HasAnyRunningSyncAsync(companyId.Value, cancellationToken);
+        var hasRunning = await _integrationRepository.HasAnyRunningSyncAsync(companyId, cancellationToken);
         if (hasRunning)
             return Result<SyncSettingsResponse>.Failure(
                 new Error(ErrorType.Conflict, "Sync.AlreadyRunning", "Şirket için senkronizasyon zaten çalışıyor."));
 
-        var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId.Value, cancellationToken);
+        var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId, cancellationToken);
 
         if (integration is null)
             return Result<SyncSettingsResponse>.Failure(
