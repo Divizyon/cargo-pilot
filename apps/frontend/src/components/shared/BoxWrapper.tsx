@@ -15,12 +15,13 @@ interface BoxWrapperProps {
   color?: string;
   opacity?: number;
   onClick?: (id: string) => void;
-  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
   itemId?: string;
   isSelected?: boolean;
   isHidden?: boolean;
   isGhosted?: boolean;
   productType?: ProductType;
+  /** +Z yüzüne (kapıya bakan) uygulanacak etiket texture'ı */
+  labelTexture?: THREE.Texture | null;
 }
 
 // ─── PaletContent ──────────────────────────────────────────────────────────────
@@ -149,12 +150,12 @@ export function BoxWrapper({
   color = '#2563EB',
   opacity = 0.85,
   onClick,
-  onPointerDown,
   itemId,
   isSelected = false,
   isHidden = false,
   isGhosted = false,
   productType,
+  labelTexture = null,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
@@ -186,6 +187,39 @@ export function BoxWrapper({
     [edgesGeo],
   );
 
+  // 6-material array: +X, -X, +Y, -Y, +Z(kapıya bakan), -Z(arka)
+  // Sadece koli + labelTexture varsa kullanılır; varil/palet/ghosted için gerekmez.
+  const boxMaterials = useMemo(() => {
+    if (isPalet || isVaril || !labelTexture) return null;
+    const base = {
+      color,
+      transparent: true,
+      opacity: isSelected ? 0.95 : opacity,
+      emissive: isSelected ? color : '#000000',
+      emissiveIntensity: isSelected ? 0.25 : 0,
+    };
+    return Array.from({ length: 6 }, (_, i) => {
+      const mat = new THREE.MeshStandardMaterial(base);
+      // face index 4 = +Z (Z=0 yüzü — kapıya bakan)
+      if (i === 4) {
+        mat.map = labelTexture;
+        mat.color.set('#ffffff');
+        mat.transparent = false;
+        mat.opacity = 1;
+        mat.emissiveIntensity = 0;
+      }
+      return mat;
+    });
+  }, [isPalet, isVaril, labelTexture, color, opacity, isSelected]);
+
+  // Dispose — boxMaterials manuel THREE nesnesi
+  useEffect(
+    () => () => {
+      boxMaterials?.forEach((m) => m.dispose());
+    },
+    [boxMaterials],
+  );
+
   if (isHidden) return null;
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
@@ -193,14 +227,9 @@ export function BoxWrapper({
     if (itemId !== undefined) onClick?.(itemId);
   };
 
-  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    onPointerDown?.(e);
-  };
-
   if (isPalet) {
     return (
-      <group position={[cx, cy, cz]} onClick={handleClick} onPointerDown={handlePointerDown}>
+      <group position={[cx, cy, cz]} onClick={handleClick}>
         <PaletContent
           width={width}
           height={height}
@@ -215,21 +244,23 @@ export function BoxWrapper({
   }
 
   return (
-    <group position={[cx, cy, cz]} onClick={handleClick} onPointerDown={handlePointerDown}>
+    <group position={[cx, cy, cz]} onClick={handleClick}>
       {!isGhosted && (
-        <mesh>
+        <mesh material={boxMaterials ?? undefined}>
           {isVaril ? (
             <cylinderGeometry args={[radius, radius, height, CYLINDER_SEGMENTS]} />
           ) : (
             <boxGeometry args={[width, height, depth]} />
           )}
-          <meshStandardMaterial
-            color={color}
-            transparent
-            opacity={isSelected ? 0.95 : opacity}
-            emissive={isSelected ? color : '#000000'}
-            emissiveIntensity={isSelected ? 0.25 : 0}
-          />
+          {!boxMaterials && (
+            <meshStandardMaterial
+              color={color}
+              transparent
+              opacity={isSelected ? 0.95 : opacity}
+              emissive={isSelected ? color : '#000000'}
+              emissiveIntensity={isSelected ? 0.25 : 0}
+            />
+          )}
         </mesh>
       )}
       {edgesGeo && (
