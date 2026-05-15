@@ -1,9 +1,5 @@
-import { createBrowserRouter, Navigate, useSearchParams } from 'react-router-dom';
-
-function ConfirmEmailChangeRedirect() {
-  const [searchParams] = useSearchParams();
-  return <Navigate to={`/auth/confirm-email-change?${searchParams.toString()}`} replace />;
-}
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ConfirmEmailChangeRedirect } from '@/pages/ConfirmEmailChangeRedirect';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
 import { LoginPage } from '@/pages/LoginPage';
