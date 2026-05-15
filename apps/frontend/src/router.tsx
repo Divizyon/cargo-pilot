@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ConfirmEmailChangeRedirect } from '@/pages/ConfirmEmailChangeRedirect';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
+import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
@@ -23,12 +25,14 @@ import { ReportsPage } from '@/pages/ReportsPage';
 import { ReportDetailPage } from '@/pages/ReportDetailPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ShareLinksPage } from '@/pages/ShareLinksPage';
+import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage';
+import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage';
 import { ERPPage } from '@/pages/ERPPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <LandingPage />,
   },
   {
     path: '/auth/login',
@@ -49,6 +53,18 @@ export const router = createBrowserRouter([
   {
     path: '/auth/reset-password',
     element: <ResetPasswordPage />,
+  },
+  {
+    path: '/confirm-email-change',
+    element: <ConfirmEmailChangeRedirect />,
+  },
+  {
+    path: '/auth/confirm-email-change',
+    element: <ConfirmEmailChangePage />,
+  },
+  {
+    path: '/auth/force-change-password',
+    element: <ForceChangePasswordPage />,
   },
   {
     path: '/share/:token',

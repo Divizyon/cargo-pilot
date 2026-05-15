@@ -322,7 +322,7 @@ export function useReoptimizeLoadingPlan() {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-detail', planId] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', planId] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
-      toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right' });
+      toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right', duration: 2000 });
     },
     onError: (error) => {
       const detail =

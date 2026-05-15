@@ -585,7 +585,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       )}
 
       {/* Table card */}
-      <div ref={tableCardRef} className="overflow-hidden rounded-2xl border border-border bg-background">
+      <div ref={tableCardRef} className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
