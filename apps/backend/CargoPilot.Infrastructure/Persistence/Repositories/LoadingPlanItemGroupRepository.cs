@@ -23,6 +23,12 @@ internal sealed class LoadingPlanItemGroupRepository : ILoadingPlanItemGroupRepo
             .Where(g => g.LoadingPlanId == planId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<LoadingPlanItemGroup>> GetByIdsAsync(IReadOnlyList<Guid> ids, Guid? companyId, CancellationToken cancellationToken = default)
+        => await _context.LoadingPlanItemGroups
+            .AsNoTracking()
+            .Where(g => ids.Contains(g.Id) && g.LoadingPlan.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+
     public void Add(LoadingPlanItemGroup group)
         => _context.LoadingPlanItemGroups.Add(group);
 
