@@ -21,3 +21,22 @@ export const PLAN_MAX_MEMBERS: Record<SubscriptionPlan, number> = {
   pro: 25,
   enterprise: Number.MAX_SAFE_INTEGER,
 };
+
+export interface PlanLimits {
+  maxPlansPerMonth: number | null;
+  maxVehicles: number | null;
+  maxProducts: number | null;
+}
+
+export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
+  free: { maxPlansPerMonth: 3, maxVehicles: 1, maxProducts: 50 },
+  starter: { maxPlansPerMonth: 30, maxVehicles: 5, maxProducts: 500 },
+  pro: { maxPlansPerMonth: null, maxVehicles: null, maxProducts: null },
+  enterprise: { maxPlansPerMonth: null, maxVehicles: null, maxProducts: null },
+};
+
+export const PLAN_PRICES: Record<Exclude<SubscriptionPlan, 'enterprise'>, number> = {
+  free: 0,
+  starter: 499,
+  pro: 1299,
+};
