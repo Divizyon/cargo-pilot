@@ -414,6 +414,7 @@ export function PlanRightPanel({
   vehiclesOpen = true,
   onToggleVehicles,
   onOptimize,
+  onLoadAnimation,
   isOptimizing = false,
   canOptimize = true,
   planId,
@@ -434,6 +435,8 @@ export function PlanRightPanel({
   const xRayMode = useSceneStore((s) => s.xRayMode);
   const toggleXRayMode = useSceneStore((s) => s.toggleXRayMode);
   const setActiveLayer = useSceneStore((s) => s.setActiveLayer);
+  const animationReady = useSceneStore((s) => s.animationReady);
+  const animationMode = useSceneStore((s) => s.animationMode);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
@@ -945,6 +948,19 @@ export function PlanRightPanel({
               </div>
             )}
           </div>
+
+          {animationReady && (
+            <Button
+              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={onLoadAnimation}
+              disabled={animationMode === 'playing'}
+            >
+              {animationMode === 'playing' ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : null}
+              Yüklemeyi Başlat
+            </Button>
+          )}
 
           <Button
             className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"

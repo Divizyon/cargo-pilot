@@ -103,7 +103,14 @@ export function useSharePlanFullDetail(token: string) {
       const { data } = await axiosInstance.get<unknown>(`/api/v1/shares/${token}/plan`);
       const parsed = planFullDetailApiResponseSchema.safeParse(data);
       if (!parsed.success) {
-        return { planName: '—', vehicle: null, inputItems: [], placements: [], skuColorMap: {} };
+        return {
+          planName: '—',
+          vehicle: null,
+          inputItems: [],
+          placements: [],
+          skuColorMap: {},
+          unplacedItems: [],
+        };
       }
       return fromApiFullDetail(parsed.data.data);
     },

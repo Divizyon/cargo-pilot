@@ -41,6 +41,7 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
+  const setAnimationReadyInner = useSceneStore((s) => s.setAnimationReady);
 
   const appliedRef = useRef(false);
 
@@ -60,7 +61,19 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
-  }, [isSuccess, data, setVehicle, initItems, setPlacements, setUnplacedItems, onVehicleSelected]);
+    if (data.placements.length > 0) {
+      setAnimationReadyInner(true);
+    }
+  }, [
+    isSuccess,
+    data,
+    setVehicle,
+    initItems,
+    setPlacements,
+    setUnplacedItems,
+    onVehicleSelected,
+    setAnimationReadyInner,
+  ]);
 
   return null;
 }
@@ -96,7 +109,6 @@ export function NewPlanPage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
 
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
   const startAnimation = useSceneStore((s) => s.startAnimation);
@@ -240,11 +252,8 @@ export function NewPlanPage() {
         </div>
 
         {/* Kamera presetleri — sağ üst */}
-        <div className="absolute top-3 right-3 z-20">
-          <CameraPresetButtons
-            getSnapshot={() => snapshotRef.current?.() ?? ''}
-            planId={fromPlanId}
-          />
+        <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
+          <CameraPresetButtons />
         </div>
 
         {/* Merkez — 3D Viewport */}
