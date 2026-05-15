@@ -91,17 +91,7 @@ export function downloadVehicleImportTemplate(): void {
     'Maks Yük (kg)',
     'Kapı Yönü (rear/side/top/rearAndSide)',
   ];
-  const example = [
-    'Tır',
-    'Ana Dorse',
-    '34ABC123',
-    '',
-    '1360',
-    '240',
-    '270',
-    '26000',
-    'rear',
-  ];
+  const example = ['Tır', 'Ana Dorse', '34ABC123', '', '1360', '240', '270', '26000', 'rear'];
 
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
   const wb = XLSX.utils.book_new();

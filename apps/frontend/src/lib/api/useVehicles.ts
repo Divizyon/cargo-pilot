@@ -243,7 +243,11 @@ export function useUpdateVehicle() {
     },
     onError: (err: unknown) => {
       if (axios.isAxiosError(err)) {
-        console.error('[useUpdateVehicle] error response', err.response?.status, JSON.stringify(err.response?.data, null, 2));
+        console.error(
+          '[useUpdateVehicle] error response',
+          err.response?.status,
+          JSON.stringify(err.response?.data, null, 2),
+        );
         if (err.response?.status === 409) {
           toast.error('Bu plaka zaten kayıtlı. Farklı bir plaka giriniz.', {
             position: 'bottom-right',

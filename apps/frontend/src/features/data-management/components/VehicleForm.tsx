@@ -207,7 +207,9 @@ export function VehicleForm({
           <FormWithPreviewLayout
             className="flex-1 min-h-0"
             formContent={formContent}
-            previewContent={<VehiclePreviewPanel form={form} vehicle={vehicle} isCreateMode={isCreateMode} />}
+            previewContent={
+              <VehiclePreviewPanel form={form} vehicle={vehicle} isCreateMode={isCreateMode} />
+            }
             actions={actions}
           />
         </form>

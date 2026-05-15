@@ -169,7 +169,9 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
     isActive: api.isActive,
     isDeleted: api.isDeleted,
     createdAt: api.createdAtUtc,
-    createdBy: api.createdBy ? { id: '', fullName: api.createdBy.fullName } : { id: '', fullName: '' },
+    createdBy: api.createdBy
+      ? { id: '', fullName: api.createdBy.fullName }
+      : { id: '', fullName: '' },
     updatedAt: api.updatedAtUtc ?? undefined,
     updatedBy: api.updatedBy ? { id: '', fullName: api.updatedBy.fullName } : undefined,
   };

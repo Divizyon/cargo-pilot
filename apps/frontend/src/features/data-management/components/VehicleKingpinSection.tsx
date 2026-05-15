@@ -40,7 +40,11 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                     value={field.value ?? ''}
                     onChange={(e) => {
                       const raw = e.target.value;
-                      field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -70,7 +74,11 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                     value={field.value ?? ''}
                     onChange={(e) => {
                       const raw = e.target.value;
-                      field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -101,7 +109,11 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                     value={field.value ?? ''}
                     onChange={(e) => {
                       const raw = e.target.value;
-                      field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

@@ -787,7 +787,7 @@ export function ProductForm({
                   <FormControl>
                     <Input
                       type="text"
-                inputMode="numeric"
+                      inputMode="numeric"
                       step="0.1"
                       min={0}
                       placeholder="15.5"
@@ -795,7 +795,11 @@ export function ProductForm({
                       {...field}
                       value={field.value ?? ''}
                       onChange={(e) =>
-                        field.onChange(e.target.value === '' || !Number.isFinite(parseFloat(e.target.value)) ? undefined : parseFloat(e.target.value))
+                        field.onChange(
+                          e.target.value === '' || !Number.isFinite(parseFloat(e.target.value))
+                            ? undefined
+                            : parseFloat(e.target.value),
+                        )
                       }
                     />
                   </FormControl>
@@ -1069,7 +1073,12 @@ export function ProductForm({
   const actions = (
     <div className="flex items-center gap-1.5">
       {onCancel && (
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSubmitting}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          disabled={isSubmitting}
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           {t('forms.product.cancel')}
@@ -1311,7 +1320,8 @@ function DimensionField({
                 value={field.value ?? ''}
                 onChange={(e) => {
                   const raw = e.target.value;
-                  const num = raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw);
+                  const num =
+                    raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw);
                   field.onChange(num);
                   if (onAfterChange) {
                     onAfterChange(num);

@@ -25,7 +25,9 @@ export function VehicleLayerCountField({ form }: VehicleLayerCountFieldProps) {
               value={field.value ?? ''}
               onChange={(e) => {
                 const raw = e.target.value;
-                field.onChange(raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw));
+                field.onChange(
+                  raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw),
+                );
               }}
               onKeyDown={(e) => {
                 if (['.', ',', '-'].includes(e.key)) e.preventDefault();

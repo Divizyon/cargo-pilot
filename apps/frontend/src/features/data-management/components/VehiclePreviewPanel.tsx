@@ -101,9 +101,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
     { label: 'Dara', value: tare },
     { label: 'Aks Sayısı', value: axleCount > 1 ? `${axleCount} adet` : '—' },
     { label: 'Açıklama', value: description?.trim() || '—' },
-    ...(isCreateMode
-      ? [{ label: 'Oluşturan', value: currentUserName }]
-      : []),
+    ...(isCreateMode ? [{ label: 'Oluşturan', value: currentUserName }] : []),
     ...(!isCreateMode && vehicle?.updatedAt
       ? [
           {
@@ -112,9 +110,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
           },
         ]
       : []),
-    ...(!isCreateMode && isPassive
-      ? [{ label: 'Pasife Alan', value: currentUserName }]
-      : []),
+    ...(!isCreateMode && isPassive ? [{ label: 'Pasife Alan', value: currentUserName }] : []),
   ];
 
   return (
