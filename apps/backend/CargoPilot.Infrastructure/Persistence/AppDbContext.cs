@@ -34,6 +34,7 @@ public class AppDbContext : DbContext {
     public DbSet<ErpUserMapping> ErpUserMappings => Set<ErpUserMapping>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PendingItemMapping> PendingItemMappings => Set<PendingItemMapping>();
+    public DbSet<ErpSettings> ErpSettings => Set<ErpSettings>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -67,6 +68,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new ErpUserMappingConfiguration());
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new PendingItemMappingConfiguration());
+        modelBuilder.ApplyConfiguration(new ErpSettingsConfiguration());
     }
 
     private void ApplyAuditFields() {
