@@ -364,6 +364,7 @@ export const planFullDetailApiResponseSchema = z.object({
 });
 
 export type PlanFullDetail = {
+  planName: string;
   vehicle: Vehicle | null;
   inputItems: Array<{ item: Item; quantity: number }>;
   placements: PlacementWithDimensions[];
@@ -467,5 +468,6 @@ export function fromApiFullDetail(
     };
   });
 
-  return { vehicle, inputItems, placements, skuColorMap };
+  const planName = data.planName ?? '—';
+  return { planName, vehicle, inputItems, placements, skuColorMap };
 }

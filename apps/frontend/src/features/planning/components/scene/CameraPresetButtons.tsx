@@ -24,7 +24,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 rounded-lg bg-white/90 p-1 backdrop-blur border border-zinc-200 text-zinc-700',
+        'w-full flex items-center rounded-xl bg-white px-2 py-1.5 border border-zinc-200 text-zinc-700',
         className,
       )}
     >
@@ -40,6 +40,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
             title={SCENE.CAMERA_PRESETS[key].label}
             aria-label={SCENE.CAMERA_PRESETS[key].label}
             aria-pressed={active}
+            className="flex-1"
           >
             <Icon className="h-4 w-4" />
           </Button>

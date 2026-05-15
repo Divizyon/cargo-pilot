@@ -88,6 +88,7 @@ export function NewPlanPage() {
 
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
+  const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
   const startAnimation = useSceneStore((s) => s.startAnimation);
 
@@ -254,7 +255,7 @@ export function NewPlanPage() {
         </div>
 
         {/* Kamera presetleri — sağ üst */}
-        <div className="absolute top-3 right-3 z-20">
+        <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
           <CameraPresetButtons />
         </div>
 
@@ -275,6 +276,8 @@ export function NewPlanPage() {
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
             canOptimize={fromPlanId ? isDirty : true}
             getSnapshot={() => snapshotRef.current?.() ?? ''}
+            planId={fromPlanId}
+            planName={planDetail?.planName}
           />
         </div>
       </div>

@@ -17,7 +17,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  Activity,
   Box,
   ChevronDown,
   ChevronLeft,
@@ -33,6 +32,7 @@ import {
   Plus,
   Printer,
   Search,
+  Share2,
   SlidersHorizontal,
   Truck,
   X,
@@ -52,6 +52,7 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
+import { toast } from 'sonner';
 import { SCENE } from '@/lib/config/scene-config';
 import { useDebounce } from '@/lib/utils/useDebounce';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
@@ -66,6 +67,7 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
+import { ShareLinkDialog } from './ShareLinkDialog';
 
 // ─── Vehicle type filter metadata ────────────────────────────────────────────
 
@@ -404,6 +406,8 @@ interface PlanRightPanelProps {
   isOptimizing?: boolean;
   canOptimize?: boolean;
   getSnapshot?: () => string;
+  planId?: string;
+  planName?: string;
 }
 
 export function PlanRightPanel({
@@ -412,6 +416,8 @@ export function PlanRightPanel({
   onOptimize,
   isOptimizing = false,
   canOptimize = true,
+  planId,
+  planName,
   getSnapshot,
 }: PlanRightPanelProps) {
   const addVehicle = usePlanStore((s) => s.addVehicle);
@@ -427,8 +433,6 @@ export function PlanRightPanel({
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
   const xRayMode = useSceneStore((s) => s.xRayMode);
   const toggleXRayMode = useSceneStore((s) => s.toggleXRayMode);
-  const stressTestMode = useSceneStore((s) => s.stressTestMode);
-  const toggleStressTestMode = useSceneStore((s) => s.toggleStressTestMode);
   const setActiveLayer = useSceneStore((s) => s.setActiveLayer);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
@@ -442,6 +446,7 @@ export function PlanRightPanel({
 
   // Analysis & export state
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [xrayPanelOpen, setXrayPanelOpen] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const xrayPanelRef = useRef<HTMLDivElement>(null);
@@ -864,17 +869,21 @@ export function PlanRightPanel({
               </button>
 
               <button
-                onClick={toggleStressTestMode}
-                title="Stres Testi"
-                className={cn(
-                  'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                  stressTestMode
-                    ? 'bg-zinc-900 text-white border-zinc-900'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
-                )}
+                onClick={() => {
+                  if (!planId) {
+                    toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
+                      position: 'bottom-right',
+                    });
+                    return;
+                  }
+                  setShareDialogOpen(true);
+                }}
+                disabled={placements.length === 0}
+                title="Paylaş"
+                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Activity className="w-3.5 h-3.5" />
-                <span>Stres Testi</span>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Paylaş</span>
               </button>
 
               <button
@@ -953,6 +962,15 @@ export function PlanRightPanel({
         onOpenChange={setShowVehicleModal}
         onCreated={handleVehicleCreated}
       />
+
+      {planId && (
+        <ShareLinkDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          planId={planId}
+          planName={planName ?? selectedVehicle?.name ?? 'Plan'}
+        />
+      )}
     </div>
   );
 }
