@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  ArrowDownUp,
   Box,
   ChevronDown,
   ChevronLeft,
@@ -31,6 +32,7 @@ import {
   Package2,
   Plus,
   Printer,
+  Scale,
   Search,
   Share2,
   SlidersHorizontal,
@@ -52,6 +54,7 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
+import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import { toast } from 'sonner';
 import { SCENE } from '@/lib/config/scene-config';
 import { useDebounce } from '@/lib/utils/useDebounce';
@@ -428,6 +431,8 @@ export function PlanRightPanel({
   const selectedVehicles = usePlanStore((s) => s.selectedVehicles);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
+  const criteria = usePlanStore((s) => s.criteria);
+  const setCriteria = usePlanStore((s) => s.setCriteria);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const showCog = useSceneStore((s) => s.showCog);
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
@@ -944,6 +949,44 @@ export function PlanRightPanel({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Optimizasyon modu seçici */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-zinc-400 px-0.5">Yerleştirme Modu</span>
+            <div className="grid grid-cols-2 gap-1">
+              {(
+                [
+                  {
+                    value: OptimizationCriteria.Lifo,
+                    icon: ArrowDownUp,
+                    label: 'LIFO',
+                    title: 'Son giren ilk çıkar',
+                  },
+                  {
+                    value: OptimizationCriteria.WeightBalance,
+                    icon: Scale,
+                    label: 'Ağırlık Dengesi',
+                    title: 'Ağırlık dengesi',
+                  },
+                ] as const
+              ).map(({ value, icon: Icon, label, title }) => (
+                <button
+                  key={value}
+                  onClick={() => setCriteria(value)}
+                  title={title}
+                  className={cn(
+                    'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
+                    criteria === value
+                      ? 'bg-zinc-900 text-white border-zinc-900'
+                      : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <Button
