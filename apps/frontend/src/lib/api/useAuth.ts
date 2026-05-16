@@ -154,7 +154,9 @@ export function useLogin() {
       if (res.data.mustChangePassword) {
         navigate('/auth/force-change-password', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        const redirectTo = sessionStorage.getItem('redirect_after_login') ?? '/dashboard';
+        sessionStorage.removeItem('redirect_after_login');
+        navigate(redirectTo, { replace: true });
       }
     },
     // onError: component handles it (AC3/AC4 ayrımı için)
