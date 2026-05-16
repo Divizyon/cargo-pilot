@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import type { Vehicle } from '@/lib/types/vehicle';
 import { useVehicle, useUpdateVehicle } from '@/lib/api/useVehicles';
 import { vehicleToFormValues } from '@/lib/api/vehicleMappers';
 import { VehicleForm } from '@/features/data-management/components/VehicleForm';
@@ -15,9 +14,7 @@ import { Trash2, Copy } from 'lucide-react';
 export function VehicleEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const vehicleFromState = (location.state as { vehicle?: Vehicle } | null)?.vehicle;
-  const { data: vehicle, isLoading, isError } = useVehicle(id ?? '', vehicleFromState);
+  const { data: vehicle, isLoading } = useVehicle(id ?? '');
   const { mutate: updateVehicle, isPending } = useUpdateVehicle();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
@@ -47,7 +44,7 @@ export function VehicleEditPage() {
     );
   }
 
-  if (isError || !vehicle) {
+  if (!vehicle) {
     return (
       <div className="flex flex-col gap-6">
         <p className="text-sm text-destructive">Araç yüklenemedi.</p>
@@ -56,8 +53,8 @@ export function VehicleEditPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Araç Detayı</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -86,13 +83,17 @@ export function VehicleEditPage() {
         </div>
       </div>
 
-      <VehicleForm
-        defaultValues={vehicleToFormValues(vehicle) as VehicleFormValues}
-        onSubmit={handleSubmit}
-        onCancel={() => navigate('/vehicles')}
-        isSubmitting={isPending}
-        disableSubmitWhenPristine={vehicle.status !== 'draft'}
-      />
+      <div className="flex-1 min-h-0">
+        <VehicleForm
+          key={vehicle.updatedAt ?? vehicle.id}
+          defaultValues={vehicleToFormValues(vehicle) as VehicleFormValues}
+          onSubmit={handleSubmit}
+          onCancel={() => navigate('/vehicles')}
+          isSubmitting={isPending}
+          disableSubmitWhenPristine={vehicle.status !== 'draft'}
+          vehicle={vehicle}
+        />
+      </div>
 
       <VehicleDeleteDialog
         vehicle={showDeleteDialog ? vehicle : null}
