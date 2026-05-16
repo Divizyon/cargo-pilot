@@ -18,6 +18,7 @@ export function ProductCreatePage() {
       <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-card">
         <ProductForm
           isSubmitting={createItem.isPending}
+          submitLabel="Kaydet"
           onCancel={() => navigate('/products')}
           onSubmit={(values) =>
             createItem.mutate(values, {
