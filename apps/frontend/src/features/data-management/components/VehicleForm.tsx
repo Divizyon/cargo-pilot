@@ -5,7 +5,7 @@ import { Form } from '@/components/ui/form';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
 import { VehicleIdentityFields } from './VehicleIdentityFields';
 import { VehiclePlateOrSerialField } from './VehiclePlateOrSerialField';
-import { VehicleLayerCountField } from './VehicleLayerCountField';
+
 import { VehicleDimensionsFields } from './VehicleDimensionsFields';
 import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleWeightFields } from './VehicleWeightFields';
@@ -107,13 +107,12 @@ export function VehicleForm({
         )}
       </div>
 
-      {/* 1. KİMLİK — ad, plaka, katman sayısı */}
+      {/* 1. KİMLİK — ad, plaka */}
       <div className="space-y-4 py-6">
         <SectionTitle>Kimlik Bilgileri</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <VehicleIdentityFields form={form} section="name-only" />
           <VehiclePlateOrSerialField form={form} hideHeading />
-          <VehicleLayerCountField form={form} />
         </div>
       </div>
 
@@ -184,17 +183,6 @@ export function VehicleForm({
     </div>
   );
 
-  const actions = (
-    <VehicleFormActions
-      form={form}
-      isSubmitting={isSubmitting}
-      onCancel={onCancel}
-      onDraftSubmit={onDraftSubmit ?? (() => undefined)}
-      disableSubmitWhenPristine={disableSubmitWhenPristine}
-      submitLabel={isCreateMode ? 'Kaydet' : 'Değişiklikleri Kaydet'}
-    />
-  );
-
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
@@ -207,10 +195,21 @@ export function VehicleForm({
           <FormWithPreviewLayout
             className="flex-1 min-h-0"
             formContent={formContent}
+            actionBar={
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
+                <VehicleFormActions
+                  form={form}
+                  isSubmitting={isSubmitting}
+                  onCancel={onCancel}
+                  onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+                  disableSubmitWhenPristine={disableSubmitWhenPristine}
+                  submitLabel={isCreateMode ? 'Kaydet' : 'Değişiklikleri Kaydet'}
+                />
+              </div>
+            }
             previewContent={
               <VehiclePreviewPanel form={form} vehicle={vehicle} isCreateMode={isCreateMode} />
             }
-            actions={actions}
           />
         </form>
       </Form>

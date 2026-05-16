@@ -8,4 +8,5 @@ public sealed record ItemInPlanDto(
     decimal Height,
     decimal Length,
     decimal Weight,
-    string? ImageUrl);
+    string? ImageUrl,
+    string? ProductType);
