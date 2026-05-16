@@ -9,7 +9,19 @@ import {
   Layers3,
   ChevronDown,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useDeleteLoadingPlan } from '@/lib/api/useLoadingPlans';
 import { planningDetailRoute } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import type {
@@ -165,6 +177,8 @@ interface VehicleCardProps {
 
 export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
   const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
 
   const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
 
@@ -206,6 +220,16 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{planDate}</p>
           </div>
+          <button
+            aria-label="Planı sil"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteOpen(true);
+            }}
+            className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Araç teknik bilgileri (AC1–AC5) */}
@@ -353,6 +377,27 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Planı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{plan.planName}</strong> planı silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={() => deletePlan(plan.id)}
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

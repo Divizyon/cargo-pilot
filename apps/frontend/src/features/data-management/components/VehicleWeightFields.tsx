@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -13,6 +14,17 @@ interface VehicleWeightFieldsProps {
 
 export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
   const weightUnit = useUnitStore((s) => s.weightUnit);
+
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
+  const [maxCargoDisplay, setMaxCargoDisplay] = useState(() =>
+    toStr(form.getValues('maxCargoWeight')),
+  );
+  const [grossWeightDisplay, setGrossWeightDisplay] = useState(() =>
+    toStr(form.getValues('grossWeight')),
+  );
+  const [tareWeightDisplay, setTareWeightDisplay] = useState(() =>
+    toStr(form.getValues('tareWeight')),
+  );
 
   const [maxCargoWeight, axleB, axles, kingpin] = useWatch({
     control: form.control,
@@ -47,9 +59,10 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                     placeholder="26000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={maxCargoDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setMaxCargoDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
@@ -80,9 +93,10 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                     placeholder="40000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={grossWeightDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setGrossWeightDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
@@ -113,9 +127,10 @@ export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
                     placeholder="14000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={tareWeightDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setTareWeightDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
