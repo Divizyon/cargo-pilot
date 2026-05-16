@@ -13,7 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { luhnCheck } from '@/lib/utils/luhn';
-import { CardType, detectCardType, formatCardNumber, formatExpiry } from '@/lib/utils/cardFormatting';
+import {
+  CardType,
+  detectCardType,
+  formatCardNumber,
+  formatExpiry,
+} from '@/lib/utils/cardFormatting';
 import { paymentSchema, type PaymentFormValues } from '../schemas/paymentSchema';
 import { useSubscriptionStore } from '@/lib/store/useSubscriptionStore';
 
@@ -133,14 +138,18 @@ export function SavedCardForm({ onClose }: SavedCardFormProps) {
                       }}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                      {isCardValid && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />}
+                      {isCardValid && (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                      )}
                       {isCardInvalid && <XCircle className="h-4 w-4 shrink-0 text-destructive" />}
                       <CardTypeBadge cardType={cardType} />
                     </div>
                   </div>
                 </FormControl>
                 {isCardInvalid && (
-                  <p className="text-[12px] font-medium text-destructive">Geçersiz kart numarası.</p>
+                  <p className="text-[12px] font-medium text-destructive">
+                    Geçersiz kart numarası.
+                  </p>
                 )}
                 <FormMessage />
               </FormItem>

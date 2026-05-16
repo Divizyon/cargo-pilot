@@ -6,13 +6,10 @@ export const paymentSchema = z.object({
   cardNumber: z
     .string()
     .min(1, 'Kart numarası gereklidir.')
-    .refine(
-      (v) => {
-        const len = v.replace(/\s/g, '').length;
-        return len === 15 || len === 16;
-      },
-      'Kart numarası 15 veya 16 haneli olmalıdır.'
-    )
+    .refine((v) => {
+      const len = v.replace(/\s/g, '').length;
+      return len === 15 || len === 16;
+    }, 'Kart numarası 15 veya 16 haneli olmalıdır.')
     .refine(luhnCheck, 'Geçersiz kart numarası.'),
   expiry: z
     .string()

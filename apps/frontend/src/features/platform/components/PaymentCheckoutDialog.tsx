@@ -93,9 +93,7 @@ function CardTypeBadge({ cardType }: { cardType: CardType | null }) {
 
 function CardNetworkMark({ cardType }: { cardType: CardType | null }) {
   if (cardType === CardType.Visa) {
-    return (
-      <span className="font-bold italic text-[15px] tracking-widest text-white/90">VISA</span>
-    );
+    return <span className="font-bold italic text-[15px] tracking-widest text-white/90">VISA</span>;
   }
   if (cardType === CardType.Amex) {
     return (
@@ -130,7 +128,13 @@ interface CardPreviewProps {
   cardType: CardType | null;
 }
 
-function CardPreview({ cardNumber, cardholderName, expiry, cvvFocused, cardType }: CardPreviewProps) {
+function CardPreview({
+  cardNumber,
+  cardholderName,
+  expiry,
+  cvvFocused,
+  cardType,
+}: CardPreviewProps) {
   const displayName = cardholderName.trim().toUpperCase() || 'KART SAHİBİ';
   const displayExpiry = expiry || 'AA/YY';
 
@@ -148,7 +152,15 @@ function CardPreview({ cardNumber, cardholderName, expiry, cvvFocused, cardType 
         <div className="absolute inset-0 [backface-visibility:hidden] flex flex-col justify-between rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 p-5 shadow-[0_8px_32px_rgba(0,0,0,0.32)]">
           <div className="flex items-start justify-between">
             <svg width="38" height="30" viewBox="0 0 38 30" fill="none">
-              <rect x="0.5" y="0.5" width="37" height="29" rx="5.5" fill="#D4AF37" stroke="#B8960C" />
+              <rect
+                x="0.5"
+                y="0.5"
+                width="37"
+                height="29"
+                rx="5.5"
+                fill="#D4AF37"
+                stroke="#B8960C"
+              />
               <rect x="13" y="0.5" width="12" height="29" fill="#C9A227" />
               <rect x="0.5" y="10" width="37" height="10" fill="#C9A227" />
               <rect x="13" y="10" width="12" height="10" fill="#B8960C" />
@@ -283,7 +295,11 @@ export function PaymentCheckoutInline({ initialPlan, onCancel }: PaymentCheckout
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
         {/* ── Form ── */}
         <Form {...form}>
-          <form id="payment-form" onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form
+            id="payment-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
             <FormField
               control={form.control}
               name="cardholderName"
@@ -331,9 +347,7 @@ export function PaymentCheckoutInline({ initialPlan, onCancel }: PaymentCheckout
                         {isCardValid && (
                           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                         )}
-                        {isCardInvalid && (
-                          <XCircle className="h-4 w-4 shrink-0 text-destructive" />
-                        )}
+                        {isCardInvalid && <XCircle className="h-4 w-4 shrink-0 text-destructive" />}
                         <CardTypeBadge cardType={cardType} />
                       </div>
                     </div>
@@ -446,12 +460,7 @@ export function PaymentCheckoutInline({ initialPlan, onCancel }: PaymentCheckout
             </Alert>
           )}
 
-          <Button
-            type="submit"
-            form="payment-form"
-            className="w-full gap-2"
-            disabled={isPending}
-          >
+          <Button type="submit" form="payment-form" className="w-full gap-2" disabled={isPending}>
             {isPending ? (
               'İşleniyor...'
             ) : (

@@ -25,7 +25,10 @@ export function formatCardNumber(rawDigits: string, cardType: CardType | null): 
     if (d.length <= 10) return `${d.slice(0, 4)} ${d.slice(4)}`;
     return `${d.slice(0, 4)} ${d.slice(4, 10)} ${d.slice(10)}`;
   }
-  return digits.slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+  return digits
+    .slice(0, 16)
+    .replace(/(.{4})/g, '$1 ')
+    .trim();
 }
 
 export function formatExpiry(raw: string): string {
