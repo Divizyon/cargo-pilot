@@ -1,14 +1,22 @@
 import { z } from 'zod';
+import { luhnCheck } from '@/lib/utils/luhn';
 
 export const paymentSchema = z.object({
   cardholderName: z.string().min(2, 'Kart sahibinin adı gereklidir.'),
   cardNumber: z
     .string()
     .min(1, 'Kart numarası gereklidir.')
-    .refine((v) => v.replace(/\s/g, '').length === 16, 'Kart numarası 16 haneli olmalıdır.'),
+    .refine(
+      (v) => {
+        const len = v.replace(/\s/g, '').length;
+        return len === 15 || len === 16;
+      },
+      'Kart numarası 15 veya 16 haneli olmalıdır.'
+    )
+    .refine(luhnCheck, 'Geçersiz kart numarası.'),
   expiry: z
     .string()
-    .regex(/^\d{2}\/\d{2}$/, 'GG/YY formatında giriniz.')
+    .regex(/^\d{2}\/\d{2}$/, 'AA/YY formatında giriniz.')
     .refine((v) => {
       const [mm, yy] = v.split('/').map(Number);
       if (!mm || !yy) return false;

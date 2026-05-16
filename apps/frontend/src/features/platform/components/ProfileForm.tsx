@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,8 @@ import {
   useChangePassword,
 } from '@/lib/api/useAuth';
 import { useAuthStore } from '@/lib/store/useAuthStore';
+import { useSubscriptionStore, type SavedCardInfo } from '@/lib/store/useSubscriptionStore';
+import { SavedCardForm } from '@/features/platform/components/SavedCardForm';
 import { profileSchema } from '@/features/platform/schemas/profileSchema';
 import type { ProfileFormValues } from '@/features/platform/schemas/profileSchema';
 import {
@@ -29,6 +31,39 @@ import {
 } from '@/features/platform/schemas/passwordChangeSchema';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+
+function SavedCardNetworkBadge({ network }: { network: SavedCardInfo['network'] }) {
+  if (network === 'visa') {
+    return (
+      <span className="rounded bg-[#1a1f71] px-1.5 py-0.5 font-bold italic text-[10px] tracking-wider text-white">
+        VISA
+      </span>
+    );
+  }
+  if (network === 'mastercard') {
+    return (
+      <div className="flex items-center">
+        <div className="h-4 w-4 rounded-full bg-red-500" />
+        <div className="-ml-1.5 h-4 w-4 rounded-full bg-yellow-400 opacity-90" />
+      </div>
+    );
+  }
+  if (network === 'amex') {
+    return (
+      <span className="rounded bg-[#007bc1] px-1.5 py-0.5 font-bold text-[10px] tracking-wider text-white">
+        AMEX
+      </span>
+    );
+  }
+  if (network === 'troy') {
+    return (
+      <span className="rounded bg-red-600 px-1.5 py-0.5 font-bold text-[10px] tracking-wider text-white">
+        TROY
+      </span>
+    );
+  }
+  return <CreditCard className="h-4 w-4 text-muted-foreground" />;
+}
 
 function PasswordToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
   return (
@@ -280,8 +315,12 @@ export function ProfileForm() {
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const currentEmail = useAuthStore((s) => s.user?.email ?? '');
 
+  const savedCard = useSubscriptionStore((s) => s.savedCard);
+  const clearSavedCard = useSubscriptionStore((s) => s.setSavedCard);
+
   const [emailOpen, setEmailOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [cardAddOpen, setCardAddOpen] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -421,6 +460,57 @@ export function ProfileForm() {
               </Button>
             </div>
             {passwordOpen && <PasswordChangeSection onClose={() => setPasswordOpen(false)} />}
+          </div>
+        </div>
+      </div>
+
+      {/* ÖDEME BİLGİLERİ */}
+      <div className="py-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Ödeme Bilgileri
+        </p>
+        <div className="flex items-start gap-6 py-3">
+          <span className="w-52 shrink-0 pt-2 text-sm text-foreground">Kayıtlı Kart</span>
+          <div className="flex flex-1 flex-col gap-1.5">
+            {savedCard ? (
+              <>
+                <div className="flex gap-2">
+                  <div className="flex h-9 flex-1 items-center gap-2.5 rounded-md border border-input bg-muted px-3">
+                    <SavedCardNetworkBadge network={savedCard.network} />
+                    <span className="font-mono text-sm tracking-widest text-muted-foreground">
+                      •••• •••• •••• {savedCard.last4}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0"
+                    onClick={() => clearSavedCard(null)}
+                  >
+                    Kaldır
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {savedCard.cardholderName} · Son kullanma: {savedCard.expiry}
+                </p>
+              </>
+            ) : cardAddOpen ? (
+              <SavedCardForm onClose={() => setCardAddOpen(false)} />
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-muted-foreground">Kayıtlı kart bulunmuyor.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setCardAddOpen(true)}
+                >
+                  Kart Ekle
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
