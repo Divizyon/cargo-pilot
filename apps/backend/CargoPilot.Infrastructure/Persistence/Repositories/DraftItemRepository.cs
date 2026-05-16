@@ -18,9 +18,9 @@ internal sealed class DraftItemRepository : IDraftItemRepository
         await _context.DraftItems
             .FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == companyId, cancellationToken);
 
-    public async Task<DraftItem?> GetByErpIdAsync(string erpId, Guid integrationId, CancellationToken cancellationToken = default) =>
+    public async Task<DraftItem?> GetByErpIdAsync(string erpId, Guid integrationId, Guid companyId, CancellationToken cancellationToken = default) =>
         await _context.DraftItems
-            .FirstOrDefaultAsync(x => x.ErpId == erpId && x.IntegrationId == integrationId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.ErpId == erpId && x.IntegrationId == integrationId && x.CompanyId == companyId, cancellationToken);
 
     public async Task<(IReadOnlyList<DraftItem> Items, int TotalCount)> ListByCompanyAsync(
         Guid companyId,

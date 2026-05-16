@@ -102,7 +102,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             foreach (var product in erpProducts)
             {
                 var existing = await _draftItemRepository.GetByErpIdAsync(
-                    product.ErpId, integration.Id, cancellationToken);
+                    product.ErpId, integration.Id, companyId.Value, cancellationToken);
 
                 if (existing is not null)
                 {
