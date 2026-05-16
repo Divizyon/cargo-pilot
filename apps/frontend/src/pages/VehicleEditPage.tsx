@@ -83,7 +83,7 @@ export function VehicleEditPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex flex-col flex-1 min-h-0">
         <VehicleForm
           key={vehicle.updatedAt ?? vehicle.id}
           defaultValues={vehicleToFormValues(vehicle) as VehicleFormValues}
