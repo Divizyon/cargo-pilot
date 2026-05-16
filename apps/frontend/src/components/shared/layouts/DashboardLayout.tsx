@@ -27,6 +27,7 @@ import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -238,6 +239,23 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
           {BOTTOM_NAV.map((item) => (
             <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
           ))}
+          {/* Theme toggle row */}
+          <div
+            className={cn(
+              'flex h-9 items-center rounded-lg',
+              isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3 justify-between',
+            )}
+          >
+            <span
+              className={cn(
+                'text-sm font-medium text-muted-foreground',
+                isCollapsed && 'lg:hidden',
+              )}
+            >
+              Tema
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
 
