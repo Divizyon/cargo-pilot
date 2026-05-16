@@ -239,7 +239,6 @@ function mapStatus(
 
 // ─── Mapper: placements → PlanProductGroup[] ─────────────────────────────────
 
-
 export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): PlanProductGroup[] {
   // itemId → { item, count }
   const itemMap = new Map<string, { p: PlacementItemApi; count: number }>();
@@ -316,7 +315,6 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
 //   3=Roll(H,W,L)        4=YawPitch(H,L,W)  5=RollYaw(L,W,H)
 // We store placed dims directly and orientationIndex=0 so rendering needs no further rotation.
 
-
 function placedDimensions(
   w: number,
   h: number,
@@ -367,9 +365,7 @@ export function fromApiPlacementsToScene(
     const rawType = (item.productType as string | undefined)?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
 
-    const groupName = (item.groupName ?? item.categoryName ?? item.category) as
-      | string
-      | undefined;
+    const groupName = (item.groupName ?? item.categoryName ?? item.category) as string | undefined;
     const color = colorMap?.[sku] ?? resolveProductColor(productType, groupName);
 
     return [
