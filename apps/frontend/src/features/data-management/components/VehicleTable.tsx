@@ -5,14 +5,17 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Download,
+  FileDown,
   Plus,
   SlidersHorizontal,
   Star,
   Trash2,
+  Upload,
 } from 'lucide-react';
 
-const PAGE_SIZE = 10;
+const ROW_H = 48; // h-12
+const HEADER_ROW_H = 36; // h-9
+const BELOW_TABLE_H = 80; // pagination + gap + bottom padding
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -33,6 +36,7 @@ import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
 import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
 import { SearchInput } from './SearchInput';
 import { VehicleDeleteDialog } from './VehicleDeleteDialog';
+import { VehicleBulkImportDialog } from './VehicleBulkImportDialog';
 
 // ─── Type icons ───────────────────────────────────────────────────────────────
 
@@ -192,6 +196,15 @@ const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
   { value: 'rearAndSide', label: 'Arka + Yan' },
 ];
 
+// ─── Status filter ────────────────────────────────────────────────────────────
+
+type StatusFilter = 'active' | 'draft' | '';
+
+const STATUS_FILTER_OPTIONS: { value: 'active' | 'draft'; label: string }[] = [
+  { value: 'active', label: 'Aktif' },
+  { value: 'draft', label: 'Arşivlenmiş' },
+];
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function VehicleTableSkeleton() {
@@ -262,7 +275,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
   return (
     <TableRow
       className="h-12 cursor-pointer"
-      onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
+      onClick={() => navigate(`/vehicles/${vehicle.id}/edit`, { state: { vehicle } })}
     >
       {/* Araç */}
       <TableCell className={cn(cell, 'max-w-[180px]')}>
@@ -377,11 +390,37 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [doorFilters, setDoorFilters] = useState<Set<DoorFilter>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
+  const tableCardRef = useRef<HTMLDivElement>(null);
   const { mutate: toggleFavorite } = useToggleFavorite();
+
+  const [pageSize, setPageSize] = useState(() =>
+    Math.max(5, Math.floor((window.innerHeight - 400) / ROW_H)),
+  );
+
+  useEffect(() => {
+    let last = pageSize;
+    const calculate = () => {
+      if (!tableCardRef.current) return;
+      const top = tableCardRef.current.getBoundingClientRect().top;
+      const available = window.innerHeight - top - BELOW_TABLE_H - HEADER_ROW_H;
+      const next = Math.max(5, Math.floor(available / ROW_H));
+      if (next !== last) {
+        last = next;
+        setPageSize(next);
+        setPage(1);
+      }
+    };
+    calculate();
+    window.addEventListener('resize', calculate);
+    return () => window.removeEventListener('resize', calculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -391,13 +430,14 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const { data, isLoading, isFetching } = useVehicles({
     search: searchTerm || undefined,
     vehicleType: category !== 'all' ? category : undefined,
+    status: statusFilter || undefined,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
   });
 
   const vehicles = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   useEffect(() => {
     if (!showFilterPanel) return;
@@ -420,17 +460,28 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     setPage(1);
   }
 
+  function toggleStatusFilter(value: 'active' | 'draft') {
+    setStatusFilter((prev) => (prev === value ? '' : value));
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setDoorFilters(new Set());
+    setStatusFilter('');
+    setPage(1);
+  }
+
   const filteredVehicles =
     doorFilters.size === 0
       ? vehicles
       : vehicles.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
 
   const showSkeleton = isLoading || isFetching;
+  const hasActiveFilters = doorFilters.size > 0 || statusFilter !== '';
   const isEmpty =
-    !showSkeleton && filteredVehicles.length === 0 && !searchTerm && doorFilters.size === 0;
+    !showSkeleton && filteredVehicles.length === 0 && !searchTerm && !hasActiveFilters;
   const noResults =
-    !showSkeleton && filteredVehicles.length === 0 && (Boolean(searchTerm) || doorFilters.size > 0);
-  const hasActiveFilters = doorFilters.size > 0;
+    !showSkeleton && filteredVehicles.length === 0 && (Boolean(searchTerm) || hasActiveFilters);
 
   return (
     <div className="flex flex-col gap-4">
@@ -490,6 +541,24 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
             <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
               <div className="p-3">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Durum
+                </p>
+                <div className="space-y-2">
+                  {STATUS_FILTER_OPTIONS.map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={statusFilter === value}
+                        onCheckedChange={() => toggleStatusFilter(value)}
+                      />
+                      <span className="text-xs">{label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <p className="mb-2 mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Kapı Yönü
                 </p>
                 <div className="space-y-2">
@@ -519,7 +588,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                     variant="link"
                     size="sm"
                     className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
-                    onClick={() => setDoorFilters(new Set())}
+                    onClick={clearFilters}
                   >
                     Filtreleri temizle
                   </Button>
@@ -537,8 +606,19 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           onClick={() => exportVehiclesToExcel(filteredVehicles, {})}
           disabled={filteredVehicles.length === 0}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Upload className="h-3.5 w-3.5" />
           Dışa Aktar
+        </Button>
+
+        {/* İçe Aktar */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5 text-xs"
+          onClick={() => setShowBulkImport(true)}
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          İçe Aktar
         </Button>
 
         {/* Yeni Araç Ekle */}
@@ -556,7 +636,10 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       )}
 
       {/* Table card */}
-      <div className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
+      <div
+        ref={tableCardRef}
+        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+      >
         {showSkeleton ? (
           <VehicleTableSkeleton />
         ) : (
@@ -656,6 +739,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       )}
 
       <VehicleDeleteDialog vehicle={vehicleToDelete} onClose={() => setVehicleToDelete(null)} />
+      <VehicleBulkImportDialog open={showBulkImport} onOpenChange={setShowBulkImport} />
     </div>
   );
 }

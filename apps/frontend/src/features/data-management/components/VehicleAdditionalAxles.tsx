@@ -63,15 +63,19 @@ export const VehicleAdditionalAxles = forwardRef<
                 <FormControl>
                   <div className="relative">
                     <Input
-                      type="number"
-                      min="1"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="11500"
                       className="h-9 border-input bg-background pr-8"
                       {...field}
                       value={field.value ?? ''}
                       onChange={(e) => {
-                        const v = e.target.valueAsNumber;
-                        field.onChange(Number.isNaN(v) ? undefined : v);
+                        const raw = e.target.value;
+                        field.onChange(
+                          raw === '' || !Number.isFinite(parseFloat(raw))
+                            ? undefined
+                            : parseFloat(raw),
+                        );
                       }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -92,15 +96,19 @@ export const VehicleAdditionalAxles = forwardRef<
                 <FormControl>
                   <div className="relative">
                     <Input
-                      type="number"
-                      min="0"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="3000"
                       className="h-9 border-input bg-background pr-8"
                       {...field}
                       value={field.value ?? ''}
                       onChange={(e) => {
-                        const v = e.target.valueAsNumber;
-                        field.onChange(Number.isNaN(v) ? undefined : v);
+                        const raw = e.target.value;
+                        field.onChange(
+                          raw === '' || !Number.isFinite(parseFloat(raw))
+                            ? undefined
+                            : parseFloat(raw),
+                        );
                       }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -121,15 +129,19 @@ export const VehicleAdditionalAxles = forwardRef<
                 <FormControl>
                   <div className="relative">
                     <Input
-                      type="number"
-                      min="1"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="850"
                       className="h-9 border-input bg-background pr-8"
                       {...field}
                       value={field.value ?? ''}
                       onChange={(e) => {
-                        const v = e.target.valueAsNumber;
-                        field.onChange(Number.isNaN(v) ? undefined : v);
+                        const raw = e.target.value;
+                        field.onChange(
+                          raw === '' || !Number.isFinite(parseFloat(raw))
+                            ? undefined
+                            : parseFloat(raw),
+                        );
                       }}
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

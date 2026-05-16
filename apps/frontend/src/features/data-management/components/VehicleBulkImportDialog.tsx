@@ -2,9 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
 import { Download, FileUp, Plus, Trash2 } from 'lucide-react';
-import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,98 +13,112 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useBulkCreateItems, type BackendError } from '@/lib/api/useItems';
-import {
-  ITEM_CATEGORY,
-  toAllowedRotations,
-  toMaxWeightOnTop,
-  type CreateItemRequest,
-} from '@/lib/api/itemMappers';
-import { downloadItemImportTemplate } from '@/lib/utils/export-utils';
+import { useCreateVehicle } from '@/lib/api/useVehicles';
+import { downloadVehicleImportTemplate } from '@/lib/utils/export-utils';
 
-interface BulkImportDialogProps {
+interface VehicleBulkImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-// ─── Row model ────────────────────────────────────────────────────────────────
+// ─── Row model ─────────────────────────────────────────────────────────────────
+
+const VEHICLE_TYPE_OPTIONS = ['Tir', 'Kamyon', 'Kamposet', 'Konteyner'] as const;
+const VEHICLE_TYPE_LABELS: Record<string, string> = {
+  Tir: 'Tır',
+  Kamyon: 'Kamyon',
+  Kamposet: 'Kamposet',
+  Konteyner: 'Konteyner',
+};
+const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top', 'rearAndSide'] as const;
+
+const DOOR_DIRECTION_LABELS: Record<string, string> = {
+  rear: 'Arka',
+  side: 'Yan',
+  top: 'Üst',
+  rearAndSide: 'Arka + Yan',
+};
 
 const editableRowSchema = z.object({
   _id: z.string(),
-  sku: z.string(),
+  vehicleType: z.string(),
   name: z.string(),
-  tip: z.string(),
+  plate: z.string(),
+  serialNumber: z.string(),
+  length: z.string(),
   width: z.string(),
   height: z.string(),
-  length: z.string(),
-  weight: z.string(),
-  fragility: z.string(),
-  isStackable: z.boolean(),
-  maxStackCount: z.string(),
-  allowRotateX: z.boolean(),
-  allowRotateY: z.boolean(),
-  allowRotateZ: z.boolean(),
-  notes: z.string(),
+  maxCargoWeight: z.string(),
+  doorDirection: z.string(),
 });
 
 type EditableRow = z.infer<typeof editableRowSchema>;
 
 type RowErrors = Partial<
-  Record<'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight', string>
+  Record<
+    | 'vehicleType'
+    | 'name'
+    | 'plate'
+    | 'serialNumber'
+    | 'length'
+    | 'width'
+    | 'height'
+    | 'maxCargoWeight'
+    | 'doorDirection',
+    string
+  >
 >;
 
-// ─── Validation & mapping ─────────────────────────────────────────────────────
+// ─── Validation ─────────────────────────────────────────────────────────────────
 
 function validateRow(row: EditableRow): RowErrors {
   const e: RowErrors = {};
-  if (!row.sku.trim()) e.sku = 'Zorunlu alan';
+  if (!VEHICLE_TYPE_OPTIONS.includes(row.vehicleType as (typeof VEHICLE_TYPE_OPTIONS)[number])) {
+    e.vehicleType = 'Tır / Kamyon / Kamposet / Konteyner';
+  }
   if (!row.name.trim()) e.name = 'Zorunlu alan';
-  if (!['koli', 'varil', 'palet'].includes(row.tip)) e.tip = 'koli / varil / palet';
+  if (row.vehicleType !== 'Konteyner' && !row.plate.trim())
+    e.plate = 'Zorunlu alan (Konteyner hariç)';
+  if (row.vehicleType === 'Konteyner' && !row.serialNumber.trim())
+    e.serialNumber = 'Zorunlu alan (Konteyner)';
+  if (!row.length || Number(row.length) <= 0) e.length = 'Pozitif sayı';
   if (!row.width || Number(row.width) <= 0) e.width = 'Pozitif sayı';
   if (!row.height || Number(row.height) <= 0) e.height = 'Pozitif sayı';
-  if (!row.length || Number(row.length) <= 0) e.length = 'Pozitif sayı';
-  if (!row.weight || Number(row.weight) <= 0) e.weight = 'Pozitif sayı';
+  if (!row.maxCargoWeight || Number(row.maxCargoWeight) <= 0) e.maxCargoWeight = 'Pozitif sayı';
+  if (
+    !DOOR_DIRECTION_OPTIONS.includes(row.doorDirection as (typeof DOOR_DIRECTION_OPTIONS)[number])
+  ) {
+    e.doorDirection = 'rear / side / top / rearAndSide';
+  }
   return e;
 }
 
-function tipToCategory(tip: string): (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY] {
-  if (tip === 'palet') return ITEM_CATEGORY.Pallet;
-  if (tip === 'koli') return ITEM_CATEGORY.Box;
-  return ITEM_CATEGORY.Package;
+// ─── Parsing ─────────────────────────────────────────────────────────────────
+
+const TYPE_MAP: Record<string, string> = {
+  tır: 'Tir',
+  tir: 'Tir',
+  kamyon: 'Kamyon',
+  kamposet: 'Kamposet',
+  konteyner: 'Konteyner',
+};
+
+function normalizeType(raw: unknown): string {
+  const s = String(raw ?? '')
+    .toLowerCase()
+    .trim();
+  return TYPE_MAP[s] ?? String(raw ?? '');
 }
 
-function rowToRequest(row: EditableRow): CreateItemRequest {
-  const weight = Number(row.weight);
-  const isStackable = row.isStackable;
-  const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
-  const maxStackCount = isStackable ? rawMax : 0;
-  const fragilityType = Math.min(Math.max(Math.round(Number(row.fragility) || 0), 0), 9);
-  return {
-    sku: row.sku.trim(),
-    name: row.name.trim(),
-    productType: row.tip || 'koli',
-    category: tipToCategory(row.tip),
-    width: Number(row.width) / 10,
-    height: Number(row.height) / 10,
-    length: Number(row.length) / 10,
-    weight,
-    fragilityType,
-    isStackable,
-    maxStackCount,
-    maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
-    allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
-    specialNotes: row.notes.trim() || null,
-  };
-}
-
-function parseBool(v: unknown, fallback = true): boolean {
-  if (typeof v === 'boolean') return v;
-  if (typeof v === 'number') return v !== 0;
-  if (typeof v === 'string') {
-    const s = v.toLowerCase().trim();
-    return s === 'true' || s === '1' || s === 'evet';
-  }
-  return fallback;
+function normalizeDoor(raw: unknown): string {
+  const s = String(raw ?? '')
+    .toLowerCase()
+    .trim();
+  if (s === 'arka' || s === 'rear') return 'rear';
+  if (s === 'yan' || s === 'side') return 'side';
+  if (s === 'üst' || s === 'ust' || s === 'top') return 'top';
+  if (s === 'rearandside' || s === 'arka+yan' || s === 'arka + yan') return 'rearAndSide';
+  return String(raw ?? '');
 }
 
 function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
@@ -114,23 +126,19 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
   return raw.map((r) =>
     editableRowSchema.parse({
       _id: crypto.randomUUID(),
-      sku: String(r['SKU'] ?? ''),
-      name: String(r['Ürün Adı'] ?? ''),
-      tip:
-        String(r['Tip (koli/varil/palet)'] ?? '')
-          .toLowerCase()
-          .trim() || 'koli',
-      width: String(r['Genişlik(mm)'] ?? ''),
-      height: String(r['Yükseklik(mm)'] ?? ''),
-      length: String(r['Uzunluk(mm)'] ?? ''),
-      weight: String(r['Ağırlık(kg)'] ?? ''),
-      fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
-      isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
-      maxStackCount: String(r['Maks Kat'] ?? '1'),
-      allowRotateX: parseBool(r['X Dönüşümü (true/false)'], true),
-      allowRotateY: parseBool(r['Y Dönüşümü (true/false)'], true),
-      allowRotateZ: parseBool(r['Z Dönüşümü (true/false)'], true),
-      notes: String(r['Özel Notlar'] ?? ''),
+      vehicleType: normalizeType(
+        r['Araç Tipi (Tır/Kamyon/Kamposet/Konteyner)'] ?? r['Araç Tipi'] ?? '',
+      ),
+      name: String(r['Araç Adı'] ?? ''),
+      plate: String(r['Plaka (Tır/Kamyon/Kamposet için zorunlu)'] ?? r['Plaka'] ?? ''),
+      serialNumber: String(r['Seri No (Konteyner için zorunlu)'] ?? r['Seri No'] ?? ''),
+      length: String(r['Uzunluk (cm)'] ?? ''),
+      width: String(r['Genişlik (cm)'] ?? ''),
+      height: String(r['Yükseklik (cm)'] ?? ''),
+      maxCargoWeight: String(r['Maks Yük (kg)'] ?? ''),
+      doorDirection: normalizeDoor(
+        r['Kapı Yönü (rear/side/top/rearAndSide)'] ?? r['Kapı Yönü'] ?? 'rear',
+      ),
     }),
   );
 }
@@ -138,20 +146,15 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
 function emptyRow(): EditableRow {
   return editableRowSchema.parse({
     _id: crypto.randomUUID(),
-    sku: '',
+    vehicleType: 'Tir',
     name: '',
-    tip: 'koli',
+    plate: '',
+    serialNumber: '',
+    length: '',
     width: '',
     height: '',
-    length: '',
-    weight: '',
-    fragility: '0',
-    isStackable: false,
-    maxStackCount: '1',
-    allowRotateX: true,
-    allowRotateY: true,
-    allowRotateZ: true,
-    notes: '',
+    maxCargoWeight: '',
+    doorDirection: 'rear',
   });
 }
 
@@ -162,10 +165,9 @@ interface TextCellProps {
   onChange: (v: string) => void;
   error?: string;
   type?: string;
-  className?: string;
 }
 
-function TextCell({ value, onChange, error, type = 'text', className }: TextCellProps) {
+function TextCell({ value, onChange, error, type = 'text' }: TextCellProps) {
   return (
     <Input
       type={type}
@@ -177,7 +179,6 @@ function TextCell({ value, onChange, error, type = 'text', className }: TextCell
         error
           ? 'border-destructive bg-destructive/5 text-destructive focus-visible:ring-destructive/30'
           : 'border-border bg-background focus-visible:ring-primary/20',
-        className,
       )}
     />
   );
@@ -185,11 +186,12 @@ function TextCell({ value, onChange, error, type = 'text', className }: TextCell
 
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
-export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) {
+export function VehicleBulkImportDialog({ open, onOpenChange }: VehicleBulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
-  const [apiErrors, setApiErrors] = useState<string[]>([]);
-  const bulkCreate = useBulkCreateItems();
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const createVehicle = useCreateVehicle();
 
   function patchRow(id: string, patch: Partial<EditableRow>) {
     setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...patch } : r)));
@@ -202,62 +204,83 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     reader.onload = (ev) => {
       const wb = XLSX.read(ev.target?.result, { type: 'array' });
       setRows(xlsxToRows(wb.Sheets[wb.SheetNames[0]]));
-      setApiErrors([]);
+      setImportErrors([]);
     };
     reader.readAsArrayBuffer(file);
     if (e.target) e.target.value = '';
   }
 
-  function handleImport() {
+  async function handleImport() {
     const hasClientErrors = rows.some((r) => Object.keys(validateRow(r)).length > 0);
     if (hasClientErrors || rows.length === 0) return;
-    setApiErrors([]);
-    bulkCreate.mutate(
-      { items: rows.map(rowToRequest) },
-      {
-        onSuccess: () => handleClose(),
-        onError: (err) => {
-          const failures = (err as AxiosError<BackendError>).response?.data?.error
-            ?.validationFailures;
-          if (failures?.length) {
-            setApiErrors(
-              failures.map((f) => [f.propertyName, f.errorMessage].filter(Boolean).join(': ')),
-            );
-          }
-        },
-      },
-    );
+    setImportErrors([]);
+    setIsImporting(true);
+
+    const errors: string[] = [];
+    for (const row of rows) {
+      await new Promise<void>((resolve) => {
+        createVehicle.mutate(
+          {
+            vehicleType: row.vehicleType as 'Tir' | 'Kamyon' | 'Kamposet' | 'Konteyner',
+            name: row.name.trim(),
+            description: undefined,
+            plate: row.vehicleType !== 'Konteyner' ? row.plate.trim() : undefined,
+            serialNumber: row.vehicleType === 'Konteyner' ? row.serialNumber.trim() : undefined,
+            length: Number(row.length),
+            width: Number(row.width),
+            height: Number(row.height),
+            maxCargoWeight: Number(row.maxCargoWeight),
+            doorDirection: row.doorDirection as 'rear' | 'side' | 'top' | 'rearAndSide',
+          },
+          {
+            onSuccess: () => resolve(),
+            onError: () => {
+              errors.push(`"${row.name}" eklenemedi.`);
+              resolve();
+            },
+          },
+        );
+      });
+    }
+
+    setIsImporting(false);
+    if (errors.length > 0) {
+      setImportErrors(errors);
+    } else {
+      handleClose();
+    }
   }
 
   function handleClose() {
     onOpenChange(false);
     setRows([]);
-    setApiErrors([]);
+    setImportErrors([]);
+    setIsImporting(false);
   }
 
   const validations = rows.map((r) => ({ id: r._id, errors: validateRow(r) }));
   const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
-  const canImport = rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending;
+  const canImport = rows.length > 0 && errorRowCount === 0 && !isImporting;
 
-  // ─── Empty state: file picker ─────────────────────────────────────────────
+  // ─── Empty state ──────────────────────────────────────────────────────────
 
   if (rows.length === 0) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Toplu Ürün İçe Aktar</DialogTitle>
+            <DialogTitle>Toplu Araç İçe Aktar</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Excel şablonunu indirin, doldurun ve yükleyin. Yüklenen veriler düzenlenebilir tabloda
-              gösterilir, excele geri dönmenize gerek kalmaz.
+              gösterilir.
             </p>
             <Button
               variant="outline"
               size="sm"
               className="gap-2 text-xs"
-              onClick={downloadItemImportTemplate}
+              onClick={downloadVehicleImportTemplate}
               type="button"
             >
               <Download className="h-3.5 w-3.5" />
@@ -298,16 +321,16 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     );
   }
 
-  // ─── Table state: editable grid ───────────────────────────────────────────
+  // ─── Table state ──────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex h-[78vh] w-[95vw] max-w-[1280px] flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex h-[78vh] w-[95vw] max-w-[1100px] flex-col gap-0 overflow-hidden p-0">
         {/* Header */}
         <DialogHeader className="flex-none border-b px-6 py-4 pr-14">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle>Toplu Ürün İçe Aktar</DialogTitle>
+              <DialogTitle>Toplu Araç İçe Aktar</DialogTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından içe
                 aktarın.
@@ -328,13 +351,13 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         </DialogHeader>
 
         {/* API errors */}
-        {apiErrors.length > 0 && (
+        {importErrors.length > 0 && (
           <div className="flex-none border-b border-destructive/20 bg-destructive/5 px-6 py-2">
             <p className="mb-1 text-xs font-semibold text-destructive">
-              Sunucu {apiErrors.length} satırı reddetti:
+              {importErrors.length} araç eklenemedi:
             </p>
             <ul className="list-inside list-disc space-y-0.5">
-              {apiErrors.map((e, i) => (
+              {importErrors.map((e, i) => (
                 <li key={i} className="text-xs text-destructive">
                   {e}
                 </li>
@@ -344,25 +367,20 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         )}
 
         {/* Scrollable table */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-auto">
           <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
             <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
               <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
-                <th className="w-[12%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
-                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
-                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Genişlik/Çap *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık (kg) *</th>
-                <th className="w-[10%] whitespace-nowrap border-b px-2 py-1.5">Kısıtlar</th>
-                <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
-                <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
-                <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">Y</th>
-                <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">Z</th>
-                <th className="whitespace-nowrap border-b px-2 py-1.5">Notlar</th>
+                <th className="w-[12%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
+                <th className="w-[15%] whitespace-nowrap border-b px-2 py-1.5">Araç Adı *</th>
+                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Plaka</th>
+                <th className="w-[10%] whitespace-nowrap border-b px-2 py-1.5">Seri No</th>
+                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk *</th>
+                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Genişlik *</th>
+                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik *</th>
+                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Maks Yük *</th>
+                <th className="w-[13%] whitespace-nowrap border-b px-2 py-1.5">Kapı Yönü *</th>
                 <th className="w-8 border-b px-1 py-1.5" />
               </tr>
             </thead>
@@ -378,12 +396,37 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                       hasRowError ? 'bg-destructive/[0.04]' : 'hover:bg-muted/30',
                     )}
                   >
-                    {/* Row number */}
                     <td className="border-b border-border/40 px-1 py-0.5 text-center text-[10px] text-muted-foreground">
                       {idx + 1}
                     </td>
 
-                    {/* Ürün Adı */}
+                    {/* Tip */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <Select
+                        value={row.vehicleType}
+                        onValueChange={(v) => patchRow(row._id, { vehicleType: v })}
+                      >
+                        <SelectTrigger
+                          className={cn(
+                            'h-7 border px-1 text-xs',
+                            errs.vehicleType
+                              ? 'border-destructive bg-destructive/5 text-destructive'
+                              : 'border-border bg-background',
+                          )}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VEHICLE_TYPE_OPTIONS.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {VEHICLE_TYPE_LABELS[t]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+
+                    {/* Araç Adı */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
                         value={row.name}
@@ -392,33 +435,31 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                       />
                     </td>
 
-                    {/* Tip */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <Select value={row.tip} onValueChange={(v) => patchRow(row._id, { tip: v })}>
-                        <SelectTrigger
-                          className={cn(
-                            'h-7 border px-1 text-xs',
-                            errs.tip
-                              ? 'border-destructive bg-destructive/5 text-destructive'
-                              : 'border-border bg-background',
-                          )}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="koli">Koli</SelectItem>
-                          <SelectItem value="varil">Varil</SelectItem>
-                          <SelectItem value="palet">Palet</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-
-                    {/* SKU */}
+                    {/* Plaka */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
-                        value={row.sku}
-                        onChange={(v) => patchRow(row._id, { sku: v })}
-                        error={errs.sku}
+                        value={row.plate}
+                        onChange={(v) => patchRow(row._id, { plate: v })}
+                        error={errs.plate}
+                      />
+                    </td>
+
+                    {/* Seri No */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <TextCell
+                        value={row.serialNumber}
+                        onChange={(v) => patchRow(row._id, { serialNumber: v })}
+                        error={errs.serialNumber}
+                      />
+                    </td>
+
+                    {/* Uzunluk */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <TextCell
+                        value={row.length}
+                        onChange={(v) => patchRow(row._id, { length: v })}
+                        error={errs.length}
+                        type="number"
                       />
                     </td>
 
@@ -442,103 +483,42 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                       />
                     </td>
 
-                    {/* Uzunluk */}
+                    {/* Maks Yük */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
-                        value={row.length}
-                        onChange={(v) => patchRow(row._id, { length: v })}
-                        error={errs.length}
+                        value={row.maxCargoWeight}
+                        onChange={(v) => patchRow(row._id, { maxCargoWeight: v })}
+                        error={errs.maxCargoWeight}
                         type="number"
                       />
                     </td>
 
-                    {/* Ağırlık */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.weight}
-                        onChange={(v) => patchRow(row._id, { weight: v })}
-                        error={errs.weight}
-                        type="number"
-                      />
-                    </td>
-
-                    {/* Kısıtlar */}
+                    {/* Kapı Yönü */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <Select
-                        value={row.fragility}
-                        onValueChange={(v) => patchRow(row._id, { fragility: v })}
+                        value={row.doorDirection}
+                        onValueChange={(v) => patchRow(row._id, { doorDirection: v })}
                       >
-                        <SelectTrigger className="h-7 border border-border bg-background px-1 text-xs">
-                          <SelectValue />
+                        <SelectTrigger
+                          className={cn(
+                            'h-7 border px-1 text-xs',
+                            errs.doorDirection
+                              ? 'border-destructive bg-destructive/5 text-destructive'
+                              : 'border-border bg-background',
+                          )}
+                        >
+                          <SelectValue>
+                            {DOOR_DIRECTION_LABELS[row.doorDirection] ?? row.doorDirection}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">Normal</SelectItem>
-                          <SelectItem value="1">Kırılgan</SelectItem>
-                          <SelectItem value="2">Sıvı</SelectItem>
-                          <SelectItem value="5">Aşındırıcı</SelectItem>
-                          <SelectItem value="6">Kokuya Hassas</SelectItem>
-                          <SelectItem value="7">Gıda Teması</SelectItem>
-                          <SelectItem value="8">Kuru</SelectItem>
-                          <SelectItem value="9">Kimyasal</SelectItem>
+                          {DOOR_DIRECTION_OPTIONS.map((d) => (
+                            <SelectItem key={d} value={d}>
+                              {DOOR_DIRECTION_LABELS[d]}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-                    </td>
-
-                    {/* İstiflenebilir */}
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        checked={row.isStackable}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { isStackable: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-
-                    {/* Kat Sayısı */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.maxStackCount}
-                        onChange={(v) => patchRow(row._id, { maxStackCount: v })}
-                        type="number"
-                      />
-                    </td>
-
-                    {/* X/Y/Z rotasyon */}
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        checked={row.allowRotateX}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { allowRotateX: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        checked={row.allowRotateY}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { allowRotateY: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        checked={row.allowRotateZ}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { allowRotateZ: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-
-                    {/* Notlar */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.notes}
-                        onChange={(v) => patchRow(row._id, { notes: v })}
-                      />
                     </td>
 
                     {/* Sil */}
@@ -596,7 +576,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               size="sm"
               className="gap-1.5 text-xs"
               type="button"
-              onClick={downloadItemImportTemplate}
+              onClick={downloadVehicleImportTemplate}
             >
               <Download className="h-3.5 w-3.5" />
               Şablonu İndir
@@ -607,7 +587,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               İptal
             </Button>
             <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
-              {bulkCreate.isPending ? 'Yükleniyor…' : `${rows.length} Ürün Ekle`}
+              {isImporting ? 'Yükleniyor…' : `${rows.length} Araç Ekle`}
             </Button>
           </div>
         </div>
