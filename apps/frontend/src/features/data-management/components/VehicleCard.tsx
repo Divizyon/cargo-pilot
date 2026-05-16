@@ -398,7 +398,7 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
-              onClick={() => deletePlan(plan.id)}
+              onClick={(e) => { e.stopPropagation(); deletePlan(plan.id); }}
             >
               Sil
             </AlertDialogAction>

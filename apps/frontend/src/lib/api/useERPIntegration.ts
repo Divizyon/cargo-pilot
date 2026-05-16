@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
 import type { CreateItemRequest } from './itemMappers';
 import {
-  erpConnectionSchema,
   erpPendingMatchSchema,
   erpRemoteUserSchema,
   erpRoleConflictLogSchema,
@@ -40,11 +39,6 @@ const SYNC_FREQUENCY_FROM_INT: Record<number, ErpSyncInterval> = {
   0: 'FourHours',
   1: 'Daily',
 };
-
-const erpConnectionResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: erpConnectionSchema.optional(),
-});
 
 // Raw API schema for pending-item-mappings (covers both status=0 and status=1)
 const pendingItemMappingApiSchema = erpPendingMatchSchema.extend({
@@ -182,13 +176,19 @@ export function useTestERPSettings() {
   });
 }
 
+const integrationsListResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.array(z.object({ id: z.string().uuid() }).passthrough()),
+});
+
 export function useERPConnection() {
   return useQuery({
     queryKey: ['erp', 'connection'] as const,
     queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/current`);
-      const parsed = erpConnectionResponseSchema.parse(data);
-      return parsed.data ?? null;
+      const { data } = await axiosInstance.get<unknown>(ERP_BASE);
+      const parsed = integrationsListResponseSchema.safeParse(data);
+      if (!parsed.success || parsed.data.data.length === 0) return null;
+      return parsed.data.data[0] as { id: string };
     },
     retry: false,
   });
