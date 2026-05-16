@@ -38,6 +38,11 @@
 ssh -i ~/.ssh/cargo-pilot-server root@104.247.163.42
 ```
 
+SSH config alias tanımlıysa kısaca:
+```bash
+ssh cargopilot
+```
+
 ### Yeni Geliştirici Ekleme
 ```bash
 # Sunucuda çalıştır:
@@ -141,7 +146,33 @@ docker compose \
 
 ---
 
-## 7. GitHub Actions Deploy Key
+## 7. ERP Veritabanı (DIVIZYON)
+
+**2026-05-16:** Müşteri ERP veritabanı (`DIVIZYON.bak`, SQL Server 2019) mevcut `cargo-pilot-mssql-test` container'ına restore edildi.
+
+- **Database adı:** `DIVIZYON`
+- **Tablolar:** `TBLSTSABIT` (134 kol), `TBLSIPAMAS` (106 kol), `TBLSIPATRA` (97 kol)
+- **Erişim:** `Server=mssql,1433;Database=DIVIZYON;User Id=sa;...` (backend container içinden)
+- **Not:** Prod deploy edildiğinde müşterinin canlı ERP sunucusuna bağlanılacak; bu DB yalnızca test/geliştirme içindir.
+
+---
+
+## 8. DB Yedekleme
+
+Yedekler cron ile otomatik alınır:
+
+```
+00 02 * * *  /opt/cargo-pilot/infra/scripts/backup-db.sh prod
+00 03 * * *  /opt/cargo-pilot/infra/scripts/backup-db.sh test
+```
+
+- Yedek dizini: `/opt/cargo-pilot/backups/mssql/{prod|test}/`
+- Retention: 7 gün
+- Manuel çalıştırma: `bash /opt/cargo-pilot/infra/scripts/backup-db.sh test`
+
+---
+
+## 9. GitHub Actions Deploy Key
 
 CI/CD pipeline'ı sunucuya `github-actions-prod-deploy` key'i ile bağlanır.  
 GitHub repository → Settings → Secrets'ta saklanır:
