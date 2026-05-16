@@ -15,7 +15,7 @@ export function ProductCreatePage() {
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-card">
+      <div className="flex flex-col flex-1 min-h-0">
         <ProductForm
           isSubmitting={createItem.isPending}
           submitLabel="Kaydet"

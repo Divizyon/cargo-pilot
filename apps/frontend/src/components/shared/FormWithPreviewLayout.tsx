@@ -15,12 +15,21 @@ export function FormWithPreviewLayout({
   className,
 }: FormWithPreviewLayoutProps) {
   return (
-    <div className={cn('flex h-full flex-col p-5', className)}>
-      <div className="grid min-h-0 flex-1 grid-cols-2 gap-6 overflow-hidden">
-        <div className="overflow-y-auto pr-1">{formContent}</div>
-        <aside className="flex min-h-0 flex-col">{previewContent}</aside>
+    <div className={cn('flex flex-col gap-4', className)}>
+      <div className="flex min-h-0 flex-1 gap-4">
+        {/* Sol: form kartı — içeride scroll, %60 genişlik */}
+        <div className="flex min-h-0 flex-[3] flex-col overflow-hidden rounded-xl bg-card">
+          <div className="flex-1 overflow-y-auto p-5">{formContent}</div>
+        </div>
+
+        {/* Sağ: aksiyon + önizleme, %40 genişlik */}
+        <aside className="flex min-h-0 flex-[2] flex-col gap-3">
+          {actionBar && <div className="shrink-0">{actionBar}</div>}
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl bg-card p-4">
+            {previewContent}
+          </div>
+        </aside>
       </div>
-      {actionBar && <div className="flex justify-center py-4">{actionBar}</div>}
     </div>
   );
 }
