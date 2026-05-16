@@ -6,11 +6,11 @@ import {
   ChevronRight,
   Download,
   FileDown,
+  FileText,
   Loader2,
   Search,
   SlidersHorizontal,
 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,7 +77,7 @@ function getPeriodDates(period: PeriodTab): { startDate?: string; endDate?: stri
 function fillRateColor(rate: number) {
   if (rate >= 90) return 'text-emerald-600';
   if (rate >= 60) return 'text-amber-500';
-  return 'text-red-500';
+  return 'text-muted-foreground';
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -165,7 +165,10 @@ function ReportRow({ report }: ReportRowProps) {
       onClick={() => void navigate(`/reports/${report.id}`)}
     >
       <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <span className="block truncate text-xs text-muted-foreground" title={report.planName}>
+        <span
+          className="block truncate text-xs font-medium text-foreground"
+          title={report.planName}
+        >
           {report.planName}
         </span>
       </TableCell>
@@ -177,7 +180,7 @@ function ReportRow({ report }: ReportRowProps) {
       </TableCell>
 
       <TableCell className={cn(cell, 'max-w-[128px]')}>
-        <span className="block truncate text-xs text-foreground" title={report.vehiclePlate}>
+        <span className="block truncate text-xs text-muted-foreground" title={report.vehiclePlate}>
           {report.vehiclePlate}
         </span>
       </TableCell>
@@ -375,7 +378,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filtrele
             {hasActiveFilters && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
                 {activeFilterCount}
               </span>
             )}
@@ -509,13 +512,6 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
         </Button>
       </div>
 
-      {/* No results */}
-      {noResults && (
-        <Alert>
-          <AlertDescription>Aradığınız kriterlere uygun plan bulunamadı.</AlertDescription>
-        </Alert>
-      )}
-
       {/* Table card */}
       <div className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
         {isLoading ? (
@@ -540,18 +536,24 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                   Doluluk
                 </TableHead>
                 <TableHead className="w-14 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
-                  İndir
+                  İşlem
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isEmpty && (
+              {isEmpty ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={6} className="py-16">
                     <div className="flex flex-col items-center gap-3 text-center">
-                      <p className="text-sm text-muted-foreground">
-                        Henüz rapor bulunmuyor. İlk planınızı oluşturun.
-                      </p>
+                      <FileText className="h-8 w-8 text-muted-foreground/30" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          Henüz rapor bulunmuyor
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          İlk planınızı oluşturarak başlayın.
+                        </p>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -563,10 +565,30 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                     </div>
                   </TableCell>
                 </TableRow>
+              ) : noResults ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={6} className="py-12">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <Search className="h-7 w-7 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">
+                        Aradığınız kriterlere uygun plan bulunamadı.
+                      </p>
+                      {hasActiveFilters && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-xs"
+                          onClick={clearAllFilters}
+                        >
+                          Filtreleri temizle
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((report) => <ReportRow key={report.id} report={report} />)
               )}
-              {filtered.map((report) => (
-                <ReportRow key={report.id} report={report} />
-              ))}
             </TableBody>
           </Table>
         )}
