@@ -398,6 +398,10 @@ export function fromApiPlacementsToScene(
       color = SKU_PALETTE[skuColorIndex[sku]];
     }
 
+    const rawType = (item.productType as string | undefined)?.toLowerCase();
+    const productType =
+      rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+
     return [
       {
         itemId,
@@ -412,6 +416,7 @@ export function fromApiPlacementsToScene(
         depth: pd,
         weight,
         color,
+        productType,
       } satisfies PlacementWithDimensions,
     ];
   });
@@ -470,6 +475,7 @@ const planItemDimensionsSchema = z
     length: z.number(),
     weight: z.number().catch(0),
     imageUrl: z.string().nullable().optional(),
+    productType: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -611,6 +617,9 @@ export function fromApiFullDetail(
     } = placedDimensions(p.item.width, p.item.height, p.item.length, p.rotation);
     const itemSku = p.item.sku || p.item.sKU || p.itemId;
     const color = skuColorMap[itemSku] ?? palette[0];
+    const rawType = p.item.productType?.toLowerCase();
+    const productType =
+      rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
     return {
       itemId: p.itemId,
       positionX: p.positionX,
@@ -624,6 +633,7 @@ export function fromApiFullDetail(
       depth,
       weight: p.item.weight,
       color,
+      productType,
     };
   });
 
