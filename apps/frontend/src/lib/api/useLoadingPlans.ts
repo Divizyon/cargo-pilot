@@ -137,6 +137,7 @@ export function useLoadingPlanDetail(id: string | undefined) {
       if (!parsed.success) {
         console.error('[useLoadingPlanDetail] parse error', parsed.error);
         return {
+          planName: '—',
           vehicle: null,
           inputItems: [],
           placements: [],
