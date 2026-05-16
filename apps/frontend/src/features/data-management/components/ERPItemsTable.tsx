@@ -26,9 +26,86 @@ import { SearchInput } from './SearchInput';
 
 const PAGE_SIZE = 20;
 
-// ─── Column widths ────────────────────────────────────────────────────────────
+// ─── Mock data (no ERP connection) ───────────────────────────────────────────
 
-const SKELETON_COL_WIDTHS = ['w-4', 'w-44', 'w-24', 'w-16', 'w-16', 'w-16', 'w-16'];
+const MOCK_ITEMS: ErpPendingMappingItem[] = [
+  {
+    id: 'mock-1',
+    erpProductId: 'STK001',
+    erpProductName: 'Ahşap Kargo Kutusu',
+    erpSku: 'STK001',
+    erpWeight: 15,
+    erpWidth: 60,
+    erpHeight: 40,
+    erpLength: 80,
+    erpCategory: 'AHSAP',
+    erpBarcode: '8691234567890',
+  },
+  {
+    id: 'mock-2',
+    erpProductId: 'STK002',
+    erpProductName: 'Metal Depo Kasası',
+    erpSku: 'MTL-002',
+    erpWeight: 45,
+    erpWidth: 120,
+    erpHeight: 60,
+    erpLength: 100,
+    erpCategory: 'METAL',
+    erpBarcode: '8699876543210',
+  },
+  {
+    id: 'mock-3',
+    erpProductId: 'STK003',
+    erpProductName: 'Plastik Saklama Kabı',
+    erpSku: 'PLT-003',
+    erpWeight: 3.5,
+    erpWidth: 30,
+    erpHeight: 20,
+    erpLength: 40,
+    erpCategory: 'PLASTIK',
+    erpBarcode: '8695551234567',
+  },
+  {
+    id: 'mock-4',
+    erpProductId: 'STK004',
+    erpProductName: 'Elektronik Aksesuar Kutusu',
+    erpSku: 'ELK-004',
+    erpWeight: 2.8,
+    erpWidth: 25,
+    erpHeight: 15,
+    erpLength: 35,
+    erpCategory: 'ELEKTRONIK',
+    erpBarcode: '8697778889990',
+  },
+  {
+    id: 'mock-5',
+    erpProductId: 'STK005',
+    erpProductName: 'Tekstil Karton Kolisi',
+    erpSku: 'TKS-005',
+    erpWeight: 8,
+    erpWidth: 50,
+    erpHeight: 50,
+    erpLength: 60,
+    erpCategory: 'TEKSTIL',
+    erpBarcode: '8691112223334',
+  },
+  {
+    id: 'mock-6',
+    erpProductId: 'STK006',
+    erpProductName: 'Cam Eşya Nakliye Kasası',
+    erpSku: 'CAM-006',
+    erpWeight: 22,
+    erpWidth: 80,
+    erpHeight: 70,
+    erpLength: 90,
+    erpCategory: 'CAM',
+    erpBarcode: '8694445556667',
+  },
+];
+
+// ─── Column widths ─────────────────────────────────────────────────────────────
+
+const SKELETON_COL_WIDTHS = ['w-4', 'w-24', 'w-44', 'w-20', 'w-24', 'w-20', 'w-16', 'w-16', 'w-16', 'w-16'];
 
 // ─── Inline edit state ────────────────────────────────────────────────────────
 
@@ -61,7 +138,7 @@ function getDisplayValue<K extends keyof EditableRow>(
 
 function ERPItemsTableSkeleton() {
   return (
-    <Table className="min-w-[800px] table-fixed">
+    <Table className="min-w-[1000px] table-fixed">
       <TableHeader>
         <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
           {SKELETON_COL_WIDTHS.map((w, i) => (
@@ -74,27 +151,11 @@ function ERPItemsTableSkeleton() {
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-4 w-4" />
-            </TableCell>
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-7 w-full" />
-            </TableCell>
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-7 w-full" />
-            </TableCell>
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-7 w-full" />
-            </TableCell>
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-7 w-full" />
-            </TableCell>
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-7 w-full" />
-            </TableCell>
-            <TableCell className="py-0 px-3">
-              <Skeleton className="h-7 w-full" />
-            </TableCell>
+            {SKELETON_COL_WIDTHS.map((_, j) => (
+              <TableCell key={j} className="py-0 px-3">
+                <Skeleton className="h-7 w-full" />
+              </TableCell>
+            ))}
           </TableRow>
         ))}
       </TableBody>
@@ -131,23 +192,27 @@ export function ERPItemsTable() {
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
   const { mutateAsync: approveWithNewItem } = useApproveERPMappingWithNewItem();
 
-  const allItems = mappingsPage?.items ?? [];
+  const useMock = !integrationId;
+  const allItems = useMock ? MOCK_ITEMS : (mappingsPage?.items ?? []);
 
-  const filteredItems = isSearching
-    ? allItems.filter(
-        (item) =>
-          item.erpProductName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.erpSku ?? '').toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    : allItems;
+  const filteredItems = allItems.filter((item) => {
+    if (!isSearching) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      item.erpProductName.toLowerCase().includes(q) ||
+      (item.erpSku ?? '').toLowerCase().includes(q) ||
+      item.erpProductId.toLowerCase().includes(q) ||
+      (item.erpBarcode ?? '').toLowerCase().includes(q)
+    );
+  });
 
-  const totalCount = isSearching ? filteredItems.length : (mappingsPage?.totalCount ?? 0);
+  const totalCount = useMock || isSearching ? filteredItems.length : (mappingsPage?.totalCount ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const displayedItems = isSearching
+  const displayedItems = isSearching || useMock
     ? filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
     : filteredItems;
 
-  const showSkeleton = isLoading || isFetching;
+  const showSkeleton = !useMock && (isLoading || isFetching);
   const isEmpty = !showSkeleton && displayedItems.length === 0 && !isSearching;
   const noResults = !showSkeleton && displayedItems.length === 0 && isSearching;
 
@@ -262,7 +327,7 @@ export function ERPItemsTable() {
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput onSearch={handleSearch} placeholder="ERP ürün adı veya SKU ile ara..." />
+        <SearchInput onSearch={handleSearch} placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..." />
 
         <Button
           variant="outline"
@@ -311,7 +376,7 @@ export function ERPItemsTable() {
         {showSkeleton ? (
           <ERPItemsTableSkeleton />
         ) : (
-          <Table className="min-w-[800px] table-fixed">
+          <Table className="min-w-[1100px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-10 py-0 px-3">
@@ -321,23 +386,32 @@ export function ERPItemsTable() {
                     aria-label="Tümünü seç"
                   />
                 </TableHead>
-                <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  ERP Ürün Adı
-                </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  ERP ID
+                </TableHead>
+                <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Ürün Adı
+                </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   SKU
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Ağırlık (kg)
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Kategori
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Genişlik (cm)
+                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Barkod
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik (cm)
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Uzunluk
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk (cm)
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Yükseklik
+                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Derinlik
+                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Ağırlık
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -345,7 +419,7 @@ export function ERPItemsTable() {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={7}
+                    colSpan={10}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     {!integrationId
@@ -361,24 +435,75 @@ export function ERPItemsTable() {
                       checked={selectedIds.has(row.id)}
                       onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
                       aria-label={`${row.erpProductName} satırını seç`}
-                    />
+                                          />
                   </TableCell>
+                  {/* ERP ID — read only */}
+                  <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
+                    {row.erpProductId}
+                  </TableCell>
+                  {/* Ürün Adı — editable */}
                   <TableCell className="py-0 px-3">
                     <Input
                       value={getDisplayValue(row, edits, 'erpProductName')}
                       onChange={(e) => handleEdit(row.id, 'erpProductName', e.target.value)}
                       className="h-7 px-2 text-xs"
-                      aria-label="ERP ürün adı"
-                    />
+                      aria-label="Ürün adı"
+                                          />
                   </TableCell>
+                  {/* SKU — editable */}
                   <TableCell className="py-0 px-3">
                     <Input
                       value={getDisplayValue(row, edits, 'erpSku')}
                       onChange={(e) => handleEdit(row.id, 'erpSku', e.target.value)}
                       className="h-7 px-2 font-mono text-xs"
                       aria-label="SKU"
-                    />
+                                          />
                   </TableCell>
+                  {/* Kategori — read only */}
+                  <TableCell className="py-0 px-3 text-xs text-muted-foreground">
+                    {row.erpCategory ?? '—'}
+                  </TableCell>
+                  {/* Barkod — read only */}
+                  <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
+                    {row.erpBarcode ?? '—'}
+                  </TableCell>
+                  {/* X — Uzunluk */}
+                  <TableCell className="py-0 px-3">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={getDisplayValue(row, edits, 'erpWidth')}
+                      onChange={(e) => handleEdit(row.id, 'erpWidth', e.target.value)}
+                      className="h-7 px-2 text-xs"
+                      aria-label="X Uzunluk"
+                                          />
+                  </TableCell>
+                  {/* Y — Yükseklik */}
+                  <TableCell className="py-0 px-3">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={getDisplayValue(row, edits, 'erpHeight')}
+                      onChange={(e) => handleEdit(row.id, 'erpHeight', e.target.value)}
+                      className="h-7 px-2 text-xs"
+                      aria-label="Y Yükseklik"
+                                          />
+                  </TableCell>
+                  {/* Z — Derinlik */}
+                  <TableCell className="py-0 px-3">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={getDisplayValue(row, edits, 'erpLength')}
+                      onChange={(e) => handleEdit(row.id, 'erpLength', e.target.value)}
+                      className="h-7 px-2 text-xs"
+                      aria-label="Z Derinlik"
+                                          />
+                  </TableCell>
+                  {/* Ağırlık */}
                   <TableCell className="py-0 px-3">
                     <Input
                       type="number"
@@ -388,40 +513,7 @@ export function ERPItemsTable() {
                       onChange={(e) => handleEdit(row.id, 'erpWeight', e.target.value)}
                       className="h-7 px-2 text-xs"
                       aria-label="Ağırlık"
-                    />
-                  </TableCell>
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpWidth')}
-                      onChange={(e) => handleEdit(row.id, 'erpWidth', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Genişlik"
-                    />
-                  </TableCell>
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpHeight')}
-                      onChange={(e) => handleEdit(row.id, 'erpHeight', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Yükseklik"
-                    />
-                  </TableCell>
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpLength')}
-                      onChange={(e) => handleEdit(row.id, 'erpLength', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Uzunluk"
-                    />
+                                          />
                   </TableCell>
                 </TableRow>
               ))}
@@ -434,6 +526,11 @@ export function ERPItemsTable() {
       {totalCount > 0 && (
         <div className="flex items-center justify-between px-1">
           <p className="text-xs text-muted-foreground">
+            {useMock && (
+              <span className="mr-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                Örnek veri
+              </span>
+            )}
             Toplam <span className="font-medium text-foreground">{totalCount}</span> ERP ürünü
           </p>
           {totalPages > 1 && (

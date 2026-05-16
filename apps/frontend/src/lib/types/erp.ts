@@ -51,6 +51,8 @@ export const erpPendingMatchSchema = z.object({
   erpWidth: z.number().nullable(),
   erpHeight: z.number().nullable(),
   erpLength: z.number().nullable(),
+  erpCategory: z.string().nullable().optional(),
+  erpBarcode: z.string().nullable().optional(),
   hasConstraintData: z.boolean().optional(),
 });
 
