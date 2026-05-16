@@ -89,6 +89,8 @@ public static class DependencyInjection {
         services.AddDataProtection();
         services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
         services.AddScoped<IErpSettingsRepository, ErpSettingsRepository>();
+        services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
+        services.AddScoped<IDraftItemRepository, DraftItemRepository>();
         services.AddTransient<IErpConnector, LogoErpConnector>();
         services.AddTransient<IErpConnector, NetsisErpConnector>();
         services.AddHttpClient<IEmailService, ResendEmailService>(client =>

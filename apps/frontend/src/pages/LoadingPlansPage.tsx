@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, FileText, Link2, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Clock, FileText, CheckCircle2 } from 'lucide-react';
 import { LoadingPlanFilterBar } from '@/features/data-management/components/LoadingPlanFilterBar';
 import { VehicleCard } from '@/features/data-management/components/VehicleCard';
 import { useLoadingPlanFilters } from '@/features/data-management/hooks/useLoadingPlanFilters';
@@ -133,13 +132,6 @@ export function LoadingPlansPage() {
             Araçlara atanmış tüm yükleme planlarının izlendiği ve yönetildiği merkez.
           </p>
         </div>
-        <Link
-          to="/planning/shares"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 sm:mt-1"
-        >
-          <Link2 className="w-3.5 h-3.5" />
-          Paylaşım Bağlantıları
-        </Link>
       </div>
 
       {/* Anlık görüntü (snapshot) bölümü */}

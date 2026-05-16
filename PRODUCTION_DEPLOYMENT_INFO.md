@@ -1,33 +1,18 @@
-# Cargo Pilot - Deployment Bilgileri
+# Deployment Bilgileri
 
-**Son Güncelleme:** 2026-04-19
-**CI/CD:** Otomatik deploy aktif ✅
-**Sunucu:** 104.247.163.42
+**Sunucu:** `104.247.163.42` / `cargopilot.divizyon.org`\
+**CI/CD:** GitHub Actions → otomatik deploy aktif
 
----
-
-## Ortamlar
-
-| Ortam | Branch | Güncelleme |
-|-------|--------|------------|
-| Production | `main` | `main`'e merge → otomatik deploy |
-| Test | `test` | `test`'e merge → otomatik deploy |
+{% hint style="warning" %}
+**Production stack henüz deploy edilmedi.** Test ortamı şu an product demo için kullanılmaktadır. Detaylar için bkz. [Bilinen Sorunlar](docs/devops/known-issues.md).
+{% endhint %}
 
 ---
 
 ## Servis Adresleri
 
-### Production
-| Servis | Adres |
-|--------|-------|
-| Frontend | `http://104.247.163.42:80` |
-| Backend API | `http://104.247.163.42:8080` |
-| Backend Health | `http://104.247.163.42:8080/health` |
-| MinIO Console | `http://104.247.163.42:9001` |
-| MinIO API | `http://104.247.163.42:9000` |
-| MSSQL | `104.247.163.42:1433` — DB: `CargoPilot` |
-
-### Test
+{% tabs %}
+{% tab title="🧪 Test" %}
 | Servis | Adres |
 |--------|-------|
 | Frontend | `http://104.247.163.42:3001` |
@@ -36,6 +21,61 @@
 | MinIO Console | `http://104.247.163.42:9003` |
 | MinIO API | `http://104.247.163.42:9002` |
 | MSSQL | `104.247.163.42:1434` — DB: `CargoPilotTest` |
+| Grafana | `http://104.247.163.42:3002` |
+| Prometheus | `http://104.247.163.42:9091` |
+{% endtab %}
+
+{% tab title="🚀 Production" %}
+| Servis | Adres |
+|--------|-------|
+| Frontend | `http://104.247.163.42:80` |
+| Backend API | `http://104.247.163.42:8080` |
+| Backend Health | `http://104.247.163.42:8080/health` |
+| MinIO Console | `http://104.247.163.42:9001` |
+| MinIO API | `http://104.247.163.42:9000` |
+| MSSQL | `104.247.163.42:1433` — DB: `CargoPilot` |
+| Grafana | `http://104.247.163.42:3000` |
+| Prometheus | `http://104.247.163.42:9090` |
+{% endtab %}
+{% endtabs %}
+
+---
+
+## Stack Yönetimi
+
+{% tabs %}
+{% tab title="🧪 Test" %}
+```bash
+# Başlat
+docker compose -f infra/compose/docker-compose.test.yml \
+  --env-file infra/env/.env.test up -d
+
+# Durdur
+docker compose -f infra/compose/docker-compose.test.yml \
+  --env-file infra/env/.env.test down
+
+# Log takibi
+docker logs -f cargo-pilot-backend-test
+docker logs -f cargo-pilot-frontend-test
+```
+{% endtab %}
+
+{% tab title="🚀 Production" %}
+```bash
+# Başlat
+docker compose -f infra/compose/docker-compose.prod.yml \
+  --env-file infra/env/.env.prod up -d
+
+# Durdur
+docker compose -f infra/compose/docker-compose.prod.yml \
+  --env-file infra/env/.env.prod down
+
+# Log takibi
+docker logs -f cargo-pilot-backend-prod
+docker logs -f cargo-pilot-frontend-prod
+```
+{% endtab %}
+{% endtabs %}
 
 ---
 
@@ -43,94 +83,77 @@
 
 | Ortam | Yol |
 |-------|-----|
-| Production | `/opt/cargo-pilot/infra/env/.env.prod` |
 | Test | `/opt/cargo-pilot/infra/env/.env.test` |
+| Production | `/opt/cargo-pilot/infra/env/.env.prod` |
 
-Her iki dosya da `chmod 600` ile korunuyor, Git'e eklenmez.
-
----
-
-## Docker Compose
-
-```bash
-# Production
-docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.env.prod up -d
-
-# Test
-docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
-```
-
-İki stack `name:` alanı ile izole edilmiştir — biri başlatılınca diğerini etkilemez.
-
----
-
-## Container Yönetimi
-
-```bash
-# Tüm container'ları gör
-docker ps | grep cargo-pilot
-
-# Log takibi
-docker logs -f cargo-pilot-backend-prod
-docker logs -f cargo-pilot-backend-test
-
-# Tek servis yeniden başlat
-docker restart cargo-pilot-backend-prod
-docker restart cargo-pilot-backend-test
-
-# Stack durdur
-docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.env.prod down
-docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test down
-```
+Her iki dosya `chmod 600` ile korunur, Git'e eklenmez.
 
 ---
 
 ## Database Migration
 
-Migration'lar sunucuda dotnet SDK olmadığı için geçici SDK container'ı ile çalıştırılır:
+{% hint style="info" %}
+Sunucuda .NET SDK kurulu değil. Migration'lar geçici SDK container'ı üzerinden çalıştırılır.
+{% endhint %}
 
+{% tabs %}
+{% tab title="🧪 Test" %}
 ```bash
-# Test DB
 docker run --rm \
   --network cargo-pilot-test-network \
   -v /opt/cargo-pilot:/src \
   -w /src \
-  -e ConnectionStrings__DefaultConnection="Server=cargo-pilot-mssql-test,1433;Database=CargoPilotTest;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;" \
+  -e ConnectionStrings__DefaultConnection="Server=cargo-pilot-mssql-test,1433;Database=CargoPilotTest;User Id=sa;Password=<SA_PASSWORD>;TrustServerCertificate=True;" \
   mcr.microsoft.com/dotnet/sdk:8.0 \
-  sh -c "dotnet restore && dotnet tool install --global dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --project apps/backend/CargoPilot.Infrastructure --startup-project apps/backend/CargoPilot.Infrastructure"
+  sh -c "dotnet tool install --global dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --project apps/backend/CargoPilot.Infrastructure --startup-project apps/backend/CargoPilot.Infrastructure"
+```
+{% endtab %}
 
-# Production DB (network adını güncelle)
+{% tab title="🚀 Production" %}
+```bash
 docker run --rm \
   --network cargo-pilot-prod-network \
   -v /opt/cargo-pilot:/src \
   -w /src \
-  -e ConnectionStrings__DefaultConnection="Server=cargo-pilot-mssql-prod,1433;Database=CargoPilot;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;" \
+  -e ConnectionStrings__DefaultConnection="Server=cargo-pilot-mssql-prod,1433;Database=CargoPilot;User Id=sa;Password=<SA_PASSWORD>;TrustServerCertificate=True;" \
   mcr.microsoft.com/dotnet/sdk:8.0 \
-  sh -c "dotnet restore && dotnet tool install --global dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --project apps/backend/CargoPilot.Infrastructure --startup-project apps/backend/CargoPilot.Infrastructure"
+  sh -c "dotnet tool install --global dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --project apps/backend/CargoPilot.Infrastructure --startup-project apps/backend/CargoPilot.Infrastructure"
 ```
+{% endtab %}
+{% endtabs %}
 
-Migration doğrulama:
+**Migration doğrulama:**
+
 ```bash
 docker exec cargo-pilot-mssql-test /opt/mssql-tools18/bin/sqlcmd \
-  -S localhost -U sa -P "<MSSQL_SA_PASSWORD>" -C -d CargoPilotTest \
+  -S localhost -U sa -P "<SA_PASSWORD>" -C -d CargoPilotTest \
   -Q "SELECT name FROM sys.tables"
 ```
 
 ---
 
-## SSH Erişimi
+## Container Durumu
 
 ```bash
-ssh root@104.247.163.42
-# Şifre ile giriş kapalı, SSH key gerekli
-```
+# Tüm cargo-pilot container'larını gör
+docker ps | grep cargo-pilot
 
-GitHub Actions deploy key: `~/.ssh/authorized_keys`'e ekli.
+# Tek servis yeniden başlat
+docker restart cargo-pilot-backend-test
+docker restart cargo-pilot-backend-prod
+```
 
 ---
 
-## Güvenlik Notları
+## CI/CD Akışı
 
-- Şifreler yalnızca `.env.prod` ve `.env.test` dosyalarında, sunucuda `/opt/cargo-pilot/infra/env/` altında
-- Bu dosyalar Git'e eklenmez (`.gitignore` ile korumalı)
-- Production ve test ayrı network, ayrı volume, ayrı DB ile tamamen izole
+| Branch | Tetikleyici | Sonuç |
+|--------|------------|-------|
+| `feature/*`, `bugfix/*` | Push | Deploy (Test) — inline build + healthcheck |
+| `dev` | PR açılınca | Deploy (Test) — merge öncesi doğrulama |
+| `test` | PR + Push | Image Build → GHCR Push → Deploy (Test) |
+| `main` | Push | _(Production pipeline henüz yok)_ |
+
+{% hint style="info" %}
+SSH erişimi ve sunucu detayları için bkz. [Sunucu Erişim & Ağ](docs/devops/server-access.md).
+{% endhint %}

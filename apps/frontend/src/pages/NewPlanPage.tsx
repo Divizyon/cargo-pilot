@@ -21,6 +21,7 @@ import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
+  useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -32,9 +33,15 @@ interface PlanAutoLoaderProps {
   planId: string;
   refetchKey?: number;
   onVehicleSelected: () => void;
+  onLoaded?: () => void;
 }
 
-function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoLoaderProps) {
+function PlanAutoLoader({
+  planId,
+  refetchKey = 0,
+  onVehicleSelected,
+  onLoaded,
+}: PlanAutoLoaderProps) {
   const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
@@ -60,13 +67,24 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
-  }, [isSuccess, data, setVehicle, initItems, setPlacements, setUnplacedItems, onVehicleSelected]);
+    onLoaded?.();
+  }, [
+    isSuccess,
+    data,
+    setVehicle,
+    initItems,
+    setPlacements,
+    setUnplacedItems,
+    onVehicleSelected,
+    onLoaded,
+  ]);
 
   return null;
 }
 
 export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
+  const pendingSnapshotPlanId = useRef<string | null>(null);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
@@ -77,6 +95,7 @@ export function NewPlanPage() {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
+  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
 
   useEffect(() => {
     if (!fromPlanId) {
@@ -137,8 +156,22 @@ export function NewPlanPage() {
       items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
+    const dataUrl = snapshotRef.current?.();
+    if (dataUrl) uploadThumbnail({ id, dataUrl });
     navigate(planningDetailRoute(id), { replace: true });
-  }, [planNameInput, createPlan, navigate]);
+  }, [planNameInput, createPlan, navigate, uploadThumbnail]);
+
+  const handlePlanLoaded = useCallback(() => {
+    const planId = pendingSnapshotPlanId.current;
+    if (!planId) return;
+    pendingSnapshotPlanId.current = null;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const dataUrl = snapshotRef.current?.();
+        if (dataUrl) uploadThumbnail({ id: planId, dataUrl });
+      });
+    });
+  }, [uploadThumbnail]);
 
   const handleLoadAnimation = useCallback(() => {
     if (usePlanStore.getState().placements.length === 0) return;
@@ -156,19 +189,20 @@ export function NewPlanPage() {
       items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
+    pendingSnapshotPlanId.current = fromPlanId;
     setRefetchKey((k) => k + 1);
     setAnimationReady(true);
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
-    <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-muted overflow-hidden">
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Plan Adı</DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <Label htmlFor="plan-name" className="text-xs text-zinc-500 mb-1.5 block">
+            <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
               Yükleme planına bir ad verin
             </Label>
             <Input
@@ -190,7 +224,7 @@ export function NewPlanPage() {
               size="sm"
               disabled={!planNameInput.trim() || isCreating}
               onClick={() => void handleConfirmCreate()}
-              className="bg-zinc-900 text-white hover:bg-zinc-700"
+              className="bg-foreground text-background hover:bg-foreground/80"
             >
               {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
             </Button>
@@ -203,6 +237,7 @@ export function NewPlanPage() {
           planId={fromPlanId}
           refetchKey={refetchKey}
           onVehicleSelected={handleVehicleSelected}
+          onLoaded={handlePlanLoaded}
         />
       )}
       {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
@@ -235,7 +270,7 @@ export function NewPlanPage() {
             leftOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="h-full bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
             <PlanLeftPanel />
           </div>
         </div>
@@ -247,7 +282,7 @@ export function NewPlanPage() {
 
         {/* Merkez — 3D Viewport */}
         <div className="flex-1 min-w-0 p-3 overflow-hidden">
-          <div className="relative h-full rounded-xl bg-white border border-zinc-200 overflow-hidden">
+          <div className="relative h-full rounded-xl bg-background border border-border overflow-hidden">
             <PlanCanvas snapshotRef={snapshotRef} />
           </div>
         </div>
