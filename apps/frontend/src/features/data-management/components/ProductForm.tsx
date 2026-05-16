@@ -55,9 +55,11 @@ import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormValues>;
   onSubmit: (values: ProductFormValues) => void;
+  onDraftSubmit?: (values: ProductFormValues) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
   disableSubmitWhenPristine?: boolean;
+  submitLabel?: string;
 }
 
 const PRODUCT_TYPE_OPTIONS = [
@@ -70,31 +72,28 @@ type AxisKey = 'x' | 'y' | 'z';
 
 const ROTATION_AXES = [
   {
-    name: 'allowRotateX',
+    name: 'allowRotateX' as const,
     labelKey: 'forms.product.allowRotateX',
     tooltipKey: 'forms.product.axisXTooltip',
     axis: 'x' as AxisKey,
     axisLabel: 'X',
     subtitle: 'Sol / Sağ',
-    axisColor: '#3b82f6',
   },
   {
-    name: 'allowRotateY',
+    name: 'allowRotateY' as const,
     labelKey: 'forms.product.allowRotateY',
     tooltipKey: 'forms.product.axisYTooltip',
     axis: 'y' as AxisKey,
     axisLabel: 'Y',
     subtitle: 'Yukarı / Aşağı',
-    axisColor: '#22c55e',
   },
   {
-    name: 'allowRotateZ',
+    name: 'allowRotateZ' as const,
     labelKey: 'forms.product.allowRotateZ',
     tooltipKey: 'forms.product.axisZTooltip',
     axis: 'z' as AxisKey,
     axisLabel: 'Z',
     subtitle: 'Öne / Arkaya',
-    axisColor: '#ef4444',
   },
 ] as const;
 
@@ -311,7 +310,6 @@ function ProductTypeIllustration({ type }: ProductTypeIllustrationProps) {
 interface AxisBoxIllustrationProps {
   axis: AxisKey;
   active: boolean;
-  axisColor?: string;
 }
 
 function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
@@ -482,9 +480,11 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
 export function ProductForm({
   defaultValues,
   onSubmit,
+  onDraftSubmit,
   onCancel,
   isSubmitting = false,
   disableSubmitWhenPristine = false,
+  submitLabel,
 }: ProductFormProps) {
   const { t } = useTranslation();
   const form = useProductForm(defaultValues);
@@ -539,6 +539,18 @@ export function ProductForm({
       'incompatibleGroups',
     ],
   });
+
+  // Yerel display state'ler: React controlled input'u yeniden yazarken cursor
+  // sıfırlanmasını önlemek için ham string saklanır. defaultValues ile init
+  // edilir; sonraki senkronizasyon onChange handler'larında yapılır.
+  const [weightDisplay, setWeightDisplay] = useState<string>(() =>
+    defaultValues?.weight != null && Number.isFinite(defaultValues.weight)
+      ? String(defaultValues.weight)
+      : '',
+  );
+  const [maxStackDisplay, setMaxStackDisplay] = useState<string>(() =>
+    defaultValues?.maxStackCount != null ? String(defaultValues.maxStackCount) : '',
+  );
 
   const isPallet = productType === 'palet';
   const isVaril = productType === 'varil';
@@ -683,7 +695,7 @@ export function ProductForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Katman Sayısı</FormLabel>
+                  <FormLabel>İstif Sayısı</FormLabel>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">Sınırsız</span>
                     <Switch
@@ -692,6 +704,7 @@ export function ProductForm({
                         setUnlimitedStack(checked);
                         if (checked) {
                           field.onChange(undefined);
+                          setMaxStackDisplay('');
                           form.clearErrors('maxStackCount');
                         }
                       }}
@@ -705,12 +718,13 @@ export function ProductForm({
                     disabled={unlimitedStack}
                     className={COMPACT_INPUT}
                     placeholder="3"
-                    value={field.value ?? ''}
+                    value={maxStackDisplay}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/\D/g, '');
+                      setMaxStackDisplay(raw);
                       const v = raw === '' ? undefined : Math.max(1, parseInt(raw, 10));
                       field.onChange(v);
-                      form.setValue('isStackable', (v ?? 0) > 1, { shouldValidate: false });
+                      form.setValue('isStackable', (v ?? 0) > 0, { shouldValidate: false });
                     }}
                   />
                 </FormControl>
@@ -793,14 +807,16 @@ export function ProductForm({
                       placeholder="15.5"
                       className={COMPACT_INPUT_WITH_UNIT}
                       {...field}
-                      value={field.value ?? ''}
-                      onChange={(e) =>
+                      value={weightDisplay}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setWeightDisplay(raw);
                         field.onChange(
-                          e.target.value === '' || !Number.isFinite(parseFloat(e.target.value))
+                          raw === '' || !Number.isFinite(parseFloat(raw))
                             ? undefined
-                            : parseFloat(e.target.value),
-                        )
-                      }
+                            : parseFloat(raw),
+                        );
+                      }}
                     />
                   </FormControl>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
@@ -974,10 +990,10 @@ export function ProductForm({
                               disabled={isDisabled}
                               onClick={() => field.onChange(!field.value)}
                               className={cn(
-                                'h-auto w-full flex-col items-center gap-1.5 rounded-md px-2 py-3 transition-all duration-150',
+                                'h-auto w-full flex-col items-center gap-1.5 rounded-md px-2 py-3 transition-all duration-150 focus-visible:ring-0 focus-visible:ring-offset-0',
                                 !isLocked && !isAutoDisabled
-                                  ? 'border-foreground/30 text-foreground'
-                                  : 'text-muted-foreground',
+                                  ? 'border-primary bg-primary/15 text-primary shadow-[0_0_10px_1px_hsl(var(--primary)/0.3)]'
+                                  : 'border-border text-muted-foreground',
                                 isAutoDisabled && 'opacity-40',
                               )}
                             >
@@ -1070,27 +1086,40 @@ export function ProductForm({
     </div>
   );
 
-  const actions = (
-    <div className="flex items-center gap-1.5">
+  async function handleDraftSubmit() {
+    const valid = await form.trigger(['name', 'sku', 'productType']);
+    if (!valid) return;
+    onDraftSubmit?.(form.getValues());
+  }
+
+  const actionBar = (
+    <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
       {onCancel && (
         <Button
           type="button"
           variant="ghost"
-          size="sm"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground"
         >
-          {t('forms.product.cancel')}
+          İptal Et
+        </Button>
+      )}
+      {onDraftSubmit && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void handleDraftSubmit()}
+          disabled={isSubmitting}
+        >
+          Taslak Olarak Kaydet
         </Button>
       )}
       <Button
         type="submit"
-        size="sm"
-        className="flex-1"
         disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
       >
-        {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
+        {isSubmitting ? t('forms.product.submitting') : (submitLabel ?? 'Değişiklikleri Kaydet')}
       </Button>
     </div>
   );
@@ -1107,6 +1136,7 @@ export function ProductForm({
           <FormWithPreviewLayout
             className="flex-1 min-h-0"
             formContent={formFields}
+            actionBar={actionBar}
             previewContent={
               <PreviewPanel
                 name={name}
@@ -1116,15 +1146,16 @@ export function ProductForm({
                 height={height}
                 weight={weight}
                 volumeCm3={volumeCm3}
-                maxStackCount={maxStackCount ?? 1}
-                fragility={fragility ?? 0}
+                maxStackCount={unlimitedStack ? undefined : maxStackCount}
+                constraintLabels={selectedConstraints
+                  .map((v) => CONSTRAINT_OPTIONS.find((o) => o.value === v)?.label)
+                  .filter((l): l is string => l !== undefined)}
                 allowRotateX={allowRotateX}
                 allowRotateY={allowRotateY}
                 allowRotateZ={allowRotateZ}
                 notes={notes}
               />
             }
-            actions={actions}
           />
         </form>
       </Form>
@@ -1140,8 +1171,8 @@ interface PreviewPanelProps {
   height?: number;
   weight?: number;
   volumeCm3: number;
-  maxStackCount: number;
-  fragility: number;
+  maxStackCount: number | undefined;
+  constraintLabels: string[];
   allowRotateX: boolean;
   allowRotateY: boolean;
   allowRotateZ: boolean;
@@ -1159,7 +1190,7 @@ function PreviewPanel(props: PreviewPanelProps) {
     weight,
     volumeCm3,
     maxStackCount,
-    fragility,
+    constraintLabels,
     allowRotateX,
     allowRotateY,
     allowRotateZ,
@@ -1172,13 +1203,6 @@ function PreviewPanel(props: PreviewPanelProps) {
 
   const fmt = (val?: number, unit?: string) =>
     val !== undefined && Number.isFinite(val) && unit ? `${val} ${unit}` : '—';
-
-  const fragilityLabel =
-    fragility === FRAGILITY_LEVELS.Liquid
-      ? t('forms.product.fragilityLiquid')
-      : fragility === FRAGILITY_LEVELS.Fragile
-        ? t('forms.product.fragilityFragile')
-        : t('forms.product.fragilityNonFragile');
 
   const lockedAxes: string[] = [];
   if (!allowRotateX) lockedAxes.push('X');
@@ -1203,8 +1227,11 @@ function PreviewPanel(props: PreviewPanelProps) {
     { label: t('forms.product.height'), value: fmt(height, dimensionUnit) },
     { label: t('forms.product.length'), value: fmt(length, dimensionUnit) },
     { label: t('forms.product.weight'), value: fmt(weight, weightUnit) },
-    { label: 'Kısıtlar', value: fragilityLabel },
-    { label: 'Katman', value: maxStackCount > 0 ? String(maxStackCount) : '—' },
+    { label: 'Kısıtlar', value: constraintLabels.length > 0 ? constraintLabels.join(', ') : '—' },
+    {
+      label: 'İstif Sayısı',
+      value: maxStackCount === undefined ? '∞' : maxStackCount > 1 ? String(maxStackCount) : '—',
+    },
     {
       label: 'Rotasyon',
       value: allRotationsFree
@@ -1214,7 +1241,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   ];
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
       {/* Başlık */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground">Ürün Önizleme</p>
@@ -1300,6 +1327,11 @@ function DimensionField({
   placeholder,
   onAfterChange,
 }: DimensionFieldProps) {
+  const initVal = form.getValues(name);
+  const [display, setDisplay] = useState<string>(() =>
+    initVal != null && Number.isFinite(initVal) ? String(initVal) : '',
+  );
+
   return (
     <FormField
       control={form.control}
@@ -1312,20 +1344,17 @@ function DimensionField({
               <Input
                 type="text"
                 inputMode="numeric"
-                step="0.1"
-                min={0}
                 placeholder={placeholder}
                 className={COMPACT_INPUT_WITH_UNIT}
                 {...field}
-                value={field.value ?? ''}
+                value={display}
                 onChange={(e) => {
                   const raw = e.target.value;
+                  setDisplay(raw);
                   const num =
                     raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw);
                   field.onChange(num);
-                  if (onAfterChange) {
-                    onAfterChange(num);
-                  }
+                  onAfterChange?.(num);
                 }}
               />
             </FormControl>

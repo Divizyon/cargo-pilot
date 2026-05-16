@@ -22,6 +22,7 @@ import {
   Loader2,
   Play,
   RefreshCw,
+  Trash2,
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,12 +30,23 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   useLoadingPlanListItem,
   useLoadingPlanProducts,
   useLoadingPlanDetail,
   useApprovePlan,
+  useDeleteLoadingPlan,
   useExportPlanToERP,
 } from '@/lib/api/useLoadingPlans';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
@@ -47,7 +59,6 @@ import type {
   PlanProductGroup,
   PlanProductItem,
 } from '@/lib/types/loadingPlan';
-import { SharePlanDropdown } from '@/features/planning/components/SharePlanDropdown';
 import { cn } from '@/lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -461,8 +472,6 @@ function ThreeDPlannerContent({
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          <SharePlanDropdown planId={plan.id} planName={plan.planName} />
-
           <Button
             size="sm"
             className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white text-xs gap-1.5"
@@ -532,12 +541,14 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const [editMode, setEditMode] = useState(false);
   const [erpStatus, setErpStatus] = useState<ErpExportStatus>('idle');
   const [erpExportedAt, setErpExportedAt] = useState<Date | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const autoTriggerOnApproval = useErpSettingsStore((s) => s.autoTriggerOnApproval);
 
   const { data: plan, isLoading, isError } = useLoadingPlanListItem(id);
   const { data: productGroups = [] } = useLoadingPlanProducts(id);
   const { mutateAsync: approvePlan, isPending: isApproving } = useApprovePlan();
+  const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
   const { mutateAsync: exportToERP } = useExportPlanToERP();
 
   async function handleApprove() {
@@ -706,11 +717,19 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
               </Button>
             )}
 
-            <SharePlanDropdown planId={plan.id} planName={plan.planName} />
-
             <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs border-zinc-200">
               <Settings className="w-3.5 h-3.5" />
               Ayarlar
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-zinc-400 hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setDeleteOpen(true)}
+              aria-label="Planı sil"
+            >
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -771,6 +790,31 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Planı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{plan.planName}</strong> planı silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={() =>
+                deletePlan(id, {
+                  onSuccess: () => navigate('/planning'),
+                })
+              }
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

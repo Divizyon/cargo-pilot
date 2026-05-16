@@ -225,7 +225,6 @@ interface ProductRowProps {
 function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
-  const volumeUnit = useUnitStore((s) => s.volumeUnit);
   const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
 
   const cell = 'py-0 px-3';
@@ -270,7 +269,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, volumeUnit)}</span>
+        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, 'm³')}</span>
       </TableCell>
 
       <TableCell className={cell}>
@@ -619,7 +618,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   Derinlik
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Hacim
+                  Hacim (m³)
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ağırlık

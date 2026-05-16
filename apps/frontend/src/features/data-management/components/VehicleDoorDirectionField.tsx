@@ -15,8 +15,9 @@ const DIRECTION_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Arka + Yan',
 };
+
+const VISIBLE_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top];
 
 export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldProps) {
   const doorDirection = useWatch({ control: form.control, name: 'doorDirection' });
@@ -42,7 +43,7 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
               }}
               className="flex gap-2"
             >
-              {Object.values(DoorDirection).map((dir) => (
+              {VISIBLE_DIRECTIONS.map((dir) => (
                 <ToggleGroupItem
                   key={dir}
                   value={dir}
