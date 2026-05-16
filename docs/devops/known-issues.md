@@ -2,7 +2,7 @@
 
 Bu doküman, Cargo Pilot altyapısında tespit edilmiş bilinen sorunları ve mevcut geçici çözümleri listeler.
 
-**Son güncelleme:** 2026-05-10
+**Son güncelleme:** 2026-05-16
 
 > Geliştirme backlog'u ve iyileştirme maddeleri için bkz. [devops-backlog.md](devops-backlog.md)
 
@@ -110,10 +110,70 @@ Uyumsuzluk tespit edildiğinde `sync/test-to-dev` branch'i açılarak test → d
 
 ---
 
+## 7. Loki / cAdvisor Log Rotation Tanımlı Değil
+
+**Durum:** ⚠️ Açık
+
+**Açıklama:**
+`cargo-pilot-loki-test` ve `cargo-pilot-cadvisor-test` container'larında `docker-compose.monitoring.test.yml`'de `logging:` bloğu eksik. Diğer container'larda `max-size: 100m, max-file: 3` tanımlı.
+
+**Etkisi:**
+- 2026-05-16 rutin kontrolünde Loki 960MB log biriktirmiş, Grafana datasource'u 503 vermiş, alertlar `DatasourceNoData` durumuna düşmüştü.
+
+**Geçici Çözüm:**
+Log dosyası truncate edildi (`truncate -s 0`), Loki restart edildi.
+
+**Kalıcı Çözüm:**
+`docker-compose.monitoring.test.yml` ve `docker-compose.monitoring.prod.yml`'deki `loki` ve `cadvisor` servislerine `logging: driver: json-file, options: max-size: 100m, max-file: "3"` eklenmeli.
+
+---
+
+## 8. Backup Script Execute İzni Eksikti
+
+**Durum:** ✅ Çözüldü — 2026-05-16
+
+**Açıklama:**
+`infra/scripts/backup-db.sh` dosyasında execute izni (`+x`) yoktu. Cron her gece çalışıyor ama `Permission denied` hatasıyla başarısız oluyordu.
+
+**Etkisi:**
+- Nisan ayından bu yana (~42 gün) hiç DB yedeği alınamamıştı.
+
+**Çözüm:**
+`chmod +x /opt/cargo-pilot/infra/scripts/backup-db.sh` ile izin düzeltildi. İlk yedek manuel alındı (CargoPilotTest — 24MB). Artık her gece 03:00'da otomatik çalışıyor.
+
+---
+
+## 9. Docker Image Vulnerability'leri (Base Image Güncel Değil)
+
+**Durum:** ⚠️ Açık
+
+**Açıklama:**
+2026-05-16 Trivy taramasında tespit edilen bulgular:
+
+| Image | CRITICAL | HIGH |
+|---|---|---|
+| `cargo-pilot-backend:test` | 4 | 18 |
+| `cargo-pilot-frontend:test` | 6 | 29 |
+
+Kritik CVE'ler: `zlib1g` (backend), `openssl` + `libxml2` (frontend), `System.Security.Cryptography.Xml` (.NET 8.0.2 → 8.0.3 gerekli).
+
+**Geçici Çözüm:**
+Test ortamı, production trafiği taşımadığından anlık risk düşük.
+
+**Kalıcı Çözüm:**
+Frontend Dockerfile'da Alpine base image güncellenmeli. Backend için .NET 8.0.3+ aspnet image'a geçilmeli.
+
+---
+
 ## ✅ Çözülenler
 
 | Tarih | Sorun | Çözüm |
 |-------|-------|-------|
+| 2026-05-16 | Backup script execute izni eksikti, 42 gündür yedek alınamıyordu | `chmod +x` düzeltildi, ilk yedek alındı |
+| 2026-05-16 | Loki 960MB log biriktirdi, Grafana DatasourceNoData | Log truncate + container restart |
+| 2026-05-16 | `VITE_OAUTH_GOOGLE_URL` CI'da build-args'a geçilmiyordu | `test-deploy.yml`'e build-args eklendi (#549/#550) |
+| 2026-05-16 | `EmailChange__FrontendConfirmUrl` env var eksikti | `docker-compose.test.yml` + `test-deploy.yml` güncellendi (#557/#558) |
+| 2026-05-16 | DIVIZYON ERP DB sunucuda yoktu | `DIVIZYON.bak` restore edildi (`cargo-pilot-mssql-test`) |
 | 2026-05-10 | Frontend local dev CORS sorunu | Nginx `/api/` proxy (#440) + Vite proxy |
 | 2026-05-10 | GHCR developer login gerekliliği | Package'lar public yapıldı |
 | 2026-05-10 | `test` branch'ine direct push koruması yoktu | GitHub branch protection kuralı eklendi |
