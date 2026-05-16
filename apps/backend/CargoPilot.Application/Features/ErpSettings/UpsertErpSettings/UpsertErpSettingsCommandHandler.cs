@@ -1,6 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Entities;
 using MediatR;
 using ErpSettingsEntity = CargoPilot.Domain.Entities.ErpSettings;
 
@@ -9,15 +10,18 @@ namespace CargoPilot.Application.Features.ErpSettings.UpsertErpSettings;
 internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertErpSettingsCommand, Result<ErpSettingsResponse>>
 {
     private readonly IErpSettingsRepository _repository;
+    private readonly IIntegrationRepository _integrationRepository;
     private readonly IErpPasswordProtector _passwordProtector;
     private readonly ICurrentUserService _currentUserService;
 
     public UpsertErpSettingsCommandHandler(
         IErpSettingsRepository repository,
+        IIntegrationRepository integrationRepository,
         IErpPasswordProtector passwordProtector,
         ICurrentUserService currentUserService)
     {
         _repository = repository;
+        _integrationRepository = integrationRepository;
         _passwordProtector = passwordProtector;
         _currentUserService = currentUserService;
     }
@@ -48,6 +52,20 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
                 request.ServerAddress);
 
             _repository.Add(newSettings);
+
+            var integrationExists = await _integrationRepository.ExistsByCompanyAsync(companyId.Value, cancellationToken);
+            if (!integrationExists)
+            {
+                _integrationRepository.Add(new Integration(
+                    Guid.NewGuid(),
+                    companyId.Value,
+                    systemName: request.ProviderType.ToString(),
+                    apiEndpoint: request.ServerAddress,
+                    mappingTable: null,
+                    syncInterval: null,
+                    authCredentials: null));
+            }
+
             await _repository.SaveChangesAsync(cancellationToken);
 
             return Result<ErpSettingsResponse>.Success(new ErpSettingsResponse(

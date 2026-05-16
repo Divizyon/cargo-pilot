@@ -12,6 +12,7 @@ using CargoPilot.Infrastructure.Services;
 using CargoPilot.Infrastructure.Services.ErpConnectors;
 using Hangfire;
 using Hangfire.SqlServer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,7 +87,8 @@ public static class DependencyInjection {
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
         services.AddScoped<IErpProductFetcher, SqlServerErpProductFetcher>();
-        services.AddDataProtection();
+        services.AddDataProtection()
+            .PersistKeysToDbContext<AppDbContext>();
         services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
         services.AddScoped<IErpSettingsRepository, ErpSettingsRepository>();
         services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
