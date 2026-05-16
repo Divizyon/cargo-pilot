@@ -538,7 +538,6 @@ export function ProductForm({
     allowRotateZ,
     notes,
     incompatibleGroups,
-    stackGroup,
   ] = useWatch({
     control: form.control,
     name: [
@@ -555,7 +554,6 @@ export function ProductForm({
       'allowRotateZ',
       'notes',
       'incompatibleGroups',
-      'stackGroup',
     ],
   });
 
