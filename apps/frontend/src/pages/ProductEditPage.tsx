@@ -39,7 +39,7 @@ export function ProductEditPage() {
         </p>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-card">
         <ProductForm
           defaultValues={itemToFormValues(item)}
           isSubmitting={updateItem.isPending}

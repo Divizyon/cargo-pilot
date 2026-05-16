@@ -15,7 +15,7 @@ export function ProductCreatePage() {
         </p>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-card">
         <ProductForm
           isSubmitting={createItem.isPending}
           onCancel={() => navigate('/products')}
