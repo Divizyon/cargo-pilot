@@ -50,6 +50,7 @@ import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
 import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
+import { resolveProductColor } from '@/lib/config/productColors';
 
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormValues>;
@@ -538,6 +539,7 @@ export function ProductForm({
     allowRotateZ,
     notes,
     incompatibleGroups,
+    stackGroup,
   ] = useWatch({
     control: form.control,
     name: [
@@ -554,6 +556,7 @@ export function ProductForm({
       'allowRotateZ',
       'notes',
       'incompatibleGroups',
+      'stackGroup',
     ],
   });
 
@@ -1127,6 +1130,7 @@ export function ProductForm({
               <PreviewPanel
                 name={name}
                 productType={productType ?? 'koli'}
+                stackGroup={stackGroup}
                 length={length}
                 width={width}
                 height={height}
@@ -1152,6 +1156,7 @@ export function ProductForm({
 interface PreviewPanelProps {
   name?: string;
   productType: 'koli' | 'varil' | 'palet';
+  stackGroup?: string;
   length?: number;
   width?: number;
   height?: number;
@@ -1170,6 +1175,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   const {
     name,
     productType,
+    stackGroup,
     length,
     width,
     height,
@@ -1246,6 +1252,7 @@ function PreviewPanel(props: PreviewPanelProps) {
             heightCm={heightCm}
             depthCm={depthCm}
             productType={productType}
+            color={resolveProductColor(productType, stackGroup)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
