@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sparkles, Package, Truck, LayoutDashboard, Share2, PlugZap } from 'lucide-react';
@@ -63,7 +58,10 @@ export function OnboardingDialog({ open, onClose }: OnboardingDialogProps) {
   const isLast = step === STEPS.length - 1;
 
   function goNext() {
-    if (isLast) { onClose(); return; }
+    if (isLast) {
+      onClose();
+      return;
+    }
     setDirection(1);
     setStep((s) => s + 1);
   }
