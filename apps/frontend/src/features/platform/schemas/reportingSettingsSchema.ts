@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 export const reportingSettingsSchema = z.object({
   companyName: z.string().max(200).optional(),
-  phone: z.string().max(30).optional(),
+  phone: z
+    .string()
+    .max(30)
+    .optional()
+    .refine((v) => !v || /^[0-9+\-\s()]*$/.test(v), {
+      message: 'Sadece rakam giriniz',
+    }),
   email: z
     .string()
     .optional()
