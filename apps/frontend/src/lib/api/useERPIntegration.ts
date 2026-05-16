@@ -65,12 +65,14 @@ const erpPendingMappingsPageResponseSchema = z.object({
   }),
 });
 
-// Raw API sync settings schema (API uses syncFrequency: number, not syncInterval: string)
+// Raw API sync settings schema
+// syncFrequency: nullable int, syncStatus: int (0=Idle,1=Running), lastSyncAt (not lastSyncedAt)
 const erpSyncSettingsApiSchema = z.object({
-  syncFrequency: z.number().int(),
-  syncStatus: z.enum(['Idle', 'Running']),
+  integrationId: z.string().uuid().optional(),
+  syncFrequency: z.number().int().nullable(),
+  syncStatus: z.number().int(),
   nextScheduledSyncAt: z.string().datetime({ offset: true }).nullable(),
-  lastSyncedAt: z.string().datetime({ offset: true }).nullable(),
+  lastSyncAt: z.string().datetime({ offset: true }).nullable(),
 });
 
 const erpSyncSettingsApiResponseSchema = z.object({
@@ -176,9 +178,17 @@ export function useTestERPSettings() {
   });
 }
 
+const integrationItemSchema = z.object({
+  id: z.string().uuid(),
+  systemName: z.string(),
+  apiEndpoint: z.string(),
+});
+
+export type ErpIntegration = z.infer<typeof integrationItemSchema>;
+
 const integrationsListResponseSchema = z.object({
   isSuccess: z.boolean(),
-  data: z.array(z.object({ id: z.string().uuid() }).passthrough()),
+  data: z.array(integrationItemSchema),
 });
 
 export function useERPConnection() {
@@ -188,7 +198,7 @@ export function useERPConnection() {
       const { data } = await axiosInstance.get<unknown>(ERP_BASE);
       const parsed = integrationsListResponseSchema.safeParse(data);
       if (!parsed.success || parsed.data.data.length === 0) return null;
-      return parsed.data.data[0] as { id: string };
+      return parsed.data.data[0];
     },
     retry: false,
   });
@@ -389,10 +399,12 @@ export function useERPSyncSettings(integrationId: string | undefined) {
       const parsed = erpSyncSettingsApiResponseSchema.parse(data);
       return {
         syncInterval:
-          SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency] ?? ('Daily' as ErpSyncInterval),
-        syncStatus: parsed.data.syncStatus,
+          (parsed.data.syncFrequency !== null
+            ? SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency]
+            : undefined) ?? ('Daily' as ErpSyncInterval),
+        syncStatus: parsed.data.syncStatus === 1 ? 'Running' : 'Idle',
         nextScheduledSyncAt: parsed.data.nextScheduledSyncAt,
-        lastSyncedAt: parsed.data.lastSyncedAt,
+        lastSyncedAt: parsed.data.lastSyncAt,
       };
     },
     enabled: Boolean(integrationId),
