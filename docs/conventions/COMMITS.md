@@ -1,98 +1,30 @@
 # Commit Kuralları
 
-Bu doküman, Cargo Pilot projesinde commit atarken uyulacak temel kuralları tanımlar.
-
-Amaç; commit geçmişini anlaşılır, okunabilir ve takip edilebilir tutmaktır.
+Commit geçmişini anlaşılır, okunabilir ve takip edilebilir tutmak için uyulacak kurallar.
 
 ---
 
-## 1. Temel Yaklaşım
+## Temel Prensip
 
-Bu projede commit mesajları:
+Commit mesajı mümkün olduğunca **sade ve açıklayıcı** olmalıdır. Geçmişe bakan biri mesajı gördüğünde değişikliğin neyle ilgili olduğunu anlayabilmelidir.
 
-- kısa
-- açık
-- ne yapıldığını anlatan
-- mümkünse tek bir işi kapsayan
+{% hint style="success" %}
+**İyi örnekler:**
 
-şekilde yazılmalıdır.
-
-Commit geçmişine bakan biri, mesajı gördüğünde değişikliğin neyle ilgili olduğunu anlayabilmelidir.
-
----
-
-## 2. Commit Yazım Prensibi
-
-Commit mesajı mümkün olduğunca sade ve açıklayıcı olmalıdır.
-
-Örnek:
-
-```text
+```
 docker compose local ortam için eklendi
 backend container port ayarı düzeltildi
-branch strategy dokümanı eklendi
 health check endpointi eklendi
 mssql container config düzeltildi
+branch strategy dokümanı eklendi
 ```
+{% endhint %}
 
-Mesajın illa belirli bir teknik formatta olması gerekmez.
-Önemli olan, yapılan değişikliğin açık şekilde anlaşılmasıdır.
+{% hint style="danger" %}
+**Kötü örnekler — kullanılmaz:**
 
----
-
-## 3. Atomic Commit Kuralı
-
-Bu projede mümkün olduğunca atomic commit yaklaşımı kullanılmalıdır.
-
-Yani:
-
-* her commit tek bir amaca hizmet etmelidir
-* birbiriyle ilgisiz değişiklikler aynı commit içinde toplanmamalıdır
-
-Doğru yaklaşım:
-
-* docker compose eklemek → ayrı commit
-* backend config düzeltmek → ayrı commit
-* readme güncellemek → ayrı commit
-
-Yanlış yaklaşım:
-
-* aynı commit içinde docker, readme, ci ve refactor değişikliklerini birlikte göndermek
-
-Özet:
-
-* 1 anlamlı değişiklik = 1 commit
-
----
-
-## 4. Commit Mesajlarında Dikkat Edilecekler
-
-Commit mesajları yazılırken:
-
-* anlaşılır bir dil kullanılmalı
-* mümkünse Türkçe ve sade yazılmalı
-* çok genel ifadelerden kaçınılmalı
-* değişikliğin ne olduğu açıkça söylenmeli
-
-Örnek olarak şu tarz mesajlar tercih edilmelidir:
-
-```text
-local geliştirme için docker compose dosyası eklendi
-backend servis port çakışması düzeltildi
-minio config ayarları güncellendi
-pipeline hata kontrolü eklendi
 ```
-
----
-
-## 5. Kullanılmaması Gereken Commit Mesajları
-
-Aşağıdaki gibi commit mesajları kullanılmamalıdır:
-
-```text
 son
-deneme
-güncel
 fix
 update
 asdf
@@ -100,54 +32,74 @@ düzenleme
 çeşitli değişiklikler
 ```
 
-Bu tür mesajlar:
-
-* ne yapıldığını anlatmaz
-* commit geçmişini değersiz hale getirir
-* review ve hata analizi süreçlerini zorlaştırır
+Bu tür mesajlar ne yapıldığını anlatmaz, commit geçmişini değersiz kılar.
+{% endhint %}
 
 ---
 
-## 6. Commit Öncesi Kontrol
+## Atomic Commit Kuralı
 
-Commit atmadan önce geliştirici kendine şunu sormalıdır:
+**1 anlamlı değişiklik = 1 commit**
 
-* Bu commit tek bir işi mi kapsıyor?
-* Mesaj ne yaptığımı açıkça anlatıyor mu?
-* Başka biri bu mesajı görünce değişikliği anlayabilir mi?
+{% hint style="success" %}
+**Doğru:**
 
-Eğer cevap hayırsa, commit bölünmeli veya mesaj düzeltilmelidir.
+```bash
+git commit -m "docker compose eklendi"
+git commit -m "backend config düzeltildi"
+git commit -m "readme güncellendi"
+```
+{% endhint %}
+
+{% hint style="danger" %}
+**Yanlış:**
+
+```bash
+git commit -m "docker, readme, ci ve refactor değişiklikleri"
+```
+
+Birbiriyle ilgisiz değişiklikler aynı commit içinde toplanmaz.
+{% endhint %}
 
 ---
 
-## 7. Pull Request Öncesi Temizlik
+## Commit Yazım Kuralları
 
-Pull Request açmadan önce:
-
-* anlamsız commit mesajları bırakılmamalı
-* çok dağınık ve gereksiz commit geçmişi temizlenmeli
-* mümkünse commit geçmişi okunabilir bırakılmalıdır
-
-Amaç kusursuz bir geçmiş oluşturmak değil,
-okunabilir ve anlaşılır bir geçmiş bırakmaktır.
+- Anlaşılır ve sade dil kullan
+- Mümkünse Türkçe yaz
+- Çok genel ifadelerden kaçın
+- Ne yapıldığını açıkça söyle
 
 ---
 
-## 8. Özet
+## Commit Öncesi Kontrol
 
-Bu projede commit mesajlarında temel beklenti şudur:
+Commit atmadan önce kendinize şunu sorun:
 
-* sade yaz
-* ne yaptığını açık yaz
-* tek işe tek commit at
-* anlamsız mesaj kullanma
+1. Bu commit tek bir işi mi kapsıyor?
+2. Mesaj ne yaptığımı açıkça anlatıyor mu?
+3. Başka biri bu mesajı görünce değişikliği anlayabilir mi?
 
-Kural basit:
+Cevap hayırsa commit bölünmeli veya mesaj düzeltilmelidir.
 
-Commit geçmişi okunabilir olmalı, yapılan iş anlaşılmalı ve mümkün olduğunca atomic commit yaklaşımı korunmalıdır.
+---
+
+## PR Öncesi Temizlik
+
+PR açmadan önce:
+
+- Anlamsız commit mesajları bırakılmamalı
+- Gereksiz commit geçmişi temizlenmeli
+- Mümkünse geçmiş okunabilir bırakılmalıdır
+
+{% hint style="info" %}
+Amaç kusursuz değil, **okunabilir** bir geçmiş oluşturmaktır.
+{% endhint %}
 
 ---
 
 ## İlgili Dokümanlar
 
-* [Branching Strategy](./BRANCHING.md) — Branch yönetimi ve PR kuralları
+{% content-ref url="BRANCHING.md" %}
+[Branching Strategy](BRANCHING.md)
+{% endcontent-ref %}
