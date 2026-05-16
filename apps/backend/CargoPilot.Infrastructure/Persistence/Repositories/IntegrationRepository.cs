@@ -28,6 +28,11 @@ internal sealed class IntegrationRepository : IIntegrationRepository
             .Where(i => i.CompanyId == companyId)
             .ToListAsync(cancellationToken);
 
+    public Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
+        => _dbContext.Integrations.AnyAsync(i => i.CompanyId == companyId, cancellationToken);
+
+    public void Add(Integration integration) => _dbContext.Integrations.Add(integration);
+
     public void AddSyncLog(SyncLog syncLog) => _dbContext.SyncLogs.Add(syncLog);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -63,7 +63,7 @@
     /* ------------------------------------------------------------------ */
     /* Sidebar                                                              */
     /* ------------------------------------------------------------------ */
-    --page-background: 240 5% 96%; /* #F3F4F6 — sidebar dışı sayfa zemini */
+    --page-background: 0 0% 96.1%; /* #F5F5F5 — sidebar dışı sayfa zemini */
 
     /* Chart renkleri */
     --color-sevkiyat: #18181b;
@@ -131,7 +131,6 @@
   html,
   body {
     height: 100%;
-    overflow: hidden;
   }
 
   body {
@@ -141,7 +140,6 @@
 
   #root {
     height: 100%;
-    overflow: hidden;
   }
 }
 

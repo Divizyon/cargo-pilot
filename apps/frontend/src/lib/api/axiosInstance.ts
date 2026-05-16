@@ -99,6 +99,10 @@ axiosInstance.interceptors.response.use(
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
         sessionStorage.setItem('logout_reason', 'token_expired');
+        const currentPath = window.location.pathname + window.location.search;
+        if (!currentPath.startsWith('/auth/')) {
+          sessionStorage.setItem('redirect_after_login', currentPath);
+        }
         window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       } finally {

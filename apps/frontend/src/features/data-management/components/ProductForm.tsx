@@ -1096,7 +1096,7 @@ export function ProductForm({
   }
 
   const actionBar = (
-    <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
+    <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
       {onCancel && (
         <Button
           type="button"
