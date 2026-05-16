@@ -458,6 +458,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     doorDirection:
       v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
     doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
   };
 }
 

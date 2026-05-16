@@ -21,6 +21,7 @@ import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
+  useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -32,9 +33,15 @@ interface PlanAutoLoaderProps {
   planId: string;
   refetchKey?: number;
   onVehicleSelected: () => void;
+  onLoaded?: () => void;
 }
 
-function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoLoaderProps) {
+function PlanAutoLoader({
+  planId,
+  refetchKey = 0,
+  onVehicleSelected,
+  onLoaded,
+}: PlanAutoLoaderProps) {
   const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
@@ -60,13 +67,24 @@ function PlanAutoLoader({ planId, refetchKey = 0, onVehicleSelected }: PlanAutoL
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
-  }, [isSuccess, data, setVehicle, initItems, setPlacements, setUnplacedItems, onVehicleSelected]);
+    onLoaded?.();
+  }, [
+    isSuccess,
+    data,
+    setVehicle,
+    initItems,
+    setPlacements,
+    setUnplacedItems,
+    onVehicleSelected,
+    onLoaded,
+  ]);
 
   return null;
 }
 
 export function NewPlanPage() {
   const snapshotRef = useRef<(() => string) | null>(null);
+  const pendingSnapshotPlanId = useRef<string | null>(null);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
@@ -77,6 +95,7 @@ export function NewPlanPage() {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
+  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
 
   useEffect(() => {
     if (!fromPlanId) {
@@ -137,8 +156,22 @@ export function NewPlanPage() {
       items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
+    const dataUrl = snapshotRef.current?.();
+    if (dataUrl) uploadThumbnail({ id, dataUrl });
     navigate(planningDetailRoute(id), { replace: true });
-  }, [planNameInput, createPlan, navigate]);
+  }, [planNameInput, createPlan, navigate, uploadThumbnail]);
+
+  const handlePlanLoaded = useCallback(() => {
+    const planId = pendingSnapshotPlanId.current;
+    if (!planId) return;
+    pendingSnapshotPlanId.current = null;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const dataUrl = snapshotRef.current?.();
+        if (dataUrl) uploadThumbnail({ id: planId, dataUrl });
+      });
+    });
+  }, [uploadThumbnail]);
 
   const handleLoadAnimation = useCallback(() => {
     if (usePlanStore.getState().placements.length === 0) return;
@@ -156,6 +189,7 @@ export function NewPlanPage() {
       items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
+    pendingSnapshotPlanId.current = fromPlanId;
     setRefetchKey((k) => k + 1);
     setAnimationReady(true);
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
@@ -203,6 +237,7 @@ export function NewPlanPage() {
           planId={fromPlanId}
           refetchKey={refetchKey}
           onVehicleSelected={handleVehicleSelected}
+          onLoaded={handlePlanLoaded}
         />
       )}
       {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}

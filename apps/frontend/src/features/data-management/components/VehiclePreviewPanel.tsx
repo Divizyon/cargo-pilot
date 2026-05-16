@@ -114,10 +114,12 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   ];
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
       {/* Başlık + operasyonel durum */}
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] text-muted-foreground">Araç Önizleme</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Araç Önizleme
+        </p>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">Aktif</span>
           <FormField
@@ -159,7 +161,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
 
       {/* Hacim */}
       <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
-        <span className="text-[10px] text-muted-foreground">Hacim</span>
+        <span className="text-xs text-muted-foreground">Hacim</span>
         <span className="text-xs font-semibold tabular-nums text-foreground">
           {volume ? `${volume} m³` : '—'}
         </span>
@@ -175,7 +177,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
             key={r.label}
             className="flex items-center justify-between border-b border-border/50 py-1 last:border-0"
           >
-            <span className="text-[10px] text-muted-foreground">{r.label}</span>
+            <span className="text-xs text-muted-foreground">{r.label}</span>
             <span
               className={cn(
                 'max-w-[60%] truncate text-right text-xs tabular-nums',

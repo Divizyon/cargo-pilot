@@ -421,6 +421,7 @@ export function PlanRightPanel({
   vehiclesOpen = true,
   onToggleVehicles,
   onOptimize,
+  onLoadAnimation,
   isOptimizing = false,
   canOptimize = true,
   planId,
@@ -1003,6 +1004,11 @@ export function PlanRightPanel({
             {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
             Optimizasyonu Başlat
           </Button>
+          {placements.length > 0 && (
+            <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
+              Yükleme Animasyonunu Başlat
+            </Button>
+          )}
         </div>
       </div>
 

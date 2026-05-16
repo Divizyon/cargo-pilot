@@ -241,7 +241,8 @@ function InstancedBoxes() {
 
   // Label atlas — box instance'ları için (palet/varil hariç)
   const labelPlaneRef = useRef<THREE.InstancedMesh>(null);
-  // globalIdx → atlasIdx (palet/varil hariç box'ların atlas tile sırası)
+
+  // globalIdx → atlasIdx (palet/varil hariç)
   const atlasIndexMap = useMemo<Map<number, number>>(() => {
     const map = new Map<number, number>();
     let atlasIdx = 0;
@@ -280,18 +281,17 @@ function InstancedBoxes() {
     return buildLabelMaterial(atlas);
   }, [atlas]);
 
-  // Plane geometry (1×1, UV 0..1) — tüm instance'lar paylaşır
+  // Plane geometry (1×1, UV 0..1) — box label'lar paylaşır
   const labelPlaneGeo = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
 
+  // Box UV attributes
   useEffect(() => {
     if (!atlas || boxIndices.length === 0) return;
 
     const { uvOffsets, cellSize } = atlas;
     const boxCount = boxIndices.length;
-    const total = boxCount * FACE_COUNT; // 6 yüz per box
+    const total = boxCount * FACE_COUNT;
 
-    // Her 6 ardışık instance = aynı kutunun 6 yüzü → aynı UV offset paylaşır
-    // atlasIndexMap: globalIdx → atlasIdx (palet/varil boşlukları sayılmaz)
     const uvData = new Float32Array(total * 2);
     const cellSizeData = new Float32Array(total).fill(cellSize);
 
@@ -672,13 +672,14 @@ function InstancedBoxes() {
   // Ayrı effect: labelPlaneRef conditional JSX'ten mount olduğu için idle effect'i kaçırabilir
   useEffect(() => {
     if (isAnimActive) return;
-    if (!labelPlaneRef.current || !atlas) return;
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
     const scale = new THREE.Vector3();
     const quaternion = new THREE.Quaternion();
-    writeLabelPlaneMatrices(matrix, position, scale, quaternion, false, 0);
-    labelPlaneRef.current.instanceMatrix.needsUpdate = true;
+    if (labelPlaneRef.current && atlas) {
+      writeLabelPlaneMatrices(matrix, position, scale, quaternion, false, 0);
+      labelPlaneRef.current.instanceMatrix.needsUpdate = true;
+    }
   }, [isAnimActive, atlas, placements, writeLabelPlaneMatrices]);
 
   // Build edge lineSegments geometry for all visible non-ghosted boxes.

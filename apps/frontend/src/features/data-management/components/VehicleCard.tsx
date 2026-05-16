@@ -9,7 +9,19 @@ import {
   Layers3,
   ChevronDown,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useDeleteLoadingPlan } from '@/lib/api/useLoadingPlans';
 import { planningDetailRoute } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import type {
@@ -165,6 +177,8 @@ interface VehicleCardProps {
 
 export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
   const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
 
   const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
 
@@ -206,6 +220,16 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{planDate}</p>
           </div>
+          <button
+            aria-label="Planı sil"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteOpen(true);
+            }}
+            className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Araç teknik bilgileri (AC1–AC5) */}
@@ -240,107 +264,114 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
         </div>
       </div>
 
-      {/* ── 3D taslak alanı ── */}
+      {/* ── 3D taslak / snapshot alanı ── */}
       <div
         className="relative flex items-center justify-center bg-muted/40 border-b border-border overflow-hidden"
         style={{ height: 120 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <svg
-          viewBox="0 0 160 80"
-          className="w-36 opacity-20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* araç gövdesi */}
-          <rect
-            x="10"
-            y="20"
-            width="120"
-            height="50"
-            rx="3"
-            stroke="currentColor"
-            strokeWidth="1.5"
+        {plan.thumbnailUrl ? (
+          <img
+            src={plan.thumbnailUrl}
+            alt="3D görünüm"
+            className="w-full h-full object-cover"
+            draggable={false}
           />
-          {/* ön bölme */}
-          <rect
-            x="10"
-            y="20"
-            width="22"
-            height="50"
-            rx="2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-          {/* kargo kutuları */}
-          <rect
-            x="36"
-            y="28"
-            width="22"
-            height="20"
-            rx="1"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <rect
-            x="62"
-            y="28"
-            width="22"
-            height="20"
-            rx="1"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <rect
-            x="88"
-            y="28"
-            width="22"
-            height="20"
-            rx="1"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <rect
-            x="36"
-            y="52"
-            width="22"
-            height="12"
-            rx="1"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <rect
-            x="62"
-            y="52"
-            width="22"
-            height="12"
-            rx="1"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <rect
-            x="88"
-            y="52"
-            width="22"
-            height="12"
-            rx="1"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          {/* tekerlekler */}
-          <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-        <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground/60 font-medium tracking-wide">
-          3D görünüm — yakında
-        </span>
+        ) : (
+          <>
+            <svg
+              viewBox="0 0 160 80"
+              className="w-36 opacity-20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="10"
+                y="20"
+                width="120"
+                height="50"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="10"
+                y="20"
+                width="22"
+                height="50"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="36"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="62"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="88"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="36"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="62"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="88"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground/60 font-medium tracking-wide">
+              3D görünüm — yakında
+            </span>
+          </>
+        )}
       </div>
 
       {/* ── Product groups (AC6–AC8) ── */}
@@ -353,6 +384,27 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Planı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{plan.planName}</strong> planı silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={() => deletePlan(plan.id)}
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

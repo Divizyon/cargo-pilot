@@ -1211,6 +1211,53 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.ToTable("PendingItemMappings", (string)null);
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.ShareLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Validity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ViewCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("IX_ShareLinks_PlanId");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ShareLinks_Token");
+
+                    b.ToTable("ShareLinks", (string)null);
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.SyncLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1846,6 +1893,17 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("CargoPilotItem");
 
                     b.Navigation("Integration");
+                });
+
+            modelBuilder.Entity("CargoPilot.Domain.Entities.ShareLink", b =>
+                {
+                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.SyncLog", b =>

@@ -146,7 +146,7 @@ export function SubscriptionTab() {
       )}
 
       {/* Current plan summary */}
-      <div className="flex items-center justify-between rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between rounded-xl border bg-muted p-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Mevcut Plan
@@ -257,7 +257,7 @@ export function SubscriptionTab() {
               {/* CTA — bottom */}
               <Button
                 size="sm"
-                variant={isActive ? 'secondary' : plan.highlighted ? 'default' : 'outline'}
+                variant={isActive ? 'outline' : plan.highlighted ? 'default' : 'outline'}
                 className="mt-4 w-full"
                 disabled={isActive || plan.key === 'enterprise'}
                 onClick={() => handlePlanAction(plan)}
