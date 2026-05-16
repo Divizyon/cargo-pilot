@@ -18,17 +18,17 @@ export function SelectedBoxCoords() {
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
       <div className="flex items-center gap-3 rounded-lg bg-black/60 px-4 py-2 text-xs font-mono text-white backdrop-blur-sm">
         <span>
-          <span className="text-zinc-400">X </span>
+          <span className="text-muted-foreground">X </span>
           {Math.round(x)} cm
         </span>
-        <span className="text-zinc-600">·</span>
+        <span className="text-muted-foreground">·</span>
         <span>
-          <span className="text-zinc-400">Y </span>
+          <span className="text-muted-foreground">Y </span>
           {Math.round(y)} cm
         </span>
-        <span className="text-zinc-600">·</span>
+        <span className="text-muted-foreground">·</span>
         <span>
-          <span className="text-zinc-400">Z </span>
+          <span className="text-muted-foreground">Z </span>
           {Math.round(z)} cm
         </span>
       </div>
