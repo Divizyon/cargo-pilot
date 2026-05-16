@@ -32,4 +32,10 @@ public sealed class Company : BaseEntity {
 
     public void UpdateName(string name) => Name = name.Trim();
     public void SetTrial(DateTime trialEndsAt) => TrialEndsAt = trialEndsAt;
+
+    public void UpgradeSubscription(SubscriptionType newPlan, int maxUserCount)
+    {
+        SubscriptionType = newPlan;
+        MaxUserCount = maxUserCount;
+    }
 }

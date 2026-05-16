@@ -40,8 +40,7 @@ public static class DependencyInjection {
         services.AddOptions<EmailChangeSettings>()
             .Bind(configuration.GetSection("EmailChange"))
             .Validate(s => !string.IsNullOrWhiteSpace(s.FrontendConfirmUrl), "EmailChange:FrontendConfirmUrl is required.")
-            .Validate(s => s.TokenExpiryMinutes > 0, "EmailChange:TokenExpiryMinutes must be greater than 0.")
-            .ValidateOnStart();
+            .Validate(s => s.TokenExpiryMinutes > 0, "EmailChange:TokenExpiryMinutes must be greater than 0.");
 
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailChangeSettings>>().Value);
@@ -64,6 +63,25 @@ public static class DependencyInjection {
         services.AddOptions<SubscriptionPlanSettings>()
             .Bind(configuration.GetSection("SubscriptionPlans"))
             .ValidateOnStart();
+
+        var paytrMerchantId = configuration["PayTR:MerchantId"];
+        var paytrMockMode = string.IsNullOrWhiteSpace(paytrMerchantId);
+
+        if (paytrMockMode)
+        {
+            services.AddOptions<PayTRSettings>()
+                .Bind(configuration.GetSection("PayTR"))
+                .ValidateOnStart();
+            services.AddSingleton<IPayTRService, MockPayTRService>();
+        }
+        else
+        {
+            services.AddOptions<PayTRSettings>()
+                .Bind(configuration.GetSection("PayTR"))
+                .Validate(s => !string.IsNullOrWhiteSpace(s.MerchantId), "PayTR:MerchantId is required.")
+                .ValidateOnStart();
+            services.AddHttpClient<IPayTRService, PayTRService>();
+        }
 
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();

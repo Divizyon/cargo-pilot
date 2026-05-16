@@ -18,6 +18,11 @@ internal sealed class CompanyRepository : ICompanyRepository
         _dbContext.Companies.Add(company);
     }
 
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _dbContext.Companies.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
