@@ -1,10 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Upload } from 'lucide-react';
-import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -18,13 +16,14 @@ import {
   useERPConnection,
   useERPPendingMappingsPaginated,
   useTriggerERPSync,
-  useApproveERPMappingWithNewItem,
   type ErpPendingMappingItem,
 } from '@/lib/api/useERPIntegration';
-import { ALLOWED_ROTATIONS, ITEM_CATEGORY, type CreateItemRequest } from '@/lib/api/itemMappers';
+import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { SearchInput } from './SearchInput';
 
-const PAGE_SIZE = 20;
+const ROW_H = 48;
+const HEADER_ROW_H = 36;
+const BELOW_TABLE_H = 80;
 
 // ─── Mock data (no ERP connection) ───────────────────────────────────────────
 
@@ -101,49 +100,270 @@ const MOCK_ITEMS: ErpPendingMappingItem[] = [
     erpCategory: 'CAM',
     erpBarcode: '8694445556667',
   },
+  {
+    id: 'mock-7',
+    erpProductId: 'STK007',
+    erpProductName: 'Endüstriyel Boya Kovası',
+    erpSku: 'BYA-007',
+    erpWeight: 18,
+    erpWidth: 35,
+    erpHeight: 45,
+    erpLength: 35,
+    erpCategory: 'KIMYASAL',
+    erpBarcode: '8692223334445',
+  },
+  {
+    id: 'mock-8',
+    erpProductId: 'STK008',
+    erpProductName: 'Kağıt Rulo Ambalaj',
+    erpSku: 'KAG-008',
+    erpWeight: 12,
+    erpWidth: 100,
+    erpHeight: 60,
+    erpLength: 60,
+    erpCategory: 'KAGIT',
+    erpBarcode: '8696667778889',
+  },
+  {
+    id: 'mock-9',
+    erpProductId: 'STK009',
+    erpProductName: 'Demir Profil Paketi',
+    erpSku: 'DMR-009',
+    erpWeight: 85,
+    erpWidth: 200,
+    erpHeight: 20,
+    erpLength: 30,
+    erpCategory: 'METAL',
+    erpBarcode: '8693334445556',
+  },
+  {
+    id: 'mock-10',
+    erpProductId: 'STK010',
+    erpProductName: 'Organik Gübre Torbası',
+    erpSku: 'GBR-010',
+    erpWeight: 25,
+    erpWidth: 55,
+    erpHeight: 80,
+    erpLength: 30,
+    erpCategory: 'TARIM',
+    erpBarcode: '8698889990001',
+  },
+  {
+    id: 'mock-11',
+    erpProductId: 'STK011',
+    erpProductName: 'Seramik Fayans Kutusu',
+    erpSku: 'SRM-011',
+    erpWeight: 30,
+    erpWidth: 60,
+    erpHeight: 15,
+    erpLength: 60,
+    erpCategory: 'SERAMIK',
+    erpBarcode: '8691230004567',
+  },
+  {
+    id: 'mock-12',
+    erpProductId: 'STK012',
+    erpProductName: 'Otomotiv Yedek Parça',
+    erpSku: 'OTO-012',
+    erpWeight: 9,
+    erpWidth: 40,
+    erpHeight: 25,
+    erpLength: 50,
+    erpCategory: 'OTOMOTIV',
+    erpBarcode: '8695670001234',
+  },
+  {
+    id: 'mock-13',
+    erpProductId: 'STK013',
+    erpProductName: 'Bebek Bezi Karton Koli',
+    erpSku: 'BBK-013',
+    erpWeight: 5.5,
+    erpWidth: 70,
+    erpHeight: 45,
+    erpLength: 50,
+    erpCategory: 'TEKSTIL',
+    erpBarcode: '8699001112223',
+  },
+  {
+    id: 'mock-14',
+    erpProductId: 'STK014',
+    erpProductName: 'Gıda Konserve Kasası',
+    erpSku: 'GDA-014',
+    erpWeight: 20,
+    erpWidth: 45,
+    erpHeight: 30,
+    erpLength: 55,
+    erpCategory: 'GIDA',
+    erpBarcode: '8694561237890',
+  },
+  {
+    id: 'mock-15',
+    erpProductId: 'STK015',
+    erpProductName: 'İnşaat Malzeme Torbası',
+    erpSku: 'INS-015',
+    erpWeight: 40,
+    erpWidth: 65,
+    erpHeight: 90,
+    erpLength: 35,
+    erpCategory: 'INSAAT',
+    erpBarcode: '8697894561230',
+  },
+  {
+    id: 'mock-16',
+    erpProductId: 'STK016',
+    erpProductName: 'Plastik Boru Demeti',
+    erpSku: 'BRU-016',
+    erpWeight: 14,
+    erpWidth: 150,
+    erpHeight: 25,
+    erpLength: 25,
+    erpCategory: 'PLASTIK',
+    erpBarcode: '8692346781230',
+  },
+  {
+    id: 'mock-17',
+    erpProductId: 'STK017',
+    erpProductName: 'Mobilya Aksesuar Kutusu',
+    erpSku: 'MOB-017',
+    erpWeight: 6,
+    erpWidth: 35,
+    erpHeight: 20,
+    erpLength: 45,
+    erpCategory: 'MOBILYA',
+    erpBarcode: '8691237894560',
+  },
+  {
+    id: 'mock-18',
+    erpProductId: 'STK018',
+    erpProductName: 'Tarım İlacı Bidonu',
+    erpSku: 'TRM-018',
+    erpWeight: 11,
+    erpWidth: 25,
+    erpHeight: 40,
+    erpLength: 25,
+    erpCategory: 'TARIM',
+    erpBarcode: '8696781234560',
+  },
+  {
+    id: 'mock-19',
+    erpProductId: 'STK019',
+    erpProductName: 'Tekstil Ürünü Balya',
+    erpSku: 'BAL-019',
+    erpWeight: 35,
+    erpWidth: 90,
+    erpHeight: 60,
+    erpLength: 70,
+    erpCategory: 'TEKSTIL',
+    erpBarcode: '8694560001237',
+  },
+  {
+    id: 'mock-20',
+    erpProductId: 'STK020',
+    erpProductName: 'Elektronik Kart Paketi',
+    erpSku: 'ELK-020',
+    erpWeight: 1.2,
+    erpWidth: 20,
+    erpHeight: 10,
+    erpLength: 30,
+    erpCategory: 'ELEKTRONIK',
+    erpBarcode: '8693456780001',
+  },
+  {
+    id: 'mock-21',
+    erpProductId: 'STK021',
+    erpProductName: 'Alüminyum Profil Kutusu',
+    erpSku: 'ALM-021',
+    erpWeight: 28,
+    erpWidth: 180,
+    erpHeight: 15,
+    erpLength: 20,
+    erpCategory: 'METAL',
+    erpBarcode: '8691122334456',
+  },
+  {
+    id: 'mock-22',
+    erpProductId: 'STK022',
+    erpProductName: 'Deterjan Koli',
+    erpSku: 'DTR-022',
+    erpWeight: 16,
+    erpWidth: 55,
+    erpHeight: 40,
+    erpLength: 45,
+    erpCategory: 'KIMYASAL',
+    erpBarcode: '8695544332210',
+  },
+  {
+    id: 'mock-23',
+    erpProductId: 'STK023',
+    erpProductName: 'Spor Malzeme Çantası',
+    erpSku: 'SPR-023',
+    erpWeight: 4.5,
+    erpWidth: 60,
+    erpHeight: 35,
+    erpLength: 30,
+    erpCategory: 'TEKSTIL',
+    erpBarcode: '8698877665544',
+  },
+  {
+    id: 'mock-24',
+    erpProductId: 'STK024',
+    erpProductName: 'Ahşap Palet',
+    erpSku: 'PLT-024',
+    erpWeight: 20,
+    erpWidth: 120,
+    erpHeight: 14,
+    erpLength: 80,
+    erpCategory: 'AHSAP',
+    erpBarcode: '8692233445566',
+  },
+  {
+    id: 'mock-25',
+    erpProductId: 'STK025',
+    erpProductName: 'Soğuk Zincir Köpük Kutu',
+    erpSku: 'SGK-025',
+    erpWeight: 3,
+    erpWidth: 40,
+    erpHeight: 30,
+    erpLength: 50,
+    erpCategory: 'GIDA',
+    erpBarcode: '8697766554433',
+  },
 ];
 
-// ─── Column widths ─────────────────────────────────────────────────────────────
+// ─── ERP → BulkImportDialog row dönüşümü (cm → mm) ──────────────────────────
 
-const SKELETON_COL_WIDTHS = ['w-4', 'w-24', 'w-44', 'w-20', 'w-24', 'w-20', 'w-16', 'w-16', 'w-16', 'w-16'];
-
-// ─── Inline edit state ────────────────────────────────────────────────────────
-
-interface EditableRow {
-  erpProductName: string;
-  erpSku: string;
-  erpWeight: string;
-  erpWidth: string;
-  erpHeight: string;
-  erpLength: string;
-}
-
-function getDisplayValue<K extends keyof EditableRow>(
-  row: ErpPendingMappingItem,
-  edits: Record<string, Partial<EditableRow>>,
-  field: K,
-): string {
-  const edit = edits[row.id];
-  if (edit && field in edit) return edit[field] as string;
-  if (field === 'erpProductName') return row.erpProductName;
-  if (field === 'erpSku') return row.erpSku ?? '';
-  if (field === 'erpWeight') return row.erpWeight?.toString() ?? '';
-  if (field === 'erpWidth') return row.erpWidth?.toString() ?? '';
-  if (field === 'erpHeight') return row.erpHeight?.toString() ?? '';
-  if (field === 'erpLength') return row.erpLength?.toString() ?? '';
-  return '';
+function erpItemToImportRow(item: ErpPendingMappingItem): EditableRow {
+  return {
+    _id: crypto.randomUUID(),
+    name: item.erpProductName,
+    sku: item.erpSku ?? '',
+    tip: 'koli',
+    width: item.erpWidth != null ? String(item.erpWidth) : '',
+    height: item.erpHeight != null ? String(item.erpHeight) : '',
+    length: item.erpLength != null ? String(item.erpLength) : '',
+    weight: item.erpWeight != null ? String(item.erpWeight) : '',
+    fragility: '0',
+    isStackable: false,
+    maxStackCount: '1',
+    allowRotateX: true,
+    allowRotateY: true,
+    allowRotateZ: true,
+    notes: '',
+  };
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
+const SKELETON_COLS = 9;
+
 function ERPItemsTableSkeleton() {
   return (
-    <Table className="min-w-[1000px] table-fixed">
+    <Table className="min-w-[1100px] table-fixed">
       <TableHeader>
         <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-          {SKELETON_COL_WIDTHS.map((w, i) => (
+          {Array.from({ length: SKELETON_COLS }).map((_, i) => (
             <TableHead key={i}>
-              <Skeleton className={`h-3 ${w}`} />
+              <Skeleton className="h-3 w-16" />
             </TableHead>
           ))}
         </TableRow>
@@ -151,9 +371,9 @@ function ERPItemsTableSkeleton() {
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
-            {SKELETON_COL_WIDTHS.map((_, j) => (
+            {Array.from({ length: SKELETON_COLS }).map((_, j) => (
               <TableCell key={j} className="py-0 px-3">
-                <Skeleton className="h-7 w-full" />
+                <Skeleton className="h-4 w-full" />
               </TableCell>
             ))}
           </TableRow>
@@ -169,15 +389,39 @@ export function ERPItemsTable() {
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
 
+  const tableCardRef = useRef<HTMLDivElement>(null);
+
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() =>
+    Math.max(5, Math.floor((window.innerHeight - 400) / ROW_H)),
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [edits, setEdits] = useState<Record<string, Partial<EditableRow>>>({});
-  const [isTransferring, setIsTransferring] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importRows, setImportRows] = useState<EditableRow[]>([]);
+
+  useEffect(() => {
+    let last = pageSize;
+    const calculate = () => {
+      if (!tableCardRef.current) return;
+      const top = tableCardRef.current.getBoundingClientRect().top;
+      const available = window.innerHeight - top - BELOW_TABLE_H - HEADER_ROW_H;
+      const next = Math.max(5, Math.floor(available / ROW_H));
+      if (next !== last) {
+        last = next;
+        setPageSize(next);
+        setPage(1);
+      }
+    };
+    calculate();
+    window.addEventListener('resize', calculate);
+    return () => window.removeEventListener('resize', calculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isSearching = searchTerm.trim().length > 0;
   const queryPage = isSearching ? 1 : page;
-  const queryPageSize = isSearching ? 100 : PAGE_SIZE;
+  const queryPageSize = isSearching ? 100 : pageSize;
 
   const {
     data: mappingsPage,
@@ -190,7 +434,6 @@ export function ERPItemsTable() {
   });
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
-  const { mutateAsync: approveWithNewItem } = useApproveERPMappingWithNewItem();
 
   const useMock = !integrationId;
   const allItems = useMock ? MOCK_ITEMS : (mappingsPage?.items ?? []);
@@ -207,10 +450,11 @@ export function ERPItemsTable() {
   });
 
   const totalCount = useMock || isSearching ? filteredItems.length : (mappingsPage?.totalCount ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const displayedItems = isSearching || useMock
-    ? filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-    : filteredItems;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const displayedItems =
+    isSearching || useMock
+      ? filteredItems.slice((page - 1) * pageSize, page * pageSize)
+      : filteredItems;
 
   const showSkeleton = !useMock && (isLoading || isFetching);
   const isEmpty = !showSkeleton && displayedItems.length === 0 && !isSearching;
@@ -242,85 +486,15 @@ export function ERPItemsTable() {
     });
   }
 
-  function handleEdit(id: string, field: keyof EditableRow, value: string) {
-    setEdits((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], [field]: value },
-    }));
-  }
-
   function handleSync() {
     if (!integrationId) return;
     triggerSync({ integrationId });
   }
 
-  async function handleTransfer() {
-    if (!integrationId || selectedIds.size === 0 || isTransferring) return;
-    setIsTransferring(true);
-
-    const rowsToTransfer = displayedItems.filter((item) => selectedIds.has(item.id));
-
-    const results = await Promise.allSettled(
-      rowsToTransfer.map((row) => {
-        const edit = edits[row.id] ?? {};
-        const name = edit.erpProductName ?? row.erpProductName;
-        const sku = edit.erpSku ?? row.erpSku ?? '';
-        const weight =
-          edit.erpWeight !== undefined ? parseFloat(edit.erpWeight) || 0 : (row.erpWeight ?? 0);
-        const width =
-          edit.erpWidth !== undefined ? parseFloat(edit.erpWidth) || 0 : (row.erpWidth ?? 0);
-        const height =
-          edit.erpHeight !== undefined ? parseFloat(edit.erpHeight) || 0 : (row.erpHeight ?? 0);
-        const length =
-          edit.erpLength !== undefined ? parseFloat(edit.erpLength) || 0 : (row.erpLength ?? 0);
-
-        const itemPayload: CreateItemRequest = {
-          name,
-          sku,
-          productType: 'koli',
-          category: ITEM_CATEGORY.Box,
-          width,
-          height,
-          length,
-          weight,
-          fragilityType: 0,
-          isStackable: true,
-          maxStackCount: 1,
-          maxWeightOnTop: weight > 0 ? weight : 1,
-          allowedRotations: ALLOWED_ROTATIONS.All,
-        };
-
-        return approveWithNewItem({ integrationId, mappingId: row.id, itemPayload });
-      }),
-    );
-
-    const successIds = rowsToTransfer
-      .filter((_, i) => results[i].status === 'fulfilled')
-      .map((r) => r.id);
-    const failCount = results.filter((r) => r.status === 'rejected').length;
-
-    if (successIds.length > 0) {
-      const msg =
-        failCount === 0
-          ? `${successIds.length} ürün Cargo Pilot'a aktarıldı`
-          : `${successIds.length}/${rowsToTransfer.length} ürün aktarıldı`;
-      toast.success(msg, { position: 'bottom-right' });
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        successIds.forEach((id) => next.delete(id));
-        return next;
-      });
-      setEdits((prev) => {
-        const next = { ...prev };
-        successIds.forEach((id) => delete next[id]);
-        return next;
-      });
-    }
-    if (failCount > 0) {
-      toast.error(`${failCount} ürün aktarılamadı`, { position: 'bottom-right' });
-    }
-
-    setIsTransferring(false);
+  function handleOpenImport() {
+    const selected = displayedItems.filter((item) => selectedIds.has(item.id));
+    setImportRows(selected.map(erpItemToImportRow));
+    setImportOpen(true);
   }
 
   return (
@@ -347,14 +521,10 @@ export function ERPItemsTable() {
         <Button
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
-          onClick={handleTransfer}
-          disabled={selectedIds.size === 0 || isTransferring || !integrationId}
+          onClick={handleOpenImport}
+          disabled={selectedIds.size === 0}
         >
-          {isTransferring ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
-          )}
+          <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
           Ürünlere Aktar
           {selectedIds.size > 0 && (
             <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
@@ -371,8 +541,8 @@ export function ERPItemsTable() {
         </Alert>
       )}
 
-      {/* Table card */}
-      <div className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
+      {/* Table */}
+      <div ref={tableCardRef} className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
         {showSkeleton ? (
           <ERPItemsTableSkeleton />
         ) : (
@@ -386,31 +556,28 @@ export function ERPItemsTable() {
                     aria-label="Tümünü seç"
                   />
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  ERP ID
-                </TableHead>
                 <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün Adı
-                </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  SKU
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Kategori
                 </TableHead>
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  SKU
+                </TableHead>
                 <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Barkod
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Uzunluk
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Derinlik
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ağırlık
                 </TableHead>
               </TableRow>
@@ -418,13 +585,8 @@ export function ERPItemsTable() {
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={10}
-                    className="py-16 text-center text-sm text-muted-foreground"
-                  >
-                    {!integrationId
-                      ? 'ERP bağlantısı yapılandırılmamış.'
-                      : 'Bekleyen ERP ürünü yok.'}
+                  <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
+                    {!integrationId ? 'ERP bağlantısı yapılandırılmamış.' : 'Bekleyen ERP ürünü yok.'}
                   </TableCell>
                 </TableRow>
               )}
@@ -435,85 +597,31 @@ export function ERPItemsTable() {
                       checked={selectedIds.has(row.id)}
                       onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
                       aria-label={`${row.erpProductName} satırını seç`}
-                                          />
+                    />
                   </TableCell>
-                  {/* ERP ID — read only */}
-                  <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
-                    {row.erpProductId}
+                  <TableCell className="py-0 px-3 text-sm">
+                    {row.erpProductName}
                   </TableCell>
-                  {/* Ürün Adı — editable */}
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      value={getDisplayValue(row, edits, 'erpProductName')}
-                      onChange={(e) => handleEdit(row.id, 'erpProductName', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Ürün adı"
-                                          />
-                  </TableCell>
-                  {/* SKU — editable */}
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      value={getDisplayValue(row, edits, 'erpSku')}
-                      onChange={(e) => handleEdit(row.id, 'erpSku', e.target.value)}
-                      className="h-7 px-2 font-mono text-xs"
-                      aria-label="SKU"
-                                          />
-                  </TableCell>
-                  {/* Kategori — read only */}
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
                     {row.erpCategory ?? '—'}
                   </TableCell>
-                  {/* Barkod — read only */}
+                  <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
+                    {row.erpSku ?? row.erpProductId}
+                  </TableCell>
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
                     {row.erpBarcode ?? '—'}
                   </TableCell>
-                  {/* X — Uzunluk */}
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpWidth')}
-                      onChange={(e) => handleEdit(row.id, 'erpWidth', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="X Uzunluk"
-                                          />
+                  <TableCell className="py-0 px-3 text-xs tabular-nums">
+                    {row.erpWidth ?? '—'}
                   </TableCell>
-                  {/* Y — Yükseklik */}
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpHeight')}
-                      onChange={(e) => handleEdit(row.id, 'erpHeight', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Y Yükseklik"
-                                          />
+                  <TableCell className="py-0 px-3 text-xs tabular-nums">
+                    {row.erpHeight ?? '—'}
                   </TableCell>
-                  {/* Z — Derinlik */}
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpLength')}
-                      onChange={(e) => handleEdit(row.id, 'erpLength', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Z Derinlik"
-                                          />
+                  <TableCell className="py-0 px-3 text-xs tabular-nums">
+                    {row.erpLength ?? '—'}
                   </TableCell>
-                  {/* Ağırlık */}
-                  <TableCell className="py-0 px-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={getDisplayValue(row, edits, 'erpWeight')}
-                      onChange={(e) => handleEdit(row.id, 'erpWeight', e.target.value)}
-                      className="h-7 px-2 text-xs"
-                      aria-label="Ağırlık"
-                                          />
+                  <TableCell className="py-0 px-3 text-xs tabular-nums">
+                    {row.erpWeight ?? '—'}
                   </TableCell>
                 </TableRow>
               ))}
@@ -526,11 +634,6 @@ export function ERPItemsTable() {
       {totalCount > 0 && (
         <div className="flex items-center justify-between px-1">
           <p className="text-xs text-muted-foreground">
-            {useMock && (
-              <span className="mr-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-                Örnek veri
-              </span>
-            )}
             Toplam <span className="font-medium text-foreground">{totalCount}</span> ERP ürünü
           </p>
           {totalPages > 1 && (
@@ -562,6 +665,13 @@ export function ERPItemsTable() {
           )}
         </div>
       )}
+
+      {/* Transfer modal */}
+      <BulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        initialRows={importRows}
+      />
     </div>
   );
 }

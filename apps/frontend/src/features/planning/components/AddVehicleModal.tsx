@@ -228,7 +228,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
                 </div>
                 <div className="flex flex-col gap-1 col-span-2">
                   <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
-                    HACİM (M³)
+                    HACİM
                   </Label>
                   <div className="h-8 px-3 flex items-center rounded-md border border-zinc-200 bg-zinc-50 text-sm text-zinc-500 select-none">
                     {volumeM3}

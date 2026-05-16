@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
 import { Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
@@ -30,6 +30,7 @@ const ITEM_SHEETS_TEMPLATE_URL = '';
 interface BulkImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialRows?: EditableRow[];
 }
 
 // ─── Row model ────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const editableRowSchema = z.object({
   notes: z.string(),
 });
 
-type EditableRow = z.infer<typeof editableRowSchema>;
+export type EditableRow = z.infer<typeof editableRowSchema>;
 
 type RowErrors = Partial<
   Record<'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight', string>
@@ -89,9 +90,9 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
     name: row.name.trim(),
     productType: row.tip || 'koli',
     category: tipToCategory(row.tip),
-    width: Number(row.width) / 10,
-    height: Number(row.height) / 10,
-    length: Number(row.length) / 10,
+    width: Number(row.width),
+    height: Number(row.height),
+    length: Number(row.length),
     weight,
     fragilityType,
     isStackable,
@@ -123,9 +124,9 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
         String(r['Tip (koli/varil/palet)'] ?? '')
           .toLowerCase()
           .trim() || 'koli',
-      width: String(r['Genişlik(mm)'] ?? ''),
-      height: String(r['Yükseklik(mm)'] ?? ''),
-      length: String(r['Uzunluk(mm)'] ?? ''),
+      width: String(r['Genişlik(cm)'] ?? ''),
+      height: String(r['Yükseklik(cm)'] ?? ''),
+      length: String(r['Uzunluk(cm)'] ?? ''),
       weight: String(r['Ağırlık(kg)'] ?? ''),
       fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
       isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
@@ -188,10 +189,17 @@ function TextCell({ value, onChange, error, type = 'text', className }: TextCell
 
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
-export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) {
+export function BulkImportDialog({ open, onOpenChange, initialRows }: BulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open && initialRows && initialRows.length > 0) {
+      setRows(initialRows);
+      setApiErrors([]);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const bulkCreate = useBulkCreateItems();
 
   function patchRow(id: string, patch: Partial<EditableRow>) {
@@ -363,12 +371,12 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
                 <th className="w-[12%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
                 <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
                 <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Genişlik/Çap *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık (kg) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
                 <th className="w-[10%] whitespace-nowrap border-b px-2 py-1.5">Kısıtlar</th>
                 <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
@@ -405,6 +413,15 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                       />
                     </td>
 
+                    {/* SKU */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <TextCell
+                        value={row.sku}
+                        onChange={(v) => patchRow(row._id, { sku: v })}
+                        error={errs.sku}
+                      />
+                    </td>
+
                     {/* Tip */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <Select value={row.tip} onValueChange={(v) => patchRow(row._id, { tip: v })}>
@@ -424,15 +441,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                           <SelectItem value="palet">Palet</SelectItem>
                         </SelectContent>
                       </Select>
-                    </td>
-
-                    {/* SKU */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.sku}
-                        onChange={(v) => patchRow(row._id, { sku: v })}
-                        error={errs.sku}
-                      />
                     </td>
 
                     {/* Genişlik */}
