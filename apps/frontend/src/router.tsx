@@ -27,7 +27,7 @@ import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ShareLinksPage } from '@/pages/ShareLinksPage';
 import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage';
 import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage';
-import { ERPPage } from '@/pages/ERPPage';
+import { ERPItemsPage } from '@/pages/ERPItemsPage';
 
 export const router = createBrowserRouter([
   {
@@ -97,8 +97,8 @@ export const router = createBrowserRouter([
           { path: '/reports/:id', element: <ReportDetailPage /> },
           { path: '/planning/shares', element: <ShareLinksPage /> },
           { path: '/planning/:id', element: <NewPlanPage /> },
-          { path: '/integrations', element: <ERPPage /> },
-          { path: '/erp', element: <ERPPage /> },
+          { path: '/erp', element: <ERPItemsPage /> },
+          { path: '/integrations', element: <Navigate to="/settings?tab=erp-baglanti" replace /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <UnifiedSettingsPage /> },

@@ -3,11 +3,13 @@ import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
+import type { CreateItemRequest } from './itemMappers';
 import {
   erpConnectionSchema,
   erpPendingMatchSchema,
   erpRemoteUserSchema,
   erpRoleConflictLogSchema,
+  erpSettingsApiSchema,
   erpShipmentOrderSchema,
   erpSyncOptionsSchema,
   erpSyncRunSchema,
@@ -20,6 +22,9 @@ import {
 import type { ErpConnectionFormValues } from '@/features/platform/schemas/erpConnectionSchema';
 
 const ERP_BASE = '/api/v1/integrations';
+const ERP_SETTINGS_BASE = '/api/v1/erp-settings';
+
+const PROVIDER_TYPE_TO_INT: Record<string, number> = { Logo: 0, Netsis: 1 };
 
 interface ApiError {
   detail?: string;
@@ -43,14 +48,27 @@ const erpConnectionResponseSchema = z.object({
 
 // Raw API schema for pending-item-mappings (covers both status=0 and status=1)
 const pendingItemMappingApiSchema = erpPendingMatchSchema.extend({
+  status: z.number().int().optional(),
   cargoPilotItemId: z.string().nullable().optional(),
   cargoPilotItemName: z.string().nullable().optional(),
   cargoPilotItemSku: z.string().nullable().optional(),
 });
 
+export type ErpPendingMappingItem = z.infer<typeof pendingItemMappingApiSchema>;
+
 const pendingItemMappingListResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: z.array(pendingItemMappingApiSchema),
+});
+
+const erpPendingMappingsPageResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.object({
+    items: z.array(pendingItemMappingApiSchema),
+    totalCount: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  }),
 });
 
 // Raw API sync settings schema (API uses syncFrequency: number, not syncInterval: string)
@@ -90,6 +108,79 @@ const testConnectionResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: z.object({ success: z.boolean(), message: z.string().nullable().optional() }),
 });
+
+const erpSettingsApiResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: erpSettingsApiSchema,
+});
+
+export function useERPSettings() {
+  return useQuery({
+    queryKey: ['erp', 'settings'] as const,
+    queryFn: async () => {
+      try {
+        const { data } = await axiosInstance.get<unknown>(ERP_SETTINGS_BASE);
+        const parsed = erpSettingsApiResponseSchema.parse(data);
+        return parsed.data;
+      } catch {
+        return null;
+      }
+    },
+    retry: false,
+  });
+}
+
+export function useSaveERPSettings() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, AxiosError<ApiError>, ErpConnectionFormValues>({
+    mutationFn: (values) => {
+      const body: Record<string, unknown> = {
+        providerType: PROVIDER_TYPE_TO_INT[values.systemType] ?? 0,
+        companyCode: values.companyCode,
+        username: values.username,
+        serverAddress: values.serverAddress,
+      };
+      if (values.password) {
+        body.password = values.password;
+      }
+      return axiosInstance.put(ERP_SETTINGS_BASE, body).then((r) => r.data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
+      toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      toast.error(detail ?? 'Bağlantı ayarları kaydedilemedi', { position: 'bottom-right' });
+    },
+  });
+}
+
+export function useTestERPSettings() {
+  return useMutation<
+    { success: boolean; message?: string | null },
+    AxiosError<ApiError>,
+    ErpConnectionFormValues
+  >({
+    mutationFn: async (values) => {
+      const body: Record<string, unknown> = {
+        providerType: PROVIDER_TYPE_TO_INT[values.systemType] ?? 0,
+        companyCode: values.companyCode,
+        username: values.username,
+        serverAddress: values.serverAddress,
+      };
+      if (values.password) {
+        body.password = values.password;
+      }
+      const { data } = await axiosInstance.post<unknown>(
+        `${ERP_SETTINGS_BASE}/test-connection`,
+        body,
+      );
+      const parsed = testConnectionResponseSchema.parse(data);
+      return parsed.data;
+    },
+  });
+}
 
 export function useERPConnection() {
   return useQuery({
@@ -552,6 +643,59 @@ export function useAssignUnassignedData() {
     onError: (error) => {
       const detail = error.response?.data?.detail;
       toast.error(detail ?? 'Atama başarısız', { position: 'bottom-right' });
+    },
+  });
+}
+
+// ─── ERP Items Page hooks ─────────────────────────────────────────────────────
+
+export function useERPPendingMappingsPaginated(
+  integrationId: string | undefined,
+  params: { page: number; pageSize: number; status?: number },
+) {
+  return useQuery({
+    queryKey: ['erp', 'pending-mappings-paged', integrationId, params] as const,
+    queryFn: async () => {
+      const p = new URLSearchParams();
+      p.set('page', String(params.page));
+      p.set('pageSize', String(params.pageSize));
+      if (params.status !== undefined) p.set('status', String(params.status));
+      const { data } = await axiosInstance.get<unknown>(
+        `${ERP_BASE}/${integrationId}/pending-item-mappings?${p.toString()}`,
+      );
+      const parsed = erpPendingMappingsPageResponseSchema.parse(data);
+      return parsed.data;
+    },
+    enabled: Boolean(integrationId),
+  });
+}
+
+export function useApproveERPMappingWithNewItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      integrationId,
+      mappingId,
+      itemPayload,
+    }: {
+      integrationId: string;
+      mappingId: string;
+      itemPayload: CreateItemRequest;
+    }) => {
+      const createRes = await axiosInstance.post<{ isSuccess: boolean; data?: { id: string } }>(
+        '/api/v1/items',
+        itemPayload,
+      );
+      const newItemId = createRes.data.data?.id;
+      if (!newItemId) throw new Error('Item ID alınamadı');
+      await axiosInstance.put(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`, {
+        cargoPilotItemId: newItemId,
+      });
+    },
+    onSuccess: (_data, { integrationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-mappings-paged', integrationId] });
+      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
     },
   });
 }

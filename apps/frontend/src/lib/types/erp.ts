@@ -225,3 +225,16 @@ export const erpUnassignedDataItemSchema = z.object({
 });
 
 export type ErpUnassignedDataItem = z.infer<typeof erpUnassignedDataItemSchema>;
+
+// ─── ERP Settings (connection credentials) ────────────────────────────────────
+
+export const erpSettingsApiSchema = z.object({
+  id: z.string().uuid(),
+  providerType: z.number().int(), // 0=Logo, 1=Netsis
+  companyCode: z.string(),
+  username: z.string(),
+  serverAddress: z.string(),
+  hasPassword: z.boolean(),
+});
+
+export type ErpSettingsApi = z.infer<typeof erpSettingsApiSchema>;

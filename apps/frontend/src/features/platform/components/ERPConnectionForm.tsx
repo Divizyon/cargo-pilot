@@ -26,10 +26,12 @@ import {
   type ErpConnectionFormValues,
 } from '@/features/platform/schemas/erpConnectionSchema';
 import {
-  useERPConnection,
-  useSaveERPConnection,
-  useTestERPConnection,
+  useERPSettings,
+  useSaveERPSettings,
+  useTestERPSettings,
 } from '@/lib/api/useERPIntegration';
+
+const PROVIDER_TYPE_FROM_INT: Record<number, 'Logo' | 'Netsis'> = { 0: 'Logo', 1: 'Netsis' };
 
 type TestResult = { success: boolean; message?: string | null } | null;
 
@@ -37,9 +39,9 @@ export function ERPConnectionForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<TestResult>(null);
 
-  const { data: existing, isLoading: isLoadingExisting } = useERPConnection();
-  const { mutate: save, isPending: isSaving } = useSaveERPConnection();
-  const { mutate: testConnection, isPending: isTesting } = useTestERPConnection();
+  const { data: existing, isLoading: isLoadingExisting } = useERPSettings();
+  const { mutate: save, isPending: isSaving } = useSaveERPSettings();
+  const { mutate: testConnection, isPending: isTesting } = useTestERPSettings();
 
   const form = useForm<ErpConnectionFormValues>({
     resolver: zodResolver(erpConnectionFormSchema),
@@ -55,7 +57,7 @@ export function ERPConnectionForm() {
   useEffect(() => {
     if (!existing) return;
     form.reset({
-      systemType: existing.systemType,
+      systemType: PROVIDER_TYPE_FROM_INT[existing.providerType] ?? 'Logo',
       companyCode: existing.companyCode,
       username: existing.username,
       password: '',
@@ -65,7 +67,7 @@ export function ERPConnectionForm() {
 
   function onSubmit(values: ErpConnectionFormValues) {
     setTestResult(null);
-    save({ ...values, id: existing?.id });
+    save(values);
   }
 
   function handleTestConnection() {

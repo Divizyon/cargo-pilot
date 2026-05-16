@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ProductType } from '@/lib/types/item';
+import { ProductType, type Item } from '@/lib/types/item';
 
 // 0: alt yüz · 1: üst yüz · 2: ön yüz · 3: arka yüz · 4: sol yüz · 5: sağ yüz altta.
 // Detay: lib/utils/boxOrientations.ts → BOX_ORIENTATIONS
@@ -42,6 +42,20 @@ export const placementWithDimensionsSchema = placementSchema.extend({
 });
 
 export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;
+
+export const UnfitReason = {
+  Volume: 'volume',
+  Weight: 'weight',
+  Stacking: 'stacking',
+} as const;
+
+export type UnfitReason = (typeof UnfitReason)[keyof typeof UnfitReason];
+
+export interface UnfitItem {
+  item: Item;
+  quantity: number;
+  reason: UnfitReason;
+}
 
 export const OptimizationCriteria = {
   Lifo: 0,
