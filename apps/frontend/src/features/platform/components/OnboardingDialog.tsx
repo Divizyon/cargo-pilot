@@ -84,7 +84,7 @@ export function OnboardingDialog({ open, onClose }: OnboardingDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-md p-0 overflow-hidden gap-0"
+        className="sm:max-w-md p-0 overflow-hidden gap-0 data-[state=open]:[--tw-enter-translate-x:0px] data-[state=open]:[--tw-enter-translate-y:0px] data-[state=closed]:[--tw-exit-translate-x:0px] data-[state=closed]:[--tw-exit-translate-y:0px]"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         {/* Progress bar */}
