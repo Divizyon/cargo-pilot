@@ -5,6 +5,7 @@ interface FormWithPreviewLayoutProps {
   formContent: ReactNode;
   previewContent: ReactNode;
   actionBar?: ReactNode;
+  actionBarVisible?: boolean;
   className?: string;
 }
 
@@ -12,25 +13,30 @@ export function FormWithPreviewLayout({
   formContent,
   previewContent,
   actionBar,
+  actionBarVisible = true,
   className,
 }: FormWithPreviewLayoutProps) {
   return (
-    <div className={cn('flex flex-col gap-4', className)}>
-      <div className="flex min-h-0 flex-1 gap-4">
-        {/* Sol: form kartı — içeride scroll, %60 genişlik */}
-        <div className="flex min-h-0 flex-[3] flex-col overflow-hidden rounded-xl bg-card">
-          <div className="flex-1 overflow-y-auto p-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className={cn('flex h-full flex-col', className)}>
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-6 overflow-hidden">
+        <div className="relative flex min-h-0 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto pr-1 pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {formContent}
           </div>
+          {actionBar && (
+            <div
+              className={cn(
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-10 transition-all duration-300 ease-out',
+                actionBarVisible
+                  ? 'translate-y-0 opacity-100'
+                  : 'translate-y-4 opacity-0 pointer-events-none',
+              )}
+            >
+              {actionBar}
+            </div>
+          )}
         </div>
-
-        {/* Sağ: aksiyon + önizleme, %40 genişlik */}
-        <aside className="flex min-h-0 flex-[2] flex-col gap-3">
-          {actionBar && <div className="shrink-0">{actionBar}</div>}
-          <div className="min-h-0 flex-1 overflow-hidden">
-            {previewContent}
-          </div>
-        </aside>
+        <aside className="flex min-h-0 flex-col">{previewContent}</aside>
       </div>
     </div>
   );

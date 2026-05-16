@@ -1137,6 +1137,7 @@ export function ProductForm({
             className="flex-1 min-h-0"
             formContent={formFields}
             actionBar={actionBar}
+            actionBarVisible={form.formState.isDirty}
             previewContent={
               <PreviewPanel
                 name={name}
@@ -1244,7 +1245,9 @@ function PreviewPanel(props: PreviewPanelProps) {
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
       {/* Başlık */}
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] text-muted-foreground">Ürün Önizleme</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Ürün Önizleme
+        </p>
         <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
           3D
         </span>
@@ -1271,7 +1274,7 @@ function PreviewPanel(props: PreviewPanelProps) {
 
       {/* Hacim */}
       <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
-        <span className="text-[10px] text-muted-foreground">Hacim</span>
+        <span className="text-xs text-muted-foreground">Hacim</span>
         <span className="text-xs font-semibold tabular-nums text-foreground">
           {volumeCm3 > 0 ? formatVolumeDisplay(volumeCm3, volumeUnit) : '—'}
         </span>
@@ -1284,7 +1287,7 @@ function PreviewPanel(props: PreviewPanelProps) {
             key={r.label as string}
             className="flex items-center justify-between border-b border-border/50 py-1 last:border-0"
           >
-            <span className="text-[10px] text-muted-foreground">{r.label}</span>
+            <span className="text-xs text-muted-foreground">{r.label}</span>
             <span
               className={cn(
                 'text-xs tabular-nums',
@@ -1300,7 +1303,7 @@ function PreviewPanel(props: PreviewPanelProps) {
       {/* Notlar */}
       {notes && notes.trim().length > 0 && (
         <div className="mt-2 rounded-lg border border-border/50 bg-muted/40 p-2">
-          <p className="mb-1 text-[10px] font-medium text-muted-foreground">
+          <p className="mb-1 text-xs font-medium text-muted-foreground">
             {t('forms.product.notesSummaryLabel')}
           </p>
           <p className="whitespace-pre-wrap break-words text-[10px] text-foreground">{notes}</p>
