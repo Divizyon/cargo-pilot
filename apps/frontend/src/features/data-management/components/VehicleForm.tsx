@@ -200,8 +200,8 @@ export function VehicleForm({
               <VehiclePreviewPanel form={form} vehicle={vehicle} isCreateMode={isCreateMode} />
             }
           />
-          <div className="shrink-0 border-t border-border bg-background py-3">
-            <div className="flex items-center justify-center gap-3">
+          <div className="shrink-0 flex justify-center py-4">
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
               <VehicleFormActions
                 form={form}
                 isSubmitting={isSubmitting}
