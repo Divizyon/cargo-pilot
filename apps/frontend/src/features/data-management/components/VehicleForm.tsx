@@ -184,17 +184,6 @@ export function VehicleForm({
     </div>
   );
 
-  const actions = (
-    <VehicleFormActions
-      form={form}
-      isSubmitting={isSubmitting}
-      onCancel={onCancel}
-      onDraftSubmit={onDraftSubmit ?? (() => undefined)}
-      disableSubmitWhenPristine={disableSubmitWhenPristine}
-      submitLabel={isCreateMode ? 'Kaydet' : 'Değişiklikleri Kaydet'}
-    />
-  );
-
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
@@ -210,8 +199,19 @@ export function VehicleForm({
             previewContent={
               <VehiclePreviewPanel form={form} vehicle={vehicle} isCreateMode={isCreateMode} />
             }
-            actions={actions}
           />
+          <div className="shrink-0 border-t border-border bg-background py-3">
+            <div className="flex items-center justify-center gap-3">
+              <VehicleFormActions
+                form={form}
+                isSubmitting={isSubmitting}
+                onCancel={onCancel}
+                onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+                disableSubmitWhenPristine={disableSubmitWhenPristine}
+                submitLabel={isCreateMode ? 'Kaydet' : 'Değişiklikleri Kaydet'}
+              />
+            </div>
+          </div>
         </form>
       </Form>
     </TooltipProvider>

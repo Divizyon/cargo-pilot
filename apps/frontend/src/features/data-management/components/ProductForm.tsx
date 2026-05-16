@@ -710,7 +710,7 @@ export function ProductForm({
                       const raw = e.target.value.replace(/\D/g, '');
                       const v = raw === '' ? undefined : Math.max(1, parseInt(raw, 10));
                       field.onChange(v);
-                      form.setValue('isStackable', (v ?? 0) > 1, { shouldValidate: false });
+                      form.setValue('isStackable', (v ?? 0) > 0, { shouldValidate: false });
                     }}
                   />
                 </FormControl>
@@ -1070,31 +1070,6 @@ export function ProductForm({
     </div>
   );
 
-  const actions = (
-    <div className="flex items-center gap-1.5">
-      {onCancel && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          {t('forms.product.cancel')}
-        </Button>
-      )}
-      <Button
-        type="submit"
-        size="sm"
-        className="flex-1"
-        disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
-      >
-        {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
-      </Button>
-    </div>
-  );
-
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
@@ -1124,8 +1099,29 @@ export function ProductForm({
                 notes={notes}
               />
             }
-            actions={actions}
           />
+          <div className="shrink-0 border-t border-border bg-background py-3">
+            <div className="flex items-center justify-center gap-3">
+              {onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onCancel}
+                  disabled={isSubmitting}
+                >
+                  {t('forms.product.cancel')}
+                </Button>
+              )}
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+              >
+                {isSubmitting ? t('forms.product.submitting') : t('forms.product.submit')}
+              </Button>
+            </div>
+          </div>
         </form>
       </Form>
     </TooltipProvider>
