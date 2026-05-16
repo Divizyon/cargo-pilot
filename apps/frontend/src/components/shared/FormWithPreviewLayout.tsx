@@ -20,11 +20,7 @@ export function FormWithPreviewLayout({
         <div className="overflow-y-auto pr-1">{formContent}</div>
         <aside className="flex min-h-0 flex-col">{previewContent}</aside>
       </div>
-      {actionBar && (
-        <div className="flex justify-center py-4">
-          {actionBar}
-        </div>
-      )}
+      {actionBar && <div className="flex justify-center py-4">{actionBar}</div>}
     </div>
   );
 }

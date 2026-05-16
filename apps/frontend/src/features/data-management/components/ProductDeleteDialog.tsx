@@ -36,8 +36,8 @@ export function ProductDeleteDialog({ item, onClose, onDeleted }: Props) {
         <AlertDialogHeader>
           <AlertDialogTitle>Ürünü Sil</AlertDialogTitle>
           <AlertDialogDescription>
-            <strong>{item?.name}</strong> ürününü silmek istediğinizden emin misiniz? Bu işlem
-            geri alınamaz.
+            <strong>{item?.name}</strong> ürününü silmek istediğinizden emin misiniz? Bu işlem geri
+            alınamaz.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

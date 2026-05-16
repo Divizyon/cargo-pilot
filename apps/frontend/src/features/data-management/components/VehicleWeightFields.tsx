@@ -15,8 +15,7 @@ interface VehicleWeightFieldsProps {
 export function VehicleWeightFields({ form }: VehicleWeightFieldsProps) {
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
-  const toStr = (v: number | undefined) =>
-    v != null && Number.isFinite(v) ? String(v) : '';
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
   const [maxCargoDisplay, setMaxCargoDisplay] = useState(() =>
     toStr(form.getValues('maxCargoWeight')),
   );

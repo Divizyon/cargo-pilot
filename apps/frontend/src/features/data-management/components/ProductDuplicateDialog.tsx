@@ -81,17 +81,13 @@ export function ProductDuplicateDialog({ item, onClose, onDuplicated }: Props) {
           <div className="space-y-1.5">
             <Label htmlFor="dup-name">Ürün Adı</Label>
             <Input id="dup-name" {...register('name')} />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="dup-sku">SKU</Label>
             <Input id="dup-sku" {...register('sku')} autoFocus />
-            {errors.sku && (
-              <p className="text-xs text-destructive">{errors.sku.message}</p>
-            )}
+            {errors.sku && <p className="text-xs text-destructive">{errors.sku.message}</p>}
           </div>
 
           <DialogFooter>

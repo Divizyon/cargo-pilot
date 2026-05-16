@@ -21,8 +21,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
     name: ['length', 'width', 'height'],
   });
 
-  const toStr = (v: number | undefined) =>
-    v != null && Number.isFinite(v) ? String(v) : '';
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
   const [lengthDisplay, setLengthDisplay] = useState(() => toStr(form.getValues('length')));
   const [heightDisplay, setHeightDisplay] = useState(() => toStr(form.getValues('height')));
   const [widthDisplay, setWidthDisplay] = useState(() => toStr(form.getValues('width')));

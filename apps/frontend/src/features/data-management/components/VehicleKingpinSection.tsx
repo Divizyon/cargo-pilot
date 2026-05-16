@@ -14,11 +14,16 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
-  const toStr = (v: number | undefined) =>
-    v != null && Number.isFinite(v) ? String(v) : '';
-  const [distanceDisplay, setDistanceDisplay] = useState(() => toStr(form.getValues('kingpin.distance')));
-  const [tareWeightDisplay, setTareWeightDisplay] = useState(() => toStr(form.getValues('kingpin.tareWeight')));
-  const [maxLoadDisplay, setMaxLoadDisplay] = useState(() => toStr(form.getValues('kingpin.maxLoad')));
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
+  const [distanceDisplay, setDistanceDisplay] = useState(() =>
+    toStr(form.getValues('kingpin.distance')),
+  );
+  const [tareWeightDisplay, setTareWeightDisplay] = useState(() =>
+    toStr(form.getValues('kingpin.tareWeight')),
+  );
+  const [maxLoadDisplay, setMaxLoadDisplay] = useState(() =>
+    toStr(form.getValues('kingpin.maxLoad')),
+  );
 
   return (
     <div className="flex flex-col gap-3">

@@ -13,11 +13,16 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
-  const toStr = (v: number | undefined) =>
-    v != null && Number.isFinite(v) ? String(v) : '';
-  const [maxLoadDisplay, setMaxLoadDisplay] = useState(() => toStr(form.getValues('axleB.maxLoad')));
-  const [tareWeightDisplay, setTareWeightDisplay] = useState(() => toStr(form.getValues('axleB.tareWeight')));
-  const [distanceDisplay, setDistanceDisplay] = useState(() => toStr(form.getValues('axleB.distance')));
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
+  const [maxLoadDisplay, setMaxLoadDisplay] = useState(() =>
+    toStr(form.getValues('axleB.maxLoad')),
+  );
+  const [tareWeightDisplay, setTareWeightDisplay] = useState(() =>
+    toStr(form.getValues('axleB.tareWeight')),
+  );
+  const [distanceDisplay, setDistanceDisplay] = useState(() =>
+    toStr(form.getValues('axleB.distance')),
+  );
 
   return (
     <div className="flex flex-col gap-3">

@@ -268,13 +268,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                 Excel Şablonunu İndir
               </Button>
               {ITEM_SHEETS_TEMPLATE_URL && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 text-xs"
-                  type="button"
-                  asChild
-                >
+                <Button variant="outline" size="sm" className="gap-2 text-xs" type="button" asChild>
                   <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-3.5 w-3.5" />
                     Google Sheets Şablonu

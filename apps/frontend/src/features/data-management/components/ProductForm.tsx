@@ -338,14 +338,44 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
       >
         {axis === 'x' && (
           <>
-            <path d="M50 4 L82 20 L50 36 L18 20 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M82 20 L82 82 L50 94 L50 36 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M18 20 L18 82 L50 94 L50 36 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path
+              d="M50 4 L82 20 L50 36 L18 20 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M82 20 L82 82 L50 94 L50 36 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M18 20 L18 82 L50 94 L50 36 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {!isLocked && (
               <>
-                <path d="M10 26 A 22 26 0 0 0 10 72" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M10 26 A 22 26 0 0 0 10 72"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="10,82 3,70 17,70" fill={arrowCol} />
-                <path d="M90 70 A 22 26 0 0 0 90 26" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M90 70 A 22 26 0 0 0 90 26"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="90,16 83,28 97,28" fill={arrowCol} />
               </>
             )}
@@ -353,14 +383,44 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
         {axis === 'y' && (
           <>
-            <path d="M50 26 L90 40 L50 54 L10 40 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M90 40 L90 68 L50 78 L50 54 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M10 40 L10 68 L50 78 L50 54 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path
+              d="M50 26 L90 40 L50 54 L10 40 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M90 40 L90 68 L50 78 L50 54 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10 40 L10 68 L50 78 L50 54 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {!isLocked && (
               <>
-                <path d="M20 37 A 34 12 0 0 1 78 37" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M20 37 A 34 12 0 0 1 78 37"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="88,37 77,30 77,44" fill={arrowCol} />
-                <path d="M80 47 A 34 12 0 0 1 22 47" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M80 47 A 34 12 0 0 1 22 47"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="12,47 23,40 23,54" fill={arrowCol} />
               </>
             )}
@@ -368,14 +428,44 @@ function AxisBoxIllustration({ axis, active }: AxisBoxIllustrationProps) {
         )}
         {axis === 'z' && (
           <>
-            <path d="M50 10 L84 26 L50 42 L16 26 Z" fill={topFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M84 26 L84 72 L50 88 L50 42 Z" fill={sideFill} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
-            <path d="M16 26 L16 72 L50 88 L50 42 Z" fill={sideDark} stroke={strokeCol} strokeWidth="1" strokeLinejoin="round" />
+            <path
+              d="M50 10 L84 26 L50 42 L16 26 Z"
+              fill={topFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M84 26 L84 72 L50 88 L50 42 Z"
+              fill={sideFill}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M16 26 L16 72 L50 88 L50 42 Z"
+              fill={sideDark}
+              stroke={strokeCol}
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
             {!isLocked && (
               <>
-                <path d="M90 30 A 20 24 0 0 1 90 70" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M90 30 A 20 24 0 0 1 90 70"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="90,80 83,68 97,68" fill={arrowCol} />
-                <path d="M10 68 A 20 24 0 0 1 10 28" stroke={arrowCol} strokeWidth={AW} fill="none" strokeLinecap="round" />
+                <path
+                  d="M10 68 A 20 24 0 0 1 10 28"
+                  stroke={arrowCol}
+                  strokeWidth={AW}
+                  fill="none"
+                  strokeLinecap="round"
+                />
                 <polygon points="10,18 3,30 17,30" fill={arrowCol} />
               </>
             )}
@@ -1004,34 +1094,34 @@ export function ProductForm({
 
   const actionBar = (
     <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
-        {onCancel && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            İptal Et
-          </Button>
-        )}
-        {onDraftSubmit && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void handleDraftSubmit()}
-            disabled={isSubmitting}
-          >
-            Taslak Olarak Kaydet
-          </Button>
-        )}
+      {onCancel && (
         <Button
-          type="submit"
-          disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="text-muted-foreground hover:text-foreground"
         >
-          {isSubmitting ? t('forms.product.submitting') : (submitLabel ?? 'Değişiklikleri Kaydet')}
+          İptal Et
         </Button>
-      </div>
+      )}
+      {onDraftSubmit && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void handleDraftSubmit()}
+          disabled={isSubmitting}
+        >
+          Taslak Olarak Kaydet
+        </Button>
+      )}
+      <Button
+        type="submit"
+        disabled={isSubmitting || (disableSubmitWhenPristine && !form.formState.isDirty)}
+      >
+        {isSubmitting ? t('forms.product.submitting') : (submitLabel ?? 'Değişiklikleri Kaydet')}
+      </Button>
+    </div>
   );
 
   return (
@@ -1138,7 +1228,10 @@ function PreviewPanel(props: PreviewPanelProps) {
     { label: t('forms.product.length'), value: fmt(length, dimensionUnit) },
     { label: t('forms.product.weight'), value: fmt(weight, weightUnit) },
     { label: 'Kısıtlar', value: constraintLabels.length > 0 ? constraintLabels.join(', ') : '—' },
-    { label: 'İstif Sayısı', value: maxStackCount === undefined ? '∞' : maxStackCount > 1 ? String(maxStackCount) : '—' },
+    {
+      label: 'İstif Sayısı',
+      value: maxStackCount === undefined ? '∞' : maxStackCount > 1 ? String(maxStackCount) : '—',
+    },
     {
       label: 'Rotasyon',
       value: allRotationsFree
