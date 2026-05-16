@@ -39,6 +39,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
               <FormControl>
                 <Input
                   {...field}
+                  value={field.value ?? ''}
                   className="h-9 border-input bg-background"
                   placeholder="Filo Tır 1"
                   onBlur={(e) => {
@@ -47,7 +48,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
                     if (trimmed) setNameToCheck(trimmed);
                   }}
                   onChange={(e) => {
-                    field.onChange(e);
+                    field.onChange(e.target.value);
                     form.clearErrors('name');
                   }}
                 />
@@ -74,6 +75,7 @@ export function VehicleIdentityFields({ form, section = 'all' }: VehicleIdentity
                   className="resize-none border-input bg-background"
                   placeholder="Araç hakkında ek notlar..."
                   rows={3}
+                  onChange={(e) => field.onChange(e.target.value)}
                 />
               </FormControl>
               <FormMessage />

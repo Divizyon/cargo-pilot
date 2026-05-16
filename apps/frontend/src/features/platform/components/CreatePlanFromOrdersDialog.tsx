@@ -83,7 +83,7 @@ export function CreatePlanFromOrdersDialog({ selectedOrders, onClose }: Props) {
 
   const { data: connection } = useERPConnection();
   const { data: savedMatches = [] } = useERPSavedMatches(connection?.id);
-  const { data: vehiclesPage } = useVehicles({ pageSize: 200 });
+  const { data: vehiclesPage } = useVehicles({ pageSize: 100 });
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
 
   const [vehicleId, setVehicleId] = useState('');

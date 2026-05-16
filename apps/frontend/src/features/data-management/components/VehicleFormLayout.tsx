@@ -3,7 +3,6 @@ import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { useVehicleFormVisibility } from '../hooks/useVehicleFormVisibility';
 import { VehicleDimensionsFields } from './VehicleDimensionsFields';
-import { VehicleLayerCountField } from './VehicleLayerCountField';
 import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleWeightFields } from './VehicleWeightFields';
 import { VehicleKingpinSection } from './VehicleKingpinSection';
@@ -34,7 +33,6 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
 
       <div className="grid grid-cols-2 gap-6 divide-x divide-border">
         <div className="flex flex-col gap-6">
-          <VehicleLayerCountField form={form} hideHeading={false} />
           <VehicleDoorDirectionField form={form} hideHeading={false} />
         </div>
         {showAxleSection && (
