@@ -10,7 +10,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/boxOrientations';
-import { SCENE } from '@/lib/config/scene-config';
+import { resolveProductColor } from '@/lib/config/productColors';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -239,16 +239,6 @@ function mapStatus(
 
 // ─── Mapper: placements → PlanProductGroup[] ─────────────────────────────────
 
-const GROUP_COLORS = [
-  '#3b82f6',
-  '#10b981',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4',
-  '#84cc16',
-  '#f97316',
-];
 
 export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): PlanProductGroup[] {
   // itemId → { item, count }
@@ -270,17 +260,16 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
     string,
     { color: string; entries: Array<{ id: string; p: PlacementItemApi; count: number }> }
   >();
-  let colorIdx = 0;
-
   for (const [itemId, { p, count }] of itemMap) {
     const item = p.item;
     const groupName = item?.groupName ?? item?.categoryName ?? item?.category ?? 'Yük Grubu';
-    const groupColor =
-      item?.groupColor ?? item?.categoryColor ?? GROUP_COLORS[colorIdx % GROUP_COLORS.length];
+    const rawType = (item as Record<string, unknown> | undefined)?.['productType'] as
+      | string
+      | undefined;
+    const groupColor = resolveProductColor(rawType, groupName);
 
     if (!groupMap.has(groupName)) {
       groupMap.set(groupName, { color: groupColor, entries: [] });
-      colorIdx++;
     }
     groupMap.get(groupName)!.entries.push({ id: itemId, p, count });
   }
@@ -327,18 +316,6 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
 //   3=Roll(H,W,L)        4=YawPitch(H,L,W)  5=RollYaw(L,W,H)
 // We store placed dims directly and orientationIndex=0 so rendering needs no further rotation.
 
-const SKU_PALETTE = [
-  '#3b82f6',
-  '#f59e0b',
-  '#10b981',
-  '#ef4444',
-  '#8b5cf6',
-  '#06b6d4',
-  '#f97316',
-  '#84cc16',
-  '#ec4899',
-  '#6366f1',
-];
 
 function placedDimensions(
   w: number,
@@ -366,9 +343,6 @@ export function fromApiPlacementsToScene(
   rawPlacements: PlacementItemApi[],
   colorMap?: Record<string, string>,
 ): PlacementWithDimensions[] {
-  const skuColorIndex: Record<string, number> = {};
-  let colorIdx = 0;
-
   return rawPlacements.flatMap((p) => {
     const raw = p as Record<string, unknown>;
     const itemId = (raw.itemId as string | undefined) ?? (raw.id as string | undefined) ?? '';
@@ -390,16 +364,13 @@ export function fromApiPlacementsToScene(
 
     const { pw, ph, pd } = placedDimensions(origW, origH, origL, rotation);
 
-    let color = colorMap?.[sku];
-    if (!color) {
-      if (skuColorIndex[sku] === undefined) {
-        skuColorIndex[sku] = colorIdx++ % SKU_PALETTE.length;
-      }
-      color = SKU_PALETTE[skuColorIndex[sku]];
-    }
-
     const rawType = (item.productType as string | undefined)?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+
+    const groupName = (item.groupName ?? item.categoryName ?? item.category) as
+      | string
+      | undefined;
+    const color = colorMap?.[sku] ?? resolveProductColor(productType, groupName);
 
     return [
       {
@@ -596,15 +567,17 @@ export function fromApiFullDetail(
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;
 
-  // Build color map from inputItems order
+  // Build color map from inputItems — renk (productType × yük grubu) kombinasyonuna göre belirlenir
   const skuColorMap: Record<string, string> = {};
-  const palette = SCENE.COLORS.SKU_PALETTE;
-  let colorIdx = 0;
   const inputItems = (data.inputItems ?? []).map((ii: InputItemFull) => {
     const item = apiItemToItem(ii.item);
     if (!skuColorMap[item.sku]) {
-      skuColorMap[item.sku] = palette[colorIdx % palette.length];
-      colorIdx++;
+      const rawItem = ii.item as Record<string, unknown>;
+      const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
+        | string
+        | undefined;
+      const productType = (rawItem.productType as string | undefined) ?? item.productType;
+      skuColorMap[item.sku] = resolveProductColor(productType, groupName);
     }
     return { item, quantity: ii.quantity };
   });
@@ -616,9 +589,13 @@ export function fromApiFullDetail(
       pd: depth,
     } = placedDimensions(p.item.width, p.item.height, p.item.length, p.rotation);
     const itemSku = p.item.sku || p.item.sKU || p.itemId;
-    const color = skuColorMap[itemSku] ?? palette[0];
     const rawType = p.item.productType?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+    const rawItem = p.item as Record<string, unknown>;
+    const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
+      | string
+      | undefined;
+    const color = skuColorMap[itemSku] ?? resolveProductColor(productType, groupName);
     return {
       itemId: p.itemId,
       positionX: p.positionX,
