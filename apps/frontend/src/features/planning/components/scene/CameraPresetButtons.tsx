@@ -24,7 +24,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
   return (
     <div
       className={cn(
-        'w-full flex items-center rounded-xl bg-white px-2 py-1.5 border border-zinc-200 text-zinc-700',
+        'w-full flex items-center rounded-xl bg-background px-2 py-1.5 border border-border text-foreground',
         className,
       )}
     >

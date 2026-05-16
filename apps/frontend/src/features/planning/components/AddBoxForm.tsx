@@ -86,7 +86,7 @@ function ProductTypeShape({ type }: { type: string }) {
         height="28"
         viewBox="0 0 60 60"
         fill="none"
-        className="shrink-0 text-zinc-400"
+        className="shrink-0 text-muted-foreground"
       >
         <ellipse cx="30" cy="10" rx="18" ry="5" stroke={s} strokeWidth="1.5" />
         <line x1="12" y1="10" x2="12" y2="50" stroke={s} strokeWidth="1.5" />
@@ -111,7 +111,7 @@ function ProductTypeShape({ type }: { type: string }) {
         height="28"
         viewBox="0 0 60 60"
         fill="none"
-        className="shrink-0 text-zinc-400"
+        className="shrink-0 text-muted-foreground"
       >
         <path
           d="M10 10 L30 4 L50 10 L50 30 L30 36 L10 30 Z"
@@ -136,7 +136,13 @@ function ProductTypeShape({ type }: { type: string }) {
     );
   }
   return (
-    <svg width="28" height="28" viewBox="0 0 60 60" fill="none" className="shrink-0 text-zinc-400">
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 60 60"
+      fill="none"
+      className="shrink-0 text-muted-foreground"
+    >
       <path
         d="M10 18 L30 8 L50 18 L50 44 L30 54 L10 44 Z"
         stroke={s}
@@ -310,11 +316,11 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="px-3 py-3 border-b border-zinc-100 flex flex-col gap-2 bg-zinc-50 shrink-0"
+      className="px-3 py-3 border-b border-border flex flex-col gap-2 bg-muted/40 shrink-0"
     >
       {/* Ürün Adı */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs text-zinc-500">Ürün Adı</Label>
+        <Label className="text-xs text-muted-foreground">Ürün Adı</Label>
         <Input
           {...register('name')}
           placeholder="ör. Elektronik Aksam"
@@ -325,7 +331,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       {/* SKU + Color */}
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <div className="flex flex-col gap-1">
-          <Label className="text-xs text-zinc-500">SKU</Label>
+          <Label className="text-xs text-muted-foreground">SKU</Label>
           <Controller
             name="sku"
             control={control}
@@ -344,12 +350,12 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-xs text-zinc-500">Renk</Label>
+          <Label className="text-xs text-muted-foreground">Renk</Label>
           <button
             type="button"
             title="Renk seç"
             onClick={() => setShowPalette((v) => !v)}
-            className="w-7 h-7 rounded-full border-2 border-white shadow-sm ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all"
+            className="w-7 h-7 rounded-full border-2 border-white shadow-sm ring-1 ring-border hover:ring-border transition-all"
             style={{ backgroundColor: watchedColor }}
           />
         </div>
@@ -357,7 +363,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
 
       {/* Color Palette */}
       {showPalette && (
-        <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-zinc-200 rounded-lg">
+        <div className="flex flex-wrap gap-1.5 p-2 bg-background border border-border rounded-lg">
           {palette.map((c) => (
             <button
               key={c}
@@ -368,7 +374,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
               }}
               className={cn(
                 'w-5 h-5 rounded-full border-2 transition-transform hover:scale-110',
-                watchedColor === c ? 'border-zinc-900 scale-110' : 'border-transparent',
+                watchedColor === c ? 'border-foreground scale-110' : 'border-transparent',
               )}
               style={{ backgroundColor: c }}
             />
@@ -377,7 +383,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       )}
 
       {/* 3D Önizleme */}
-      <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+      <div className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted/40">
         {hasDimensions ? (
           <ProductPreview3D
             widthCm={watchedWidth}
@@ -387,7 +393,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
             color={watchedColor}
           />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-400">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
             <ProductTypeShape type={watchedProductType} />
             <span className="text-xs">Boyutları girin</span>
           </div>
@@ -396,7 +402,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
 
       {/* Ürün Tipi */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs text-zinc-500">Ürün Tipi</Label>
+        <Label className="text-xs text-muted-foreground">Ürün Tipi</Label>
         <Controller
           name="productType"
           control={control}
@@ -422,7 +428,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         {isVarilType ? (
           <>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-zinc-500">Çap (cm)</Label>
+              <Label className="text-xs text-muted-foreground">Çap (cm)</Label>
               <Input
                 type="number"
                 min="1"
@@ -433,7 +439,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-zinc-500">Yükseklik (cm)</Label>
+              <Label className="text-xs text-muted-foreground">Yükseklik (cm)</Label>
               <Input
                 type="number"
                 min="1"
@@ -447,7 +453,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         ) : (
           <>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-zinc-500">Genişlik — X (cm)</Label>
+              <Label className="text-xs text-muted-foreground">Genişlik — X (cm)</Label>
               <Input
                 type="number"
                 min="1"
@@ -458,7 +464,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-zinc-500">Yükseklik — Y (cm)</Label>
+              <Label className="text-xs text-muted-foreground">Yükseklik — Y (cm)</Label>
               <Input
                 type="number"
                 min="1"
@@ -469,7 +475,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-zinc-500">Derinlik — Z (cm)</Label>
+              <Label className="text-xs text-muted-foreground">Derinlik — Z (cm)</Label>
               <Input
                 type="number"
                 min="1"
@@ -486,7 +492,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       {/* Ağırlık + Adet */}
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
-          <Label className="text-xs text-zinc-500">Ağırlık (kg)</Label>
+          <Label className="text-xs text-muted-foreground">Ağırlık (kg)</Label>
           <Input
             type="number"
             min="0.1"
@@ -497,7 +503,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-xs text-zinc-500">Adet</Label>
+          <Label className="text-xs text-muted-foreground">Adet</Label>
           <Input
             type="number"
             min="1"
@@ -511,7 +517,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
 
       {/* Hassasiyet */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs text-zinc-500">Hassasiyet</Label>
+        <Label className="text-xs text-muted-foreground">Hassasiyet</Label>
         <Controller
           name="fragility"
           control={control}
@@ -542,7 +548,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       {/* İstiflenebilir */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs text-zinc-500">İstiflenebilir</Label>
+          <Label className="text-xs text-muted-foreground">İstiflenebilir</Label>
           <Controller
             name="isStackable"
             control={control}
@@ -553,7 +559,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         </div>
         {watchedStackable && (
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-zinc-500">Max İstif Sayısı</Label>
+            <Label className="text-xs text-muted-foreground">Max İstif Sayısı</Label>
             <Input
               type="number"
               min="1"
@@ -568,7 +574,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
 
       {/* Rotasyon */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs text-zinc-500">Rotasyon</Label>
+        <Label className="text-xs text-muted-foreground">Rotasyon</Label>
         <div className="flex items-center gap-2">
           {(['X', 'Y', 'Z'] as const).map((axis) => {
             const key = `allowRotate${axis}` as const;
@@ -586,8 +592,8 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
                     className={cn(
                       'flex-1 h-6 rounded text-xs font-medium transition-colors border',
                       field.value && !disabled
-                        ? 'bg-zinc-900 text-white border-zinc-900'
-                        : 'bg-white text-zinc-400 border-zinc-200',
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'bg-background text-muted-foreground border-border',
                       disabled && 'opacity-40 cursor-not-allowed',
                     )}
                   >
@@ -602,7 +608,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
 
       {/* Yüzey Kısıtları */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs text-zinc-500">Desteklenebilir Yüzey</Label>
+        <Label className="text-xs text-muted-foreground">Desteklenebilir Yüzey</Label>
         <div className="grid grid-cols-3 gap-1">
           {FACE_FIELDS.map(({ key, label }) => (
             <Controller
@@ -616,8 +622,8 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
                   className={cn(
                     'h-6 rounded text-xs font-medium transition-colors border',
                     field.value
-                      ? 'bg-zinc-900 text-white border-zinc-900'
-                      : 'bg-white text-zinc-400 border-zinc-200',
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-background text-muted-foreground border-border',
                   )}
                 >
                   {label}
@@ -642,7 +648,7 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
         <Button
           type="submit"
           size="sm"
-          className="flex-1 h-7 text-xs bg-zinc-900 text-white hover:bg-zinc-700"
+          className="flex-1 h-7 text-xs bg-foreground text-background hover:bg-foreground/80"
         >
           {isEditing ? 'Güncelle' : 'Kaydet'}
         </Button>

@@ -71,16 +71,16 @@ function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const mouseX = useMotionValue(Infinity);
-  const navLinksX = useMotionValue(-65);
+  const navLinksX = useMotionValue(0);
 
   useEffect(() => {
     const onScroll = () => {
       const progress = Math.min(window.scrollY / 280, 1);
       if (navRef.current) {
-        navRef.current.style.maxWidth = `${896 + progress * (1280 - 896)}px`;
+        navRef.current.style.maxWidth = `${1280 - progress * (1280 - 896)}px`;
       }
-      // same progress drives x: -40 → 0
-      navLinksX.set(-65 * (1 - progress));
+      // same progress drives x: 0 → -65
+      navLinksX.set(-65 * progress);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -93,7 +93,7 @@ function Navbar() {
         <nav
           ref={navRef}
           className="w-full bg-background/90 backdrop-blur-md border border-border rounded-2xl shadow-lg shadow-black/5"
-          style={{ maxWidth: 896 }}
+          style={{ maxWidth: 1280 }}
         >
           <div className="h-14 px-4 sm:px-5 grid grid-cols-[1fr_auto_1fr] items-center">
             <Link
