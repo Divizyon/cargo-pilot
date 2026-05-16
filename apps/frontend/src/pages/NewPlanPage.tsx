@@ -86,6 +86,8 @@ export function NewPlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
+
   useEffect(() => {
     function handleResize() {
       if (window.innerWidth < 1024) {
@@ -96,6 +98,7 @@ export function NewPlanPage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
 
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
   const startAnimation = useSceneStore((s) => s.startAnimation);
@@ -239,11 +242,8 @@ export function NewPlanPage() {
         </div>
 
         {/* Kamera presetleri — sağ üst */}
-        <div className="absolute top-3 right-3 z-20">
-          <CameraPresetButtons
-            getSnapshot={() => snapshotRef.current?.() ?? ''}
-            planId={fromPlanId}
-          />
+        <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
+          <CameraPresetButtons />
         </div>
 
         {/* Merkez — 3D Viewport */}
@@ -262,6 +262,9 @@ export function NewPlanPage() {
             onLoadAnimation={handleLoadAnimation}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
             canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
+            getSnapshot={() => snapshotRef.current?.() ?? ''}
+            planId={fromPlanId}
+            planName={planDetail?.planName}
           />
         </div>
       </div>
