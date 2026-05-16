@@ -75,6 +75,35 @@ const COLOR_VIOLATION = new THREE.Color(SCENE.COLORS.VIOLATION);
 const COLOR_NORMAL = new THREE.Color(SCENE.COLORS.NORMAL);
 const SCALE_ZERO = new THREE.Vector3(0, 0, 0);
 
+// Pre-allocated axis vectors for cylinder orientation (reused across frames)
+const _CYL_AXIS_X = new THREE.Vector3(1, 0, 0);
+const _CYL_AXIS_Z = new THREE.Vector3(0, 0, 1);
+
+// Determine cylinder's long axis from placed bounding-box dimensions and set
+// the appropriate quaternion + scale values.
+// cylinderGeometry has its height axis along local Y (radius 0.5, height 1).
+// When the barrel lies along X: rotate -90° around Z so local Y → world X.
+// When the barrel lies along Z: rotate +90° around X so local Y → world Z.
+function applyVarilOrientation(
+  p: { width: number; height: number; depth: number },
+  quaternion: THREE.Quaternion,
+): { sw: number; sh: number; sd: number } {
+  if (p.width > p.height && p.width > p.depth) {
+    quaternion.setFromAxisAngle(_CYL_AXIS_Z, -Math.PI / 2);
+    const d = Math.min(p.height, p.depth);
+    return { sw: d, sh: p.width, sd: d };
+  }
+  if (p.depth > p.height && p.depth > p.width) {
+    quaternion.setFromAxisAngle(_CYL_AXIS_X, Math.PI / 2);
+    const d = Math.min(p.width, p.height);
+    return { sw: d, sh: p.depth, sd: d };
+  }
+  // standing upright
+  quaternion.identity();
+  const d = Math.min(p.width, p.depth);
+  return { sw: d, sh: p.height, sd: d };
+}
+
 // Unit cube edges centered at origin, 12 edges × 2 endpoints each
 const UNIT_EDGES: ReadonlyArray<readonly [number, number, number, number, number, number]> = [
   [-0.5, -0.5, -0.5, 0.5, -0.5, -0.5],
@@ -441,12 +470,15 @@ function InstancedBoxes() {
       const vRef = isVaril ? violationCylRef : violationRef;
 
       const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
-      const radius = Math.min(p.width, p.depth) / 2;
-      applyOrientationQuaternion(quaternion, p.orientationIndex);
-
-      const sw = isVaril ? radius * 2 : base.width;
-      const sh = isVaril ? p.height : base.height;
-      const sd = isVaril ? radius * 2 : base.depth;
+      let sw: number, sh: number, sd: number;
+      if (isVaril) {
+        ({ sw, sh, sd } = applyVarilOrientation(p, quaternion));
+      } else {
+        applyOrientationQuaternion(quaternion, p.orientationIndex);
+        sw = base.width;
+        sh = base.height;
+        sd = base.depth;
+      }
 
       // stepped: sadece animationStep'e kadar olanlar görünür
       const seqIdx = loadOrder.indexOf(globalIdx);
@@ -570,8 +602,15 @@ function InstancedBoxes() {
       const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
 
       const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
-      const radius = Math.min(p.width, p.depth) / 2;
-      applyOrientationQuaternion(quaternion, p.orientationIndex);
+      let sw: number, sh: number, sd: number;
+      if (isVaril) {
+        ({ sw, sh, sd } = applyVarilOrientation(p, quaternion));
+      } else {
+        applyOrientationQuaternion(quaternion, p.orientationIndex);
+        sw = base.width;
+        sh = base.height;
+        sd = base.depth;
+      }
       position.set(
         p.positionX + p.width / 2,
         p.positionY + p.height / 2,
@@ -581,12 +620,6 @@ function InstancedBoxes() {
       const oRef = isVaril ? opaqueCylRef : opaqueRef;
       const gRef = isVaril ? ghostWireCylRef : ghostWireRef;
       const vRef = isVaril ? violationCylRef : violationRef;
-
-      // Cylinder: scale.x/z = radius (unit cylinder r=0.5 → ×2r), scale.y = height
-      // Box: scale = dimensions
-      const sw = isVaril ? radius * 2 : base.width;
-      const sh = isVaril ? p.height : base.height;
-      const sd = isVaril ? radius * 2 : base.depth;
 
       if (visible && !ghosted) scale.set(sw, sh, sd);
       else scale.copy(SCALE_ZERO);

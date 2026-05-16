@@ -381,7 +381,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     }
 
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
-        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
+        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl, item.ProductType);
 
     private static decimal? CalcBalanceOffset(decimal? cog, decimal dimension)
     {

@@ -163,13 +163,29 @@ export function BoxWrapper({
 
   const isPalet = productType === 'palet';
   const isVaril = productType === 'varil';
-  const radius = Math.min(width, depth) / 2;
+
+  // Cylinder orientation: long axis determines rotation and radius.
+  // cylinderGeometry axis is local Y; rotate so it aligns with world X or Z when laid on side.
+  const isVarilLongX = isVaril && width > height && width > depth;
+  const isVarilLongZ = isVaril && depth > height && depth > width;
+  const cylLen = isVarilLongX ? width : isVarilLongZ ? depth : height;
+  const cylRadius = isVarilLongX
+    ? Math.min(height, depth) / 2
+    : isVarilLongZ
+      ? Math.min(width, height) / 2
+      : Math.min(width, depth) / 2;
+  // Euler rotation to align cylinder Y-axis with the correct world axis
+  const cylRotation: [number, number, number] = isVarilLongX
+    ? [0, 0, -Math.PI / 2]
+    : isVarilLongZ
+      ? [Math.PI / 2, 0, 0]
+      : [0, 0, 0];
 
   // Palet kendi kenarlarını tahta bazında çizdiği için dış edge geo'ya gerek yok
   const edgesGeo = useMemo<THREE.BufferGeometry | null>(() => {
     if (isPalet) return null;
     if (isVaril) {
-      const cyl = new THREE.CylinderGeometry(radius, radius, height, CYLINDER_SEGMENTS);
+      const cyl = new THREE.CylinderGeometry(cylRadius, cylRadius, cylLen, CYLINDER_SEGMENTS);
       const edges = new THREE.EdgesGeometry(cyl);
       cyl.dispose();
       return edges;
@@ -178,7 +194,7 @@ export function BoxWrapper({
     const edges = new THREE.EdgesGeometry(box);
     box.dispose();
     return edges;
-  }, [isPalet, isVaril, radius, width, height, depth]);
+  }, [isPalet, isVaril, cylRadius, cylLen, width, height, depth]);
 
   useEffect(
     () => () => {
@@ -244,9 +260,9 @@ export function BoxWrapper({
   return (
     <group position={[cx, cy, cz]} onClick={handleClick}>
       {!isGhosted && (
-        <mesh material={boxMaterials ?? undefined}>
+        <mesh rotation={isVaril ? cylRotation : undefined} material={boxMaterials ?? undefined}>
           {isVaril ? (
-            <cylinderGeometry args={[radius, radius, height, CYLINDER_SEGMENTS]} />
+            <cylinderGeometry args={[cylRadius, cylRadius, cylLen, CYLINDER_SEGMENTS]} />
           ) : (
             <boxGeometry args={[width, height, depth]} />
           )}
@@ -262,7 +278,7 @@ export function BoxWrapper({
         </mesh>
       )}
       {edgesGeo && (
-        <lineSegments geometry={edgesGeo}>
+        <lineSegments rotation={isVaril ? cylRotation : undefined} geometry={edgesGeo}>
           <lineBasicMaterial
             color={isGhosted ? '#94a3b8' : isSelected ? color : '#000000'}
             transparent={isGhosted}
