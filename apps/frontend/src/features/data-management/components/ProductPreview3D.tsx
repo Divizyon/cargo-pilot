@@ -144,25 +144,26 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
   );
 }
 
-function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
-  const h = Math.min(Math.max(heightCm, 1), 20);
-  const maxDim = Math.max(widthCm, h, depthCm);
+const PALLET_HEIGHT_CM = 14;
 
-  // Genişlik: 6 tahta + 5 boşluk, tahta eni = 3x, boşluk = x
-  // 6*(3x) + 5*(x) = widthCm => 23x = widthCm => x = widthCm/23
+function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
+  // Palet sabit 14 cm; kargo kutusu kalan yükseklik
+  const paletH = Math.min(PALLET_HEIGHT_CM, heightCm);
+  const cargoH = Math.max(0, heightCm - paletH);
+  const totalH = paletH + cargoH;
+  const maxDim = Math.max(widthCm, totalH, depthCm);
+
   const xUnit = widthCm / 23;
   const slatW = 3 * xUnit;
   const slatGapW = xUnit;
 
-  // Derinlik: 3 tahta + 2 boşluk, tahta derinliği = 5y, boşluk = y
-  // 3*(5y) + 2*(y) = depthCm => 17y = depthCm => y = depthCm/17
   const yUnit = depthCm / 3.5;
   const crossD = 0.5 * yUnit;
   const crossGapD = yUnit;
 
-  const slatH = h * 2;
-  const carrierH = h * 0.25;
-  const crossH = h;
+  const slatH = paletH * 2;
+  const carrierH = paletH * 0.25;
+  const crossH = paletH;
 
   const [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges] = useMemo(() => {
     const sg = new THREE.BoxGeometry(slatW, slatH, depthCm);
@@ -174,6 +175,13 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
     return [sg, se, cg, ce, xg, xe] as const;
   }, [slatW, slatH, carrierH, crossH, depthCm, widthCm, crossD]);
 
+  const [cargoGeo, cargoEdges] = useMemo(() => {
+    if (cargoH <= 0) return [null, null] as const;
+    const cg = new THREE.BoxGeometry(widthCm, cargoH, depthCm);
+    const ce = new THREE.EdgesGeometry(cg);
+    return [cg, ce] as const;
+  }, [widthCm, cargoH, depthCm]);
+
   useEffect(
     () => () => {
       slatGeo.dispose();
@@ -182,25 +190,26 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
       carrierEdges.dispose();
       crossGeo.dispose();
       crossEdges.dispose();
+      cargoGeo?.dispose();
+      cargoEdges?.dispose();
     },
-    [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges],
+    [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges, cargoGeo, cargoEdges],
   );
 
-  // 6 tahtanın merkez X konumları
   const slatCentersX = Array.from({ length: 6 }, (_, i) => i * (slatW + slatGapW) + slatW / 2);
-
-  // 3 çapraz tahtanın merkez Z konumları
   const crossZCenters = Array.from({ length: 3 }, (_, i) => i * (crossD + crossGapD) + crossD / 2);
 
-  const topCenterY = h - slatH / 2;
+  const topCenterY = paletH - slatH / 2;
   const carrierCenterY = carrierH / 2;
-  const crossCenterY = h / 2;
+  const crossCenterY = paletH / 2;
+  // Kargo kutusunun merkezi: palet üstünden başlayıp cargoH kadar yukarda
+  const cargoCenterY = paletH + cargoH / 2;
 
-  const paletCenter: [number, number, number] = [widthCm / 2, h / 2, depthCm / 2];
+  const sceneCenter: [number, number, number] = [widthCm / 2, totalH / 2, depthCm / 2];
 
   return (
     <>
-      <SceneSetup maxDim={maxDim} center={paletCenter} distFactor={PREVIEW_DIST_FACTOR / 2} />
+      <SceneSetup maxDim={maxDim} center={sceneCenter} distFactor={PREVIEW_DIST_FACTOR / 2} />
       <group>
         {/* Üst tahtalar */}
         {slatCentersX.map((cx, i) => (
@@ -237,6 +246,18 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
             </lineSegments>
           </group>
         ))}
+
+        {/* Kargo kutusu (palet üstünde) */}
+        {cargoGeo && cargoEdges && cargoH > 0 && (
+          <group position={[widthCm / 2, cargoCenterY, depthCm / 2]}>
+            <mesh geometry={cargoGeo}>
+              <meshStandardMaterial color={SCENE.COLORS.NORMAL_STR} transparent opacity={MESH_OPACITY} />
+            </mesh>
+            <lineSegments geometry={cargoEdges}>
+              <lineBasicMaterial color="#000000" />
+            </lineSegments>
+          </group>
+        )}
       </group>
     </>
   );

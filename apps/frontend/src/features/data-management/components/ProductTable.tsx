@@ -292,6 +292,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
           allowRotateX={item.allowRotateX}
           allowRotateY={item.allowRotateY}
           allowRotateZ={item.allowRotateZ}
+          constraintIds={item.constraintIds}
         />
       </TableCell>
 
