@@ -99,7 +99,6 @@ export function NewPlanPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
   const startAnimation = useSceneStore((s) => s.startAnimation);
 

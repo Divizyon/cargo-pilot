@@ -688,10 +688,9 @@ export function useApproveERPMappingWithNewItem() {
       );
       const newItemId = createRes.data.data?.id;
       if (!newItemId) throw new Error('Item ID alınamadı');
-      await axiosInstance.put(
-        `${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`,
-        { cargoPilotItemId: newItemId },
-      );
+      await axiosInstance.put(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`, {
+        cargoPilotItemId: newItemId,
+      });
     },
     onSuccess: (_data, { integrationId }) => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'pending-mappings-paged', integrationId] });

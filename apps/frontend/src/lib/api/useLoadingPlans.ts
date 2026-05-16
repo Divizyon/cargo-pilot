@@ -136,7 +136,14 @@ export function useLoadingPlanDetail(id: string | undefined) {
       const parsed = planFullDetailApiResponseSchema.safeParse(data);
       if (!parsed.success) {
         console.error('[useLoadingPlanDetail] parse error', parsed.error);
-        return { planName: '—', vehicle: null, inputItems: [], placements: [], skuColorMap: {}, unplacedItems: [] };
+        return {
+          planName: '—',
+          vehicle: null,
+          inputItems: [],
+          placements: [],
+          skuColorMap: {},
+          unplacedItems: [],
+        };
       }
       return fromApiFullDetail(parsed.data.data);
     },

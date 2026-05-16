@@ -358,7 +358,10 @@ function StoreItemRow({
               <span className="text-zinc-700 font-medium truncate">{item.stackGroup}</span>
               {onClearStackGroup && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onClearStackGroup(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClearStackGroup();
+                  }}
                   className="ml-auto shrink-0 text-zinc-300 hover:text-rose-500 transition-colors"
                   title="Yük grubundan çıkar"
                 >
@@ -681,7 +684,14 @@ export function PlanLeftPanel() {
     }
 
     return { groupMap, noGroupPlan, noGroupCatalog };
-  }, [activeTab, groupSelectionMode, flatDisplayItems, filteredCatalogOnlyItems, clearedStackGroups, selectedItems]);
+  }, [
+    activeTab,
+    groupSelectionMode,
+    flatDisplayItems,
+    filteredCatalogOnlyItems,
+    clearedStackGroups,
+    selectedItems,
+  ]);
 
   const shouldVirtualize = flatDisplayItems.length >= VIRTUAL_THRESHOLD;
 
@@ -1351,7 +1361,6 @@ export function PlanLeftPanel() {
       )}
 
       <UnfitItemsPanel />
-
 
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center gap-2">

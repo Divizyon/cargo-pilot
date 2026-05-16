@@ -262,10 +262,7 @@ export function ERPItemsTable() {
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput
-          onSearch={handleSearch}
-          placeholder="ERP ürün adı veya SKU ile ara..."
-        />
+        <SearchInput onSearch={handleSearch} placeholder="ERP ürün adı veya SKU ile ara..." />
 
         <Button
           variant="outline"
@@ -358,10 +355,7 @@ export function ERPItemsTable() {
                 </TableRow>
               )}
               {displayedItems.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="h-12"
-                >
+                <TableRow key={row.id} className="h-12">
                   <TableCell className="py-0 px-3">
                     <Checkbox
                       checked={selectedIds.has(row.id)}
