@@ -27,6 +27,7 @@ import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -238,6 +239,23 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
           {BOTTOM_NAV.map((item) => (
             <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
           ))}
+          {/* Theme toggle row */}
+          <div
+            className={cn(
+              'flex h-9 items-center rounded-lg',
+              isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3 justify-between',
+            )}
+          >
+            <span
+              className={cn(
+                'text-sm font-medium text-muted-foreground',
+                isCollapsed && 'lg:hidden',
+              )}
+            >
+              Tema
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
 
@@ -309,6 +327,17 @@ function checkIsFocusRoute(pathname: string): boolean {
   return false;
 }
 
+const FIXED_HEIGHT_ROUTE_PATTERNS = [
+  /^\/products\/new$/,
+  /^\/products\/[^/]+\/edit$/,
+  /^\/vehicles\/new$/,
+  /^\/vehicles\/[^/]+\/edit$/,
+];
+
+function checkIsFixedHeightRoute(pathname: string): boolean {
+  return FIXED_HEIGHT_ROUTE_PATTERNS.some((p) => p.test(pathname));
+}
+
 /** Below this width focus routes show a "not supported on mobile" screen. */
 const MOBILE_BREAKPOINT = 768;
 
@@ -348,6 +377,7 @@ export function DashboardLayout() {
   const { showWarning, countdown, extendSession } = useSessionTimeout();
   const { pathname } = useLocation();
   const isFocusRoute = checkIsFocusRoute(pathname);
+  const isFixedHeightRoute = checkIsFixedHeightRoute(pathname);
   const isCollapsed = isFocusRoute || windowCollapsed;
 
   useEffect(() => {
@@ -417,7 +447,9 @@ export function DashboardLayout() {
             'flex-1',
             isFocusRoute && !isMobileWidth
               ? 'overflow-hidden'
-              : 'overflow-auto bg-page-background p-3 sm:p-4 lg:p-6',
+              : isFixedHeightRoute
+                ? 'overflow-hidden bg-page-background p-3 sm:p-4 lg:p-6'
+                : 'overflow-auto bg-page-background p-3 sm:p-4 lg:p-6',
           )}
         >
           {isFocusRoute && isMobileWidth ? <MobileNotSupported /> : <Outlet />}

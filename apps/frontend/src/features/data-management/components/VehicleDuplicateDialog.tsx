@@ -20,7 +20,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 
 const duplicateSchema = z.object({
   vehicleName: z.string().min(1, 'Araç adı zorunludur.').max(200),
-  plateNumber: z.string().min(1, 'Plaka zorunludur.').max(50),
+  plateNumber: z.string().max(50).optional(),
 });
 
 type DuplicateFormValues = z.infer<typeof duplicateSchema>;
@@ -53,7 +53,7 @@ export function VehicleDuplicateDialog({ vehicle, onClose, onDuplicated }: Props
   function onSubmit(values: DuplicateFormValues) {
     if (!vehicle) return;
     duplicate(
-      { id: vehicle.id, vehicleName: values.vehicleName, plateNumber: values.plateNumber },
+      { id: vehicle.id, vehicleName: values.vehicleName, plateNumber: values.plateNumber ?? '' },
       {
         onSuccess: (newVehicle) => {
           toast.success('Araç başarıyla kopyalandı.');
@@ -76,7 +76,7 @@ export function VehicleDuplicateDialog({ vehicle, onClose, onDuplicated }: Props
             Aracı Kopyala
           </DialogTitle>
           <DialogDescription>
-            Yeni aracın adını ve plakasını girin. Kaydettikten sonra düzenleme ekranına
+            Yeni aracın adını girin. Plaka opsiyoneldir. Kaydettikten sonra düzenleme ekranına
             yönlendirileceksiniz.
           </DialogDescription>
         </DialogHeader>
@@ -91,7 +91,9 @@ export function VehicleDuplicateDialog({ vehicle, onClose, onDuplicated }: Props
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="dup-plate">Plaka</Label>
+            <Label htmlFor="dup-plate">
+              Plaka <span className="text-xs font-normal text-muted-foreground">(Opsiyonel)</span>
+            </Label>
             <Input id="dup-plate" {...register('plateNumber')} placeholder="34 ABC 123" autoFocus />
             {errors.plateNumber && (
               <p className="text-xs text-destructive">{errors.plateNumber.message}</p>

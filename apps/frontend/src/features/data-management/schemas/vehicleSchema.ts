@@ -42,8 +42,8 @@ export const vehicleFormSchema = z
       .positive('Yükseklik sıfırdan büyük olmalıdır')
       .max(DIMENSION_MAX, `Yükseklik en fazla ${DIMENSION_MAX} cm olabilir`),
 
-    // VY-05: Maksimum istif katmanı
-    maxLayerCount: z
+    // Katman sayısı
+    layerCount: z
       .number({ error: 'Geçerli bir katman sayısı giriniz' })
       .int('Katman sayısı tam sayı olmalıdır')
       .min(1, 'Katman sayısı en az 1 olmalıdır')
@@ -103,21 +103,6 @@ export const vehicleFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (!data.vehicleType) return;
-
-    // VY-01/03: Plaka / seri no koşullu zorunluluk
-    if (data.vehicleType !== VehicleType.Konteyner) {
-      if (!data.plate?.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Plaka zorunludur', path: ['plate'] });
-      }
-    } else {
-      if (!data.serialNumber?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Seri numarası zorunludur',
-          path: ['serialNumber'],
-        });
-      }
-    }
 
     // VY-07: Yan kapı seçilince taraf zorunlu
     if ((data.doorDirection === 'side' || data.doorDirection === 'rearAndSide') && !data.doorSide) {

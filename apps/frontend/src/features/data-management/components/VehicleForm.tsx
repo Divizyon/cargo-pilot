@@ -1,10 +1,11 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Controller, useWatch } from 'react-hook-form';
+import { Controller, useFormState, useWatch } from 'react-hook-form';
+import { toast } from 'sonner';
 import { Form } from '@/components/ui/form';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
 import { VehicleIdentityFields } from './VehicleIdentityFields';
 import { VehiclePlateOrSerialField } from './VehiclePlateOrSerialField';
-import { VehicleLayerCountField } from './VehicleLayerCountField';
+
 import { VehicleDimensionsFields } from './VehicleDimensionsFields';
 import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
 import { VehicleWeightFields } from './VehicleWeightFields';
@@ -19,7 +20,7 @@ import { VehiclePreviewPanel } from './VehiclePreviewPanel';
 import { useVehicleForm } from '@/features/data-management/hooks/useVehicleForm';
 import { useVehicleFormVisibility } from '@/features/data-management/hooks/useVehicleFormVisibility';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
-import { VehicleType } from '@/lib/types/vehicle';
+import { VehicleType, type Vehicle } from '@/lib/types/vehicle';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -33,6 +34,8 @@ interface VehicleFormProps {
   onCancel?: () => void;
   isSubmitting?: boolean;
   disableSubmitWhenPristine?: boolean;
+  vehicle?: Pick<Vehicle, 'updatedAt' | 'updatedBy' | 'isActive'>;
+  isCreateMode?: boolean;
 }
 
 function SectionTitle({ children, className }: { children: ReactNode; className?: string }) {
@@ -55,8 +58,11 @@ export function VehicleForm({
   onCancel,
   isSubmitting,
   disableSubmitWhenPristine,
+  vehicle,
+  isCreateMode = false,
 }: VehicleFormProps) {
   const form = useVehicleForm(defaultValues);
+  const { isDirty } = useFormState({ control: form.control });
   const { showAxleSection, showKingpinSection } = useVehicleFormVisibility(form.control);
   const axlesRef = useRef<VehicleAdditionalAxlesHandle>(null);
   const vehicleType = useWatch({ control: form.control, name: 'vehicleType' });
@@ -102,13 +108,12 @@ export function VehicleForm({
         )}
       </div>
 
-      {/* 1. KİMLİK — ad, plaka, maks. istif katmanı */}
+      {/* 1. KİMLİK — ad, plaka */}
       <div className="space-y-4 py-6">
         <SectionTitle>Kimlik Bilgileri</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <VehicleIdentityFields form={form} section="name-only" />
           <VehiclePlateOrSerialField form={form} hideHeading />
-          <VehicleLayerCountField form={form} />
         </div>
       </div>
 
@@ -182,21 +187,32 @@ export function VehicleForm({
   return (
     <TooltipProvider delayDuration={150}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit, () => {
+            toast.error('Lütfen zorunlu alanları doldurunuz.', { position: 'bottom-right' });
+          })}
+          className="flex h-full flex-col"
+        >
           <FormWithPreviewLayout
+            className="flex-1 min-h-0"
             formContent={formContent}
-            previewContent={<VehiclePreviewPanel form={form} />}
+            actionBarVisible={isDirty}
+            actionBar={
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
+                <VehicleFormActions
+                  form={form}
+                  isSubmitting={isSubmitting}
+                  onCancel={onCancel}
+                  onDraftSubmit={onDraftSubmit ?? (() => undefined)}
+                  disableSubmitWhenPristine={disableSubmitWhenPristine}
+                  submitLabel={isCreateMode ? 'Kaydet' : 'Değişiklikleri Kaydet'}
+                />
+              </div>
+            }
+            previewContent={
+              <VehiclePreviewPanel form={form} vehicle={vehicle} isCreateMode={isCreateMode} />
+            }
           />
-
-          <div className="flex justify-end border-t pt-4">
-            <VehicleFormActions
-              form={form}
-              isSubmitting={isSubmitting}
-              onCancel={onCancel}
-              onDraftSubmit={onDraftSubmit ?? (() => undefined)}
-              disableSubmitWhenPristine={disableSubmitWhenPristine}
-            />
-          </div>
         </form>
       </Form>
     </TooltipProvider>

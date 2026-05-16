@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -21,6 +21,11 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
     name: ['length', 'width', 'height'],
   });
 
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
+  const [lengthDisplay, setLengthDisplay] = useState(() => toStr(form.getValues('length')));
+  const [heightDisplay, setHeightDisplay] = useState(() => toStr(form.getValues('height')));
+  const [widthDisplay, setWidthDisplay] = useState(() => toStr(form.getValues('width')));
+
   const volume = useMemo(() => {
     if (!length || !width || !height) return null;
     return calculateVolume(length, width, height);
@@ -39,15 +44,20 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="1350"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={lengthDisplay}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      setLengthDisplay(raw);
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -69,15 +79,20 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="270"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={heightDisplay}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      setHeightDisplay(raw);
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -99,15 +114,20 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="240"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={widthDisplay}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      setWidthDisplay(raw);
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

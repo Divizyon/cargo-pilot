@@ -174,7 +174,12 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(i => i.LoadingPlanId == id)
             .ToListAsync(cancellationToken);
 
-        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems);
+        var groups = await _context.LoadingPlanItemGroups
+            .AsNoTracking()
+            .Where(g => g.LoadingPlanId == id)
+            .ToListAsync(cancellationToken);
+
+        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems, groups);
     }
 
     private static PlanDetailDto MapToDetailDto(
@@ -182,7 +187,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         List<LoadingPlanPlacement> placements,
         List<LoadingPlanUnplacedItem> unplacedItems,
         List<LoadingPlanWarning> warnings,
-        List<LoadingPlanInputItem> inputItems)
+        List<LoadingPlanInputItem> inputItems,
+        List<LoadingPlanItemGroup> groups)
     {
         var vehicleDto = new VehicleInPlanDto(
             plan.Vehicle.Id,
@@ -228,7 +234,23 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 i.Id,
                 i.ItemId,
                 i.Quantity,
-                ToItemInPlanDto(i.Item)))
+                ToItemInPlanDto(i.Item),
+                i.GroupId))
+            .ToList();
+
+        var inputItemsByGroup = inputItemDtos
+            .Where(i => i.GroupId.HasValue)
+            .GroupBy(i => i.GroupId!.Value)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<InputItemDto>)g.ToList());
+
+        var groupDtos = groups
+            .Select(g => new PlanGroupDto(
+                g.Id,
+                g.Name,
+                g.Color,
+                g.UnloadingOrder,
+                g.IsActive,
+                inputItemsByGroup.TryGetValue(g.Id, out var gItems) ? gItems : []))
             .ToList();
 
         return new PlanDetailDto(
@@ -254,7 +276,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             placementDtos,
             unplacedItemDtos,
             warningDtos,
-            inputItemDtos);
+            inputItemDtos,
+            groupDtos);
     }
 
     public async Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
@@ -358,7 +381,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     }
 
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
-        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl);
+        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl, item.ProductType);
 
     private static decimal? CalcBalanceOffset(decimal? cog, decimal dimension)
     {

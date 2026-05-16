@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -18,6 +19,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             "ERP sync failed for integration {IntegrationId}");
 
     private readonly IIntegrationRepository _integrationRepository;
+    private readonly IErpSettingsRepository _erpSettingsRepository;
+    private readonly IErpPasswordProtector _passwordProtector;
     private readonly IItemRepository _itemRepository;
     private readonly IPendingItemMappingRepository _pendingMappingRepository;
     private readonly IErpProductFetcher _erpProductFetcher;
@@ -28,6 +31,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
     public SyncErpItemsCommandHandler(
         IIntegrationRepository integrationRepository,
+        IErpSettingsRepository erpSettingsRepository,
+        IErpPasswordProtector passwordProtector,
         IItemRepository itemRepository,
         IPendingItemMappingRepository pendingMappingRepository,
         IErpProductFetcher erpProductFetcher,
@@ -37,6 +42,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         ILogger<SyncErpItemsCommandHandler> logger)
     {
         _integrationRepository = integrationRepository;
+        _erpSettingsRepository = erpSettingsRepository;
+        _passwordProtector = passwordProtector;
         _itemRepository = itemRepository;
         _pendingMappingRepository = pendingMappingRepository;
         _erpProductFetcher = erpProductFetcher;
@@ -69,14 +76,29 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 new Error(ErrorType.NotFound, "Integration.NotFound", "Entegrasyon bulunamadı."));
         }
 
+        var erpSettings = await _erpSettingsRepository.GetByCompanyIdAsync(companyId!.Value, cancellationToken);
+        if (erpSettings is null)
+        {
+            return Result<SyncErpItemsResult>.Failure(
+                new Error(ErrorType.NotFound, "ErpSettings.NotConfigured", "ERP bağlantı ayarları yapılandırılmamış."));
+        }
+
+        var plainPassword = _passwordProtector.Unprotect(erpSettings.PasswordEncrypted);
+        var authCredentialsJson = JsonSerializer.Serialize(new
+        {
+            Database = erpSettings.CompanyCode,
+            UserId = erpSettings.Username,
+            Password = plainPassword
+        });
+
         var syncLog = new SyncLog(Guid.NewGuid(), integration.Id);
         _integrationRepository.AddSyncLog(syncLog);
 
         try
         {
             var erpProducts = await _erpProductFetcher.FetchAsync(
-                integration.ApiEndpoint,
-                integration.AuthCredentials,
+                erpSettings.ServerAddress,
+                authCredentialsJson,
                 request.CategoryFilter,
                 request.WarehouseFilter,
                 cancellationToken);

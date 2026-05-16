@@ -398,6 +398,9 @@ export function fromApiPlacementsToScene(
       color = SKU_PALETTE[skuColorIndex[sku]];
     }
 
+    const rawType = (item.productType as string | undefined)?.toLowerCase();
+    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+
     return [
       {
         itemId,
@@ -412,6 +415,7 @@ export function fromApiPlacementsToScene(
         depth: pd,
         weight,
         color,
+        productType,
       } satisfies PlacementWithDimensions,
     ];
   });
@@ -454,6 +458,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     doorDirection:
       v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
     doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
   };
 }
 
@@ -470,6 +475,7 @@ const planItemDimensionsSchema = z
     length: z.number(),
     weight: z.number().catch(0),
     imageUrl: z.string().nullable().optional(),
+    productType: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -520,6 +526,7 @@ export const planFullDetailApiResponseSchema = z.object({
 });
 
 export type PlanFullDetail = {
+  planName: string;
   vehicle: Vehicle | null;
   inputItems: Array<{ item: Item; quantity: number }>;
   placements: PlacementWithDimensions[];
@@ -610,6 +617,8 @@ export function fromApiFullDetail(
     } = placedDimensions(p.item.width, p.item.height, p.item.length, p.rotation);
     const itemSku = p.item.sku || p.item.sKU || p.itemId;
     const color = skuColorMap[itemSku] ?? palette[0];
+    const rawType = p.item.productType?.toLowerCase();
+    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
     return {
       itemId: p.itemId,
       positionX: p.positionX,
@@ -623,9 +632,11 @@ export function fromApiFullDetail(
       depth,
       weight: p.item.weight,
       color,
+      productType,
     };
   });
 
+  const planName = data.planName ?? '—';
   type RawUnplaced = {
     id?: string;
     itemId?: string;
@@ -640,5 +651,5 @@ export function fromApiFullDetail(
     name: u.item?.name ?? '',
   }));
 
-  return { vehicle, inputItems, placements, skuColorMap, unplacedItems };
+  return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems };
 }

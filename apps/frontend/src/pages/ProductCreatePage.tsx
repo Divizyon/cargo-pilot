@@ -7,23 +7,26 @@ export function ProductCreatePage() {
   const createItem = useCreateItem();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex h-full flex-col gap-4">
+      <div className="shrink-0">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Yeni Ürün Ekle</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">
           Ürünün kimliğini, fiziksel özelliklerini ve kısıtlarını tanımlayın.
         </p>
       </div>
 
-      <ProductForm
-        isSubmitting={createItem.isPending}
-        onCancel={() => navigate('/products')}
-        onSubmit={(values) =>
-          createItem.mutate(values, {
-            onSuccess: () => navigate('/products'),
-          })
-        }
-      />
+      <div className="flex-1 min-h-0">
+        <ProductForm
+          isSubmitting={createItem.isPending}
+          submitLabel="Kaydet"
+          onCancel={() => navigate('/products')}
+          onSubmit={(values) =>
+            createItem.mutate(values, {
+              onSuccess: () => navigate('/products'),
+            })
+          }
+        />
+      </div>
     </div>
   );
 }

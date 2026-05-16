@@ -15,12 +15,13 @@ interface BoxWrapperProps {
   color?: string;
   opacity?: number;
   onClick?: (id: string) => void;
-  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
   itemId?: string;
   isSelected?: boolean;
   isHidden?: boolean;
   isGhosted?: boolean;
   productType?: ProductType;
+  /** +Z yüzüne (kapıya bakan) uygulanacak etiket texture'ı */
+  labelTexture?: THREE.Texture | null;
 }
 
 // ─── PaletContent ──────────────────────────────────────────────────────────────
@@ -149,12 +150,12 @@ export function BoxWrapper({
   color = '#2563EB',
   opacity = 0.85,
   onClick,
-  onPointerDown,
   itemId,
   isSelected = false,
   isHidden = false,
   isGhosted = false,
   productType,
+  labelTexture = null,
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
@@ -162,13 +163,29 @@ export function BoxWrapper({
 
   const isPalet = productType === 'palet';
   const isVaril = productType === 'varil';
-  const radius = Math.min(width, depth) / 2;
+
+  // Cylinder orientation: long axis determines rotation and radius.
+  // cylinderGeometry axis is local Y; rotate so it aligns with world X or Z when laid on side.
+  const isVarilLongX = isVaril && width > height && width > depth;
+  const isVarilLongZ = isVaril && depth > height && depth > width;
+  const cylLen = isVarilLongX ? width : isVarilLongZ ? depth : height;
+  const cylRadius = isVarilLongX
+    ? Math.min(height, depth) / 2
+    : isVarilLongZ
+      ? Math.min(width, height) / 2
+      : Math.min(width, depth) / 2;
+  // Euler rotation to align cylinder Y-axis with the correct world axis
+  const cylRotation: [number, number, number] = isVarilLongX
+    ? [0, 0, -Math.PI / 2]
+    : isVarilLongZ
+      ? [Math.PI / 2, 0, 0]
+      : [0, 0, 0];
 
   // Palet kendi kenarlarını tahta bazında çizdiği için dış edge geo'ya gerek yok
   const edgesGeo = useMemo<THREE.BufferGeometry | null>(() => {
     if (isPalet) return null;
     if (isVaril) {
-      const cyl = new THREE.CylinderGeometry(radius, radius, height, CYLINDER_SEGMENTS);
+      const cyl = new THREE.CylinderGeometry(cylRadius, cylRadius, cylLen, CYLINDER_SEGMENTS);
       const edges = new THREE.EdgesGeometry(cyl);
       cyl.dispose();
       return edges;
@@ -177,13 +194,44 @@ export function BoxWrapper({
     const edges = new THREE.EdgesGeometry(box);
     box.dispose();
     return edges;
-  }, [isPalet, isVaril, radius, width, height, depth]);
+  }, [isPalet, isVaril, cylRadius, cylLen, width, height, depth]);
 
   useEffect(
     () => () => {
       edgesGeo?.dispose();
     },
     [edgesGeo],
+  );
+
+  // 6-material array: +X, -X, +Y, -Y, +Z(kapıya bakan), -Z(arka)
+  // Sadece koli + labelTexture varsa kullanılır; varil/palet/ghosted için gerekmez.
+  const boxMaterials = useMemo(() => {
+    if (isPalet || isVaril || !labelTexture) return null;
+    const base = {
+      color,
+      transparent: true,
+      opacity: isSelected ? 0.95 : opacity,
+      emissive: isSelected ? color : '#000000',
+      emissiveIntensity: isSelected ? 0.25 : 0,
+    };
+    // Tüm 6 yüze aynı label texture — renk #ffffff ile texture gösterilir
+    return Array.from({ length: 6 }, () => {
+      const mat = new THREE.MeshStandardMaterial(base);
+      mat.map = labelTexture;
+      mat.color.set('#ffffff');
+      mat.transparent = false;
+      mat.opacity = 1;
+      mat.emissiveIntensity = 0;
+      return mat;
+    });
+  }, [isPalet, isVaril, labelTexture, color, opacity, isSelected]);
+
+  // Dispose — boxMaterials manuel THREE nesnesi
+  useEffect(
+    () => () => {
+      boxMaterials?.forEach((m) => m.dispose());
+    },
+    [boxMaterials],
   );
 
   if (isHidden) return null;
@@ -193,14 +241,9 @@ export function BoxWrapper({
     if (itemId !== undefined) onClick?.(itemId);
   };
 
-  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    onPointerDown?.(e);
-  };
-
   if (isPalet) {
     return (
-      <group position={[cx, cy, cz]} onClick={handleClick} onPointerDown={handlePointerDown}>
+      <group position={[cx, cy, cz]} onClick={handleClick}>
         <PaletContent
           width={width}
           height={height}
@@ -215,25 +258,27 @@ export function BoxWrapper({
   }
 
   return (
-    <group position={[cx, cy, cz]} onClick={handleClick} onPointerDown={handlePointerDown}>
+    <group position={[cx, cy, cz]} onClick={handleClick}>
       {!isGhosted && (
-        <mesh>
+        <mesh rotation={isVaril ? cylRotation : undefined} material={boxMaterials ?? undefined}>
           {isVaril ? (
-            <cylinderGeometry args={[radius, radius, height, CYLINDER_SEGMENTS]} />
+            <cylinderGeometry args={[cylRadius, cylRadius, cylLen, CYLINDER_SEGMENTS]} />
           ) : (
             <boxGeometry args={[width, height, depth]} />
           )}
-          <meshStandardMaterial
-            color={color}
-            transparent
-            opacity={isSelected ? 0.95 : opacity}
-            emissive={isSelected ? color : '#000000'}
-            emissiveIntensity={isSelected ? 0.25 : 0}
-          />
+          {!boxMaterials && (
+            <meshStandardMaterial
+              color={color}
+              transparent
+              opacity={isSelected ? 0.95 : opacity}
+              emissive={isSelected ? color : '#000000'}
+              emissiveIntensity={isSelected ? 0.25 : 0}
+            />
+          )}
         </mesh>
       )}
       {edgesGeo && (
-        <lineSegments geometry={edgesGeo}>
+        <lineSegments rotation={isVaril ? cylRotation : undefined} geometry={edgesGeo}>
           <lineBasicMaterial
             color={isGhosted ? '#94a3b8' : isSelected ? color : '#000000'}
             transparent={isGhosted}

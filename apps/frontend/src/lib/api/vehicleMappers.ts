@@ -46,7 +46,7 @@ export const vehicleApiSchema = z.object({
   grossWeight: z.number().optional().nullable(),
   tareWeight: z.number().optional().nullable(),
   layerCount: z.number().int().optional().nullable(),
-  loadingType: z.number().int(),
+  loadingType: z.number().int().nullable().optional(),
   kingPinDistanceMm: z.number().optional().nullable(),
   kingPinTareWeightKg: z.number().optional().nullable(),
   kingPinMaxLoadKg: z.number().optional().nullable(),
@@ -80,6 +80,102 @@ export const paginatedVehiclesApiSchema = z.object({
 export const singleVehicleApiSchema = z.object({
   data: vehicleApiSchema,
 });
+
+// VehicleDetailDto — GET /api/v1/vehicles/:id
+export const vehicleDetailApiSchema = z.object({
+  id: z.string().uuid(),
+  vehicleName: z.string(),
+  vehicleType: z.number().int(),
+  description: z.string().optional().nullable(),
+  plateNumber: z.string().optional().nullable(),
+  internalLength: z.number(),
+  internalWidth: z.number(),
+  internalHeight: z.number(),
+  maxWeightCapacity: z.number(),
+  layerCount: z.number().int().optional().nullable(),
+  loadingType: z.number().int().nullable().optional(),
+  kingPinDistanceMm: z.number().optional().nullable(),
+  kingPinTareWeightKg: z.number().optional().nullable(),
+  kingPinMaxLoadKg: z.number().optional().nullable(),
+  mainAxleDistanceMm: z.number().optional().nullable(),
+  mainAxleTareWeightKg: z.number().optional().nullable(),
+  mainAxleMaxLoadKg: z.number().optional().nullable(),
+  additionalAxleDistanceMm: z.number().optional().nullable(),
+  additionalAxleTareWeightKg: z.number().optional().nullable(),
+  additionalAxleMaxLoadKg: z.number().optional().nullable(),
+  isActive: z.boolean().default(true),
+  isFavorite: z.boolean().default(false),
+  isDeleted: z.boolean().default(false),
+  createdAtUtc: z.string(),
+  createdBy: z.object({ fullName: z.string(), email: z.string() }).optional().nullable(),
+  updatedAtUtc: z.string().optional().nullable(),
+  updatedBy: z.object({ fullName: z.string(), email: z.string() }).optional().nullable(),
+});
+
+export type VehicleDetailApi = z.infer<typeof vehicleDetailApiSchema>;
+
+export const singleVehicleDetailApiSchema = z.object({
+  data: vehicleDetailApiSchema,
+});
+
+export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
+  const kingpin =
+    api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
+      ? {
+          distance: api.kingPinDistanceMm,
+          tareWeight: api.kingPinTareWeightKg ?? 0,
+          maxLoad: api.kingPinMaxLoadKg,
+        }
+      : undefined;
+
+  const axleB =
+    api.mainAxleDistanceMm != null && api.mainAxleMaxLoadKg != null
+      ? {
+          distance: api.mainAxleDistanceMm,
+          tareWeight: api.mainAxleTareWeightKg ?? 0,
+          maxLoad: api.mainAxleMaxLoadKg,
+        }
+      : undefined;
+
+  const additionalAxle =
+    api.additionalAxleDistanceMm != null && api.additionalAxleMaxLoadKg != null
+      ? {
+          distance: api.additionalAxleDistanceMm,
+          tareWeight: api.additionalAxleTareWeightKg ?? 0,
+          maxLoad: api.additionalAxleMaxLoadKg,
+        }
+      : undefined;
+
+  const vehicleType = VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir;
+  const isContainer = vehicleType === VehicleType.Konteyner;
+  return {
+    id: api.id,
+    name: api.vehicleName,
+    vehicleType,
+    description: api.description ?? undefined,
+    plate: isContainer ? undefined : (api.plateNumber ?? undefined),
+    serialNumber: isContainer ? (api.plateNumber ?? undefined) : undefined,
+    length: api.internalLength,
+    width: api.internalWidth,
+    height: api.internalHeight,
+    maxCargoWeight: api.maxWeightCapacity,
+    maxLayerCount: api.layerCount ?? undefined,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Rear,
+    doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
+    kingpin,
+    axleB,
+    axles: additionalAxle ? [additionalAxle] : undefined,
+    isFavorite: api.isFavorite,
+    isActive: api.isActive,
+    isDeleted: api.isDeleted,
+    createdAt: api.createdAtUtc,
+    createdBy: api.createdBy
+      ? { id: '', fullName: api.createdBy.fullName }
+      : { id: '', fullName: '' },
+    updatedAt: api.updatedAtUtc ?? undefined,
+    updatedBy: api.updatedBy ? { id: '', fullName: api.updatedBy.fullName } : undefined,
+  };
+}
 
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
@@ -127,8 +223,8 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     grossWeight: api.grossWeight ?? undefined,
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType]?.direction ?? DoorDirection.Rear,
-    doorSide: LOADING_TYPE_FROM_INT[api.loadingType]?.doorSide,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Rear,
+    doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -156,7 +252,7 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
     maxCargoWeight: v.maxCargoWeight,
     grossWeight: v.grossWeight,
     tareWeight: v.tareWeight,
-    maxLayerCount: v.maxLayerCount,
+    layerCount: v.maxLayerCount,
     doorDirection: v.doorDirection,
     doorSide: v.doorSide,
     kingpin: v.kingpin,
@@ -173,17 +269,14 @@ export interface CreateVehicleRequest {
   vehicleName: string;
   vehicleType: number;
   description?: string;
-  plateNumber: string;
+  plateNumber?: string;
   internalLength: number;
   internalWidth: number;
   internalHeight: number;
   maxWeightCapacity: number;
-  grossWeight?: number | null;
-  tareWeight?: number | null;
-  layerCount: number;
+  layerCount?: number;
   loadingType: number;
   isActive?: boolean;
-  status?: string | null;
   kingPinDistanceMm?: number | null;
   kingPinTareWeightKg?: number | null;
   kingPinMaxLoadKg?: number | null;
@@ -196,21 +289,21 @@ export interface CreateVehicleRequest {
 }
 
 export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehicleRequest {
+  const rawPlate =
+    values.vehicleType === VehicleType.Konteyner
+      ? values.serialNumber?.trim()
+      : values.plate?.trim();
+
   return {
     vehicleName: values.name,
     vehicleType: VEHICLE_TYPE_INT[values.vehicleType],
     description: values.description?.trim() ?? '',
-    plateNumber:
-      values.vehicleType === VehicleType.Konteyner
-        ? (values.serialNumber?.trim() ?? '')
-        : (values.plate?.trim() ?? ''),
+    plateNumber: rawPlate || undefined,
     internalLength: Number.isFinite(values.length) ? values.length : 0,
     internalWidth: Number.isFinite(values.width) ? values.width : 0,
     internalHeight: Number.isFinite(values.height) ? values.height : 0,
     maxWeightCapacity: Number.isFinite(values.maxCargoWeight) ? values.maxCargoWeight : 0,
-    grossWeight: Number.isFinite(values.grossWeight) ? values.grossWeight : null,
-    tareWeight: Number.isFinite(values.tareWeight) ? values.tareWeight : null,
-    layerCount: Number.isFinite(values.maxLayerCount) ? (values.maxLayerCount ?? 1) : 1,
+    layerCount: Number.isFinite(values.layerCount) ? (values.layerCount ?? 1) : 1,
     loadingType: (() => {
       if (values.doorDirection === 'side') {
         return values.doorSide === 'left' ? 2 : 1; // SideLeft=2, SideRight=1
@@ -219,7 +312,6 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       return map[values.doorDirection] ?? 0;
     })(),
     isActive: values.isActive ?? true,
-    ...(values.status === 'draft' ? { status: 'draft' } : {}),
     kingPinDistanceMm: Number.isFinite(values.kingpin?.distance) ? values.kingpin!.distance : null,
     kingPinTareWeightKg: Number.isFinite(values.kingpin?.tareWeight)
       ? values.kingpin!.tareWeight

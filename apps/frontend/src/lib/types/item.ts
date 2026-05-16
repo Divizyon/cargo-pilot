@@ -36,6 +36,7 @@ export const itemSchema = z.object({
   specialNotes: z.string().nullable().optional(),
   stackGroup: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()).optional(),
+  incompatibleGroups: z.array(z.string()).optional(),
 });
 
 export type Item = z.infer<typeof itemSchema>;

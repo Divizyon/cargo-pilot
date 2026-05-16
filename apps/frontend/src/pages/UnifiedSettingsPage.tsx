@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SettingsTabShell } from '@/components/shared/SettingsTabShell';
 import { ProfileForm } from '@/features/platform/components/ProfileForm';
@@ -18,6 +19,19 @@ import { SubscriptionTab } from '@/features/platform/components/SubscriptionTab'
 import { RegionalSettingsTab } from '@/features/platform/components/settings/RegionalSettingsTab';
 import { VisualizationSettingsTab } from '@/features/platform/components/settings/VisualizationSettingsTab';
 import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
+import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionForm';
+import { ERPPendingMatches } from '@/features/platform/components/ERPPendingMatches';
+import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
+import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
+import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
+import { ERPUserMapping } from '@/features/platform/components/ERPUserMapping';
+import {
+  useERPConnection,
+  useERPPendingMatches,
+  useERPShipmentOrders,
+  useERPSyncHistory,
+} from '@/lib/api/useERPIntegration';
+import { ErpShipmentStatus } from '@/lib/types/erp';
 
 type TabId =
   | 'bireysel-hesap'
@@ -25,7 +39,13 @@ type TabId =
   | 'abonelik'
   | 'bolgesel-ayarlar'
   | 'goruntu-ayarlari'
-  | 'raporlama-ayarlari';
+  | 'raporlama-ayarlari'
+  | 'erp-baglanti'
+  | 'erp-eslestirme'
+  | 'erp-sevkiyatlar'
+  | 'erp-senkronizasyon'
+  | 'erp-gecmis'
+  | 'erp-kullanici-eslestirme';
 
 interface TabDef {
   id: TabId;
@@ -33,7 +53,7 @@ interface TabDef {
   description: string;
 }
 
-const TABS: TabDef[] = [
+const GENERAL_TABS: TabDef[] = [
   {
     id: 'bireysel-hesap',
     label: 'Bireysel Hesap',
@@ -66,21 +86,72 @@ const TABS: TabDef[] = [
   },
 ];
 
-const VALID_TAB_IDS = new Set<string>(TABS.map((t) => t.id));
+const ERP_TABS: TabDef[] = [
+  {
+    id: 'erp-baglanti',
+    label: 'Bağlantı',
+    description: 'ERP sistemi bağlantı bilgilerini yapılandırın ve bağlantıyı test edin.',
+  },
+  {
+    id: 'erp-eslestirme',
+    label: 'Eşleştirmeler',
+    description: 'ERP ürünlerini Cargo Pilot kalemleriyle eşleştirin.',
+  },
+  {
+    id: 'erp-sevkiyatlar',
+    label: 'Sevkiyat Emirleri',
+    description:
+      "ERP'den gelen bekleyen sevkiyat emirlerini inceleyin ve yükleme planına dönüştürün.",
+  },
+  {
+    id: 'erp-senkronizasyon',
+    label: 'Senkronizasyon',
+    description: 'Otomatik senkronizasyon sıklığını ayarlayın ve manuel senkronizasyon başlatın.',
+  },
+  {
+    id: 'erp-gecmis',
+    label: 'Senkronizasyon Geçmişi',
+    description: 'Geçmiş senkronizasyon çalışmalarını ve hata kayıtlarını görüntüleyin.',
+  },
+  {
+    id: 'erp-kullanici-eslestirme',
+    label: 'Kullanıcı Eşleştirme',
+    description: 'ERP kullanıcılarını Cargo Pilot hesaplarıyla eşleştirin.',
+  },
+];
+
+const ALL_TABS = [...GENERAL_TABS, ...ERP_TABS];
+const VALID_TAB_IDS = new Set<string>(ALL_TABS.map((t) => t.id));
 const DEFAULT_TAB: TabId = 'bireysel-hesap';
-// Kaydedilmemiş değişiklik kontrolü yalnızca bu sekmeler için yapılır
 const DIRTY_TRACKED_TABS = new Set<TabId>(['bolgesel-ayarlar', 'goruntu-ayarlari']);
 
 export function UnifiedSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') ?? '';
   const activeTab: TabId = VALID_TAB_IDS.has(rawTab) ? (rawTab as TabId) : DEFAULT_TAB;
-
-  const activeTabDef = TABS.find((t) => t.id === activeTab)!;
+  const activeTabDef = ALL_TABS.find((t) => t.id === activeTab)!;
 
   const [pendingTab, setPendingTab] = useState<TabId | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const dirtyTabs = useRef<Set<TabId>>(new Set());
+
+  const { data: connection } = useERPConnection();
+  const integrationId = connection?.id;
+  const { data: pendingMatches } = useERPPendingMatches(integrationId);
+  const { data: shipmentOrders } = useERPShipmentOrders({ status: ErpShipmentStatus.Pending });
+  const { data: syncRuns } = useERPSyncHistory();
+
+  const pendingMatchCount = pendingMatches?.length ?? 0;
+  const pendingShipmentCount = shipmentOrders?.length ?? 0;
+  const syncErrorCount =
+    syncRuns?.flatMap((r) => r.entries).filter((e) => e.status === 'Error').length ?? 0;
+
+  function getErpBadge(tabId: TabId): number {
+    if (tabId === 'erp-eslestirme') return pendingMatchCount;
+    if (tabId === 'erp-sevkiyatlar') return pendingShipmentCount;
+    if (tabId === 'erp-gecmis') return syncErrorCount;
+    return 0;
+  }
 
   const handleDirtyChange = useCallback((tab: TabId, dirty: boolean) => {
     if (dirty) {
@@ -114,6 +185,30 @@ export function UnifiedSettingsPage() {
     setShowUnsavedDialog(false);
   }
 
+  function renderNavButton(tab: TabDef, badge?: number) {
+    const isActive = tab.id === activeTab;
+    return (
+      <button
+        key={tab.id}
+        type="button"
+        onClick={() => navigateToTab(tab.id)}
+        className={cn(
+          'flex shrink-0 items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors sm:w-full',
+          isActive
+            ? 'bg-accent font-medium text-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        )}
+      >
+        <span>{tab.label}</span>
+        {badge != null && badge > 0 && (
+          <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+            {badge}
+          </Badge>
+        )}
+      </button>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -127,24 +222,17 @@ export function UnifiedSettingsPage() {
         {/* Sekme paneli — mobil'de yatay scroll, sm'den itibaren dikey sol panel */}
         <div className="w-full shrink-0 sm:w-52">
           <nav className="flex gap-1 overflow-x-auto pb-1 sm:flex-col sm:overflow-x-visible sm:pb-0">
-            {TABS.map((tab) => {
-              const isActive = tab.id === activeTab;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => navigateToTab(tab.id)}
-                  className={cn(
-                    'shrink-0 rounded-lg px-3 py-2.5 text-left text-sm transition-colors sm:w-full',
-                    isActive
-                      ? 'bg-accent font-medium text-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                  )}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+            {GENERAL_TABS.map((tab) => renderNavButton(tab))}
+
+            {/* ERP grup ayırıcı */}
+            <div className="my-1 hidden sm:block">
+              <div className="border-t" />
+              <p className="mt-2 px-3 text-xs font-medium text-muted-foreground">
+                ERP Entegrasyonu
+              </p>
+            </div>
+
+            {ERP_TABS.map((tab) => renderNavButton(tab, getErpBadge(tab.id)))}
           </nav>
         </div>
 
@@ -167,6 +255,12 @@ export function UnifiedSettingsPage() {
               />
             )}
             {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}
+            {activeTab === 'erp-baglanti' && <ERPConnectionForm />}
+            {activeTab === 'erp-eslestirme' && <ERPPendingMatches />}
+            {activeTab === 'erp-sevkiyatlar' && <ERPShipmentOrders />}
+            {activeTab === 'erp-senkronizasyon' && <ERPSyncPanel />}
+            {activeTab === 'erp-gecmis' && <ERPSyncHistory />}
+            {activeTab === 'erp-kullanici-eslestirme' && <ERPUserMapping />}
           </SettingsTabShell>
         </div>
       </div>

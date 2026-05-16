@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ConfirmEmailChangeRedirect } from '@/pages/ConfirmEmailChangeRedirect';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
+import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
@@ -26,12 +27,12 @@ import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ShareLinksPage } from '@/pages/ShareLinksPage';
 import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage';
 import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage';
-import { ERPPage } from '@/pages/ERPPage';
+import { ERPItemsPage } from '@/pages/ERPItemsPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <LandingPage />,
   },
   {
     path: '/auth/login',
@@ -96,8 +97,8 @@ export const router = createBrowserRouter([
           { path: '/reports/:id', element: <ReportDetailPage /> },
           { path: '/planning/shares', element: <ShareLinksPage /> },
           { path: '/planning/:id', element: <NewPlanPage /> },
-          { path: '/integrations', element: <ERPPage /> },
-          { path: '/erp', element: <ERPPage /> },
+          { path: '/erp', element: <ERPItemsPage /> },
+          { path: '/integrations', element: <Navigate to="/settings?tab=erp-baglanti" replace /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/knowledge', element: <DashboardPage /> },
           { path: '/settings', element: <UnifiedSettingsPage /> },

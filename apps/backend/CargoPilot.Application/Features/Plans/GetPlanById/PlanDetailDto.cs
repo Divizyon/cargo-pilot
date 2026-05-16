@@ -25,4 +25,5 @@ public sealed record PlanDetailDto(
     IReadOnlyList<PlacementDto> Placements,
     IReadOnlyList<UnplacedItemDto> UnplacedItems,
     IReadOnlyList<WarningDto> Warnings,
-    IReadOnlyList<InputItemDto> InputItems);
+    IReadOnlyList<InputItemDto> InputItems,
+    IReadOnlyList<PlanGroupDto> Groups);

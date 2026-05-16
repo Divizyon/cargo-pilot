@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,17 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
+  const toStr = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(v) : '');
+  const [maxLoadDisplay, setMaxLoadDisplay] = useState(() =>
+    toStr(form.getValues('axleB.maxLoad')),
+  );
+  const [tareWeightDisplay, setTareWeightDisplay] = useState(() =>
+    toStr(form.getValues('axleB.tareWeight')),
+  );
+  const [distanceDisplay, setDistanceDisplay] = useState(() =>
+    toStr(form.getValues('axleB.distance')),
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-3">
@@ -24,15 +36,20 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="11500"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={maxLoadDisplay}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      setMaxLoadDisplay(raw);
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -53,15 +70,20 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="3000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={tareWeightDisplay}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      setTareWeightDisplay(raw);
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -82,15 +104,20 @@ export function VehicleAxleBSection({ form }: VehicleAxleBSectionProps) {
               <FormControl>
                 <div className="relative">
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="850"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={distanceDisplay}
                     onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(Number.isNaN(v) ? undefined : v);
+                      const raw = e.target.value;
+                      setDistanceDisplay(raw);
+                      field.onChange(
+                        raw === '' || !Number.isFinite(parseFloat(raw))
+                          ? undefined
+                          : parseFloat(raw),
+                      );
                     }}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

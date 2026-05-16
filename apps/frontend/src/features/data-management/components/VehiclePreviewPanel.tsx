@@ -5,6 +5,10 @@ import { VehiclePreview3D } from './VehiclePreview3D';
 import { FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
+import { useAuthStore } from '@/lib/store/useAuthStore';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatAuditDate } from '@/lib/utils/formatAuditDate';
+import type { Vehicle } from '@/lib/types/vehicle';
 
 const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
@@ -22,10 +26,15 @@ const TYPE_LABELS: Record<string, string> = {
 
 interface Props {
   form: UseFormReturn<VehicleFormValues>;
+  vehicle?: Pick<Vehicle, 'updatedAt' | 'updatedBy' | 'isActive'>;
+  isCreateMode?: boolean;
 }
 
-export function VehiclePreviewPanel({ form }: Props) {
+export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Props) {
   const { control } = form;
+  const currentUser = useAuthStore((s) => s.user);
+  const dateFormat = useUnitStore((s) => s.dateFormat);
+
   const [
     name,
     vehicleType,
@@ -41,6 +50,7 @@ export function VehiclePreviewPanel({ form }: Props) {
     axles,
     axleB,
     kingpin,
+    isActive,
   ] = useWatch({
     control,
     name: [
@@ -58,6 +68,7 @@ export function VehiclePreviewPanel({ form }: Props) {
       'axles',
       'axleB',
       'kingpin',
+      'isActive',
     ],
   });
 
@@ -74,6 +85,9 @@ export function VehiclePreviewPanel({ form }: Props) {
   const volume =
     length && width && height ? ((length * width * height) / 1_000_000).toFixed(2) : null;
 
+  const currentUserName = currentUser?.fullName ?? '—';
+  const isPassive = isActive === false || vehicle?.isActive === false;
+
   const summaryRows = [
     { label: 'Araç Adı', value: name || '—', bold: true },
     { label: 'Tip', value: TYPE_LABELS[vehicleType] ?? vehicleType ?? '—' },
@@ -87,13 +101,25 @@ export function VehiclePreviewPanel({ form }: Props) {
     { label: 'Dara', value: tare },
     { label: 'Aks Sayısı', value: axleCount > 1 ? `${axleCount} adet` : '—' },
     { label: 'Açıklama', value: description?.trim() || '—' },
+    ...(isCreateMode ? [{ label: 'Oluşturan', value: currentUserName }] : []),
+    ...(!isCreateMode && vehicle?.updatedAt
+      ? [
+          {
+            label: 'Son Güncelleme',
+            value: `${vehicle.updatedBy?.fullName ?? currentUserName} — ${formatAuditDate(vehicle.updatedAt, dateFormat, false)}`,
+          },
+        ]
+      : []),
+    ...(!isCreateMode && isPassive ? [{ label: 'Pasife Alan', value: currentUserName }] : []),
   ];
 
   return (
-    <div className="flex h-screen flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
       {/* Başlık + operasyonel durum */}
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] text-muted-foreground">Araç Önizleme</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Araç Önizleme
+        </p>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">Aktif</span>
           <FormField
@@ -135,7 +161,7 @@ export function VehiclePreviewPanel({ form }: Props) {
 
       {/* Hacim */}
       <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
-        <span className="text-[10px] text-muted-foreground">Hacim</span>
+        <span className="text-xs text-muted-foreground">Hacim</span>
         <span className="text-xs font-semibold tabular-nums text-foreground">
           {volume ? `${volume} m³` : '—'}
         </span>
@@ -151,7 +177,7 @@ export function VehiclePreviewPanel({ form }: Props) {
             key={r.label}
             className="flex items-center justify-between border-b border-border/50 py-1 last:border-0"
           >
-            <span className="text-[10px] text-muted-foreground">{r.label}</span>
+            <span className="text-xs text-muted-foreground">{r.label}</span>
             <span
               className={cn(
                 'max-w-[60%] truncate text-right text-xs tabular-nums',

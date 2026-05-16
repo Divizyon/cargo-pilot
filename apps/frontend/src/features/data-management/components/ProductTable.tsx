@@ -225,7 +225,6 @@ interface ProductRowProps {
 function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
-  const volumeUnit = useUnitStore((s) => s.volumeUnit);
   const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
 
   const cell = 'py-0 px-3';
@@ -270,7 +269,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, volumeUnit)}</span>
+        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, 'm³')}</span>
       </TableCell>
 
       <TableCell className={cell}>
@@ -339,7 +338,9 @@ const CATEGORY_TO_PRODUCT_TYPE: Record<
   palet: 'palet',
 };
 
-const PAGE_SIZE = 10;
+const ROW_H = 48;
+const HEADER_ROW_H = 36;
+const BELOW_TABLE_H = 80;
 
 export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -349,6 +350,30 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
+  const tableCardRef = useRef<HTMLDivElement>(null);
+
+  const [pageSize, setPageSize] = useState(() =>
+    Math.max(5, Math.floor((window.innerHeight - 400) / ROW_H)),
+  );
+
+  useEffect(() => {
+    let last = pageSize;
+    const calculate = () => {
+      if (!tableCardRef.current) return;
+      const top = tableCardRef.current.getBoundingClientRect().top;
+      const available = window.innerHeight - top - BELOW_TABLE_H - HEADER_ROW_H;
+      const next = Math.max(5, Math.floor(available / ROW_H));
+      if (next !== last) {
+        last = next;
+        setPageSize(next);
+        setPage(1);
+      }
+    };
+    calculate();
+    window.addEventListener('resize', calculate);
+    return () => window.removeEventListener('resize', calculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -365,7 +390,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   } = useItems({
     search: searchTerm || undefined,
     page: hasClientFilters ? 1 : page,
-    pageSize: hasClientFilters ? 100 : PAGE_SIZE,
+    pageSize: hasClientFilters ? 100 : pageSize,
   });
 
   const items = itemsPage?.items;
@@ -413,10 +438,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         );
 
   const totalCount = hasClientFilters ? (filteredItems?.length ?? 0) : (itemsPage?.totalCount ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const displayedItems = hasClientFilters
-    ? filteredItems?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    ? filteredItems?.slice((page - 1) * pageSize, page * pageSize)
     : filteredItems;
 
   const showSkeleton = isLoading || isFetching;
@@ -564,7 +589,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       )}
 
       {/* Table card */}
-      <div className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
+      <div
+        ref={tableCardRef}
+        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+      >
         {showSkeleton ? (
           <ProductTableSkeleton />
         ) : (
@@ -590,7 +618,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   Derinlik
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Hacim
+                  Hacim (m³)
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ağırlık

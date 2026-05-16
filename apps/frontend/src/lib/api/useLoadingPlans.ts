@@ -137,6 +137,7 @@ export function useLoadingPlanDetail(id: string | undefined) {
       if (!parsed.success) {
         console.error('[useLoadingPlanDetail] parse error', parsed.error);
         return {
+          planName: '—',
           vehicle: null,
           inputItems: [],
           placements: [],
@@ -322,7 +323,7 @@ export function useReoptimizeLoadingPlan() {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-detail', planId] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', planId] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
-      toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right' });
+      toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right', duration: 2000 });
     },
     onError: (error) => {
       const detail =
@@ -439,6 +440,22 @@ export function useLoadingPlanUnplaced(planId: string | null) {
     },
     enabled: Boolean(planId),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Thumbnail upload mutation ────────────────────────────────────────────────
+
+export function useUploadPlanThumbnail() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ProblemDetails>, { id: string; dataUrl: string }>({
+    mutationFn: ({ id, dataUrl }) =>
+      axiosInstance
+        .post(`/api/v1/loading-plans/${id}/thumbnail`, { imageBase64: dataUrl })
+        .then(() => undefined),
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
+    },
   });
 }
 
