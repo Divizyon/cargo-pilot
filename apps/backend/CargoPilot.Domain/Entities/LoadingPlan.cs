@@ -21,6 +21,7 @@ public sealed class LoadingPlan : BaseEntity {
     public Guid? CompanyId { get; private set; }
     public Guid? ReportId { get; private set; }
     public string? ReportUrl { get; private set; }
+    public string? ThumbnailUrl { get; private set; }
     public ErpExportStatus? ErpExportStatus { get; private set; }
 #pragma warning restore S1144
 
@@ -41,7 +42,7 @@ public sealed class LoadingPlan : BaseEntity {
     public void MarkErpPending() => ErpExportStatus = Enums.ErpExportStatus.Pending;
     public void MarkErpSent()    => ErpExportStatus = Enums.ErpExportStatus.Sent;
     public void MarkErpFailed()  => ErpExportStatus = Enums.ErpExportStatus.Failed;
-    public void SetThumbnailUrl(string url) => ReportUrl = url;
+    public void SetThumbnailUrl(string url) => ThumbnailUrl = url;
 
     public void ApplyOptimizationResult(
         LoadingPlanOptimizationStatus status,
