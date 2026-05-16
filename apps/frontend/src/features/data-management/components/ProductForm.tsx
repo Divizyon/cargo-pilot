@@ -1245,7 +1245,9 @@ function PreviewPanel(props: PreviewPanelProps) {
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
       {/* Başlık */}
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Ürün Önizleme</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Ürün Önizleme
+        </p>
         <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
           3D
         </span>
