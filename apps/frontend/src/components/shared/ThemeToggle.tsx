@@ -1,3 +1,4 @@
+import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { cn } from '@/lib/utils';
@@ -42,10 +43,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       );
       document.documentElement.animate(
         {
-          clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${maxRadius}px at ${x}px ${y}px)`,
-          ],
+          clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`],
         },
         {
           duration: 450,

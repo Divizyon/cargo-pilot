@@ -128,7 +128,9 @@ interface PlacedBox {
 }
 
 function computePlacements(): PlacedBox[] {
-  const CL = 589, CW = 235, CH = 239;
+  const CL = 589,
+    CW = 235,
+    CH = 239;
   type EP = [number, number, number];
 
   const todo: Array<Pick<PlacedBox, 'type' | 'dx' | 'dy' | 'dz'>> = [];
@@ -143,22 +145,29 @@ function computePlacements(): PlacedBox[] {
     const valid = eps
       .filter(([x, y, z]) => {
         if (x + dx > CL || y + dy > CW || z + dz > CH) return false;
-        if (placed.some(b =>
-          x < b.x+b.dx && x+dx > b.x &&
-          y < b.y+b.dy && y+dy > b.y &&
-          z < b.z+b.dz && z+dz > b.z,
-        )) return false;
+        if (
+          placed.some(
+            (b) =>
+              x < b.x + b.dx &&
+              x + dx > b.x &&
+              y < b.y + b.dy &&
+              y + dy > b.y &&
+              z < b.z + b.dz &&
+              z + dz > b.z,
+          )
+        )
+          return false;
         if (z === 0) return true;
         let sup = 0;
         for (const b of placed)
           if (Math.abs(b.z + b.dz - z) < 0.001) {
-            const ox = Math.min(x+dx, b.x+b.dx) - Math.max(x, b.x);
-            const oy = Math.min(y+dy, b.y+b.dy) - Math.max(y, b.y);
+            const ox = Math.min(x + dx, b.x + b.dx) - Math.max(x, b.x);
+            const oy = Math.min(y + dy, b.y + b.dy) - Math.max(y, b.y);
             if (ox > 0 && oy > 0) sup += ox * oy;
           }
         return sup / (dx * dy) >= 0.5;
       })
-      .sort((a, b) => a[2]-b[2] || a[0]-b[0] || a[1]-b[1]);
+      .sort((a, b) => a[2] - b[2] || a[0] - b[0] || a[1] - b[1]);
 
     if (!valid.length) continue;
     const [x, y, z] = valid[0];
@@ -166,17 +175,24 @@ function computePlacements(): PlacedBox[] {
 
     const seen = new Set<string>();
     eps = [
-      ...eps.filter(e => !(e[0]===x && e[1]===y && e[2]===z)),
-      [x+dx, y, z] as EP,
-      [x, y+dy, z] as EP,
-      [x, y, z+dz] as EP,
+      ...eps.filter((e) => !(e[0] === x && e[1] === y && e[2] === z)),
+      [x + dx, y, z] as EP,
+      [x, y + dy, z] as EP,
+      [x, y, z + dz] as EP,
     ].filter(([ex, ey, ez]) => {
       if (ex < 0 || ey < 0 || ez < 0 || ex >= CL || ey >= CW || ez >= CH) return false;
-      if (placed.some(b =>
-        b.x <= ex && ex < b.x+b.dx &&
-        b.y <= ey && ey < b.y+b.dy &&
-        b.z <= ez && ez < b.z+b.dz,
-      )) return false;
+      if (
+        placed.some(
+          (b) =>
+            b.x <= ex &&
+            ex < b.x + b.dx &&
+            b.y <= ey &&
+            ey < b.y + b.dy &&
+            b.z <= ez &&
+            ez < b.z + b.dz,
+        )
+      )
+        return false;
       const k = `${ex},${ey},${ez}`;
       return seen.has(k) ? false : (seen.add(k), true);
     });
@@ -194,7 +210,9 @@ function CargoGrid() {
     const el = mountRef.current;
     if (!el) return;
 
-    const CL = 589, CW = 235, CH = 239;
+    const CL = 589,
+      CW = 235,
+      CH = 239;
 
     // Load order: back → front, bottom → top, left → right
     const loadOrder = PLACEMENTS.slice().sort((a, b) =>
@@ -232,13 +250,23 @@ function CargoGrid() {
     const contGeom = new THREE.BoxGeometry(CL, CH, CW);
     const contEdgeGeom = new THREE.EdgesGeometry(contGeom);
     const contLineMat = new THREE.LineBasicMaterial({ color: 0x888888 });
-    const contFillMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.04, side: THREE.BackSide });
+    const contFillMat = new THREE.MeshBasicMaterial({
+      color: 0xcccccc,
+      transparent: true,
+      opacity: 0.04,
+      side: THREE.BackSide,
+    });
     scene.add(new THREE.LineSegments(contEdgeGeom, contLineMat));
     scene.add(new THREE.Mesh(contGeom, contFillMat));
 
     // Floor
     const floorGeom = new THREE.PlaneGeometry(CL, CW);
-    const floorMat = new THREE.MeshBasicMaterial({ color: 0xd0cec4, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+    const floorMat = new THREE.MeshBasicMaterial({
+      color: 0xd0cec4,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide,
+    });
     const floorMesh = new THREE.Mesh(floorGeom, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.y = -CH / 2 + 0.5;
@@ -246,7 +274,12 @@ function CargoGrid() {
 
     // Door face — green plane at algX = CL (scene x = CL/2)
     const doorGeom = new THREE.PlaneGeometry(CW, CH);
-    const doorMat = new THREE.MeshBasicMaterial({ color: 0x1D9E75, transparent: true, opacity: 0.12, side: THREE.DoubleSide });
+    const doorMat = new THREE.MeshBasicMaterial({
+      color: 0x1d9e75,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.DoubleSide,
+    });
     const doorMesh = new THREE.Mesh(doorGeom, doorMat);
     doorMesh.rotation.y = Math.PI / 2;
     doorMesh.position.x = CL / 2;
@@ -257,25 +290,31 @@ function CargoGrid() {
     const geomB = new THREE.BoxGeometry(200, 100, 100);
     const edgeGeomA = new THREE.EdgesGeometry(geomA);
     const edgeGeomB = new THREE.EdgesGeometry(geomB);
-    const matA = new THREE.MeshLambertMaterial({ color: 0xE24B4A, transparent: true, opacity: 1 });
-    const matB = new THREE.MeshLambertMaterial({ color: 0x378ADD, transparent: true, opacity: 1 });
+    const matA = new THREE.MeshLambertMaterial({ color: 0xe24b4a, transparent: true, opacity: 1 });
+    const matB = new THREE.MeshLambertMaterial({ color: 0x378add, transparent: true, opacity: 1 });
     const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
 
-    interface BoxRef { mesh: THREE.Mesh; edges: THREE.LineSegments; tx: number; ty: number; tz: number }
+    interface BoxRef {
+      mesh: THREE.Mesh;
+      edges: THREE.LineSegments;
+      tx: number;
+      ty: number;
+      tz: number;
+    }
     const boxRefs: BoxRef[] = [];
 
-    loadOrder.forEach(b => {
+    loadOrder.forEach((b) => {
       const geom = b.type === 'A' ? geomA : geomB;
       const eGeom = b.type === 'A' ? edgeGeomA : edgeGeomB;
-      const mat  = b.type === 'A' ? matA : matB;
+      const mat = b.type === 'A' ? matA : matB;
 
-      const mesh  = new THREE.Mesh(geom, mat);
+      const mesh = new THREE.Mesh(geom, mat);
       const edges = new THREE.LineSegments(eGeom, edgeMat);
-      const sc    = toS(b.x + b.dx/2, b.y + b.dy/2, b.z + b.dz/2);
+      const sc = toS(b.x + b.dx / 2, b.y + b.dy / 2, b.z + b.dz / 2);
 
       mesh.position.set(sc.x, sc.y, sc.z);
       edges.position.set(sc.x, sc.y, sc.z);
-      mesh.visible  = false;
+      mesh.visible = false;
       edges.visible = false;
 
       scene.add(mesh);
@@ -284,8 +323,8 @@ function CargoGrid() {
     });
 
     // Fixed camera position
-    const theta     = -Math.PI / 4;
-    const phi       = Math.PI / 5;
+    const theta = -Math.PI / 4;
+    const phi = Math.PI / 5;
     const camRadius = Math.max(CL, 600) * 2.0;
     camera.position.set(
       camRadius * Math.cos(phi) * Math.cos(theta),
@@ -295,21 +334,25 @@ function CargoGrid() {
     camera.lookAt(0, 0, 0);
 
     // Animation parameters
-    const N        = boxRefs.length;
-    const ANIM_MS  = Math.min(4500, Math.max(2500, 2000 + N * 70));
-    const STAGGER  = ANIM_MS / N;
-    const FLIGHT   = Math.max(500, Math.min(900, STAGGER * 1.8));
-    const HOLD_MS  = 1800;
-    const EXIT_MS  = 600;
+    const N = boxRefs.length;
+    const ANIM_MS = Math.min(4500, Math.max(2500, 2000 + N * 70));
+    const STAGGER = ANIM_MS / N;
+    const FLIGHT = Math.max(500, Math.min(900, STAGGER * 1.8));
+    const HOLD_MS = 1800;
+    const EXIT_MS = 600;
     // Boxes spawn / exit outside the door in scene coords
-    const spawnX   = CL / 2 + 220;
+    const spawnX = CL / 2 + 220;
 
     type Phase = 'loading' | 'hold' | 'exit';
     let phase: Phase = 'loading';
-    let phaseStart   = performance.now();
+    let phaseStart = performance.now();
 
-    function easeOut(t: number) { return 1 - Math.pow(1 - t, 3); }
-    function easeIn(t: number)  { return t * t * t; }
+    function easeOut(t: number) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+    function easeIn(t: number) {
+      return t * t * t;
+    }
 
     let rafId: number;
     function tick() {
@@ -321,8 +364,13 @@ function CargoGrid() {
         let allDone = true;
         boxRefs.forEach((br, i) => {
           const lt = elapsed - i * STAGGER;
-          if (lt < 0) { br.mesh.visible = false; br.edges.visible = false; allDone = false; return; }
-          br.mesh.visible  = true;
+          if (lt < 0) {
+            br.mesh.visible = false;
+            br.edges.visible = false;
+            allDone = false;
+            return;
+          }
+          br.mesh.visible = true;
           br.edges.visible = true;
           if (lt >= FLIGHT) {
             br.mesh.position.set(br.tx, br.ty, br.tz);
@@ -334,26 +382,33 @@ function CargoGrid() {
             br.edges.position.set(x, br.ty, br.tz);
           }
         });
-        if (allDone) { phase = 'hold'; phaseStart = now; }
-
+        if (allDone) {
+          phase = 'hold';
+          phaseStart = now;
+        }
       } else if (phase === 'hold') {
-        if (now - phaseStart >= HOLD_MS) { phase = 'exit'; phaseStart = now; }
-
+        if (now - phaseStart >= HOLD_MS) {
+          phase = 'exit';
+          phaseStart = now;
+        }
       } else {
         // All boxes exit with identical velocity: shift every box by the same delta.
         // Delta = distance needed to push the furthest-back box out the door.
-        const minTx   = Math.min(...boxRefs.map(br => br.tx));
+        const minTx = Math.min(...boxRefs.map((br) => br.tx));
         const exitDelta = spawnX - minTx;
         const t = Math.min(1, (now - phaseStart) / EXIT_MS);
         const e = easeIn(t);
-        boxRefs.forEach(br => {
+        boxRefs.forEach((br) => {
           const x = br.tx + exitDelta * e;
           br.mesh.position.set(x, br.ty, br.tz);
           br.edges.position.set(x, br.ty, br.tz);
         });
         if (t >= 1) {
-          boxRefs.forEach(br => { br.mesh.visible = false; br.edges.visible = false; });
-          phase      = 'loading';
+          boxRefs.forEach((br) => {
+            br.mesh.visible = false;
+            br.edges.visible = false;
+          });
+          phase = 'loading';
           phaseStart = now;
         }
       }
@@ -364,7 +419,8 @@ function CargoGrid() {
     rafId = requestAnimationFrame(tick);
 
     const ro = new ResizeObserver(() => {
-      const nW = el.clientWidth, nH = el.clientHeight;
+      const nW = el.clientWidth,
+        nH = el.clientHeight;
       if (!nW || !nH) return;
       camera.aspect = nW / nH;
       camera.updateProjectionMatrix();
@@ -377,8 +433,12 @@ function CargoGrid() {
       ro.disconnect();
       renderer.dispose();
       if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
-      [contGeom, contEdgeGeom, floorGeom, doorGeom, geomA, geomB, edgeGeomA, edgeGeomB].forEach(g => g.dispose());
-      [contLineMat, contFillMat, floorMat, doorMat, matA, matB, edgeMat].forEach(m => m.dispose());
+      [contGeom, contEdgeGeom, floorGeom, doorGeom, geomA, geomB, edgeGeomA, edgeGeomB].forEach(
+        (g) => g.dispose(),
+      );
+      [contLineMat, contFillMat, floorMat, doorMat, matA, matB, edgeMat].forEach((m) =>
+        m.dispose(),
+      );
     };
   }, []);
 
@@ -410,8 +470,7 @@ function Hero() {
         <div className="grid lg:grid-cols-2 gap-10 sm:gap-12 lg:gap-16 items-center">
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight mb-5 sm:mb-6">
-              Her yükü planla.{' '}
-              <span className="text-muted-foreground">Mükemmel şekilde.</span>
+              Her yükü planla. <span className="text-muted-foreground">Mükemmel şekilde.</span>
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-7 sm:mb-8 max-w-lg">
               Cargo Pilot, araçlarınız için saniyeler içinde en uygun 3D yükleme planlarını
@@ -445,7 +504,6 @@ function Hero() {
     </section>
   );
 }
-
 
 // ─── Features ───────────────────────────────────────────────────────────────
 
@@ -534,7 +592,7 @@ function HowItWorks() {
   const steps = [
     {
       number: '01',
-      title: 'ERP\'den veriyi çekin',
+      title: "ERP'den veriyi çekin",
       description:
         'SAP, Logo, Netsis veya benzeri ERP sisteminizle entegre olun. Ürün boyutları, ağırlıklar ve sipariş miktarları otomatik olarak aktarılır — manuel giriş gerekmez.',
     },
@@ -661,7 +719,13 @@ function Pricing() {
       price: '₺499',
       period: '/ ay',
       description: 'Büyüyen ekipler için güçlü araçlar.',
-      features: ['30 yükleme planı / ay', '5 araç', '500 ürün', 'Excel & PDF export', 'E-posta desteği'],
+      features: [
+        '30 yükleme planı / ay',
+        '5 araç',
+        '500 ürün',
+        'Excel & PDF export',
+        'E-posta desteği',
+      ],
       ctaLabel: 'Başla',
     },
     {
@@ -685,7 +749,13 @@ function Pricing() {
       price: 'Özel',
       period: '',
       description: 'Kurumsal ihtiyaçlara özel çözüm.',
-      features: ['Pro özelliklerin tamamı', 'Özel SLA', 'Dedicated destek', 'SSO / SAML', 'Özel entegrasyonlar'],
+      features: [
+        'Pro özelliklerin tamamı',
+        'Özel SLA',
+        'Dedicated destek',
+        'SSO / SAML',
+        'Özel entegrasyonlar',
+      ],
       ctaLabel: 'Bize Ulaşın',
     },
   ];
