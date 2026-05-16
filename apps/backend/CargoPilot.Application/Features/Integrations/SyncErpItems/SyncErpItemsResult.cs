@@ -4,7 +4,4 @@ public sealed record SyncErpItemsResult(
     Guid SyncLogId,
     int Added,
     int Updated,
-    int Skipped,
-    int PendingMappings,
-    int RuleAssigned,
-    int RuleNotAssigned);
+    int Skipped);

@@ -36,6 +36,7 @@ public class AppDbContext : DbContext {
     public DbSet<PendingItemMapping> PendingItemMappings => Set<PendingItemMapping>();
     public DbSet<ErpSettings> ErpSettings => Set<ErpSettings>();
     public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
+    public DbSet<DraftItem> DraftItems => Set<DraftItem>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -71,6 +72,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new PendingItemMappingConfiguration());
         modelBuilder.ApplyConfiguration(new ErpSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new ShareLinkConfiguration());
+        modelBuilder.ApplyConfiguration(new DraftItemConfiguration());
     }
 
     private void ApplyAuditFields() {
