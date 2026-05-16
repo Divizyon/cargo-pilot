@@ -8,9 +8,12 @@ import {
   ChevronDown,
   ChevronRight,
   Cylinder,
+  Droplets,
   Flame,
+  FlaskConical,
   FolderPlus,
   Layers,
+  Leaf,
   Loader2,
   Minus,
   Package,
@@ -20,9 +23,15 @@ import {
   Plus,
   RotateCcw,
   Search,
+  SlidersHorizontal,
+  Sun,
+  Utensils,
+  Wind,
+  Wine,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,10 +78,65 @@ const GROUP_ICON_COLORS = [
   '#334155',
 ] as const;
 
+type ConstraintFilter =
+  | 'fragile'
+  | 'liquid'
+  | 'corrosive'
+  | 'odor'
+  | 'food'
+  | 'dry'
+  | 'chemical'
+  | 'organic'
+  | 'stackable'
+  | 'rotationLocked';
+
+const FRAGILITY_FILTER_VALUE: Partial<Record<ConstraintFilter, number>> = {
+  fragile: 1,
+  liquid: 2,
+  corrosive: 5,
+  odor: 6,
+  food: 7,
+  dry: 8,
+  chemical: 9,
+  organic: 10,
+};
+
+const CONSTRAINT_FILTER_OPTIONS: {
+  value: ConstraintFilter;
+  label: string;
+  Icon: ElementType;
+  className: string;
+}[] = [
+  { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
+  { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
+  { value: 'corrosive', label: 'Aşındırıcı', Icon: Flame, className: 'text-orange-600' },
+  { value: 'odor', label: 'Kokuya Hassas', Icon: Wind, className: 'text-green-600' },
+  { value: 'food', label: 'Gıda Teması', Icon: Utensils, className: 'text-green-600' },
+  { value: 'dry', label: 'Kuru', Icon: Sun, className: 'text-muted-foreground' },
+  { value: 'chemical', label: 'Kimyasal', Icon: FlaskConical, className: 'text-purple-600' },
+  { value: 'organic', label: 'Organik', Icon: Leaf, className: 'text-green-600' },
+  { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
+  {
+    value: 'rotationLocked',
+    label: 'Rotasyon Kısıtlı',
+    Icon: RotateCcw,
+    className: 'text-muted-foreground',
+  },
+];
+
+function matchesConstraintFilter(item: Item, filter: ConstraintFilter): boolean {
+  const fragilityVal = FRAGILITY_FILTER_VALUE[filter];
+  if (fragilityVal !== undefined) return item.fragility === fragilityVal;
+  if (filter === 'stackable') return item.isStackable;
+  if (filter === 'rotationLocked')
+    return !item.allowRotateX || !item.allowRotateY || !item.allowRotateZ;
+  return false;
+}
+
 function itemMatchesFilters(
   item: Item,
   query: string,
-  activeConstraints: ReadonlySet<string>,
+  activeConstraints: ReadonlySet<ConstraintFilter>,
 ): boolean {
   if (
     query &&
@@ -80,7 +144,10 @@ function itemMatchesFilters(
     !item.sku.toLowerCase().includes(query.toLowerCase())
   )
     return false;
-  void activeConstraints;
+  if (activeConstraints.size > 0) {
+    const matches = [...activeConstraints].some((f) => matchesConstraintFilter(item, f));
+    if (!matches) return false;
+  }
   return true;
 }
 
@@ -194,6 +261,7 @@ interface StoreItemRowProps {
   onRemove?: () => void;
   onEdit?: () => void;
   onAddToGroup?: (groupId: string) => void;
+  onClearStackGroup?: () => void;
 }
 
 function StoreItemRow({
@@ -209,6 +277,7 @@ function StoreItemRow({
   onRemove,
   onEdit,
   onAddToGroup,
+  onClearStackGroup,
 }: StoreItemRowProps) {
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
@@ -287,6 +356,15 @@ function StoreItemRow({
               <Package className="w-3 h-3 text-zinc-400 shrink-0" />
               <span className="text-zinc-400 shrink-0">Yük Grubu</span>
               <span className="text-zinc-700 font-medium truncate">{item.stackGroup}</span>
+              {onClearStackGroup && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onClearStackGroup(); }}
+                  className="ml-auto shrink-0 text-zinc-300 hover:text-rose-500 transition-colors"
+                  title="Yük grubundan çıkar"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
           )}
           {item.specialNotes?.trim() && (
@@ -411,12 +489,18 @@ export function PlanLeftPanel() {
   const [showItemModal, setShowItemModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [activeConstraints] = useState<Set<string>>(new Set());
+  const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
   const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   // Group management state
   const [groupSelectionMode, setGroupSelectionMode] = useState<string | null>(null);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+
+  // stackGroup collapsible state for Ürün Listesi tab
+  const [openStackGroups, setOpenStackGroups] = useState<Set<string>>(new Set());
+  const [clearedStackGroups, setClearedStackGroups] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
 
@@ -470,6 +554,27 @@ export function PlanLeftPanel() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiItems, selectedItems, ungroupedIds.length]);
+
+  useEffect(() => {
+    if (!showFilterPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node))
+        setShowFilterPanel(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilterPanel]);
+
+  const hasActiveFilters = activeConstraints.size > 0;
+
+  function toggleConstraintFilter(value: ConstraintFilter) {
+    setActiveConstraints((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  }
 
   const groupedIds = useMemo(() => new Set(groups.flatMap((g) => g.itemIdler)), [groups]);
 
@@ -544,6 +649,39 @@ export function PlanLeftPanel() {
 
     return result;
   }, [ungroupedIds, selectedItems, groupedIds, placedIds, activeTab, search, activeConstraints]);
+
+  type ItemRef = { id: string; isCatalog: boolean };
+
+  const groupedUnloadedSections = useMemo(() => {
+    if (activeTab !== 'unloaded' || groupSelectionMode) return null;
+    const groupMap = new Map<string, ItemRef[]>();
+    const noGroupPlan: ItemRef[] = [];
+    const noGroupCatalog: ItemRef[] = [];
+
+    for (const id of flatDisplayItems) {
+      const entry = selectedItems.find((si) => si.item.id === id);
+      if (!entry) continue;
+      const sg = clearedStackGroups.has(id) ? null : entry.item.stackGroup?.trim() || null;
+      if (sg) {
+        if (!groupMap.has(sg)) groupMap.set(sg, []);
+        groupMap.get(sg)!.push({ id, isCatalog: false });
+      } else {
+        noGroupPlan.push({ id, isCatalog: false });
+      }
+    }
+
+    for (const item of filteredCatalogOnlyItems) {
+      const sg = clearedStackGroups.has(item.id) ? null : item.stackGroup?.trim() || null;
+      if (sg) {
+        if (!groupMap.has(sg)) groupMap.set(sg, []);
+        groupMap.get(sg)!.push({ id: item.id, isCatalog: true });
+      } else {
+        noGroupCatalog.push({ id: item.id, isCatalog: true });
+      }
+    }
+
+    return { groupMap, noGroupPlan, noGroupCatalog };
+  }, [activeTab, groupSelectionMode, flatDisplayItems, filteredCatalogOnlyItems, clearedStackGroups, selectedItems]);
 
   const shouldVirtualize = flatDisplayItems.length >= VIRTUAL_THRESHOLD;
 
@@ -718,9 +856,9 @@ export function PlanLeftPanel() {
         </Tabs>
       </div>
 
-      {/* Search */}
-      <div className="px-2 pt-1.5 pb-1 shrink-0">
-        <div className="relative">
+      {/* Search + Filter */}
+      <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
+        <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
           <Input
             value={search}
@@ -735,6 +873,65 @@ export function PlanLeftPanel() {
             >
               <X className="w-3 h-3" />
             </button>
+          )}
+        </div>
+
+        {/* Filter dropdown */}
+        <div ref={filterRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'h-7 gap-1 px-2 text-xs',
+              hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowFilterPanel((v) => !v)}
+          >
+            <SlidersHorizontal className="w-3 h-3" />
+            {hasActiveFilters && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {activeConstraints.size}
+              </span>
+            )}
+            <ChevronDown
+              className={cn('w-3 h-3 transition-transform', showFilterPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showFilterPanel && (
+            <div className="absolute right-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Kısıt Filtresi
+                </p>
+                <div className="space-y-2">
+                  {CONSTRAINT_FILTER_OPTIONS.map(({ value, label, Icon, className }) => (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={activeConstraints.has(value)}
+                        onCheckedChange={() => toggleConstraintFilter(value)}
+                      />
+                      <Icon className={cn('h-3.5 w-3.5', className)} />
+                      <span className="text-xs">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                {hasActiveFilters && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
+                    onClick={() => setActiveConstraints(new Set())}
+                  >
+                    Filtreleri temizle
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -901,8 +1098,8 @@ export function PlanLeftPanel() {
           </>
         )}
 
-        {/* ── Normal flat item list (no group selection mode) ─────────── */}
-        {!groupSelectionMode && flatDisplayItems.length > 0 && (
+        {/* ── Loaded tab: flat item list (no group selection mode) ───── */}
+        {!groupSelectionMode && activeTab === 'loaded' && flatDisplayItems.length > 0 && (
           <div className="flex flex-col gap-0.5">
             {shouldVirtualize ? (
               <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
@@ -940,51 +1137,173 @@ export function PlanLeftPanel() {
           </div>
         )}
 
-        {/* Katalog — plan'a eklenmemiş tüm ürünler (sadece Yüklü Değil, normal mode) */}
-        {!groupSelectionMode && filteredCatalogOnlyItems.length > 0 && (
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
-                Katalog
-              </span>
-            </div>
-            {filteredCatalogOnlyItems.map((item) => {
-              const color =
-                SCENE.COLORS.SKU_PALETTE[
-                  Object.keys(usePlanStore.getState().skuColorMap).length %
-                    SCENE.COLORS.SKU_PALETTE.length
-                ];
+        {/* ── Unloaded tab: grouped by stackGroup ─────────────────────── */}
+        {!groupSelectionMode && activeTab === 'unloaded' && groupedUnloadedSections && (
+          <>
+            {[...groupedUnloadedSections.groupMap.entries()].map(([groupName, refs]) => {
+              const isOpen = openStackGroups.has(groupName);
+              const renderCatalogRow = (itemId: string) => {
+                const catalogItem = apiItems.find((i) => i.id === itemId);
+                if (!catalogItem) return null;
+                const color =
+                  SCENE.COLORS.SKU_PALETTE[
+                    Object.keys(usePlanStore.getState().skuColorMap).length %
+                      SCENE.COLORS.SKU_PALETTE.length
+                  ];
+                return (
+                  <StoreItemRow
+                    key={itemId}
+                    storeEntry={{ item: catalogItem, quantity: 1 }}
+                    isPlaced={false}
+                    canPlace={canPlace}
+                    isExpanded={expandedId === itemId}
+                    iconColor={itemIconColorMap[itemId]}
+                    groups={groupOptions}
+                    onToggleExpand={() =>
+                      setExpandedId((prev) => (prev === itemId ? null : itemId))
+                    }
+                    onPlace={(qty) => {
+                      addManualItem(catalogItem, qty, color);
+                      setUngroupedIds((prev) => [...prev, itemId]);
+                    }}
+                    onAddToGroup={(groupId) => {
+                      addManualItem(catalogItem, 1, color);
+                      setUngroupedIds((prev) => [...prev, itemId]);
+                      setGroups((prev) =>
+                        prev.map((g) =>
+                          g.id === groupId
+                            ? { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] }
+                            : g,
+                        ),
+                      );
+                    }}
+                    onClearStackGroup={() =>
+                      setClearedStackGroups((prev) => {
+                        const next = new Set(prev);
+                        next.add(itemId);
+                        return next;
+                      })
+                    }
+                  />
+                );
+              };
+
               return (
-                <StoreItemRow
-                  key={item.id}
-                  storeEntry={{ item, quantity: 1 }}
-                  isPlaced={false}
-                  canPlace={canPlace}
-                  isExpanded={expandedId === item.id}
-                  iconColor={itemIconColorMap[item.id]}
-                  groups={groupOptions}
-                  onToggleExpand={() =>
-                    setExpandedId((prev) => (prev === item.id ? null : item.id))
-                  }
-                  onPlace={(qty) => {
-                    addManualItem(item, qty, color);
-                    setUngroupedIds((prev) => [...prev, item.id]);
-                  }}
-                  onAddToGroup={(groupId) => {
-                    addManualItem(item, 1, color);
-                    setUngroupedIds((prev) => [...prev, item.id]);
-                    setGroups((prev) =>
-                      prev.map((g) =>
-                        g.id === groupId
-                          ? { ...g, itemIdler: [...new Set([...g.itemIdler, item.id])] }
-                          : g,
-                      ),
-                    );
-                  }}
-                />
+                <div key={groupName} className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() =>
+                      setOpenStackGroups((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(groupName)) next.delete(groupName);
+                        else next.add(groupName);
+                        return next;
+                      })
+                    }
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-zinc-50 transition-colors w-full text-left"
+                  >
+                    <ChevronRight
+                      className={cn(
+                        'w-3.5 h-3.5 shrink-0 text-zinc-400 transition-transform duration-150',
+                        isOpen && 'rotate-90',
+                      )}
+                    />
+                    <Package className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
+                    <span className="text-xs text-zinc-700 flex-1 truncate">{groupName}</span>
+                    <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">
+                      {refs.length}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="flex flex-col gap-px pl-2">
+                      {refs.map((ref) => {
+                        if (!ref.isCatalog) {
+                          const props = commonRowProps(ref.id);
+                          if (!props) return null;
+                          return (
+                            <StoreItemRow
+                              key={ref.id}
+                              {...props}
+                              iconColor={itemIconColorMap[ref.id]}
+                              onClearStackGroup={() =>
+                                setClearedStackGroups((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(ref.id);
+                                  return next;
+                                })
+                              }
+                            />
+                          );
+                        }
+                        return renderCatalogRow(ref.id);
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
-          </div>
+
+            {/* Ungrouped plan items */}
+            {groupedUnloadedSections.noGroupPlan.length > 0 && (
+              <div className="flex flex-col gap-px">
+                {groupedUnloadedSections.noGroupPlan.map((ref) => {
+                  const props = commonRowProps(ref.id);
+                  if (!props) return null;
+                  return (
+                    <StoreItemRow key={ref.id} {...props} iconColor={itemIconColorMap[ref.id]} />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Ungrouped catalog items */}
+            {groupedUnloadedSections.noGroupCatalog.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
+                    Katalog
+                  </span>
+                </div>
+                {groupedUnloadedSections.noGroupCatalog.map((ref) => {
+                  const catalogItem = apiItems.find((i) => i.id === ref.id);
+                  if (!catalogItem) return null;
+                  const color =
+                    SCENE.COLORS.SKU_PALETTE[
+                      Object.keys(usePlanStore.getState().skuColorMap).length %
+                        SCENE.COLORS.SKU_PALETTE.length
+                    ];
+                  return (
+                    <StoreItemRow
+                      key={ref.id}
+                      storeEntry={{ item: catalogItem, quantity: 1 }}
+                      isPlaced={false}
+                      canPlace={canPlace}
+                      isExpanded={expandedId === ref.id}
+                      iconColor={itemIconColorMap[ref.id]}
+                      groups={groupOptions}
+                      onToggleExpand={() =>
+                        setExpandedId((prev) => (prev === ref.id ? null : ref.id))
+                      }
+                      onPlace={(qty) => {
+                        addManualItem(catalogItem, qty, color);
+                        setUngroupedIds((prev) => [...prev, ref.id]);
+                      }}
+                      onAddToGroup={(groupId) => {
+                        addManualItem(catalogItem, 1, color);
+                        setUngroupedIds((prev) => [...prev, ref.id]);
+                        setGroups((prev) =>
+                          prev.map((g) =>
+                            g.id === groupId
+                              ? { ...g, itemIdler: [...new Set([...g.itemIdler, ref.id])] }
+                              : g,
+                          ),
+                        );
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* No results */}
