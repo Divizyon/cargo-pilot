@@ -41,6 +41,7 @@ public sealed class LoadingPlan : BaseEntity {
     public void MarkErpPending() => ErpExportStatus = Enums.ErpExportStatus.Pending;
     public void MarkErpSent()    => ErpExportStatus = Enums.ErpExportStatus.Sent;
     public void MarkErpFailed()  => ErpExportStatus = Enums.ErpExportStatus.Failed;
+    public void SetThumbnailUrl(string url) => ReportUrl = url;
 
     public void ApplyOptimizationResult(
         LoadingPlanOptimizationStatus status,
