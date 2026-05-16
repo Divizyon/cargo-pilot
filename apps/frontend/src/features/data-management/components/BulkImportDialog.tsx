@@ -38,6 +38,7 @@ interface BulkImportDialogProps {
 const editableRowSchema = z.object({
   _id: z.string(),
   sku: z.string(),
+  barcode: z.string(),
   name: z.string(),
   tip: z.string(),
   width: z.string(),
@@ -87,8 +88,9 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
   const fragilityType = Math.min(Math.max(Math.round(Number(row.fragility) || 0), 0), 9);
   return {
     sku: row.sku.trim(),
+    barcode: row.barcode.trim() || null,
     name: row.name.trim(),
-    productType: row.tip || 'koli',
+    productType: row.tip,
     category: tipToCategory(row.tip),
     width: Number(row.width),
     height: Number(row.height),
@@ -119,6 +121,7 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
     editableRowSchema.parse({
       _id: crypto.randomUUID(),
       sku: String(r['SKU'] ?? ''),
+      barcode: String(r['Barkod'] ?? ''),
       name: String(r['Ürün Adı'] ?? ''),
       tip:
         String(r['Tip (koli/varil/palet)'] ?? '')
@@ -143,8 +146,9 @@ function emptyRow(): EditableRow {
   return editableRowSchema.parse({
     _id: crypto.randomUUID(),
     sku: '',
+    barcode: '',
     name: '',
-    tip: 'koli',
+    tip: '',
     width: '',
     height: '',
     length: '',
@@ -370,14 +374,15 @@ export function BulkImportDialog({ open, onOpenChange, initialRows }: BulkImport
             <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
               <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
-                <th className="w-[12%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
-                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
+                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
+                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
+                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Barkod</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
-                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Genişlik/Çap *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk/Çap (X) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik (Y) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Derinlik (Z) *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
-                <th className="w-[10%] whitespace-nowrap border-b px-2 py-1.5">Kısıtlar</th>
+                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Kırılganlık</th>
                 <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
@@ -422,6 +427,14 @@ export function BulkImportDialog({ open, onOpenChange, initialRows }: BulkImport
                       />
                     </td>
 
+                    {/* Barkod */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <TextCell
+                        value={row.barcode}
+                        onChange={(v) => patchRow(row._id, { barcode: v })}
+                      />
+                    </td>
+
                     {/* Tip */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <Select value={row.tip} onValueChange={(v) => patchRow(row._id, { tip: v })}>
@@ -433,7 +446,7 @@ export function BulkImportDialog({ open, onOpenChange, initialRows }: BulkImport
                               : 'border-border bg-background',
                           )}
                         >
-                          <SelectValue />
+                          <SelectValue placeholder="Seçiniz" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="koli">Koli</SelectItem>

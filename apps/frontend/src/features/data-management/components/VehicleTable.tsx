@@ -656,7 +656,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   Plaka/Seri No
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk (X)
+                  Uzunluk/Çap (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik (Y)

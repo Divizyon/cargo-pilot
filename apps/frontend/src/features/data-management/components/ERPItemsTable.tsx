@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2, RefreshCw, SlidersHorizontal, Upload } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,6 +19,8 @@ import {
   useTriggerERPSync,
   type ErpPendingMappingItem,
 } from '@/lib/api/useERPIntegration';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { SearchInput } from './SearchInput';
 
@@ -337,7 +340,8 @@ function erpItemToImportRow(item: ErpPendingMappingItem): EditableRow {
     _id: crypto.randomUUID(),
     name: item.erpProductName,
     sku: item.erpSku ?? '',
-    tip: 'koli',
+    barcode: item.erpBarcode ?? '',
+    tip: '',
     width: item.erpWidth != null ? String(item.erpWidth) : '',
     height: item.erpHeight != null ? String(item.erpHeight) : '',
     length: item.erpLength != null ? String(item.erpLength) : '',
@@ -388,8 +392,10 @@ function ERPItemsTableSkeleton() {
 export function ERPItemsTable() {
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
 
   const tableCardRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() =>
@@ -399,6 +405,8 @@ export function ERPItemsTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<EditableRow[]>([]);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let last = pageSize;
@@ -419,7 +427,19 @@ export function ERPItemsTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!showFilterPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilterPanel]);
+
   const isSearching = searchTerm.trim().length > 0;
+  const hasActiveFilters = categoryFilters.size > 0;
   const queryPage = isSearching ? 1 : page;
   const queryPageSize = isSearching ? 100 : pageSize;
 
@@ -438,7 +458,12 @@ export function ERPItemsTable() {
   const useMock = !integrationId;
   const allItems = useMock ? MOCK_ITEMS : (mappingsPage?.items ?? []);
 
+  const uniqueCategories = Array.from(
+    new Set(allItems.map((i) => i.erpCategory).filter((c): c is string => Boolean(c))),
+  ).sort();
+
   const filteredItems = allItems.filter((item) => {
+    if (hasActiveFilters && !categoryFilters.has(item.erpCategory ?? '')) return false;
     if (!isSearching) return true;
     const q = searchTerm.toLowerCase();
     return (
@@ -461,8 +486,8 @@ export function ERPItemsTable() {
   const noResults = !showSkeleton && displayedItems.length === 0 && isSearching;
 
   const allSelected =
-    displayedItems.length > 0 && displayedItems.every((i) => selectedIds.has(i.id));
-  const someSelected = !allSelected && displayedItems.some((i) => selectedIds.has(i.id));
+    filteredItems.length > 0 && filteredItems.every((i) => selectedIds.has(i.id));
+  const someSelected = !allSelected && filteredItems.some((i) => selectedIds.has(i.id));
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
@@ -471,7 +496,7 @@ export function ERPItemsTable() {
 
   function handleSelectAll(checked: boolean | 'indeterminate') {
     if (checked === true) {
-      setSelectedIds(new Set(displayedItems.map((i) => i.id)));
+      setSelectedIds(new Set(filteredItems.map((i) => i.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -492,16 +517,86 @@ export function ERPItemsTable() {
   }
 
   function handleOpenImport() {
-    const selected = displayedItems.filter((item) => selectedIds.has(item.id));
+    const selected = filteredItems.filter((item) => selectedIds.has(item.id));
     setImportRows(selected.map(erpItemToImportRow));
     setImportOpen(true);
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput onSearch={handleSearch} placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..." />
+
+        {/* Filtrele */}
+        <div ref={filterRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'gap-1.5 text-xs',
+              hasActiveFilters && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowFilterPanel((v) => !v)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filtrele
+            {hasActiveFilters && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {categoryFilters.size}
+              </span>
+            )}
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showFilterPanel && (
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Kategori
+                </p>
+                <div className="space-y-2">
+                  {uniqueCategories.map((cat) => (
+                    <label
+                      key={cat}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={categoryFilters.has(cat)}
+                        onCheckedChange={() => {
+                          setCategoryFilters((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(cat)) next.delete(cat);
+                            else next.add(cat);
+                            return next;
+                          });
+                          setPage(1);
+                        }}
+                      />
+                      <span className="text-xs">{cat}</span>
+                    </label>
+                  ))}
+                </div>
+                {hasActiveFilters && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
+                    onClick={() => {
+                      setCategoryFilters(new Set());
+                      setPage(1);
+                    }}
+                  >
+                    Filtreleri temizle
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <Button
           variant="outline"
@@ -518,20 +613,6 @@ export function ERPItemsTable() {
           ERP ile Sync
         </Button>
 
-        <Button
-          size="sm"
-          className="shrink-0 gap-1.5 text-xs"
-          onClick={handleOpenImport}
-          disabled={selectedIds.size === 0}
-        >
-          <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
-          Ürünlere Aktar
-          {selectedIds.size > 0 && (
-            <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
-              {selectedIds.size}
-            </span>
-          )}
-        </Button>
       </div>
 
       {/* No-results alert */}
@@ -557,7 +638,7 @@ export function ERPItemsTable() {
                   />
                 </TableHead>
                 <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Ürün Adı
+                  Ürün
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Kategori
@@ -569,13 +650,13 @@ export function ERPItemsTable() {
                   Barkod
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk
+                  Uzunluk/Çap (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik
+                  Yükseklik (Y)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik
+                  Derinlik (Z)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ağırlık
@@ -599,8 +680,10 @@ export function ERPItemsTable() {
                       aria-label={`${row.erpProductName} satırını seç`}
                     />
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-sm">
-                    {row.erpProductName}
+                  <TableCell className="py-0 px-3 max-w-[176px]">
+                    <span className="block truncate text-xs text-muted-foreground" title={row.erpProductName}>
+                      {row.erpProductName}
+                    </span>
                   </TableCell>
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
                     {row.erpCategory ?? '—'}
@@ -611,17 +694,25 @@ export function ERPItemsTable() {
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
                     {row.erpBarcode ?? '—'}
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-xs tabular-nums">
-                    {row.erpWidth ?? '—'}
+                  <TableCell className="py-0 px-3">
+                    <span className="text-xs text-foreground">
+                      {row.erpWidth != null ? formatDimensionDisplay(row.erpWidth, dimensionUnit) : '—'}
+                    </span>
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-xs tabular-nums">
-                    {row.erpHeight ?? '—'}
+                  <TableCell className="py-0 px-3">
+                    <span className="text-xs text-foreground">
+                      {row.erpHeight != null ? formatDimensionDisplay(row.erpHeight, dimensionUnit) : '—'}
+                    </span>
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-xs tabular-nums">
-                    {row.erpLength ?? '—'}
+                  <TableCell className="py-0 px-3">
+                    <span className="text-xs text-foreground">
+                      {row.erpLength != null ? formatDimensionDisplay(row.erpLength, dimensionUnit) : '—'}
+                    </span>
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-xs tabular-nums">
-                    {row.erpWeight ?? '—'}
+                  <TableCell className="py-0 px-3">
+                    <span className="text-xs text-foreground">
+                      {row.erpWeight != null ? `${row.erpWeight} kg` : '—'}
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -665,6 +756,34 @@ export function ERPItemsTable() {
           )}
         </div>
       )}
+
+      {/* Floating action bar — ProductForm ile aynı pattern */}
+      <div
+        className={cn(
+          'fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-out',
+          selectedIds.size > 0
+            ? 'translate-y-0 opacity-100'
+            : 'translate-y-4 opacity-0 pointer-events-none',
+        )}
+      >
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            İptal Et
+          </Button>
+          <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
+            <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Ürünlere Aktar
+            <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
+              {selectedIds.size}
+            </span>
+          </Button>
+        </div>
+      </div>
 
       {/* Transfer modal */}
       <BulkImportDialog
