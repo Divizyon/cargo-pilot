@@ -5,4 +5,11 @@ namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
 public sealed record ReOptimizePlanRequest(
     Guid VehicleId,
     IReadOnlyList<ReOptimizePlanItemRequest> Items,
-    LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst);
+    LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
+    IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null);
+
+public sealed record ReOptimizePlanGroupDefinition(
+    Guid ClientGroupId,
+    string Name,
+    string Color,
+    int UnloadingOrder);

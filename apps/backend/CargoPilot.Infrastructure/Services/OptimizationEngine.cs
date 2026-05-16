@@ -35,6 +35,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
         }
 
+        var groupZones = ComputeGroupZones(instances, input.VehicleLength, input.LoadingType);
+
         foreach (var item in instances)
         {
             if (totalWeight + item.Weight > input.VehicleMaxWeight)
@@ -42,6 +44,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                 unplaced.Add(new UnplacedBox(item.ItemId, UnplacedReason.WeightLimitExceeded));
                 continue;
             }
+
+            groupZones.TryGetValue(item.UnloadingOrder ?? -1, out var zone);
 
             PlacedBox? best = null;
             var bestScore = decimal.MaxValue;
@@ -56,7 +60,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
                     if (HasOverlap(placements, ex, ey, ez, w, h, d)) continue;
                     if (!HasSupport(placements, ex, ey, ez, w, d))   continue;
-                    if (ViolatesStackability(placements, ex, ey, ez, w, d)) continue;
+                    if (ViolatesStackability(placements, ex, ey, ez, w, d, item.UnloadingOrder)) continue;
                     if (ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
                     if (ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
 
@@ -65,12 +69,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                         ex, ey, ez, w, d,
                         item.Weight, totalWeight,
                         momentX, momentZ,
-                        halfW, halfL);
+                        halfW, halfL,
+                        zone.ZStart, zone.ZEnd);
 
                     if (score < bestScore)
                     {
                         bestScore = score;
-                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop);
+                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.UnloadingOrder);
                     }
                 }
             }
@@ -133,6 +138,38 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             .ToList();
 
         return new OptimizationResult(placedResults, unplacedResults, totalWeight, fillRate, cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ);
+    }
+
+    // ── Grup zone hesaplama ───────────────────────────────────────────────────
+    // Gruplara ait distinct UnloadingOrder değerlerini DESC sıralar ve kamyon
+    // uzunluğunu eşit bölümlere ayırır. 0-1 grup varsa zone uygulanmaz.
+    private static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
+        IReadOnlyList<OptimizationItemInput> items,
+        decimal vehicleLength,
+        LoadingType loadingType)
+    {
+        // Z ekseninde zone ayrımı yalnızca arka kapı yüklemesinde geçerli.
+        // Yan kapı veya üstten yüklemede her Z derinliğine kapıdan ulaşılabilir.
+        if (loadingType != LoadingType.Rear)
+            return [];
+
+        var orders = items
+            .Where(i => i.GroupId.HasValue && i.UnloadingOrder.HasValue)
+            .Select(i => i.UnloadingOrder!.Value)
+            .Distinct()
+            .OrderByDescending(o => o)
+            .ToList();
+
+        if (orders.Count <= 1)
+            return [];
+
+        var zoneSize = vehicleLength / orders.Count;
+        var zones = new Dictionary<int, (decimal ZStart, decimal ZEnd)>();
+
+        for (int i = 0; i < orders.Count; i++)
+            zones[orders[i]] = (i * zoneSize, (i + 1) * zoneSize);
+
+        return zones;
     }
 
     // ── Grup-bilinçli sıralama ────────────────────────────────────────────────
@@ -306,7 +343,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         decimal w,  decimal d,
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
-        decimal halfW, decimal halfL)
+        decimal halfW, decimal halfL,
+        decimal? zoneStart, decimal? zoneEnd)
     {
         var newTotal = totalWeight + itemWeight;
 
@@ -321,17 +359,25 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         var balancePenalty = normDevX + normDevZ;
 
+        var zonePenalty = 0m;
+        if (zoneStart.HasValue && zoneEnd.HasValue)
+        {
+            var overLeft  = Math.Max(0m, zoneStart.Value - ez);
+            var overRight = Math.Max(0m, (ez + d) - zoneEnd.Value);
+            zonePenalty = (overLeft + overRight) * 2_000m;
+        }
+
         return criteria switch
         {
             LoadingPlanOptimizationCriteria.VolumeFirst =>
-                ey * 1_000_000m + ez * 1_000m + balancePenalty * 500m + ex,
+                ey * 1_000_000m + ez * 1_000m + balancePenalty * 500m + ex + zonePenalty,
 
             // Sadece yerçekimi ve denge — Z/X tercihi yok
             LoadingPlanOptimizationCriteria.WeightBalance =>
-                ey * 1_000_000m + balancePenalty * 900_000m,
+                ey * 1_000_000m + balancePenalty * 900_000m + zonePenalty,
 
             _ => // Lifo
-                ey * 1_000_000m + ez * 1_000m + ex,
+                ey * 1_000_000m + ez * 1_000m + ex + zonePenalty,
         };
     }
 
@@ -422,15 +468,22 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     private static bool ViolatesStackability(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal d)
+        decimal w, decimal d,
+        int? newItemUnloadingOrder = null)
     {
         foreach (var b in placed)
         {
-            if (b.IsStackable) continue;
             if (b.Y + b.H != y) continue;
             var overlapX = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
             var overlapZ = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
-            if (overlapX > 0m && overlapZ > 0m) return true;
+            if (overlapX <= 0m || overlapZ <= 0m) continue;
+
+            if (!b.IsStackable) return true;
+
+            // LIFO stack kuralı: daha geç inen ürün, daha erken inenin üstüne konamaz
+            if (newItemUnloadingOrder.HasValue && b.UnloadingOrder.HasValue
+                && newItemUnloadingOrder.Value > b.UnloadingOrder.Value)
+                return true;
         }
         return false;
     }
@@ -499,7 +552,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         decimal Weight,
         bool IsStackable,
         int MaxStackCount,
-        decimal MaxWeightOnTop);
+        decimal MaxWeightOnTop,
+        int? UnloadingOrder);
 
     private sealed record UnplacedBox(Guid ItemId, UnplacedReason Reason);
 }
