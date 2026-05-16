@@ -399,8 +399,7 @@ export function fromApiPlacementsToScene(
     }
 
     const rawType = (item.productType as string | undefined)?.toLowerCase();
-    const productType =
-      rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
 
     return [
       {
@@ -618,8 +617,7 @@ export function fromApiFullDetail(
     const itemSku = p.item.sku || p.item.sKU || p.itemId;
     const color = skuColorMap[itemSku] ?? palette[0];
     const rawType = p.item.productType?.toLowerCase();
-    const productType =
-      rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
     return {
       itemId: p.itemId,
       positionX: p.positionX,
