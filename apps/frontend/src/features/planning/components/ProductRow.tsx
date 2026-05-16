@@ -41,7 +41,7 @@ const CONSTRAINT_CONFIG: Record<
   [ConstraintType.HeavySide]: {
     label: 'Ağır Taraf',
     Icon: Scale,
-    className: 'text-zinc-500',
+    className: 'text-muted-foreground',
   },
   [ConstraintType.Hazmat]: {
     label: 'Tehlikeli Madde',
@@ -58,13 +58,13 @@ interface TruncatedNameProps {
 
 function TruncatedName({ name }: TruncatedNameProps) {
   if (name.length <= 60) {
-    return <span className="text-xs text-zinc-700">{name}</span>;
+    return <span className="text-xs text-foreground">{name}</span>;
   }
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-xs text-zinc-700 cursor-default">{name.slice(0, 60)}…</span>
+          <span className="text-xs text-foreground cursor-default">{name.slice(0, 60)}…</span>
         </TooltipTrigger>
         <TooltipContent className="max-w-sm break-words text-xs">{name}</TooltipContent>
       </Tooltip>
@@ -114,24 +114,24 @@ interface ProductRowProps {
 
 export function ProductRow({ product }: ProductRowProps) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-zinc-50 transition-colors min-w-0">
+    <div className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent transition-colors min-w-0">
       {/* Name — takes remaining space */}
       <div className="flex-1 min-w-0 truncate">
         <TruncatedName name={product.name} />
       </div>
 
       {/* Quantity */}
-      <span className="text-xs tabular-nums text-zinc-500 shrink-0 w-10 text-right">
+      <span className="text-xs tabular-nums text-muted-foreground shrink-0 w-10 text-right">
         x{product.quantity}
       </span>
 
       {/* Unit weight */}
-      <span className="text-xs tabular-nums text-zinc-500 shrink-0 w-16 text-right">
+      <span className="text-xs tabular-nums text-muted-foreground shrink-0 w-16 text-right">
         {product.unitWeightKg} kg
       </span>
 
       {/* Layer count */}
-      <span className="inline-flex items-center gap-0.5 text-xs tabular-nums text-zinc-400 shrink-0 w-10">
+      <span className="inline-flex items-center gap-0.5 text-xs tabular-nums text-muted-foreground shrink-0 w-10">
         <Layers className="w-3 h-3" />
         {product.layerCount}
       </span>

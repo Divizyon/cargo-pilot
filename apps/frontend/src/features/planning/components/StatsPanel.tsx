@@ -28,19 +28,19 @@ function cm3ToM3(cm3: number): number {
 function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
   const type = vehicleType(vehicle.name);
   const Icon = type === 'Konteyner' ? Package2 : Truck;
-  const iconClass = type === 'Konteyner' ? 'text-sky-500' : 'text-zinc-600';
+  const iconClass = type === 'Konteyner' ? 'text-sky-500' : 'text-muted-foreground';
   const volumeM3 = cm3ToM3(vehicleVolumeCm3(vehicle)).toFixed(1);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-xl p-3">
+    <div className="bg-background border border-border rounded-xl p-3">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-6 h-6 rounded-md bg-zinc-100 flex items-center justify-center shrink-0">
+        <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center shrink-0">
           <Icon className={cn('w-3.5 h-3.5', iconClass)} strokeWidth={2} />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium text-zinc-800 truncate">{vehicle.name}</p>
-          <p className="text-[10px] text-zinc-400">{type}</p>
+          <p className="text-xs font-medium text-foreground truncate">{vehicle.name}</p>
+          <p className="text-[10px] text-muted-foreground">{type}</p>
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
@@ -50,9 +50,9 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
             { label: 'Genişlik', value: `${vehicle.width} cm` },
             { label: 'Yükseklik', value: `${vehicle.height} cm` },
           ].map((r) => (
-            <div key={r.label} className="bg-zinc-50 rounded-lg px-2 py-1.5">
-              <p className="text-[10px] text-zinc-400">{r.label}</p>
-              <p className="text-xs text-zinc-700">{r.value}</p>
+            <div key={r.label} className="bg-muted/40 rounded-lg px-2 py-1.5">
+              <p className="text-[10px] text-muted-foreground">{r.label}</p>
+              <p className="text-xs text-foreground">{r.value}</p>
             </div>
           ))}
         </div>
@@ -64,9 +64,9 @@ function VehicleInfoCard({ vehicle }: { vehicle: Vehicle }) {
               value: formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit),
             },
           ].map((r) => (
-            <div key={r.label} className="bg-zinc-50 rounded-lg px-2 py-1.5">
-              <p className="text-[10px] text-zinc-400">{r.label}</p>
-              <p className="text-xs text-zinc-700">{r.value}</p>
+            <div key={r.label} className="bg-muted/40 rounded-lg px-2 py-1.5">
+              <p className="text-[10px] text-muted-foreground">{r.label}</p>
+              <p className="text-xs text-foreground">{r.value}</p>
             </div>
           ))}
         </div>
@@ -88,42 +88,42 @@ function StatisticsCard({
 }) {
   const weightUnit = useUnitStore((s) => s.weightUnit);
   return (
-    <div className="bg-white border border-zinc-200 rounded-xl p-3">
-      <p className="text-[10px] text-zinc-500 mb-2">İstatistikler</p>
+    <div className="bg-background border border-border rounded-xl p-3">
+      <p className="text-[10px] text-muted-foreground mb-2">İstatistikler</p>
 
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-zinc-500">Hacim</span>
-        <span className="text-xs text-zinc-800">%{volumePct}</span>
+        <span className="text-[10px] text-muted-foreground">Hacim</span>
+        <span className="text-xs text-foreground">%{volumePct}</span>
       </div>
-      <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden mb-2">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-2">
         <div
           className={cn(
             'h-full rounded-full transition-all duration-300',
-            volumePct > 85 ? 'bg-rose-500' : 'bg-zinc-700',
+            volumePct > 85 ? 'bg-rose-500' : 'bg-foreground/80',
           )}
           style={{ width: `${volumePct}%` }}
         />
       </div>
 
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-zinc-500">
+        <span className="text-[10px] text-muted-foreground">
           Ağırlık · {formatWeightDisplay(weightKg, weightUnit)}
         </span>
-        <span className="text-xs text-zinc-800">%{weightPct}</span>
+        <span className="text-xs text-foreground">%{weightPct}</span>
       </div>
-      <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden mb-2">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-2">
         <div
           className={cn(
             'h-full rounded-full transition-all duration-300',
-            weightPct > 90 ? 'bg-rose-500' : 'bg-zinc-500',
+            weightPct > 90 ? 'bg-rose-500' : 'bg-muted/400',
           )}
           style={{ width: `${weightPct}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between pt-1.5 border-t border-zinc-100">
-        <span className="text-[10px] text-zinc-400">Kalan Boş Hacim</span>
-        <span className="text-xs text-zinc-600">{remainingM3} m³</span>
+      <div className="flex items-center justify-between pt-1.5 border-t border-border">
+        <span className="text-[10px] text-muted-foreground">Kalan Boş Hacim</span>
+        <span className="text-xs text-muted-foreground">{remainingM3} m³</span>
       </div>
     </div>
   );
@@ -143,9 +143,9 @@ function SummaryCard({
   const weightUnit = useUnitStore((s) => s.weightUnit);
   const statusOk = volumePct <= 100;
   return (
-    <div className="bg-white border border-zinc-200 rounded-xl p-3">
+    <div className="bg-background border border-border rounded-xl p-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] text-zinc-500">Plan Özeti</p>
+        <p className="text-[10px] text-muted-foreground">Plan Özeti</p>
         <span
           className={cn(
             'inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border',
@@ -167,10 +167,10 @@ function SummaryCard({
         ].map((r) => (
           <div
             key={r.label}
-            className="flex items-center justify-between py-1 border-b border-zinc-100 last:border-0"
+            className="flex items-center justify-between py-1 border-b border-border last:border-0"
           >
-            <span className="text-[10px] text-zinc-400">{r.label}</span>
-            <span className="text-xs text-zinc-600">{r.value}</span>
+            <span className="text-[10px] text-muted-foreground">{r.label}</span>
+            <span className="text-xs text-muted-foreground">{r.value}</span>
           </div>
         ))}
       </div>
@@ -213,8 +213,8 @@ export function StatsPanel({ compact = false, alwaysShowCards = false }: StatsPa
   if (!selectedVehicle || !stats) {
     if (alwaysShowCards) return null;
     return (
-      <div className="bg-white/90 backdrop-blur border border-zinc-200 rounded-xl px-4 h-11 flex items-center">
-        <span className="text-xs text-zinc-400">İstatistikler için bir araç seçin</span>
+      <div className="bg-background/90 backdrop-blur border border-border rounded-xl px-4 h-11 flex items-center">
+        <span className="text-xs text-muted-foreground">İstatistikler için bir araç seçin</span>
       </div>
     );
   }
@@ -245,61 +245,61 @@ export function StatsPanel({ compact = false, alwaysShowCards = false }: StatsPa
   return (
     <div>
       {/* Şerit */}
-      <div className="bg-white border border-zinc-200 rounded-xl px-3 h-11 flex items-center gap-3">
+      <div className="bg-background border border-border rounded-xl px-3 h-11 flex items-center gap-3">
         <div className="w-7 h-7 flex items-center justify-center shrink-0">
           {compact ? (
-            <ChevronUp className="w-4 h-4 text-zinc-400" />
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-zinc-400" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
 
-        <div className="w-px h-4 bg-zinc-200 shrink-0" />
+        <div className="w-px h-4 bg-muted shrink-0" />
 
         <div className="flex items-center gap-2 shrink-0">
-          <VehicleIcon className="w-3.5 h-3.5 text-zinc-400" strokeWidth={2} />
-          <span className="text-xs text-zinc-600 truncate max-w-[120px]">
+          <VehicleIcon className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={2} />
+          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
             {selectedVehicle.name}
           </span>
         </div>
 
-        <div className="w-px h-4 bg-zinc-200 shrink-0" />
+        <div className="w-px h-4 bg-muted shrink-0" />
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-zinc-400">Hacim</span>
-          <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+          <span className="text-xs text-muted-foreground">Hacim</span>
+          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-300',
-                stats.volumePct > 85 ? 'bg-rose-500' : 'bg-zinc-700',
+                stats.volumePct > 85 ? 'bg-rose-500' : 'bg-foreground/80',
               )}
               style={{ width: `${stats.volumePct}%` }}
             />
           </div>
-          <span className="text-xs text-zinc-700">%{stats.volumePct}</span>
+          <span className="text-xs text-foreground">%{stats.volumePct}</span>
         </div>
 
-        <div className="w-px h-4 bg-zinc-200 shrink-0" />
+        <div className="w-px h-4 bg-muted shrink-0" />
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-zinc-400">Ağırlık</span>
-          <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+          <span className="text-xs text-muted-foreground">Ağırlık</span>
+          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-300',
-                stats.weightPct > 90 ? 'bg-rose-500' : 'bg-zinc-500',
+                stats.weightPct > 90 ? 'bg-rose-500' : 'bg-muted/400',
               )}
               style={{ width: `${stats.weightPct}%` }}
             />
           </div>
-          <span className="text-xs text-zinc-700">%{stats.weightPct}</span>
+          <span className="text-xs text-foreground">%{stats.weightPct}</span>
         </div>
 
-        <div className="w-px h-4 bg-zinc-200 shrink-0" />
+        <div className="w-px h-4 bg-muted shrink-0" />
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs text-zinc-400">Kalan</span>
-          <span className="text-xs text-zinc-700">{stats.remainingM3} m³</span>
+          <span className="text-xs text-muted-foreground">Kalan</span>
+          <span className="text-xs text-foreground">{stats.remainingM3} m³</span>
         </div>
       </div>
 

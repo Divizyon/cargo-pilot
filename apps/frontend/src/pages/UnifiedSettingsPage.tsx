@@ -218,9 +218,9 @@ export function UnifiedSettingsPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-4">
         {/* Sekme paneli — mobil'de yatay scroll, sm'den itibaren dikey sol panel */}
-        <div className="w-full shrink-0 sm:w-52">
+        <div className="w-full shrink-0 rounded-xl bg-card p-3 sm:w-52">
           <nav className="flex gap-1 overflow-x-auto pb-1 sm:flex-col sm:overflow-x-visible sm:pb-0">
             {GENERAL_TABS.map((tab) => renderNavButton(tab))}
 
@@ -237,7 +237,7 @@ export function UnifiedSettingsPage() {
         </div>
 
         {/* Sağ içerik paneli */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 rounded-xl bg-card p-5 sm:p-6">
           <SettingsTabShell title={activeTabDef.label} description={activeTabDef.description}>
             {activeTab === 'bireysel-hesap' && <ProfileForm />}
             {activeTab === 'kullanicilar' && (

@@ -202,7 +202,7 @@ function getItemConstraints(item: Item): ConstraintMeta[] {
       key: 'group',
       label: `Yük Grubu: ${item.stackGroup}`,
       Icon: Package,
-      colorClass: 'text-zinc-400',
+      colorClass: 'text-muted-foreground',
     });
   return list;
 }
@@ -222,20 +222,20 @@ function GroupSelectionRow({ item, isSelected, onToggle }: GroupSelectionRowProp
       onClick={onToggle}
       className={cn(
         'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-colors text-left',
-        isSelected ? 'bg-zinc-100 ring-1 ring-zinc-300' : 'hover:bg-zinc-50',
+        isSelected ? 'bg-muted ring-1 ring-border' : 'hover:bg-accent',
       )}
     >
       <div
         className={cn(
           'w-4 h-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors',
-          isSelected ? 'bg-zinc-900 border-zinc-900' : 'border-zinc-300',
+          isSelected ? 'bg-foreground border-foreground' : 'border-border',
         )}
       >
-        {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+        {isSelected && <Check className="w-2.5 h-2.5 text-background" strokeWidth={3} />}
       </div>
-      <TypeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-400" strokeWidth={1.5} />
-      <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
-      <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
+      <TypeIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+      <span className="flex-1 min-w-0 text-xs text-foreground truncate">{item.name}</span>
+      <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">{item.sku}</span>
     </button>
   );
 }
@@ -290,24 +290,24 @@ function StoreItemRow({
       className={cn(
         'rounded-lg overflow-hidden',
         indent && 'ml-4',
-        isExpanded && 'ring-1 ring-zinc-200',
+        isExpanded && 'ring-1 ring-border',
       )}
     >
       <div
         onClick={onToggleExpand}
         className={cn(
           'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
-          isPlaced ? 'bg-zinc-50/80' : 'hover:bg-zinc-50',
-          isExpanded && 'bg-zinc-50',
+          isPlaced ? 'bg-muted/40' : 'hover:bg-accent',
+          isExpanded && 'bg-muted/40',
         )}
       >
         <TypeIcon
-          className={cn('w-3.5 h-3.5 shrink-0', !iconColor && 'text-zinc-400')}
+          className={cn('w-3.5 h-3.5 shrink-0', !iconColor && 'text-muted-foreground')}
           style={iconColor ? { color: iconColor } : undefined}
           strokeWidth={1.5}
         />
-        <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
-        <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
+        <span className="flex-1 min-w-0 text-xs text-foreground truncate">{item.name}</span>
+        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">{item.sku}</span>
         {onEdit && (
           <button
             title="Düzenle"
@@ -315,22 +315,22 @@ function StoreItemRow({
               e.stopPropagation();
               onEdit();
             }}
-            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 transition-colors"
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-muted-foreground/30 hover:text-muted-foreground hover:bg-accent transition-colors"
           >
             <Pencil className="w-2.5 h-2.5" />
           </button>
         )}
         <ChevronDown
           className={cn(
-            'w-3 h-3 shrink-0 text-zinc-300 transition-transform duration-150',
+            'w-3 h-3 shrink-0 text-muted-foreground/50 transition-transform duration-150',
             isExpanded && 'rotate-180',
           )}
         />
       </div>
 
       {isExpanded && (
-        <div className="px-2.5 pt-2 pb-2.5 bg-zinc-50 border-t border-zinc-100 space-y-2">
-          <p className="text-[11px] text-zinc-500 tabular-nums">
+        <div className="px-2.5 pt-2 pb-2.5 bg-muted/40 border-t border-border space-y-2">
+          <p className="text-[11px] text-muted-foreground tabular-nums">
             {item.width}×{item.height}×{item.length} cm · {item.weight} kg
           </p>
           {hasConstraints && (
@@ -353,16 +353,16 @@ function StoreItemRow({
           )}
           {item.stackGroup?.trim() && (
             <div className="flex items-center gap-1.5 text-[11px]">
-              <Package className="w-3 h-3 text-zinc-400 shrink-0" />
-              <span className="text-zinc-400 shrink-0">Yük Grubu</span>
-              <span className="text-zinc-700 font-medium truncate">{item.stackGroup}</span>
+              <Package className="w-3 h-3 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground shrink-0">Yük Grubu</span>
+              <span className="text-foreground font-medium truncate">{item.stackGroup}</span>
               {onClearStackGroup && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onClearStackGroup();
                   }}
-                  className="ml-auto shrink-0 text-zinc-300 hover:text-rose-500 transition-colors"
+                  className="ml-auto shrink-0 text-muted-foreground/50 hover:text-rose-500 transition-colors"
                   title="Yük grubundan çıkar"
                 >
                   <X className="w-3 h-3" />
@@ -371,20 +371,22 @@ function StoreItemRow({
             </div>
           )}
           {item.specialNotes?.trim() && (
-            <p className="text-[11px] text-zinc-500 italic leading-snug">{item.specialNotes}</p>
+            <p className="text-[11px] text-muted-foreground italic leading-snug">
+              {item.specialNotes}
+            </p>
           )}
-          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-zinc-100">
+          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
             {!isPlaced ? (
               <>
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-zinc-400">Adet</span>
-                  <div className="flex items-center rounded border border-zinc-200 overflow-hidden ml-1">
+                  <span className="text-[10px] text-muted-foreground">Adet</span>
+                  <div className="flex items-center rounded border border-border overflow-hidden ml-1">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setLocalQty((v) => Math.max(1, v - 1));
                       }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
+                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
                     >
                       <Minus className="w-2 h-2" />
                     </button>
@@ -397,14 +399,14 @@ function StoreItemRow({
                         if (!isNaN(v) && v >= 1) setLocalQty(v);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-8 text-center text-[11px] tabular-nums text-zinc-700 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setLocalQty((v) => v + 1);
                       }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
+                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
                     >
                       <Plus className="w-2 h-2" />
                     </button>
@@ -419,7 +421,7 @@ function StoreItemRow({
                             <DropdownMenuTrigger asChild>
                               <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                                className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
                               >
                                 <FolderPlus className="w-3.5 h-3.5" />
                               </button>
@@ -455,7 +457,7 @@ function StoreItemRow({
                       onPlace(localQty);
                       onToggleExpand();
                     }}
-                    className="h-6 text-[11px] px-2.5 bg-zinc-900 text-white hover:bg-zinc-700"
+                    className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
                   >
                     Ekle
                   </Button>
@@ -468,7 +470,7 @@ function StoreItemRow({
                   onRemove?.();
                   onToggleExpand();
                 }}
-                className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-rose-600 transition-colors ml-auto"
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
               >
                 <PackageMinus className="w-3 h-3" />
                 Çıkar
@@ -825,12 +827,12 @@ export function PlanLeftPanel() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-zinc-100">
-        <span className="text-sm text-zinc-800">Ürünler</span>
+      <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
+        <span className="text-sm text-foreground">Ürünler</span>
         <Button
           size="icon"
           title="Ürün Ekle"
-          className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
+          className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
           onClick={() => setShowItemModal(true)}
         >
           <Plus className="w-3.5 h-3.5" />
@@ -840,10 +842,10 @@ export function PlanLeftPanel() {
       {/* Tabs */}
       <div className="px-2 pt-2 shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-          <TabsList className="w-full h-7 bg-zinc-100">
+          <TabsList className="w-full h-7 bg-muted">
             <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
               Ürün Listesi
-              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
                 {(() => {
                   const planUnloaded = selectedItems.filter(
                     (si) => !placedIds.has(si.item.id),
@@ -858,7 +860,7 @@ export function PlanLeftPanel() {
             </TabsTrigger>
             <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
               Yüklü Ürünler
-              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
                 ({placedIds.size})
               </span>
             </TabsTrigger>
@@ -869,17 +871,17 @@ export function PlanLeftPanel() {
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="İsim veya SKU ile ara…"
-            className="h-7 pl-7 pr-7 text-xs bg-zinc-50 border-zinc-200 focus-visible:ring-1 focus-visible:ring-zinc-300"
+            className="h-7 pl-7 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
             >
               <X className="w-3 h-3" />
             </button>
@@ -949,7 +951,7 @@ export function PlanLeftPanel() {
       {/* Scrollable area */}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
         {itemsLoading && (
-          <div className="flex items-center justify-center py-8 text-zinc-400 text-xs">
+          <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
             Ürünler yükleniyor…
           </div>
@@ -962,7 +964,7 @@ export function PlanLeftPanel() {
             {!groupSelectionMode && (
               <button
                 onClick={handleAddGroup}
-                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 px-2 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors self-start mb-0.5"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-accent transition-colors self-start mb-0.5"
               >
                 <FolderPlus className="w-3.5 h-3.5" />
                 <span>Grup Oluştur</span>
@@ -992,7 +994,7 @@ export function PlanLeftPanel() {
                       'group/grp flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
                       isFocused
                         ? 'bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-100'
-                        : 'hover:bg-zinc-50',
+                        : 'hover:bg-accent',
                     )}
                   >
                     {/* Expand toggle + icon + name */}
@@ -1003,7 +1005,7 @@ export function PlanLeftPanel() {
                       <ChevronRight
                         className={cn(
                           'w-3.5 h-3.5 shrink-0 transition-transform duration-150',
-                          isFocused ? 'text-amber-500' : 'text-zinc-400',
+                          isFocused ? 'text-amber-500' : 'text-muted-foreground',
                           g.acik && 'rotate-90',
                         )}
                       />
@@ -1016,7 +1018,7 @@ export function PlanLeftPanel() {
                         <input
                           value={editingGroupName}
                           autoFocus
-                          className="flex-1 min-w-0 text-sm bg-transparent border-b border-zinc-400 outline-none text-zinc-700 px-0"
+                          className="flex-1 min-w-0 text-sm bg-transparent border-b border-border outline-none text-foreground px-0"
                           onChange={(e) => setEditingGroupName(e.target.value)}
                           onBlur={() => handleRenameGroup(g.id, editingGroupName)}
                           onKeyDown={(e) => {
@@ -1029,7 +1031,7 @@ export function PlanLeftPanel() {
                         <span
                           className={cn(
                             'text-sm flex-1 text-left truncate cursor-text',
-                            isFocused ? 'text-amber-700 font-medium' : 'text-zinc-700',
+                            isFocused ? 'text-amber-700 font-medium' : 'text-foreground',
                           )}
                           onDoubleClick={(e) => {
                             e.stopPropagation();
@@ -1042,7 +1044,9 @@ export function PlanLeftPanel() {
                       )}
                     </button>
 
-                    <span className="text-xs text-zinc-400 shrink-0">{groupTotal} kalem</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {groupTotal} kalem
+                    </span>
 
                     {/* Add products to group */}
                     <button
@@ -1051,7 +1055,7 @@ export function PlanLeftPanel() {
                         e.stopPropagation();
                         handleStartGroupSelection(g.id);
                       }}
-                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
                     >
                       <PackagePlus className="w-3.5 h-3.5" />
                     </button>
@@ -1074,17 +1078,17 @@ export function PlanLeftPanel() {
         {activeTab === 'unloaded' && groupSelectionMode && (
           <>
             {/* Banner */}
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg mb-1">
-              <Layers className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="text-xs text-zinc-600 truncate">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/40 border border-border rounded-lg mb-1">
+              <Layers className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground truncate">
                 <span className="font-medium">{activeGroupName}</span> için ürün seçin
               </span>
             </div>
 
             {groupSelectionItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center gap-1.5">
-                <Package className="w-5 h-5 text-zinc-200" />
-                <p className="text-xs text-zinc-400">Eklenecek ürün bulunamadı</p>
+                <Package className="w-5 h-5 text-muted-foreground/30" />
+                <p className="text-xs text-muted-foreground">Eklenecek ürün bulunamadı</p>
               </div>
             ) : (
               <div className="flex flex-col gap-0.5">
@@ -1209,17 +1213,17 @@ export function PlanLeftPanel() {
                         return next;
                       })
                     }
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-zinc-50 transition-colors w-full text-left"
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-accent transition-colors w-full text-left"
                   >
                     <ChevronRight
                       className={cn(
-                        'w-3.5 h-3.5 shrink-0 text-zinc-400 transition-transform duration-150',
+                        'w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
                         isOpen && 'rotate-90',
                       )}
                     />
-                    <Package className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
-                    <span className="text-xs text-zinc-700 flex-1 truncate">{groupName}</span>
-                    <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">
+                    <Package className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                    <span className="text-xs text-foreground flex-1 truncate">{groupName}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                       {refs.length}
                     </span>
                   </button>
@@ -1269,7 +1273,7 @@ export function PlanLeftPanel() {
             {groupedUnloadedSections.noGroupCatalog.length > 0 && (
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2 px-3 py-1.5">
-                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
                     Katalog
                   </span>
                 </div>
@@ -1323,8 +1327,8 @@ export function PlanLeftPanel() {
           filteredCatalogOnlyItems.length === 0 &&
           !itemsLoading && (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-1.5">
-              <Search className="w-5 h-5 text-zinc-200" />
-              <p className="text-xs text-zinc-400">
+              <Search className="w-5 h-5 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">
                 {search ? `"${search}" için` : 'Seçili kısıt filtresine göre'} sonuç bulunamadı
               </p>
             </div>
@@ -1333,8 +1337,8 @@ export function PlanLeftPanel() {
 
       {/* Sticky "Gruba Ekle" panel — shown when in group selection mode */}
       {groupSelectionMode && (
-        <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center justify-between gap-2 bg-white">
-          <span className="text-xs text-zinc-500 shrink-0">
+        <div className="shrink-0 border-t border-border px-3 py-2 flex items-center justify-between gap-2 bg-background">
+          <span className="text-xs text-muted-foreground shrink-0">
             {selectedForGroup.size} ürün seçildi
           </span>
           <div className="flex items-center gap-2">
@@ -1344,7 +1348,7 @@ export function PlanLeftPanel() {
                 setSelectedForGroup(new Set());
                 setActiveTab('loaded');
               }}
-              className="h-7 text-xs text-zinc-400 hover:text-zinc-600 px-2 transition-colors"
+              className="h-7 text-xs text-muted-foreground hover:text-muted-foreground px-2 transition-colors"
             >
               İptal
             </button>
@@ -1352,7 +1356,7 @@ export function PlanLeftPanel() {
               size="sm"
               disabled={selectedForGroup.size === 0}
               onClick={handleConfirmGroupSelection}
-              className="h-7 text-xs bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
+              className="h-7 text-xs bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
             >
               Gruba Ekle ({selectedForGroup.size})
             </Button>
@@ -1363,7 +1367,7 @@ export function PlanLeftPanel() {
       <UnfitItemsPanel />
 
       {import.meta.env.DEV && (
-        <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center gap-2">
+        <div className="shrink-0 border-t border-border px-3 py-2 flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
@@ -1379,7 +1383,7 @@ export function PlanLeftPanel() {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-zinc-500"
+              className="h-7 text-xs text-muted-foreground"
               onClick={() => setPlacements([])}
               title="Tüm placements'ları temizle"
             >
