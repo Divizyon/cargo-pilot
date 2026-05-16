@@ -114,7 +114,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   ];
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
       {/* Başlık + operasyonel durum */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground">Araç Önizleme</p>

@@ -41,6 +41,7 @@ export interface CreateItemRequest {
   stackGroup?: string | null;
   specialNotes?: string | null;
   constraintIds?: number[];
+  incompatibleGroups?: string[];
 }
 
 export function toCategory(productType: ProductType): ItemCategoryValue {
@@ -91,6 +92,7 @@ export const itemApiSchema = z.object({
   stackGroup: z.string().nullable().optional(),
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()).optional(),
+  incompatibleGroups: z.array(z.string()).optional(),
 });
 
 export type ItemApi = z.infer<typeof itemApiSchema>;
@@ -152,6 +154,7 @@ export function fromApiItem(api: ItemApi): Item {
     specialNotes: api.specialNotes ?? null,
     stackGroup: api.stackGroup ?? null,
     constraintIds: api.constraintIds ?? [],
+    incompatibleGroups: api.incompatibleGroups ?? [],
   };
 }
 
@@ -173,6 +176,7 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     notes: item.specialNotes ?? '',
     stackGroup: item.stackGroup ?? undefined,
     constraintIds: item.constraintIds ?? [],
+    incompatibleGroups: item.incompatibleGroups ?? [],
   };
 }
 
@@ -206,6 +210,7 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     specialNotes: trimmedNotes && trimmedNotes.length > 0 ? trimmedNotes : null,
     stackGroup: values.stackGroup?.trim() || null,
     constraintIds: (values.constraintIds ?? []).filter((id) => id > 0 && id <= 9),
+    incompatibleGroups: values.incompatibleGroups ?? [],
   };
 }
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -20,6 +20,12 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
     control: form.control,
     name: ['length', 'width', 'height'],
   });
+
+  const toStr = (v: number | undefined) =>
+    v != null && Number.isFinite(v) ? String(v) : '';
+  const [lengthDisplay, setLengthDisplay] = useState(() => toStr(form.getValues('length')));
+  const [heightDisplay, setHeightDisplay] = useState(() => toStr(form.getValues('height')));
+  const [widthDisplay, setWidthDisplay] = useState(() => toStr(form.getValues('width')));
 
   const volume = useMemo(() => {
     if (!length || !width || !height) return null;
@@ -44,9 +50,10 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
                     placeholder="1350"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={lengthDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setLengthDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
@@ -78,9 +85,10 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
                     placeholder="270"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={heightDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setHeightDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
@@ -112,9 +120,10 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
                     placeholder="240"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={widthDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setWidthDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined

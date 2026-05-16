@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,12 @@ interface VehicleKingpinSectionProps {
 export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
+
+  const toStr = (v: number | undefined) =>
+    v != null && Number.isFinite(v) ? String(v) : '';
+  const [distanceDisplay, setDistanceDisplay] = useState(() => toStr(form.getValues('kingpin.distance')));
+  const [tareWeightDisplay, setTareWeightDisplay] = useState(() => toStr(form.getValues('kingpin.tareWeight')));
+  const [maxLoadDisplay, setMaxLoadDisplay] = useState(() => toStr(form.getValues('kingpin.maxLoad')));
 
   return (
     <div className="flex flex-col gap-3">
@@ -37,9 +44,10 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                     placeholder="360"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={distanceDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setDistanceDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
@@ -71,9 +79,10 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                     placeholder="8000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={tareWeightDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setTareWeightDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined
@@ -106,9 +115,10 @@ export function VehicleKingpinSection({ form }: VehicleKingpinSectionProps) {
                     placeholder="12000"
                     className="h-9 border-input bg-background pr-10"
                     {...field}
-                    value={field.value ?? ''}
+                    value={maxLoadDisplay}
                     onChange={(e) => {
                       const raw = e.target.value;
+                      setMaxLoadDisplay(raw);
                       field.onChange(
                         raw === '' || !Number.isFinite(parseFloat(raw))
                           ? undefined

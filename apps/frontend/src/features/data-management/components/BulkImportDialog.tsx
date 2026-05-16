@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
-import { Download, FileUp, Plus, Trash2 } from 'lucide-react';
+import { Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
 import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,6 +23,9 @@ import {
   type CreateItemRequest,
 } from '@/lib/api/itemMappers';
 import { downloadItemImportTemplate } from '@/lib/utils/export-utils';
+
+// Google Sheets şablonu oluşturulduğunda bu URL'i buraya ekleyin
+const ITEM_SHEETS_TEMPLATE_URL = '';
 
 interface BulkImportDialogProps {
   open: boolean;
@@ -253,16 +256,32 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               Excel şablonunu indirin, doldurun ve yükleyin. Yüklenen veriler düzenlenebilir tabloda
               gösterilir, excele geri dönmenize gerek kalmaz.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={downloadItemImportTemplate}
-              type="button"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Şablonu İndir
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={downloadItemImportTemplate}
+                type="button"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Excel Şablonunu İndir
+              </Button>
+              {ITEM_SHEETS_TEMPLATE_URL && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-xs"
+                  type="button"
+                  asChild
+                >
+                  <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Google Sheets Şablonu
+                  </a>
+                </Button>
+              )}
+            </div>
             <div
               className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-10 transition-colors hover:bg-muted/50"
               onClick={() => fileInputRef.current?.click()}
@@ -601,6 +620,14 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               <Download className="h-3.5 w-3.5" />
               Şablonu İndir
             </Button>
+            {ITEM_SHEETS_TEMPLATE_URL && (
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" type="button" asChild>
+                <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Google Sheets
+                </a>
+              </Button>
+            )}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleClose} type="button">
