@@ -37,13 +37,15 @@ function UnfitItemRow({
   const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-zinc-50 group/unfit">
-      <TypeIcon className="w-4 h-4 shrink-0 text-zinc-400" strokeWidth={1.5} />
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent group/unfit">
+      <TypeIcon className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm truncate text-zinc-700">{item.name}</span>
-          <span className="text-[10px] shrink-0 tabular-nums text-zinc-400">{quantity} adet</span>
+          <span className="text-sm truncate text-foreground">{item.name}</span>
+          <span className="text-[10px] shrink-0 tabular-nums text-muted-foreground">
+            {quantity} adet
+          </span>
         </div>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           <span
@@ -51,7 +53,7 @@ function UnfitItemRow({
           >
             {REASON_LABEL[reason]}
           </span>
-          <span className="text-[10px] text-zinc-400 tabular-nums">
+          <span className="text-[10px] text-muted-foreground tabular-nums">
             {item.width}×{item.length}×{item.height} cm · {item.weight} kg
           </span>
         </div>
@@ -64,14 +66,14 @@ function UnfitItemRow({
         <button
           title="Tekrar Dene"
           onClick={onRetry}
-          className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+          className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <RotateCcw className="w-3 h-3" />
         </button>
         <button
           title="Listeden Çıkar"
           onClick={onRemove}
-          className="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+          className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition-colors"
         >
           <Trash2 className="w-3 h-3" />
         </button>
@@ -95,9 +97,9 @@ export function UnfitItemsPanel() {
     1_000_000;
 
   return (
-    <div className="border-t border-zinc-100 shrink-0">
+    <div className="border-t border-border shrink-0">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors"
         onClick={() => setOpen((v) => !v)}
       >
         <ChevronRight
@@ -106,7 +108,7 @@ export function UnfitItemsPanel() {
             open && 'rotate-90',
           )}
         />
-        <span className="text-sm text-zinc-700 flex-1 text-left">Sığmayan Ürünler</span>
+        <span className="text-sm text-foreground flex-1 text-left">Sığmayan Ürünler</span>
         <span className="text-[10px] bg-rose-100 text-rose-600 rounded-full px-1.5 py-0.5 tabular-nums font-medium">
           {totalQty}
         </span>
@@ -114,7 +116,7 @@ export function UnfitItemsPanel() {
 
       {open && (
         <div className="flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-zinc-400 tabular-nums border-b border-zinc-50">
+          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground tabular-nums border-b border-border">
             <span>{unfitItems.length} ürün çeşidi</span>
             <span>·</span>
             <span>{totalVolumeM3.toFixed(3)} m³</span>

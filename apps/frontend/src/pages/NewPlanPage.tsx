@@ -195,14 +195,14 @@ export function NewPlanPage() {
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
-    <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-muted overflow-hidden">
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Plan Adı</DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <Label htmlFor="plan-name" className="text-xs text-zinc-500 mb-1.5 block">
+            <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
               Yükleme planına bir ad verin
             </Label>
             <Input
@@ -224,7 +224,7 @@ export function NewPlanPage() {
               size="sm"
               disabled={!planNameInput.trim() || isCreating}
               onClick={() => void handleConfirmCreate()}
-              className="bg-zinc-900 text-white hover:bg-zinc-700"
+              className="bg-foreground text-background hover:bg-foreground/80"
             >
               {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
             </Button>
@@ -270,7 +270,7 @@ export function NewPlanPage() {
             leftOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="h-full bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
             <PlanLeftPanel />
           </div>
         </div>
@@ -282,7 +282,7 @@ export function NewPlanPage() {
 
         {/* Merkez — 3D Viewport */}
         <div className="flex-1 min-w-0 p-3 overflow-hidden">
-          <div className="relative h-full rounded-xl bg-white border border-zinc-200 overflow-hidden">
+          <div className="relative h-full rounded-xl bg-background border border-border overflow-hidden">
             <PlanCanvas snapshotRef={snapshotRef} />
           </div>
         </div>
