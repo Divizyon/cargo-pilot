@@ -64,6 +64,21 @@ internal sealed class VehicleRepository : IVehicleRepository {
             .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Vehicle>> GetByIdsAsync(IEnumerable<Guid> ids, Guid? companyId, CancellationToken cancellationToken = default) {
+        var idList = ids.Distinct().ToList();
+        return await _context.Vehicles
+            .Where(v => idList.Contains(v.Id) && v.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Vehicle>> GetAllActiveAsync(Guid? companyId, CancellationToken cancellationToken = default) {
+        return await _context.Vehicles
+            .AsNoTracking()
+            .Where(v => v.IsActive && (companyId == null || v.CompanyId == companyId))
+            .OrderBy(v => v.VehicleName)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {
         return await _context.Vehicles
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId, cancellationToken);
@@ -75,8 +90,10 @@ internal sealed class VehicleRepository : IVehicleRepository {
     }
 
     public async Task<bool> IsUsedInActiveLoadingPlanAsync(Guid vehicleId, CancellationToken cancellationToken = default) {
-        return await _context.LoadingPlans
-            .AnyAsync(p => p.VehicleId == vehicleId && p.OptimizationStatus == LoadingPlanOptimizationStatus.Draft, cancellationToken);
+        return await _context.LoadingPlanVehicles
+            .AnyAsync(v => v.VehicleId == vehicleId &&
+                           v.LoadingPlan.OptimizationStatus == LoadingPlanOptimizationStatus.Draft,
+                      cancellationToken);
     }
 
     public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)

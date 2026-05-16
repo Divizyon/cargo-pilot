@@ -52,10 +52,13 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Plan.NotFound", "Yükleme planı bulunamadı."));
 
-        var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
-        if (vehicle is null)
+        var vehicles = await _vehicleRepository.GetByIdsAsync(request.VehicleIds, companyId, cancellationToken);
+        var missingVehicleIds = request.VehicleIds.Except(vehicles.Select(v => v.Id)).ToList();
+        if (missingVehicleIds.Count > 0)
             return Result<Guid>.Failure(
-                new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
+                new Error(ErrorType.NotFound, "Vehicle.NotFound", "Bir veya daha fazla araç bulunamadı."));
+
+        var vehicle = vehicles[0];
 
         var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
         var items = await _itemRepository.GetByIdsAsync(requestedItemIds, companyId, cancellationToken);
@@ -80,9 +83,13 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), plan.Id, i.ItemId, i.Quantity))
             .ToList();
 
-        plan.Reoptimize(request.VehicleId, request.OptimizationCriteria, inputTotalQuantity);
+        var newPlanVehicles = request.VehicleIds
+            .Select((vehicleId, idx) => new LoadingPlanVehicle(plan.Id, vehicleId, idx))
+            .ToList();
 
-        await _planRepository.ReOptimizeWithResultAsync(plan, newInputItems, result, cancellationToken);
+        plan.Reoptimize(request.OptimizationCriteria, inputTotalQuantity);
+
+        await _planRepository.ReOptimizeWithResultAsync(plan, newPlanVehicles, newInputItems, result, cancellationToken);
 
         return Result<Guid>.Success(plan.Id);
     }

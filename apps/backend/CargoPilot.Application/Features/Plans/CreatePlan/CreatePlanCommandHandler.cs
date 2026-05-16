@@ -61,10 +61,13 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                         "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
         }
 
-        var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
-        if (vehicle is null)
+        var vehicles = await _vehicleRepository.GetByIdsAsync(request.VehicleIds, companyId, cancellationToken);
+        var missingVehicleIds = request.VehicleIds.Except(vehicles.Select(v => v.Id)).ToList();
+        if (missingVehicleIds.Count > 0)
             return Result<Guid>.Failure(
-                new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
+                new Error(ErrorType.NotFound, "Vehicle.NotFound", "Bir veya daha fazla araç bulunamadı."));
+
+        var vehicle = vehicles[0];
 
         var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
         var items = await _itemRepository.GetByIdsAsync(requestedItemIds, companyId, cancellationToken);
@@ -120,7 +123,10 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         var result = _optimizationEngine.Run(optimizationInput);
 
         var planId = Guid.NewGuid();
-        var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
+        var plan = new LoadingPlan(planId, request.PlanName, request.OptimizationCriteria, inputTotalQuantity, companyId);
+        var planVehicles = request.VehicleIds
+            .Select((vehicleId, idx) => new LoadingPlanVehicle(planId, vehicleId, idx))
+            .ToList();
         var inputItems = activeItems
             .Select(i =>
             {
@@ -131,7 +137,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             })
             .ToList();
 
-        await _planRepository.SaveWithResultAsync(plan, inputItems, result, cancellationToken);
+        await _planRepository.SaveWithResultAsync(plan, planVehicles, inputItems, result, cancellationToken);
 
         return Result<Guid>.Success(planId);
     }

@@ -8,6 +8,7 @@ using CargoPilot.Application.Features.Plans.Groups.AssignItemToGroup;
 using CargoPilot.Application.Features.Plans.Groups.CreateGroup;
 using CargoPilot.Application.Features.Plans.Groups.DeleteGroup;
 using CargoPilot.Application.Features.Plans.Groups.UpdateGroup;
+using CargoPilot.Application.Features.Plans.GetVehicleSuggestions;
 using CargoPilot.Application.Features.Plans.ReOptimizePlan;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
 using MediatR;
@@ -126,7 +127,7 @@ public sealed class PlansController : BaseController
         [FromBody] ReOptimizePlanRequest request,
         CancellationToken cancellationToken = default)
     {
-        var command = new ReOptimizePlanCommand(id, request.VehicleId, request.Items, request.OptimizationCriteria);
+        var command = new ReOptimizePlanCommand(id, request.VehicleIds, request.Items, request.OptimizationCriteria);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
@@ -304,6 +305,28 @@ public sealed class PlansController : BaseController
     }
 
     /// <summary>
+    /// Verilen ürün listesine göre şirketin aktif araçlarını hacim algoritmasıyla sıralayarak öneri döner.
+    /// CanFitAll=true olanlar önce, ardından tahmini doluluk oranına göre sıralanır.
+    /// </summary>
+    /// <param name="request">Item ID ve miktar çiftlerinin listesi.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç önerileri sıralı liste olarak döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Bir veya daha fazla item bulunamadı.</response>
+    [HttpPost("vehicle-suggestions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetVehicleSuggestions(
+        [FromBody] GetVehicleSuggestionsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetVehicleSuggestionsQuery(request.Items);
+        var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Yükleme planını soft-delete ile siler.
     /// </summary>
     /// <param name="id">Silinecek planın ID'si.</param>
@@ -345,4 +368,7 @@ public sealed record DeleteGroupRequest(
 
 /// <summary>PUT /items/{inputItemId}/group request body.</summary>
 public sealed record AssignItemToGroupRequest(Guid? GroupId);
+
+/// <summary>POST /vehicle-suggestions request body.</summary>
+public sealed record GetVehicleSuggestionsRequest(IReadOnlyList<SuggestionItemRequest> Items);
 

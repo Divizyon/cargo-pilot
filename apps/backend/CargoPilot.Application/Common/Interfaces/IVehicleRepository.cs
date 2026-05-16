@@ -17,6 +17,8 @@ public interface IVehicleRepository {
         CancellationToken cancellationToken = default);
 
     Task<Vehicle?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Vehicle>> GetByIdsAsync(IEnumerable<Guid> ids, Guid? companyId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Vehicle>> GetAllActiveAsync(Guid? companyId, CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default);
 

@@ -46,12 +46,14 @@ public interface ILoadingPlanRepository
 
     Task SaveWithResultAsync(
         LoadingPlan plan,
+        IReadOnlyList<LoadingPlanVehicle> vehicles,
         IReadOnlyList<LoadingPlanInputItem> inputItems,
         OptimizationResult result,
         CancellationToken cancellationToken = default);
 
     Task ReOptimizeWithResultAsync(
         LoadingPlan plan,
+        IReadOnlyList<LoadingPlanVehicle> newVehicles,
         IReadOnlyList<LoadingPlanInputItem> newInputItems,
         OptimizationResult result,
         CancellationToken cancellationToken = default);

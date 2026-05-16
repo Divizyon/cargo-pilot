@@ -34,10 +34,10 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(p => p.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(plateNumber))
-            query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
+            query = query.Where(p => p.Vehicles.Any(v => v.Vehicle.PlateNumber.Contains(plateNumber)));
 
         if (vehicleIds is { Count: > 0 })
-            query = query.Where(p => vehicleIds.Contains(p.VehicleId));
+            query = query.Where(p => p.Vehicles.Any(v => vehicleIds.Contains(v.VehicleId)));
 
         if (planDateStart.HasValue)
         {
@@ -78,8 +78,9 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.InputTotalQuantity,
                 p.PlacedQuantity,
                 p.UnplacedQuantity,
-                p.VehicleId,
-                p.Vehicle.VehicleName,
+                p.Vehicles.OrderBy(v => v.SortOrder)
+                    .Select(v => new VehicleSummaryInPlanDto(v.VehicleId, v.Vehicle.VehicleName, v.Vehicle.PlateNumber, v.SortOrder))
+                    .ToList(),
                 p.CreatedAtUtc))
             .ToListAsync(cancellationToken);
 
@@ -109,7 +110,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
 
         if (vehicleId.HasValue)
-            query = query.Where(p => p.VehicleId == vehicleId.Value);
+            query = query.Where(p => p.Vehicles.Any(v => v.VehicleId == vehicleId.Value));
 
         if (minFillRate.HasValue)
             query = query.Where(p => p.FillRate >= minFillRate.Value);
@@ -127,7 +128,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.Id,
                 p.PlanName,
                 p.CreatedAtUtc,
-                p.Vehicle.PlateNumber,
+                p.Vehicles.OrderBy(v => v.SortOrder).Select(v => v.Vehicle.PlateNumber).FirstOrDefault() ?? "",
                 p.FillRate,
                 p.OptimizationStatus,
                 p.ReportId,
@@ -144,7 +145,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     {
         var plan = await _context.LoadingPlans
             .AsNoTracking()
-            .Include(p => p.Vehicle)
+            .Include(p => p.Vehicles).ThenInclude(v => v.Vehicle)
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
         if (plan is null) return null;
@@ -190,15 +191,21 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         List<LoadingPlanInputItem> inputItems,
         List<LoadingPlanItemGroup> groups)
     {
-        var vehicleDto = new VehicleInPlanDto(
-            plan.Vehicle.Id,
-            plan.Vehicle.VehicleName,
-            plan.Vehicle.PlateNumber,
-            plan.Vehicle.VehicleType,
-            plan.Vehicle.InternalWidth,
-            plan.Vehicle.InternalHeight,
-            plan.Vehicle.InternalLength,
-            plan.Vehicle.MaxWeightCapacity);
+        var vehicleDtos = plan.Vehicles
+            .OrderBy(v => v.SortOrder)
+            .Select(v => new VehicleInPlanDto(
+                v.Vehicle.Id,
+                v.Vehicle.VehicleName,
+                v.Vehicle.PlateNumber,
+                v.Vehicle.VehicleType,
+                v.Vehicle.InternalWidth,
+                v.Vehicle.InternalHeight,
+                v.Vehicle.InternalLength,
+                v.Vehicle.MaxWeightCapacity,
+                v.SortOrder))
+            .ToList();
+
+        var primaryVehicle = plan.Vehicles.OrderBy(v => v.SortOrder).First().Vehicle;
 
         var placementDtos = placements
             .Select(p => new PlacementDto(
@@ -268,11 +275,11 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.CenterOfGravityX,
             plan.CenterOfGravityY,
             plan.CenterOfGravityZ,
-            CalcBalanceOffset(plan.CenterOfGravityX, plan.Vehicle.InternalWidth),
-            CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
+            CalcBalanceOffset(plan.CenterOfGravityX, primaryVehicle.InternalWidth),
+            CalcBalanceOffset(plan.CenterOfGravityZ, primaryVehicle.InternalLength),
             plan.CreatedAtUtc,
             plan.ErpExportStatus,
-            vehicleDto,
+            vehicleDtos,
             placementDtos,
             unplacedItemDtos,
             warningDtos,
@@ -299,6 +306,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
 
     public async Task SaveWithResultAsync(
         LoadingPlan plan,
+        IReadOnlyList<LoadingPlanVehicle> vehicles,
         IReadOnlyList<LoadingPlanInputItem> inputItems,
         OptimizationResult result,
         CancellationToken cancellationToken = default)
@@ -322,6 +330,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             result.CenterOfGravityZ);
 
         _context.LoadingPlans.Add(plan);
+        _context.LoadingPlanVehicles.AddRange(vehicles);
         _context.LoadingPlanInputItems.AddRange(inputItems);
         _context.LoadingPlanPlacements.AddRange(placements);
         _context.LoadingPlanUnplacedItems.AddRange(unplacedItems);
@@ -331,6 +340,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
 
     public async Task ReOptimizeWithResultAsync(
         LoadingPlan plan,
+        IReadOnlyList<LoadingPlanVehicle> newVehicles,
         IReadOnlyList<LoadingPlanInputItem> newInputItems,
         OptimizationResult result,
         CancellationToken cancellationToken = default)
@@ -372,6 +382,12 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             result.CenterOfGravityX,
             result.CenterOfGravityY,
             result.CenterOfGravityZ);
+
+        var oldVehicles = await _context.LoadingPlanVehicles
+            .Where(v => v.LoadingPlanId == plan.Id)
+            .ToListAsync(cancellationToken);
+        _context.LoadingPlanVehicles.RemoveRange(oldVehicles);
+        _context.LoadingPlanVehicles.AddRange(newVehicles);
 
         _context.LoadingPlanInputItems.AddRange(newInputItems);
         _context.LoadingPlanPlacements.AddRange(newPlacements);
