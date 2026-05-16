@@ -1,194 +1,79 @@
 # Local Setup
 
-Bu doküman, Cargo Pilot projesini local geliştirme ortamında ayağa kaldırmak için izlenecek temel adımları açıklar.
-
-Amaç; projeyi yeni alan bir geliştiricinin minimum eforla sistemi çalıştırabilmesini sağlamaktır.
+Bu doküman, Cargo Pilot projesini local geliştirme ortamında ayağa kaldırmak için izlenecek adımları açıklar.
 
 ---
 
-## 1. Ön Koşullar
+## Ön Koşullar
 
-Projeyi local ortamda çalıştırmadan önce aşağıdaki araçların makinede kurulu olması beklenir:
-
-- Git
-- Docker
-- Docker Compose
-- Node.js + npm (frontend tarafında local geliştirme yapılacaksa)
-- .NET SDK (backend tarafında container dışı geliştirme yapılacaksa)
-- [GitHub CLI (`gh`)](https://cli.github.com/) — PR açmak ve CI takibi için önerilir
-
-> Not: Docker tabanlı akış tercih edildiği için temel çalışma modeli container üzerinden ilerler.
+| Araç | Zorunlu | Not |
+|------|---------|-----|
+| Git | ✅ | |
+| Docker + Docker Compose | ✅ | Temel çalışma modu container üzerinden |
+| Node.js + npm | Frontend geliştirme için | `npm run dev` akışı için |
+| .NET SDK | Backend geliştirme için | Container dışı çalışma için |
+| [GitHub CLI (`gh`)](https://cli.github.com/) | Önerilir | PR açma ve CI takibi için |
 
 ---
 
-## 2. Repository'yi Alma
-
-İlgili repository clone edilir:
+## 1. Repository'yi Al
 
 ```bash
 git clone <repo-url>
-cd <repo-name>
-```
-
-Repository alındıktan sonra `main` branch güncel hale getirilir:
-
-```bash
-git pull origin main
+cd cargo-pilot
+git pull origin test
 ```
 
 ---
 
-## 3. Ortam Dosyaları
-
-Projede ortam değişkenleri `infra/env` altında örnek dosyalar üzerinden yönetilir.
-
-Beklenen yaklaşım:
-
-* örnek ortam dosyaları kopyalanır
-* local geliştirme için gerekli değerler düzenlenir
-* gerçek secret değerleri repository içine eklenmez
-
-Örnek dosyalar:
-
-* `infra/env/.env.test.example`
-* `infra/env/.env.prod.example`
-
-Local geliştirme için test ortamı örnek dosyası kullanılarak gerçek `.env` dosyası hazırlanmalıdır.
-
-Örnek yaklaşım:
+## 2. Ortam Dosyasını Hazırla
 
 ```bash
 cp infra/env/.env.test.example infra/env/.env.test
 ```
 
-Gerekli alanlar ekipte belirlenen değerlere göre güncellenmelidir.
+{% hint style="warning" %}
+`<CHANGE_ME_...>` ile işaretlenmiş alanlar gerçek değerlerle doldurulmalıdır. Gerçek değerler için ekip liderinden veya sunucudaki `.env.test` dosyasından alabilirsiniz.
 
-> **Not:** `<CHANGE_ME_...>` ile işaretlenmiş alanlar gerçek değerlerle değiştirilmelidir.
-> Gerçek secret değerleri için ekip liderinden ya da sunucudaki `.env.test` dosyasından alınabilir.
-> Secret yönetimi için bkz. [Secret Yönetimi](../devops/secret-management.md).
-
----
-
-## 4. Projeyi Ayağa Kaldırma
-
-Local geliştirme ortamı Docker Compose üzerinden çalıştırılır.
-
-Tüm temel bileşenlerin birlikte ayağa kalkması beklenir:
-
-* frontend
-* backend
-* MSSql
-* Min.IO
-
-İlgili compose dosyasının bulunduğu konuma göre aşağıdaki komutlardan uygun olanı çalıştırılır:
-
-```bash
-docker compose up -d
-```
-
-veya
-
-```bash
-docker-compose up -d
-```
-
-Eğer belirli bir compose dosyası kullanılıyorsa:
-
-```bash
-docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
-```
-
-Eğer proje kökünde compose dosyası varsa doğrudan `docker compose up -d` yeterlidir.
-
-> Not: Compose dosyalarının güncel konumu için `infra/compose/` klasörünü kontrol edin.
-
-> **GHCR Image Notu:** Docker Compose, image'ları GHCR'dan çeker:
-> `ghcr.io/divizyon/cargo-pilot-backend:test` ve `ghcr.io/divizyon/cargo-pilot-frontend:test`.
-> Image'lar **public**'tir — herhangi bir login veya PAT gerekmez, direkt çekilir.
-> Local build için `docker compose ... up --build -d` kullanılabilir (bkz. Bölüm 7).
-
-Container'ların durumunu kontrol etmek için:
-
-```bash
-docker ps
-```
-
-Log görmek için:
-
-```bash
-docker compose logs -f
-```
-
-Belirli bir servis için:
-
-```bash
-docker compose logs -f backend
-```
+Secret yönetimi için bkz. [Secret Yönetimi](../devops/secret-management.md).
+{% endhint %}
 
 ---
 
-## 5. Migration ve Seed
+## 3. Stack'i Başlat
 
-Veritabanı ilk kez ayağa kalktığında migration ve gerekiyorsa seed adımları uygulanmalıdır.
-
-Beklenen yaklaşım:
-
-* migration'lar çalıştırılır
-* gerekiyorsa başlangıç verileri yüklenir
-* sistem minimum kullanılabilir veri ile açılır
-
-Eğer migration container içinden yönetiliyorsa ilgili backend container üzerinden çalıştırılmalıdır.
-Eğer local .NET SDK üzerinden çalıştırılıyorsa ekipte belirlenen standart komut kullanılmalıdır.
-
-Örnek yaklaşım:
+{% tabs %}
+{% tab title="🐳 Tam Docker (Önerilir)" %}
+Tüm servisler container içinde çalışır. Frontend hot-reload yoktur; image build gerekir.
 
 ```bash
-dotnet ef database update
+docker compose -f infra/compose/docker-compose.test.yml \
+  --env-file infra/env/.env.test up -d
 ```
 
-Seed veriler kullanılıyorsa:
+{% hint style="info" %}
+Image'lar GHCR'dan otomatik çekilir (`ghcr.io/divizyon/cargo-pilot-*:test`). Package'lar **public**'tir — login veya PAT gerekmez.
+{% endhint %}
 
-* admin kullanıcı
-* temel rol kayıtları
-* örnek araç / ürün / kural verileri
-
-local veya test ortamında yüklenebilir.
-
-Default login: `admin@cargopilot.com / Admin@CargoPilot1!`
-
-> Not: Seed veriler geliştirme ve test amaçlıdır. Production ortamında kontrollü kullanılmalıdır.
-
----
-
-## 6. Local Erişim Bilgileri
-
-Servislerin local ortamda hangi portlardan çalıştığı compose ve env dosyalarına göre değişebilir.
-Güncel değerler ilgili docker compose ve env dosyalarından kontrol edilmelidir.
-
-Örnek erişim yapısı:
-
-* Frontend: `http://localhost:<frontend-port>`
-* Backend: `http://localhost:<backend-port>`
-* MSSql: `localhost:<mssql-port>`
-* Min.IO: `http://localhost:<minio-port>`
-
-Eğer Min.IO console açıksa ayrıca ayrı bir port üzerinden erişilebilir.
-
----
-
-## 7. Frontend Vite ile, Backend Docker'da Çalıştırma
-
-Frontend ekibi `npm run dev` ile Vite üzerinden çalışırken backend'i Docker'da local olarak kaldırabilir. Bu durumda CORS sorunu yoktur — Vite'ın kendi proxy'si `/api` isteklerini backend container'a yönlendirir.
-
-### Adımlar
-
-**1. Backend stack'i kaldır (sadece backend + DB + MinIO)**
+Local build için:
 
 ```bash
-docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d mssql minio backend
+docker compose -f infra/compose/docker-compose.test.yml \
+  --env-file infra/env/.env.test up --build -d
+```
+{% endtab %}
+
+{% tab title="⚡ Vite + Docker (Frontend Geliştirme)" %}
+Frontend Vite üzerinden çalışır (hot-reload), backend + DB Docker'da kaldırılır. CORS sorunu yoktur — Vite'ın proxy'si `/api` isteklerini backend container'a yönlendirir.
+
+**Adım 1 — Backend stack'i başlat:**
+
+```bash
+docker compose -f infra/compose/docker-compose.test.yml \
+  --env-file infra/env/.env.test up -d mssql minio backend
 ```
 
-**2. Frontend'i Vite ile başlat**
+**Adım 2 — Frontend'i Vite ile başlat:**
 
 ```bash
 cd apps/frontend
@@ -196,15 +81,7 @@ npm install
 npm run dev
 ```
 
-Vite varsayılan olarak `http://localhost:8081`'e proxy yapar (`vite.config.ts`'te tanımlı).
-
-**Farklı bir port kullanıyorsanız** shell'de veya `.env.local` dosyasında ayarlayın:
-
-```bash
-VITE_DEV_PROXY_TARGET=http://localhost:8081 npm run dev
-```
-
-**3. Erişim**
+**Erişim:**
 
 | Servis | Adres |
 |--------|-------|
@@ -212,101 +89,173 @@ VITE_DEV_PROXY_TARGET=http://localhost:8081 npm run dev
 | Backend API | `http://localhost:8081` |
 | MinIO Console | `http://localhost:9003` |
 
-> **Not:** `npm run dev` ile başlatıldığında hot-reload aktiftir. Backend container durdurulursa API çağrıları hata verir.
+{% hint style="info" %}
+Farklı bir backend portu kullanıyorsanız:
+
+```bash
+VITE_DEV_PROXY_TARGET=http://localhost:8081 npm run dev
+```
+{% endhint %}
+{% endtab %}
+{% endtabs %}
 
 ---
 
-## 9. Geliştirme Sırasında Sık Kullanılan Komutlar
-
-Container'ları durdurmak için:
+## 4. Migration & Seed
 
 ```bash
-docker compose down
+# Backend container içinden migration çalıştır
+docker exec cargo-pilot-backend-test \
+  dotnet ef database update
 ```
 
-Container'ları durdurup volume'leri de temizlemek için:
+**Default login:** `admin@cargopilot.com` / `Admin@CargoPilot1!`
+
+{% hint style="info" %}
+Seed veriler yalnızca geliştirme ve test içindir. Production'da kontrollü kullanılmalıdır.
+{% endhint %}
+
+---
+
+## 5. Local Erişim
+
+| Servis | Adres |
+|--------|-------|
+| Frontend | `http://localhost:3001` |
+| Backend API | `http://localhost:8081` |
+| MinIO Console | `http://localhost:9003` |
+| MSSQL | `localhost:1434` |
+
+---
+
+## 6. Geliştirme Akışı
 
 ```bash
-docker compose down -v
+# 1. Remote'u güncelle
+git fetch origin
+
+# 2. test branch'inden yeni branch aç (branching kuralı)
+git checkout -b feature/US-XXX-aciklama origin/test
+
+# 3. Geliştir, test et, commit at
+git add <dosyalar>
+git commit -m "kısa açıklayıcı mesaj"
+
+# 4. Push et
+git push origin feature/US-XXX-aciklama
+
+# 5. dev'e PR aç, ardından aynı branch'ten test'e PR aç
+gh pr create --base dev
 ```
 
-Image'ları yeniden build ederek ayağa kaldırmak için:
+{% hint style="info" %}
+Branch ve commit kuralları için bkz. [Branching Strategy](../conventions/BRANCHING.md) ve [Commit Kuralları](../conventions/COMMITS.md).
+{% endhint %}
+
+---
+
+## 7. Sık Kullanılan Komutlar
 
 ```bash
-docker compose up --build -d
-```
+# Container durumunu gör
+docker ps | grep cargo-pilot
 
-Belirli bir servisi yeniden başlatmak için:
+# Logları takip et
+docker compose -f infra/compose/docker-compose.test.yml logs -f
 
-```bash
-docker compose restart <service-name>
+# Belirli servis logu
+docker compose -f infra/compose/docker-compose.test.yml logs -f backend
+
+# Stack'i durdur
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test down
+
+# Volume'leri de temizle (DB sıfırlanır!)
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test down -v
+
+# Yeniden build et
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up --build -d
 ```
 
 ---
 
-## 10. Sık Karşılaşılan Problemler
+## 8. Sık Karşılaşılan Sorunlar
 
-### Port çakışması
+<details>
 
-Bir servis beklenen portta açılmıyorsa aynı portu kullanan başka bir uygulama olabilir.
-İlgili port kontrol edilmeli ve gerekiyorsa env / compose üzerinden güncellenmelidir.
+<summary>Port çakışması</summary>
 
-### Container ayağa kalkmıyor
-
-Aşağıdaki kontroller yapılmalıdır:
-
-* env dosyaları eksik mi
-* image build hatası var mı
-* volume veya network hatası var mı
-* bağımlı servisler hazır mı
-
-Log kontrolü yapılmalıdır:
+Aynı portu kullanan başka bir uygulama çalışıyor olabilir. İlgili portu kontrol edin:
 
 ```bash
-docker compose logs -f
+lsof -i :3001   # veya 8081, 1434, 9003
 ```
 
-### Veritabanı bağlantı hatası
+Gerekirse `.env.test` içindeki port değerlerini değiştirin.
 
-Aşağıdakiler kontrol edilmelidir:
+</details>
 
-* MSSql container çalışıyor mu
-* connection string doğru mu
-* ilgili port açık mı
-* migration uygulanmış mı
+<details>
 
-### Min.IO erişim problemi
+<summary>Container ayağa kalkmıyor</summary>
 
-Aşağıdakiler kontrol edilmelidir:
+```bash
+# Log kontrolü
+docker compose -f infra/compose/docker-compose.test.yml logs -f
 
-* Min.IO container çalışıyor mu
-* endpoint bilgisi doğru mu
-* access key / secret key doğru mu
-* env dosyaları güncel mi
+# Container detayı
+docker inspect cargo-pilot-backend-test
+```
 
----
+Kontrol edilecekler: env dosyası eksik mi, image çekilebiliyor mu, bağımlı servisler hazır mı.
 
-## 11. Beklenen Geliştirme Akışı
+</details>
 
-Local geliştirme sırasında önerilen temel akış:
+<details>
 
-1. `git fetch origin` ile remote güncellenir
-2. `git checkout -b feature/US-XXX-description origin/test` ile yeni branch açılır
-3. Gerekli geliştirme yapılır
-4. Local ortamda test edilir
-5. Gerekirse migration / seed uygulanır
-6. Commit atılır
-7. `git pull origin test` ile son değişiklikler alınır
-8. `git push origin feature/US-XXX-description` ile push yapılır
-9. Pull Request açılır (önce `dev` hedefli, ardından aynı branch'ten `test` hedefli)
+<summary>Veritabanı bağlantı hatası</summary>
 
-Branch ve commit kuralları için ilgili dokümanlara bakılmalıdır.
+```bash
+# MSSQL container çalışıyor mu?
+docker ps | grep mssql
+
+# Bağlantı testi
+docker exec cargo-pilot-mssql-test /opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P "<SA_PASSWORD>" -C -Q "SELECT 1"
+```
+
+Migration uygulandı mı kontrol edin.
+
+</details>
+
+<details>
+
+<summary>MinIO erişim problemi</summary>
+
+```bash
+docker ps | grep minio
+docker logs cargo-pilot-minio-test --tail=30
+```
+
+`.env.test` içindeki `MINIO_ROOT_USER` ve `MINIO_ROOT_PASSWORD` değerlerini kontrol edin.
+
+</details>
 
 ---
 
 ## İlgili Dokümanlar
 
-* [Branching Strategy](../conventions/BRANCHING.md) — Branch yönetimi ve PR kuralları
-* [Commit Kuralları](../conventions/COMMITS.md) — Commit yazım kuralları
-* [Secret Yönetimi](../devops/secret-management.md) — Ortam değişkenleri ve gizli anahtarlar
-* [Bilinen Sorunlar](../devops/known-issues.md) — Açık sorunlar ve geçici çözümler
+{% content-ref url="../conventions/BRANCHING.md" %}
+[Branching Strategy](../conventions/BRANCHING.md)
+{% endcontent-ref %}
+
+{% content-ref url="../conventions/COMMITS.md" %}
+[Commit Kuralları](../conventions/COMMITS.md)
+{% endcontent-ref %}
+
+{% content-ref url="../devops/secret-management.md" %}
+[Secret Yönetimi](../devops/secret-management.md)
+{% endcontent-ref %}
+
+{% content-ref url="../devops/known-issues.md" %}
+[Bilinen Sorunlar](../devops/known-issues.md)
+{% endcontent-ref %}

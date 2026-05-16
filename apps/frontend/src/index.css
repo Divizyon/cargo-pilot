@@ -128,9 +128,20 @@
     border-color: hsl(var(--border));
   }
 
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+  }
+
+  #root {
+    height: 100%;
+    overflow: hidden;
   }
 }
 
@@ -138,4 +149,14 @@
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
