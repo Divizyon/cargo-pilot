@@ -143,6 +143,7 @@ export function useSaveERPSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
+      queryClient.invalidateQueries({ queryKey: ['erp', 'connection'] });
       toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
     },
     onError: (error) => {
