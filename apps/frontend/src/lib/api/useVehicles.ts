@@ -141,12 +141,19 @@ export function useVehicles(filters?: VehicleFilters) {
       }
 
       if (mergedFilters.status) {
-        params.set('isActive', String(mergedFilters.status === 'active'));
+        if (mergedFilters.status === 'taslak') {
+          params.set('status', 'taslak');
+        } else {
+          params.set('isActive', String(mergedFilters.status === 'active'));
+        }
       }
 
       if (mergedFilters.favoritesOnly) {
         params.set('onlyFavorites', 'true');
       }
+
+      if (mergedFilters.sortBy) params.set('sortBy', mergedFilters.sortBy);
+      if (mergedFilters.sortOrder) params.set('sortOrder', mergedFilters.sortOrder);
 
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles${qs ? `?${qs}` : ''}`);
