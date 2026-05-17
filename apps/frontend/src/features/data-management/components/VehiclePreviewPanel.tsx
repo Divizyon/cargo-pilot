@@ -100,7 +100,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
       label: 'Kapı Yönü',
       value: doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—',
     },
-    { label: 'Ölçüler', value: dims },
+    { label: 'Ölçüler', value: dimsRaw },
     { label: 'Maks. Kargo', value: cargo },
     { label: 'Brüt Ağırlık', value: gross },
     { label: 'Dara', value: tare },
