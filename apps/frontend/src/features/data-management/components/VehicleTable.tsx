@@ -370,7 +370,11 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
             )}
           />
           <span className="text-xs text-foreground">
-            {vehicle.status === 'taslak' ? 'Taslak' : (vehicle.isActive ?? true) ? 'Aktif' : 'Pasif'}
+            {vehicle.status === 'taslak'
+              ? 'Taslak'
+              : (vehicle.isActive ?? true)
+                ? 'Aktif'
+                : 'Pasif'}
           </span>
         </div>
       </TableCell>
