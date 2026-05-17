@@ -2,23 +2,28 @@ import type { UseFormReturn } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { FormItem } from '@/components/ui/form';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { DoorDirection } from '@/lib/types/vehicle';
+import { DoorDirection, VehicleType } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleDoorDirectionFieldProps {
   form: UseFormReturn<VehicleFormValues>;
-  hideHeading?: boolean; // kept for API compatibility
+  vehicleType?: string;
+  hideHeading?: boolean;
 }
 
-const DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Ön',
-  side: 'Yan',
-  top: 'Üst',
-};
+const KONTEYNER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side] as const;
+const OTHER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top] as const;
 
-const VISIBLE_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top];
+function getDirectionLabel(dir: string, isKonteyner: boolean): string {
+  if (dir === DoorDirection.Rear) return isKonteyner ? 'Ön' : 'Arka';
+  if (dir === DoorDirection.Side) return 'Yan';
+  return 'Üst';
+}
 
-export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldProps) {
+export function VehicleDoorDirectionField({ form, vehicleType }: VehicleDoorDirectionFieldProps) {
+  const isKonteyner = vehicleType === VehicleType.Konteyner;
+  const directions = isKonteyner ? KONTEYNER_DIRECTIONS : OTHER_DIRECTIONS;
+
   return (
     <Controller
       control={form.control}
@@ -35,14 +40,14 @@ export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldPro
             }}
             className="flex gap-2"
           >
-            {VISIBLE_DIRECTIONS.map((dir) => (
+            {directions.map((dir) => (
               <ToggleGroupItem
                 key={dir}
                 value={dir}
-                aria-label={DIRECTION_LABELS[dir]}
+                aria-label={getDirectionLabel(dir, isKonteyner)}
                 className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
               >
-                {DIRECTION_LABELS[dir]}
+                {getDirectionLabel(dir, isKonteyner)}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
