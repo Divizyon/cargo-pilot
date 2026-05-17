@@ -259,8 +259,14 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
     width: fromCentimeters(v.width, dimensionUnit),
     height: fromCentimeters(v.height, dimensionUnit),
     maxCargoWeight: fromKilograms(v.maxCargoWeight, weightUnit as WeightUnitKey),
-    grossWeight: v.grossWeight != null ? fromKilograms(v.grossWeight, weightUnit as WeightUnitKey) : v.grossWeight,
-    tareWeight: v.tareWeight != null ? fromKilograms(v.tareWeight, weightUnit as WeightUnitKey) : v.tareWeight,
+    grossWeight:
+      v.grossWeight != null
+        ? fromKilograms(v.grossWeight, weightUnit as WeightUnitKey)
+        : v.grossWeight,
+    tareWeight:
+      v.tareWeight != null
+        ? fromKilograms(v.tareWeight, weightUnit as WeightUnitKey)
+        : v.tareWeight,
     layerCount: v.maxLayerCount,
     doorDirection: v.doorDirection,
     doorSide: v.doorSide,
@@ -309,10 +315,16 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     vehicleType: VEHICLE_TYPE_INT[values.vehicleType],
     description: values.description?.trim() ?? '',
     plateNumber: rawPlate || undefined,
-    internalLength: Number.isFinite(values.length) ? toCentimeters(values.length, dimensionUnit) : 0,
+    internalLength: Number.isFinite(values.length)
+      ? toCentimeters(values.length, dimensionUnit)
+      : 0,
     internalWidth: Number.isFinite(values.width) ? toCentimeters(values.width, dimensionUnit) : 0,
-    internalHeight: Number.isFinite(values.height) ? toCentimeters(values.height, dimensionUnit) : 0,
-    maxWeightCapacity: Number.isFinite(values.maxCargoWeight) ? toKilograms(values.maxCargoWeight, weightUnit as WeightUnitKey) : 0,
+    internalHeight: Number.isFinite(values.height)
+      ? toCentimeters(values.height, dimensionUnit)
+      : 0,
+    maxWeightCapacity: Number.isFinite(values.maxCargoWeight)
+      ? toKilograms(values.maxCargoWeight, weightUnit as WeightUnitKey)
+      : 0,
     layerCount: Number.isFinite(values.layerCount) ? (values.layerCount ?? 1) : 1,
     loadingType: (() => {
       if (values.doorDirection === 'side') {

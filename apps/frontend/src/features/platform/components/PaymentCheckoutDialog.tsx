@@ -452,9 +452,7 @@ export function PaymentCheckoutInline({ initialPlan, onCancel }: PaymentCheckout
                   </span>
                 )}
               </p>
-              {planMeta.period && (
-                <p className="text-[10px] text-muted-foreground">KDV dahil</p>
-              )}
+              {planMeta.period && <p className="text-[10px] text-muted-foreground">KDV dahil</p>}
             </div>
           </div>
 

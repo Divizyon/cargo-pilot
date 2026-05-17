@@ -235,7 +235,12 @@ export function SubscriptionTab() {
                   <span className="mb-0.5 text-sm text-muted-foreground">{plan.period}</span>
                 )}
               </div>
-              <p className={cn('mb-1 text-[11px] text-muted-foreground', !plan.period && 'invisible')}>
+              <p
+                className={cn(
+                  'mb-1 text-[11px] text-muted-foreground',
+                  !plan.period && 'invisible',
+                )}
+              >
                 KDV dahil
               </p>
 
