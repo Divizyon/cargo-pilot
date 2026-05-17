@@ -462,6 +462,7 @@ const planItemDimensionsSchema = z
     weight: z.number().catch(0),
     imageUrl: z.string().nullable().optional(),
     productType: z.string().nullable().optional(),
+    constraintIds: z.array(z.number().int()).optional(),
   })
   .passthrough();
 
@@ -544,6 +545,7 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
     allowFaceLeft: true,
     allowFaceRight: true,
     imageUrl: raw.imageUrl ?? undefined,
+    constraintIds: raw.constraintIds ?? [],
   } as Item;
 }
 
