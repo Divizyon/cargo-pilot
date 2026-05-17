@@ -141,8 +141,6 @@ export function useLoadingPlanDetail(id: string | undefined) {
           placements: [],
           skuColorMap: {},
           unplacedItems: [],
-          groups: [],
-          itemGroupAssignments: {},
         };
       }
       return fromApiFullDetail(parsed.data.data);
@@ -156,10 +154,9 @@ export function useLoadingPlanDetail(id: string | undefined) {
 
 interface CreateLoadingPlanInput {
   planName: string;
-  vehicleIds: string[];
-  items: Array<{ itemId: string; quantity: number; groupId?: string }>;
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number }>;
   optimizationCriteria: OptimizationCriteria;
-  groups?: Array<{ clientGroupId: string; name: string; color: string; unloadingOrder: number }>;
 }
 
 export function useCreateLoadingPlan() {
@@ -196,19 +193,8 @@ export function useCreateLoadingPlan() {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
     },
     onError: (error) => {
-      type BackendError = {
-        message?: string;
-        error?: {
-          description?: string;
-          validationErrors?: Array<{ field: string; message: string }>;
-        };
-      };
-      const raw = error.response?.data as BackendError | undefined;
-      const firstValidation = raw?.error?.validationErrors?.[0]?.message;
       const detail =
-        firstValidation ??
-        raw?.message ??
-        raw?.error?.description ??
+        error.response?.data?.detail ??
         error.message ??
         'Plan oluşturulamadı. Lütfen tekrar deneyin.';
       toast.error(detail, { position: 'bottom-right' });
@@ -296,21 +282,19 @@ export function useApprovePlan() {
 
 interface ReoptimizeLoadingPlanInput {
   id: string;
-  vehicleIds: string[];
-  items: Array<{ itemId: string; quantity: number; groupId?: string }>;
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number }>;
   optimizationCriteria: OptimizationCriteria;
-  groups?: Array<{ clientGroupId: string; name: string; color: string; unloadingOrder: number }>;
 }
 
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
-    mutationFn: async ({ id, vehicleIds, items, optimizationCriteria, groups }) => {
+    mutationFn: async ({ id, vehicleId, items, optimizationCriteria }) => {
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
-        vehicleIds,
+        vehicleId,
         items,
         optimizationCriteria,
-        ...(groups && groups.length > 0 ? { groups } : {}),
       });
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
@@ -340,23 +324,8 @@ export function useReoptimizeLoadingPlan() {
       toast.success('Plan yeniden optimize edildi.', { position: 'bottom-right', duration: 2000 });
     },
     onError: (error) => {
-      type BackendError = {
-        message?: string;
-        error?: {
-          description?: string;
-          validationErrors?: Array<{ field: string; message: string }>;
-        };
-      };
-      const raw = error.response?.data as BackendError | undefined;
-      const validationErrors = raw?.error?.validationErrors;
-      if (validationErrors?.length) {
-        console.error('[reoptimize] Validation errors:', validationErrors);
-      }
-      const firstValidation = validationErrors?.[0]?.message;
       const detail =
-        firstValidation ??
-        raw?.message ??
-        raw?.error?.description ??
+        error.response?.data?.detail ??
         error.message ??
         'Plan optimize edilemedi. Lütfen tekrar deneyin.';
       toast.error(detail, { position: 'bottom-right' });
