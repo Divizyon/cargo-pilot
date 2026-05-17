@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -30,7 +30,7 @@ import { useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
 
 // ─── Constraint icons ─────────────────────────────────────────────────────────
 
-const CONSTRAINT_ICON: Record<string, React.ReactNode> = {
+const CONSTRAINT_ICON: Record<string, ReactNode> = {
   fragile: <AlertCircle className="w-3 h-3 text-rose-500" />,
   liquid: <RotateCcw className="w-3 h-3 text-blue-500" />,
   bottom_only: <ArrowUpDown className="w-3 h-3 text-amber-500" />,
