@@ -19,7 +19,10 @@ public sealed record SharePlacementDetailDto(
     int Layer,
     bool IsViolation,
     string? Color,
-    decimal Weight);
+    decimal Weight,
+    string? ProductName,
+    string? ProductSku,
+    string? ProductType);
 
 public sealed record SharePlanDto(
     string PlanName,

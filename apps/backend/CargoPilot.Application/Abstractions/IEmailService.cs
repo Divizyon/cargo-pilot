@@ -36,4 +36,16 @@ public interface IEmailService {
         string toEmail,
         string toName,
         CancellationToken cancellationToken = default);
+
+    Task SendContactNotificationEmailAsync(
+        string senderName,
+        string senderEmail,
+        string subject,
+        string message,
+        CancellationToken cancellationToken = default);
+
+    Task SendContactAutoReplyEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default);
 }

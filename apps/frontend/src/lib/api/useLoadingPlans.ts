@@ -118,6 +118,9 @@ export function useLoadingPlanListItem(id: string) {
         plannedAt: d.plannedAt,
         planCode: d.planCode,
         status: d.status,
+        thumbnailUrl: ((d as Record<string, unknown>)['thumbnailUrl'] ??
+          (d as Record<string, unknown>)['snapshotUrl'] ??
+          (d as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
       });
     },
     enabled: Boolean(id),
@@ -432,22 +435,6 @@ export function useLoadingPlanUnplaced(planId: string | null) {
     },
     enabled: Boolean(planId),
     staleTime: 5 * 60 * 1000,
-  });
-}
-
-// ─── Thumbnail upload mutation ────────────────────────────────────────────────
-
-export function useUploadPlanThumbnail() {
-  const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ProblemDetails>, { id: string; dataUrl: string }>({
-    mutationFn: ({ id, dataUrl }) =>
-      axiosInstance
-        .post(`/api/v1/loading-plans/${id}/thumbnail`, { imageBase64: dataUrl })
-        .then(() => undefined),
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
-      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
-    },
   });
 }
 

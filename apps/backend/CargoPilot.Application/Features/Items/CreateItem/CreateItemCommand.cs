@@ -22,5 +22,6 @@ public sealed record CreateItemCommand(
     AllowedRotations AllowedRotations,
     string? ImageUrl,
     string? StackGroup,
+    string[]? IncompatibleGroups,
     string? SpecialNotes,
     int[]? ConstraintIds = null) : IRequest<Result<Guid>>;

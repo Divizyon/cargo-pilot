@@ -82,6 +82,7 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
                 draft.Diameter,
                 draft.ImageUrl,
                 draft.StackGroup,
+                null,
                 draft.SpecialNotes,
                 draft.GetConstraintIds(),
                 companyId);

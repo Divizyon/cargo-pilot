@@ -9,7 +9,6 @@ import type { WeeklyTrendItem } from '@/lib/api/useDashboardStats';
 
 const chartConfig: ChartConfig = {
   sevkiyat: { label: 'Sevkiyat', color: 'var(--color-sevkiyat)' },
-  teslim: { label: 'Teslim', color: 'var(--color-teslim)' },
 };
 
 interface Props {
@@ -17,21 +16,19 @@ interface Props {
 }
 
 export function WeeklyTrendChart({ data }: Props) {
+  const hasTeslim = data.some((d) => d.teslim > 0);
+
   return (
     <div className="rounded-xl border bg-card p-4 shadow-none">
       <div className="flex items-start justify-between mb-1">
         <div>
           <p className="text-base font-semibold text-foreground">Haftalık Sevkiyat Trendi</p>
-          <p className="text-sm text-muted-foreground">Toplam sevkiyat ve teslim karşılaştırması</p>
+          <p className="text-sm text-muted-foreground">Toplam sevkiyat trendi</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full bg-foreground" />
             Sevkiyat
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-zinc-300" />
-            Teslim
           </span>
         </div>
       </div>
@@ -55,14 +52,16 @@ export function WeeklyTrendChart({ data }: Props) {
             fill="#18181b"
             fillOpacity={0.08}
           />
-          <Area
-            type="monotone"
-            dataKey="teslim"
-            stroke="#d4d4d8"
-            strokeWidth={1.5}
-            fill="#d4d4d8"
-            fillOpacity={0.3}
-          />
+          {hasTeslim && (
+            <Area
+              type="monotone"
+              dataKey="teslim"
+              stroke="#d4d4d8"
+              strokeWidth={1.5}
+              fill="#d4d4d8"
+              fillOpacity={0.3}
+            />
+          )}
         </AreaChart>
       </ChartContainer>
     </div>

@@ -71,6 +71,7 @@ import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
+import { useReadOnly } from '../ReadOnlyContext';
 
 // ─── Vehicle type filter metadata ────────────────────────────────────────────
 
@@ -310,6 +311,7 @@ function SelectedVehicleCard({
   onDeselect,
   onAddInstance,
 }: SelectedVehicleCardProps) {
+  const readOnly = useReadOnly();
   const [expanded, setExpanded] = useState(false);
   const weightUnit = useUnitStore((s) => s.weightUnit);
   const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
@@ -337,29 +339,33 @@ function SelectedVehicleCard({
             </p>
           </div>
         </div>
-        <button
-          title="Bir tane daha ekle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddInstance();
-          }}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          <span className="relative">
-            <Truck className="w-3.5 h-3.5" />
-            <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
-          </span>
-        </button>
-        <button
-          title="Listeden çıkar"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeselect(instanceId);
-          }}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-rose-600 hover:bg-rose-50"
-        >
-          <X className="w-3 h-3" />
-        </button>
+        {!readOnly && (
+          <>
+            <button
+              title="Bir tane daha ekle"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddInstance();
+              }}
+              className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
+            >
+              <span className="relative">
+                <Truck className="w-3.5 h-3.5" />
+                <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
+              </span>
+            </button>
+            <button
+              title="Listeden çıkar"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeselect(instanceId);
+              }}
+              className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-rose-600 hover:bg-rose-50"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </>
+        )}
         <ChevronDown
           onClick={(e) => {
             e.stopPropagation();
@@ -429,6 +435,7 @@ export function PlanRightPanel({
   planName,
   getSnapshot,
 }: PlanRightPanelProps) {
+  const readOnly = useReadOnly();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
@@ -626,41 +633,45 @@ export function PlanRightPanel({
         >
           <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
             <span className="text-sm text-foreground">Araçlar</span>
-            <Button
-              size="icon"
-              title="Araç Ekle"
-              className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-              onClick={() => setShowVehicleModal(true)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </Button>
+            {!readOnly && (
+              <Button
+                size="icon"
+                title="Araç Ekle"
+                className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
+                onClick={() => setShowVehicleModal(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </Button>
+            )}
           </div>
 
-          {/* Vehicle tabs */}
-          <div className="px-2 pt-2 shrink-0">
-            <Tabs
-              value={activeVehicleTab}
-              onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
-            >
-              <TabsList className="w-full h-7 bg-muted">
-                <TabsTrigger value="selected" className="flex-1 text-xs h-6">
-                  Seçili Araç
-                  <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                    ({selectedVehicles.length})
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="list" className="flex-1 text-xs h-6">
-                  Araç Listesi
-                  <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                    ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Vehicle tabs — edit modda göster */}
+          {!readOnly && (
+            <div className="px-2 pt-2 shrink-0">
+              <Tabs
+                value={activeVehicleTab}
+                onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
+              >
+                <TabsList className="w-full h-7 bg-muted">
+                  <TabsTrigger value="selected" className="flex-1 text-xs h-6">
+                    Seçili Araç
+                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                      ({selectedVehicles.length})
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="flex-1 text-xs h-6">
+                    Araç Listesi
+                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                      ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
 
-          {/* Tab: Seçili Araç */}
-          {activeVehicleTab === 'selected' && (
+          {/* Tab: Seçili Araç — read-only modda doğrudan göster */}
+          {(readOnly || activeVehicleTab === 'selected') && (
             <div className="flex-1 min-h-0 overflow-y-auto">
               {selectedVehicles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
@@ -685,8 +696,8 @@ export function PlanRightPanel({
             </div>
           )}
 
-          {/* Tab: Araç Listesi */}
-          {activeVehicleTab === 'list' && (
+          {/* Tab: Araç Listesi — read-only modda gizle */}
+          {!readOnly && activeVehicleTab === 'list' && (
             <>
               <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
                 <div className="relative flex-1">
@@ -879,23 +890,25 @@ export function PlanRightPanel({
                 <span>X-Ray</span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (!planId) {
-                    toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
-                      position: 'bottom-right',
-                    });
-                    return;
-                  }
-                  setShareDialogOpen(true);
-                }}
-                disabled={placements.length === 0}
-                title="Paylaş"
-                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Paylaş</span>
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => {
+                    if (!planId) {
+                      toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
+                        position: 'bottom-right',
+                      });
+                      return;
+                    }
+                    setShareDialogOpen(true);
+                  }}
+                  disabled={placements.length === 0}
+                  title="Paylaş"
+                  className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Paylaş</span>
+                </button>
+              )}
 
               <button
                 onClick={handlePdfExport}
@@ -959,52 +972,56 @@ export function PlanRightPanel({
             )}
           </div>
 
-          {/* Optimizasyon modu seçici */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
-            <div className="grid grid-cols-2 gap-1">
-              {(
-                [
-                  {
-                    value: OptimizationCriteria.Lifo,
-                    icon: ArrowDownUp,
-                    label: 'LIFO',
-                    title: 'Son giren ilk çıkar',
-                  },
-                  {
-                    value: OptimizationCriteria.WeightBalance,
-                    icon: Scale,
-                    label: 'Ağırlık Dengesi',
-                    title: 'Ağırlık dengesi',
-                  },
-                ] as const
-              ).map(({ value, icon: Icon, label, title }) => (
-                <button
-                  key={value}
-                  onClick={() => setCriteria(value)}
-                  title={title}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                    criteria === value
-                      ? 'bg-foreground text-background border-foreground'
-                      : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{label}</span>
-                </button>
-              ))}
+          {/* Optimizasyon modu seçici — gizle: read-only modda */}
+          {!readOnly && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
+              <div className="grid grid-cols-2 gap-1">
+                {(
+                  [
+                    {
+                      value: OptimizationCriteria.Lifo,
+                      icon: ArrowDownUp,
+                      label: 'LIFO',
+                      title: 'Son giren ilk çıkar',
+                    },
+                    {
+                      value: OptimizationCriteria.WeightBalance,
+                      icon: Scale,
+                      label: 'Ağırlık Dengesi',
+                      title: 'Ağırlık dengesi',
+                    },
+                  ] as const
+                ).map(({ value, icon: Icon, label, title }) => (
+                  <button
+                    key={value}
+                    onClick={() => setCriteria(value)}
+                    title={title}
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
+                      criteria === value
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <Button
-            className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-            disabled={!selectedVehicle || isOptimizing || !canOptimize}
-            onClick={onOptimize}
-          >
-            {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-            Optimizasyonu Başlat
-          </Button>
+          {!readOnly && (
+            <Button
+              className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+              disabled={!selectedVehicle || isOptimizing || !canOptimize}
+              onClick={onOptimize}
+            >
+              {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              Optimizasyonu Başlat
+            </Button>
+          )}
           {placements.length > 0 && (
             <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
               Yükleme Animasyonunu Başlat

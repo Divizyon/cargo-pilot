@@ -67,7 +67,10 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
                     1,
                     false,
                     color,
-                    p.Item.Weight);
+                    p.Item.Weight,
+                    p.Item.Name,
+                    p.Item.SKU,
+                    p.Item.ProductType);
             })
             .ToList();
 

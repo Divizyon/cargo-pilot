@@ -109,6 +109,25 @@ fail2ban-client set sshd unbanip <IP>
 
 ---
 
+## Nginx Reverse Proxy
+
+Config: `/etc/nginx/sites-available/cargopilot`
+
+| Path | Yönlendirme | Açıklama |
+|------|-------------|----------|
+| `/api/` | `localhost:8081` | Backend API |
+| `/health` | `localhost:8081` | Backend health check |
+| `/media/` | `localhost:9002/cargo-pilot-test/` | MinIO dosyaları — public erişim |
+| `/` | `localhost:3001` | Frontend (catch-all) |
+
+{% hint style="info" %}
+`/media/` path'i MinIO S3 API (port 9002) üzerine reverse proxy yapılmıştır. Bucket policy public olduğundan authentication gerekmez. Dosyalar `https://cargopilot.divizyon.org/media/<path>` formatında erişilebilir.
+
+MinIO Console (port 9003) domain üzerinden değil, doğrudan `http://104.247.163.42:9003` adresinden erişilir.
+{% endhint %}
+
+---
+
 ## Ağ Yapısı
 
 ```
@@ -119,6 +138,11 @@ fail2ban-client set sshd unbanip <IP>
     │
     ├── UFW (deny incoming by default)
     │       └── İzin verilen portlar → Servislere yönlendirme
+    │
+    ├── Nginx → cargopilot.divizyon.org (443/80)
+    │       ├── /api/    → backend:8081
+    │       ├── /media/  → minio:9002/cargo-pilot-test/
+    │       └── /        → frontend:3001
     │
     ├── Docker bridge ağları
     │       ├── cargo-pilot-prod-network   (prod stack)
