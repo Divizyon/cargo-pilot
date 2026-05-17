@@ -74,7 +74,6 @@ export function ProductEditPage() {
         onClose={() => setShowDeleteDialog(false)}
         onDeleted={() => navigate('/products')}
       />
-
     </div>
   );
 }
