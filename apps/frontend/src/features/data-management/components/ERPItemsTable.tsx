@@ -1,7 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -156,6 +155,7 @@ export function ERPItemsTable() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
+  const [selectAllMode, setSelectAllMode] = useState(false);
 
   useEffect(() => {
     let last = pageSize;
@@ -189,14 +189,23 @@ export function ERPItemsTable() {
 
   const isSearching = searchTerm.trim().length > 0;
   const hasActiveFilters = categoryFilters.size > 0;
-  const queryPage = isSearching ? 1 : page;
-  const queryPageSize = isSearching ? 100 : pageSize;
+  const queryPage = isSearching || selectAllMode ? 1 : page;
+  const queryPageSize = selectAllMode
+    ? Math.max(draftPage?.totalCount ?? 999, 999)
+    : isSearching
+      ? 100
+      : pageSize;
 
   const {
     data: draftPage,
     isLoading,
     isFetching,
   } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
+
+  useEffect(() => {
+    if (!selectAllMode || !draftPage) return;
+    setSelectedIds(new Set(draftPage.items.filter((i) => i.status === DRAFT_PENDING).map((i) => i.id)));
+  }, [selectAllMode, draftPage]);
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 
@@ -230,8 +239,8 @@ export function ERPItemsTable() {
 
   const selectableItems = filteredItems.filter((i) => i.status === DRAFT_PENDING);
   const allSelected =
-    selectableItems.length > 0 && selectableItems.every((i) => selectedIds.has(i.id));
-  const someSelected = !allSelected && selectableItems.some((i) => selectedIds.has(i.id));
+    selectAllMode || (selectableItems.length > 0 && selectableItems.every((i) => selectedIds.has(i.id)));
+  const someSelected = !allSelected && selectedIds.size > 0;
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
@@ -240,8 +249,9 @@ export function ERPItemsTable() {
 
   function handleSelectAll(checked: boolean | 'indeterminate') {
     if (checked === true) {
-      setSelectedIds(new Set(selectableItems.map((i) => i.id)));
+      setSelectAllMode(true);
     } else {
+      setSelectAllMode(false);
       setSelectedIds(new Set());
     }
   }
@@ -289,6 +299,7 @@ export function ERPItemsTable() {
                 setStatusFilter(tab.value);
                 setPage(1);
                 setSelectedIds(new Set());
+                setSelectAllMode(false);
               }}
               className={cn(
                 'h-auto rounded-md px-3 py-1 text-xs font-medium transition-colors',
@@ -474,7 +485,11 @@ export function ERPItemsTable() {
                         aria-label={`${row.name} satırını seç`}
                       />
                     ) : row.status === DRAFT_APPROVED ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Aktarıldı" />
+                      <Checkbox
+                        checked
+                        aria-label="Aktarıldı"
+                        className="pointer-events-none data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                      />
                     ) : row.status === DRAFT_REJECTED ? (
                       <XCircle className="h-4 w-4 text-destructive/60" aria-label="Reddedildi" />
                     ) : null}
