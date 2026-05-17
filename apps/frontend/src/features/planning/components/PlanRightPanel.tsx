@@ -403,33 +403,6 @@ function SelectedVehicleCard({
   );
 }
 
-// ─── SortableSelectedVehicleCard ─────────────────────────────────────────────
-
-interface SortableSelectedVehicleCardProps extends SelectedVehicleCardProps {
-  id: string;
-}
-
-function SortableSelectedVehicleCard({ id, ...cardProps }: SortableSelectedVehicleCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(
-        'touch-none select-none',
-        isDragging ? 'opacity-40 z-50 relative cursor-grabbing' : 'cursor-grab',
-      )}
-      {...listeners}
-      {...attributes}
-    >
-      <SelectedVehicleCard {...cardProps} />
-    </div>
-  );
-}
-
 // ─── PlanRightPanel ───────────────────────────────────────────────────────────
 
 interface PlanRightPanelProps {
@@ -459,7 +432,6 @@ export function PlanRightPanel({
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
   const setActiveVehicle = usePlanStore((s) => s.setActiveVehicle);
-  const reorderVehicles = usePlanStore((s) => s.reorderVehicles);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedVehicles = usePlanStore((s) => s.selectedVehicles);
   const placements = usePlanStore((s) => s.placements);
@@ -535,12 +507,6 @@ export function PlanRightPanel({
     });
   }
 
-  function handleSelectedVehicleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    reorderVehicles(active.id as string, over.id as string);
-  }
-
   useEffect(() => {
     if (!pendingSelectIdRef.current) return;
     const found = vehicles.find((v) => v.id === pendingSelectIdRef.current);
@@ -605,12 +571,22 @@ export function PlanRightPanel({
     addVehicle(v);
   }
 
-  const listTabVehicles = displayedVehicles;
+  // IDs of vehicle models currently in the selected list (for filtering Araç Listesi)
+  const selectedVehicleIds = useMemo(
+    () => new Set(selectedVehicles.map((e) => e.vehicle.id)),
+    [selectedVehicles],
+  );
+
+  const listTabVehicles = useMemo(
+    () => displayedVehicles.filter((v) => !selectedVehicleIds.has(v.id)),
+    [displayedVehicles, selectedVehicleIds],
+  );
 
   const listSortableIds = useMemo(() => {
     if (vehicleSearch.trim()) return listTabVehicles.map((v) => v.id);
-    return vehicleOrder.length > 0 ? vehicleOrder : listTabVehicles.map((v) => v.id);
-  }, [vehicleOrder, vehicleSearch, listTabVehicles]);
+    const filtered = vehicleOrder.filter((id) => !selectedVehicleIds.has(id));
+    return filtered.length > 0 ? filtered : listTabVehicles.map((v) => v.id);
+  }, [vehicleOrder, vehicleSearch, listTabVehicles, selectedVehicleIds]);
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -674,8 +650,8 @@ export function PlanRightPanel({
                 </TabsTrigger>
                 <TabsTrigger value="list" className="flex-1 text-xs h-5.5">
                   Araç Listesi
-                  <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
-                    ({vehicles.length})
+                  <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                    ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
                   </span>
                 </TabsTrigger>
               </TabsList>
@@ -692,29 +668,17 @@ export function PlanRightPanel({
                 </div>
               ) : (
                 <div className="p-2 flex flex-col gap-0.5">
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleSelectedVehicleDragEnd}
-                  >
-                    <SortableContext
-                      items={selectedVehicles.map((e) => e.instanceId)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {selectedVehicles.map((entry) => (
-                        <SortableSelectedVehicleCard
-                          key={entry.instanceId}
-                          id={entry.instanceId}
-                          instanceId={entry.instanceId}
-                          vehicle={entry.vehicle}
-                          isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
-                          onMakeActive={() => setActiveVehicle(entry.instanceId)}
-                          onDeselect={handleDeselectVehicle}
-                          onAddInstance={() => handleAddInstance(entry.vehicle)}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
+                  {selectedVehicles.map((entry) => (
+                    <SelectedVehicleCard
+                      key={entry.instanceId}
+                      instanceId={entry.instanceId}
+                      vehicle={entry.vehicle}
+                      isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
+                      onMakeActive={() => setActiveVehicle(entry.instanceId)}
+                      onDeselect={handleDeselectVehicle}
+                      onAddInstance={() => handleAddInstance(entry.vehicle)}
+                    />
+                  ))}
                 </div>
               )}
             </div>

@@ -163,7 +163,7 @@ export function CreatePlanFromOrdersDialog({ selectedOrders, onClose }: Props) {
     if (!canCreate) return;
     const id = await createPlan({
       planName: planName.trim(),
-      vehicleIds: [vehicleId],
+      vehicleId,
       items: aggregatedItems.map((i) => ({ itemId: i.cargoItemId, quantity: i.quantity })),
       optimizationCriteria: OptimizationCriteria.WeightBalance,
     });
