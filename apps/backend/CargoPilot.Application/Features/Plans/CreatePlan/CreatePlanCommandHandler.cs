@@ -139,7 +139,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             .Concat(groupMap.Where(kv => !inlineGroupMap.ContainsKey(kv.Key)))
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
-        var optimizationInput = BuildInput(vehicle, activeItems, itemMap, combinedGroupMap, request.OptimizationCriteria);
+        var optimizationInput = BuildInput(vehicle, activeItems, itemMap, combinedGroupMap, request.OptimizationCriteria, request.ClusterGroups);
         var result = _optimizationEngine.Run(optimizationInput);
 
         var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
@@ -171,7 +171,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         IReadOnlyList<CreatePlanItemRequest> requestItems,
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap,
-        LoadingPlanOptimizationCriteria criteria)
+        LoadingPlanOptimizationCriteria criteria,
+        bool clusterGroups)
     {
         var inputs = requestItems
             .Select(r =>
@@ -190,6 +191,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         return new OptimizationInput(
             vehicle.InternalWidth, vehicle.InternalHeight,
             vehicle.InternalLength, vehicle.MaxWeightCapacity,
-            inputs, criteria, vehicle.LoadingType);
+            inputs, criteria, vehicle.LoadingType, clusterGroups);
     }
 }

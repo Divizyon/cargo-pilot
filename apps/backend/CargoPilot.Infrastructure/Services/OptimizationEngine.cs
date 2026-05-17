@@ -18,7 +18,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var expanded = input.Items
             .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i));
 
-        var instances = SortForGroupPlacement(expanded, input.Criteria);
+        var instances = SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups);
 
         var halfW = input.VehicleWidth  / 2m;
         var halfL = input.VehicleLength / 2m;
@@ -35,7 +35,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
         }
 
-        var groupZones = ComputeGroupZones(instances, input.VehicleLength, input.LoadingType);
+        var groupZones = ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, input.Criteria);
 
         foreach (var item in instances)
         {
@@ -50,7 +50,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             PlacedBox? best = null;
             var bestScore = decimal.MaxValue;
 
-            foreach (var (ex, ey, ez) in extremePoints)
+            foreach (var (ex, ey, ez) in extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x))
             {
                 foreach (var (w, h, d, rotation) in GetOrientations(item))
                 {
@@ -60,7 +60,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
                     if (HasOverlap(placements, ex, ey, ez, w, h, d)) continue;
                     if (!HasSupport(placements, ex, ey, ez, w, d))   continue;
-                    if (ViolatesStackability(placements, ex, ey, ez, w, d, item.UnloadingOrder)) continue;
+                    if (ViolatesStackability(placements, ex, ey, ez, w, d,
+                        input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                     if (ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
                     if (ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
 
@@ -146,11 +147,11 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     private static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
-        LoadingType loadingType)
+        LoadingType loadingType,
+        LoadingPlanOptimizationCriteria criteria)
     {
-        // Z ekseninde zone ayrımı yalnızca arka kapı yüklemesinde geçerli.
-        // Yan kapı veya üstten yüklemede her Z derinliğine kapıdan ulaşılabilir.
-        if (loadingType != LoadingType.Rear)
+        // Zone ayrımı yalnızca LIFO modunda ve arka kapı yüklemesinde geçerli.
+        if (criteria != LoadingPlanOptimizationCriteria.Lifo || loadingType != LoadingType.Rear)
             return [];
 
         var orders = items
@@ -179,24 +180,18 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     // Grup yoksa mevcut criteria-based sıralama uygulanır.
     private static List<OptimizationItemInput> SortForGroupPlacement(
         IEnumerable<OptimizationItemInput> expanded,
-        LoadingPlanOptimizationCriteria criteria)
+        LoadingPlanOptimizationCriteria criteria,
+        bool clusterGroups)
     {
         var list = expanded.ToList();
 
         var hasGroups = list.Any(i => i.GroupId.HasValue);
-        if (!hasGroups)
-        {
-            return criteria switch
-            {
-                LoadingPlanOptimizationCriteria.WeightBalance =>
-                    list.OrderByDescending(i => i.Weight).ToList(),
-                LoadingPlanOptimizationCriteria.Lifo =>
-                    list,
-                _ =>
-                    list.OrderByDescending(i => i.Width * i.Height * i.Length).ToList(),
-            };
-        }
 
+        // Kümeleme kapalıysa veya grup yoksa: tüm ürünleri criteria-sort ile karıştır
+        if (!hasGroups || !clusterGroups)
+            return ApplyCriteriaSort(list, criteria).ToList();
+
+        // Kümeleme açık: gruplu ürünler önce (UnloadingOrder DESC), grupsuzlar sonda
         var grouped = list
             .Where(i => i.GroupId.HasValue)
             .GroupBy(i => (i.GroupId!.Value, i.UnloadingOrder ?? 0))
@@ -214,11 +209,11 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         => criteria switch
         {
             LoadingPlanOptimizationCriteria.WeightBalance =>
-                items.OrderByDescending(i => i.Weight),
+                items.OrderByDescending(i => i.Weight).ThenBy(i => i.ItemId),
             LoadingPlanOptimizationCriteria.Lifo =>
-                items,
+                items.OrderByDescending(i => i.Width * i.Height * i.Length).ThenBy(i => i.ItemId),
             _ =>
-                items.OrderByDescending(i => i.Width * i.Height * i.Length),
+                items.OrderByDescending(i => i.Width * i.Height * i.Length).ThenBy(i => i.ItemId),
         };
 
     // ── İkinci geçiş: greedy swap balance iyileştirici ───────────────────────

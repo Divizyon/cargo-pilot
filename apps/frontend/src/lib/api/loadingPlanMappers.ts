@@ -651,7 +651,8 @@ export function fromApiFullDetail(
   const groups = [...(data.groups ?? [])]
     .sort((a: RawGroup, b: RawGroup) => a.unloadingOrder - b.unloadingOrder)
     .map((g: RawGroup) => ({
-      id: crypto.randomUUID(), // re-optimize için taze clientGroupId
+      id: g.id,
+      dbId: g.id,
       name: g.name,
       color: g.color,
       itemIds: (g.items ?? []).map((i: { itemId: string }) => i.itemId),

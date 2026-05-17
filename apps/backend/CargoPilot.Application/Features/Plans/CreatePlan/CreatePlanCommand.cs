@@ -9,7 +9,8 @@ public sealed record CreatePlanCommand(
     Guid VehicleId,
     IReadOnlyList<CreatePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
-    IReadOnlyList<CreatePlanGroupDefinition>? Groups = null)
+    IReadOnlyList<CreatePlanGroupDefinition>? Groups = null,
+    bool ClusterGroups = true)
     : IRequest<Result<Guid>>;
 
 public sealed record CreatePlanGroupDefinition(

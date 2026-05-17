@@ -6,7 +6,8 @@ public sealed record ReOptimizePlanRequest(
     Guid VehicleId,
     IReadOnlyList<ReOptimizePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
-    IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null);
+    IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
+    bool ClusterGroups = true);
 
 public sealed record ReOptimizePlanGroupDefinition(
     Guid ClientGroupId,

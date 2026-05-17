@@ -143,13 +143,21 @@ export function NewPlanPage() {
       selectedItems: items,
       placements,
       criteria,
+      clusterGroups,
       inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || !planNameInput.trim()) return;
 
     const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (itemsToSend.length === 0) return;
+    const rawItemsToSend = items.filter((si) => placedIds.has(si.item.id));
+    if (rawItemsToSend.length === 0) return;
+
+    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    const deduped = new Map<string, (typeof rawItemsToSend)[number]>();
+    for (const si of rawItemsToSend) {
+      if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
+    }
+    const itemsToSend = [...deduped.values()];
 
     const itemGroupMap = new Map<string, string>();
     for (const g of inlineGroups) {
@@ -164,7 +172,7 @@ export function NewPlanPage() {
             clientGroupId: g.id,
             name: g.name,
             color: g.color,
-            unloadingOrder: inlineGroups.length - idx,
+            unloadingOrder: idx + 1,
           }))
         : undefined;
 
@@ -178,6 +186,7 @@ export function NewPlanPage() {
         groupId: itemGroupMap.get(si.item.id),
       })),
       optimizationCriteria: criteria,
+      clusterGroups,
       groups,
     });
     const dataUrl = snapshotRef.current?.();
@@ -207,10 +216,24 @@ export function NewPlanPage() {
     const {
       selectedVehicle: vehicle,
       selectedItems: items,
+      placements,
       criteria,
+      clusterGroups,
       inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
+
+    // Only send items that are currently placed — items removed via "Çıkar" must be excluded
+    const placedIds = new Set(placements.map((p) => p.itemId));
+    const rawItems = items.filter((si) => placedIds.has(si.item.id));
+    if (rawItems.length === 0) return;
+
+    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    const dedupedMap = new Map<string, (typeof items)[number]>();
+    for (const si of rawItems) {
+      if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
+    }
+    const dedupedItems = [...dedupedMap.values()];
 
     const itemGroupMap = new Map<string, string>();
     for (const g of inlineGroups) {
@@ -225,19 +248,20 @@ export function NewPlanPage() {
             clientGroupId: g.id,
             name: g.name,
             color: g.color,
-            unloadingOrder: inlineGroups.length - idx,
+            unloadingOrder: idx + 1,
           }))
         : undefined;
 
     await reoptimizePlan({
       id: fromPlanId,
       vehicleId: vehicle.id,
-      items: items.map((si) => ({
+      items: dedupedItems.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,
         groupId: itemGroupMap.get(si.item.id),
       })),
       optimizationCriteria: criteria,
+      clusterGroups,
       groups,
     });
     pendingSnapshotPlanId.current = fromPlanId;
@@ -322,7 +346,7 @@ export function NewPlanPage() {
           )}
         >
           <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-            <PlanLeftPanel />
+            <PlanLeftPanel planId={fromPlanId} />
           </div>
         </div>
 

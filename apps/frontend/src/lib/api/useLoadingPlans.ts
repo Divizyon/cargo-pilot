@@ -167,13 +167,16 @@ interface CreateLoadingPlanInput {
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
+  clusterGroups?: boolean;
 }
 
 export function useCreateLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
-    mutationFn: async ({ groups, ...rest }) => {
-      const body = groups && groups.length > 0 ? { ...rest, groups } : rest;
+    mutationFn: async ({ groups, clusterGroups, ...rest }: CreateLoadingPlanInput) => {
+      const body: Record<string, unknown> = { ...rest };
+      if (groups && groups.length > 0) body['groups'] = groups;
+      if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
       const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', body);
 
       // API returns the UUID directly as a string
@@ -297,14 +300,16 @@ interface ReoptimizeLoadingPlanInput {
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
+  clusterGroups?: boolean;
 }
 
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
-    mutationFn: async ({ id, vehicleId, items, optimizationCriteria, groups }) => {
+    mutationFn: async ({ id, vehicleId, items, optimizationCriteria, groups, clusterGroups }: ReoptimizeLoadingPlanInput) => {
       const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
+      if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, body);
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
@@ -457,6 +462,19 @@ export function useUploadPlanThumbnail() {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
     },
+  });
+}
+
+// ─── Delete plan group mutation ───────────────────────────────────────────────
+
+export function useDeletePlanGroup() {
+  return useMutation<void, AxiosError<ProblemDetails>, { planId: string; groupId: string }>({
+    mutationFn: ({ planId, groupId }) =>
+      axiosInstance
+        .delete(`/api/v1/loading-plans/${planId}/groups/${groupId}`, {
+          data: { moveItemsToNull: true },
+        })
+        .then(() => undefined),
   });
 }
 

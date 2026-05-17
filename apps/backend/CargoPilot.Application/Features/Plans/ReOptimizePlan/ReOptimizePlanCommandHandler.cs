@@ -76,6 +76,9 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         var itemMap = items.ToDictionary(i => i.Id);
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
 
+        // Mevcut grupları sil — her reoptimize yeni grup satırları oluşturur, eskiler silinmezse birikirdi
+        await _groupRepository.DeleteByPlanIdAsync(plan.Id, cancellationToken);
+
         // Inline grup tanımları varsa entity'leri oluştur ve DB kayıt izleyicisine ekle
         Dictionary<Guid, LoadingPlanItemGroup> inlineGroupMap = [];
         if (request.Groups is { Count: > 0 })
@@ -88,7 +91,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             }
         }
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria);
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria, request.ClusterGroups);
         var result = _optimizationEngine.Run(optimizationInput);
 
         var newInputItems = request.Items
@@ -113,7 +116,8 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         IReadOnlyList<ReOptimizePlanItemRequest> requestItems,
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap,
-        LoadingPlanOptimizationCriteria criteria)
+        LoadingPlanOptimizationCriteria criteria,
+        bool clusterGroups)
     {
         var inputs = requestItems
             .Select(r =>
@@ -132,6 +136,6 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         return new OptimizationInput(
             vehicle.InternalWidth, vehicle.InternalHeight,
             vehicle.InternalLength, vehicle.MaxWeightCapacity,
-            inputs, criteria, vehicle.LoadingType);
+            inputs, criteria, vehicle.LoadingType, clusterGroups);
     }
 }

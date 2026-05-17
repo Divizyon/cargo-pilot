@@ -25,6 +25,7 @@ import {
   Search,
   SlidersHorizontal,
   Sun,
+  Trash2,
   Utensils,
   Wind,
   Wine,
@@ -47,6 +48,7 @@ import type { InlineGroup } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
+import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
 import { AddItemModal } from './AddItemModal';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
 import type { Item } from '@/lib/types/item';
@@ -486,8 +488,13 @@ function StoreItemRow({
 
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
-export function PlanLeftPanel() {
+interface PlanLeftPanelProps {
+  planId?: string;
+}
+
+export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const navigate = useNavigate();
+  const { mutateAsync: deleteGroupApi } = useDeletePlanGroup();
   const [groups, setGroups] = useState<
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>
   >([]);
@@ -781,6 +788,24 @@ export function PlanLeftPanel() {
     const pool = available.length > 0 ? available : [...GROUP_ICON_COLORS];
     const color = pool[Math.floor(Math.random() * pool.length)];
     setGroups((prev) => [...prev, { id, ad: `Grup ${num}`, acik: true, itemIdler: [], color }]);
+  }
+
+  async function handleDeleteGroup(groupId: string) {
+    const group = groups.find((g) => g.id === groupId);
+    const dbId = inlineGroupsFromStore.find((g) => g.id === groupId)?.dbId;
+    if (planId && dbId) {
+      await deleteGroupApi({ planId, groupId: dbId });
+    }
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    if (group) {
+      setUngroupedIds((prev) => [
+        ...prev,
+        ...group.itemIdler.filter((id) => !prev.includes(id)),
+      ]);
+    }
+    if (focusedGroupItemIds?.some((id) => group?.itemIdler.includes(id))) {
+      setFocusedGroupItemIds(null);
+    }
   }
 
   function handleStartGroupSelection(groupId: string) {
@@ -1092,6 +1117,18 @@ export function PlanLeftPanel() {
                       className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
                     >
                       <PackagePlus className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Delete group */}
+                    <button
+                      title="Grubu Sil"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteGroup(g.id);
+                      }}
+                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 hover:bg-accent"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 

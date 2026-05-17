@@ -9,7 +9,8 @@ public sealed record OptimizationInput(
     decimal VehicleMaxWeight,
     IReadOnlyList<OptimizationItemInput> Items,
     LoadingPlanOptimizationCriteria Criteria = LoadingPlanOptimizationCriteria.VolumeFirst,
-    LoadingType LoadingType = LoadingType.Rear);
+    LoadingType LoadingType = LoadingType.Rear,
+    bool ClusterGroups = true);
 
 public sealed record OptimizationItemInput(
     Guid ItemId,
