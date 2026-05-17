@@ -45,6 +45,12 @@ internal sealed class ItemRepository : IItemRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<Item?> GetByErpIdAsync(string erpId, Guid integrationId, Guid companyId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Items
+            .FirstOrDefaultAsync(i => i.ErpId == erpId && i.IntegrationId == integrationId && i.CompanyId == companyId, cancellationToken);
+    }
+
     public Task<Item?> GetBySkuAsync(string sku, Guid? companyId, CancellationToken cancellationToken = default)
     {
         return _dbContext.Items
