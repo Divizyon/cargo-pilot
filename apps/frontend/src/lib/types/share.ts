@@ -63,7 +63,9 @@ export const sharePlanSchema = z.object({
         isViolation: z.boolean(),
         color: z.string().nullable().optional(),
         weight: z.number().nonnegative(),
-        productType: z.number().optional(),
+        productName: z.string().optional().nullable(),
+        productType: z.union([z.string(), z.number()]).optional().nullable(),
+        productSku: z.string().optional().nullable(),
       }),
     )
     .optional()
