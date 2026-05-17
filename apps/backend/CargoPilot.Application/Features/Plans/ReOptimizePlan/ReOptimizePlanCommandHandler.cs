@@ -1,4 +1,5 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -74,7 +75,16 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         var inputTotalQuantity = request.Items.Sum(i => i.Quantity);
 
         var optimizationInput = BuildInput(vehicle, request.Items, itemMap, request.OptimizationCriteria);
-        var result = _optimizationEngine.Run(optimizationInput);
+
+        var contamination = ContaminationFilter.Filter(optimizationInput.Items);
+        var finalInput = contamination.Contaminated.Count > 0
+            ? optimizationInput with { Items = contamination.Passed }
+            : optimizationInput;
+
+        var engineResult = _optimizationEngine.Run(finalInput);
+        var result = contamination.Contaminated.Count > 0
+            ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
+            : engineResult;
 
         var newInputItems = request.Items
             .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), plan.Id, i.ItemId, i.Quantity))
@@ -101,7 +111,9 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
                     item.Id, item.SKU, item.Name, item.ImageUrl,
                     item.Width, item.Height, item.Length, item.Weight,
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
-                    item.AllowedRotations, r.Quantity);
+                    item.AllowedRotations, r.Quantity,
+                    StackGroup: item.StackGroup,
+                    IncompatibleGroups: item.GetIncompatibleGroups());
             })
             .ToList();
 

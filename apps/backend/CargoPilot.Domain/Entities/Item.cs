@@ -22,6 +22,7 @@ public sealed class Item : BaseEntity {
     public AllowedRotations AllowedRotations { get; private set; }
     public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
+    public string IncompatibleGroupsJson { get; private set; } = "[]";
     public string? SpecialNotes { get; private set; }
     public Guid? CompanyId { get; private set; }
     public string? ErpId { get; private set; }
@@ -53,6 +54,7 @@ public sealed class Item : BaseEntity {
         decimal? diameter = null,
         string? imageUrl = null,
         string? stackGroup = null,
+        string[]? incompatibleGroups = null,
         string? specialNotes = null,
         int[]? constraintIds = null,
         Guid? companyId = null) : base(id) {
@@ -74,6 +76,7 @@ public sealed class Item : BaseEntity {
         AllowedRotations = allowedRotations;
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
+        IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;
         CompanyId = companyId;
     }
@@ -108,6 +111,7 @@ public sealed class Item : BaseEntity {
         AllowedRotations allowedRotations,
         string? imageUrl,
         string? stackGroup,
+        string[]? incompatibleGroups,
         string? specialNotes,
         int[]? constraintIds = null) {
         SKU = sku;
@@ -128,6 +132,7 @@ public sealed class Item : BaseEntity {
         AllowedRotations = allowedRotations;
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
+        IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;
     }
 
@@ -142,9 +147,26 @@ public sealed class Item : BaseEntity {
         }
     }
 
+    public string[] GetIncompatibleGroups() {
+        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
+            return [];
+        try {
+            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
+        }
+        catch {
+            return [];
+        }
+    }
+
     private static string SerializeConstraintIds(int[]? constraintIds) {
         if (constraintIds is null or { Length: 0 })
             return "[]";
         return JsonSerializer.Serialize(constraintIds);
+    }
+
+    private static string SerializeStringArray(string[]? values) {
+        if (values is null or { Length: 0 })
+            return "[]";
+        return JsonSerializer.Serialize(values);
     }
 }

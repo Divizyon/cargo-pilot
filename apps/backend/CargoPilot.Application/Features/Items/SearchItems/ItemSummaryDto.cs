@@ -22,5 +22,6 @@ public sealed record ItemSummaryDto(
     AllowedRotations AllowedRotations,
     string? ImageUrl,
     string? StackGroup,
+    string[] IncompatibleGroups,
     string? SpecialNotes,
     string? ErpProviderName);
