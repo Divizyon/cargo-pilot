@@ -470,3 +470,21 @@ export function useExportPlanToERP() {
     },
   });
 }
+
+// ─── Imperative fetch helper (araç zincirleme taşma) ─────────────────────────
+
+export async function fetchPlanUnplacedItems(
+  id: string,
+): Promise<Array<{ itemId: string; quantity: number }>> {
+  try {
+    const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${id}`);
+    const parsed = planFullDetailApiResponseSchema.safeParse(data);
+    if (!parsed.success) return [];
+    return fromApiFullDetail(parsed.data.data).unplacedItems.map((u) => ({
+      itemId: u.itemId,
+      quantity: u.quantity,
+    }));
+  } catch {
+    return [];
+  }
+}

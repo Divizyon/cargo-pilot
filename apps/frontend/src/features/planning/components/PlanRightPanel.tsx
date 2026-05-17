@@ -333,7 +333,9 @@ interface SelectedVehicleCardProps {
   instanceId: string;
   vehicle: Vehicle;
   instanceNumber: number | null;
+  positionIndex: number;
   isPrimary: boolean;
+  isActive: boolean;
   onMakeActive: () => void;
   onDeselect: (instanceId: string) => void;
   onAddInstance: () => void;
@@ -346,7 +348,9 @@ function SelectedVehicleCard({
   instanceId,
   vehicle,
   instanceNumber,
-  isPrimary,
+  positionIndex,
+  isPrimary: _isPrimary,
+  isActive,
   onMakeActive,
   onDeselect,
   onAddInstance,
@@ -362,11 +366,11 @@ function SelectedVehicleCard({
     <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-border')}>
       <div
         onClick={() => {
-          if (!isPrimary) onMakeActive();
+          if (!isActive) onMakeActive();
         }}
         className={cn(
           'group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors text-foreground',
-          isPrimary ? 'bg-muted ring-1 ring-border' : 'hover:bg-accent cursor-pointer',
+          isActive ? 'bg-muted ring-1 ring-border' : 'hover:bg-accent cursor-pointer',
           expanded && 'bg-muted/40',
         )}
       >
@@ -386,6 +390,9 @@ function SelectedVehicleCard({
           <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
           <div className="flex-1 min-w-0">
             <p className="text-sm truncate text-foreground">
+              <span className="mr-1 text-[10px] tabular-nums text-muted-foreground font-mono">
+                {positionIndex}.
+              </span>
               {vehicle.name}
               {instanceNumber !== null && (
                 <span className="ml-1 text-[10px] tabular-nums text-muted-foreground font-mono">
@@ -782,6 +789,7 @@ export function PlanRightPanel({
                                 .filter((e) => e.vehicle.id === entry.vehicle.id)
                                 .findIndex((e) => e.instanceId === entry.instanceId) + 1
                             : null;
+                        const isActive = entry.vehicle.id === selectedVehicle?.id;
                         return (
                           <SortableSelectedVehicleCard
                             key={entry.instanceId}
@@ -789,7 +797,9 @@ export function PlanRightPanel({
                             instanceId={entry.instanceId}
                             vehicle={entry.vehicle}
                             instanceNumber={instanceNumber}
+                            positionIndex={index + 1}
                             isPrimary={index === 0}
+                            isActive={isActive}
                             onMakeActive={() => setActiveVehicle(entry.instanceId)}
                             onDeselect={handleDeselectVehicle}
                             onAddInstance={() => handleAddInstance(entry.vehicle)}

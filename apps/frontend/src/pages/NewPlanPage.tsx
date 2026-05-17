@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
@@ -22,6 +23,7 @@ import {
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
   useUploadPlanThumbnail,
+  fetchPlanUnplacedItems,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -91,6 +93,7 @@ export function NewPlanPage() {
   const [refetchKey, setRefetchKey] = useState(0);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [planNameInput, setPlanNameInput] = useState('');
+  const [isChaining, setIsChaining] = useState(false);
   const { id: fromPlanId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
@@ -150,19 +153,68 @@ export function NewPlanPage() {
     const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
     if (itemsToSend.length === 0) return;
 
-    const orderedVehicleIds = selectedVehicles.map((e) => e.vehicle.id);
-
     setNameDialogOpen(false);
-    const id = await createPlan({
-      planName: planNameInput.trim(),
-      vehicleId: vehicle.id,
-      ...(orderedVehicleIds.length > 1 && { vehicleIds: orderedVehicleIds }),
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
-      optimizationCriteria: criteria,
-    });
+
+    let firstId: string;
+    try {
+      firstId = await createPlan({
+        planName: planNameInput.trim(),
+        vehicleId: vehicle.id,
+        items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+        optimizationCriteria: criteria,
+      });
+    } catch {
+      return;
+    }
+
     const dataUrl = snapshotRef.current?.();
-    if (dataUrl) uploadThumbnail({ id, dataUrl });
-    navigate(planningDetailRoute(id), { replace: true });
+    if (dataUrl) uploadThumbnail({ id: firstId, dataUrl });
+
+    // Sonraki araçlara sığmayan ürünleri otomatik zincirle
+    const remainingVehicles = selectedVehicles.slice(1);
+    if (remainingVehicles.length > 0) {
+      setIsChaining(true);
+      try {
+        let overflow = await fetchPlanUnplacedItems(firstId);
+
+        for (const { vehicle: nextVehicle } of remainingVehicles) {
+          if (overflow.length === 0) break;
+
+          toast.loading(`${nextVehicle.name} için optimize ediliyor…`, {
+            id: 'vehicle-chain',
+            position: 'bottom-right',
+          });
+
+          try {
+            const nextId = await createPlan({
+              planName: `${nextVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`,
+              vehicleId: nextVehicle.id,
+              items: overflow,
+              optimizationCriteria: criteria,
+            });
+            overflow = await fetchPlanUnplacedItems(nextId);
+          } catch {
+            break;
+          }
+        }
+
+        toast.dismiss('vehicle-chain');
+        const totalOverflow = overflow.reduce((s, u) => s + u.quantity, 0);
+        if (totalOverflow === 0) {
+          toast.success('Tüm ürünler araçlara taslak olarak kaydedildi.', {
+            position: 'bottom-right',
+          });
+        } else {
+          toast.warning(`${totalOverflow} ürün hiçbir araca sığmadı.`, {
+            position: 'bottom-right',
+          });
+        }
+      } finally {
+        setIsChaining(false);
+      }
+    }
+
+    navigate(planningDetailRoute(firstId), { replace: true });
   }, [planNameInput, createPlan, navigate, uploadThumbnail]);
 
   const handlePlanLoaded = useCallback(() => {
@@ -306,7 +358,7 @@ export function NewPlanPage() {
             onToggleVehicles={() => setRightOpen((v) => !v)}
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
             onLoadAnimation={handleLoadAnimation}
-            isOptimizing={fromPlanId ? isReoptimizing : isCreating}
+            isOptimizing={fromPlanId ? isReoptimizing : isCreating || isChaining}
             canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
             getSnapshot={() => snapshotRef.current?.() ?? ''}
             planId={fromPlanId}
