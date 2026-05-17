@@ -61,10 +61,10 @@ export function ContactPage() {
                 <div>
                   <p className="text-sm font-medium text-foreground mb-0.5">E-posta</p>
                   <a
-                    href="mailto:hello@cargopilot.io"
+                    href="mailto:cargo-pilot@gmail.com"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    hello@cargopilot.io
+                    cargo-pilot@gmail.com
                   </a>
                 </div>
               </CardContent>
@@ -77,7 +77,7 @@ export function ContactPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground mb-0.5">Adres</p>
-                  <p className="text-sm text-muted-foreground">Levent, İstanbul, Türkiye</p>
+                  <p className="text-sm text-muted-foreground">Selçuklu / Konya</p>
                 </div>
               </CardContent>
             </Card>
@@ -110,13 +110,17 @@ export function ContactPage() {
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div className="space-y-1.5">
-                  <Label htmlFor="name">Ad Soyad</Label>
+                  <Label htmlFor="name">
+                    Ad Soyad <span className="text-destructive">*</span>
+                  </Label>
                   <Input id="name" placeholder="Adınız" {...register('name')} />
                   {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email">E-posta</Label>
+                  <Label htmlFor="email">
+                    E-posta <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -129,7 +133,9 @@ export function ContactPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="subject">Konu</Label>
+                  <Label htmlFor="subject">
+                    Konu <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="subject"
                     placeholder="Nasıl yardımcı olabiliriz?"
@@ -141,7 +147,9 @@ export function ContactPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="message">Mesaj</Label>
+                  <Label htmlFor="message">
+                    Mesaj <span className="text-destructive">*</span>
+                  </Label>
                   <Textarea
                     id="message"
                     placeholder="Mesajınızı buraya yazınız..."
