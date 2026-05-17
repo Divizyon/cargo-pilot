@@ -23,7 +23,7 @@ const vehicleModalSchema = z.object({
   width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   layerCount: z.number({ error: 'Sayı giriniz' }).int().min(1, 'En az 1'),
-  loadingArea: z.enum(['arka', 'yan', 'ust', 'arka-yan']),
+  loadingArea: z.enum(['arka', 'yan', 'ust']),
 });
 
 type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
@@ -56,13 +56,12 @@ const VEHICLE_TYPES: Array<{
 // ─── Loading area config ──────────────────────────────────────────────────────
 
 const LOADING_AREAS: Array<{
-  value: 'arka' | 'yan' | 'ust' | 'arka-yan';
+  value: 'arka' | 'yan' | 'ust';
   label: string;
 }> = [
   { value: 'arka', label: 'Yalnızca Arka' },
   { value: 'yan', label: 'Yan Kapı' },
   { value: 'ust', label: 'Üst Kapak' },
-  { value: 'arka-yan', label: 'Arka + Yan' },
 ];
 
 // ─── AddVehicleModal ──────────────────────────────────────────────────────────
