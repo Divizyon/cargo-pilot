@@ -26,6 +26,7 @@ services:
       Minio__AccessKey: ${MINIO_ROOT_USER}
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
       Minio__BucketName: ${MINIO_BUCKET}
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-}
       Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
       Jwt__Secret: ${JWT_SECRET}
       OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
