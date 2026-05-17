@@ -13,8 +13,8 @@ import { CargoPilotLogo } from '@/components/shared/CargoPilotLogo';
 import {
   ArrowRight,
   Share2,
-  Truck,
   Package,
+  Truck,
   CheckCircle2,
   Layers,
   Zap,

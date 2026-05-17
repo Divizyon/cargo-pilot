@@ -59,8 +59,10 @@ export function useLoadingAnimation(
   loadOrder: number[],
   setPosition: (globalIdx: number, x: number, y: number, z: number) => void,
   onFrameUpdate: () => void,
-  /** Araç Z derinliği (cm) — kapı ofseti hesabı için */
+  /** Araç Z derinliği (cm) — kapı Z konumu için */
   vehicleDepth?: number,
+  /** Araç X genişliği (cm) — kapı merkezi için */
+  vehicleWidth?: number,
 ) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const animationStep = useSceneStore((s) => s.animationStep);
@@ -78,8 +80,11 @@ export function useLoadingAnimation(
 
     const { staggerMs, flightMs } = computeScheduleParams(loadOrder.length);
 
-    // Kapı: aracın Z=0 yüzeyi → başlangıç Z'si daha negatif (dışarıda)
-    const doorZ = -(vehicleDepth ?? 0) / 2 - SCENE.ANIM_DOOR_OFFSET_CM;
+    // Kapı Z=length yüzünde (ContainerMesh ile aynı: position={[0,0,length]})
+    // Tüm kutular kapı merkezinden (width/2, 0, length+OFFSET) hedeflerine uçar
+    const doorZ = (vehicleDepth ?? 0) + SCENE.ANIM_DOOR_OFFSET_CM;
+    const doorX = (vehicleWidth ?? 0) / 2;
+    const doorY = 0;
 
     const schedule = new Map<number, AnimEntry>();
     loadOrder.forEach((globalIdx, seqIdx) => {
@@ -94,14 +99,14 @@ export function useLoadingAnimation(
         startAt: seqIdx * staggerMs,
         flightMs,
         target: new THREE.Vector3(cx, cy, cz),
-        // X ve Y hedefle aynı — sadece Z ekseninde kapıdan içeri kayma efekti
-        from: new THREE.Vector3(cx, cy, doorZ),
+        // Tüm kutular kapı önünden (0,0,0 köşe referansıyla) hedeflerine gider
+        from: new THREE.Vector3(doorX, doorY, doorZ),
       });
     });
 
     scheduleRef.current = schedule;
     startTimeRef.current = null;
-  }, [animationMode, loadOrder, placements, vehicleDepth]);
+  }, [animationMode, loadOrder, placements, vehicleDepth, vehicleWidth]);
 
   useFrame(() => {
     if (animationMode === 'stepped') {

@@ -6,7 +6,7 @@ public sealed record VehicleSummaryDto(
     Guid Id,
     string VehicleName,
     VehicleType VehicleType,
-    string PlateNumber,
+    string? PlateNumber,
     decimal InternalWidth,
     decimal InternalHeight,
     decimal InternalLength,

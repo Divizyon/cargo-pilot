@@ -396,7 +396,8 @@ export function fromApiPlacementsToScene(
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
-  const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
+  const raw = api as Record<string, unknown>;
+  const planName = api.planName ?? (raw['name'] as string | undefined) ?? '—';
   const itemCount =
     api.itemCount ??
     api.inputTotalQuantity ??
@@ -415,8 +416,18 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
     vehicleId: api.vehicleId ?? v?.id ?? '',
-    vehicleName: v?.vehicleName ?? v?.name ?? api.vehicleName ?? '—',
-    vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
+    vehicleName:
+      v?.vehicleName ??
+      v?.name ??
+      api.vehicleName ??
+      (raw['vehicle_name'] as string | undefined) ??
+      '—',
+    vehiclePlate:
+      (v?.plateNumber ??
+        v?.plate ??
+        (raw['plateNumber'] as string | undefined) ??
+        (raw['plate'] as string | undefined)) ||
+      undefined,
     createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
@@ -431,7 +442,9 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
     doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
     doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
-    thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
+    thumbnailUrl: ((api as Record<string, unknown>)['thumbnailUrl'] ??
+      (api as Record<string, unknown>)['snapshotUrl'] ??
+      (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
   };
 }
 
@@ -554,8 +567,8 @@ export function fromApiFullDetail(
             : VehicleType.Tir,
         doorDirection:
           v.loadingType != null
-            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-            : DoorDirection.Rear,
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Front)
+            : DoorDirection.Front,
         doorSide:
           v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
         isFavorite: false,

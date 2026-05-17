@@ -284,6 +284,93 @@ internal sealed class ResendEmailService : IEmailService
         }
     }
 
+    public async Task SendContactNotificationEmailAsync(
+        string senderName,
+        string senderEmail,
+        string subject,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        var encodedName    = WebUtility.HtmlEncode(senderName);
+        var encodedEmail   = WebUtility.HtmlEncode(senderEmail);
+        var encodedSubject = WebUtility.HtmlEncode(subject);
+        var encodedMessage = WebUtility.HtmlEncode(message).Replace("\n", "<br/>");
+
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [_settings.FromEmail],
+            Subject = $"Cargo Pilot — Yeni İletişim Mesajı: {subject}",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#1d4ed8;">Yeni İletişim Formu Mesajı</h2>
+                  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;width:120px;">Ad Soyad</td>
+                      <td style="padding:8px;background:#fafafa;">{encodedName}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;">E-posta</td>
+                      <td style="padding:8px;background:#fafafa;"><a href="mailto:{encodedEmail}">{encodedEmail}</a></td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px;font-weight:bold;background:#f5f5f5;">Konu</td>
+                      <td style="padding:8px;background:#fafafa;">{encodedSubject}</td>
+                    </tr>
+                  </table>
+                  <div style="background:#f9fafb;border-left:4px solid #2563eb;padding:16px;margin:16px 0;white-space:pre-wrap;">
+                    {encodedMessage}
+                  </div>
+                  <p style="font-size:12px;color:#888;">Bu mesaj cargopilot.divizyon.org/iletisim üzerinden gönderilmiştir.</p>
+                </div>
+                """,
+            Text = $"Ad Soyad: {senderName}\nE-posta: {senderEmail}\nKonu: {subject}\n\n{message}"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public async Task SendContactAutoReplyEmailAsync(
+        string toEmail,
+        string toName,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ResendSendEmailRequest
+        {
+            From = string.IsNullOrWhiteSpace(_settings.FromName)
+                ? _settings.FromEmail
+                : $"{_settings.FromName} <{_settings.FromEmail}>",
+            To = [toEmail],
+            Subject = "Cargo Pilot — Mesajınızı Aldık",
+            Html = $"""
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                  <h2 style="color:#16a34a;">Mesajınızı Aldık</h2>
+                  <p>Merhaba {WebUtility.HtmlEncode(toName)},</p>
+                  <p>İletişim formunu doldurduğunuz için teşekkür ederiz. Mesajınız ekibimize iletildi, en kısa sürede size geri döneceğiz.</p>
+                  <p>Çalışma saatlerimiz: <strong>Pazartesi – Cuma, 09:00 – 18:00</strong></p>
+                  <p>— Cargo Pilot Ekibi</p>
+                </div>
+                """,
+            Text = $"Merhaba {toName},\n\nMesajınızı aldık. En kısa sürede geri döneceğiz.\n\n— Cargo Pilot Ekibi"
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/emails", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            LogResendSendFailure(_logger, (int)response.StatusCode, responseBody, null);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
     private sealed class ResendSendEmailRequest
     {
         [JsonPropertyName("from")]

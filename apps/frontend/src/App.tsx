@@ -28,10 +28,19 @@ export function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const applyDark =
-      theme === 'dark' ||
-      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    root.classList.toggle('dark', applyDark);
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme() {
+      const applyDark = theme === 'dark' || (theme === 'system' && mq.matches);
+      root.classList.toggle('dark', applyDark);
+    }
+
+    applyTheme();
+
+    if (theme === 'system') {
+      mq.addEventListener('change', applyTheme);
+      return () => mq.removeEventListener('change', applyTheme);
+    }
   }, [theme]);
 
   return (

@@ -42,6 +42,7 @@ const ROLE_LABELS: Record<string, string> = {
   manager: 'Yönetici',
   viewer: 'Görüntüleyici',
   operator: 'Operatör',
+  individual: 'Bireysel',
 };
 
 interface NavItemDef {
@@ -293,7 +294,9 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
               {user?.fullName ?? '—'}
             </p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {user ? (ROLE_LABELS[user.role] ?? user.role) : ''}
+              {user
+                ? (ROLE_LABELS[user.role] ?? ROLE_LABELS[user.role.toLowerCase()] ?? user.role)
+                : ''}
             </p>
           </div>
           <Button

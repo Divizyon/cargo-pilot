@@ -8,11 +8,16 @@ namespace CargoPilot.Application.Features.DraftItems.GetDraftItems;
 public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQuery, Result<GetDraftItemsResult>>
 {
     private readonly IDraftItemRepository _draftItemRepository;
+    private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
 
-    public GetDraftItemsQueryHandler(IDraftItemRepository draftItemRepository, ICurrentUserService currentUserService)
+    public GetDraftItemsQueryHandler(
+        IDraftItemRepository draftItemRepository,
+        IIntegrationRepository integrationRepository,
+        ICurrentUserService currentUserService)
     {
         _draftItemRepository = draftItemRepository;
+        _integrationRepository = integrationRepository;
         _currentUserService = currentUserService;
     }
 
@@ -24,6 +29,9 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
 
         var (items, totalCount) = await _draftItemRepository.ListByCompanyAsync(
             companyId.Value, request.Status, request.Page, request.PageSize, cancellationToken);
+
+        var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);
+        var integrationNames = integrations.ToDictionary(i => i.Id, i => i.SystemName);
 
         var dtos = items.Select(x => new DraftItemDto(
             x.Id,
@@ -48,7 +56,8 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
             x.StackGroup,
             x.SpecialNotes,
             x.GetConstraintIds(),
-            x.CreatedAtUtc))
+            x.CreatedAtUtc,
+            integrationNames.GetValueOrDefault(x.IntegrationId)))
             .ToList();
 
         return Result<GetDraftItemsResult>.Success(new GetDraftItemsResult(dtos, totalCount, request.Page, request.PageSize));

@@ -55,15 +55,15 @@ export interface DraftItemsParams {
   status?: number;
 }
 
-export function useDraftItems(params: DraftItemsParams) {
+export function useDraftItems(params: DraftItemsParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['draft-items', params] as const,
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const p = new URLSearchParams();
       p.set('page', String(params.page));
       p.set('pageSize', String(params.pageSize));
-      if (params.status !== undefined && params.status !== 0)
-        p.set('status', String(params.status));
+      if (params.status !== undefined) p.set('status', String(params.status));
       const { data } = await axiosInstance.get<unknown>(`${DRAFT_BASE}?${p.toString()}`);
       const parsed = draftItemsPageResponseSchema.safeParse(data);
       if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
