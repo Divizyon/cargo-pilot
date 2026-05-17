@@ -1,36 +1,39 @@
 import { useQuery } from '@tanstack/react-query';
-import { z } from 'zod';
 import { axiosInstance } from '@/lib/api/axiosInstance';
 import { useAuthStore } from '@/lib/store/useAuthStore';
+import {
+  planListApiResponseSchema,
+  planListApiItemSchema,
+  extractListData,
+  fromApiPlanListItem,
+} from '@/lib/api/loadingPlanMappers';
+import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 
-export const recentPlanSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  createdAt: z.string().datetime(),
-  snapshotUrl: z.string().url().nullable().optional(),
-});
+export type RecentPlan = LoadingPlanListItem;
 
-const recentPlansResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(recentPlanSchema),
-});
-
-export type RecentPlan = z.infer<typeof recentPlanSchema>;
-
-async function fetchRecentPlans(): Promise<RecentPlan[]> {
-  const { data } = await axiosInstance.get<unknown>('/api/v1/loading-plans/recent', {
-    params: { limit: 7, sort: 'createdAt:desc' },
+async function fetchRecentPlans(): Promise<LoadingPlanListItem[]> {
+  const { data } = await axiosInstance.get<unknown>('/api/v1/loading-plans', {
+    params: { page: 1, pageSize: 7, sortBy: 'createdAt', sortDirection: 'desc' },
   });
-  return recentPlansResponseSchema.parse(data).data;
+  const parsed = planListApiResponseSchema.safeParse(data);
+  if (!parsed.success) return [];
+  const { rawItems } = extractListData(parsed.data);
+  const results: LoadingPlanListItem[] = [];
+  for (const raw of rawItems.slice(0, 7)) {
+    const p = planListApiItemSchema.safeParse(raw);
+    if (!p.success) continue;
+    results.push(fromApiPlanListItem(p.data));
+  }
+  return results;
 }
 
 export function useRecentPlans() {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
-    queryKey: ['plans', userId, { limit: 7, sort: 'createdAt:desc' }] as const,
+    queryKey: ['recent-plans', userId] as const,
     queryFn: fetchRecentPlans,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: false,
-    enabled: false, // endpoint henüz backend'de yok
+    enabled: Boolean(userId),
   });
 }
