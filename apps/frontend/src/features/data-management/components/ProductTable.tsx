@@ -39,7 +39,11 @@ import { useDeleteItem, useItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/calcVolume';
-import { formatDimensionDisplay, formatVolumeDisplay } from '@/lib/utils/unitConversion';
+import {
+  formatDimensionDisplay,
+  formatVolumeDisplay,
+  formatWeightDisplay,
+} from '@/lib/utils/unitConversion';
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
@@ -225,6 +229,8 @@ interface ProductRowProps {
 function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+  const volumeUnit = useUnitStore((s) => s.volumeUnit);
   const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
 
   const cell = 'py-0 px-3';
@@ -269,18 +275,22 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, 'm³')}</span>
+        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, volumeUnit)}</span>
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{item.weight} kg</span>
+        <span className="text-xs text-foreground">
+          {formatWeightDisplay(item.weight, weightUnit)}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
           <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
           {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
-            <span className="text-[10px] text-muted-foreground">maks {item.maxWeightOnTop} kg</span>
+            <span className="text-[10px] text-muted-foreground">
+              maks {formatWeightDisplay(item.maxWeightOnTop!, weightUnit)}
+            </span>
           )}
         </div>
       </TableCell>
@@ -560,7 +570,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           onClick={() => exportItemsToExcel(filteredItems ?? [])}
           disabled={!filteredItems || filteredItems.length === 0}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Upload className="h-3.5 w-3.5" />
           Dışa Aktar
         </Button>
 
@@ -571,7 +581,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           className="shrink-0 gap-1.5 text-xs"
           onClick={() => setShowBulkImport(true)}
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           İçe Aktar
         </Button>
 
@@ -592,7 +602,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       {/* Table card */}
       <div
         ref={tableCardRef}
-        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+        className="overflow-x-auto scrollbar-hide rounded-2xl border border-border bg-background"
       >
         {showSkeleton ? (
           <ProductTableSkeleton />

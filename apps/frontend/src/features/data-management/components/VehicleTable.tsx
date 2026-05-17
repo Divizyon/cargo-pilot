@@ -5,7 +5,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  FileDown,
+  Download,
   Plus,
   SlidersHorizontal,
   Star,
@@ -617,7 +617,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           className="shrink-0 gap-1.5 text-xs"
           onClick={() => setShowBulkImport(true)}
         >
-          <FileDown className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           İçe Aktar
         </Button>
 
@@ -638,7 +638,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       {/* Table card */}
       <div
         ref={tableCardRef}
-        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+        className="overflow-x-auto scrollbar-hide rounded-2xl border border-border bg-background"
       >
         {showSkeleton ? (
           <VehicleTableSkeleton />

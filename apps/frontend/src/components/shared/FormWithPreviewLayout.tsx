@@ -18,8 +18,8 @@ export function FormWithPreviewLayout({
 }: FormWithPreviewLayoutProps) {
   return (
     <div className={cn('flex h-full flex-col', className)}>
-      <div className="grid min-h-0 flex-1 grid-cols-2 gap-6 overflow-hidden">
-        <div className="relative flex min-h-0 flex-col overflow-hidden rounded-xl bg-card">
+      <div className="grid min-h-0 flex-1 grid-cols-5 gap-6 overflow-hidden">
+        <div className="relative col-span-3 flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex-1 overflow-y-auto p-5 pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {formContent}
           </div>
@@ -36,7 +36,7 @@ export function FormWithPreviewLayout({
             </div>
           )}
         </div>
-        <aside className="flex min-h-0 flex-col">{previewContent}</aside>
+        <aside className="col-span-2 flex min-h-0 flex-col">{previewContent}</aside>
       </div>
     </div>
   );

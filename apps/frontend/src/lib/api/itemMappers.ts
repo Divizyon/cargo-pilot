@@ -1,8 +1,13 @@
 import { z } from 'zod';
 import {
   toCentimeters,
+  fromCentimeters,
+  toKilograms,
+  fromKilograms,
   type ProductFormValues,
   type ProductType,
+  type DimensionUnitKey,
+  type WeightUnitKey,
 } from '@/features/data-management/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
@@ -15,6 +20,8 @@ const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
   Tekstil: ['Kimya', 'Tehlikeli Madde'],
   Genel: ['Tehlikeli Madde'],
 };
+
+const PALLET_HEIGHT_CM = 14;
 
 export const ITEM_CATEGORY = {
   Package: 0,
@@ -188,14 +195,16 @@ export function fromApiItem(api: ItemApi): Item {
 }
 
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
+  const { dimensionUnit, weightUnit } = useUnitStore.getState();
+  const unit = dimensionUnit as DimensionUnitKey;
   return {
     name: item.name,
     sku: item.sku,
     productType: item.productType,
-    width: item.width,
-    height: item.height,
-    length: item.length,
-    weight: item.weight,
+    width: fromCentimeters(item.width, unit),
+    height: fromCentimeters(item.height, unit),
+    length: fromCentimeters(item.length, unit),
+    weight: fromKilograms(item.weight, weightUnit as WeightUnitKey),
     fragility: item.fragility,
     isStackable: item.isStackable,
     maxStackCount: item.maxStackCount,
@@ -219,9 +228,10 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
   const maxStackCount = isStackable ? (values.maxStackCount ?? 1) : 0;
   const trimmedNotes = values.notes?.trim();
 
-  const { dimensionUnit } = useUnitStore.getState();
+  const { dimensionUnit, weightUnit } = useUnitStore.getState();
   const widthCm = toCentimeters(values.width, dimensionUnit);
   const isVaril = values.productType === 'varil';
+  const weightKg = toKilograms(values.weight, weightUnit as WeightUnitKey);
 
   return {
     sku: values.sku,
@@ -229,13 +239,15 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     productType: values.productType,
     category: toCategory(values.productType),
     width: widthCm,
-    height: toCentimeters(values.height, dimensionUnit),
+    height:
+      toCentimeters(values.height, dimensionUnit) +
+      (values.productType === 'palet' ? PALLET_HEIGHT_CM : 0),
     length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
-    weight: values.weight,
+    weight: weightKg,
     fragilityType: values.fragility,
     isStackable,
     maxStackCount,
-    maxWeightOnTop: toMaxWeightOnTop(values.weight, isStackable, maxStackCount),
+    maxWeightOnTop: toMaxWeightOnTop(weightKg, isStackable, maxStackCount),
     allowedRotations: toAllowedRotations(
       values.allowRotateX,
       values.allowRotateY,

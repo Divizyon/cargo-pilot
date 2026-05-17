@@ -3,6 +3,8 @@ import { useWatch } from 'react-hook-form';
 import type { Control } from 'react-hook-form';
 import { VehicleType } from '@/lib/types/vehicle';
 import { scaleVehicleDimensions } from '@/lib/utils/scaleVehicleDimensions';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehiclePreviewCanvasProps {
@@ -20,6 +22,7 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
     control,
     name: ['vehicleType', 'length', 'width', 'axles', 'doorDirection'],
   });
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
 
   const isContainer = vehicleType === VehicleType.Konteyner;
 
@@ -108,7 +111,7 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
           fill="currentColor"
           opacity={0.7}
         >
-          {length} cm
+          {formatDimensionDisplay(length, dimensionUnit)}
         </text>
         <text
           x={bx - 8}
@@ -120,7 +123,7 @@ export const VehiclePreviewCanvas = memo(function VehiclePreviewCanvas({
           opacity={0.7}
           transform={`rotate(-90, ${bx - 8}, ${by + bh / 2})`}
         >
-          {width} cm
+          {formatDimensionDisplay(width, dimensionUnit)}
         </text>
       </svg>
     </div>

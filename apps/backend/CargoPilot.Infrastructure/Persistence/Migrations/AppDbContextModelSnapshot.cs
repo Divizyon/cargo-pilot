@@ -816,6 +816,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
 
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("TotalWeight")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
