@@ -93,6 +93,10 @@ export function VehicleForm({
                 if (val === VehicleType.Konteyner) {
                   form.setValue('plate', '');
                   form.clearErrors('plate');
+                  const dir = form.getValues('doorDirection');
+                  if (dir === 'top' || dir === 'rearAndSide') {
+                    form.setValue('doorDirection', 'rear');
+                  }
                 } else {
                   form.setValue('serialNumber', '');
                   form.clearErrors('serialNumber');
@@ -173,7 +177,7 @@ export function VehicleForm({
       {/* 6. KAPI YÖNÜ */}
       <div className="space-y-4 py-6">
         <SectionTitle>Kapı Yönü</SectionTitle>
-        <VehicleDoorDirectionField form={form} />
+        <VehicleDoorDirectionField form={form} vehicleType={vehicleType} />
       </div>
 
       {/* ÖZEL TAŞIMA NOTLARI */}
