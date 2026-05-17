@@ -500,7 +500,9 @@ export function PlanLeftPanel() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
-  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
+  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>(
+    readOnly ? 'loaded' : 'unloaded',
+  );
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -850,21 +852,23 @@ export function PlanLeftPanel() {
       <div className="px-2 pt-2 shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
           <TabsList className="w-full h-7 bg-muted">
-            <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
-              Ürün Listesi
-              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                {(() => {
-                  const planUnloaded = selectedItems.filter(
-                    (si) => !placedIds.has(si.item.id),
-                  ).length;
-                  const planIds = new Set(selectedItems.map((si) => si.item.id));
-                  const catalogOnly = apiItems.filter(
-                    (i) => !planIds.has(i.id) && !placedIds.has(i.id),
-                  ).length;
-                  return `(${planUnloaded + catalogOnly})`;
-                })()}
-              </span>
-            </TabsTrigger>
+            {!readOnly && (
+              <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
+                Ürün Listesi
+                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                  {(() => {
+                    const planUnloaded = selectedItems.filter(
+                      (si) => !placedIds.has(si.item.id),
+                    ).length;
+                    const planIds = new Set(selectedItems.map((si) => si.item.id));
+                    const catalogOnly = apiItems.filter(
+                      (i) => !planIds.has(i.id) && !placedIds.has(i.id),
+                    ).length;
+                    return `(${planUnloaded + catalogOnly})`;
+                  })()}
+                </span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
               Yüklü Ürünler
               <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
