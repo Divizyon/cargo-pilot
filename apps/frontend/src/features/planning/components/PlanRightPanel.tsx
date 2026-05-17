@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -69,7 +70,6 @@ import {
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
-import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
 
@@ -499,6 +499,7 @@ export function PlanRightPanel({
   planName,
   getSnapshot,
 }: PlanRightPanelProps) {
+  const navigate = useNavigate();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
@@ -519,8 +520,6 @@ export function PlanRightPanel({
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
-  const pendingSelectIdRef = useRef<string | null>(null);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [activeVehicleTab, setActiveVehicleTab] = useState<'list' | 'selected'>('list');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [activeVehicleTypes, setActiveVehicleTypes] = useState<Set<VehicleTypeValue>>(new Set());
@@ -607,16 +606,6 @@ export function PlanRightPanel({
   }
 
   useEffect(() => {
-    if (!pendingSelectIdRef.current) return;
-    const found = vehicles.find((v) => v.id === pendingSelectIdRef.current);
-    if (found) {
-      addVehicle(found);
-      setActiveVehicleTab('selected');
-      pendingSelectIdRef.current = null;
-    }
-  }, [vehicles, addVehicle]);
-
-  useEffect(() => {
     setActiveLayer(debouncedSlider);
   }, [debouncedSlider, setActiveLayer]);
 
@@ -650,10 +639,6 @@ export function PlanRightPanel({
     } finally {
       setIsPdfLoading(false);
     }
-  }
-
-  function handleVehicleCreated(id: string | null) {
-    if (id) pendingSelectIdRef.current = id;
   }
 
   function handleSelectVehicle(v: Vehicle) {
@@ -719,7 +704,7 @@ export function PlanRightPanel({
               size="icon"
               title="Araç Ekle"
               className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-              onClick={() => setShowVehicleModal(true)}
+              onClick={() => navigate('/vehicles/new')}
             >
               <Plus className="w-3.5 h-3.5" />
             </Button>
@@ -1132,12 +1117,6 @@ export function PlanRightPanel({
           )}
         </div>
       </div>
-
-      <AddVehicleModal
-        open={showVehicleModal}
-        onOpenChange={setShowVehicleModal}
-        onCreated={handleVehicleCreated}
-      />
 
       {planId && (
         <ShareLinkDialog

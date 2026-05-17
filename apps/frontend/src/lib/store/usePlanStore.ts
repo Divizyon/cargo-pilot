@@ -224,6 +224,8 @@ interface PlanStore {
   criteria: OptimizationCriteria;
   placements: PlacementWithDimensions[];
   unfitItems: UnfitItem[];
+  /** Optimizasyon tamamlandığında artar — BalancePanel dismiss sıfırlamak için kullanır */
+  optimizationCount: number;
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
   setVehicle: (vehicle: Vehicle | null) => void;
@@ -316,6 +318,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   criteria: 2,
   placements: [],
   unfitItems: [],
+  optimizationCount: 0,
   previewItemId: null,
   previewPlacements: [],
 
@@ -496,7 +499,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
 
   setCriteria: (criteria) => set({ criteria }),
-  setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+  setPlacements: (placements) =>
+    set((s) => ({
+      placements: computeViolations(placements),
+      optimizationCount: s.optimizationCount + 1,
+    })),
   setUnplacedItems: (_items) => set({}),
 
   mockPlacements: (count) =>
@@ -668,6 +675,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       criteria: 2,
       placements: [],
       unfitItems: [],
+      optimizationCount: 0,
       previewItemId: null,
       previewPlacements: [],
     }),
