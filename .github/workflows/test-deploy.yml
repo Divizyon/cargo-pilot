@@ -84,6 +84,31 @@ jobs:
 
           echo "OK: Tüm feature commit'leri origin/dev'de mevcut."
 
+      - name: Bu branch'ten dev'e merge edilmiş PR zorunlu
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HEAD="${{ github.head_ref }}"
+
+          # GitHub API: bu branch'ten dev'e merge edilmiş PR var mı?
+          MERGED_PR=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --base dev \
+            --head "${HEAD}" \
+            --state merged \
+            --json number,mergedAt \
+            --jq '.[0].number // empty')
+
+          if [ -z "$MERGED_PR" ]; then
+            echo "::error::Branch '${HEAD}' için dev'e merge edilmiş bir PR bulunamadı."
+            echo "::error::Kural: test'e PR açmadan önce aynı branch'ten dev'e PR açılmalı ve merge edilmelidir."
+            echo "::error::Adım 1: gh pr create --base dev --head ${HEAD}"
+            echo "::error::Adım 2: PR onaylanıp merge edildikten sonra test'e PR açın."
+            exit 1
+          fi
+
+          echo "OK: Branch '${HEAD}' için dev'e merge edilmiş PR #${MERGED_PR} bulundu."
+
   # ─── Migration kontrolü: model değişmiş ama migration oluşturulmamışsa fail ──
   # Sadece test'e giden PR'larda veya test'e push'ta çalışır (feature push'larda gereksiz)
   migration-check:
