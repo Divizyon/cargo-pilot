@@ -9,7 +9,7 @@ public sealed record UpdateVehicleCommand(
     string VehicleName,
     string? Description,
     VehicleType VehicleType,
-    string PlateNumber,
+    string? PlateNumber,
     decimal InternalWidth,
     decimal InternalHeight,
     decimal InternalLength,
