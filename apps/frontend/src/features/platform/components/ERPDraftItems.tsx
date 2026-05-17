@@ -74,7 +74,6 @@ function draftItemToRow(item: DraftItem): EditableRow {
   return {
     _id: crypto.randomUUID(),
     sku: item.sku ?? '',
-    barcode: item.barcode ?? '',
     name: item.name,
     tip,
     width: String(item.width),
