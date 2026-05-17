@@ -58,6 +58,7 @@ public sealed class GetItemByIdQueryHandler : IRequestHandler<GetItemByIdQuery, 
             item.AllowedRotations,
             item.ImageUrl,
             item.StackGroup,
+            item.GetIncompatibleGroups(),
             item.SpecialNotes,
             erpProviderName);
 
