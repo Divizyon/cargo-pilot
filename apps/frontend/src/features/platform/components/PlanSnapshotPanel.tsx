@@ -2,6 +2,13 @@ import { useUIStore } from '@/lib/store/useUIStore';
 import { useRecentPlans } from '@/lib/api/useRecentPlans';
 import { useLoadingPlanListItem } from '@/lib/api/useLoadingPlans';
 
+function resolveStorageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const publicBase = import.meta.env.VITE_MINIO_PUBLIC_URL;
+  if (!publicBase) return url;
+  return url.replace(/^https?:\/\/[^/]*minio[^/]*/i, publicBase);
+}
+
 function TruckPlaceholder() {
   return (
     <div className="relative flex items-center justify-center w-full h-full">
@@ -36,7 +43,7 @@ export function PlanSnapshotPanel() {
   const { data: planDetail } = useLoadingPlanListItem(selectedId ?? '');
 
   const plan = plans?.find((p) => p.id === selectedId) ?? null;
-  const snapshotUrl = planDetail?.thumbnailUrl ?? plan?.thumbnailUrl ?? null;
+  const snapshotUrl = resolveStorageUrl(planDetail?.thumbnailUrl ?? plan?.thumbnailUrl);
 
   if (!plan) {
     return (
