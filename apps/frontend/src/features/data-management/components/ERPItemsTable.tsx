@@ -86,7 +86,6 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
     _id: crypto.randomUUID(),
     name: item.name,
     sku: item.sku ?? '',
-    barcode: item.barcode ?? '',
     tip,
     width: String(item.width),
     height: String(item.height),
@@ -156,6 +155,7 @@ export function ERPItemsTable() {
   const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
 
   useEffect(() => {
     let last = pageSize;
@@ -196,7 +196,7 @@ export function ERPItemsTable() {
     data: draftPage,
     isLoading,
     isFetching,
-  } = useDraftItems({ page: queryPage, pageSize: queryPageSize });
+  } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 
@@ -276,6 +276,32 @@ export function ERPItemsTable() {
     <div className="relative flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Durum filtreleri */}
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
+          {([
+            { value: DRAFT_PENDING, label: 'Bekleyenler' },
+            { value: DRAFT_APPROVED, label: 'Aktarılanlar' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => {
+                setStatusFilter(tab.value);
+                setPage(1);
+                setSelectedIds(new Set());
+              }}
+              className={cn(
+                'h-auto rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                statusFilter === tab.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <SearchInput
           onSearch={handleSearch}
           placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..."
@@ -560,7 +586,10 @@ export function ERPItemsTable() {
       <BulkImportDialog
         key={importOpen ? importRows.map((r) => r._id).join(',') : 'closed'}
         open={importOpen}
-        onOpenChange={setImportOpen}
+        onOpenChange={(open) => {
+          setImportOpen(open);
+          if (!open) setSelectedIds(new Set());
+        }}
         initialRows={importRows}
         draftItemIds={importDraftIds}
       />

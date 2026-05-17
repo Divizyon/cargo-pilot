@@ -128,6 +128,7 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
     constraintIds: row.constraintIds,
+    stackGroup: row.incompatibleGroups[0] ?? null,
     incompatibleGroups: row.incompatibleGroups,
     specialNotes: row.notes.trim() || null,
   };
@@ -152,7 +153,7 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
     constraintIds: row.constraintIds,
-    incompatibleGroups: row.incompatibleGroups,
+    stackGroup: row.incompatibleGroups[0] ?? null,
     specialNotes: row.notes.trim() || null,
   };
 }

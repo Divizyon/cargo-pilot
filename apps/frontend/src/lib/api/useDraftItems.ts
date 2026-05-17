@@ -62,7 +62,7 @@ export function useDraftItems(params: DraftItemsParams) {
       const p = new URLSearchParams();
       p.set('page', String(params.page));
       p.set('pageSize', String(params.pageSize));
-      if (params.status !== undefined && params.status !== 0)
+      if (params.status !== undefined)
         p.set('status', String(params.status));
       const { data } = await axiosInstance.get<unknown>(`${DRAFT_BASE}?${p.toString()}`);
       const parsed = draftItemsPageResponseSchema.safeParse(data);
