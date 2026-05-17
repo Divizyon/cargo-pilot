@@ -53,7 +53,7 @@ import { SearchInput } from './SearchInput';
 const PRODUCT_TYPE_ICON = {
   koli: { Icon: Box, label: 'Koli' },
   varil: { Icon: Cylinder, label: 'Varil' },
-  palet: { Icon: Package, label: 'Palet' },
+  palet: { Icon: Package, label: 'Paletli Ürün' },
 } as const;
 
 // ─── Constraint filter types ──────────────────────────────────────────────────

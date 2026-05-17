@@ -126,7 +126,7 @@ export function OnboardingDialog({ open, onClose }: OnboardingDialogProps) {
               >
                 {/* Icon — logo for welcome step, lucide icon for others */}
                 {step === 0 ? (
-                  <CargoPilotLogo className="w-12 h-12 text-foreground" />
+                  <CargoPilotLogo className="w-9 h-9 text-foreground" />
                 ) : (
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-muted ring-1 ring-border">
                     <Icon className="w-5 h-5 text-foreground" />
