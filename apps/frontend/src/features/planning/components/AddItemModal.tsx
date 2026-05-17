@@ -277,7 +277,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
           isStackable,
           maxStackCount,
           maxWeightOnTop: toMaxWeightOnTop(data.weight, isStackable, maxStackCount),
-          allowedRotations: data.isNotRotatable ? ALLOWED_ROTATIONS.Fixed : ALLOWED_ROTATIONS.All,
+          allowedRotations: data.isNotRotatable
+            ? ALLOWED_ROTATIONS.AllLocked
+            : ALLOWED_ROTATIONS.All,
         });
 
         const item: Item = {

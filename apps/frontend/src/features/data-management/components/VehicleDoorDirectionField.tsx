@@ -12,7 +12,7 @@ interface VehicleDoorDirectionFieldProps {
 }
 
 const DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Arka',
+  rear: 'Ön',
   side: 'Yan',
   top: 'Üst',
 };
