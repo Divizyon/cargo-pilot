@@ -6,7 +6,7 @@ export const reportingSettingsSchema = z.object({
     .string()
     .max(30)
     .optional()
-    .refine((v) => !v || /^[0-9+\-\s()]*$/.test(v), {
+    .refine((v) => !v || /^[\d\s]*$/.test(v), {
       message: 'Sadece rakam giriniz',
     }),
   email: z

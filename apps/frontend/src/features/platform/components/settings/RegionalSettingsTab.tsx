@@ -132,29 +132,6 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
 
             <FormField
               control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <Row label="Arayüz Dili">
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="tr">Türkçe</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </Row>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="timezone"
               render={({ field }) => (
                 <FormItem>
