@@ -13,6 +13,26 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const PRODUCT_TYPE_MAP: Record<string, ProductType> = {
+  koli: ProductType.Koli,
+  varil: ProductType.Varil,
+  palet: ProductType.Palet,
+};
+
+function resolveProductType(raw: string | number | null | undefined): ProductType {
+  if (raw == null) return ProductType.Koli;
+  if (typeof raw === 'string') return PRODUCT_TYPE_MAP[raw.toLowerCase()] ?? ProductType.Koli;
+  // numeric fallback: 0=koli, 1=varil, 2=palet (adjust if backend differs)
+  const numMap: Record<number, ProductType> = {
+    0: ProductType.Koli,
+    1: ProductType.Varil,
+    2: ProductType.Palet,
+  };
+  return numMap[raw] ?? ProductType.Koli;
+}
+
 // ─── SharePlanLoader ─────────────────────────────────────────────────────────
 
 interface SharePlanLoaderProps {
@@ -60,7 +80,7 @@ function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
       isViolation: p.isViolation,
       color: p.color ?? undefined,
       weight: p.weight,
-      productType: p.productType as unknown as ProductType | undefined,
+      productType: resolveProductType(p.productType),
     }));
 
     // Build synthetic items grouped by itemId for the left panel item list
@@ -77,14 +97,15 @@ function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
     const skuColorMap: Record<string, string> = {};
     const items: Array<{ item: Item; quantity: number }> = Array.from(itemMap.entries()).map(
       ([id, { p, count }], idx) => {
-        const sku = id.substring(0, 8).toUpperCase();
+        const sku = p.productSku?.trim() || id.substring(0, 8).toUpperCase();
+        const name = p.productName?.trim() || `Ürün ${idx + 1}`;
         if (p.color) skuColorMap[sku] = p.color;
         return {
           item: {
             id,
-            name: `Ürün ${idx + 1}`,
+            name,
             sku,
-            productType: (p.productType as unknown as ProductType) ?? ProductType.Koli,
+            productType: resolveProductType(p.productType),
             width: p.width,
             height: p.height,
             length: p.depth,
