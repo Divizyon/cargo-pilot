@@ -408,10 +408,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     api.totalWeightKg ??
     ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
-  const createdAt =
-    api.createdAt ??
-    api.createdAtUtc ??
-    new Date(0).toISOString();
+  const createdAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
   const loadingType = v?.loadingType ?? null;
   return {
     id: api.id,
