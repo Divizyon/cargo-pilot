@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Minio;
 
 namespace CargoPilot.Infrastructure;
 
@@ -65,6 +66,23 @@ public static class DependencyInjection {
         services.AddOptions<SubscriptionPlanSettings>()
             .Bind(configuration.GetSection("SubscriptionPlans"))
             .ValidateOnStart();
+
+        services.AddOptions<MinioSettings>()
+            .Bind(configuration.GetSection("Minio"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.Endpoint), "Minio:Endpoint is required.")
+            .Validate(s => !string.IsNullOrWhiteSpace(s.AccessKey), "Minio:AccessKey is required.")
+            .Validate(s => !string.IsNullOrWhiteSpace(s.SecretKey), "Minio:SecretKey is required.")
+            .ValidateOnStart();
+
+        services.AddMinio(configureClient => {
+            var minioSettings = configuration.GetSection("Minio").Get<MinioSettings>()!;
+            configureClient
+                .WithEndpoint(minioSettings.Endpoint)
+                .WithCredentials(minioSettings.AccessKey, minioSettings.SecretKey)
+                .WithSSL(minioSettings.UseSSL)
+                .Build();
+        });
+        services.AddScoped<IStorageService, MinioStorageService>();
 
         services.AddScoped<ICurrentUserService, AnonymousCurrentUserService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();

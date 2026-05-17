@@ -73,6 +73,8 @@ const FACE_COUNT = FACE_CONFIGS.length;
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = new THREE.Color(SCENE.COLORS.VIOLATION);
 const COLOR_NORMAL = new THREE.Color(SCENE.COLORS.NORMAL);
+const COLOR_FOCUS = new THREE.Color(SCENE.COLORS.SELECTED); // amber — grup içi parlama
+const COLOR_DIM_TARGET = new THREE.Color(0x444444); // grup dışı sönük taban
 const SCALE_ZERO = new THREE.Vector3(0, 0, 0);
 
 // Pre-allocated axis vectors for cylinder orientation (reused across frames)
@@ -332,6 +334,32 @@ function InstancedBoxes() {
       labelPlaneGeo.dispose();
     },
     [labelPlaneGeo],
+  );
+
+  // Palet kargo kutusu label texture'ları — globalIdx → CanvasTexture
+  const paletLabelTextures = useMemo<Map<number, THREE.CanvasTexture>>(() => {
+    const itemSkuMap = new Map(selectedItems.map(({ item }) => [item.id, item.sku]));
+    const instanceCounter = new Map<string, number>();
+    const map = new Map<number, THREE.CanvasTexture>();
+    loadOrder.forEach((globalIdx, seqIdx) => {
+      const p = placements[globalIdx];
+      if (!p || p.productType !== 'palet') return;
+      const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
+      const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
+      instanceCounter.set(p.itemId, instanceNo);
+      map.set(
+        globalIdx,
+        buildBoxLabel(sku, seqIdx + 1, instanceNo, p.color ?? SCENE.COLORS.NORMAL_STR),
+      );
+    });
+    return map;
+  }, [placements, loadOrder, selectedItems]);
+
+  useEffect(
+    () => () => {
+      paletLabelTextures.forEach((t) => t.dispose());
+    },
+    [paletLabelTextures],
   );
 
   // setPosition callback — useLoadingAnimation tarafından her frame'de çağrılır
@@ -636,7 +664,16 @@ function InstancedBoxes() {
       matrix.compose(position, quaternion, scale);
       vRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      color.copy(p.isViolation ? COLOR_VIOLATION : p.color ? color.set(p.color) : COLOR_NORMAL);
+      if (p.isViolation) {
+        color.copy(COLOR_VIOLATION);
+      } else if (focusedGroupItemIds !== null && focusedGroupItemIds.includes(p.itemId)) {
+        color.copy(COLOR_FOCUS);
+      } else if (focusedGroupItemIds !== null) {
+        color.set(p.color ?? SCENE.COLORS.NORMAL_STR);
+        color.lerp(COLOR_DIM_TARGET, 0.5);
+      } else {
+        color.set(p.color ?? SCENE.COLORS.NORMAL_STR);
+      }
       oRef.current!.setColorAt(instanceIdx, color);
     }
 
@@ -874,6 +911,7 @@ function InstancedBoxes() {
             isSelected={isItemSelected}
             isGhosted={ghosted}
             productType={p.productType}
+            labelTexture={ghosted ? null : (paletLabelTextures.get(globalIdx) ?? null)}
             onClick={() => {
               setSelectedItemId(null);
               setSelectedInstanceId(selectedInstanceId === globalIdx ? null : globalIdx);
@@ -962,15 +1000,14 @@ function BoxPathBoxes() {
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
 
   // Her placement için yükleme sıra no (1-based) ve aynı itemId içindeki instance no
-  // globalIdx → { seqNo, instanceNo, sku }
+  // globalIdx → { seqNo, instanceNo, sku } — varil hariç tüm tipler dahil
   const labelMap = useMemo(() => {
     const itemSkuMap = new Map(selectedItems.map(({ item }) => [item.id, item.sku]));
     const instanceCounter = new Map<string, number>();
-    // loadOrder sırasına göre seqNo ata — loadOrder fiziksel yükleme sırasıdır
     const result = new Map<number, { seqNo: number; instanceNo: number; sku: string }>();
     loadOrder.forEach((globalIdx, seqIdx) => {
       const p = placements[globalIdx];
-      if (!p) return;
+      if (!p || p.productType === 'varil') return;
       const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
       const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
       instanceCounter.set(p.itemId, instanceNo);
@@ -979,11 +1016,11 @@ function BoxPathBoxes() {
     return result;
   }, [placements, loadOrder, selectedItems]);
 
-  // Label texture cache: globalIdx → CanvasTexture (palet/varil için null)
+  // Label texture cache: globalIdx → CanvasTexture (varil için null, palet dahil)
   const labelTextures = useMemo(() => {
     const map = new Map<number, THREE.Texture>();
     placements.forEach((p, i) => {
-      if (p.productType === 'palet' || p.productType === 'varil') return;
+      if (p.productType === 'varil') return;
       const info = labelMap.get(i);
       if (!info) return;
       const color = p.color ?? SCENE.COLORS.NORMAL_STR;
