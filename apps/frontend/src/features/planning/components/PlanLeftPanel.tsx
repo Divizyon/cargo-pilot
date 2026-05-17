@@ -544,6 +544,26 @@ export function PlanLeftPanel() {
     if (ungroupedIds.length > 0) return;
     if (selectedItems.length > 0) {
       setUngroupedIds(selectedItems.map((si) => si.item.id));
+      // apiItems hazırsa, plan API'sinden gelen item'larda eksik kalan constraintIds'i doldur
+      if (apiItems.length > 0) {
+        const fullItemMap = new Map(apiItems.map((item) => [item.id, item]));
+        selectedItems.forEach(({ item, quantity }) => {
+          const full = fullItemMap.get(item.id);
+          if (
+            full &&
+            (!item.constraintIds || item.constraintIds.length === 0) &&
+            full.constraintIds &&
+            full.constraintIds.length > 0
+          ) {
+            updateItem(
+              item.id,
+              { ...item, constraintIds: full.constraintIds },
+              quantity,
+              usePlanStore.getState().skuColorMap[item.sku] ?? SCENE.COLORS.NORMAL_STR,
+            );
+          }
+        });
+      }
       return;
     }
     if (apiItems.length > 0) {

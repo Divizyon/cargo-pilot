@@ -37,26 +37,22 @@ function SnapshotBridge({
 }: {
   snapshotRef?: MutableRefObject<(() => string) | null>;
 }) {
-  const gl = useThree((state) => state.gl);
+  const { gl } = useThree();
   const requestSnapshot = useSceneStore((s) => s.requestSnapshot);
   const setSnapshotDataUrl = useSceneStore((s) => s.setSnapshotDataUrl);
 
   useEffect(() => {
     if (snapshotRef) {
-      snapshotRef.current = () => gl.domElement.toDataURL('image/png');
+      snapshotRef.current = () => gl.domElement.toDataURL('image/jpeg', 0.7);
+      return () => {
+        snapshotRef.current = null;
+      };
     }
-    return () => {
-      if (snapshotRef) snapshotRef.current = null;
-    };
   }, [gl, snapshotRef]);
 
   useEffect(() => {
     if (!requestSnapshot) return;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setSnapshotDataUrl(gl.domElement.toDataURL('image/png'));
-      });
-    });
+    setSnapshotDataUrl(gl.domElement.toDataURL('image/jpeg', 0.7));
   }, [requestSnapshot, gl, setSnapshotDataUrl]);
 
   return null;
