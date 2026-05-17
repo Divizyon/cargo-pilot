@@ -1101,12 +1101,250 @@ function Pricing() {
   );
 }
 
+// ─── Crane Animation ─────────────────────────────────────────────────────────
+
+function CraneAnimation({ mirror = false }: { mirror?: boolean }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = mountRef.current;
+    if (!el) return;
+
+    const W = el.clientWidth || 288;
+    const H = el.clientHeight || 400;
+
+    const isDark = () => document.documentElement.classList.contains('dark');
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(36, W / H, 0.1, 100);
+    camera.position.set(mirror ? -5.5 : 5.5, 4.5, 5.5);
+    camera.lookAt(0, 0.5, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    el.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark() ? 0.8 : 0.9);
+    scene.add(ambientLight);
+    const dl = new THREE.DirectionalLight(0xffffff, isDark() ? 1.0 : 1.0);
+    dl.position.set(4, 6, 4);
+    scene.add(dl);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.25);
+    fill.position.set(-3, 2, -3);
+    scene.add(fill);
+
+    const pivotY = 3.2;
+    const containerW = 2.9;
+    const containerH = 1.1;
+    const containerD = 1.35;
+    const cableLength = 2.8;
+    const armLength = cableLength + containerH / 2;
+
+    const pivotGroup = new THREE.Group();
+    pivotGroup.position.set(0, pivotY, 0);
+    scene.add(pivotGroup);
+
+    const containerMat = new THREE.MeshLambertMaterial({ color: isDark() ? 0x202020 : 0xf2f2f2 });
+    const edgesMat = new THREE.LineBasicMaterial({ color: isDark() ? 0x585858 : 0xaaaaaa });
+    const ribMat = new THREE.MeshLambertMaterial({ color: isDark() ? 0x282828 : 0xdedede });
+    const fittingMat = new THREE.MeshLambertMaterial({ color: isDark() ? 0x484848 : 0xcccccc });
+    const liftPadMat = new THREE.MeshLambertMaterial({ color: isDark() ? 0x565656 : 0xbbbbbb });
+    const cableMat = new THREE.MeshLambertMaterial({ color: isDark() ? 0x888888 : 0x999999 });
+
+    const containerGeom = new THREE.BoxGeometry(containerW, containerH, containerD);
+    const containerMesh = new THREE.Mesh(containerGeom, containerMat);
+    containerMesh.position.set(0, -armLength, 0);
+    pivotGroup.add(containerMesh);
+    containerMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(containerGeom), edgesMat));
+
+    const sideRibGeom = new THREE.BoxGeometry(0.035, containerH * 1.005, 0.048);
+    const endRibGeom = new THREE.BoxGeometry(0.048, containerH * 1.005, 0.035);
+    const topRibGeom = new THREE.BoxGeometry(containerW * 1.005, 0.038, 0.048);
+
+    for (let i = 1; i <= 10; i++) {
+      const x = -containerW / 2 + (i / 11) * containerW;
+      for (const zs of [-1, 1]) {
+        const r = new THREE.Mesh(sideRibGeom, ribMat);
+        r.position.set(x, 0, zs * (containerD / 2 + 0.024));
+        containerMesh.add(r);
+      }
+    }
+
+    for (let i = 1; i <= 4; i++) {
+      const z = -containerD / 2 + (i / 5) * containerD;
+      for (const xs of [-1, 1]) {
+        const r = new THREE.Mesh(endRibGeom, ribMat);
+        r.position.set(xs * (containerW / 2 + 0.024), 0, z);
+        containerMesh.add(r);
+      }
+    }
+
+    for (let i = 1; i <= 8; i++) {
+      const z = -containerD / 2 + (i / 9) * containerD;
+      const r = new THREE.Mesh(topRibGeom, ribMat);
+      r.position.set(0, containerH / 2 + 0.019, z);
+      containerMesh.add(r);
+    }
+
+    const castingGeom = new THREE.BoxGeometry(0.13, 0.13, 0.13);
+    for (const xs of [-1, 1])
+      for (const ys of [-1, 1])
+        for (const zs of [-1, 1]) {
+          const c = new THREE.Mesh(castingGeom, fittingMat);
+          c.position.set((xs * containerW) / 2, (ys * containerH) / 2, (zs * containerD) / 2);
+          containerMesh.add(c);
+        }
+
+    const colGeom = new THREE.BoxGeometry(0.065, containerH, 0.065);
+    for (const xs of [-1, 1])
+      for (const zs of [-1, 1]) {
+        const col = new THREE.Mesh(colGeom, fittingMat);
+        col.position.set((xs * containerW) / 2, 0, (zs * containerD) / 2);
+        containerMesh.add(col);
+      }
+
+    const hRailXGeom = new THREE.BoxGeometry(containerW, 0.065, 0.065);
+    const hRailZGeom = new THREE.BoxGeometry(0.065, 0.065, containerD);
+    for (const ys of [-1, 1]) {
+      const y = (ys * containerH) / 2;
+      for (const zs of [-1, 1]) {
+        const r = new THREE.Mesh(hRailXGeom, fittingMat);
+        r.position.set(0, y, (zs * containerD) / 2);
+        containerMesh.add(r);
+      }
+      for (const xs of [-1, 1]) {
+        const r = new THREE.Mesh(hRailZGeom, fittingMat);
+        r.position.set((xs * containerW) / 2, y, 0);
+        containerMesh.add(r);
+      }
+    }
+
+    const liftPadY = -cableLength * 0.38;
+    const liftPadGeom = new THREE.BoxGeometry(0.2, 0.11, 0.2);
+    const liftPadMesh = new THREE.Mesh(liftPadGeom, liftPadMat);
+    liftPadMesh.position.set(0, liftPadY, 0);
+    pivotGroup.add(liftPadMesh);
+    liftPadMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(liftPadGeom), edgesMat));
+
+    const cableGeoms: THREE.BufferGeometry[] = [];
+    const addCable = (a: THREE.Vector3, b: THREE.Vector3, radius = 0.022) => {
+      const dir = new THREE.Vector3().subVectors(b, a);
+      const length = dir.length();
+      const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+      const geom = new THREE.CylinderGeometry(radius, radius, length, 6);
+      cableGeoms.push(geom);
+      const mesh = new THREE.Mesh(geom, cableMat);
+      mesh.position.copy(mid);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      pivotGroup.add(mesh);
+    };
+
+    addCable(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 4.5, 0));
+    addCable(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, liftPadY, 0));
+
+    const cx = (containerW / 2) * 0.88;
+    const cz = (containerD / 2) * 0.88;
+    const topY = -cableLength;
+    for (const [ox, oz] of [
+      [-cx, -cz],
+      [cx, -cz],
+      [-cx, cz],
+      [cx, cz],
+    ] as [number, number][]) {
+      addCable(new THREE.Vector3(0, liftPadY, 0), new THREE.Vector3(ox, topY, oz));
+    }
+
+    const themeObserver = new MutationObserver(() => {
+      const dark = isDark();
+      containerMat.color.set(dark ? 0x202020 : 0xf2f2f2);
+      edgesMat.color.set(dark ? 0x585858 : 0xaaaaaa);
+      ribMat.color.set(dark ? 0x282828 : 0xdedede);
+      fittingMat.color.set(dark ? 0x484848 : 0xcccccc);
+      liftPadMat.color.set(dark ? 0x565656 : 0xbbbbbb);
+      cableMat.color.set(dark ? 0x888888 : 0x999999);
+      ambientLight.intensity = dark ? 0.8 : 0.9;
+      dl.intensity = dark ? 1.0 : 1.0;
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    const initAngle = mirror ? -0.32 : 0.32;
+    let angle = initAngle;
+    let angularVelocity = 0;
+    const gravity = 4.8;
+    const damp = 0.003;
+    let lastTime = performance.now();
+
+    let rafId: number;
+    function tick() {
+      rafId = requestAnimationFrame(tick);
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      angularVelocity += -(gravity / armLength) * Math.sin(angle) * dt;
+      angularVelocity *= 1 - damp;
+      angle += angularVelocity * dt;
+      if (Math.abs(angle) < 0.03 && Math.abs(angularVelocity) < 0.03) {
+        angle = initAngle;
+        angularVelocity = 0;
+      }
+      pivotGroup.rotation.z = angle;
+      renderer.render(scene, camera);
+    }
+    rafId = requestAnimationFrame(tick);
+
+    const ro = new ResizeObserver(() => {
+      const nW = el.clientWidth,
+        nH = el.clientHeight;
+      if (!nW || !nH) return;
+      camera.aspect = nW / nH;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nW, nH);
+    });
+    ro.observe(el);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      themeObserver.disconnect();
+      renderer.dispose();
+      if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
+      [
+        containerGeom,
+        sideRibGeom,
+        endRibGeom,
+        topRibGeom,
+        castingGeom,
+        colGeom,
+        hRailXGeom,
+        hRailZGeom,
+        liftPadGeom,
+      ].forEach((g) => g.dispose());
+      [containerMat, ribMat, fittingMat, liftPadMat].forEach((m) => m.dispose());
+      [edgesMat, cableMat].forEach((m) => m.dispose());
+      cableGeoms.forEach((g) => g.dispose());
+    };
+  }, [mirror]);
+
+  return <div ref={mountRef} className="w-full h-full" />;
+}
+
 // ─── CTA Banner ─────────────────────────────────────────────────────────────
 
 function CtaBanner() {
   return (
-    <section className="py-16 sm:py-20 px-4 sm:px-6 bg-page-background border-t border-border">
-      <div className="max-w-3xl mx-auto text-center">
+    <section className="py-16 sm:py-20 px-4 sm:px-6 bg-page-background border-t border-border relative overflow-hidden">
+      <div className="absolute left-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none">
+        <CraneAnimation mirror={false} />
+      </div>
+      <div className="absolute right-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none">
+        <CraneAnimation mirror={true} />
+      </div>
+      <div className="max-w-3xl mx-auto text-center relative z-10">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
           Daha akıllı yüklemeye hazır mısınız?
         </h2>
@@ -1143,17 +1381,17 @@ function Footer() {
         </div>
         <div className="flex items-center gap-4 sm:gap-6">
           {[
-            { label: 'Gizlilik', href: '#' },
-            { label: 'Kullanım Koşulları', href: '#' },
-            { label: 'İletişim', href: '#' },
+            { label: 'Gizlilik', href: '/gizlilik' },
+            { label: 'Kullanım Koşulları', href: '/kullanim-kosullari' },
+            { label: 'İletişim', href: '/iletisim' },
           ].map(({ label, href }) => (
-            <a
+            <Link
               key={label}
-              href={href}
+              to={href}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
             >
               {label}
-            </a>
+            </Link>
           ))}
         </div>
         <span className="text-xs text-muted-foreground">
