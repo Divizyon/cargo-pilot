@@ -138,6 +138,18 @@ public static class DependencyInjection {
                         SegmentsPerWindow = 2,
                         QueueLimit        = 0,
                     }));
+
+            // Contact form: 5 istek / 15 dk / IP
+            options.AddPolicy("contact", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 5,
+                        Window            = TimeSpan.FromMinutes(15),
+                        SegmentsPerWindow = 3,
+                        QueueLimit        = 0,
+                    }));
         });
         var corsOrigins = Enumerable.Range(1, 10)
             .Select(i => configuration[$"CORS_ALLOWED_ORIGIN_{i}"])
