@@ -12,6 +12,5 @@ public sealed record PlanSummaryDto(
     int InputTotalQuantity,
     int PlacedQuantity,
     int UnplacedQuantity,
-    Guid VehicleId,
-    string VehicleName,
+    VehicleInPlanListDto Vehicle,
     DateTime CreatedAtUtc);
