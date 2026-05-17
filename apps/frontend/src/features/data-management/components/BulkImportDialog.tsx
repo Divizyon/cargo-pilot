@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
 import { Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
@@ -227,12 +227,14 @@ export function BulkImportDialog({ open, onOpenChange, initialRows, draftItemIds
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
 
-  useEffect(() => {
+  const prevOpenRef = useRef(false);
+  if (open !== prevOpenRef.current) {
+    prevOpenRef.current = open;
     if (open && initialRows && initialRows.length > 0) {
       setRows(initialRows);
       setApiErrors([]);
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
   const bulkCreate = useBulkCreateItems();
   const updateDraftItem = useUpdateDraftItem();
   const bulkApproveDraft = useBulkApproveDraftItems();
