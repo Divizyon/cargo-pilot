@@ -74,7 +74,6 @@ function draftItemToRow(item: DraftItem): EditableRow {
   return {
     _id: crypto.randomUUID(),
     sku: item.sku ?? '',
-    barcode: item.barcode ?? '',
     name: item.name,
     tip,
     width: String(item.width),
@@ -87,6 +86,8 @@ function draftItemToRow(item: DraftItem): EditableRow {
     allowRotateX,
     allowRotateY,
     allowRotateZ,
+    constraintIds: item.constraintIds ?? [],
+    incompatibleGroups: [],
     notes: item.specialNotes ?? '',
   };
 }
@@ -344,6 +345,7 @@ export function ERPDraftItems() {
 
       {/* Aktar dialog */}
       <BulkImportDialog
+        key={dialogOpen ? dialogRows.map((r) => r._id).join(',') : 'closed'}
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open);
