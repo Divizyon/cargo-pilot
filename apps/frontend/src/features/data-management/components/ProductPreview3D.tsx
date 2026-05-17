@@ -251,7 +251,11 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
         {cargoGeo && cargoEdges && cargoH > 0 && (
           <group position={[widthCm / 2, cargoCenterY, depthCm / 2]}>
             <mesh geometry={cargoGeo}>
-              <meshStandardMaterial color={SCENE.COLORS.NORMAL_STR} transparent opacity={MESH_OPACITY} />
+              <meshStandardMaterial
+                color={SCENE.COLORS.NORMAL_STR}
+                transparent
+                opacity={MESH_OPACITY}
+              />
             </mesh>
             <lineSegments geometry={cargoEdges}>
               <lineBasicMaterial color="#000000" />

@@ -1,6 +1,16 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, RefreshCw, SlidersHorizontal, Upload, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+  SlidersHorizontal,
+  Upload,
+  XCircle,
+} from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,10 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  useERPConnection,
-  useTriggerERPSync,
-} from '@/lib/api/useERPIntegration';
+import { useERPConnection, useTriggerERPSync } from '@/lib/api/useERPIntegration';
 import { useDraftItems, type DraftItem } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
@@ -39,14 +46,40 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
   else if (item.category === 0) tip = 'koli';
   else tip = 'varil';
 
-  let allowRotateX = false, allowRotateY = false, allowRotateZ = false;
+  let allowRotateX = false,
+    allowRotateY = false,
+    allowRotateZ = false;
   switch (item.allowedRotations) {
-    case 0: allowRotateX = true;  allowRotateY = true;  allowRotateZ = true;  break;
-    case 1: allowRotateX = false; allowRotateY = true;  allowRotateZ = false; break;
-    case 3: allowRotateX = true;  allowRotateY = false; allowRotateZ = true;  break;
-    case 4: allowRotateX = true;  allowRotateY = false; allowRotateZ = false; break;
-    case 5: allowRotateX = false; allowRotateY = false; allowRotateZ = true;  break;
-    case 6: allowRotateX = false; allowRotateY = true;  allowRotateZ = false; break;
+    case 0:
+      allowRotateX = true;
+      allowRotateY = true;
+      allowRotateZ = true;
+      break;
+    case 1:
+      allowRotateX = false;
+      allowRotateY = true;
+      allowRotateZ = false;
+      break;
+    case 3:
+      allowRotateX = true;
+      allowRotateY = false;
+      allowRotateZ = true;
+      break;
+    case 4:
+      allowRotateX = true;
+      allowRotateY = false;
+      allowRotateZ = false;
+      break;
+    case 5:
+      allowRotateX = false;
+      allowRotateY = false;
+      allowRotateZ = true;
+      break;
+    case 6:
+      allowRotateX = false;
+      allowRotateY = true;
+      allowRotateZ = false;
+      break;
   }
 
   return {
@@ -229,7 +262,9 @@ export function ERPItemsTable() {
     const selected = filteredItems.filter((item) => selectedIds.has(item.id));
     const rows = selected.map(draftItemToImportRow);
     const draftIds: Record<string, string> = {};
-    rows.forEach((row, i) => { draftIds[row._id] = selected[i].id; });
+    rows.forEach((row, i) => {
+      draftIds[row._id] = selected[i].id;
+    });
     setImportRows(rows);
     setImportDraftIds(draftIds);
     setImportOpen(true);
@@ -239,7 +274,10 @@ export function ERPItemsTable() {
     <div className="relative flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput onSearch={handleSearch} placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..." />
+        <SearchInput
+          onSearch={handleSearch}
+          placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..."
+        />
 
         {/* Filtrele */}
         <div ref={filterRef} className="relative shrink-0">
@@ -325,7 +363,6 @@ export function ERPItemsTable() {
           )}
           ERP ile Sync
         </Button>
-
       </div>
 
       {/* No-results alert */}
@@ -336,7 +373,10 @@ export function ERPItemsTable() {
       )}
 
       {/* Table */}
-      <div ref={tableCardRef} className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background">
+      <div
+        ref={tableCardRef}
+        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+      >
         {showSkeleton ? (
           <ERPItemsTableSkeleton />
         ) : (
@@ -379,8 +419,13 @@ export function ERPItemsTable() {
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={9} className="py-16 text-center text-sm text-muted-foreground">
-                    {!integrationId ? 'ERP bağlantısı yapılandırılmamış.' : 'Bekleyen ERP ürünü yok.'}
+                  <TableCell
+                    colSpan={9}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
+                    {!integrationId
+                      ? 'ERP bağlantısı yapılandırılmamış.'
+                      : 'Bekleyen ERP ürünü yok.'}
                   </TableCell>
                 </TableRow>
               )}
@@ -436,9 +481,7 @@ export function ERPItemsTable() {
                     </span>
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {row.weight} kg
-                    </span>
+                    <span className="text-xs text-foreground">{row.weight} kg</span>
                   </TableCell>
                 </TableRow>
               ))}

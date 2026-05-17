@@ -222,7 +222,12 @@ function TextCell({ value, onChange, error, type = 'text', className }: TextCell
 
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
-export function BulkImportDialog({ open, onOpenChange, initialRows, draftItemIds }: BulkImportDialogProps) {
+export function BulkImportDialog({
+  open,
+  onOpenChange,
+  initialRows,
+  draftItemIds,
+}: BulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
@@ -305,7 +310,8 @@ export function BulkImportDialog({ open, onOpenChange, initialRows, draftItemIds
   const validations = rows.map((r) => ({ id: r._id, errors: validateRow(r) }));
   const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
   const isDraftPending = updateDraftItem.isPending || bulkApproveDraft.isPending;
-  const canImport = rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending && !isDraftPending;
+  const canImport =
+    rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending && !isDraftPending;
 
   // ─── Empty state: file picker ─────────────────────────────────────────────
 
@@ -686,7 +692,13 @@ export function BulkImportDialog({ open, onOpenChange, initialRows, draftItemIds
                   Şablonu İndir
                 </Button>
                 {ITEM_SHEETS_TEMPLATE_URL && (
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" type="button" asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    type="button"
+                    asChild
+                  >
                     <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
                       <ExternalLink className="h-3.5 w-3.5" />
                       Google Sheets
@@ -707,10 +719,19 @@ export function BulkImportDialog({ open, onOpenChange, initialRows, draftItemIds
             <Button variant="outline" size="sm" onClick={handleClose} type="button">
               İptal
             </Button>
-            <Button size="sm" onClick={() => void handleImport()} disabled={!canImport} type="button">
+            <Button
+              size="sm"
+              onClick={() => void handleImport()}
+              disabled={!canImport}
+              type="button"
+            >
               {draftItemIds
-                ? (isDraftPending ? 'Aktarılıyor…' : `${rows.length} Ürünü Onayla`)
-                : (bulkCreate.isPending ? 'Yükleniyor…' : `${rows.length} Ürün Ekle`)}
+                ? isDraftPending
+                  ? 'Aktarılıyor…'
+                  : `${rows.length} Ürünü Onayla`
+                : bulkCreate.isPending
+                  ? 'Yükleniyor…'
+                  : `${rows.length} Ürün Ekle`}
             </Button>
           </div>
         </div>

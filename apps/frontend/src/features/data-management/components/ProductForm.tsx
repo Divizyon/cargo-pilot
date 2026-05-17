@@ -873,18 +873,30 @@ export function ProductForm({
                           const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
                           return Math.max(acc, o?.fragilityValue ?? 0);
                         }, 0);
-                        form.setValue('fragility', maxFragility, { shouldDirty: true, shouldValidate: false });
+                        form.setValue('fragility', maxFragility, {
+                          shouldDirty: true,
+                          shouldValidate: false,
+                        });
                         const ids = next
                           .map(
                             (v) =>
                               CONSTRAINT_OPTIONS.find((c) => c.value === v)?.fragilityValue ?? 0,
                           )
                           .filter((id) => id > 0);
-                        form.setValue('constraintIds', ids, { shouldDirty: true, shouldValidate: false });
+                        form.setValue('constraintIds', ids, {
+                          shouldDirty: true,
+                          shouldValidate: false,
+                        });
                         if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
-                          form.setValue('allowRotateZ', false, { shouldDirty: true, shouldValidate: false });
+                          form.setValue('allowRotateZ', false, {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          });
                         } else if (!isPallet) {
-                          form.setValue('allowRotateZ', true, { shouldDirty: true, shouldValidate: false });
+                          form.setValue('allowRotateZ', true, {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          });
                         }
                       }}
                     >

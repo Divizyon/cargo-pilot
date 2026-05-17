@@ -61,8 +61,7 @@ export const productSchema = z
   .refine((data) => !data.isStackable || data.maxStackCount !== undefined, {
     message: 'validations.product.maxStackRequired',
     path: ['maxStackCount'],
-  })
-;
+  });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 

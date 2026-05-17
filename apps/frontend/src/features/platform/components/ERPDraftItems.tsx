@@ -21,11 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  useDraftItems,
-  useRejectDraftItem,
-  type DraftItem,
-} from '@/lib/api/useDraftItems';
+import { useDraftItems, useRejectDraftItem, type DraftItem } from '@/lib/api/useDraftItems';
 import {
   BulkImportDialog,
   type EditableRow,
@@ -39,14 +35,40 @@ function draftItemToRow(item: DraftItem): EditableRow {
   else if (item.category === 0) tip = 'koli';
   else tip = 'varil';
 
-  let allowRotateX = false, allowRotateY = false, allowRotateZ = false;
+  let allowRotateX = false,
+    allowRotateY = false,
+    allowRotateZ = false;
   switch (item.allowedRotations) {
-    case 0: allowRotateX = true;  allowRotateY = true;  allowRotateZ = true;  break;
-    case 1: allowRotateX = false; allowRotateY = true;  allowRotateZ = false; break;
-    case 3: allowRotateX = true;  allowRotateY = false; allowRotateZ = true;  break;
-    case 4: allowRotateX = true;  allowRotateY = false; allowRotateZ = false; break;
-    case 5: allowRotateX = false; allowRotateY = false; allowRotateZ = true;  break;
-    case 6: allowRotateX = false; allowRotateY = true;  allowRotateZ = false; break;
+    case 0:
+      allowRotateX = true;
+      allowRotateY = true;
+      allowRotateZ = true;
+      break;
+    case 1:
+      allowRotateX = false;
+      allowRotateY = true;
+      allowRotateZ = false;
+      break;
+    case 3:
+      allowRotateX = true;
+      allowRotateY = false;
+      allowRotateZ = true;
+      break;
+    case 4:
+      allowRotateX = true;
+      allowRotateY = false;
+      allowRotateZ = false;
+      break;
+    case 5:
+      allowRotateX = false;
+      allowRotateY = false;
+      allowRotateZ = true;
+      break;
+    case 6:
+      allowRotateX = false;
+      allowRotateY = true;
+      allowRotateZ = false;
+      break;
   }
 
   return {
@@ -75,7 +97,9 @@ function DraftItemsSkeleton() {
       <TableHeader>
         <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
           {Array.from({ length: 6 }).map((_, i) => (
-            <TableHead key={i}><Skeleton className="h-3 w-16" /></TableHead>
+            <TableHead key={i}>
+              <Skeleton className="h-3 w-16" />
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>
@@ -130,9 +154,7 @@ export function ERPDraftItems() {
   }
 
   function handleAktar() {
-    const targets = selectedIds.size > 0
-      ? items.filter((i) => selectedIds.has(i.id))
-      : items;
+    const targets = selectedIds.size > 0 ? items.filter((i) => selectedIds.has(i.id)) : items;
     if (targets.length === 0) return;
     const rows: EditableRow[] = [];
     const draftIds: Record<string, string> = {};
@@ -187,17 +209,30 @@ export function ERPDraftItems() {
                     aria-label="Tümünü seç"
                   />
                 </TableHead>
-                <TableHead className="py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Ürün</TableHead>
-                <TableHead className="w-28 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">SKU</TableHead>
-                <TableHead className="w-36 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Boyutlar (cm)</TableHead>
-                <TableHead className="w-24 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">Ağırlık</TableHead>
-                <TableHead className="w-24 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">İşlemler</TableHead>
+                <TableHead className="py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Ürün
+                </TableHead>
+                <TableHead className="w-28 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  SKU
+                </TableHead>
+                <TableHead className="w-36 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Boyutlar (cm)
+                </TableHead>
+                <TableHead className="w-24 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Ağırlık
+                </TableHead>
+                <TableHead className="w-24 py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  İşlemler
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
                     Bekleyen taslak ürün yok.
                   </TableCell>
                 </TableRow>
@@ -212,7 +247,10 @@ export function ERPDraftItems() {
                     />
                   </TableCell>
                   <TableCell className="py-0 px-3 max-w-[200px]">
-                    <span className="block truncate text-xs font-medium text-foreground" title={item.name}>
+                    <span
+                      className="block truncate text-xs font-medium text-foreground"
+                      title={item.name}
+                    >
                       {item.name}
                     </span>
                     {item.erpId && (
@@ -277,12 +315,18 @@ export function ERPDraftItems() {
       )}
 
       {/* Reject confirm dialog */}
-      <AlertDialog open={Boolean(rejectTarget)} onOpenChange={(open) => { if (!open) setRejectTarget(null); }}>
+      <AlertDialog
+        open={Boolean(rejectTarget)}
+        onOpenChange={(open) => {
+          if (!open) setRejectTarget(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Ürünü Reddet</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{rejectTarget?.name}</strong> taslak ürünü reddedilecek. Bu işlem geri alınamaz.
+              <strong>{rejectTarget?.name}</strong> taslak ürünü reddedilecek. Bu işlem geri
+              alınamaz.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -62,7 +62,8 @@ export function useDraftItems(params: DraftItemsParams) {
       const p = new URLSearchParams();
       p.set('page', String(params.page));
       p.set('pageSize', String(params.pageSize));
-      if (params.status !== undefined && params.status !== 0) p.set('status', String(params.status));
+      if (params.status !== undefined && params.status !== 0)
+        p.set('status', String(params.status));
       const { data } = await axiosInstance.get<unknown>(`${DRAFT_BASE}?${p.toString()}`);
       const parsed = draftItemsPageResponseSchema.safeParse(data);
       if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
@@ -93,7 +94,11 @@ export interface UpdateDraftItemPayload {
 
 export function useUpdateDraftItem() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { id: string; payload: UpdateDraftItemPayload }>({
+  return useMutation<
+    unknown,
+    AxiosError<ApiError>,
+    { id: string; payload: UpdateDraftItemPayload }
+  >({
     mutationFn: ({ id, payload }) =>
       axiosInstance.put(`${DRAFT_BASE}/${id}`, payload).then((r) => r.data),
     onSuccess: () => {
@@ -109,8 +114,7 @@ export function useUpdateDraftItem() {
 export function useApproveDraftItem() {
   const queryClient = useQueryClient();
   return useMutation<unknown, AxiosError<ApiError>, string>({
-    mutationFn: (id) =>
-      axiosInstance.post(`${DRAFT_BASE}/${id}/approve`).then((r) => r.data),
+    mutationFn: (id) => axiosInstance.post(`${DRAFT_BASE}/${id}/approve`).then((r) => r.data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       void queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -143,8 +147,7 @@ export function useBulkApproveDraftItems() {
 export function useRejectDraftItem() {
   const queryClient = useQueryClient();
   return useMutation<unknown, AxiosError<ApiError>, string>({
-    mutationFn: (id) =>
-      axiosInstance.post(`${DRAFT_BASE}/${id}/reject`).then((r) => r.data),
+    mutationFn: (id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`).then((r) => r.data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       toast.success('Ürün reddedildi.', { position: 'bottom-right' });

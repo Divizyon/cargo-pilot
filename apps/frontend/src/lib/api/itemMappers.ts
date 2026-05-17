@@ -68,14 +68,14 @@ export function toAllowedRotations(
   allowRotateY: boolean,
   allowRotateZ: boolean,
 ): AllowedRotationsValue {
-  if (allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.All;        // T T T
+  if (allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.All; // T T T
   if (!allowRotateX && allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.NoVertical; // F T F
   if (!allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.AllLocked; // F F F
-  if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw;      // T F T
+  if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // T F T
   if (allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.PitchOnly; // T F F
-  if (!allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.RollOnly;  // F F T
-  if (!allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw;      // F T T → en yakın
-  return ALLOWED_ROTATIONS.AllLocked;                                                      // T T F → fallback
+  if (!allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.RollOnly; // F F T
+  if (!allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // F T T → en yakın
+  return ALLOWED_ROTATIONS.AllLocked; // T T F → fallback
 }
 
 export function toMaxWeightOnTop(
@@ -142,13 +142,20 @@ function fromAllowedRotations(v: number): {
   allowRotateZ: boolean;
 } {
   switch (v) {
-    case ALLOWED_ROTATIONS.All:        return { allowRotateX: true,  allowRotateY: true,  allowRotateZ: true  };
-    case ALLOWED_ROTATIONS.NoVertical: return { allowRotateX: false, allowRotateY: true,  allowRotateZ: false };
-    case ALLOWED_ROTATIONS.NoYaw:      return { allowRotateX: true,  allowRotateY: false, allowRotateZ: true  };
-    case ALLOWED_ROTATIONS.PitchOnly:  return { allowRotateX: true,  allowRotateY: false, allowRotateZ: false };
-    case ALLOWED_ROTATIONS.RollOnly:   return { allowRotateX: false, allowRotateY: false, allowRotateZ: true  };
-    case ALLOWED_ROTATIONS.YawOnly:    return { allowRotateX: false, allowRotateY: true,  allowRotateZ: false };
-    default:                           return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.All:
+      return { allowRotateX: true, allowRotateY: true, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.NoVertical:
+      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.NoYaw:
+      return { allowRotateX: true, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.PitchOnly:
+      return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.RollOnly:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.YawOnly:
+      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
+    default:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
   }
 }
 

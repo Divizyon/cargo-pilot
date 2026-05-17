@@ -47,7 +47,7 @@ const TABS: TabDef[] = [
   {
     id: 'taslak-urunler',
     label: 'Taslak Ürünler',
-    description: 'ERP\'den gelen taslak ürünleri inceleyin, onaylayın veya reddedin.',
+    description: "ERP'den gelen taslak ürünleri inceleyin, onaylayın veya reddedin.",
   },
   {
     id: 'sevkiyatlar',
