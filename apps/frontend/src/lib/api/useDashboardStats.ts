@@ -1,6 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { axiosInstance } from './axiosInstance';
 import { useAuthStore } from '@/lib/store/useAuthStore';
+import {
+  planListApiResponseSchema,
+  planListApiItemSchema,
+  extractListData,
+  fromApiPlanListItem,
+} from './loadingPlanMappers';
+import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
+
+const apiResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.object({
+    vehicleEfficiency: z.number(),
+    totalLoadedTonnage: z.number(),
+    totalLoadingCount: z.number(),
+  }),
+});
 
 const weeklyTrendItemSchema = z.object({
   day: z.string(),
@@ -14,37 +31,104 @@ const statCardSchema = z.object({
   delta: z.number(),
 });
 
-const dashboardStatsSchema = z.object({
-  weeklyLoadingCount: statCardSchema,
-  vehicleEfficiency: statCardSchema,
-  weeklyLoadedTonnage: statCardSchema,
-  weeklyTrend: z.array(weeklyTrendItemSchema),
-});
+export type DashboardStatsData = {
+  vehicleEfficiency: z.infer<typeof statCardSchema>;
+  weeklyLoadedTonnage: z.infer<typeof statCardSchema>;
+  weeklyLoadingCount: z.infer<typeof statCardSchema>;
+  weeklyTrend: z.infer<typeof weeklyTrendItemSchema>[];
+};
 
-export type DashboardStatsData = z.infer<typeof dashboardStatsSchema>;
 export type WeeklyTrendItem = z.infer<typeof weeklyTrendItemSchema>;
 export type StatCard = z.infer<typeof statCardSchema>;
 
-const MOCK_DATA: DashboardStatsData = {
-  weeklyLoadingCount: { value: 158, subInfo: 'Bu hafta gerçekleşen yükleme', delta: 12 },
-  vehicleEfficiency: { value: 87, subInfo: "34 araçtan 30'u aktif sahada", delta: 5 },
-  weeklyLoadedTonnage: { value: 1840, subInfo: 'Haftalık hedef: 2.000 ton', delta: 8 },
-  weeklyTrend: [
-    { day: 'Pzt', sevkiyat: 120, teslim: 95 },
-    { day: 'Sal', sevkiyat: 145, teslim: 110 },
-    { day: 'Çar', sevkiyat: 98, teslim: 88 },
-    { day: 'Per', sevkiyat: 167, teslim: 142 },
-    { day: 'Cum', sevkiyat: 189, teslim: 165 },
-    { day: 'Cmt', sevkiyat: 76, teslim: 62 },
-    { day: 'Paz', sevkiyat: 45, teslim: 38 },
-  ],
-};
+export const WEEKLY_TREND_PLACEHOLDER: WeeklyTrendItem[] = [
+  { day: 'Pzt', sevkiyat: 0, teslim: 0 },
+  { day: 'Sal', sevkiyat: 0, teslim: 0 },
+  { day: 'Çar', sevkiyat: 0, teslim: 0 },
+  { day: 'Per', sevkiyat: 0, teslim: 0 },
+  { day: 'Cum', sevkiyat: 0, teslim: 0 },
+  { day: 'Cmt', sevkiyat: 0, teslim: 0 },
+  { day: 'Paz', sevkiyat: 0, teslim: 0 },
+];
+
+async function fetchDashboardStats(): Promise<DashboardStatsData> {
+  const { data } = await axiosInstance.get('/api/v1/loading-plans/stats');
+  const parsed = apiResponseSchema.parse(data);
+
+  return {
+    vehicleEfficiency: {
+      value: Math.round(parsed.data.vehicleEfficiency),
+      subInfo: 'Bu haftanın ortalama araç doluluk oranı',
+      delta: 0,
+    },
+    weeklyLoadedTonnage: {
+      value: parsed.data.totalLoadedTonnage,
+      subInfo: 'Bu hafta yüklenen toplam tonaj',
+      delta: 0,
+    },
+    weeklyLoadingCount: {
+      value: parsed.data.totalLoadingCount,
+      subInfo: 'Bu hafta gerçekleşen yükleme',
+      delta: 0,
+    },
+    weeklyTrend: WEEKLY_TREND_PLACEHOLDER,
+  };
+}
 
 export function useDashboardStats() {
-  const companyId = useAuthStore((s) => s.user?.id ?? 'guest');
+  const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
-    queryKey: ['dashboard-stats', companyId] as const,
-    queryFn: (): DashboardStatsData => dashboardStatsSchema.parse(MOCK_DATA),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['dashboard-stats', userId] as const,
+    queryFn: fetchDashboardStats,
+    staleTime: 0,
+    enabled: Boolean(userId),
+  });
+}
+
+async function fetchLoadingPlans(params: Record<string, unknown>): Promise<LoadingPlanListItem[]> {
+  const { data } = await axiosInstance.get<unknown>('/api/v1/loading-plans', { params });
+  const parsed = planListApiResponseSchema.safeParse(data);
+  if (!parsed.success) return [];
+  const { rawItems } = extractListData(parsed.data);
+  const results: LoadingPlanListItem[] = [];
+  for (const raw of rawItems) {
+    const p = planListApiItemSchema.safeParse(raw);
+    if (p.success) results.push(fromApiPlanListItem(p.data));
+  }
+  return results;
+}
+
+export function useDashboardPlans() {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery({
+    queryKey: ['dashboard-plans', userId] as const,
+    queryFn: () =>
+      fetchLoadingPlans({ page: 1, pageSize: 10, sortBy: 'createdAt', sortDirection: 'desc' }),
+    staleTime: 0,
+    enabled: Boolean(userId),
+  });
+}
+
+export function useWeeklyTrendPlans() {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery({
+    queryKey: ['weekly-trend-plans', userId] as const,
+    queryFn: () => {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      monday.setHours(0, 0, 0, 0);
+      return fetchLoadingPlans({
+        page: 1,
+        pageSize: 200,
+        sortBy: 'createdAt',
+        sortDirection: 'desc',
+        startDate: monday.toISOString(),
+      });
+    },
+    staleTime: 0,
+    enabled: Boolean(userId),
   });
 }

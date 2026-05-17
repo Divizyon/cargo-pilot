@@ -32,7 +32,7 @@ export function useRecentPlans() {
   return useQuery({
     queryKey: ['recent-plans', userId] as const,
     queryFn: fetchRecentPlans,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: false,
     enabled: Boolean(userId),
   });
