@@ -180,13 +180,22 @@ export function NewPlanPage() {
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
-    const { selectedVehicle: vehicle, selectedItems: items, criteria } = usePlanStore.getState();
+    const {
+      selectedVehicle: vehicle,
+      selectedItems: items,
+      placements,
+      criteria,
+    } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
+
+    const placedIds = new Set(placements.map((p) => p.itemId));
+    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
+    if (itemsToSend.length === 0) return;
 
     await reoptimizePlan({
       id: fromPlanId,
       vehicleId: vehicle.id,
-      items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
     pendingSnapshotPlanId.current = fromPlanId;
@@ -195,7 +204,7 @@ export function NewPlanPage() {
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
-    <div className="flex flex-col h-full bg-muted overflow-hidden">
+    <div className="flex flex-col h-full bg-page-background overflow-hidden">
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>

@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 import {
   ArrowRight,
   Share2,
-  Truck,
   Package,
+  Truck,
   CheckCircle2,
   Layers,
   Zap,

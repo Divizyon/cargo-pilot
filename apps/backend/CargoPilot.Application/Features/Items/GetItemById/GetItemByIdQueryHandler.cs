@@ -8,23 +8,34 @@ namespace CargoPilot.Application.Features.Items.GetItemById;
 public sealed class GetItemByIdQueryHandler : IRequestHandler<GetItemByIdQuery, Result<ItemDetailDto>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
 
     public GetItemByIdQueryHandler(
         IItemRepository itemRepository,
+        IIntegrationRepository integrationRepository,
         ICurrentUserService currentUserService)
     {
         _itemRepository = itemRepository;
+        _integrationRepository = integrationRepository;
         _currentUserService = currentUserService;
     }
 
     public async Task<Result<ItemDetailDto>> Handle(GetItemByIdQuery request, CancellationToken cancellationToken)
     {
-        var item = await _itemRepository.GetByIdAsync(request.Id, _currentUserService.CompanyId, cancellationToken);
+        var companyId = _currentUserService.CompanyId;
+        var item = await _itemRepository.GetByIdAsync(request.Id, companyId, cancellationToken);
         if (item is null)
         {
             return Result<ItemDetailDto>.Failure(
                 new Error(ErrorType.NotFound, "Item.NotFound", "Ürün bulunamadı."));
+        }
+
+        string? erpProviderName = null;
+        if (item.IntegrationId.HasValue && companyId.HasValue)
+        {
+            var integration = await _integrationRepository.GetByIdAsync(item.IntegrationId.Value, companyId.Value, cancellationToken);
+            erpProviderName = integration?.SystemName;
         }
 
         var dto = new ItemDetailDto(
@@ -47,7 +58,8 @@ public sealed class GetItemByIdQueryHandler : IRequestHandler<GetItemByIdQuery, 
             item.AllowedRotations,
             item.ImageUrl,
             item.StackGroup,
-            item.SpecialNotes);
+            item.SpecialNotes,
+            erpProviderName);
 
         return Result<ItemDetailDto>.Success(dto);
     }

@@ -6,4 +6,5 @@ public sealed class MinioSettings {
     public string SecretKey { get; set; } = null!;
     public string BucketName { get; set; } = "cargo-pilot";
     public bool UseSSL { get; set; }
+    public string? PublicEndpoint { get; set; }
 }

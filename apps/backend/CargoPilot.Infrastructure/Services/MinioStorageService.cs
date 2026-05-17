@@ -11,7 +11,7 @@ internal sealed partial class MinioStorageService : IStorageService
 {
     private readonly IMinioClient _client;
     private readonly string _bucketName;
-    private readonly string _endpoint;
+    private readonly string _publicEndpoint;
     private readonly bool _useSSL;
     private readonly ILogger<MinioStorageService> _logger;
 
@@ -19,7 +19,7 @@ internal sealed partial class MinioStorageService : IStorageService
     {
         _client = client;
         _bucketName = options.Value.BucketName;
-        _endpoint = options.Value.Endpoint;
+        _publicEndpoint = string.IsNullOrEmpty(options.Value.PublicEndpoint) ? options.Value.Endpoint : options.Value.PublicEndpoint;
         _useSSL = options.Value.UseSSL;
         _logger = logger;
     }
@@ -42,7 +42,16 @@ internal sealed partial class MinioStorageService : IStorageService
         await _client.PutObjectAsync(putArgs, cancellationToken);
 
         var scheme = _useSSL ? "https" : "http";
-        return $"{scheme}://{_endpoint}/{_bucketName}/{objectKey}";
+        return $"{scheme}://{_publicEndpoint}/{_bucketName}/{objectKey}";
+    }
+
+    public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        var removeArgs = new RemoveObjectArgs()
+            .WithBucket(_bucketName)
+            .WithObject(objectKey);
+
+        await _client.RemoveObjectAsync(removeArgs, cancellationToken);
     }
 
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
@@ -55,6 +64,24 @@ internal sealed partial class MinioStorageService : IStorageService
             var makeArgs = new MakeBucketArgs().WithBucket(_bucketName);
             await _client.MakeBucketAsync(makeArgs, cancellationToken);
         }
+
+        var policy = $$"""
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Principal": {"AWS": ["*"]},
+                "Action": ["s3:GetObject"],
+                "Resource": ["arn:aws:s3:::{{_bucketName}}/*"]
+              }]
+            }
+            """;
+
+        var policyArgs = new SetPolicyArgs()
+            .WithBucket(_bucketName)
+            .WithPolicy(policy);
+
+        await _client.SetPolicyAsync(policyArgs, cancellationToken);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "MinIO bucket '{Bucket}' oluşturuluyor.")]
