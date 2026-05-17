@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
@@ -8,6 +9,12 @@ namespace CargoPilot.Application.Common.Interfaces;
 
 public interface ILoadingPlanRepository
 {
+    Task<DashboardStatsDto> GetDashboardStatsAsync(
+        Guid? companyId,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken cancellationToken = default);
+
     Task<PagedResult<PlanSummaryDto>> GetPagedAsync(
         int page,
         int pageSize,
