@@ -80,7 +80,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.UnplacedQuantity,
                 p.VehicleId,
                 p.Vehicle.VehicleName,
-                p.CreatedAtUtc))
+                p.CreatedAtUtc,
+                p.ThumbnailUrl))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<PlanSummaryDto>(items, totalCount, page, pageSize);
@@ -272,6 +273,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
             plan.CreatedAtUtc,
             plan.ErpExportStatus,
+            plan.ThumbnailUrl,
             vehicleDto,
             placementDtos,
             unplacedItemDtos,
