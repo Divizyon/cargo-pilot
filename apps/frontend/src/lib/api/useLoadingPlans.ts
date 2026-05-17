@@ -114,6 +114,7 @@ export function useLoadingPlanListItem(id: string) {
         itemCount: d.itemCount,
         totalWeight: d.totalWeight,
         createdAt: d.createdAt,
+        createdAtUtc: d.createdAtUtc,
         plannedAt: d.plannedAt,
         planCode: d.planCode,
         status: d.status,
