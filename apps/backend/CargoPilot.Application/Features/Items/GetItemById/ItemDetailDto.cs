@@ -22,4 +22,5 @@ public sealed record ItemDetailDto(
     AllowedRotations AllowedRotations,
     string? ImageUrl,
     string? StackGroup,
-    string? SpecialNotes);
+    string? SpecialNotes,
+    string? ErpProviderName);

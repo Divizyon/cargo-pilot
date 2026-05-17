@@ -9,15 +9,18 @@ namespace CargoPilot.Application.Features.Items.SearchItems;
 public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, Result<PagedResult<ItemSummaryDto>>>
 {
     private readonly IItemRepository _itemRepository;
+    private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<SearchItemsQuery> _validator;
 
     public SearchItemsQueryHandler(
         IItemRepository itemRepository,
+        IIntegrationRepository integrationRepository,
         ICurrentUserService currentUserService,
         IValidator<SearchItemsQuery> validator)
     {
         _itemRepository = itemRepository;
+        _integrationRepository = integrationRepository;
         _currentUserService = currentUserService;
         _validator = validator;
     }
@@ -36,12 +39,19 @@ public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, 
                 new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
         }
 
+        var companyId = _currentUserService.CompanyId;
+
         var pagedItems = await _itemRepository.SearchAsync(
             request.SearchTerm,
             request.Page,
             request.PageSize,
-            _currentUserService.CompanyId,
+            companyId,
             cancellationToken);
+
+        var integrations = companyId.HasValue
+            ? await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken)
+            : [];
+        var integrationNames = integrations.ToDictionary(i => i.Id, i => i.SystemName);
 
         var dto = new PagedResult<ItemSummaryDto>(
             pagedItems.Items.Select(i => new ItemSummaryDto(
@@ -64,7 +74,8 @@ public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, 
                 i.AllowedRotations,
                 i.ImageUrl,
                 i.StackGroup,
-                i.SpecialNotes)).ToList(),
+                i.SpecialNotes,
+                i.IntegrationId.HasValue ? integrationNames.GetValueOrDefault(i.IntegrationId.Value) : null)).ToList(),
             pagedItems.TotalCount,
             pagedItems.Page,
             pagedItems.PageSize);
