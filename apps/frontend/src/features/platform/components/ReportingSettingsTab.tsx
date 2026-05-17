@@ -304,7 +304,10 @@ export function ReportingSettingsTab() {
               </div>
               <button
                 type="button"
-                onClick={() => { removeLogo(); storeClearLogo(); }}
+                onClick={() => {
+                  removeLogo();
+                  storeClearLogo();
+                }}
                 disabled={isLogoActionPending}
                 className={cn(
                   'flex items-center gap-1.5 pt-1 text-sm text-destructive underline-offset-4 hover:underline',

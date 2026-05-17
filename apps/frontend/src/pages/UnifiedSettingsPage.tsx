@@ -23,10 +23,7 @@ import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionF
 import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
 import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
 import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
-import {
-  useERPShipmentOrders,
-  useERPSyncHistory,
-} from '@/lib/api/useERPIntegration';
+import { useERPShipmentOrders, useERPSyncHistory } from '@/lib/api/useERPIntegration';
 import { ErpShipmentStatus } from '@/lib/types/erp';
 
 type TabId =

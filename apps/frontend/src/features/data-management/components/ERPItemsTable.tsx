@@ -204,9 +204,7 @@ export function ERPItemsTable() {
   );
 
   const effectiveSelectedIds: ReadonlySet<string> =
-    selectAllMode && allPendingPage
-      ? new Set(allPendingPage.items.map((i) => i.id))
-      : selectedIds;
+    selectAllMode && allPendingPage ? new Set(allPendingPage.items.map((i) => i.id)) : selectedIds;
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 
@@ -240,7 +238,8 @@ export function ERPItemsTable() {
 
   const selectableItems = filteredItems.filter((i) => i.status === DRAFT_PENDING);
   const allSelected =
-    selectAllMode || (selectableItems.length > 0 && selectableItems.every((i) => effectiveSelectedIds.has(i.id)));
+    selectAllMode ||
+    (selectableItems.length > 0 && selectableItems.every((i) => effectiveSelectedIds.has(i.id)));
   const someSelected = !allSelected && effectiveSelectedIds.size > 0;
 
   const handleSearch = useCallback((value: string) => {
@@ -296,10 +295,12 @@ export function ERPItemsTable() {
       <div className="flex flex-wrap items-center gap-2">
         {/* Durum filtreleri */}
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {([
-            { value: DRAFT_PENDING, label: 'Bekleyenler' },
-            { value: DRAFT_APPROVED, label: 'Aktarılanlar' },
-          ] as const).map((tab) => (
+          {(
+            [
+              { value: DRAFT_PENDING, label: 'Bekleyenler' },
+              { value: DRAFT_APPROVED, label: 'Aktarılanlar' },
+            ] as const
+          ).map((tab) => (
             <button
               key={tab.value}
               type="button"
@@ -590,7 +591,10 @@ export function ERPItemsTable() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => { setSelectAllMode(false); setSelectedIds(new Set()); }}
+            onClick={() => {
+              setSelectAllMode(false);
+              setSelectedIds(new Set());
+            }}
             className="text-muted-foreground hover:text-foreground"
           >
             İptal Et
@@ -611,7 +615,10 @@ export function ERPItemsTable() {
         open={importOpen}
         onOpenChange={(open) => {
           setImportOpen(open);
-          if (!open) { setSelectAllMode(false); setSelectedIds(new Set()); }
+          if (!open) {
+            setSelectAllMode(false);
+            setSelectedIds(new Set());
+          }
         }}
         initialRows={importRows}
         draftItemIds={importDraftIds}
