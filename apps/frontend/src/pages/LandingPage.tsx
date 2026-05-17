@@ -55,10 +55,16 @@ function DockNavLink({
   const scaleRaw = useTransform(distance, [-80, 0, 80], [1, 1.28, 1]);
   const scale = useSpring(scaleRaw, { mass: 0.1, stiffness: 180, damping: 13 });
 
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   return (
     <motion.a
       ref={ref}
       href={href}
+      onClick={handleClick}
       style={{ scale }}
       className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors duration-150 inline-block origin-bottom"
     >
@@ -88,14 +94,14 @@ function Navbar() {
 
   return (
     <>
-      {/* Floating dock wrapper */}
-      <div className="fixed top-4 inset-x-0 z-50 flex justify-center px-4 sm:px-6">
+      {/* Desktop: full floating dock */}
+      <div className="hidden md:flex fixed top-4 inset-x-0 z-50 justify-center px-6">
         <nav
           ref={navRef}
           className="w-full bg-background/90 backdrop-blur-md border border-border rounded-2xl shadow-lg shadow-black/5"
           style={{ maxWidth: 1280 }}
         >
-          <div className="h-14 px-4 sm:px-5 grid grid-cols-[1fr_auto_1fr] items-center">
+          <div className="h-14 px-5 grid grid-cols-[1fr_auto_1fr] items-center">
             <Link
               to="/"
               className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
@@ -104,21 +110,22 @@ function Navbar() {
               <span className="font-bold text-foreground text-sm tracking-tight">Cargo Pilot</span>
             </Link>
 
-            {/* x driven by same scroll progress as maxWidth — always in sync */}
-            <motion.div
-              style={{ x: navLinksX }}
-              className="hidden md:flex items-center gap-1"
-              onMouseMove={(e) => mouseX.set(e.clientX)}
-              onMouseLeave={() => mouseX.set(Infinity)}
-            >
-              {NAV_LINKS.map(({ label, href }) => (
-                <DockNavLink key={label} href={href} label={label} mouseX={mouseX} />
-              ))}
-            </motion.div>
+            <div className="flex items-center justify-center">
+              <motion.div
+                style={{ x: navLinksX }}
+                className="flex items-center gap-1"
+                onMouseMove={(e) => mouseX.set(e.clientX)}
+                onMouseLeave={() => mouseX.set(Infinity)}
+              >
+                {NAV_LINKS.map(({ label, href }) => (
+                  <DockNavLink key={label} href={href} label={label} mouseX={mouseX} />
+                ))}
+              </motion.div>
+            </div>
 
             <div className="flex items-center gap-2 justify-end">
               <ThemeToggle />
-              <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/auth/login">Giriş Yap</Link>
                 </Button>
@@ -128,44 +135,53 @@ function Navbar() {
                   </Link>
                 </Button>
               </div>
-              <button
-                onClick={() => setMenuOpen((v) => !v)}
-                className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
-              >
-                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
             </div>
           </div>
-
-          {/* Mobile menu — inside the dock */}
-          {menuOpen && (
-            <div className="md:hidden border-t border-border px-4 py-3 flex flex-col gap-1">
-              {NAV_LINKS.map(({ label, href }) => (
-                <a
-                  key={label}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  className="px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                >
-                  {label}
-                </a>
-              ))}
-              <div className="pt-3 mt-1 border-t border-border flex flex-col gap-2">
-                <Button variant="outline" size="sm" asChild className="w-full">
-                  <Link to="/auth/login" onClick={() => setMenuOpen(false)}>
-                    Giriş Yap
-                  </Link>
-                </Button>
-                <Button size="sm" asChild className="w-full">
-                  <Link to="/auth/register" onClick={() => setMenuOpen(false)}>
-                    Ücretsiz Başla <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          )}
         </nav>
+      </div>
+
+      {/* Mobile: hamburger only at top-right */}
+      <div className="md:hidden fixed top-4 right-4 z-50 flex flex-col items-end">
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-background/90 backdrop-blur-md border border-border shadow-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
+        {menuOpen && (
+          <div className="mt-2 w-64 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-2 flex flex-col gap-1">
+            {NAV_LINKS.map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMenuOpen(false);
+                  document
+                    .querySelector(href)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                {label}
+              </a>
+            ))}
+            <div className="pt-2 mt-1 border-t border-border flex flex-col gap-2">
+              <Button variant="outline" size="sm" asChild className="w-full">
+                <Link to="/auth/login" onClick={() => setMenuOpen(false)}>
+                  Giriş Yap
+                </Link>
+              </Button>
+              <Button size="sm" asChild className="w-full">
+                <Link to="/auth/register" onClick={() => setMenuOpen(false)}>
+                  Ücretsiz Başla <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -554,7 +570,13 @@ function CargoGrid() {
 function Hero() {
   return (
     <section className="relative min-h-dvh px-4 sm:px-6 bg-background flex items-center">
-      <div className="max-w-7xl mx-auto w-full pt-24">
+      <div className="max-w-7xl mx-auto w-full pt-4 md:pt-6">
+        {/* Mobile logo — navbar yok, hero üstünde marka göstergesi */}
+        <div className="md:hidden flex items-center gap-2 mb-8">
+          <img src="/favicon.svg" alt="Cargo Pilot" className="w-7 h-7 shrink-0" />
+          <span className="font-bold text-foreground text-sm tracking-tight">Cargo Pilot</span>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-10 sm:gap-12 lg:gap-16 items-center">
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight mb-5 sm:mb-6">
@@ -598,7 +620,7 @@ function Hero() {
 
 function DashboardScrollSection() {
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-x-hidden md:overflow-hidden">
       <ContainerScroll
         titleComponent={
           <div className="mb-4">
@@ -822,8 +844,8 @@ function Features() {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
           {features.map((f) => (
-            <div key={f.title} className="feature-card">
-              <TiltCard>
+            <div key={f.title} className="feature-card h-full">
+              <TiltCard className="h-full">
                 <FeatureCard {...f} />
               </TiltCard>
             </div>
@@ -912,9 +934,9 @@ function HowItWorks() {
       id="how-it-works"
       className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-page-background overflow-hidden"
     >
-      {/* Globe background */}
+      {/* Globe — section level so overflow-hidden clips it correctly, desktop only */}
       <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center"
         aria-hidden
       >
         <div className="w-[640px] h-[640px] opacity-30 dark:opacity-20">
@@ -940,21 +962,21 @@ function HowItWorks() {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-4 gap-8 sm:gap-6 lg:gap-8">
+        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-6 lg:gap-8">
           {steps.map(({ number, title, description }, idx) => (
-            <div key={number} className="how-step flex sm:block gap-5 sm:gap-0 relative">
+            <div key={number} className="how-step flex md:block gap-5 md:gap-0 relative">
               {/* Desktop: horizontal connector to next step */}
               {idx < steps.length - 1 && (
-                <div className="hidden sm:block absolute h-px bg-border top-[1.375rem] left-12 -right-[1.5rem] lg:-right-[2rem]" />
+                <div className="hidden md:block absolute h-px bg-border top-[1.375rem] left-12 -right-[1.5rem] lg:-right-[2rem]" />
               )}
               {/* Mobile: vertical connector */}
               {idx < steps.length - 1 && (
-                <div className="sm:hidden absolute left-6 top-12 bottom-0 w-px bg-border -mb-8" />
+                <div className="md:hidden absolute left-6 top-12 bottom-0 w-px bg-border -mb-8" />
               )}
-              <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 sm:mb-6 relative z-10">
+              <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 md:mb-6 relative z-10">
                 <span className="text-sm font-bold text-foreground">{number}</span>
               </div>
-              <div className="pb-8 sm:pb-0">
+              <div className="pb-8 md:pb-0">
                 <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">{title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-sm">{description}</p>
               </div>
