@@ -13,7 +13,9 @@ export function PrivacyPage() {
               Ana Sayfa
             </Link>
           </Button>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">Gizlilik Politikası</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
+            Gizlilik Politikası
+          </h1>
           <p className="text-sm text-muted-foreground">Son güncelleme: Mayıs 2025</p>
         </div>
 
@@ -29,7 +31,9 @@ export function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">2. Verilerin Kullanım Amacı</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-3">
+              2. Verilerin Kullanım Amacı
+            </h2>
             <p className="text-muted-foreground leading-relaxed">
               Toplanan veriler; hizmetlerin sunulması ve iyileştirilmesi, hesap yönetimi, fatura
               işlemleri, destek hizmetleri ve yasal yükümlülüklerin yerine getirilmesi amacıyla
@@ -50,8 +54,8 @@ export function PrivacyPage() {
             <h2 className="text-xl font-semibold text-foreground mb-3">4. Çerezler</h2>
             <p className="text-muted-foreground leading-relaxed">
               Platform, oturum yönetimi ve analitik amaçlarla çerezler kullanmaktadır. Tarayıcı
-              ayarlarınızdan çerezleri devre dışı bırakabilirsiniz; ancak bu durumda bazı
-              işlevler kısıtlanabilir.
+              ayarlarınızdan çerezleri devre dışı bırakabilirsiniz; ancak bu durumda bazı işlevler
+              kısıtlanabilir.
             </p>
           </section>
 
@@ -60,7 +64,10 @@ export function PrivacyPage() {
             <p className="text-muted-foreground leading-relaxed">
               KVKK ve GDPR kapsamında; verilerinize erişim, düzeltme, silme ve taşıma haklarına
               sahipsiniz. Talepleriniz için{' '}
-              <Link to="/iletisim" className="text-foreground underline underline-offset-2 hover:opacity-75">
+              <Link
+                to="/iletisim"
+                className="text-foreground underline underline-offset-2 hover:opacity-75"
+              >
                 iletişim sayfamızdan
               </Link>{' '}
               bize ulaşabilirsiniz.

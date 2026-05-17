@@ -13,7 +13,9 @@ export function TermsPage() {
               Ana Sayfa
             </Link>
           </Button>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">Kullanım Koşulları</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
+            Kullanım Koşulları
+          </h1>
           <p className="text-sm text-muted-foreground">Son güncelleme: Mayıs 2025</p>
         </div>
 
@@ -22,8 +24,8 @@ export function TermsPage() {
             <h2 className="text-xl font-semibold text-foreground mb-3">1. Kabul</h2>
             <p className="text-muted-foreground leading-relaxed">
               Cargo Pilot'u kullanarak bu kullanım koşullarını kabul etmiş sayılırsınız. Bu
-              koşulları kabul etmiyorsanız platformu kullanmayı bırakınız. Koşullar önceden
-              haber verilmeksizin değiştirilebilir; güncel sürümü bu sayfada yayımlanır.
+              koşulları kabul etmiyorsanız platformu kullanmayı bırakınız. Koşullar önceden haber
+              verilmeksizin değiştirilebilir; güncel sürümü bu sayfada yayımlanır.
             </p>
           </section>
 
@@ -41,7 +43,10 @@ export function TermsPage() {
             <p className="text-muted-foreground leading-relaxed">
               Hesabınızın güvenliğinden ve hesabınız altında gerçekleştirilen tüm işlemlerden siz
               sorumlusunuz. Yetkisiz erişim tespit etmeniz durumunda derhal{' '}
-              <Link to="/iletisim" className="text-foreground underline underline-offset-2 hover:opacity-75">
+              <Link
+                to="/iletisim"
+                className="text-foreground underline underline-offset-2 hover:opacity-75"
+              >
                 bizimle iletişime
               </Link>{' '}
               geçiniz.
@@ -58,7 +63,9 @@ export function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">5. Kullanım Kısıtlamaları</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-3">
+              5. Kullanım Kısıtlamaları
+            </h2>
             <p className="text-muted-foreground leading-relaxed">
               Platformu yasa dışı amaçlarla, zararlı yazılım dağıtmak, hizmetleri aksatmak veya
               başkalarının haklarını ihlal etmek amacıyla kullanamazsınız. Bu tür ihlaller hesabın
@@ -67,7 +74,9 @@ export function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">6. Sorumluluk Sınırlaması</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-3">
+              6. Sorumluluk Sınırlaması
+            </h2>
             <p className="text-muted-foreground leading-relaxed">
               Cargo Pilot, hizmet kesintileri veya veri kayıpları nedeniyle oluşabilecek dolaylı
               zararlardan sorumlu tutulamaz. Platformun sağladığı optimizasyon sonuçları tavsiye

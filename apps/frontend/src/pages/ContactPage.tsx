@@ -77,9 +77,7 @@ export function ContactPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground mb-0.5">Adres</p>
-                  <p className="text-sm text-muted-foreground">
-                    Levent, İstanbul, Türkiye
-                  </p>
+                  <p className="text-sm text-muted-foreground">Levent, İstanbul, Türkiye</p>
                 </div>
               </CardContent>
             </Card>
@@ -91,9 +89,7 @@ export function ContactPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground mb-0.5">Çalışma Saatleri</p>
-                  <p className="text-sm text-muted-foreground">
-                    Pazartesi – Cuma, 09:00 – 18:00
-                  </p>
+                  <p className="text-sm text-muted-foreground">Pazartesi – Cuma, 09:00 – 18:00</p>
                 </div>
               </CardContent>
             </Card>
@@ -116,14 +112,17 @@ export function ContactPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Ad Soyad</Label>
                   <Input id="name" placeholder="Adınız" {...register('name')} />
-                  {errors.name && (
-                    <p className="text-xs text-destructive">{errors.name.message}</p>
-                  )}
+                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="email">E-posta</Label>
-                  <Input id="email" type="email" placeholder="ornek@sirket.com" {...register('email')} />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="ornek@sirket.com"
+                    {...register('email')}
+                  />
                   {errors.email && (
                     <p className="text-xs text-destructive">{errors.email.message}</p>
                   )}
@@ -131,7 +130,11 @@ export function ContactPage() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="subject">Konu</Label>
-                  <Input id="subject" placeholder="Nasıl yardımcı olabiliriz?" {...register('subject')} />
+                  <Input
+                    id="subject"
+                    placeholder="Nasıl yardımcı olabiliriz?"
+                    {...register('subject')}
+                  />
                   {errors.subject && (
                     <p className="text-xs text-destructive">{errors.subject.message}</p>
                   )}
