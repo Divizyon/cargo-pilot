@@ -75,6 +75,7 @@ export function SharePage() {
     );
   }
 
+  const fillPct = Math.round(plan.fillPercentage * 100 * 100) / 100;
   const statusCfg = STATUS_CONFIG[plan.status] ?? STATUS_CONFIG['taslak'];
   const isContainer =
     plan.vehicleName.toLowerCase().includes('konteyner') ||
@@ -140,7 +141,7 @@ export function SharePage() {
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-zinc-400">Doluluk</span>
-              <span className="text-sm font-semibold text-zinc-900">%{plan.fillPercentage}</span>
+              <span className="text-sm font-semibold text-zinc-900">%{fillPct}</span>
             </div>
           </div>
 
@@ -149,13 +150,9 @@ export function SharePage() {
               <div
                 className={cn(
                   'h-full rounded-full',
-                  plan.fillPercentage >= 90
-                    ? 'bg-emerald-500'
-                    : plan.fillPercentage >= 60
-                      ? 'bg-blue-500'
-                      : 'bg-zinc-400',
+                  fillPct >= 90 ? 'bg-emerald-500' : fillPct >= 60 ? 'bg-blue-500' : 'bg-zinc-400',
                 )}
-                style={{ width: `${plan.fillPercentage}%` }}
+                style={{ width: `${Math.min(fillPct, 100)}%` }}
               />
             </div>
           </div>
