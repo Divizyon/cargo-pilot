@@ -21,10 +21,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
     private readonly IIntegrationRepository _integrationRepository;
     private readonly IErpSettingsRepository _erpSettingsRepository;
     private readonly IErpPasswordProtector _passwordProtector;
-    private readonly IItemRepository _itemRepository;
-    private readonly IPendingItemMappingRepository _pendingMappingRepository;
+    private readonly IDraftItemRepository _draftItemRepository;
     private readonly IErpProductFetcher _erpProductFetcher;
-    private readonly IErpConstraintMappingService _constraintMappingService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<SyncErpItemsCommand> _validator;
     private readonly ILogger<SyncErpItemsCommandHandler> _logger;
@@ -33,10 +31,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         IIntegrationRepository integrationRepository,
         IErpSettingsRepository erpSettingsRepository,
         IErpPasswordProtector passwordProtector,
-        IItemRepository itemRepository,
-        IPendingItemMappingRepository pendingMappingRepository,
+        IDraftItemRepository draftItemRepository,
         IErpProductFetcher erpProductFetcher,
-        IErpConstraintMappingService constraintMappingService,
         ICurrentUserService currentUserService,
         IValidator<SyncErpItemsCommand> validator,
         ILogger<SyncErpItemsCommandHandler> logger)
@@ -44,10 +40,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         _integrationRepository = integrationRepository;
         _erpSettingsRepository = erpSettingsRepository;
         _passwordProtector = passwordProtector;
-        _itemRepository = itemRepository;
-        _pendingMappingRepository = pendingMappingRepository;
+        _draftItemRepository = draftItemRepository;
         _erpProductFetcher = erpProductFetcher;
-        _constraintMappingService = constraintMappingService;
         _currentUserService = currentUserService;
         _validator = validator;
         _logger = logger;
@@ -103,101 +97,64 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 request.WarehouseFilter,
                 cancellationToken);
 
-            var approvedMappings = await _pendingMappingRepository.GetApprovedByIntegrationAsync(integration.Id, cancellationToken);
-            var approvedByErpId = approvedMappings
-                .Where(m => m.CargoPilotItemId.HasValue)
-                .ToDictionary(m => m.ErpId, StringComparer.OrdinalIgnoreCase);
-
-            // Bulk pre-load: approved item'lar, tüm pending mapping'ler ve mevcut item'lar
-            var linkedItemIds = approvedByErpId.Values.Select(m => m.CargoPilotItemId!.Value).Distinct();
-            var linkedItemsById = (await _itemRepository.GetByIdsAsync(linkedItemIds, companyId, cancellationToken))
-                .ToDictionary(i => i.Id);
-
-            var allPendingMappings = await _pendingMappingRepository.GetAllByIntegrationAsync(integration.Id, cancellationToken);
-            var pendingByErpId = allPendingMappings
-                .ToDictionary(m => m.ErpId, StringComparer.OrdinalIgnoreCase);
-
-            var existingItemsBySku = (await _itemRepository.GetBySkusAsync(erpProducts.Select(p => p.Sku).Distinct(), companyId, cancellationToken))
-                .ToDictionary(i => i.SKU, StringComparer.OrdinalIgnoreCase);
-
-            int added = 0, updated = 0, skipped = 0, pendingMappings = 0, ruleAssigned = 0, ruleNotAssigned = 0;
+            int added = 0, updated = 0, skipped = 0;
 
             foreach (var product in erpProducts)
             {
-                var resolution = _constraintMappingService.Resolve(integration.MappingTable, product.ErpConstraints);
+                var existing = await _draftItemRepository.GetByErpIdAsync(
+                    product.ErpId, integration.Id, companyId.Value, cancellationToken);
 
-                if (approvedByErpId.TryGetValue(product.ErpId, out var approvedMapping) &&
-                    linkedItemsById.TryGetValue(approvedMapping.CargoPilotItemId!.Value, out var linkedItem))
+                if (existing is not null)
                 {
-                    var (rotations, fragility, stackable, maxStack, maxWeight) = ParseRuleFields(resolution.ResolvedValues);
-                    linkedItem.Update(
-                        product.Sku, product.Barcode, product.Name, product.ProductType,
-                        ParseCategory(product.Category), product.Width, product.Height, product.Length,
-                        product.Diameter, product.Weight, fragility, stackable, maxStack, maxWeight,
-                        rotations, linkedItem.ImageUrl, linkedItem.StackGroup, linkedItem.SpecialNotes);
-                    linkedItem.SetErpSource(product.ErpId, integration.Id);
-                    linkedItem.SetRuleAssigned(resolution.IsFullyResolved);
-                    _itemRepository.Update(linkedItem);
-                    updated++;
-                    if (resolution.IsFullyResolved) ruleAssigned++; else ruleNotAssigned++;
-                    continue;
-                }
-
-                if (!resolution.IsFullyResolved)
-                {
-                    if (pendingByErpId.TryGetValue(product.ErpId, out var existingPending))
+                    if (existing.Status == DraftItemStatus.Approved)
                     {
-                        existingPending.UpdateErpData(product.Sku, product.Name, product.RawDataJson);
-                        _pendingMappingRepository.Update(existingPending);
+                        skipped++;
+                        continue;
                     }
-                    else
-                    {
-                        _pendingMappingRepository.Add(new PendingItemMapping(
-                            Guid.NewGuid(), integration.Id, product.ErpId, product.Sku, product.Name, product.RawDataJson));
-                        pendingMappings++;
-                    }
-                    skipped++;
-                    continue;
-                }
 
-                var (allowedRotations, fragilityType, isStackable, maxStackCount, maxWeightOnTop) = ParseRuleFields(resolution.ResolvedValues);
-                var category = ParseCategory(product.Category);
+                    existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson);
+                    if (existing.Status == DraftItemStatus.Rejected)
+                        existing.ResetToPending();
 
-                if (existingItemsBySku.TryGetValue(product.Sku, out var existingItem))
-                {
-                    existingItem.Update(
-                        product.Sku, product.Barcode, product.Name, product.ProductType,
-                        category, product.Width, product.Height, product.Length, product.Diameter,
-                        product.Weight, fragilityType, isStackable, maxStackCount, maxWeightOnTop,
-                        allowedRotations, existingItem.ImageUrl, existingItem.StackGroup, existingItem.SpecialNotes);
-                    existingItem.SetErpSource(product.ErpId, integration.Id);
-                    existingItem.SetRuleAssigned(true);
-                    _itemRepository.Update(existingItem);
+                    _draftItemRepository.Update(existing);
                     updated++;
-                    ruleAssigned++;
                 }
                 else
                 {
-                    var newItem = new Item(
-                        Guid.NewGuid(), product.Sku, product.Name, product.ProductType,
-                        category, product.Width, product.Height, product.Length, product.Weight,
-                        fragilityType, isStackable, maxStackCount, maxWeightOnTop, allowedRotations,
-                        product.Barcode, product.Diameter, companyId: companyId);
-                    newItem.SetErpSource(product.ErpId, integration.Id);
-                    newItem.SetRuleAssigned(true);
-                    _itemRepository.Add(newItem);
+                    var draft = new DraftItem(
+                        Guid.NewGuid(),
+                        companyId.Value,
+                        integration.Id,
+                        product.ErpId,
+                        product.RawDataJson,
+                        product.Sku,
+                        product.Name,
+                        string.IsNullOrWhiteSpace(product.ProductType) ? "STANDARD" : product.ProductType,
+                        ParseCategory(product.Category),
+                        product.Width,
+                        product.Height,
+                        product.Length,
+                        product.Weight,
+                        FragilityType.NonFragile,
+                        isStackable: true,
+                        maxStackCount: 1,
+                        maxWeightOnTop: 0m,
+                        AllowedRotations.All,
+                        product.Barcode,
+                        product.Diameter);
+
+                    _draftItemRepository.Add(draft);
                     added++;
-                    ruleAssigned++;
                 }
             }
 
             integration.RecordSync(DateTime.UtcNow);
-            syncLog.Complete(added + updated, ruleAssigned, ruleNotAssigned);
+            syncLog.Complete(added + updated);
 
-            await _itemRepository.SaveChangesAsync(cancellationToken);
+            await _draftItemRepository.SaveChangesAsync(cancellationToken);
 
             return Result<SyncErpItemsResult>.Success(
-                new SyncErpItemsResult(syncLog.Id, added, updated, skipped, pendingMappings, ruleAssigned, ruleNotAssigned));
+                new SyncErpItemsResult(syncLog.Id, added, updated, skipped));
         }
         catch (Exception ex)
         {
@@ -207,26 +164,6 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             return Result<SyncErpItemsResult>.Failure(
                 new Error(ErrorType.Unexpected, "Sync.Failed", "ERP senkronizasyonu sırasında bir hata oluştu."));
         }
-    }
-
-    private static (AllowedRotations, FragilityType, bool, int, decimal) ParseRuleFields(
-        IReadOnlyDictionary<string, string> resolvedValues)
-    {
-        var rotations = resolvedValues.TryGetValue("AllowedRotations", out var r) && Enum.TryParse<AllowedRotations>(r, out var parsedR)
-            ? parsedR : AllowedRotations.All;
-
-        var fragility = resolvedValues.TryGetValue("FragilityType", out var f) && Enum.TryParse<FragilityType>(f, out var parsedF)
-            ? parsedF : FragilityType.NonFragile;
-
-        var stackable = !resolvedValues.TryGetValue("IsStackable", out var s) || !bool.TryParse(s, out var parsedS) || parsedS;
-
-        var maxStack = resolvedValues.TryGetValue("MaxStackCount", out var ms) && int.TryParse(ms, out var parsedMs)
-            ? parsedMs : 1;
-
-        var maxWeight = resolvedValues.TryGetValue("MaxWeightOnTop", out var mw) && decimal.TryParse(mw, out var parsedMw)
-            ? parsedMw : 0m;
-
-        return (rotations, fragility, stackable, maxStack, maxWeight);
     }
 
     private static ItemCategory ParseCategory(string? category)

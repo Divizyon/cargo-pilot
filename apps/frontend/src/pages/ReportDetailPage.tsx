@@ -1,9 +1,22 @@
 import type { ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileDown, FileSpreadsheet, ImageOff, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Box,
+  Calendar,
+  FileDown,
+  FileSpreadsheet,
+  Gauge,
+  ImageOff,
+  Layers,
+  Loader2,
+  Package,
+  Scale,
+  Truck,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -56,7 +69,7 @@ function formatDate(dateStr: string): string {
 function fillRateColor(rate: number) {
   if (rate >= 90) return 'text-emerald-600';
   if (rate >= 60) return 'text-amber-500';
-  return 'text-red-500';
+  return 'text-muted-foreground';
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -90,18 +103,24 @@ interface MetricCardProps {
   value: ReactNode;
   sub?: string;
   progress?: number;
+  icon?: ReactNode;
 }
 
-function MetricCard({ title, value, sub, progress }: MetricCardProps) {
+function MetricCard({ title, value, sub, progress, icon }: MetricCardProps) {
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-2xl font-bold text-foreground">{value}</p>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {title}
+          </p>
+          {icon && (
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              {icon}
+            </div>
+          )}
+        </div>
+        <p className="mt-3 text-2xl font-bold text-foreground">{value}</p>
         {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
         {progress !== undefined && (
           <Progress
@@ -112,7 +131,7 @@ function MetricCard({ title, value, sub, progress }: MetricCardProps) {
                 ? '[&>div]:bg-emerald-500'
                 : progress >= 60
                   ? '[&>div]:bg-amber-500'
-                  : '[&>div]:bg-red-500',
+                  : '[&>div]:bg-muted-foreground',
             )}
           />
         )}
@@ -152,10 +171,7 @@ function ProductTable({ groups }: { groups: PlanProductGroup[] }) {
             <TableRow key={`${g.id}-${p.id}`} className="h-11">
               <TableCell className="px-3 py-0">
                 <span className="flex items-center gap-2 text-xs font-medium text-foreground">
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: g.color }}
-                  />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
                   {p.name}
                 </span>
               </TableCell>
@@ -299,6 +315,23 @@ export function ReportDetailPage() {
 
       {detail && (
         <>
+          {/* Plan info strip */}
+          <div className="flex flex-wrap gap-2">
+            {detail.vehiclePlate !== '—' && (
+              <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5">
+                <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">{detail.vehiclePlate}</span>
+                {detail.vehicleName !== '—' && (
+                  <span className="text-xs text-muted-foreground">· {detail.vehicleName}</span>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{formatDate(detail.date)}</span>
+            </div>
+          </div>
+
           {/* AC1: Özet metrik kartları */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <MetricCard
@@ -306,11 +339,13 @@ export function ReportDetailPage() {
               value={`${detail.totalWeightKg.toLocaleString('tr-TR')} kg`}
               sub={`Kapasite: ${detail.vehicleCapacityKg.toLocaleString('tr-TR')} kg`}
               progress={Math.min(100, (detail.totalWeightKg / detail.vehicleCapacityKg) * 100)}
+              icon={<Scale className="h-3.5 w-3.5" />}
             />
             <MetricCard
               title="Ağırlık Doluluk Oranı"
               value={<span className={fillRateColor(detail.fillRate)}>%{detail.fillRate}</span>}
               progress={detail.fillRate}
+              icon={<Gauge className="h-3.5 w-3.5" />}
             />
             <MetricCard
               title="Hacim Doluluk Oranı"
@@ -320,14 +355,18 @@ export function ReportDetailPage() {
                 </span>
               }
               progress={detail.volumeFillRate}
+              icon={<Layers className="h-3.5 w-3.5" />}
             />
           </div>
 
           {/* AC1 / AC3: 3D Snapshot */}
           <div className="overflow-hidden rounded-2xl border border-border bg-background">
-            <p className="border-b border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              3D Görünüm
-            </p>
+            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+              <Box className="h-3.5 w-3.5 text-muted-foreground" />
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                3D Görünüm
+              </p>
+            </div>
             {detail.snapshotUrl ? (
               <img
                 src={detail.snapshotUrl}
@@ -346,9 +385,17 @@ export function ReportDetailPage() {
 
           {/* AC1: Ürün yerleştirme tablosu */}
           <div className="overflow-hidden rounded-2xl border border-border bg-background">
-            <p className="border-b border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Ürün Listesi
-            </p>
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Ürün Listesi
+                </p>
+              </div>
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">
+                {detail.productGroups.flatMap((g) => g.products).length} ürün
+              </Badge>
+            </div>
             <div className="overflow-x-auto">
               <ProductTable groups={detail.productGroups} />
             </div>

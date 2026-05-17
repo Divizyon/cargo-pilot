@@ -18,6 +18,8 @@
 
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.25" />
 
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.0" />
+
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.3.1" />
 
     <PackageReference Include="Minio" Version="7.0.0" />

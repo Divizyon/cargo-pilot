@@ -1,11 +1,12 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Infrastructure.Persistence.Configurations;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence;
 
-public class AppDbContext : DbContext {
+public class AppDbContext : DbContext, IDataProtectionKeyContext {
     private readonly ICurrentUserService _currentUserService;
 
     public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUserService)
@@ -36,6 +37,8 @@ public class AppDbContext : DbContext {
     public DbSet<PendingItemMapping> PendingItemMappings => Set<PendingItemMapping>();
     public DbSet<ErpSettings> ErpSettings => Set<ErpSettings>();
     public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
+    public DbSet<DraftItem> DraftItems => Set<DraftItem>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
         ApplyAuditFields();
@@ -71,6 +74,7 @@ public class AppDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new PendingItemMappingConfiguration());
         modelBuilder.ApplyConfiguration(new ErpSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new ShareLinkConfiguration());
+        modelBuilder.ApplyConfiguration(new DraftItemConfiguration());
     }
 
     private void ApplyAuditFields() {

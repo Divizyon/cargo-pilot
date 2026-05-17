@@ -84,7 +84,7 @@ export function ShareLinkDialog({ open, onOpenChange, planId, planName }: ShareL
             Bağlantı ile Paylaş
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-zinc-800">{planName}</span> planını bağlantı ile
+            <span className="font-medium text-foreground">{planName}</span> planını bağlantı ile
             paylaşın.
           </DialogDescription>
         </DialogHeader>
@@ -123,7 +123,7 @@ export function ShareLinkDialog({ open, onOpenChange, planId, planName }: ShareL
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-zinc-500">{selectedOption.hint}</p>
+              <p className="text-xs text-muted-foreground">{selectedOption.hint}</p>
             </div>
           ) : (
             <Button onClick={handleCreate} disabled={isPending} className="w-full">

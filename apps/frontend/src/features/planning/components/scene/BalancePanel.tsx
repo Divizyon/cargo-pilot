@@ -43,7 +43,7 @@ const LEVEL_CONFIG: Record<BalanceLevel, LevelConfig> = {
   },
   kritik: {
     panelClass: 'bg-red-600/80',
-    badgeClass: 'bg-white/20',
+    badgeClass: 'bg-background/20',
     label: 'KRİTİK',
     message: 'KRİTİK: Denge ihlali! Devrilme riski mevcut.',
     flash: true,

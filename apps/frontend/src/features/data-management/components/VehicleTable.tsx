@@ -167,10 +167,10 @@ const TYPE_CONFIG: Record<
 // ─── Door direction config ────────────────────────────────────────────────────
 
 const DOOR_CONFIG: Record<string, { label: string }> = {
-  rear: { label: 'Arka' },
+  rear: { label: 'Ön' },
   side: { label: 'Yan' },
   top: { label: 'Üst' },
-  rearAndSide: { label: 'Arka + Yan' },
+  rearAndSide: { label: 'Ön + Yan' },
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -190,10 +190,10 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 type DoorFilter = 'rear' | 'side' | 'top' | 'rearAndSide';
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: 'rear', label: 'Arka Kapı' },
+  { value: 'rear', label: 'Ön Kapı' },
   { value: 'side', label: 'Yan Kapı' },
   { value: 'top', label: 'Üst Kapı' },
-  { value: 'rearAndSide', label: 'Arka + Yan' },
+  { value: 'rearAndSide', label: 'Ön + Yan' },
 ];
 
 // ─── Status filter ────────────────────────────────────────────────────────────
@@ -656,7 +656,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   Plaka/Seri No
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk (X)
+                  Uzunluk/Çap (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik (Y)

@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Vehicle } from '@/lib/types/vehicle';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { VehicleAuditSection } from './VehicleAuditSection';
 
 const DOOR_LABELS: Record<string, string> = {
@@ -13,6 +15,9 @@ interface Props {
 }
 
 export function ArchivedVehicleView({ vehicle }: Props) {
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
   return (
     <Card>
       <CardHeader>
@@ -28,16 +33,18 @@ export function ArchivedVehicleView({ vehicle }: Props) {
 
           <dt className="text-muted-foreground">Boyutlar (U×G×Y)</dt>
           <dd>
-            {vehicle.length} × {vehicle.width} × {vehicle.height} cm
+            {formatDimensionDisplay(vehicle.length, dimensionUnit)} ×{' '}
+            {formatDimensionDisplay(vehicle.width, dimensionUnit)} ×{' '}
+            {formatDimensionDisplay(vehicle.height, dimensionUnit)}
           </dd>
 
           <dt className="text-muted-foreground">Maks Kargo</dt>
-          <dd>{vehicle.maxCargoWeight.toLocaleString('tr-TR')} kg</dd>
+          <dd>{formatWeightDisplay(vehicle.maxCargoWeight, weightUnit)}</dd>
 
           {vehicle.tareWeight !== undefined && (
             <>
               <dt className="text-muted-foreground">Boş Ağırlık</dt>
-              <dd>{vehicle.tareWeight.toLocaleString('tr-TR')} kg</dd>
+              <dd>{formatWeightDisplay(vehicle.tareWeight, weightUnit)}</dd>
             </>
           )}
 

@@ -38,7 +38,7 @@ export function LevelControls({ className }: LevelControlsProps) {
     <TooltipProvider delayDuration={120}>
       <div
         className={cn(
-          'pointer-events-auto flex items-center gap-3 rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur',
+          'pointer-events-auto flex items-center gap-3 rounded-xl border border-border bg-background/90 px-3 py-2 shadow-sm backdrop-blur',
           className,
         )}
       >
@@ -52,8 +52,8 @@ export function LevelControls({ className }: LevelControlsProps) {
               className={cn(
                 'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors',
                 xRayMode
-                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                  : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                  ? 'border-foreground bg-foreground text-background'
+                  : 'border-border bg-background text-foreground hover:bg-accent',
               )}
             >
               {xRayMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -67,7 +67,7 @@ export function LevelControls({ className }: LevelControlsProps) {
         {/* Depth slider label */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 shrink-0">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
               <Layers className="h-3 w-3" />
               <span className="w-8 tabular-nums">{pct > 0 ? `${pct}%` : 'Hepsi'}</span>
             </div>

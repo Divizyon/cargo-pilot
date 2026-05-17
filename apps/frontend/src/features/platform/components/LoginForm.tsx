@@ -164,7 +164,7 @@ export function LoginForm() {
           {logoutReason === 'token_expired' && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
               <ShieldOff className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Oturumunuz sona ermiştir. Lütfen tekrar giriş yapın.</span>
+              <span>Oturumunuz sona erdi. Lütfen tekrar giriş yapın.</span>
             </div>
           )}
 
