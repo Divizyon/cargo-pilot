@@ -119,6 +119,7 @@ export function VehicleCard({
 }: VehicleCardProps) {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
   const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
 
@@ -129,13 +130,8 @@ export function VehicleCard({
     else navigate(planningDetailRoute(plan.id));
   }
 
-  const volumePct = plan.volumeFillPercentage;
   const weightPct = plan.fillPercentage;
   const planDate = formatDate(plan.plannedAt ?? plan.createdAt);
-  const hasDimensions = plan.interiorWidthM > 0 && plan.interiorHeightM > 0 && plan.interiorDepthM > 0;
-  const widthM = hasDimensions ? (plan.interiorWidthM / 100).toFixed(2) : null;
-  const heightM = hasDimensions ? (plan.interiorHeightM / 100).toFixed(2) : null;
-  const depthM = hasDimensions ? (plan.interiorDepthM / 100).toFixed(2) : null;
 
   return (
     <div
@@ -174,18 +170,10 @@ export function VehicleCard({
             {plan.vehiclePlate && (
               <p className="text-xs text-muted-foreground mt-0.5">{plan.vehiclePlate}</p>
             )}
-            {hasDimensions ? (
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {widthM} × {depthM} × {heightM} m
-              </p>
-            ) : null}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className={cn('text-[11px]', getFillClass(volumePct))}>
-              Hacim: {volumePct.toFixed(0)}%
-            </span>
             <span className={cn('text-[11px]', getFillClass(weightPct))}>
-              Ağırlık: {weightPct.toFixed(0)}%
+              Doluluk: {weightPct.toFixed(0)}%
             </span>
           </div>
         </div>
@@ -197,12 +185,13 @@ export function VehicleCard({
         style={{ height: previewHeight }}
         onClick={(e) => e.stopPropagation()}
       >
-        {plan.thumbnailUrl ? (
+        {plan.thumbnailUrl && !imgError ? (
           <img
             src={plan.thumbnailUrl}
-            alt="3D görünüm"
+            alt=""
             className="w-full h-full object-cover"
             draggable={false}
+            onError={() => setImgError(true)}
           />
         ) : (
           <>
