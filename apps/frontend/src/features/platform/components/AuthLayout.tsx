@@ -10,11 +10,11 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-dvh bg-background flex flex-col items-center justify-center p-4 py-16 sm:py-4">
       {/* Top-left logo — links back to landing page */}
       <Link
         to="/"
-        className="fixed top-5 left-5 flex items-center gap-2 transition-opacity hover:opacity-75"
+        className="hidden md:flex fixed top-5 left-5 items-center gap-2 transition-opacity hover:opacity-75"
       >
         <img src="/favicon.svg" alt="Cargo Pilot" className="w-7 h-7 shrink-0" />
         <span className="font-semibold text-sm text-foreground">Cargo Pilot</span>

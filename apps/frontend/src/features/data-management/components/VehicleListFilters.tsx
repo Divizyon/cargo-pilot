@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState } from 'react';
-import { Plus, SlidersHorizontal, ChevronDown, Star } from 'lucide-react';
+import { Plus, SlidersHorizontal, ChevronDown, Star, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { VehicleExportButton } from './VehicleExportButton';
 import { SearchInput } from './SearchInput';
-import type { useVehicleFilters } from '../hooks/useVehicleFilters';
+import type { useVehicleFilters, VehicleSortKey } from '../hooks/useVehicleFilters';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFilters } from '@/lib/api/useVehicles';
 
@@ -33,6 +33,13 @@ const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'draft', label: 'Arşivlenmiş' },
 ];
 
+const SORT_OPTIONS: { value: VehicleSortKey; label: string }[] = [
+  { value: 'date_desc', label: 'En Yeni' },
+  { value: 'date_asc', label: 'En Eski' },
+  { value: 'name_asc', label: "A'dan Z'ye" },
+  { value: 'name_desc', label: "Z'den A'ya" },
+];
+
 export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreateClick }: Props) {
   const {
     setSearchQuery,
@@ -42,11 +49,15 @@ export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreate
     setStatusFilter,
     favoritesOnly,
     setFavoritesOnly,
+    sortKey,
+    setSortKey,
     activeFilterCount,
   } = filters;
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showSortPanel, setShowSortPanel] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showFilterPanel) return;
@@ -58,6 +69,17 @@ export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreate
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
+
+  useEffect(() => {
+    if (!showSortPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setShowSortPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSortPanel]);
 
   const currentTab: VehicleTypeTab = (vehicleType as VehicleTypeTab) || 'all';
   const hasActiveFilters = activeFilterCount > 0;
@@ -97,6 +119,48 @@ export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreate
 
       {/* Search input */}
       <SearchInput onSearch={setSearchQuery} placeholder="Araç adı veya plaka ile ara..." />
+
+      {/* Sırala dropdown */}
+      <div ref={sortRef} className="relative shrink-0">
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            'gap-1.5 text-xs',
+            sortKey !== 'date_desc' && 'border-primary text-primary ring-1 ring-primary/30',
+          )}
+          onClick={() => setShowSortPanel((v) => !v)}
+        >
+          <ArrowUpDown className="h-3.5 w-3.5" />
+          {SORT_OPTIONS.find((o) => o.value === sortKey)?.label ?? 'Sırala'}
+          <ChevronDown
+            className={cn('h-3.5 w-3.5 transition-transform', showSortPanel && 'rotate-180')}
+          />
+        </Button>
+
+        {showSortPanel && (
+          <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-border bg-background shadow-lg">
+            <div className="p-2">
+              {SORT_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setSortKey(value);
+                    setShowSortPanel(false);
+                  }}
+                  className={cn(
+                    'flex w-full items-center rounded-md px-2 py-1.5 text-xs hover:bg-muted',
+                    sortKey === value && 'font-semibold text-primary',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Filtrele dropdown */}
       <div ref={filterRef} className="relative shrink-0">

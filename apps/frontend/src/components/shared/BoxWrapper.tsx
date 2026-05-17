@@ -31,6 +31,7 @@ interface BoxWrapperProps {
 // Kargo: kalan yükseklikte düz kutu (üst kısım), ürün rengiyle.
 
 const PALLET_H_CM = 14;
+const PALLET_WOOD_COLOR = '#c8a96e';
 
 function PaletMat({
   color,
@@ -132,14 +133,14 @@ function PaletContent({
       {slatCentersX.map((bx, i) => (
         <mesh key={`ts${i}`} position={[bx, topDeckY, 0]}>
           <boxGeometry args={[slatW, deckH, depth]} />
-          <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
         </mesh>
       ))}
       {/* Alt stringer: 3 tahta */}
       {crossCentersZ.map((bz, i) => (
         <mesh key={`bs${i}`} position={[0, btmDeckY, bz]}>
           <boxGeometry args={[width, deckH, crossD]} />
-          <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
         </mesh>
       ))}
       {/* Bağlantı blokları: 3×3 ızgara */}
@@ -147,7 +148,7 @@ function PaletContent({
         [slatCentersX[0], slatCentersX[2], slatCentersX[5]].map((bx, xi) => (
           <mesh key={`bl${zi}${xi}`} position={[bx, paletCenterY, bz]}>
             <boxGeometry args={[slatW, blockH, crossD]} />
-            <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+            <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
           </mesh>
         )),
       )}

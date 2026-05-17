@@ -10,4 +10,6 @@ public interface ICompanyRepository
     Task<IReadOnlyList<Company>> GetExpiringTrialCompaniesAsync(int daysAhead, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Company>> GetExpiredTrialCompaniesAsync(CancellationToken cancellationToken = default);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

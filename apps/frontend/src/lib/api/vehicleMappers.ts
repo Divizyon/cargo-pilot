@@ -1,5 +1,13 @@
 import { z } from 'zod';
 import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import {
+  toCentimeters,
+  fromCentimeters,
+  toKilograms,
+  fromKilograms,
+  type WeightUnitKey,
+} from '@/features/data-management/schemas/productSchema';
+import { useUnitStore } from '@/lib/store/useUnitStore';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 
 // Backend: Trailer=0, Truck=1, Container=2, Romork=3
@@ -23,11 +31,11 @@ export const LOADING_TYPE_FROM_INT: Record<
   number,
   { direction: DoorDirection; doorSide?: 'right' | 'left' }
 > = {
-  0: { direction: DoorDirection.Rear },
-  1: { direction: DoorDirection.Side, doorSide: 'right' },
-  2: { direction: DoorDirection.Side, doorSide: 'left' },
-  3: { direction: DoorDirection.RearAndSide },
-  4: { direction: DoorDirection.Top },
+  0: { direction: DoorDirection.Front },
+  1: { direction: DoorDirection.Front },
+  2: { direction: DoorDirection.Front },
+  3: { direction: DoorDirection.Front },
+  4: { direction: DoorDirection.Front },
 };
 
 // ─── Backend response schema ──────────────────────────────────────────────────
@@ -160,7 +168,7 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
     height: api.internalHeight,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Rear,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Front,
     doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
     kingpin,
     axleB,
@@ -223,7 +231,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     grossWeight: api.grossWeight ?? undefined,
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Rear,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Front,
     doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
     kingpin,
     axleB,
@@ -240,18 +248,25 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
 }
 
 export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
+  const { dimensionUnit, weightUnit } = useUnitStore.getState();
   return {
     vehicleType: v.vehicleType,
     name: v.name,
     description: v.description,
     plate: v.plate,
     serialNumber: v.serialNumber,
-    length: v.length,
-    width: v.width,
-    height: v.height,
-    maxCargoWeight: v.maxCargoWeight,
-    grossWeight: v.grossWeight,
-    tareWeight: v.tareWeight,
+    length: fromCentimeters(v.length, dimensionUnit),
+    width: fromCentimeters(v.width, dimensionUnit),
+    height: fromCentimeters(v.height, dimensionUnit),
+    maxCargoWeight: fromKilograms(v.maxCargoWeight, weightUnit as WeightUnitKey),
+    grossWeight:
+      v.grossWeight != null
+        ? fromKilograms(v.grossWeight, weightUnit as WeightUnitKey)
+        : v.grossWeight,
+    tareWeight:
+      v.tareWeight != null
+        ? fromKilograms(v.tareWeight, weightUnit as WeightUnitKey)
+        : v.tareWeight,
     layerCount: v.maxLayerCount,
     doorDirection: v.doorDirection,
     doorSide: v.doorSide,
@@ -289,6 +304,7 @@ export interface CreateVehicleRequest {
 }
 
 export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehicleRequest {
+  const { dimensionUnit, weightUnit } = useUnitStore.getState();
   const rawPlate =
     values.vehicleType === VehicleType.Konteyner
       ? values.serialNumber?.trim()
@@ -299,10 +315,16 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     vehicleType: VEHICLE_TYPE_INT[values.vehicleType],
     description: values.description?.trim() ?? '',
     plateNumber: rawPlate || undefined,
-    internalLength: Number.isFinite(values.length) ? values.length : 0,
-    internalWidth: Number.isFinite(values.width) ? values.width : 0,
-    internalHeight: Number.isFinite(values.height) ? values.height : 0,
-    maxWeightCapacity: Number.isFinite(values.maxCargoWeight) ? values.maxCargoWeight : 0,
+    internalLength: Number.isFinite(values.length)
+      ? toCentimeters(values.length, dimensionUnit)
+      : 0,
+    internalWidth: Number.isFinite(values.width) ? toCentimeters(values.width, dimensionUnit) : 0,
+    internalHeight: Number.isFinite(values.height)
+      ? toCentimeters(values.height, dimensionUnit)
+      : 0,
+    maxWeightCapacity: Number.isFinite(values.maxCargoWeight)
+      ? toKilograms(values.maxCargoWeight, weightUnit as WeightUnitKey)
+      : 0,
     layerCount: Number.isFinite(values.layerCount) ? (values.layerCount ?? 1) : 1,
     loadingType: (() => {
       if (values.doorDirection === 'side') {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ArrowUpDown,
   Box,
   ChevronDown,
   ChevronLeft,
@@ -10,7 +11,6 @@ import {
   Flame,
   FlaskConical,
   Layers,
-  Leaf,
   Package,
   Plus,
   RotateCcw,
@@ -95,7 +95,6 @@ const CONSTRAINT_FILTER_OPTIONS: {
   { value: 'food', label: 'Gıda Teması', Icon: Utensils, className: 'text-green-600' },
   { value: 'dry', label: 'Kuru', Icon: Sun, className: 'text-muted-foreground' },
   { value: 'chemical', label: 'Kimyasal', Icon: FlaskConical, className: 'text-purple-600' },
-  { value: 'organic', label: 'Organik', Icon: Leaf, className: 'text-green-600' },
   { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
   {
     value: 'rotationLocked',
@@ -332,12 +331,27 @@ interface ProductTableProps {
 }
 
 type CategoryFilter = 'all' | 'koli' | 'varil' | 'palet';
+type SortKey = 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc';
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'date_desc', label: 'En Yeni' },
+  { value: 'date_asc', label: 'En Eski' },
+  { value: 'name_asc', label: "A'dan Z'ye" },
+  { value: 'name_desc', label: "Z'den A'ya" },
+];
+
+function applySortToItems(items: Item[] | undefined, key: SortKey): Item[] | undefined {
+  if (!items) return undefined;
+  if (key === 'name_asc') return [...items].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  if (key === 'name_desc') return [...items].sort((a, b) => b.name.localeCompare(a.name, 'tr'));
+  return items;
+}
 
 const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'Tümü' },
   { value: 'koli', label: 'Koli' },
   { value: 'varil', label: 'Varil' },
-  { value: 'palet', label: 'Palet' },
+  { value: 'palet', label: 'Paletli Ürün' },
 ];
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<
@@ -358,9 +372,12 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [constraintFilters, setConstraintFilters] = useState<Set<ConstraintFilter>>(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showSortPanel, setShowSortPanel] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('date_desc');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
   const tableCardRef = useRef<HTMLDivElement>(null);
 
   const [pageSize, setPageSize] = useState(() =>
@@ -392,7 +409,9 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   }, []);
   const deleteItem = useDeleteItem();
 
-  const hasClientFilters = category !== 'all' || constraintFilters.size > 0;
+  const isNameSort = sortKey === 'name_asc' || sortKey === 'name_desc';
+  const isDateSort = sortKey === 'date_asc' || sortKey === 'date_desc';
+  const hasClientFilters = category !== 'all' || constraintFilters.size > 0 || isNameSort;
 
   const {
     data: itemsPage,
@@ -402,6 +421,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     search: searchTerm || undefined,
     page: hasClientFilters ? 1 : page,
     pageSize: hasClientFilters ? 100 : pageSize,
+    ...(isDateSort && {
+      sortBy: 'createdAt',
+      sortOrder: sortKey === 'date_asc' ? 'asc' : 'desc',
+    }),
   });
 
   const items = itemsPage?.items;
@@ -417,6 +440,17 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
+
+  useEffect(() => {
+    if (!showSortPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setShowSortPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSortPanel]);
 
   const handleDelete = useCallback(
     (item: Item) => {
@@ -448,12 +482,14 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           [...constraintFilters].some((f) => matchesConstraintFilter(item, f)),
         );
 
-  const totalCount = hasClientFilters ? (filteredItems?.length ?? 0) : (itemsPage?.totalCount ?? 0);
+  const sortedItems = applySortToItems(filteredItems, sortKey);
+
+  const totalCount = hasClientFilters ? (sortedItems?.length ?? 0) : (itemsPage?.totalCount ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const displayedItems = hasClientFilters
-    ? filteredItems?.slice((page - 1) * pageSize, page * pageSize)
-    : filteredItems;
+    ? sortedItems?.slice((page - 1) * pageSize, page * pageSize)
+    : sortedItems;
 
   const showSkeleton = isLoading || isFetching;
   const isEmpty =
@@ -467,6 +503,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     displayedItems?.length === 0 &&
     (Boolean(searchTerm) || constraintFilters.size > 0 || category !== 'all');
   const hasActiveFilters = constraintFilters.size > 0;
+  const hasNonDefaultSort = sortKey !== 'date_desc';
 
   return (
     <div className="flex flex-col gap-4">
@@ -498,6 +535,49 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
 
         {/* Search input */}
         <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+
+        {/* Sırala */}
+        <div ref={sortRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'gap-1.5 text-xs',
+              hasNonDefaultSort && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowSortPanel((v) => !v)}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            {SORT_OPTIONS.find((o) => o.value === sortKey)?.label ?? 'Sırala'}
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showSortPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showSortPanel && (
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-2">
+                {SORT_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortKey(value);
+                      setShowSortPanel(false);
+                      setPage(1);
+                    }}
+                    className={cn(
+                      'flex w-full items-center rounded-md px-2 py-1.5 text-xs hover:bg-muted',
+                      sortKey === value && 'font-semibold text-primary',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Filtrele */}
         <div ref={filterRef} className="relative shrink-0">
@@ -567,8 +647,8 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
-          onClick={() => exportItemsToExcel(filteredItems ?? [])}
-          disabled={!filteredItems || filteredItems.length === 0}
+          onClick={() => exportItemsToExcel(sortedItems ?? [])}
+          disabled={!sortedItems || sortedItems.length === 0}
         >
           <Upload className="h-3.5 w-3.5" />
           Dışa Aktar
@@ -602,7 +682,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       {/* Table card */}
       <div
         ref={tableCardRef}
-        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+        className="overflow-x-auto scrollbar-hide rounded-2xl border border-border bg-background"
       >
         {showSkeleton ? (
           <ProductTableSkeleton />

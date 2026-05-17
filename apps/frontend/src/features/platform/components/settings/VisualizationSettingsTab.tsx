@@ -74,6 +74,10 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
     mode: 'onBlur',
   });
 
+  useEffect(() => {
+    form.setValue('theme', storedTheme, { shouldDirty: false });
+  }, [storedTheme, form]);
+
   const { isDirty } = form.formState;
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -148,23 +152,6 @@ export function VisualizationSettingsTab({ onDirtyChange }: VisualizationSetting
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               3D Görünüm
             </p>
-
-            <FormField
-              control={form.control}
-              name="showGrid"
-              render={({ field }) => (
-                <FormItem>
-                  <SwitchRow
-                    label="Izgara Göster"
-                    description="3D sahnede zemin ızgarasını görüntüler."
-                  >
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </SwitchRow>
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

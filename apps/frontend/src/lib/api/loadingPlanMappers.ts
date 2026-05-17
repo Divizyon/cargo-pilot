@@ -26,7 +26,7 @@ const planVehicleApiSchema = z
     internalLength: z.number().optional(),
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
-    loadingType: z.number().int().optional(),
+    loadingType: z.number().int().nullable().optional(),
   })
   .nullable()
   .optional();
@@ -37,17 +37,20 @@ export const planListApiItemSchema = z
   .object({
     id: z.string(),
     planName: z.string().optional(),
-    name: z.string().optional(), // alternative field name
+    name: z.string().optional(),
     vehicleId: z.string().nullable().optional(),
+    vehicleName: z.string().optional(),
     vehicle: planVehicleApiSchema,
     fillRate: z.number().nullable().optional(),
     volumeFillRate: z.number().nullable().optional(),
     optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
     itemCount: z.number().int().nullable().optional(),
-    placementCount: z.number().int().nullable().optional(), // alternative field name
+    inputTotalQuantity: z.number().int().nullable().optional(),
+    placementCount: z.number().int().nullable().optional(),
     totalWeight: z.number().nullable().optional(),
-    totalWeightKg: z.number().nullable().optional(), // alternative field name
+    totalWeightKg: z.number().nullable().optional(),
     createdAt: z.string().optional(),
+    createdAtUtc: z.string().optional(),
     plannedAt: z.string().nullable().optional(),
     planCode: z.string().nullable().optional(),
     status: z.string().nullable().optional(),
@@ -156,6 +159,7 @@ export const planDetailApiResponseSchema = z.object({
       itemCount: z.number().int().nullable().optional(),
       totalWeight: z.number().nullable().optional(),
       createdAt: z.string().optional(),
+      createdAtUtc: z.string().optional(),
       plannedAt: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string().nullable().optional(),
@@ -395,6 +399,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
   const itemCount =
     api.itemCount ??
+    api.inputTotalQuantity ??
     api.placementCount ??
     ((api as Record<string, unknown>)['itemsCount'] as number | undefined) ??
     0;
@@ -403,28 +408,29 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     api.totalWeightKg ??
     ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
+  const createdAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const loadingType = v?.loadingType ?? null;
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
-    vehicleId: api.vehicleId ?? '',
-    vehicleName: v?.vehicleName ?? v?.name ?? '—',
+    vehicleId: api.vehicleId ?? v?.id ?? '',
+    vehicleName: v?.vehicleName ?? v?.name ?? api.vehicleName ?? '—',
     vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
-    createdAt: api.createdAt ?? new Date(0).toISOString(),
+    createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
     productCount: itemCount,
     totalWeightKg: totalWeight,
     vehicleCapacityKg: v?.maxWeightCapacity ?? 1,
-    fillPercentage: Math.round(api.fillRate ?? 0),
-    volumeFillPercentage: Math.round(api.volumeFillRate ?? api.fillRate ?? 0),
+    fillPercentage: Math.round((api.fillRate ?? 0) * 100),
+    volumeFillPercentage: Math.round((api.volumeFillRate ?? api.fillRate ?? 0) * 100),
     interiorWidthM: v?.internalWidth ?? 0,
     interiorHeightM: v?.internalHeight ?? 0,
     interiorDepthM: v?.internalLength ?? 0,
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
-    doorDirection:
-      v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
-    doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
+    doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
     thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
   };
 }
@@ -548,8 +554,8 @@ export function fromApiFullDetail(
             : VehicleType.Tir,
         doorDirection:
           v.loadingType != null
-            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-            : DoorDirection.Rear,
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Front)
+            : DoorDirection.Front,
         doorSide:
           v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
         isFavorite: false,
