@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import {
   toCentimeters,
+  fromCentimeters,
   type ProductFormValues,
   type ProductType,
+  type DimensionUnitKey,
 } from '@/features/data-management/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
@@ -15,6 +17,8 @@ const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
   Tekstil: ['Kimya', 'Tehlikeli Madde'],
   Genel: ['Tehlikeli Madde'],
 };
+
+const PALLET_HEIGHT_CM = 14;
 
 export const ITEM_CATEGORY = {
   Package: 0,
@@ -188,13 +192,15 @@ export function fromApiItem(api: ItemApi): Item {
 }
 
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
+  const { dimensionUnit } = useUnitStore.getState();
+  const unit = dimensionUnit as DimensionUnitKey;
   return {
     name: item.name,
     sku: item.sku,
     productType: item.productType,
-    width: item.width,
-    height: item.height,
-    length: item.length,
+    width: fromCentimeters(item.width, unit),
+    height: fromCentimeters(item.height, unit),
+    length: fromCentimeters(item.length, unit),
     weight: item.weight,
     fragility: item.fragility,
     isStackable: item.isStackable,
@@ -229,7 +235,9 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     productType: values.productType,
     category: toCategory(values.productType),
     width: widthCm,
-    height: toCentimeters(values.height, dimensionUnit),
+    height:
+      toCentimeters(values.height, dimensionUnit) +
+      (values.productType === 'palet' ? PALLET_HEIGHT_CM : 0),
     length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
     weight: values.weight,
     fragilityType: values.fragility,
