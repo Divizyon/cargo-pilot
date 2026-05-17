@@ -814,10 +814,10 @@ function Features() {
       className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-background overflow-hidden"
     >
       {/* Crane animations behind cards */}
-      <div className="absolute left-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none" aria-hidden>
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-72 h-[480px] hidden lg:block pointer-events-none select-none" aria-hidden>
         <CraneAnimation mirror={false} />
       </div>
-      <div className="absolute right-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none" aria-hidden>
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-72 h-[480px] hidden lg:block pointer-events-none select-none" aria-hidden>
         <CraneAnimation mirror={true} />
       </div>
 
