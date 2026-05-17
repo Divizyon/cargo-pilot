@@ -5,7 +5,7 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate, getExcelDateCellValue } from '@/lib/utils/formatDate';
 
 const DOOR_LABELS: Record<string, string> = {
-  rear: 'Arka',
+  rear: 'Ön',
   side: 'Yan',
   top: 'Üst',
 };
