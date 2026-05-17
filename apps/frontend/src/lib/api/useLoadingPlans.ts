@@ -43,8 +43,6 @@ export function useLoadingPlan(id: string) {
 export interface LoadingPlanListFilters {
   search?: string;
   status?: string;
-  plate?: string;
-  vehicleNames?: string[];
   dateFrom?: string;
   dateTo?: string;
 }
@@ -116,6 +114,7 @@ export function useLoadingPlanListItem(id: string) {
         itemCount: d.itemCount,
         totalWeight: d.totalWeight,
         createdAt: d.createdAt,
+        createdAtUtc: d.createdAtUtc,
         plannedAt: d.plannedAt,
         planCode: d.planCode,
         status: d.status,
@@ -350,13 +349,6 @@ function applyClientFilters(
         (p.vehiclePlate ?? '').toLowerCase().includes(q) ||
         p.vehicleName.toLowerCase().includes(q),
     );
-  }
-  if (filters?.plate && filters.plate.length >= 2) {
-    const q = filters.plate.toLowerCase();
-    result = result.filter((p) => (p.vehiclePlate ?? '').toLowerCase().includes(q));
-  }
-  if (filters?.vehicleNames && filters.vehicleNames.length > 0) {
-    result = result.filter((p) => filters.vehicleNames!.includes(p.vehicleName));
   }
   if (filters?.dateFrom) {
     const from = new Date(filters.dateFrom).getTime();

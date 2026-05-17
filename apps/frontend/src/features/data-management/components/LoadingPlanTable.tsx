@@ -1,6 +1,17 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  LayoutList,
+  Pencil,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+} from 'lucide-react';
 import { planningDetailRoute } from '@/lib/config/routes';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -41,7 +52,25 @@ import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
-import type { LoadingPlanFiltersHook } from '../hooks/useLoadingPlanFilters';
+import { useLoadingPlanFilters } from '../hooks/useLoadingPlanFilters';
+import { SearchInput } from './SearchInput';
+import { VehicleCard } from './VehicleCard';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const STATUS_TABS = [
+  { value: 'all', label: 'Tümü' },
+  { value: 'taslak', label: 'Taslak' },
+  { value: 'aktif', label: 'Aktif' },
+  { value: 'tamamlandi', label: 'Tamamlandı' },
+];
+
+const ROW_H = 48;
+const HEADER_ROW_H = 48;
+const BELOW_TABLE_H = 80;
+const CARD_GAP = 12;
+const GRID_V_PAD = 24;
+const CARD_HEADER_H = 120; // fixed header section height estimate
 
 // ─── Vehicle icon ─────────────────────────────────────────────────────────────
 
@@ -114,7 +143,6 @@ function StatusBadge({ status }: { status: string }) {
 function FillBar({ pct }: { pct: number }) {
   const color =
     pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-muted-foreground/30';
-
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
@@ -129,188 +157,61 @@ function FillBar({ pct }: { pct: number }) {
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
-// ─── Skeleton rows ────────────────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-function SkeletonRows() {
+function TableSkeleton() {
   return (
-    <>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <TableRow key={i}>
-          {Array.from({ length: 9 }).map((__, j) => (
-            <TableCell key={j}>
-              <Skeleton className="h-4 w-full" />
-            </TableCell>
+    <Table className="min-w-[1000px] table-fixed">
+      <TableHeader>
+        <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
+          {['w-64', 'w-40', 'w-28', 'w-28', 'w-28', 'w-24', 'w-28', 'w-32', 'w-20'].map((w, i) => (
+            <TableHead key={i}>
+              <Skeleton className={cn('h-3', w)} />
+            </TableHead>
           ))}
         </TableRow>
-      ))}
-    </>
-  );
-}
-
-// ─── Pagination ───────────────────────────────────────────────────────────────
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
-
-interface PaginationProps {
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  onPage: (p: number) => void;
-  onPageSize: (s: number) => void;
-}
-
-function Pagination({ page, pageSize, totalCount, onPage, onPageSize }: PaginationProps) {
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const from = (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, totalCount);
-
-  return (
-    <div className="flex items-center justify-between border-t border-border px-4 py-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>
-          {totalCount === 0 ? '0' : `${from}-${to}`} / {totalCount} kayıt
-        </span>
-        <span>Sayfa başına</span>
-        <select
-          value={pageSize}
-          onChange={(e) => {
-            onPageSize(Number(e.target.value));
-            onPage(1);
-          }}
-          className="h-7 rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          {PAGE_SIZE_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex items-center gap-1">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-          <button
-            key={p}
-            onClick={() => onPage(p)}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md text-xs font-medium transition-colors',
-              p === page
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-          >
-            {p}
-          </button>
-        ))}
-        <button
-          onClick={() => onPage(Math.min(page + 1, totalPages))}
-          disabled={page >= totalPages}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main table component ─────────────────────────────────────────────────────
-
-interface Props {
-  filters: LoadingPlanFiltersHook;
-  onPlanSelect?: (id: string) => void;
-}
-
-export function LoadingPlanTable({ filters, onPlanSelect }: Props) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const { search, statusTab, plate, vehicleNames, dateFrom, dateTo } = filters;
-
-  const { data, isLoading, isError } = useLoadingPlanList(
-    { search, status: statusTab, plate, vehicleNames, dateFrom, dateTo },
-    page,
-    pageSize,
-  );
-
-  const items = data?.items ?? [];
-  const totalCount = data?.totalCount ?? 0;
-
-  function handlePageSize(s: number) {
-    setPageSize(s);
-    setPage(1);
-  }
-
-  if (isError) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>Yükleme planları yüklenirken bir hata oluştu.</AlertDescription>
-      </Alert>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-background">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[280px] text-[11px] font-semibold uppercase tracking-wider">
-              Plan
-            </TableHead>
-            <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
-              Araç
-            </TableHead>
-            <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
-              Oluşturuldu
-            </TableHead>
-            <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
-              Planlanan
-            </TableHead>
-            <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
-              Durum
-            </TableHead>
-            <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider">
-              Ürün Sayısı
-            </TableHead>
-            <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
-              Top. Ağırlık
-            </TableHead>
-            <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
-              Doluluk
-            </TableHead>
-            <TableHead className="w-[80px] text-[11px] font-semibold uppercase tracking-wider">
-              İşlem
-            </TableHead>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <TableRow key={i} className="h-12 hover:bg-transparent">
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-40" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-24" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-14" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-3 w-16" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-2 w-24 rounded-full" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-6 w-14 rounded-lg" />
+            </TableCell>
           </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {isLoading ? (
-            <SkeletonRows />
-          ) : items.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
-                Eşleşen yükleme planı bulunamadı.
-              </TableCell>
-            </TableRow>
-          ) : (
-            items.map((plan) => <PlanRow key={plan.id} plan={plan} onSelect={onPlanSelect} />)
-          )}
-        </TableBody>
-      </Table>
-
-      <Pagination
-        page={page}
-        pageSize={pageSize}
-        totalCount={totalCount}
-        onPage={setPage}
-        onPageSize={handlePageSize}
-      />
-    </div>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -363,18 +264,18 @@ function RenameDialog({ plan, open, onClose }: RenameDialogProps) {
 
 // ─── Plan row ─────────────────────────────────────────────────────────────────
 
-function PlanRow({
-  plan,
-  onSelect,
-}: {
+interface PlanRowProps {
   plan: LoadingPlanListItem;
   onSelect?: (id: string) => void;
-}) {
+}
+
+function PlanRow({ plan, onSelect }: PlanRowProps) {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const deletePlan = useDeleteLoadingPlan();
   const weightUnit = useUnitStore((s) => s.weightUnit);
+  const cell = 'py-0 px-3';
 
   function handleRowClick() {
     if (onSelect) {
@@ -386,57 +287,50 @@ function PlanRow({
 
   return (
     <>
-      <TableRow className="group cursor-pointer" onClick={handleRowClick}>
-        {/* Plan name + code */}
-        <TableCell>
+      <TableRow className="group h-12 cursor-pointer" onClick={handleRowClick}>
+        <TableCell className={cn(cell, 'max-w-[256px]')}>
           <div>
-            <p className="text-sm font-medium text-foreground">{plan.planName}</p>
-            <p className="text-xs text-muted-foreground">{plan.planCode}</p>
+            <p className="truncate text-xs font-medium text-foreground">{plan.planName}</p>
+            <p className="text-[10px] text-muted-foreground">{plan.planCode}</p>
           </div>
         </TableCell>
 
-        {/* Vehicle */}
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <VehicleIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm text-foreground">{plan.vehicleName}</span>
+        <TableCell className={cell}>
+          <div className="flex items-center gap-1.5">
+            <VehicleIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="truncate text-xs text-foreground">{plan.vehicleName}</span>
           </div>
         </TableCell>
 
-        {/* Created date */}
-        <TableCell className="text-sm text-muted-foreground">
-          {formatDate(plan.createdAt)}
+        <TableCell className={cell}>
+          <span className="text-xs text-muted-foreground">{formatDate(plan.createdAt)}</span>
         </TableCell>
 
-        {/* Planned date */}
-        <TableCell className="text-sm text-muted-foreground">
-          {plan.plannedAt ? formatDate(plan.plannedAt) : '—'}
+        <TableCell className={cell}>
+          <span className="text-xs text-muted-foreground">
+            {plan.plannedAt ? formatDate(plan.plannedAt) : '—'}
+          </span>
         </TableCell>
 
-        {/* Status */}
-        <TableCell>
+        <TableCell className={cell}>
           <StatusBadge status={plan.status} />
         </TableCell>
 
-        {/* Product count */}
-        <TableCell className="text-right text-sm text-foreground">
-          {plan.productCount} ürün
+        <TableCell className={cell}>
+          <span className="text-xs text-foreground">{plan.productCount} ürün</span>
         </TableCell>
 
-        {/* Total weight */}
-        <TableCell>
-          <p className="text-sm font-medium text-foreground">
+        <TableCell className={cell}>
+          <span className="text-xs font-medium text-foreground">
             {formatWeightDisplay(plan.totalWeightKg, weightUnit)}
-          </p>
+          </span>
         </TableCell>
 
-        {/* Fill percentage */}
-        <TableCell>
+        <TableCell className={cell}>
           <FillBar pct={plan.fillPercentage} />
         </TableCell>
 
-        {/* Actions */}
-        <TableCell onClick={(e) => e.stopPropagation()}>
+        <TableCell className={cell} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
               aria-label="Düzenle"
@@ -456,7 +350,6 @@ function PlanRow({
         </TableCell>
       </TableRow>
 
-      {/* Delete confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -478,10 +371,405 @@ function PlanRow({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Rename dialog */}
       {renameOpen && (
         <RenameDialog plan={plan} open={renameOpen} onClose={() => setRenameOpen(false)} />
       )}
     </>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+interface LoadingPlanTableProps {
+  onPlanSelect?: (id: string) => void;
+}
+
+export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
+  const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const tableCardRef = useRef<HTMLDivElement>(null);
+
+  const { search, statusTab, dateFrom, dateTo, setSearch, setStatusTab, setDateFrom, setDateTo } =
+    useLoadingPlanFilters();
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+  const [cardContainerMaxH, setCardContainerMaxH] = useState<number | null>(null);
+  const [cardHeight, setCardHeight] = useState(400);
+  const [previewHeight, setPreviewHeight] = useState(120);
+  const [productsMaxHeight, setProductsMaxHeight] = useState(260);
+
+  useEffect(() => {
+    let last = pageSize;
+    const calculate = () => {
+      if (!tableCardRef.current) return;
+      const top = tableCardRef.current.getBoundingClientRect().top;
+      const containerAvailable = Math.max(300, window.innerHeight - top - BELOW_TABLE_H);
+      setCardContainerMaxH(containerAvailable);
+      const cols = window.innerWidth >= 1920 ? 4 : 3;
+      const visibleRows = window.innerWidth >= 1536 ? 2 : 1;
+      const available = containerAvailable - HEADER_ROW_H;
+      let next: number;
+      if (viewMode === 'table') {
+        next = Math.max(5, Math.floor(available / ROW_H));
+      } else {
+        const gridAvailable = available - GRID_V_PAD;
+        const cardH = Math.max(
+          260,
+          Math.floor((gridAvailable - (visibleRows - 1) * CARD_GAP) / visibleRows),
+        );
+        const previewH = Math.max(60, Math.min(120, cardH - CARD_HEADER_H - 80));
+        const productsH = Math.max(120, cardH - CARD_HEADER_H - previewH - 2);
+        setCardHeight(cardH);
+        setPreviewHeight(previewH);
+        setProductsMaxHeight(productsH);
+        next = cols * visibleRows;
+      }
+      if (next !== last) {
+        last = next;
+        setPageSize(next);
+        setPage(1);
+      }
+    };
+    calculate();
+    window.addEventListener('resize', calculate);
+    return () => window.removeEventListener('resize', calculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
+
+  const handleSearch = useCallback(
+    (term: string) => {
+      setSearch(term);
+      setPage(1);
+    },
+    [setSearch],
+  );
+
+  const { data, isLoading, isFetching, isError } = useLoadingPlanList(
+    { search, status: statusTab === 'all' ? undefined : statusTab, dateFrom, dateTo },
+    page,
+    pageSize,
+  );
+
+  const items = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const showSkeleton = isLoading || isFetching;
+
+  const filterPanelActiveCount = dateFrom || dateTo ? 1 : 0;
+
+  useEffect(() => {
+    if (!showFilterPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilterPanel]);
+
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>Yükleme planları yüklenirken bir hata oluştu.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Status tabs */}
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => {
+                setStatusTab(tab.value);
+                setPage(1);
+              }}
+              className={cn(
+                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                statusTab === tab.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <SearchInput
+          onSearch={handleSearch}
+          placeholder="Plan adı veya araç adı ile ara..."
+          initialValue={search}
+        />
+
+        {/* Date filter */}
+        <div ref={filterRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'gap-1.5 text-xs',
+              filterPanelActiveCount > 0 && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowFilterPanel((v) => !v)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filtrele
+            {filterPanelActiveCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {filterPanelActiveCount}
+              </span>
+            )}
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showFilterPanel && (
+            <div
+              className="absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-border bg-background shadow-lg"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-4 p-4">
+                <div>
+                  <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    <CalendarDays className="h-3 w-3" />
+                    Plan Tarihi
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="h-8 w-full text-xs"
+                    />
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      min={dateFrom || undefined}
+                      className="h-8 w-full text-xs"
+                    />
+                  </div>
+                </div>
+                {filterPanelActiveCount > 0 && (
+                  <button
+                    type="button"
+                    className="text-[11px] text-muted-foreground underline hover:text-foreground"
+                    onClick={() => {
+                      setDateFrom('');
+                      setDateTo('');
+                      setShowFilterPanel(false);
+                    }}
+                  >
+                    Panel filtrelerini temizle
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* View mode toggle */}
+        <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
+          <button
+            onClick={() => {
+              setViewMode('card');
+              setPage(1);
+            }}
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+              viewMode === 'card'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+            title="Kart görünümü"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('table');
+              setPage(1);
+            }}
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+              viewMode === 'table'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+            title="Liste görünümü"
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Yeni Plan Oluştur */}
+        <Button
+          size="sm"
+          className="shrink-0 gap-1.5 text-xs"
+          onClick={() => navigate('/planning/new')}
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Yeni Plan Oluştur
+        </Button>
+      </div>
+
+      {/* Content */}
+      <div
+        ref={tableCardRef}
+        className={cn(
+          'rounded-2xl border border-border bg-background overflow-hidden',
+          viewMode === 'table' && 'overflow-x-auto scrollbar-hide',
+        )}
+        style={cardContainerMaxH ? { height: cardContainerMaxH } : undefined}
+      >
+        {viewMode === 'table' ? (
+          <>
+            {showSkeleton ? (
+              <TableSkeleton />
+            ) : (
+              <Table className="min-w-[1000px] table-fixed">
+                <TableHeader>
+                  <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="w-64 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Plan
+                    </TableHead>
+                    <TableHead className="w-40 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Araç
+                    </TableHead>
+                    <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Oluşturuldu
+                    </TableHead>
+                    <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Planlanan
+                    </TableHead>
+                    <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Durum
+                    </TableHead>
+                    <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Ürün Sayısı
+                    </TableHead>
+                    <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Top. Ağırlık
+                    </TableHead>
+                    <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      Doluluk
+                    </TableHead>
+                    <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                      İşlem
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.length === 0 ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={9}
+                        className="py-16 text-center text-sm text-muted-foreground"
+                      >
+                        Eşleşen yükleme planı bulunamadı.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map((plan) => (
+                      <PlanRow key={plan.id} plan={plan} onSelect={onPlanSelect} />
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex h-12 items-center border-b border-border bg-muted/40 px-4">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Yükleme Planları
+              </span>
+              {!showSkeleton && totalCount > 0 && (
+                <span className="ml-auto text-[10px] text-muted-foreground">
+                  Toplam <span className="font-medium text-foreground">{totalCount}</span> plan
+                </span>
+              )}
+            </div>
+
+            {showSkeleton ? (
+              <div
+                className="grid grid-cols-3 gap-3 px-4 py-3 min-[1920px]:grid-cols-4"
+                style={{ gridAutoRows: cardHeight }}
+              >
+                {Array.from({ length: pageSize }).map((_, i) => (
+                  <div key={i} className="animate-pulse rounded-xl border border-border bg-muted" />
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                Eşleşen yükleme planı bulunamadı.
+              </div>
+            ) : (
+              <div
+                className="grid grid-cols-3 gap-3 px-4 py-3 min-[1920px]:grid-cols-4"
+                style={{ gridAutoRows: cardHeight }}
+              >
+                {items.map((plan, i) => (
+                  <VehicleCard
+                    key={plan.id}
+                    plan={plan}
+                    index={(page - 1) * pageSize + i}
+                    previewHeight={previewHeight}
+                    productsMaxHeight={productsMaxHeight}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalCount > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-muted-foreground">
+            Toplam <span className="font-medium text-foreground">{totalCount}</span> plan
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={page <= 1 || showSkeleton}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{page}</span>
+                {' / '}
+                <span className="font-medium text-foreground">{totalPages}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={page >= totalPages || showSkeleton}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

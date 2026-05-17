@@ -10,12 +10,22 @@ export interface VehicleFilterState {
   pageSize: number;
 }
 
+export type VehicleSortKey = 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc';
+
+const SORT_KEY_TO_PARAMS: Record<VehicleSortKey, { sortBy: string; sortOrder: 'asc' | 'desc' }> = {
+  date_desc: { sortBy: 'createdAt', sortOrder: 'desc' },
+  date_asc: { sortBy: 'createdAt', sortOrder: 'asc' },
+  name_asc: { sortBy: 'name', sortOrder: 'asc' },
+  name_desc: { sortBy: 'name', sortOrder: 'desc' },
+};
+
 export function useVehicleFilters() {
   const [searchQuery, setSearchQuery] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<VehicleSortKey>('date_desc');
   const pageSize = 20;
 
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -27,8 +37,7 @@ export function useVehicleFilters() {
     ...(favoritesOnly && { favoritesOnly: true }),
     page,
     pageSize,
-    sortBy: 'createdAt',
-    sortOrder: 'desc' as const,
+    ...SORT_KEY_TO_PARAMS[sortKey],
   };
 
   function clearFilter(key: keyof VehicleFilterState) {
@@ -55,6 +64,8 @@ export function useVehicleFilters() {
     page,
     setPage,
     pageSize,
+    sortKey,
+    setSortKey,
     filters,
     clearFilter,
     activeFilterCount,

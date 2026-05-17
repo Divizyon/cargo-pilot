@@ -49,11 +49,13 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
                         "Abonelik planı kapsamındaki maksimum araç sayısına ulaşıldı."));
         }
 
-        var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
-            request.PlateNumber, companyId, cancellationToken);
-        if (plateExists)
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));
+        if (request.PlateNumber is not null) {
+            var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
+                request.PlateNumber, companyId, cancellationToken);
+            if (plateExists)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));
+        }
 
         var vehicle = new Vehicle(
             id: Guid.NewGuid(),
