@@ -20,14 +20,10 @@ import { RegionalSettingsTab } from '@/features/platform/components/settings/Reg
 import { VisualizationSettingsTab } from '@/features/platform/components/settings/VisualizationSettingsTab';
 import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
 import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionForm';
-import { ERPPendingMatches } from '@/features/platform/components/ERPPendingMatches';
 import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
 import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
 import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
-import { ERPUserMapping } from '@/features/platform/components/ERPUserMapping';
 import {
-  useERPConnection,
-  useERPPendingMatches,
   useERPShipmentOrders,
   useERPSyncHistory,
 } from '@/lib/api/useERPIntegration';
@@ -41,11 +37,9 @@ type TabId =
   | 'goruntu-ayarlari'
   | 'raporlama-ayarlari'
   | 'erp-baglanti'
-  | 'erp-eslestirme'
   | 'erp-sevkiyatlar'
   | 'erp-senkronizasyon'
-  | 'erp-gecmis'
-  | 'erp-kullanici-eslestirme';
+  | 'erp-gecmis';
 
 interface TabDef {
   id: TabId;
@@ -93,11 +87,6 @@ const ERP_TABS: TabDef[] = [
     description: 'ERP sistemi bağlantı bilgilerini yapılandırın ve bağlantıyı test edin.',
   },
   {
-    id: 'erp-eslestirme',
-    label: 'Eşleştirmeler',
-    description: 'ERP ürünlerini Cargo Pilot kalemleriyle eşleştirin.',
-  },
-  {
     id: 'erp-sevkiyatlar',
     label: 'Sevkiyat Emirleri',
     description:
@@ -112,11 +101,6 @@ const ERP_TABS: TabDef[] = [
     id: 'erp-gecmis',
     label: 'Senkronizasyon Geçmişi',
     description: 'Geçmiş senkronizasyon çalışmalarını ve hata kayıtlarını görüntüleyin.',
-  },
-  {
-    id: 'erp-kullanici-eslestirme',
-    label: 'Kullanıcı Eşleştirme',
-    description: 'ERP kullanıcılarını Cargo Pilot hesaplarıyla eşleştirin.',
   },
 ];
 
@@ -135,19 +119,14 @@ export function UnifiedSettingsPage() {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const dirtyTabs = useRef<Set<TabId>>(new Set());
 
-  const { data: connection } = useERPConnection();
-  const integrationId = connection?.id;
-  const { data: pendingMatches } = useERPPendingMatches(integrationId);
   const { data: shipmentOrders } = useERPShipmentOrders({ status: ErpShipmentStatus.Pending });
   const { data: syncRuns } = useERPSyncHistory();
 
-  const pendingMatchCount = pendingMatches?.length ?? 0;
   const pendingShipmentCount = shipmentOrders?.length ?? 0;
   const syncErrorCount =
     syncRuns?.flatMap((r) => r.entries).filter((e) => e.status === 'Error').length ?? 0;
 
   function getErpBadge(tabId: TabId): number {
-    if (tabId === 'erp-eslestirme') return pendingMatchCount;
     if (tabId === 'erp-sevkiyatlar') return pendingShipmentCount;
     if (tabId === 'erp-gecmis') return syncErrorCount;
     return 0;
@@ -256,11 +235,9 @@ export function UnifiedSettingsPage() {
             )}
             {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}
             {activeTab === 'erp-baglanti' && <ERPConnectionForm />}
-            {activeTab === 'erp-eslestirme' && <ERPPendingMatches />}
             {activeTab === 'erp-sevkiyatlar' && <ERPShipmentOrders />}
             {activeTab === 'erp-senkronizasyon' && <ERPSyncPanel />}
             {activeTab === 'erp-gecmis' && <ERPSyncHistory />}
-            {activeTab === 'erp-kullanici-eslestirme' && <ERPUserMapping />}
           </SettingsTabShell>
         </div>
       </div>
