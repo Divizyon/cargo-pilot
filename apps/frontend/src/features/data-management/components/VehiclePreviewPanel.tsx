@@ -77,7 +77,6 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
       ? `${(length / 100).toFixed(1)}m × ${(height / 100).toFixed(1)}m × ${(width / 100).toFixed(2)}m`
       : '—';
 
-  const dimsRaw = length && width && height ? `${length} × ${height} × ${width} cm` : '—';
   const cargo = maxCargoWeight ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg` : '—';
   const gross = grossWeight ? `${Number(grossWeight).toLocaleString('tr-TR')} kg` : '—';
   const tare = tareWeight ? `${Number(tareWeight).toLocaleString('tr-TR')} kg` : '—';

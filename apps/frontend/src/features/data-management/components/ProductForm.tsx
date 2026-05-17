@@ -792,7 +792,7 @@ export function ProductForm({
                 placeholder={isPallet ? '14' : '80'}
                 labelTooltip={
                   isPallet
-                    ? 'Palet tabanı sabit 14 cm\'dir. Yalnızca ürün yüksekliğini girin; toplam (palet + ürün) otomatik hesaplanarak kaydedilir.'
+                    ? "Palet tabanı sabit 14 cm'dir. Yalnızca ürün yüksekliğini girin; toplam (palet + ürün) otomatik hesaplanarak kaydedilir."
                     : undefined
                 }
               />

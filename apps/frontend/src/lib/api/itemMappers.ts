@@ -196,9 +196,7 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     productType: item.productType,
     width: item.width,
     height:
-      item.productType === 'palet'
-        ? Math.max(0, item.height - PALLET_HEIGHT_CM)
-        : item.height,
+      item.productType === 'palet' ? Math.max(0, item.height - PALLET_HEIGHT_CM) : item.height,
     length: item.length,
     weight: item.weight,
     fragility: item.fragility,
