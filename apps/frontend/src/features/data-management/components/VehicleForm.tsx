@@ -173,7 +173,7 @@ export function VehicleForm({
       {/* 6. KAPI YÖNÜ */}
       <div className="space-y-4 py-6">
         <SectionTitle>Kapı Yönü</SectionTitle>
-        <VehicleDoorDirectionField form={form} />
+        <VehicleDoorDirectionField form={form} vehicleType={vehicleType} />
       </div>
 
       {/* ÖZEL TAŞIMA NOTLARI */}
