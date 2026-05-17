@@ -525,6 +525,7 @@ export function ProductForm({
   });
 
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const [
     width,
@@ -837,7 +838,7 @@ export function ProductForm({
                     />
                   </FormControl>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                    kg
+                    {weightUnit}
                   </span>
                 </div>
                 <FormMessage />
@@ -1213,6 +1214,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   } = props;
 
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
   const volumeUnit = useUnitStore((s) => s.volumeUnit);
 
   const fmt = (val?: number, unit?: string) =>
@@ -1247,7 +1249,7 @@ function PreviewPanel(props: PreviewPanelProps) {
       ? [{ label: 'Toplam Yüks.', value: `${height + PALLET_H} ${dimensionUnit}` }]
       : []),
     { label: t('forms.product.length'), value: fmt(length, dimensionUnit) },
-    { label: t('forms.product.weight'), value: fmt(weight, 'kg') },
+    { label: t('forms.product.weight'), value: fmt(weight, weightUnit) },
     { label: 'Kısıtlar', value: constraintLabels.length > 0 ? constraintLabels.join(', ') : '—' },
     {
       label: 'İstif Sayısı',

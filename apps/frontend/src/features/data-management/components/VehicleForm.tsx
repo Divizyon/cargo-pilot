@@ -93,6 +93,10 @@ export function VehicleForm({
                 if (val === VehicleType.Konteyner) {
                   form.setValue('plate', '');
                   form.clearErrors('plate');
+                  const dir = form.getValues('doorDirection');
+                  if (dir === 'top' || dir === 'rearAndSide') {
+                    form.setValue('doorDirection', 'rear');
+                  }
                 } else {
                   form.setValue('serialNumber', '');
                   form.clearErrors('serialNumber');

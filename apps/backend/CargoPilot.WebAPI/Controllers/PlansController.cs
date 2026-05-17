@@ -1,6 +1,7 @@
 using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
+using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
@@ -151,6 +152,26 @@ public sealed class PlansController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new UpdatePlanNameCommand(id, request.PlanName), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Dashboard istatistiklerini döner: araç verimliliği (ortalama fill rate), toplam yüklenen tonaj ve toplam yükleme sayısı.
+    /// Sadece OptimizationStatus = Calculated olan planlar dahil edilir.
+    /// startDate/endDate parametreleri sağlanmazsa tüm zamanı kapsar.
+    /// </summary>
+    /// <param name="startDate">Başlangıç tarihi (UTC, opsiyonel).</param>
+    /// <param name="endDate">Bitiş tarihi (UTC, opsiyonel).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Dashboard istatistikleri döner.</response>
+    [HttpGet("stats")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDashboardStats(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetDashboardStatsQuery(startDate, endDate), cancellationToken);
         return HandleResult(result);
     }
 
