@@ -30,6 +30,14 @@ public sealed class RejectDraftItemCommandHandler : IRequestHandler<RejectDraftI
         if (draft.Status == DraftItemStatus.Approved)
             return Result<Unit>.Failure(new Error(ErrorType.Conflict, "DraftItem.AlreadyApproved", "Onaylanmış taslak reddedilemez."));
 
+        if (draft.Status == DraftItemStatus.UpdatePending)
+        {
+            draft.Approve();
+            _draftItemRepository.Update(draft);
+            await _draftItemRepository.SaveChangesAsync(cancellationToken);
+            return Result<Unit>.Success(Unit.Value);
+        }
+
         draft.Reject();
         _draftItemRepository.Update(draft);
         await _draftItemRepository.SaveChangesAsync(cancellationToken);

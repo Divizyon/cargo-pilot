@@ -51,6 +51,7 @@ import { useItems } from '@/lib/api/useItems';
 import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
 import { AddItemModal } from './AddItemModal';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
+import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 
 const VIRTUAL_THRESHOLD = 100;
@@ -282,6 +283,7 @@ function StoreItemRow({
   onAddToGroup,
   onClearStackGroup,
 }: StoreItemRowProps) {
+  const readOnly = useReadOnly();
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
   const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
@@ -378,108 +380,110 @@ function StoreItemRow({
               {item.specialNotes}
             </p>
           )}
-          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
-            {!isPlaced ? (
-              <>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">Adet</span>
-                  <div className="flex items-center rounded border border-border overflow-hidden ml-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocalQty((v) => Math.max(1, v - 1));
-                      }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                    >
-                      <Minus className="w-2 h-2" />
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={localQty}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (!isNaN(v) && v >= 1) setLocalQty(v);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocalQty((v) => v + 1);
-                      }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                    >
-                      <Plus className="w-2 h-2" />
-                    </button>
+          {!readOnly && (
+            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
+              {!isPlaced ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">Adet</span>
+                    <div className="flex items-center rounded border border-border overflow-hidden ml-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocalQty((v) => Math.max(1, v - 1));
+                        }}
+                        className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
+                      >
+                        <Minus className="w-2 h-2" />
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={localQty}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isNaN(v) && v >= 1) setLocalQty(v);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocalQty((v) => v + 1);
+                        }}
+                        className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
+                      >
+                        <Plus className="w-2 h-2" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {groups && groups.length > 0 && onAddToGroup && (
-                    <DropdownMenu>
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
-                              >
-                                <FolderPlus className="w-3.5 h-3.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            Gruba Ekle
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <DropdownMenuContent side="top" align="end" className="w-44 p-1">
-                        {groups.map((g) => (
-                          <DropdownMenuItem
-                            key={g.id}
-                            className="flex items-center gap-2 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onAddToGroup(g.id);
-                            }}
-                          >
-                            <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
-                            <span className="truncate">{g.ad}</span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <Button
-                    size="sm"
-                    disabled={!canPlace}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlace(localQty);
-                      onToggleExpand();
-                    }}
-                    className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
-                  >
-                    Ekle
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove?.();
-                  onToggleExpand();
-                }}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
-              >
-                <PackageMinus className="w-3 h-3" />
-                Çıkar
-              </button>
-            )}
-          </div>
+                  <div className="flex items-center gap-1">
+                    {groups && groups.length > 0 && onAddToGroup && (
+                      <DropdownMenu>
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
+                                >
+                                  <FolderPlus className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Gruba Ekle
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent side="top" align="end" className="w-44 p-1">
+                          {groups.map((g) => (
+                            <DropdownMenuItem
+                              key={g.id}
+                              className="flex items-center gap-2 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddToGroup(g.id);
+                              }}
+                            >
+                              <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
+                              <span className="truncate">{g.ad}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <Button
+                      size="sm"
+                      disabled={!canPlace}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlace(localQty);
+                        onToggleExpand();
+                      }}
+                      className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
+                    >
+                      Ekle
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove?.();
+                    onToggleExpand();
+                  }}
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
+                >
+                  <PackageMinus className="w-3 h-3" />
+                  Çıkar
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -493,6 +497,7 @@ interface PlanLeftPanelProps {
 }
 
 export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
+  const readOnly = useReadOnly();
   const navigate = useNavigate();
   const { mutateAsync: deleteGroupApi } = useDeletePlanGroup();
   const [groups, setGroups] = useState<
@@ -503,7 +508,9 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
-  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
+  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>(
+    readOnly ? 'loaded' : 'unloaded',
+  );
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -554,7 +561,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         color: g.color,
       })),
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inlineGroupsFromStore]);
 
   // Lokal grup state'ini store ile senkronize et
@@ -582,6 +589,26 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     if (ungroupedIds.length > 0) return;
     if (selectedItems.length > 0) {
       setUngroupedIds(selectedItems.map((si) => si.item.id));
+      // apiItems hazırsa, plan API'sinden gelen item'larda eksik kalan constraintIds'i doldur
+      if (apiItems.length > 0) {
+        const fullItemMap = new Map(apiItems.map((item) => [item.id, item]));
+        selectedItems.forEach(({ item, quantity }) => {
+          const full = fullItemMap.get(item.id);
+          if (
+            full &&
+            (!item.constraintIds || item.constraintIds.length === 0) &&
+            full.constraintIds &&
+            full.constraintIds.length > 0
+          ) {
+            updateItem(
+              item.id,
+              { ...item, constraintIds: full.constraintIds },
+              quantity,
+              usePlanStore.getState().skuColorMap[item.sku] ?? SCENE.COLORS.NORMAL_STR,
+            );
+          }
+        });
+      }
       return;
     }
     if (apiItems.length > 0) {
@@ -775,7 +802,8 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     targetGroupId: string,
   ) {
     return prev.map((g) => {
-      if (g.id === targetGroupId) return { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] };
+      if (g.id === targetGroupId)
+        return { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] };
       return { ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) };
     });
   }
@@ -798,10 +826,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     }
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
     if (group) {
-      setUngroupedIds((prev) => [
-        ...prev,
-        ...group.itemIdler.filter((id) => !prev.includes(id)),
-      ]);
+      setUngroupedIds((prev) => [...prev, ...group.itemIdler.filter((id) => !prev.includes(id))]);
     }
     if (focusedGroupItemIds?.some((id) => group?.itemIdler.includes(id))) {
       setFocusedGroupItemIds(null);
@@ -873,7 +898,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         togglePlacement(id);
       },
       onRemove: () => togglePlacement(id),
-      onEdit: () => navigate(`/products/${id}/edit`),
+      onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
         if (!placedIds.has(id)) togglePlacement(id);
         setGroups((prev) => addItemToGroup(prev, id, groupId));
@@ -887,44 +912,50 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
-        <span className="text-sm text-foreground">Ürünler</span>
-        <Button
-          size="icon"
-          title="Ürün Ekle"
-          className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-          onClick={() => setShowItemModal(true)}
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </Button>
+        <span className="text-sm text-foreground">
+          {readOnly ? `Yüklü Ürünler (${placedIds.size})` : 'Ürünler'}
+        </span>
+        {!readOnly && (
+          <Button
+            size="icon"
+            title="Ürün Ekle"
+            className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
+            onClick={() => setShowItemModal(true)}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </Button>
+        )}
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — read-only modda gizle */}
       <div className="px-2 pt-2 shrink-0">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-          <TabsList className="w-full h-7 bg-muted">
-            <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
-              Ürün Listesi
-              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                {(() => {
-                  const planUnloaded = selectedItems.filter(
-                    (si) => !placedIds.has(si.item.id),
-                  ).length;
-                  const planIds = new Set(selectedItems.map((si) => si.item.id));
-                  const catalogOnly = apiItems.filter(
-                    (i) => !planIds.has(i.id) && !placedIds.has(i.id),
-                  ).length;
-                  return `(${planUnloaded + catalogOnly})`;
-                })()}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
-              Yüklü Ürünler
-              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                ({placedIds.size})
-              </span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {readOnly ? null : (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
+            <TabsList className="w-full h-7 bg-muted">
+              <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
+                Ürün Listesi
+                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                  {(() => {
+                    const planUnloaded = selectedItems.filter(
+                      (si) => !placedIds.has(si.item.id),
+                    ).length;
+                    const planIds = new Set(selectedItems.map((si) => si.item.id));
+                    const catalogOnly = apiItems.filter(
+                      (i) => !planIds.has(i.id) && !placedIds.has(i.id),
+                    ).length;
+                    return `(${planUnloaded + catalogOnly})`;
+                  })()}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
+                Yüklü Ürünler
+                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                  ({placedIds.size})
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
       </div>
 
       {/* Search + Filter */}
@@ -1020,7 +1051,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         {activeTab === 'loaded' && (
           <>
             {/* Grup Oluştur button */}
-            {!groupSelectionMode && (
+            {!readOnly && !groupSelectionMode && (
               <button
                 onClick={handleAddGroup}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-accent transition-colors self-start mb-0.5"
@@ -1108,28 +1139,32 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                     </span>
 
                     {/* Add products to group */}
-                    <button
-                      title="Gruba Ürün Ekle"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartGroupSelection(g.id);
-                      }}
-                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
-                    >
-                      <PackagePlus className="w-3.5 h-3.5" />
-                    </button>
+                    {!readOnly && (
+                      <>
+                        <button
+                          title="Gruba Ürün Ekle"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartGroupSelection(g.id);
+                          }}
+                          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
+                        >
+                          <PackagePlus className="w-3.5 h-3.5" />
+                        </button>
 
-                    {/* Delete group */}
-                    <button
-                      title="Grubu Sil"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleDeleteGroup(g.id);
-                      }}
-                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 hover:bg-accent"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                        {/* Delete group */}
+                        <button
+                          title="Grubu Sil"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDeleteGroup(g.id);
+                          }}
+                          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 hover:bg-accent"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {g.acik &&

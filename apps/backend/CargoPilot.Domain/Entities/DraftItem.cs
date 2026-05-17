@@ -133,6 +133,14 @@ public sealed class DraftItem : BaseEntity
 
     public void ResetToPending() => Status = DraftItemStatus.Pending;
 
+    public void SetUpdatePending(string sku, string name, string erpRawDataJson)
+    {
+        SKU = sku;
+        Name = name;
+        ErpRawDataJson = erpRawDataJson;
+        Status = DraftItemStatus.UpdatePending;
+    }
+
     public int[] GetConstraintIds()
     {
         if (string.IsNullOrEmpty(ConstraintIdsJson) || ConstraintIdsJson == "[]")

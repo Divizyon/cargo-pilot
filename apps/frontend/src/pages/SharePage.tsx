@@ -1,32 +1,162 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, Clock, Package2, Truck } from 'lucide-react';
+import { AlertCircle, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { useShareByToken, useRecordShareView } from '@/lib/api/useShareLinks';
-import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatWeightDisplay } from '@/lib/utils/unitConversion';
+import { usePlanStore } from '@/lib/store/usePlanStore';
+import { NewPlanPage } from '@/pages/NewPlanPage';
+import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
+import { ProductType } from '@/lib/types/item';
 import type { AxiosError } from 'axios';
+import type { SharePlan } from '@/lib/types/share';
+import type { Vehicle } from '@/lib/types/vehicle';
+import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
+import type { Item } from '@/lib/types/item';
 
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  tamamlandi: {
-    label: 'Tamamlandı',
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  },
-  aktif: { label: 'Aktif', className: 'bg-blue-50 text-blue-700 border-blue-200' },
-  taslak: { label: 'Taslak', className: 'bg-zinc-50 text-zinc-600 border-zinc-200' },
-  iptal: { label: 'İptal', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const PRODUCT_TYPE_MAP: Record<string, ProductType> = {
+  koli: ProductType.Koli,
+  varil: ProductType.Varil,
+  palet: ProductType.Palet,
 };
+
+function resolveProductType(raw: string | number | null | undefined): ProductType {
+  if (raw == null) return ProductType.Koli;
+  if (typeof raw === 'string') return PRODUCT_TYPE_MAP[raw.toLowerCase()] ?? ProductType.Koli;
+  // numeric fallback: 0=koli, 1=varil, 2=palet (adjust if backend differs)
+  const numMap: Record<number, ProductType> = {
+    0: ProductType.Koli,
+    1: ProductType.Varil,
+    2: ProductType.Palet,
+  };
+  return numMap[raw] ?? ProductType.Koli;
+}
+
+// ─── SharePlanLoader ─────────────────────────────────────────────────────────
+
+interface SharePlanLoaderProps {
+  plan: SharePlan;
+  onLoaded: () => void;
+}
+
+function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
+  const applied = useRef(false);
+
+  useEffect(() => {
+    if (applied.current) return;
+    if (!plan.vehicleData || !plan.placements) return;
+    applied.current = true;
+
+    const vd = plan.vehicleData;
+
+    const vehicle: Vehicle = {
+      id: vd.id ?? crypto.randomUUID(),
+      name: plan.vehicleName,
+      vehicleType: (vd.vehicleType as Vehicle['vehicleType']) ?? VehicleType.Kamyon,
+      length: vd.length ?? 100,
+      width: vd.width ?? 100,
+      height: vd.height ?? 100,
+      maxCargoWeight: plan.vehicleCapacityKg,
+      doorDirection: (vd.doorDirection as Vehicle['doorDirection']) ?? DoorDirection.Rear,
+      plate: plan.vehiclePlate ?? undefined,
+      isFavorite: false,
+      isActive: true,
+      isDeleted: false,
+      createdAt: plan.createdAt,
+      createdBy: { id: '', fullName: '' },
+    };
+
+    const placements: PlacementWithDimensions[] = plan.placements.map((p) => ({
+      itemId: p.itemId,
+      positionX: p.positionX,
+      positionY: p.positionY,
+      positionZ: p.positionZ,
+      width: p.width,
+      height: p.height,
+      depth: p.depth,
+      orientationIndex: p.orientationIndex as PlacementWithDimensions['orientationIndex'],
+      layer: Math.max(1, p.layer),
+      isViolation: p.isViolation,
+      color: p.color ?? undefined,
+      weight: p.weight,
+      productType: resolveProductType(p.productType),
+    }));
+
+    // Build synthetic items grouped by itemId for the left panel item list
+    const itemMap = new Map<string, { p: (typeof plan.placements)[0]; count: number }>();
+    for (const p of plan.placements) {
+      const existing = itemMap.get(p.itemId);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        itemMap.set(p.itemId, { p, count: 1 });
+      }
+    }
+
+    const skuColorMap: Record<string, string> = {};
+    const items: Array<{ item: Item; quantity: number }> = Array.from(itemMap.entries()).map(
+      ([id, { p, count }], idx) => {
+        const sku = p.productSku?.trim() || id.substring(0, 8).toUpperCase();
+        const name = p.productName?.trim() || `Ürün ${idx + 1}`;
+        if (p.color) skuColorMap[sku] = p.color;
+        return {
+          item: {
+            id,
+            name,
+            sku,
+            productType: resolveProductType(p.productType),
+            width: p.width,
+            height: p.height,
+            length: p.depth,
+            weight: Math.max(0.001, p.weight),
+            isStackable: true,
+            maxStackCount: 1,
+            maxWeightOnTop: null,
+            fragility: 0,
+            allowRotateX: true,
+            allowRotateY: true,
+            allowRotateZ: true,
+            allowFaceBottom: true,
+            allowFaceTop: true,
+            allowFaceFront: true,
+            allowFaceBack: true,
+            allowFaceLeft: true,
+            allowFaceRight: true,
+          },
+          quantity: count,
+        };
+      },
+    );
+
+    const store = usePlanStore.getState();
+    store.reset();
+    store.setVehicle(vehicle);
+    store.initItems(items, skuColorMap);
+    store.setPlacements(placements);
+    onLoaded();
+  }, [plan, onLoaded]);
+
+  return null;
+}
+
+// ─── SharePage ────────────────────────────────────────────────────────────────
 
 export function SharePage() {
   const { token } = useParams<{ token: string }>();
   const { data: plan, isLoading, isError, error } = useShareByToken(token ?? '');
   const { mutate: recordView } = useRecordShareView();
-  const weightUnit = useUnitStore((s) => s.weightUnit);
+  const [sceneReady, setSceneReady] = useState(false);
 
   useEffect(() => {
     if (token) recordView(token);
   }, [token, recordView]);
+
+  useEffect(() => {
+    return () => {
+      usePlanStore.getState().reset();
+    };
+  }, []);
 
   const is404 = (error as AxiosError | null)?.response?.status === 404;
 
@@ -75,96 +205,30 @@ export function SharePage() {
     );
   }
 
-  const statusCfg = STATUS_CONFIG[plan.status] ?? STATUS_CONFIG['taslak'];
-  const isContainer =
-    plan.vehicleName.toLowerCase().includes('konteyner') ||
-    plan.vehicleName.toLowerCase().includes('ft');
+  const has3DData = Boolean(plan.vehicleData && plan.placements?.length);
 
   return (
-    <main className="min-h-screen bg-zinc-50">
-      <header className="bg-white border-b border-zinc-200 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-zinc-800">CargoPilot</span>
-            <span className="text-zinc-300">·</span>
-            <span className="text-sm text-zinc-500">Paylaşılan Yükleme Planı</span>
-          </div>
-          <span
-            className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border',
-              statusCfg.className,
-            )}
-          >
-            {statusCfg.label}
-          </span>
-        </div>
-      </header>
-
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">{plan.planName}</h1>
-          <p className="text-sm text-zinc-500 mt-1">{plan.planCode}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
-              {isContainer ? (
-                <Package2 className="w-4 h-4 text-zinc-500" strokeWidth={2} />
-              ) : (
-                <Truck className="w-4 h-4 text-zinc-500" strokeWidth={2} />
-              )}
+    <>
+      {has3DData && <SharePlanLoader plan={plan} onLoaded={() => setSceneReady(true)} />}
+      {has3DData && sceneReady ? (
+        <div className="flex flex-col" style={{ height: '100dvh' }}>
+          <header className="bg-background border-b border-border px-4 py-2 shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">CargoPilot</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="text-sm text-muted-foreground">Paylaşılan Yükleme Planı</span>
             </div>
-            <div>
-              <p className="text-sm font-medium text-zinc-800">{plan.vehicleName}</p>
-              {plan.vehiclePlate && <p className="text-xs text-zinc-400">{plan.vehiclePlate}</p>}
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-zinc-400">Ürün Sayısı</span>
-              <span className="text-sm font-medium text-zinc-600">{plan.productCount} adet</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-zinc-400">Toplam Ağırlık</span>
-              <span className="text-sm font-medium text-zinc-600">
-                {formatWeightDisplay(plan.totalWeightKg, weightUnit)}
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-zinc-400">Araç Kapasitesi</span>
-              <span className="text-sm font-medium text-zinc-600">
-                {formatWeightDisplay(plan.vehicleCapacityKg, weightUnit)}
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-zinc-400">Doluluk</span>
-              <span className="text-sm font-semibold text-zinc-900">%{plan.fillPercentage}</span>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
-              <div
-                className={cn(
-                  'h-full rounded-full',
-                  plan.fillPercentage >= 90
-                    ? 'bg-emerald-500'
-                    : plan.fillPercentage >= 60
-                      ? 'bg-blue-500'
-                      : 'bg-zinc-400',
-                )}
-                style={{ width: `${plan.fillPercentage}%` }}
-              />
-            </div>
+            <span className="text-xs text-muted-foreground">{plan.planName}</span>
+          </header>
+          <div className="flex-1 min-h-0">
+            <NewPlanPage readOnly={true} />
           </div>
         </div>
-
-        <p className="text-center text-xs text-zinc-400">
-          Bu plan yalnızca görüntüleme amaçlıdır. Herhangi bir düzenleme yapılamaz.
-        </p>
-      </div>
-    </main>
+      ) : has3DData ? (
+        <main className="min-h-screen bg-zinc-50 flex items-center justify-center">
+          <Skeleton className="h-full w-full" />
+        </main>
+      ) : null}
+    </>
   );
 }

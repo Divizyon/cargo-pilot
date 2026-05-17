@@ -35,6 +35,7 @@ export const draftItemSchema = z.object({
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()),
   createdAtUtc: z.string(),
+  integrationSystemName: z.string().nullable().optional(),
 });
 
 export type DraftItem = z.infer<typeof draftItemSchema>;

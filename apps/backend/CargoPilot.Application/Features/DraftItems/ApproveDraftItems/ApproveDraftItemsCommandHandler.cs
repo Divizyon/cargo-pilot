@@ -41,6 +41,28 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
                 continue;
             }
 
+            if (draft.Status == DraftItemStatus.UpdatePending)
+            {
+                var existingItem = await _itemRepository.GetByErpIdAsync(draft.ErpId, draft.IntegrationId, companyId.Value, cancellationToken);
+                if (existingItem is null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                existingItem.Update(draft.SKU, draft.Barcode, draft.Name, draft.ProductType, draft.Category,
+                    draft.Width, draft.Height, draft.Length, draft.Diameter, draft.Weight, draft.FragilityType,
+                    draft.IsStackable, draft.MaxStackCount, draft.MaxWeightOnTop, draft.AllowedRotations,
+                    draft.ImageUrl, draft.StackGroup, null, draft.SpecialNotes, draft.GetConstraintIds());
+
+                draft.Approve();
+
+                _itemRepository.Update(existingItem);
+                _draftItemRepository.Update(draft);
+                approved++;
+                continue;
+            }
+
             var item = new Item(
                 Guid.NewGuid(),
                 draft.SKU,
@@ -60,6 +82,7 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
                 draft.Diameter,
                 draft.ImageUrl,
                 draft.StackGroup,
+                null,
                 draft.SpecialNotes,
                 draft.GetConstraintIds(),
                 companyId);

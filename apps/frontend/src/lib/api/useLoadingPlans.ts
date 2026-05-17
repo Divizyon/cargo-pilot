@@ -118,6 +118,9 @@ export function useLoadingPlanListItem(id: string) {
         plannedAt: d.plannedAt,
         planCode: d.planCode,
         status: d.status,
+        thumbnailUrl: ((d as Record<string, unknown>)['thumbnailUrl'] ??
+          (d as Record<string, unknown>)['snapshotUrl'] ??
+          (d as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
       });
     },
     enabled: Boolean(id),
@@ -306,7 +309,14 @@ interface ReoptimizeLoadingPlanInput {
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
-    mutationFn: async ({ id, vehicleId, items, optimizationCriteria, groups, clusterGroups }: ReoptimizeLoadingPlanInput) => {
+    mutationFn: async ({
+      id,
+      vehicleId,
+      items,
+      optimizationCriteria,
+      groups,
+      clusterGroups,
+    }: ReoptimizeLoadingPlanInput) => {
       const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
