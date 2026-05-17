@@ -11,6 +11,7 @@ public sealed record PlanDetailDto(
     string? ErrorMessage,
     decimal TotalWeight,
     decimal FillRate,
+    decimal VolumeFillRate,
     int InputTotalQuantity,
     int PlacedQuantity,
     int UnplacedQuantity,
@@ -27,4 +28,9 @@ public sealed record PlanDetailDto(
     IReadOnlyList<UnplacedItemDto> UnplacedItems,
     IReadOnlyList<WarningDto> Warnings,
     IReadOnlyList<InputItemDto> InputItems,
-    IReadOnlyList<PlanGroupDto> Groups);
+    IReadOnlyList<PlanGroupDto> Groups)
+{
+    // Frontend uyumluluğu için alan takma adları
+    public DateTime CreatedAt => CreatedAtUtc;
+    public string? SnapshotUrl => ThumbnailUrl;
+}

@@ -9,4 +9,11 @@ public sealed record ItemInPlanDto(
     decimal Length,
     decimal Weight,
     string? ImageUrl,
-    string? ProductType);
+    string? ProductType,
+    int Fragility,
+    bool IsFragile,
+    bool IsLiquid,
+    bool IsHazmat,
+    bool AllowRotateX,
+    bool AllowRotateY,
+    bool AllowRotateZ);

@@ -166,7 +166,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.PlanName,
                 p.CreatedAtUtc,
                 p.Vehicle.PlateNumber,
-                p.FillRate,
+                Math.Round(p.FillRate * 100, 1),
                 p.OptimizationStatus,
                 p.ReportId,
                 p.ReportUrl))
@@ -291,6 +291,12 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 inputItemsByGroup.TryGetValue(g.Id, out var gItems) ? gItems : []))
             .ToList();
 
+        var vehicleCapacity  = plan.Vehicle.MaxWeightCapacity;
+        var weightFillRate   = vehicleCapacity > 0
+            ? Math.Round(plan.TotalWeight / vehicleCapacity * 100, 1)
+            : 0m;
+        var volumeFillRate   = Math.Round(plan.FillRate * 100, 1);
+
         return new PlanDetailDto(
             plan.Id,
             plan.PlanName,
@@ -299,7 +305,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.ErrorCode,
             plan.ErrorMessage,
             plan.TotalWeight,
-            plan.FillRate,
+            weightFillRate,
+            volumeFillRate,
             plan.InputTotalQuantity,
             plan.PlacedQuantity,
             plan.UnplacedQuantity,
@@ -419,8 +426,31 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private static ItemInPlanDto ToItemInPlanDto(Item item) =>
-        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl, item.ProductType);
+    private static ItemInPlanDto ToItemInPlanDto(Item item)
+    {
+        var fragility = (int)item.FragilityType;
+        var notFixed  = item.AllowedRotations != AllowedRotations.Fixed;
+        return new ItemInPlanDto(
+            item.Id,
+            item.SKU,
+            item.Name,
+            item.Width,
+            item.Height,
+            item.Length,
+            item.Weight,
+            item.ImageUrl,
+            item.ProductType,
+            Fragility:    fragility,
+            IsFragile:    fragility >= 1,
+            IsLiquid:     item.FragilityType == FragilityType.LiquidChemical,
+            IsHazmat:     item.FragilityType is FragilityType.Flammable
+                              or FragilityType.Oxidizing
+                              or FragilityType.Corrosive
+                              or FragilityType.Chemical,
+            AllowRotateX: notFixed,
+            AllowRotateY: notFixed,
+            AllowRotateZ: notFixed);
+    }
 
     private static decimal? CalcBalanceOffset(decimal? cog, decimal dimension)
     {
