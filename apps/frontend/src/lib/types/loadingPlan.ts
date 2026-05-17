@@ -93,7 +93,7 @@ export const loadingPlanListItemSchema = z.object({
   interiorHeightM: z.number().positive(),
   interiorDepthM: z.number().positive(),
   vehicleType: z.enum(['Tir', 'Kamyon', 'Kamposet', 'Konteyner']).optional(),
-  doorDirection: z.enum(['rear', 'side', 'top', 'rearAndSide']).optional(),
+  doorDirection: z.enum(['front', 'rear', 'side', 'top', 'rearAndSide']).optional(),
   doorSide: z.enum(['right', 'left']).optional(),
   thumbnailUrl: z.string().nullable().optional(),
 });

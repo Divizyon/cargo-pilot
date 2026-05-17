@@ -561,6 +561,8 @@ export function ProductForm({
     ],
   });
 
+  const sku = useWatch({ control: form.control, name: 'sku' });
+
   // Yerel display state'ler: React controlled input'u yeniden yazarken cursor
   // sıfırlanmasını önlemek için ham string saklanır. defaultValues ile init
   // edilir; sonraki senkronizasyon onChange handler'larında yapılır.
@@ -1147,6 +1149,7 @@ export function ProductForm({
             previewContent={
               <PreviewPanel
                 name={name}
+                sku={sku}
                 productType={productType ?? 'koli'}
                 stackGroup={stackGroup}
                 length={length}
@@ -1173,6 +1176,7 @@ export function ProductForm({
 
 interface PreviewPanelProps {
   name?: string;
+  sku?: string;
   productType: 'koli' | 'varil' | 'palet';
   stackGroup?: string;
   length?: number;
@@ -1192,6 +1196,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   const { t } = useTranslation();
   const {
     name,
+    sku,
     productType,
     stackGroup,
     length,
@@ -1277,6 +1282,8 @@ function PreviewPanel(props: PreviewPanelProps) {
             depthCm={depthCm}
             productType={productType}
             color={resolveProductColor(productType, stackGroup)}
+            sku={sku}
+            name={name}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">

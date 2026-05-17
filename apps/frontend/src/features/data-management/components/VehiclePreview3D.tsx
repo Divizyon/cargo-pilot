@@ -341,20 +341,31 @@ function DoorFaceIndicator({
   doorDirection: DoorDirection;
   doorSide?: 'left' | 'right';
 }) {
+  const isFront = doorDirection === 'front';
   const isRear = doorDirection === 'rear' || doorDirection === 'rearAndSide';
   const isSide = doorDirection === 'side' || doorDirection === 'rearAndSide';
   const isTop = doorDirection === 'top';
 
+  // doorSide: 'right' → X=width yüzü (+X), 'left' veya undefined → X=0 yüzü (-X)
   const sideX = doorSide === 'right' ? width + DOOR_PANEL_T / 2 : -DOOR_PANEL_T / 2;
 
   return (
     <>
+      {/* Ön kapı — Z=length yüzü */}
+      {isFront && (
+        <mesh position={[width / 2, height / 2, length + DOOR_PANEL_T / 2]}>
+          <boxGeometry args={[width, height, DOOR_PANEL_T]} />
+          <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
+        </mesh>
+      )}
+      {/* Arka kapı — Z=0 yüzü (eski veri uyumluluğu) */}
       {isRear && (
         <mesh position={[width / 2, height / 2, -DOOR_PANEL_T / 2]}>
           <boxGeometry args={[width, height, DOOR_PANEL_T]} />
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
       )}
+      {/* Yan kapı — doorSide'a göre sol (X=0) veya sağ (X=width) yüzü */}
       {isSide && (
         <mesh position={[sideX, height / 2, length / 2]}>
           <boxGeometry args={[DOOR_PANEL_T, height, length]} />

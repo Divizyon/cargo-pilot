@@ -11,12 +11,13 @@ interface VehicleDoorDirectionFieldProps {
 }
 
 const DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Ön',
+  front: 'Ön',
+  rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
 };
 
-const VISIBLE_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top];
+const VISIBLE_DIRECTIONS = [DoorDirection.Front, DoorDirection.Side, DoorDirection.Top];
 
 export function VehicleDoorDirectionField({ form }: VehicleDoorDirectionFieldProps) {
   return (
