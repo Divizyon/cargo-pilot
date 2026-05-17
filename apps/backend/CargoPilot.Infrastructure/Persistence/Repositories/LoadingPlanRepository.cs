@@ -34,7 +34,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(p => p.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(plateNumber))
-            query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
+            query = query.Where(p => p.Vehicle.PlateNumber != null && p.Vehicle.PlateNumber.Contains(plateNumber));
 
         if (vehicleIds is { Count: > 0 })
             query = query.Where(p => vehicleIds.Contains(p.VehicleId));
