@@ -36,7 +36,8 @@ public sealed class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehi
             .GreaterThanOrEqualTo(1).WithMessage("Kat sayısı en az 1 olmalıdır.");
 
         RuleFor(x => x.LoadingType)
-            .IsInEnum().WithMessage("Geçersiz yükleme tipi.");
+            .IsInEnum().WithMessage("Geçersiz yükleme tipi.")
+            .NotEqual(LoadingType.SideBoth).WithMessage("Yan kapı yönü sağ veya sol olarak ayrı belirtilmelidir.");
 
         When(x => x.VehicleType == VehicleType.Container, () =>
             RuleFor(x => x.LoadingType)
