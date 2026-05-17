@@ -33,7 +33,7 @@ export function VehicleFormLayout({ form }: VehicleFormLayoutProps) {
 
       <div className="grid grid-cols-2 gap-6 divide-x divide-border">
         <div className="flex flex-col gap-6">
-          <VehicleDoorDirectionField form={form} hideHeading={false} />
+          <VehicleDoorDirectionField form={form} vehicleType={vehicleType} hideHeading={false} />
         </div>
         {showAxleSection && (
           <div className="pl-6">

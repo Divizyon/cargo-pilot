@@ -37,7 +37,8 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
-        if (!string.Equals(vehicle.PlateNumber, request.PlateNumber, StringComparison.OrdinalIgnoreCase)) {
+        if (request.PlateNumber is not null &&
+            !string.Equals(vehicle.PlateNumber, request.PlateNumber, StringComparison.OrdinalIgnoreCase)) {
             var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
                 request.PlateNumber, companyId, request.Id, cancellationToken);
             if (plateExists)
