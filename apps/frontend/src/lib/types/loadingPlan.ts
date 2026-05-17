@@ -141,12 +141,3 @@ export const planProductGroupSchema = z.object({
 });
 
 export type PlanProductGroup = z.infer<typeof planProductGroupSchema>;
-
-// ─── Group definition (sent to backend on create/reoptimize) ──────────────────
-
-export interface GroupDefinition {
-  clientGroupId: string;
-  name: string;
-  color: string;
-  unloadingOrder: number;
-}
