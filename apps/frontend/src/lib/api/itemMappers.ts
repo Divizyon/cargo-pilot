@@ -16,6 +16,8 @@ const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
   Genel: ['Tehlikeli Madde'],
 };
 
+const PALLET_HEIGHT_CM = 14;
+
 export const ITEM_CATEGORY = {
   Package: 0,
   Pallet: 1,
@@ -193,7 +195,10 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     sku: item.sku,
     productType: item.productType,
     width: item.width,
-    height: item.height,
+    height:
+      item.productType === 'palet'
+        ? Math.max(0, item.height - PALLET_HEIGHT_CM)
+        : item.height,
     length: item.length,
     weight: item.weight,
     fragility: item.fragility,
@@ -229,7 +234,9 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     productType: values.productType,
     category: toCategory(values.productType),
     width: widthCm,
-    height: toCentimeters(values.height, dimensionUnit),
+    height:
+      toCentimeters(values.height, dimensionUnit) +
+      (values.productType === 'palet' ? PALLET_HEIGHT_CM : 0),
     length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
     weight: values.weight,
     fragilityType: values.fragility,

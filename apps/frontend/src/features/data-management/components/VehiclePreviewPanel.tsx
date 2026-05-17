@@ -95,7 +95,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
       label: 'Kapı Yönü',
       value: doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—',
     },
-    { label: 'Ölçüler', value: dimsRaw },
+    { label: 'Ölçüler', value: dims },
     { label: 'Maks. Kargo', value: cargo },
     { label: 'Brüt Ağırlık', value: gross },
     { label: 'Dara', value: tare },
@@ -114,7 +114,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-3">
       {/* Başlık + operasyonel durum */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -166,9 +166,6 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
           {volume ? `${volume} m³` : '—'}
         </span>
       </div>
-      {volume && dims !== '—' && (
-        <p className="mb-1 text-right text-[10px] text-muted-foreground">{dims}</p>
-      )}
 
       {/* Özet satırları */}
       <div className="flex flex-col">
