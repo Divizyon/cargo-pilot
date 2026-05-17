@@ -606,6 +606,10 @@ export function ProductForm({
                     if (value === 'palet') {
                       form.setValue('allowRotateY', false, { shouldValidate: false });
                       form.setValue('allowRotateZ', false, { shouldValidate: false });
+                      const currentH = form.getValues('height');
+                      if (!currentH || !Number.isFinite(currentH)) {
+                        form.setValue('height', 14, { shouldDirty: false, shouldValidate: false });
+                      }
                     } else {
                       form.setValue('allowRotateY', true, { shouldValidate: false });
                       if ((form.getValues('fragility') ?? 0) < 1) {
@@ -745,7 +749,7 @@ export function ProductForm({
         <SectionTitle>{t('forms.product.sectionPhysical')}</SectionTitle>
         <div
           className={cn(
-            'grid gap-3',
+            'grid items-end gap-3',
             isVaril ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4',
           )}
         >
@@ -781,14 +785,15 @@ export function ProductForm({
                 placeholder="120"
               />
               <DimensionField
+                key={`height-${isPallet ? 'palet' : 'other'}`}
                 form={form}
                 name="height"
                 dimensionUnit={dimensionUnit}
-                label={`${t('forms.product.height')} (Y)`}
-                placeholder="80"
+                label={isPallet ? 'Ürün Yüks. (Y)' : `${t('forms.product.height')} (Y)`}
+                placeholder={isPallet ? '14' : '80'}
                 labelTooltip={
                   isPallet
-                    ? 'Toplam yükseklik; palet (maks. 14 cm) ve üzerindeki yükü birlikte kapsar. Örn: 14 cm palet + 86 cm ürün = 100 cm girilmeli.'
+                    ? "Palet tabanı sabit 14 cm'dir. Yalnızca ürün yüksekliğini girin; toplam (palet + ürün) otomatik hesaplanarak kaydedilir."
                     : undefined
                 }
               />
@@ -1225,10 +1230,17 @@ function PreviewPanel(props: PreviewPanelProps) {
       ? widthCm > 0 && heightCm > 0
       : widthCm > 0 && heightCm > 0 && depthCm > 0;
 
+  const PALLET_H = 14;
   const summaryRows = [
     { label: t('forms.product.name'), value: name || '—', bold: true },
     { label: t('forms.product.width'), value: fmt(width, dimensionUnit) },
-    { label: t('forms.product.height'), value: fmt(height, dimensionUnit) },
+    {
+      label: productType === 'palet' ? 'Ürün Yüks.' : t('forms.product.height'),
+      value: fmt(height, dimensionUnit),
+    },
+    ...(productType === 'palet' && height !== undefined && Number.isFinite(height)
+      ? [{ label: 'Toplam Yüks.', value: `${height + PALLET_H} ${dimensionUnit}` }]
+      : []),
     { label: t('forms.product.length'), value: fmt(length, dimensionUnit) },
     { label: t('forms.product.weight'), value: fmt(weight, 'kg') },
     { label: 'Kısıtlar', value: constraintLabels.length > 0 ? constraintLabels.join(', ') : '—' },
@@ -1245,7 +1257,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-3">
       {/* Başlık */}
       <div className="mb-2 flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
