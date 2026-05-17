@@ -5,7 +5,7 @@ namespace CargoPilot.Application.Features.Plans.GetPlanById;
 public sealed record VehicleInPlanDto(
     Guid Id,
     string VehicleName,
-    string PlateNumber,
+    string? PlateNumber,
     VehicleType VehicleType,
     decimal InternalWidth,
     decimal InternalHeight,
