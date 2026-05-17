@@ -112,16 +112,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                         continue;
                     }
 
-                    existing.UpdateFromErp(
-                        product.Sku,
-                        product.Name,
-                        product.RawDataJson,
-                        product.Width,
-                        product.Height,
-                        product.Length,
-                        product.Weight,
-                        product.Barcode,
-                        product.Diameter);
+                    existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson);
                     if (existing.Status == DraftItemStatus.Rejected)
                         existing.ResetToPending();
 

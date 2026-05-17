@@ -82,26 +82,11 @@ public sealed class DraftItem : BaseEntity
         AllowedRotations = allowedRotations;
     }
 
-    public void UpdateFromErp(
-        string sku,
-        string name,
-        string erpRawDataJson,
-        decimal width,
-        decimal height,
-        decimal length,
-        decimal weight,
-        string? barcode,
-        decimal? diameter)
+    public void UpdateFromErp(string sku, string name, string erpRawDataJson)
     {
         SKU = sku;
         Name = name;
         ErpRawDataJson = erpRawDataJson;
-        Width = width;
-        Height = height;
-        Length = length;
-        Weight = weight;
-        Barcode = barcode;
-        Diameter = diameter;
     }
 
     public void UpdateUserFields(
