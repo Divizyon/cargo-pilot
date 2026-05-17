@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useVehicle } from '@/lib/api/useVehicles';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { VehicleAuditSection } from './VehicleAuditSection';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 
@@ -21,6 +23,8 @@ interface Props {
 export function VehicleDetailPanel({ vehicleId, onClose }: Props) {
   const navigate = useNavigate();
   const { data: vehicle, isLoading } = useVehicle(vehicleId ?? '');
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   return (
     <Sheet open={Boolean(vehicleId)} onOpenChange={(open) => !open && onClose()}>
@@ -46,16 +50,16 @@ export function VehicleDetailPanel({ vehicleId, onClose }: Props) {
 
               <dt className="text-muted-foreground">Boyutlar (X×Y×Z)</dt>
               <dd className="font-medium">
-                {vehicle.length} × {vehicle.height} × {vehicle.width} cm
+                {formatDimensionDisplay(vehicle.length, dimensionUnit)} × {formatDimensionDisplay(vehicle.height, dimensionUnit)} × {formatDimensionDisplay(vehicle.width, dimensionUnit)}
               </dd>
 
               <dt className="text-muted-foreground">Maks Kargo</dt>
-              <dd className="font-medium">{vehicle.maxCargoWeight.toLocaleString('tr-TR')} kg</dd>
+              <dd className="font-medium">{formatWeightDisplay(vehicle.maxCargoWeight, weightUnit)}</dd>
 
               {vehicle.tareWeight !== undefined && (
                 <>
                   <dt className="text-muted-foreground">Boş Ağırlık</dt>
-                  <dd className="font-medium">{vehicle.tareWeight.toLocaleString('tr-TR')} kg</dd>
+                  <dd className="font-medium">{formatWeightDisplay(vehicle.tareWeight, weightUnit)}</dd>
                 </>
               )}
 

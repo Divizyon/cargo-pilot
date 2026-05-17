@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type ComponentType } from 'react';
+import { useState, useEffect, useRef, type ReactNode, type ComponentType } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -44,7 +44,9 @@ import {
   FRAGILITY_LEVELS,
   NOTES_MAX_LENGTH,
   toCentimeters,
+  fromCentimeters,
   type ProductFormValues,
+  type DimensionUnitKey,
 } from '@/features/data-management/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
@@ -505,7 +507,6 @@ export function ProductForm({
   const [unlimitedStack, setUnlimitedStack] = useState(false);
 
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
-  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const [
     width,
@@ -820,7 +821,7 @@ export function ProductForm({
                     />
                   </FormControl>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                    {weightUnit}
+                    kg
                   </span>
                 </div>
                 <FormMessage />
@@ -1199,7 +1200,6 @@ function PreviewPanel(props: PreviewPanelProps) {
   } = props;
 
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
-  const weightUnit = useUnitStore((s) => s.weightUnit);
   const volumeUnit = useUnitStore((s) => s.volumeUnit);
 
   const fmt = (val?: number, unit?: string) =>
@@ -1227,7 +1227,7 @@ function PreviewPanel(props: PreviewPanelProps) {
     { label: t('forms.product.width'), value: fmt(width, dimensionUnit) },
     { label: t('forms.product.height'), value: fmt(height, dimensionUnit) },
     { label: t('forms.product.length'), value: fmt(length, dimensionUnit) },
-    { label: t('forms.product.weight'), value: fmt(weight, weightUnit) },
+    { label: t('forms.product.weight'), value: fmt(weight, 'kg') },
     { label: 'Kısıtlar', value: constraintLabels.length > 0 ? constraintLabels.join(', ') : '—' },
     {
       label: 'İstif Sayısı',
@@ -1316,7 +1316,7 @@ function PreviewPanel(props: PreviewPanelProps) {
 interface DimensionFieldProps {
   form: ReturnType<typeof useProductForm>;
   name: 'width' | 'height' | 'length';
-  dimensionUnit: string;
+  dimensionUnit: DimensionUnitKey;
   label: string;
   placeholder?: string;
   onAfterChange?: (value: number | undefined) => void;
@@ -1334,6 +1334,22 @@ function DimensionField({
   const [display, setDisplay] = useState<string>(() =>
     initVal != null && Number.isFinite(initVal) ? String(initVal) : '',
   );
+  const prevUnitRef = useRef<DimensionUnitKey>(dimensionUnit);
+
+  useEffect(() => {
+    const prevUnit = prevUnitRef.current;
+    prevUnitRef.current = dimensionUnit;
+    if (prevUnit === dimensionUnit) return;
+
+    const currentVal = form.getValues(name);
+    if (currentVal == null || !Number.isFinite(currentVal)) return;
+
+    const converted = fromCentimeters(toCentimeters(currentVal, prevUnit), dimensionUnit);
+    const rounded = Math.round(converted * 10000) / 10000;
+    setDisplay(String(rounded));
+    form.setValue(name, rounded, { shouldDirty: false, shouldValidate: false });
+    onAfterChange?.(rounded);
+  }, [dimensionUnit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <FormField

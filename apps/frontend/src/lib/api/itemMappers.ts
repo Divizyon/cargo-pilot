@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import {
   toCentimeters,
+  fromCentimeters,
   type ProductFormValues,
   type ProductType,
+  type DimensionUnitKey,
 } from '@/features/data-management/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
@@ -159,13 +161,15 @@ export function fromApiItem(api: ItemApi): Item {
 }
 
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
+  const { dimensionUnit } = useUnitStore.getState();
+  const unit = dimensionUnit as DimensionUnitKey;
   return {
     name: item.name,
     sku: item.sku,
     productType: item.productType,
-    width: item.width,
-    height: item.height,
-    length: item.length,
+    width: fromCentimeters(item.width, unit),
+    height: fromCentimeters(item.height, unit),
+    length: fromCentimeters(item.length, unit),
     weight: item.weight,
     fragility: item.fragility,
     isStackable: item.isStackable,

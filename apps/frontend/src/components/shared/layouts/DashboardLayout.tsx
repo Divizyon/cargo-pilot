@@ -27,6 +27,7 @@ import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
+import { useNotificationUnreadCount } from '@/lib/api/useNotifications';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -58,8 +59,8 @@ const MAIN_NAV: NavItemDef[] = [
   { icon: DatabaseZap, label: 'ERP Yönetimi', path: '/erp', end: false },
 ];
 
-const BOTTOM_NAV: NavItemDef[] = [
-  { icon: Bell, label: 'Bildirimler', path: '/notifications', end: false, badge: 3 },
+const BOTTOM_NAV_BASE: NavItemDef[] = [
+  { icon: Bell, label: 'Bildirimler', path: '/notifications', end: false },
   { icon: Settings, label: 'Ayarlar', path: '/settings', end: false },
 ];
 
@@ -138,6 +139,13 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const { data: quota } = useUsageQuota();
   const planLimitReached = quota ? isQuotaExceeded(quota.plans) : false;
+  const { data: unreadCount = 0 } = useNotificationUnreadCount();
+
+  const bottomNav = BOTTOM_NAV_BASE.map((item) =>
+    item.path === '/notifications' && unreadCount > 0
+      ? { ...item, badge: unreadCount }
+      : item,
+  );
 
   return (
     <aside
@@ -236,7 +244,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
 
         {/* Bottom nav — above user profile */}
         <div className="mt-auto space-y-0.5">
-          {BOTTOM_NAV.map((item) => (
+          {bottomNav.map((item) => (
             <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
           ))}
           {/* Theme toggle row */}

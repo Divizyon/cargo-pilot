@@ -4,6 +4,8 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Truck, Container, Pencil, Trash2 } from 'lucide-react';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { VehicleFavoriteButton } from './VehicleFavoriteButton';
 import { VehicleAuditInfo } from './VehicleAuditInfo';
@@ -32,6 +34,8 @@ interface Props {
 
 export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
   const navigate = useNavigate();
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   return (
     <TableRow className="h-12 cursor-pointer" onClick={() => onDetail(vehicle)}>
@@ -61,12 +65,12 @@ export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
       </TableCell>
       <TableCell className={cell}>
         <span className="font-mono text-xs text-muted-foreground">
-          {vehicle.length} × {vehicle.width} × {vehicle.height} cm
+          {formatDimensionDisplay(vehicle.length, dimensionUnit)} × {formatDimensionDisplay(vehicle.width, dimensionUnit)} × {formatDimensionDisplay(vehicle.height, dimensionUnit)}
         </span>
       </TableCell>
       <TableCell className={cell}>
         <span className="text-xs text-foreground">
-          {vehicle.maxCargoWeight.toLocaleString('tr-TR')} kg
+          {formatWeightDisplay(vehicle.maxCargoWeight, weightUnit)}
         </span>
       </TableCell>
       <TableCell className={cell}>
