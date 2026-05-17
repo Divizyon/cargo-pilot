@@ -291,10 +291,7 @@ interface PlanStore {
   removeGroup: (clientGroupId: string) => void;
   updateGroup: (clientGroupId: string, updates: { name?: string; color?: string }) => void;
   assignItemToGroup: (itemId: string, clientGroupId: string | null) => void;
-  syncGroups: (
-    groups: GroupDefinition[],
-    assignments: Record<string, string>,
-  ) => void;
+  syncGroups: (groups: GroupDefinition[], assignments: Record<string, string>) => void;
   reset: () => void;
 }
 
@@ -693,7 +690,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
         }
       }
 
-      const unfitCount = (base as { unfitItems?: UnfitItem[] }).unfitItems?.length ?? s.unfitItems.length;
+      const unfitCount =
+        (base as { unfitItems?: UnfitItem[] }).unfitItems?.length ?? s.unfitItems.length;
       const secondVehicle = reordered[1];
       if (unfitCount > 0 && secondVehicle) {
         base = {
@@ -730,7 +728,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
   assignItemToGroup: (itemId, clientGroupId) =>
     set((s) => {
       if (clientGroupId === null) {
-        const { [itemId]: _removed, ...rest } = s.itemGroupAssignments;
+        const rest = Object.fromEntries(
+          Object.entries(s.itemGroupAssignments).filter(([k]) => k !== itemId),
+        );
         return { itemGroupAssignments: rest };
       }
       return { itemGroupAssignments: { ...s.itemGroupAssignments, [itemId]: clientGroupId } };

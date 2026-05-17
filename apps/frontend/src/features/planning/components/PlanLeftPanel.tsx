@@ -736,12 +736,13 @@ function PlanNameField({ value, onChange, isNew }: PlanNameFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
-  useEffect(() => {
     if (editing) inputRef.current?.select();
   }, [editing]);
+
+  function startEditing() {
+    setDraft(value);
+    setEditing(true);
+  }
 
   function commit() {
     setEditing(false);
@@ -779,7 +780,7 @@ function PlanNameField({ value, onChange, isNew }: PlanNameFieldProps) {
 
   return (
     <button
-      onClick={() => setEditing(true)}
+      onClick={startEditing}
       className="group/pname flex items-center gap-1.5 w-full text-left min-w-0"
     >
       {value ? (

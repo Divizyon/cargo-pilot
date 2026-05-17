@@ -410,14 +410,9 @@ interface SortableSelectedVehicleCardProps extends SelectedVehicleCardProps {
 }
 
 function SortableSelectedVehicleCard({ id, ...cardProps }: SortableSelectedVehicleCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   return (
     <div

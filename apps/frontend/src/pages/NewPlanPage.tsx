@@ -141,7 +141,9 @@ export function NewPlanPage() {
     } = usePlanStore.getState();
     if (!vehicle || !name.trim()) return;
     if (vehicle.id === '00000000-0000-0000-0000-000000000000') {
-      toast.error('Seçili araç geçersiz. Lütfen araç listesinden tekrar seçin.', { position: 'bottom-right' });
+      toast.error('Seçili araç geçersiz. Lütfen araç listesinden tekrar seçin.', {
+        position: 'bottom-right',
+      });
       return;
     }
 
@@ -208,7 +210,9 @@ export function NewPlanPage() {
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
     if (vehicle.id === '00000000-0000-0000-0000-000000000000') {
-      toast.error('Seçili araç geçersiz. Lütfen araç listesinden tekrar seçin.', { position: 'bottom-right' });
+      toast.error('Seçili araç geçersiz. Lütfen araç listesinden tekrar seçin.', {
+        position: 'bottom-right',
+      });
       return;
     }
 
@@ -219,7 +223,9 @@ export function NewPlanPage() {
         items: items.map((si) => ({
           itemId: si.item.id,
           quantity: si.quantity,
-          ...(itemGroupAssignments[si.item.id] ? { groupId: itemGroupAssignments[si.item.id] } : {}),
+          ...(itemGroupAssignments[si.item.id]
+            ? { groupId: itemGroupAssignments[si.item.id] }
+            : {}),
         })),
         optimizationCriteria: criteria,
         ...(groups.length > 0 ? { groups } : {}),
@@ -304,7 +310,11 @@ export function NewPlanPage() {
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
             onLoadAnimation={handleLoadAnimation}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
-            canOptimize={fromPlanId ? !isReoptimizing : !isCreating && !!planName.trim() && placements.length > 0}
+            canOptimize={
+              fromPlanId
+                ? !isReoptimizing
+                : !isCreating && !!planName.trim() && placements.length > 0
+            }
             getSnapshot={() => snapshotRef.current?.() ?? ''}
             planId={fromPlanId}
             planName={planDetail?.planName}
