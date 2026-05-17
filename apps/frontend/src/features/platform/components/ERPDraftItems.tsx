@@ -344,6 +344,7 @@ export function ERPDraftItems() {
 
       {/* Aktar dialog */}
       <BulkImportDialog
+        key={dialogOpen ? dialogRows.map((r) => r._id).join(',') : 'closed'}
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open);

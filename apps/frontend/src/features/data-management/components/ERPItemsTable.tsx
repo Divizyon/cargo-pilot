@@ -556,6 +556,7 @@ export function ERPItemsTable() {
 
       {/* Transfer modal */}
       <BulkImportDialog
+        key={importOpen ? importRows.map((r) => r._id).join(',') : 'closed'}
         open={importOpen}
         onOpenChange={setImportOpen}
         initialRows={importRows}

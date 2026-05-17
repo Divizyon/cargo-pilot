@@ -232,14 +232,6 @@ export function BulkImportDialog({
   const [rows, setRows] = useState<EditableRow[]>(() => initialRows ?? []);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
 
-  const prevOpenRef = useRef(false);
-  if (open !== prevOpenRef.current) {
-    prevOpenRef.current = open;
-    if (open && initialRows && initialRows.length > 0) {
-      setRows(initialRows);
-      setApiErrors([]);
-    }
-  }
   const bulkCreate = useBulkCreateItems();
   const updateDraftItem = useUpdateDraftItem();
   const bulkApproveDraft = useBulkApproveDraftItems();
