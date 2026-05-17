@@ -82,10 +82,11 @@ const VEHICLE_TYPE_META: Record<VehicleTypeValue, { label: string; icon: typeof 
 };
 
 const DOOR_LABEL: Record<DoorDirection, string> = {
-  rear: 'Ön',
+  front: 'Ön',
+  rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Ön + Yan',
+  rearAndSide: 'Arka + Yan',
 };
 
 // ─── VehicleListItem ──────────────────────────────────────────────────────────
@@ -642,13 +643,13 @@ export function PlanRightPanel({
               onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
             >
               <TabsList className="w-full h-7 bg-muted">
-                <TabsTrigger value="selected" className="flex-1 text-xs h-5.5">
+                <TabsTrigger value="selected" className="flex-1 text-xs h-6">
                   Seçili Araç
                   <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
                     ({selectedVehicles.length})
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="list" className="flex-1 text-xs h-5.5">
+                <TabsTrigger value="list" className="flex-1 text-xs h-6">
                   Araç Listesi
                   <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
                     ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
