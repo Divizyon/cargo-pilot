@@ -721,8 +721,8 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon, title, description }: FeatureCardProps) {
   return (
-    <div className="p-5 sm:p-6 rounded-xl border border-border bg-card hover:border-foreground/20 transition-colors duration-200 h-56">
-      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mb-4">
+    <div className="p-5 sm:p-6 rounded-xl border border-border/60 bg-card/50 backdrop-blur-sm hover:border-foreground/20 hover:bg-card/70 transition-colors duration-200 h-56">
+      <div className="w-10 h-10 rounded-lg bg-muted/70 flex items-center justify-center mb-4">
         {icon}
       </div>
       <h3 className="font-semibold text-card-foreground mb-2">{title}</h3>
@@ -813,24 +813,12 @@ function Features() {
       id="features"
       className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-background overflow-hidden"
     >
-      {/* Perspective grid background */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div
-          className="absolute inset-x-[-30%] bottom-[-10%] h-[90%]"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-              linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
-            `,
-            backgroundSize: '36px 36px',
-            transform: 'perspective(700px) rotateX(72deg)',
-            transformOrigin: 'center top',
-          }}
-        />
-        {/* Horizon fade */}
-        <div className="absolute inset-x-0 top-0 h-3/4 bg-gradient-to-b from-background via-background/80 to-transparent" />
-        {/* Bottom fade */}
-        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-background to-transparent" />
+      {/* Crane animations behind cards */}
+      <div className="absolute left-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none" aria-hidden>
+        <CraneAnimation mirror={false} />
+      </div>
+      <div className="absolute right-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none" aria-hidden>
+        <CraneAnimation mirror={true} />
       </div>
 
       <div className="relative max-w-7xl mx-auto">
@@ -1376,12 +1364,23 @@ function CraneAnimation({ mirror = false }: { mirror?: boolean }) {
 
 function CtaBanner() {
   return (
-    <section className="py-16 sm:py-20 px-4 sm:px-6 bg-page-background border-t border-border relative overflow-hidden">
-      <div className="absolute left-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none">
-        <CraneAnimation mirror={false} />
-      </div>
-      <div className="absolute right-0 top-0 bottom-0 w-72 hidden lg:block pointer-events-none select-none">
-        <CraneAnimation mirror={true} />
+    <section className="py-16 sm:py-20 px-4 sm:px-6 bg-background border-t border-border relative overflow-hidden">
+      {/* Perspective grid background */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div
+          className="absolute inset-x-[-30%] bottom-[-10%] h-[90%]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
+            `,
+            backgroundSize: '36px 36px',
+            transform: 'perspective(700px) rotateX(72deg)',
+            transformOrigin: 'center top',
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-3/4 bg-gradient-to-b from-background via-background/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-background to-transparent" />
       </div>
       <div className="max-w-3xl mx-auto text-center relative z-10">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
