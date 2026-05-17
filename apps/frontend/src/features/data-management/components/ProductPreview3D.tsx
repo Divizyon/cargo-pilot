@@ -147,9 +147,9 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
 const PALLET_HEIGHT_CM = 14;
 
 function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
-  // heightCm = kargo yüksekliği (palet üstündeki ürün); palet her zaman PALLET_HEIGHT_CM sabittir
-  const paletH = PALLET_HEIGHT_CM;
-  const cargoH = Math.max(0, heightCm);
+  // heightCm = kullanıcının girdiği toplam yükseklik; palet sabit 14 cm, kargo = kalan
+  const paletH = Math.min(PALLET_HEIGHT_CM, heightCm);
+  const cargoH = Math.max(0, heightCm - paletH);
   const totalH = paletH + cargoH;
   const maxDim = Math.max(widthCm, totalH, depthCm);
 
