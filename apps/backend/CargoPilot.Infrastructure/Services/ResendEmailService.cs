@@ -301,7 +301,7 @@ internal sealed class ResendEmailService : IEmailService
             From = string.IsNullOrWhiteSpace(_settings.FromName)
                 ? _settings.FromEmail
                 : $"{_settings.FromName} <{_settings.FromEmail}>",
-            To = [_settings.ContactRecipientEmail ?? _settings.FromEmail],
+            To = [_settings.FromEmail],
             Subject = $"Cargo Pilot — Yeni İletişim Mesajı: {subject}",
             Html = $"""
                 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
