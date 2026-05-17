@@ -1,12 +1,6 @@
-import { type MouseEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileDown, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { downloadPlanPdf } from '@/lib/utils/downloadPlanPdf';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate } from '@/lib/utils/formatDate';
-import { ROUTES } from '@/lib/config/routes';
 import { fromKilograms, type WeightUnitKey } from '@/features/data-management/schemas/productSchema';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { cn } from '@/lib/utils';
@@ -19,7 +13,6 @@ interface Props {
 const EPOCH_ISO = new Date(0).toISOString().slice(0, 10);
 
 export function RecentPlanRow({ plan, isSelected }: Props) {
-  const navigate = useNavigate();
   const setSelectedSnapshotPlanId = useUIStore((s) => s.setSelectedSnapshotPlanId);
   const dateFormat = useUnitStore((s) => s.dateFormat);
   const weightUnit = useUnitStore((s) => s.weightUnit);
@@ -32,17 +25,6 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
 
   function handleSelect() {
     setSelectedSnapshotPlanId(plan.id);
-  }
-
-  function handleReportDetail(e: MouseEvent<HTMLButtonElement>) {
-    e.stopPropagation();
-    setSelectedSnapshotPlanId(plan.id);
-    navigate(`${ROUTES.REPORTS}?planId=${plan.id}`);
-  }
-
-  function handleDownload(e: MouseEvent<HTMLButtonElement>) {
-    e.stopPropagation();
-    downloadPlanPdf(plan.id);
   }
 
   return (
@@ -62,26 +44,7 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
         {plan.volumeFillPercentage.toFixed(1)}%
       </span>
       <span className="text-muted-foreground text-xs pl-2">{dateLabel}</span>
-      <div className="flex items-center justify-end gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title="PDF Raporu İndir"
-          onClick={handleDownload}
-        >
-          <FileDown className="size-3.5 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title="Rapor Detayını Gör"
-          onClick={handleReportDetail}
-        >
-          <ExternalLink className="size-3.5 text-muted-foreground" />
-        </Button>
-      </div>
+      <div className="flex items-center justify-end gap-0.5" />
     </li>
   );
 }
