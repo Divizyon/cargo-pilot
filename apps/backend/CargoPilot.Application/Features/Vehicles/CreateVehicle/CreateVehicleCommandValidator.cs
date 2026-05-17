@@ -1,3 +1,4 @@
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 
 namespace CargoPilot.Application.Features.Vehicles.CreateVehicle;
@@ -36,6 +37,11 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
 
         RuleFor(x => x.LoadingType)
             .IsInEnum().WithMessage("Geçersiz yükleme tipi.");
+
+        When(x => x.VehicleType == VehicleType.Container, () =>
+            RuleFor(x => x.LoadingType)
+                .NotEqual(LoadingType.Top)
+                .WithMessage("Konteyner için üst yükleme yönü geçerli değildir."));
 
         When(x => x.KingPinDistanceMm.HasValue, () =>
             RuleFor(x => x.KingPinDistanceMm!.Value)
