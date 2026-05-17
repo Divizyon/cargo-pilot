@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRecentPlans } from '@/lib/api/useRecentPlans';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { cn } from '@/lib/utils';
 import { RecentPlanRow } from './RecentPlanRow';
 import { PlanSnapshotPanel } from './PlanSnapshotPanel';
 import { DashboardPlanWizard } from './DashboardPlanWizard';
@@ -34,16 +35,32 @@ export function DashboardRecentPlans() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
         <div>
+          {/* Table header */}
+          <div className="grid px-4 py-1.5 border-b border-border grid-cols-[minmax(0,1fr)_140px_48px_88px_72px_88px_72px]">
+            {['PLAN ADI', 'ARAÇ', 'ÜRÜN', 'AĞIRLIK', 'HACİM', 'TARİH', ''].map((col, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'text-[10px] font-semibold uppercase tracking-widest text-muted-foreground',
+                  i === 2 || i === 3 || i === 4 ? 'text-right' : '',
+                  i === 5 ? 'pl-2' : '',
+                )}
+              >
+                {col}
+              </span>
+            ))}
+          </div>
+
           {isLoading ? (
-            <ul className="px-4 pb-3 space-y-2">
+            <ul className="px-4 pb-3 space-y-2 pt-2">
               {Array.from({ length: 7 }).map((_, i) => (
                 <li key={i}>
-                  <Skeleton className="h-12 w-full rounded-md animate-pulse bg-accent" />
+                  <Skeleton className="h-9 w-full rounded-md animate-pulse bg-accent" />
                 </li>
               ))}
             </ul>
           ) : !data?.length ? (
-            <p className="px-4 pb-3 text-sm text-muted-foreground">Henüz plan oluşturulmamış.</p>
+            <p className="px-4 py-3 text-sm text-muted-foreground">Henüz plan oluşturulmamış.</p>
           ) : (
             <ul>
               {data.map((plan) => (

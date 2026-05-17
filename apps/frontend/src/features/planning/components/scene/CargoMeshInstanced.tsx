@@ -572,7 +572,14 @@ function InstancedBoxes() {
     }
   }, [placements, boxIndices, cylIndices, loadOrder, atlas, writeLabelPlaneMatrices]);
 
-  useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
+  useLoadingAnimation(
+    placements,
+    loadOrder,
+    setAnimPosition,
+    onFrameUpdate,
+    vehicle?.length,
+    vehicle?.width,
+  );
 
   // Animasyon idle'a döndüğünde pozisyon cache'ini temizle
   useEffect(() => {
@@ -1044,7 +1051,14 @@ function BoxPathBoxes() {
     // setAnimPosition zaten state update tetikliyor — ek forceUpdate gerekmez
   }, []);
 
-  useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
+  useLoadingAnimation(
+    placements,
+    loadOrder,
+    setAnimPosition,
+    onFrameUpdate,
+    vehicle?.length,
+    vehicle?.width,
+  );
 
   return (
     <>
