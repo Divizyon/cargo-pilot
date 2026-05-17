@@ -18,9 +18,9 @@ public interface IVehicleRepository {
 
     Task<Vehicle?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByPlateNumberAsync(string? plateNumber, Guid? companyId, CancellationToken cancellationToken = default);
 
-    Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByPlateNumberAsync(string? plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default);
 
     Task<bool> IsUsedInActiveLoadingPlanAsync(Guid vehicleId, CancellationToken cancellationToken = default);
     Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default);
