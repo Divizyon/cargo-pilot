@@ -143,6 +143,7 @@ export function useLoadingPlanDetail(id: string | undefined) {
           placements: [],
           skuColorMap: {},
           unplacedItems: [],
+          groups: [],
         };
       }
       return fromApiFullDetail(parsed.data.data);
@@ -154,18 +155,27 @@ export function useLoadingPlanDetail(id: string | undefined) {
 
 // ─── Create mutation ───────────────────────────────────────────────────────────
 
+interface PlanGroupDefinition {
+  clientGroupId: string;
+  name: string;
+  color: string;
+  unloadingOrder: number;
+}
+
 interface CreateLoadingPlanInput {
   planName: string;
   vehicleId: string;
-  items: Array<{ itemId: string; quantity: number }>;
+  items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
+  groups?: PlanGroupDefinition[];
 }
 
 export function useCreateLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
-    mutationFn: async (input) => {
-      const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', input);
+    mutationFn: async ({ groups, ...rest }) => {
+      const body = groups && groups.length > 0 ? { ...rest, groups } : rest;
+      const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', body);
 
       // API returns the UUID directly as a string
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
@@ -285,19 +295,18 @@ export function useApprovePlan() {
 interface ReoptimizeLoadingPlanInput {
   id: string;
   vehicleId: string;
-  items: Array<{ itemId: string; quantity: number }>;
+  items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
+  groups?: PlanGroupDefinition[];
 }
 
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
-    mutationFn: async ({ id, vehicleId, items, optimizationCriteria }) => {
-      const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
-        vehicleId,
-        items,
-        optimizationCriteria,
-      });
+    mutationFn: async ({ id, vehicleId, items, optimizationCriteria, groups }) => {
+      const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
+      if (groups && groups.length > 0) body['groups'] = groups;
+      const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, body);
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
         return data;

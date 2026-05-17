@@ -67,6 +67,7 @@ function PlanAutoLoader({
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
+    usePlanStore.getState().setInlineGroups(data.groups);
     onLoaded?.();
   }, [
     isSuccess,
@@ -142,6 +143,7 @@ export function NewPlanPage() {
       selectedItems: items,
       placements,
       criteria,
+      inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || !planNameInput.trim()) return;
 
@@ -149,12 +151,34 @@ export function NewPlanPage() {
     const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
     if (itemsToSend.length === 0) return;
 
+    const itemGroupMap = new Map<string, string>();
+    for (const g of inlineGroups) {
+      for (const itemId of g.itemIds) {
+        itemGroupMap.set(itemId, g.id);
+      }
+    }
+
+    const groups =
+      inlineGroups.length > 0
+        ? inlineGroups.map((g, idx) => ({
+            clientGroupId: g.id,
+            name: g.name,
+            color: g.color,
+            unloadingOrder: idx + 1,
+          }))
+        : undefined;
+
     setNameDialogOpen(false);
     const id = await createPlan({
       planName: planNameInput.trim(),
       vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: itemsToSend.map((si) => ({
+        itemId: si.item.id,
+        quantity: si.quantity,
+        groupId: itemGroupMap.get(si.item.id),
+      })),
       optimizationCriteria: criteria,
+      groups,
     });
     const dataUrl = snapshotRef.current?.();
     if (dataUrl) uploadThumbnail({ id, dataUrl });
@@ -180,14 +204,41 @@ export function NewPlanPage() {
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
-    const { selectedVehicle: vehicle, selectedItems: items, criteria } = usePlanStore.getState();
+    const {
+      selectedVehicle: vehicle,
+      selectedItems: items,
+      criteria,
+      inlineGroups,
+    } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
+
+    const itemGroupMap = new Map<string, string>();
+    for (const g of inlineGroups) {
+      for (const itemId of g.itemIds) {
+        itemGroupMap.set(itemId, g.id);
+      }
+    }
+
+    const groups =
+      inlineGroups.length > 0
+        ? inlineGroups.map((g, idx) => ({
+            clientGroupId: g.id,
+            name: g.name,
+            color: g.color,
+            unloadingOrder: idx + 1,
+          }))
+        : undefined;
 
     await reoptimizePlan({
       id: fromPlanId,
       vehicleId: vehicle.id,
-      items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: items.map((si) => ({
+        itemId: si.item.id,
+        quantity: si.quantity,
+        groupId: itemGroupMap.get(si.item.id),
+      })),
       optimizationCriteria: criteria,
+      groups,
     });
     pendingSnapshotPlanId.current = fromPlanId;
     setRefetchKey((k) => k + 1);

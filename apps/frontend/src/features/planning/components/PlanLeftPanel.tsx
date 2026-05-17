@@ -43,6 +43,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import type { InlineGroup } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
@@ -527,8 +528,38 @@ export function PlanLeftPanel() {
 
   const canPlace = !!selectedVehicle;
 
+  const inlineGroupsFromStore = usePlanStore((s) => s.inlineGroups);
+  const setInlineGroups = usePlanStore((s) => s.setInlineGroups);
+
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
+
+  // Mevcut plan yüklendiğinde store'dan grupları geri yükle
+  useEffect(() => {
+    if (groups.length > 0) return;
+    if (inlineGroupsFromStore.length === 0) return;
+    setGroups(
+      inlineGroupsFromStore.map((g) => ({
+        id: g.id,
+        ad: g.name,
+        acik: false,
+        itemIdler: g.itemIds,
+        color: g.color,
+      })),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineGroupsFromStore]);
+
+  // Lokal grup state'ini store ile senkronize et
+  useEffect(() => {
+    const mapped: InlineGroup[] = groups.map((g) => ({
+      id: g.id,
+      name: g.ad,
+      color: g.color,
+      itemIds: g.itemIdler,
+    }));
+    setInlineGroups(mapped);
+  }, [groups, setInlineGroups]);
 
   const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
@@ -732,7 +763,7 @@ export function PlanLeftPanel() {
   }
 
   function handleAddGroup() {
-    const id = `g-${Date.now()}`;
+    const id = crypto.randomUUID();
     const num = groups.length + 1;
     const usedColors = groups.map((g) => g.color);
     const available = GROUP_ICON_COLORS.filter((c) => !usedColors.includes(c));

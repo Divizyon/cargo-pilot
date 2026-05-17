@@ -81,9 +81,13 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var itemMap = items.ToDictionary(i => i.Id);
 
-        // Load groups for any GroupId present in the request; filter out inactive ones
+        // Inline grup clientGroupId'leri DB'de henüz yok — sadece DB kayıtlı grup ID'lerini sorgula
+        var inlineClientIds = request.Groups?
+            .Select(g => g.ClientGroupId)
+            .ToHashSet() ?? [];
+
         var requestedGroupIds = request.Items
-            .Where(i => i.GroupId.HasValue)
+            .Where(i => i.GroupId.HasValue && !inlineClientIds.Contains(i.GroupId!.Value))
             .Select(i => i.GroupId!.Value)
             .Distinct()
             .ToList();

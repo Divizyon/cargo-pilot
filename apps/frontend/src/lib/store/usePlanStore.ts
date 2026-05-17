@@ -216,6 +216,13 @@ export interface UnplacedEntry {
   name: string;
 }
 
+export interface InlineGroup {
+  id: string;
+  name: string;
+  color: string;
+  itemIds: string[];
+}
+
 interface PlanStore {
   selectedVehicle: Vehicle | null;
   selectedVehicles: Array<{ instanceId: string; vehicle: Vehicle }>;
@@ -226,6 +233,8 @@ interface PlanStore {
   unfitItems: UnfitItem[];
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
+  inlineGroups: InlineGroup[];
+  setInlineGroups: (groups: InlineGroup[]) => void;
   setVehicle: (vehicle: Vehicle | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
   peekVehicle: (vehicle: Vehicle) => void;
@@ -317,6 +326,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   unfitItems: [],
   previewItemId: null,
   previewPlacements: [],
+  inlineGroups: [],
+  setInlineGroups: (groups) => set({ inlineGroups: groups }),
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -653,5 +664,6 @@ export const usePlanStore = create<PlanStore>((set) => ({
       unfitItems: [],
       previewItemId: null,
       previewPlacements: [],
+      inlineGroups: [],
     }),
 }));
