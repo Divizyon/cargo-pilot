@@ -19,9 +19,12 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
         <div className="relative z-10 flex flex-col h-full p-10 justify-end pointer-events-none">
           <div>
-            <p className="text-white/50 text-sm font-medium mb-1">Lojistiği yeniden tanımlıyoruz.</p>
+            <p className="text-white/50 text-sm font-medium mb-1">
+              Lojistiği yeniden tanımlıyoruz.
+            </p>
             <p className="text-white text-xl font-bold leading-snug">
-              Her yükü planla.<br />
+              Her yükü planla.
+              <br />
               Mükemmel şekilde.
             </p>
           </div>
@@ -30,7 +33,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Right panel — form */}
       <div className="flex flex-col items-center justify-center p-4 py-16 sm:py-4 min-h-dvh lg:min-h-0 lg:overflow-y-auto">
-        <Link to="/" className="mb-8 flex flex-col items-center gap-3 transition-opacity hover:opacity-75">
+        <Link
+          to="/"
+          className="mb-8 flex flex-col items-center gap-3 transition-opacity hover:opacity-75"
+        >
           <CargoPilotLogo className="h-[72px] w-[72px] shrink-0 text-foreground" />
           <span className="text-lg font-semibold tracking-tight text-foreground">Cargo Pilot</span>
         </Link>

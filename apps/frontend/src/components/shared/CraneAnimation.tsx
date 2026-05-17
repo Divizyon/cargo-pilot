@@ -115,9 +115,9 @@ export function CraneAnimation({ mirror = false, dark }: CraneAnimationProps) {
     const logoGeom = new THREE.PlaneGeometry(containerH * 1.1, containerH * 1.1, 40, 40);
     const ribSpacing = containerW / 11.0;
     const logoUniforms = {
-      uTexture:    { value: logoTexture },
+      uTexture: { value: logoTexture },
       uRibSpacing: { value: ribSpacing },
-      uLightDir:   { value: new THREE.Vector3(0.3, 0.5, 1.0).normalize() },
+      uLightDir: { value: new THREE.Vector3(0.3, 0.5, 1.0).normalize() },
     };
     const logoMat = new THREE.ShaderMaterial({
       uniforms: logoUniforms,
@@ -268,7 +268,6 @@ export function CraneAnimation({ mirror = false, dark }: CraneAnimationProps) {
     let angle = initAngle;
     let angularVelocity = 0;
     const gravity = 0.4;
-    const damp = 0.0;
     let lastTime = performance.now();
 
     let rafId: number;
@@ -284,9 +283,7 @@ export function CraneAnimation({ mirror = false, dark }: CraneAnimationProps) {
       // Öne gelirken parlak, arkaya giderken gölge — lerp ile yumuşak geçiş
       const facingFactor = Math.max(0, Math.cos(angle));
       const comingForward = Math.sign(angle) !== Math.sign(angularVelocity);
-      const targetIntensity = comingForward
-        ? 2.2 * facingFactor
-        : 0.3 * facingFactor;
+      const targetIntensity = comingForward ? 2.2 * facingFactor : 0.3 * facingFactor;
       logoLight.intensity += (targetIntensity - logoLight.intensity) * Math.min(1, dt * 3.5);
 
       renderer.render(scene, camera);
