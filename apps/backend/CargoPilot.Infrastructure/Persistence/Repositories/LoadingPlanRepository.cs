@@ -78,16 +78,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.InputTotalQuantity,
                 p.PlacedQuantity,
                 p.UnplacedQuantity,
-                new VehicleInPlanListDto(
-                    p.Vehicle.Id,
-                    p.Vehicle.VehicleName,
-                    p.Vehicle.PlateNumber,
-                    p.Vehicle.VehicleType,
-                    (int)p.Vehicle.LoadingType,
-                    p.Vehicle.InternalWidth,
-                    p.Vehicle.InternalHeight,
-                    p.Vehicle.InternalLength,
-                    p.Vehicle.MaxWeightCapacity),
+                p.VehicleId,
+                p.Vehicle.VehicleName,
                 p.CreatedAtUtc))
             .ToListAsync(cancellationToken);
 

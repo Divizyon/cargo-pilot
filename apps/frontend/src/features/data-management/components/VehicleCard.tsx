@@ -132,9 +132,10 @@ export function VehicleCard({
   const volumePct = plan.volumeFillPercentage;
   const weightPct = plan.fillPercentage;
   const planDate = formatDate(plan.plannedAt ?? plan.createdAt);
-  const widthM = (plan.interiorWidthM / 100).toFixed(2);
-  const heightM = (plan.interiorHeightM / 100).toFixed(2);
-  const depthM = (plan.interiorDepthM / 100).toFixed(2);
+  const hasDimensions = plan.interiorWidthM > 0 && plan.interiorHeightM > 0 && plan.interiorDepthM > 0;
+  const widthM = hasDimensions ? (plan.interiorWidthM / 100).toFixed(2) : null;
+  const heightM = hasDimensions ? (plan.interiorHeightM / 100).toFixed(2) : null;
+  const depthM = hasDimensions ? (plan.interiorDepthM / 100).toFixed(2) : null;
 
   return (
     <div
@@ -173,9 +174,11 @@ export function VehicleCard({
             {plan.vehiclePlate && (
               <p className="text-xs text-muted-foreground mt-0.5">{plan.vehiclePlate}</p>
             )}
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {widthM} × {depthM} × {heightM} m
-            </p>
+            {hasDimensions ? (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {widthM} × {depthM} × {heightM} m
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className={cn('text-[11px]', getFillClass(volumePct))}>
