@@ -42,6 +42,8 @@ const ROLE_LABELS: Record<string, string> = {
   manager: 'Yönetici',
   viewer: 'Görüntüleyici',
   operator: 'Operatör',
+  individual: 'Bireysel',
+  Individual: 'Bireysel',
 };
 
 interface NavItemDef {
