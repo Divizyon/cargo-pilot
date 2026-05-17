@@ -7,6 +7,15 @@ import {
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 
+const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
+  Kimya: ['Gıda', 'Elektronik', 'Tekstil'],
+  'Tehlikeli Madde': ['Gıda', 'Genel', 'Tekstil'],
+  Gıda: ['Kimya', 'Tehlikeli Madde'],
+  Elektronik: ['Kimya', 'Tehlikeli Madde'],
+  Tekstil: ['Kimya', 'Tehlikeli Madde'],
+  Genel: ['Tehlikeli Madde'],
+};
+
 export const ITEM_CATEGORY = {
   Package: 0,
   Pallet: 1,
@@ -17,7 +26,11 @@ export type ItemCategoryValue = (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGOR
 export const ALLOWED_ROTATIONS = {
   All: 0,
   NoVertical: 1,
-  Fixed: 2,
+  AllLocked: 2,
+  NoYaw: 3,
+  PitchOnly: 4,
+  RollOnly: 5,
+  YawOnly: 6,
 } as const;
 export type AllowedRotationsValue = (typeof ALLOWED_ROTATIONS)[keyof typeof ALLOWED_ROTATIONS];
 
@@ -55,9 +68,14 @@ export function toAllowedRotations(
   allowRotateY: boolean,
   allowRotateZ: boolean,
 ): AllowedRotationsValue {
-  if (allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.All;
-  if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoVertical;
-  return ALLOWED_ROTATIONS.Fixed;
+  if (allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.All; // T T T
+  if (!allowRotateX && allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.NoVertical; // F T F
+  if (!allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.AllLocked; // F F F
+  if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // T F T
+  if (allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.PitchOnly; // T F F
+  if (!allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.RollOnly; // F F T
+  if (!allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // F T T → en yakın
+  return ALLOWED_ROTATIONS.AllLocked; // T T F → fallback
 }
 
 export function toMaxWeightOnTop(
@@ -123,11 +141,22 @@ function fromAllowedRotations(v: number): {
   allowRotateY: boolean;
   allowRotateZ: boolean;
 } {
-  if (v === ALLOWED_ROTATIONS.All)
-    return { allowRotateX: true, allowRotateY: true, allowRotateZ: true };
-  if (v === ALLOWED_ROTATIONS.NoVertical)
-    return { allowRotateX: true, allowRotateY: false, allowRotateZ: true };
-  return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
+  switch (v) {
+    case ALLOWED_ROTATIONS.All:
+      return { allowRotateX: true, allowRotateY: true, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.NoVertical:
+      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.NoYaw:
+      return { allowRotateX: true, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.PitchOnly:
+      return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.RollOnly:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.YawOnly:
+      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
+    default:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
+  }
 }
 
 export function fromApiItem(api: ItemApi): Item {
@@ -176,7 +205,12 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     notes: item.specialNotes ?? '',
     stackGroup: item.stackGroup ?? undefined,
     constraintIds: item.constraintIds ?? [],
-    incompatibleGroups: item.incompatibleGroups ?? [],
+    incompatibleGroups:
+      (item.incompatibleGroups ?? []).length > 0
+        ? item.incompatibleGroups
+        : item.stackGroup
+          ? (INCOMPATIBLE_BY_GROUP[item.stackGroup] ?? [])
+          : [],
   };
 }
 

@@ -40,7 +40,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
           name="length"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Uzunluk (X)</FormLabel>
+              <FormLabel>Uzunluk/Çap (X)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input

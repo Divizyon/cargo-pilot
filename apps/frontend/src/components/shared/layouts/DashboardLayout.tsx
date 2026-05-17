@@ -55,7 +55,7 @@ const MAIN_NAV: NavItemDef[] = [
   { icon: Package, label: 'Ürün Yönetimi', path: '/products', end: false },
   { icon: Truck, label: 'Araç Yönetimi', path: '/vehicles', end: false },
   { icon: BarChart3, label: 'Raporlama', path: '/reports', end: false },
-  { icon: DatabaseZap, label: 'ERP Yönetimi', path: '/erp', end: false },
+  { icon: DatabaseZap, label: 'ERP Ürünleri', path: '/erp', end: false },
 ];
 
 const BOTTOM_NAV: NavItemDef[] = [
