@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +17,7 @@ interface Props {
   isError?: boolean;
   onRetry?: () => void;
   formatValue?: (v: number) => string;
+  footer?: ReactNode;
 }
 
 const defaultFormat = (v: number) => new Intl.NumberFormat('tr-TR').format(v);
@@ -30,6 +32,7 @@ export function StatSummaryCard({
   isError,
   onRetry,
   formatValue = defaultFormat,
+  footer,
 }: Props) {
   if (isError) {
     return (
@@ -70,25 +73,31 @@ export function StatSummaryCard({
           <p className="text-4xl font-bold text-foreground tabular-nums mb-1">
             {formatValue(value)}
           </p>
-          <p className="text-sm text-muted-foreground mb-3">{subInfo}</p>
-          <div className="flex items-center gap-1">
-            {direction === 'up' ? (
-              <TrendingUp className="size-4 text-emerald-600" />
-            ) : direction === 'down' ? (
-              <TrendingDown className="size-4 text-red-500" />
-            ) : null}
-            <span
-              className={cn(
-                'text-sm font-medium',
-                direction === 'up' && 'text-emerald-600',
-                direction === 'down' && 'text-red-500',
-                direction === 'neutral' && 'text-muted-foreground',
+          {footer ?? (
+            <>
+              <p className="text-sm text-muted-foreground mb-3">{subInfo}</p>
+              {delta !== 0 && (
+                <div className="flex items-center gap-1">
+                  {direction === 'up' ? (
+                    <TrendingUp className="size-4 text-emerald-600" />
+                  ) : direction === 'down' ? (
+                    <TrendingDown className="size-4 text-red-500" />
+                  ) : null}
+                  <span
+                    className={cn(
+                      'text-sm font-medium',
+                      direction === 'up' && 'text-emerald-600',
+                      direction === 'down' && 'text-red-500',
+                      direction === 'neutral' && 'text-muted-foreground',
+                    )}
+                  >
+                    {deltaText}
+                  </span>
+                  <span className="text-sm text-muted-foreground">bu hafta</span>
+                </div>
               )}
-            >
-              {deltaText}
-            </span>
-            <span className="text-sm text-muted-foreground">bu hafta</span>
-          </div>
+            </>
+          )}
         </>
       )}
     </div>
