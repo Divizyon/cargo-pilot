@@ -189,12 +189,8 @@ export function ERPItemsTable() {
 
   const isSearching = searchTerm.trim().length > 0;
   const hasActiveFilters = categoryFilters.size > 0;
-  const queryPage = isSearching || selectAllMode ? 1 : page;
-  const queryPageSize = selectAllMode
-    ? Math.max(draftPage?.totalCount ?? 999, 999)
-    : isSearching
-      ? 100
-      : pageSize;
+  const queryPage = isSearching ? 1 : page;
+  const queryPageSize = isSearching ? 100 : pageSize;
 
   const {
     data: draftPage,
@@ -202,10 +198,15 @@ export function ERPItemsTable() {
     isFetching,
   } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
 
+  const { data: allPendingPage } = useDraftItems(
+    { page: 1, pageSize: 9999, status: DRAFT_PENDING },
+    { enabled: selectAllMode },
+  );
+
   useEffect(() => {
-    if (!selectAllMode || !draftPage) return;
-    setSelectedIds(new Set(draftPage.items.filter((i) => i.status === DRAFT_PENDING).map((i) => i.id)));
-  }, [selectAllMode, draftPage]);
+    if (!selectAllMode || !allPendingPage) return;
+    setSelectedIds(new Set(allPendingPage.items.map((i) => i.id)));
+  }, [selectAllMode, allPendingPage]);
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 

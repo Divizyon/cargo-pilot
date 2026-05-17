@@ -214,8 +214,16 @@ export function ReportingSettingsTab() {
   const { mutate: uploadLogo, isPending: isUploading } = useUploadReportingLogo();
   const { mutate: removeLogo, isPending: isRemoving } = useRemoveReportingLogo();
 
-  const { dateFormat, showSignatureArea, setDateFormat, toggleSignatureArea } =
-    useReportingSettingsStore();
+  const {
+    logoDataUrl,
+    dateFormat,
+    showSignatureArea,
+    setLogo,
+    removeLogo: storeClearLogo,
+    updateContactInfo,
+    setDateFormat,
+    toggleSignatureArea,
+  } = useReportingSettingsStore();
 
   const form = useForm<ReportingSettingsFormValues>({
     resolver: zodResolver(reportingSettingsSchema),
@@ -231,7 +239,13 @@ export function ReportingSettingsTab() {
       email: settings.email ?? '',
       address: settings.address ?? '',
     });
-  }, [settings, form]);
+    updateContactInfo({
+      companyName: settings.companyName ?? '',
+      phone: settings.phone ?? '',
+      email: settings.email ?? '',
+      address: settings.address ?? '',
+    });
+  }, [settings, form, updateContactInfo]);
 
   // Live values for preview
   const watchedCompanyName = useWatch({ control: form.control, name: 'companyName' }) ?? '';
@@ -251,6 +265,12 @@ export function ReportingSettingsTab() {
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) setLogo(dataUrl);
+    };
+    reader.readAsDataURL(file);
     uploadLogo(file);
     e.target.value = '';
   }
@@ -284,7 +304,7 @@ export function ReportingSettingsTab() {
               </div>
               <button
                 type="button"
-                onClick={() => removeLogo()}
+                onClick={() => { removeLogo(); storeClearLogo(); }}
                 disabled={isLogoActionPending}
                 className={cn(
                   'flex items-center gap-1.5 pt-1 text-sm text-destructive underline-offset-4 hover:underline',
@@ -478,7 +498,7 @@ export function ReportingSettingsTab() {
         phone={watchedPhone}
         email={watchedEmail}
         address={watchedAddress}
-        logoUrl={settings?.logoUrl}
+        logoUrl={logoDataUrl ?? settings?.logoUrl}
         dateFormat={dateFormat}
         showSignatureArea={showSignatureArea}
       />

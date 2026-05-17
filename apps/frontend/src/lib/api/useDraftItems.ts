@@ -55,9 +55,10 @@ export interface DraftItemsParams {
   status?: number;
 }
 
-export function useDraftItems(params: DraftItemsParams) {
+export function useDraftItems(params: DraftItemsParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['draft-items', params] as const,
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const p = new URLSearchParams();
       p.set('page', String(params.page));
