@@ -4,6 +4,8 @@ namespace CargoPilot.Domain.Entities;
 
 public sealed class Company : BaseEntity {
     public string Name { get; private set; } = null!;
+    public string? Phone { get; private set; }
+    public string? Email { get; private set; }
     public string? Address { get; private set; }
     public string? LogoUrl { get; private set; }
     public SubscriptionType SubscriptionType { get; private set; }
@@ -32,5 +34,15 @@ public sealed class Company : BaseEntity {
 
     public void UpdateName(string name) => Name = name.Trim();
     public void SetTrial(DateTime trialEndsAt) => TrialEndsAt = trialEndsAt;
+
+    public void UpdateReportingInfo(string name, string? phone, string? email, string? address)
+    {
+        Name    = name.Trim();
+        Phone   = phone?.Trim();
+        Email   = email?.Trim();
+        Address = address?.Trim();
+    }
+
     public void SetLogoUrl(string url) => LogoUrl = url;
+    public void ClearLogoUrl()         => LogoUrl = null;
 }
