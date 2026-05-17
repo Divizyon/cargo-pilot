@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ArrowUpDown,
   Box,
   ChevronDown,
   ChevronLeft,
@@ -10,7 +11,6 @@ import {
   Flame,
   FlaskConical,
   Layers,
-  Leaf,
   Package,
   Plus,
   RotateCcw,
@@ -39,16 +39,21 @@ import { useDeleteItem, useItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/calcVolume';
-import { formatDimensionDisplay, formatVolumeDisplay } from '@/lib/utils/unitConversion';
+import {
+  formatDimensionDisplay,
+  formatVolumeDisplay,
+  formatWeightDisplay,
+} from '@/lib/utils/unitConversion';
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
+import { ErpSourceBadge } from './ErpSourceBadge';
 import { SearchInput } from './SearchInput';
 
 const PRODUCT_TYPE_ICON = {
   koli: { Icon: Box, label: 'Koli' },
   varil: { Icon: Cylinder, label: 'Varil' },
-  palet: { Icon: Package, label: 'Palet' },
+  palet: { Icon: Package, label: 'Paletli Ürün' },
 } as const;
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
@@ -91,7 +96,6 @@ const CONSTRAINT_FILTER_OPTIONS: {
   { value: 'food', label: 'Gıda Teması', Icon: Utensils, className: 'text-green-600' },
   { value: 'dry', label: 'Kuru', Icon: Sun, className: 'text-muted-foreground' },
   { value: 'chemical', label: 'Kimyasal', Icon: FlaskConical, className: 'text-purple-600' },
-  { value: 'organic', label: 'Organik', Icon: Leaf, className: 'text-green-600' },
   { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
   {
     value: 'rotationLocked',
@@ -144,6 +148,7 @@ function HighlightText({ text, query }: HighlightTextProps) {
 const SKELETON_COL_WIDTHS = [
   'w-44',
   'w-16',
+  'w-20',
   'w-24',
   'w-16',
   'w-16',
@@ -178,6 +183,9 @@ function ProductTableSkeleton() {
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-4 w-14 rounded" />
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-14" />
@@ -225,6 +233,8 @@ interface ProductRowProps {
 function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps) {
   const volume = calcVolume(item.length, item.width, item.height);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+  const volumeUnit = useUnitStore((s) => s.volumeUnit);
   const { Icon: TypeIcon, label: typeLabel } = PRODUCT_TYPE_ICON[item.productType];
 
   const cell = 'py-0 px-3';
@@ -235,6 +245,10 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
         <span className="block truncate text-xs text-muted-foreground" title={item.name}>
           <HighlightText text={item.name} query={searchTerm} />
         </span>
+      </TableCell>
+
+      <TableCell className={cell}>
+        <ErpSourceBadge erpProviderName={item.erpProviderName} />
       </TableCell>
 
       <TableCell className={cell}>
@@ -269,18 +283,28 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, 'm³')}</span>
+        <span className="text-xs text-foreground">{formatVolumeDisplay(volume, volumeUnit)}</span>
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{item.weight} kg</span>
+        <span className="text-xs text-foreground">
+          {formatWeightDisplay(item.weight, weightUnit)}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
-          {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
-            <span className="text-[10px] text-muted-foreground">maks {item.maxWeightOnTop} kg</span>
+          {item.isStackable ? (
+            <span className="text-xs text-foreground">
+              {item.maxStackCount === 0 ? 'Sınırsız' : `${item.maxStackCount} kat`}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+          {item.isStackable && item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
+            <span className="text-[10px] text-muted-foreground">
+              maks {formatWeightDisplay(item.maxWeightOnTop!, weightUnit)}
+            </span>
           )}
         </div>
       </TableCell>
@@ -292,6 +316,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
           allowRotateX={item.allowRotateX}
           allowRotateY={item.allowRotateY}
           allowRotateZ={item.allowRotateZ}
+          constraintIds={item.constraintIds}
         />
       </TableCell>
 
@@ -321,12 +346,27 @@ interface ProductTableProps {
 }
 
 type CategoryFilter = 'all' | 'koli' | 'varil' | 'palet';
+type SortKey = 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc';
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'date_desc', label: 'En Yeni' },
+  { value: 'date_asc', label: 'En Eski' },
+  { value: 'name_asc', label: "A'dan Z'ye" },
+  { value: 'name_desc', label: "Z'den A'ya" },
+];
+
+function applySortToItems(items: Item[] | undefined, key: SortKey): Item[] | undefined {
+  if (!items) return undefined;
+  if (key === 'name_asc') return [...items].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  if (key === 'name_desc') return [...items].sort((a, b) => b.name.localeCompare(a.name, 'tr'));
+  return items;
+}
 
 const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'Tümü' },
   { value: 'koli', label: 'Koli' },
   { value: 'varil', label: 'Varil' },
-  { value: 'palet', label: 'Palet' },
+  { value: 'palet', label: 'Paletli Ürün' },
 ];
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<
@@ -347,9 +387,12 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [constraintFilters, setConstraintFilters] = useState<Set<ConstraintFilter>>(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showSortPanel, setShowSortPanel] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('date_desc');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
   const tableCardRef = useRef<HTMLDivElement>(null);
 
   const [pageSize, setPageSize] = useState(() =>
@@ -381,7 +424,9 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   }, []);
   const deleteItem = useDeleteItem();
 
-  const hasClientFilters = category !== 'all' || constraintFilters.size > 0;
+  const isNameSort = sortKey === 'name_asc' || sortKey === 'name_desc';
+  const isDateSort = sortKey === 'date_asc' || sortKey === 'date_desc';
+  const hasClientFilters = category !== 'all' || constraintFilters.size > 0 || isNameSort;
 
   const {
     data: itemsPage,
@@ -391,6 +436,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     search: searchTerm || undefined,
     page: hasClientFilters ? 1 : page,
     pageSize: hasClientFilters ? 100 : pageSize,
+    ...(isDateSort && {
+      sortBy: 'createdAt',
+      sortOrder: sortKey === 'date_asc' ? 'asc' : 'desc',
+    }),
   });
 
   const items = itemsPage?.items;
@@ -406,6 +455,17 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
+
+  useEffect(() => {
+    if (!showSortPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setShowSortPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSortPanel]);
 
   const handleDelete = useCallback(
     (item: Item) => {
@@ -437,12 +497,14 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           [...constraintFilters].some((f) => matchesConstraintFilter(item, f)),
         );
 
-  const totalCount = hasClientFilters ? (filteredItems?.length ?? 0) : (itemsPage?.totalCount ?? 0);
+  const sortedItems = applySortToItems(filteredItems, sortKey);
+
+  const totalCount = hasClientFilters ? (sortedItems?.length ?? 0) : (itemsPage?.totalCount ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const displayedItems = hasClientFilters
-    ? filteredItems?.slice((page - 1) * pageSize, page * pageSize)
-    : filteredItems;
+    ? sortedItems?.slice((page - 1) * pageSize, page * pageSize)
+    : sortedItems;
 
   const showSkeleton = isLoading || isFetching;
   const isEmpty =
@@ -456,6 +518,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     displayedItems?.length === 0 &&
     (Boolean(searchTerm) || constraintFilters.size > 0 || category !== 'all');
   const hasActiveFilters = constraintFilters.size > 0;
+  const hasNonDefaultSort = sortKey !== 'date_desc';
 
   return (
     <div className="flex flex-col gap-4">
@@ -487,6 +550,49 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
 
         {/* Search input */}
         <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+
+        {/* Sırala */}
+        <div ref={sortRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'gap-1.5 text-xs',
+              hasNonDefaultSort && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowSortPanel((v) => !v)}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            {SORT_OPTIONS.find((o) => o.value === sortKey)?.label ?? 'Sırala'}
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showSortPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showSortPanel && (
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-2">
+                {SORT_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortKey(value);
+                      setShowSortPanel(false);
+                      setPage(1);
+                    }}
+                    className={cn(
+                      'flex w-full items-center rounded-md px-2 py-1.5 text-xs hover:bg-muted',
+                      sortKey === value && 'font-semibold text-primary',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Filtrele */}
         <div ref={filterRef} className="relative shrink-0">
@@ -556,10 +662,10 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
-          onClick={() => exportItemsToExcel(filteredItems ?? [])}
-          disabled={!filteredItems || filteredItems.length === 0}
+          onClick={() => exportItemsToExcel(sortedItems ?? [])}
+          disabled={!sortedItems || sortedItems.length === 0}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Upload className="h-3.5 w-3.5" />
           Dışa Aktar
         </Button>
 
@@ -570,7 +676,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           className="shrink-0 gap-1.5 text-xs"
           onClick={() => setShowBulkImport(true)}
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           İçe Aktar
         </Button>
 
@@ -591,7 +697,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       {/* Table card */}
       <div
         ref={tableCardRef}
-        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+        className="overflow-x-auto scrollbar-hide rounded-2xl border border-border bg-background"
       >
         {showSkeleton ? (
           <ProductTableSkeleton />
@@ -603,19 +709,22 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   Ürün
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Kaynak
+                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tip
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk/Çap
+                  Uzunluk/Çap (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik
+                  Yükseklik (Y)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik
+                  Derinlik (Z)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim (m³)
@@ -638,7 +747,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={11}
+                    colSpan={12}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     Henüz ürün eklenmemiş.

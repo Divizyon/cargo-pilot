@@ -71,6 +71,7 @@ import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
+import { useReadOnly } from '../ReadOnlyContext';
 
 // ─── Vehicle type filter metadata ────────────────────────────────────────────
 
@@ -82,6 +83,7 @@ const VEHICLE_TYPE_META: Record<VehicleTypeValue, { label: string; icon: typeof 
 };
 
 const DOOR_LABEL: Record<DoorDirection, string> = {
+  front: 'Ön',
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
@@ -113,17 +115,17 @@ function VehicleListItem({
   const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
 
   return (
-    <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-zinc-200')}>
+    <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-border')}>
       <div
         onClick={() => onPreview(vehicle)}
-        className="group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors hover:bg-zinc-50 text-zinc-700 cursor-pointer"
+        className="group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors hover:bg-accent text-foreground cursor-pointer"
       >
         {dragHandleRef && (
           <button
             ref={dragHandleRef}
             {...(dragHandleListeners as HTMLAttributes<HTMLButtonElement>)}
             {...(dragHandleAttributes as HTMLAttributes<HTMLButtonElement>)}
-            className="shrink-0 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none text-zinc-200 hover:text-zinc-400"
+            className="shrink-0 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none text-muted-foreground/30 hover:text-muted-foreground"
             title="Sırasını değiştir"
             onClick={(e) => e.stopPropagation()}
           >
@@ -133,13 +135,13 @@ function VehicleListItem({
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {isContainer ? (
-            <Package2 className="w-4 h-4 shrink-0 text-zinc-500" strokeWidth={2} />
+            <Package2 className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
           ) : (
-            <Truck className="w-4 h-4 shrink-0 text-zinc-500" strokeWidth={2} />
+            <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm truncate text-zinc-800">{vehicle.name}</p>
-            <p className="text-[10px] tabular-nums mt-0.5 text-zinc-400">
+            <p className="text-sm truncate text-foreground">{vehicle.name}</p>
+            <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
               {vehicle.length}×{vehicle.width}×{vehicle.height} cm
               {' · '}
               {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
@@ -153,7 +155,7 @@ function VehicleListItem({
             e.stopPropagation();
             onAddToSelected(vehicle);
           }}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <span className="relative">
             <Truck className="w-3.5 h-3.5" />
@@ -167,33 +169,35 @@ function VehicleListItem({
             setExpanded((v) => !v);
           }}
           className={cn(
-            'w-3.5 h-3.5 shrink-0 cursor-pointer transition-transform duration-150 text-zinc-300',
+            'w-3.5 h-3.5 shrink-0 cursor-pointer transition-transform duration-150 text-muted-foreground/50',
             expanded && 'rotate-180',
           )}
         />
       </div>
 
       {expanded && (
-        <div className="px-3 pt-1.5 pb-2.5 bg-zinc-50 border-t border-zinc-100">
+        <div className="px-3 pt-1.5 pb-2.5 bg-muted/40 border-t border-border">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-zinc-400">İç Hacim</span>
-              <span className="text-xs text-zinc-600">{volumeM3} m³</span>
+              <span className="text-[10px] text-muted-foreground">İç Hacim</span>
+              <span className="text-xs text-muted-foreground">{volumeM3} m³</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-zinc-400">Araç Tipi</span>
-              <span className="text-xs text-zinc-600">{vehicle.vehicleType}</span>
+              <span className="text-[10px] text-muted-foreground">Araç Tipi</span>
+              <span className="text-xs text-muted-foreground">{vehicle.vehicleType}</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-zinc-400">Kapı Yönü</span>
-              <span className="text-xs text-zinc-600">
+              <span className="text-[10px] text-muted-foreground">Kapı Yönü</span>
+              <span className="text-xs text-muted-foreground">
                 {DOOR_LABEL[vehicle.doorDirection] ?? vehicle.doorDirection}
               </span>
             </div>
             {vehicle.plate?.trim() && (
               <div className="flex items-center justify-between py-1">
-                <span className="text-[10px] text-zinc-400">Plaka</span>
-                <span className="text-xs text-zinc-600 font-mono uppercase">{vehicle.plate}</span>
+                <span className="text-[10px] text-muted-foreground">Plaka</span>
+                <span className="text-xs text-muted-foreground font-mono uppercase">
+                  {vehicle.plate}
+                </span>
               </div>
             )}
           </div>
@@ -264,7 +268,7 @@ function PlanSummaryPanel() {
   if (!stats) {
     return (
       <div className="flex items-center justify-center py-5">
-        <span className="text-xs text-zinc-400">Araç seçilmedi</span>
+        <span className="text-xs text-muted-foreground">Araç seçilmedi</span>
       </div>
     );
   }
@@ -280,8 +284,8 @@ function PlanSummaryPanel() {
     <div className="px-3 py-2 flex flex-col gap-0.5">
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between py-1">
-          <span className="text-[10px] text-zinc-400">{r.label}</span>
-          <span className="text-xs text-zinc-600">{r.value}</span>
+          <span className="text-[10px] text-muted-foreground">{r.label}</span>
+          <span className="text-xs text-muted-foreground">{r.value}</span>
         </div>
       ))}
     </div>
@@ -307,89 +311,96 @@ function SelectedVehicleCard({
   onDeselect,
   onAddInstance,
 }: SelectedVehicleCardProps) {
+  const readOnly = useReadOnly();
   const [expanded, setExpanded] = useState(false);
   const weightUnit = useUnitStore((s) => s.weightUnit);
   const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
 
   return (
-    <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-zinc-200')}>
+    <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-border')}>
       <div
         onClick={() => {
           if (!isPrimary) onMakeActive();
         }}
         className={cn(
-          'group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors text-zinc-700',
-          isPrimary ? 'bg-zinc-100 ring-1 ring-zinc-300' : 'hover:bg-zinc-50 cursor-pointer',
-          expanded && 'bg-zinc-50',
+          'group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors text-foreground',
+          isPrimary ? 'bg-muted ring-1 ring-border' : 'hover:bg-accent cursor-pointer',
+          expanded && 'bg-muted/40',
         )}
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <Truck className="w-4 h-4 shrink-0 text-zinc-500" strokeWidth={2} />
+          <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm truncate text-zinc-800">{vehicle.name}</p>
-            <p className="text-[10px] tabular-nums mt-0.5 text-zinc-400">
+            <p className="text-sm truncate text-foreground">{vehicle.name}</p>
+            <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
               {vehicle.length}×{vehicle.width}×{vehicle.height} cm
               {' · '}
               {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
             </p>
           </div>
         </div>
-        <button
-          title="Bir tane daha ekle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddInstance();
-          }}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
-        >
-          <span className="relative">
-            <Truck className="w-3.5 h-3.5" />
-            <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
-          </span>
-        </button>
-        <button
-          title="Listeden çıkar"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeselect(instanceId);
-          }}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
-        >
-          <X className="w-3 h-3" />
-        </button>
+        {!readOnly && (
+          <>
+            <button
+              title="Bir tane daha ekle"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddInstance();
+              }}
+              className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
+            >
+              <span className="relative">
+                <Truck className="w-3.5 h-3.5" />
+                <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
+              </span>
+            </button>
+            <button
+              title="Listeden çıkar"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeselect(instanceId);
+              }}
+              className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-rose-600 hover:bg-rose-50"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </>
+        )}
         <ChevronDown
           onClick={(e) => {
             e.stopPropagation();
             setExpanded((v) => !v);
           }}
           className={cn(
-            'w-3.5 h-3.5 shrink-0 cursor-pointer transition-transform duration-150 text-zinc-300',
+            'w-3.5 h-3.5 shrink-0 cursor-pointer transition-transform duration-150 text-muted-foreground/50',
             expanded && 'rotate-180',
           )}
         />
       </div>
 
       {expanded && (
-        <div className="px-2.5 pt-2 pb-2.5 bg-zinc-50 border-t border-zinc-100">
+        <div className="px-2.5 pt-2 pb-2.5 bg-muted/40 border-t border-border">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-zinc-400">İç Hacim</span>
-              <span className="text-xs text-zinc-600">{volumeM3} m³</span>
+              <span className="text-[10px] text-muted-foreground">İç Hacim</span>
+              <span className="text-xs text-muted-foreground">{volumeM3} m³</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-zinc-400">Araç Tipi</span>
-              <span className="text-xs text-zinc-600">{vehicle.vehicleType}</span>
+              <span className="text-[10px] text-muted-foreground">Araç Tipi</span>
+              <span className="text-xs text-muted-foreground">{vehicle.vehicleType}</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-zinc-400">Kapı Yönü</span>
-              <span className="text-xs text-zinc-600">
+              <span className="text-[10px] text-muted-foreground">Kapı Yönü</span>
+              <span className="text-xs text-muted-foreground">
                 {DOOR_LABEL[vehicle.doorDirection] ?? vehicle.doorDirection}
               </span>
             </div>
             {vehicle.plate?.trim() && (
               <div className="flex items-center justify-between py-1">
-                <span className="text-[10px] text-zinc-400">Plaka</span>
-                <span className="text-xs text-zinc-600 font-mono uppercase">{vehicle.plate}</span>
+                <span className="text-[10px] text-muted-foreground">Plaka</span>
+                <span className="text-xs text-muted-foreground font-mono uppercase">
+                  {vehicle.plate}
+                </span>
               </div>
             )}
           </div>
@@ -417,12 +428,14 @@ export function PlanRightPanel({
   vehiclesOpen = true,
   onToggleVehicles,
   onOptimize,
+  onLoadAnimation,
   isOptimizing = false,
   canOptimize = true,
   planId,
   planName,
   getSnapshot,
 }: PlanRightPanelProps) {
+  const readOnly = useReadOnly();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
@@ -613,53 +626,57 @@ export function PlanRightPanel({
 
         <div
           className={cn(
-            'h-full bg-white rounded-xl border border-zinc-200 overflow-hidden flex flex-col',
+            'h-full bg-background rounded-xl border border-border overflow-hidden flex flex-col',
             'transition-transform duration-[220ms] ease-out',
             !vehiclesOpen && 'translate-x-6',
           )}
         >
-          <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-zinc-100">
-            <span className="text-sm text-zinc-800">Araçlar</span>
-            <Button
-              size="icon"
-              title="Araç Ekle"
-              className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
-              onClick={() => setShowVehicleModal(true)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </Button>
+          <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
+            <span className="text-sm text-foreground">Araçlar</span>
+            {!readOnly && (
+              <Button
+                size="icon"
+                title="Araç Ekle"
+                className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
+                onClick={() => setShowVehicleModal(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </Button>
+            )}
           </div>
 
-          {/* Vehicle tabs */}
-          <div className="px-2 pt-2 shrink-0">
-            <Tabs
-              value={activeVehicleTab}
-              onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
-            >
-              <TabsList className="w-full h-7 bg-zinc-100">
-                <TabsTrigger value="selected" className="flex-1 text-xs h-5.5">
-                  Seçili Araç
-                  <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
-                    ({selectedVehicles.length})
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="list" className="flex-1 text-xs h-5.5">
-                  Araç Listesi
-                  <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
-                    ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Vehicle tabs — edit modda göster */}
+          {!readOnly && (
+            <div className="px-2 pt-2 shrink-0">
+              <Tabs
+                value={activeVehicleTab}
+                onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
+              >
+                <TabsList className="w-full h-7 bg-muted">
+                  <TabsTrigger value="selected" className="flex-1 text-xs h-6">
+                    Seçili Araç
+                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                      ({selectedVehicles.length})
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="flex-1 text-xs h-6">
+                    Araç Listesi
+                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                      ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
 
-          {/* Tab: Seçili Araç */}
-          {activeVehicleTab === 'selected' && (
+          {/* Tab: Seçili Araç — read-only modda doğrudan göster */}
+          {(readOnly || activeVehicleTab === 'selected') && (
             <div className="flex-1 min-h-0 overflow-y-auto">
               {selectedVehicles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
-                  <Truck className="w-8 h-8 text-zinc-200" />
-                  <p className="text-xs text-zinc-400">Henüz araç seçilmedi</p>
+                  <Truck className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
                 </div>
               ) : (
                 <div className="p-2 flex flex-col gap-0.5">
@@ -679,22 +696,22 @@ export function PlanRightPanel({
             </div>
           )}
 
-          {/* Tab: Araç Listesi */}
-          {activeVehicleTab === 'list' && (
+          {/* Tab: Araç Listesi — read-only modda gizle */}
+          {!readOnly && activeVehicleTab === 'list' && (
             <>
               <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
                 <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   <Input
                     value={vehicleSearch}
                     onChange={(e) => setVehicleSearch(e.target.value)}
                     placeholder="Araç adı ile ara…"
-                    className="h-7 pl-8 pr-7 text-xs bg-zinc-50 border-zinc-200 focus-visible:ring-1 focus-visible:ring-zinc-300"
+                    className="h-7 pl-8 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
                   />
                   {vehicleSearch && (
                     <button
                       onClick={() => setVehicleSearch('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -708,17 +725,17 @@ export function PlanRightPanel({
                       size="icon"
                       title="Araç tipine göre filtrele"
                       className={cn(
-                        'h-7 w-7 shrink-0 border-zinc-200',
+                        'h-7 w-7 shrink-0 border-border',
                         activeVehicleTypes.size > 0
-                          ? 'bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-700 hover:border-zinc-700'
-                          : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100',
+                          ? 'bg-foreground text-background border-foreground hover:bg-foreground/80 hover:border-foreground/80'
+                          : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted',
                       )}
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuLabel className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide py-1">
+                    <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
                       Araç Tipi
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -744,7 +761,7 @@ export function PlanRightPanel({
                           onSelect={(e: Event) => e.preventDefault()}
                           className="text-xs gap-2"
                         >
-                          <Icon className="w-3.5 h-3.5 text-zinc-500" />
+                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                           {meta.label}
                         </DropdownMenuCheckboxItem>
                       );
@@ -754,7 +771,7 @@ export function PlanRightPanel({
                         <DropdownMenuSeparator />
                         <button
                           onClick={() => setActiveVehicleTypes(new Set())}
-                          className="w-full text-[10px] text-zinc-400 hover:text-zinc-700 px-2 py-1.5 text-left transition-colors"
+                          className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
                         >
                           Filtreleri temizle
                         </button>
@@ -766,15 +783,15 @@ export function PlanRightPanel({
 
               <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
                 {vehiclesLoading ? (
-                  <div className="flex items-center justify-center py-8 text-zinc-400 text-xs">
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     Araçlar yükleniyor…
                   </div>
                 ) : listTabVehicles.length === 0 &&
                   (vehicleSearch || activeVehicleTypes.size > 0) ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="w-6 h-6 text-zinc-200" />
-                    <p className="text-xs text-zinc-400">
+                    <Search className="w-6 h-6 text-muted-foreground/30" />
+                    <p className="text-xs text-muted-foreground">
                       {vehicleSearch
                         ? `"${vehicleSearch}" için araç bulunamadı`
                         : 'Seçili araç tipinde sonuç yok'}
@@ -782,8 +799,8 @@ export function PlanRightPanel({
                   </div>
                 ) : listTabVehicles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Truck className="w-8 h-8 text-zinc-200" />
-                    <p className="text-xs text-zinc-400">
+                    <Truck className="w-8 h-8 text-muted-foreground/30" />
+                    <p className="text-xs text-muted-foreground">
                       {vehicles.length === 0 ? 'Henüz araç eklenmemiş' : 'Tüm araçlar seçili'}
                     </p>
                   </div>
@@ -813,17 +830,17 @@ export function PlanRightPanel({
       </div>
 
       {/* ── Kutu 2: Plan Özeti + aksiyonlar */}
-      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shrink-0 flex flex-col">
-        <div className="px-3 py-2.5 border-b border-zinc-100 shrink-0">
-          <span className="text-sm text-zinc-800">Plan Özeti</span>
+      <div className="bg-background rounded-xl border border-border overflow-hidden shrink-0 flex flex-col">
+        <div className="px-3 py-2.5 border-b border-border shrink-0">
+          <span className="text-sm text-foreground">Plan Özeti</span>
         </div>
 
         <PlanSummaryPanel />
 
         {!selectedVehicle && selectedInstanceId === null && (
-          <div className="flex flex-col items-center justify-center gap-2 text-center py-4 border-t border-zinc-100">
-            <Box className="w-8 h-8 text-zinc-200" />
-            <p className="text-xs text-zinc-400 leading-relaxed">
+          <div className="flex flex-col items-center justify-center gap-2 text-center py-4 border-t border-border">
+            <Box className="w-8 h-8 text-muted-foreground/30" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Yükleme alanını görmek için
               <br />
               bir araç seçin
@@ -832,12 +849,12 @@ export function PlanRightPanel({
         )}
 
         {selectedInstanceId !== null && (
-          <div className="border-t border-zinc-100 overflow-y-auto shrink-0 max-h-[220px]">
+          <div className="border-t border-border overflow-y-auto shrink-0 max-h-[220px]">
             <SelectedBoxPanel />
           </div>
         )}
 
-        <div className="px-3 pt-3 pb-3 border-t border-zinc-100 shrink-0 flex flex-col gap-2">
+        <div className="px-3 pt-3 pb-3 border-t border-border shrink-0 flex flex-col gap-2">
           {/* Analysis & export row */}
           <div className="relative" ref={xrayPanelRef}>
             <div className="grid grid-cols-4 gap-1">
@@ -847,8 +864,8 @@ export function PlanRightPanel({
                 className={cn(
                   'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
                   showCog
-                    ? 'bg-zinc-900 text-white border-zinc-900'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-background text-muted-foreground border-border hover:bg-accent',
                 )}
               >
                 <Crosshair className="w-3.5 h-3.5" />
@@ -865,37 +882,39 @@ export function PlanRightPanel({
                 className={cn(
                   'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
                   xRayMode || xrayPanelOpen
-                    ? 'bg-zinc-900 text-white border-zinc-900'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-background text-muted-foreground border-border hover:bg-accent',
                 )}
               >
                 {xRayMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 <span>X-Ray</span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (!planId) {
-                    toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
-                      position: 'bottom-right',
-                    });
-                    return;
-                  }
-                  setShareDialogOpen(true);
-                }}
-                disabled={placements.length === 0}
-                title="Paylaş"
-                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Paylaş</span>
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => {
+                    if (!planId) {
+                      toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
+                        position: 'bottom-right',
+                      });
+                      return;
+                    }
+                    setShareDialogOpen(true);
+                  }}
+                  disabled={placements.length === 0}
+                  title="Paylaş"
+                  className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Paylaş</span>
+                </button>
+              )}
 
               <button
                 onClick={handlePdfExport}
                 disabled={isPdfLoading || placements.length === 0}
                 title="PDF Al"
-                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isPdfLoading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -908,17 +927,17 @@ export function PlanRightPanel({
 
             {/* X-Ray floating panel */}
             {xrayPanelOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-1.5 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg p-3 flex flex-col gap-3">
+              <div className="absolute bottom-full left-0 right-0 mb-1.5 z-50 rounded-xl border border-border bg-background shadow-lg p-3 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-zinc-700">X-Ray Modu</span>
+                  <span className="text-xs font-medium text-foreground">X-Ray Modu</span>
                   <button
                     type="button"
                     onClick={toggleXRayMode}
                     className={cn(
                       'flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-medium transition-colors',
                       xRayMode
-                        ? 'bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-700'
-                        : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
+                        ? 'bg-foreground text-background border-foreground hover:bg-foreground/80'
+                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
                     )}
                   >
                     {xRayMode ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
@@ -927,11 +946,11 @@ export function PlanRightPanel({
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Layers className="h-3.5 w-3.5" />
                       <span>Derinlik Filtresi</span>
                     </div>
-                    <span className="text-xs tabular-nums text-zinc-600">
+                    <span className="text-xs tabular-nums text-muted-foreground">
                       {sliderPct > 0 ? `${sliderPct}%` : 'Hepsi'}
                     </span>
                   </div>
@@ -944,59 +963,70 @@ export function PlanRightPanel({
                     disabled={!selectedVehicle}
                   />
                   {!selectedVehicle && (
-                    <p className="text-[10px] text-zinc-400">Araç seçilmeden kullanılamaz</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Araç seçilmeden kullanılamaz
+                    </p>
                   )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Optimizasyon modu seçici */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-zinc-400 px-0.5">Yerleştirme Modu</span>
-            <div className="grid grid-cols-2 gap-1">
-              {(
-                [
-                  {
-                    value: OptimizationCriteria.Lifo,
-                    icon: ArrowDownUp,
-                    label: 'LIFO',
-                    title: 'Son giren ilk çıkar',
-                  },
-                  {
-                    value: OptimizationCriteria.WeightBalance,
-                    icon: Scale,
-                    label: 'Ağırlık Dengesi',
-                    title: 'Ağırlık dengesi',
-                  },
-                ] as const
-              ).map(({ value, icon: Icon, label, title }) => (
-                <button
-                  key={value}
-                  onClick={() => setCriteria(value)}
-                  title={title}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                    criteria === value
-                      ? 'bg-zinc-900 text-white border-zinc-900'
-                      : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50',
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{label}</span>
-                </button>
-              ))}
+          {/* Optimizasyon modu seçici — gizle: read-only modda */}
+          {!readOnly && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
+              <div className="grid grid-cols-2 gap-1">
+                {(
+                  [
+                    {
+                      value: OptimizationCriteria.Lifo,
+                      icon: ArrowDownUp,
+                      label: 'LIFO',
+                      title: 'Son giren ilk çıkar',
+                    },
+                    {
+                      value: OptimizationCriteria.WeightBalance,
+                      icon: Scale,
+                      label: 'Ağırlık Dengesi',
+                      title: 'Ağırlık dengesi',
+                    },
+                  ] as const
+                ).map(({ value, icon: Icon, label, title }) => (
+                  <button
+                    key={value}
+                    onClick={() => setCriteria(value)}
+                    title={title}
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
+                      criteria === value
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <Button
-            className="w-full bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
-            disabled={!selectedVehicle || isOptimizing || !canOptimize}
-            onClick={onOptimize}
-          >
-            {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-            Optimizasyonu Başlat
-          </Button>
+          {!readOnly && (
+            <Button
+              className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+              disabled={!selectedVehicle || isOptimizing || !canOptimize}
+              onClick={onOptimize}
+            >
+              {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              Optimizasyonu Başlat
+            </Button>
+          )}
+          {placements.length > 0 && (
+            <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
+              Yükleme Animasyonunu Başlat
+            </Button>
+          )}
         </div>
       </div>
 

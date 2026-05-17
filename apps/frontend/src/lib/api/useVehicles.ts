@@ -34,6 +34,7 @@ const vehicleListApiItemSchema = z.object({
   loadingType: z.number().int().nullable().optional(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
+  status: z.string().optional(),
   createdAt: z.string().optional(),
   kingPinDistanceMm: z.number().nullable().optional(),
   kingPinTareWeightKg: z.number().nullable().optional(),
@@ -93,6 +94,7 @@ function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
     axles: additionalAxle ? [additionalAxle] : undefined,
     isFavorite: api.isFavorite ?? false,
     isActive: api.isActive ?? true,
+    status: (api.status as 'active' | 'draft' | 'taslak') ?? undefined,
     isDeleted: false,
     createdAt: api.createdAt ?? new Date(0).toISOString(),
     createdBy: { id: '', fullName: '' },
@@ -141,12 +143,19 @@ export function useVehicles(filters?: VehicleFilters) {
       }
 
       if (mergedFilters.status) {
-        params.set('isActive', String(mergedFilters.status === 'active'));
+        if (mergedFilters.status === 'taslak') {
+          params.set('status', 'taslak');
+        } else {
+          params.set('isActive', String(mergedFilters.status === 'active'));
+        }
       }
 
       if (mergedFilters.favoritesOnly) {
         params.set('onlyFavorites', 'true');
       }
+
+      if (mergedFilters.sortBy) params.set('sortBy', mergedFilters.sortBy);
+      if (mergedFilters.sortOrder) params.set('sortOrder', mergedFilters.sortOrder);
 
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles${qs ? `?${qs}` : ''}`);

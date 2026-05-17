@@ -25,7 +25,8 @@ export function useCreateShareLink() {
     { planId: string; validity: ShareValidity }
   >({
     mutationFn: async ({ planId, validity }) => {
-      const { data } = await axiosInstance.post<unknown>(`/api/v1/loading-plans/${planId}/shares`, {
+      const { data } = await axiosInstance.post<unknown>('/api/v1/shares', {
+        planId,
         validity,
       });
       const parsed = z.object({ data: shareLinkSchema }).safeParse(data);

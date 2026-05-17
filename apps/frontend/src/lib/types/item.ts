@@ -37,6 +37,7 @@ export const itemSchema = z.object({
   stackGroup: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()).optional(),
   incompatibleGroups: z.array(z.string()).optional(),
+  erpProviderName: z.string().nullable().optional(),
 });
 
 export type Item = z.infer<typeof itemSchema>;

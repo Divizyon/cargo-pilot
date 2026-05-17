@@ -23,7 +23,7 @@ const vehicleModalSchema = z.object({
   width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   layerCount: z.number({ error: 'Sayı giriniz' }).int().min(1, 'En az 1'),
-  loadingArea: z.enum(['arka', 'yan', 'ust', 'arka-yan']),
+  loadingArea: z.enum(['arka', 'yan', 'ust']),
 });
 
 type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
@@ -56,13 +56,12 @@ const VEHICLE_TYPES: Array<{
 // ─── Loading area config ──────────────────────────────────────────────────────
 
 const LOADING_AREAS: Array<{
-  value: 'arka' | 'yan' | 'ust' | 'arka-yan';
+  value: 'arka' | 'yan' | 'ust';
   label: string;
 }> = [
   { value: 'arka', label: 'Yalnızca Arka' },
   { value: 'yan', label: 'Yan Kapı' },
   { value: 'ust', label: 'Üst Kapak' },
-  { value: 'arka-yan', label: 'Arka + Yan' },
 ];
 
 // ─── AddVehicleModal ──────────────────────────────────────────────────────────
@@ -152,14 +151,14 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
           {/* ── Left: Form ───────────────────────────────────────────────── */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-5 p-6">
             <DialogHeader>
-              <DialogTitle className="text-base font-semibold text-zinc-900">
+              <DialogTitle className="text-base font-semibold text-foreground">
                 Yeni Araç Ekle
               </DialogTitle>
             </DialogHeader>
 
             {/* 1. Araç Tipi */}
             <div className="flex flex-col gap-2.5">
-              <span className="text-xs font-medium text-zinc-500">1. Araç Tipi</span>
+              <span className="text-xs font-medium text-muted-foreground">1. Araç Tipi</span>
               <Controller
                 name="vehicleType"
                 control={control}
@@ -173,8 +172,8 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
                         className={cn(
                           'flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 text-xs font-medium transition-colors flex-1',
                           field.value === value
-                            ? 'border-zinc-900 bg-zinc-900 text-white'
-                            : 'border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700',
+                            ? 'border-foreground bg-foreground text-background'
+                            : 'border-border text-muted-foreground hover:border-border hover:text-foreground',
                         )}
                       >
                         <Icon className="w-5 h-5" strokeWidth={1.5} />
@@ -188,7 +187,9 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
 
             {/* 2. Kapasite ve Boyutlar */}
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-medium text-zinc-500">2. Kapasite ve Boyutlar</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                2. Kapasite ve Boyutlar
+              </span>
               <div className="grid grid-cols-2 gap-2">
                 <Input
                   {...register('name')}
@@ -203,7 +204,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
               </div>
               <div className="grid grid-cols-4 gap-2">
                 <div className="flex flex-col gap-1">
-                  <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">
                     KAPASİTE (KG)
                   </Label>
                   <Input
@@ -215,7 +216,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">
                     KAT SAYISI
                   </Label>
                   <Input
@@ -227,10 +228,10 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
                   />
                 </div>
                 <div className="flex flex-col gap-1 col-span-2">
-                  <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">
                     HACİM (M³)
                   </Label>
-                  <div className="h-8 px-3 flex items-center rounded-md border border-zinc-200 bg-zinc-50 text-sm text-zinc-500 select-none">
+                  <div className="h-8 px-3 flex items-center rounded-md border border-border bg-muted/40 text-sm text-muted-foreground select-none">
                     {volumeM3}
                   </div>
                 </div>
@@ -242,7 +243,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
                   { key: 'height' as const, label: 'YÜKSEKLİK' },
                 ].map(({ key, label }) => (
                   <div key={key} className="flex flex-col gap-1">
-                    <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
+                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">
                       {label}
                     </Label>
                     <Input
@@ -260,7 +261,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
 
             {/* 3. Yükleme Alanı & Kapı Tipi */}
             <div className="flex flex-col gap-2.5">
-              <span className="text-xs font-medium text-zinc-500">
+              <span className="text-xs font-medium text-muted-foreground">
                 3. Yükleme Alanı & Kapı Tipi
               </span>
               <Controller
@@ -276,8 +277,8 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
                         className={cn(
                           'flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors',
                           field.value === value
-                            ? 'border-zinc-900 bg-zinc-900 text-white'
-                            : 'border-zinc-200 text-zinc-500 hover:border-zinc-400',
+                            ? 'border-foreground bg-foreground text-background'
+                            : 'border-border text-muted-foreground hover:border-border',
                         )}
                       >
                         {label}
@@ -301,7 +302,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
               <Button
                 type="submit"
                 disabled={isSubmitting || createVehicle.isPending}
-                className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
+                className="flex-1 bg-foreground text-background hover:bg-foreground/80 disabled:opacity-60"
               >
                 {createVehicle.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Kaydet
@@ -310,31 +311,31 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
           </form>
 
           {/* ── Right: Preview ────────────────────────────────────────────── */}
-          <div className="w-52 bg-zinc-50 border-l border-zinc-100 flex flex-col items-center gap-4 p-5 shrink-0">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center shadow-sm mt-2">
-              <Truck className="w-8 h-8 text-zinc-300" strokeWidth={1.5} />
+          <div className="w-52 bg-muted/40 border-l border-border flex flex-col items-center gap-4 p-5 shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-background border border-border flex items-center justify-center shadow-sm mt-2">
+              <Truck className="w-8 h-8 text-muted-foreground/50" strokeWidth={1.5} />
             </div>
 
             <div className="w-full text-center space-y-3">
-              <p className="text-sm font-semibold text-zinc-800 truncate">
+              <p className="text-sm font-semibold text-foreground truncate">
                 {name?.trim() || 'İsimsiz Araç...'}
               </p>
 
               <div>
-                <span className="inline-block text-[10px] font-bold text-zinc-500 uppercase tracking-wide px-2 py-0.5 bg-zinc-200 rounded-sm">
+                <span className="inline-block text-[10px] font-bold text-muted-foreground uppercase tracking-wide px-2 py-0.5 bg-muted rounded-sm">
                   KAPASİTE & BOYUT
                 </span>
-                <p className="text-[11px] text-zinc-500 mt-1.5">
+                <p className="text-[11px] text-muted-foreground mt-1.5">
                   {volumeM3} m³ · {payload || 0} kg
                 </p>
               </div>
 
               {loadingLabel && (
                 <div>
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide mb-1.5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
                     KAPI TİPİ
                   </p>
-                  <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                     {loadingLabel}
                   </span>
                 </div>

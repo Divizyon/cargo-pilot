@@ -1,24 +1,33 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import React, { useState, useEffect, useRef, type ReactNode } from 'react';
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import * as THREE from 'three';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ContainerScroll } from '@/components/ui/container-scroll-animation';
+import { CobeGlobe } from '@/components/ui/cobe-globe';
+import { CraneAnimation } from '@/components/shared/CraneAnimation';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { cn } from '@/lib/utils';
+import { CargoPilotLogo } from '@/components/shared/CargoPilotLogo';
 import {
   ArrowRight,
-  Box,
   Share2,
-  Truck,
   Package,
+  Truck,
   CheckCircle2,
   Layers,
   Zap,
   FileText,
   Users,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
 } from 'lucide-react';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ─── Navbar ────────────────────────────────────────────────────────────────
 
@@ -28,74 +37,140 @@ const NAV_LINKS = [
   { label: 'Fiyatlandırma', href: '#pricing' },
 ];
 
+// macOS dock magnification — individual nav link
+function DockNavLink({
+  href,
+  label,
+  mouseX,
+}: {
+  href: string;
+  label: string;
+  mouseX: MotionValue<number>;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+
+  const distance = useTransform(mouseX, (val) => {
+    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+    return val - bounds.x - bounds.width / 2;
+  });
+
+  const scaleRaw = useTransform(distance, [-80, 0, 80], [1, 1.28, 1]);
+  const scale = useSpring(scaleRaw, { mass: 0.1, stiffness: 180, damping: 13 });
+
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  return (
+    <motion.a
+      ref={ref}
+      href={href}
+      onClick={handleClick}
+      style={{ scale }}
+      className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors duration-150 inline-block origin-bottom"
+    >
+      {label}
+    </motion.a>
+  );
+}
+
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const mouseX = useMotionValue(Infinity);
+  const navLinksX = useMotionValue(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const progress = Math.min(window.scrollY / 280, 1);
+      if (navRef.current) {
+        navRef.current.style.maxWidth = `${1280 - progress * (1280 - 896)}px`;
+      }
+      // same progress drives x: 0 → -65
+      navLinksX.set(-65 * progress);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navLinksX]);
 
   return (
     <>
-      <nav className="fixed top-0 inset-x-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4 lg:gap-8">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-80"
-          >
-            <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center shrink-0 border border-border">
-              <Box className="w-4 h-4 text-foreground" />
-            </div>
-            <span className="font-bold text-foreground text-base sm:text-lg tracking-tight">
-              Cargo Pilot
-            </span>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-6 lg:gap-8 flex-1 justify-center">
-            {NAV_LINKS.map(({ label, href }) => (
-              <a
-                key={label}
-                href={href}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-            <ThemeToggle />
-            <div className="hidden md:flex items-center gap-2 lg:gap-3">
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/auth/login">Giriş Yap</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link to="/auth/register">
-                  Ücretsiz Başla <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-                </Link>
-              </Button>
-            </div>
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+      {/* Desktop: full floating dock */}
+      <div className="hidden md:flex fixed top-4 inset-x-0 z-50 justify-center px-6">
+        <nav
+          ref={navRef}
+          className="w-full bg-background/90 backdrop-blur-md border border-border rounded-2xl shadow-lg shadow-black/5"
+          style={{ maxWidth: 1280 }}
+        >
+          <div className="h-14 px-5 grid grid-cols-[1fr_auto_1fr] items-center">
+            <Link
+              to="/"
+              className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
             >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-      </nav>
+              <CargoPilotLogo className="w-[42px] h-[42px] shrink-0 text-foreground" />
+              <span className="font-bold text-foreground text-sm tracking-tight">Cargo Pilot</span>
+            </Link>
 
-      {menuOpen && (
-        <div className="fixed top-16 inset-x-0 z-40 bg-background border-b border-border shadow-lg md:hidden">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
+            <div className="flex items-center justify-center">
+              <motion.div
+                style={{ x: navLinksX }}
+                className="flex items-center gap-1"
+                onMouseMove={(e) => mouseX.set(e.clientX)}
+                onMouseLeave={() => mouseX.set(Infinity)}
+              >
+                {NAV_LINKS.map(({ label, href }) => (
+                  <DockNavLink key={label} href={href} label={label} mouseX={mouseX} />
+                ))}
+              </motion.div>
+            </div>
+
+            <div className="flex items-center gap-2 justify-end">
+              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth/login">Giriş Yap</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/auth/register">
+                    Ücretsiz Başla <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      {/* Mobile: hamburger only at top-right */}
+      <div className="md:hidden fixed top-4 right-4 z-50 flex flex-col items-end">
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-background/90 backdrop-blur-md border border-border shadow-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
+        {menuOpen && (
+          <div className="mt-2 w-64 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg p-2 flex flex-col gap-1">
             {NAV_LINKS.map(({ label, href }) => (
               <a
                 key={label}
                 href={href}
-                onClick={() => setMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMenuOpen(false);
+                  document
+                    .querySelector(href)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
                 className="px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               >
                 {label}
               </a>
             ))}
-            <div className="pt-3 mt-2 border-t border-border flex flex-col gap-2">
+            <div className="pt-2 mt-1 border-t border-border flex flex-col gap-2">
               <Button variant="outline" size="sm" asChild className="w-full">
                 <Link to="/auth/login" onClick={() => setMenuOpen(false)}>
                   Giriş Yap
@@ -108,9 +183,46 @@ function Navbar() {
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
+  );
+}
+
+// ─── Scroll Indicator ──────────────────────────────────────────────────────
+
+function ScrollIndicator() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      gsap.to(el, {
+        opacity: 0,
+        y: 12,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 70%',
+          end: 'top 30%',
+          scrub: true,
+        },
+      });
+    });
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute bottom-8 inset-x-0 flex flex-col items-center gap-1.5 pointer-events-none select-none"
+    >
+      <span className="text-[10px] font-semibold text-muted-foreground tracking-[0.25em] uppercase">
+        Scroll
+      </span>
+      <ChevronDown className="w-4 h-4 text-muted-foreground animate-bounce" />
+    </div>
   );
 }
 
@@ -272,27 +384,22 @@ function CargoGrid() {
     floorMesh.position.y = -CH / 2 + 0.5;
     scene.add(floorMesh);
 
-    // Door face — green plane at algX = CL (scene x = CL/2)
-    const doorGeom = new THREE.PlaneGeometry(CW, CH);
-    const doorMat = new THREE.MeshBasicMaterial({
-      color: 0x1d9e75,
-      transparent: true,
-      opacity: 0.12,
-      side: THREE.DoubleSide,
-    });
-    const doorMesh = new THREE.Mesh(doorGeom, doorMat);
-    doorMesh.rotation.y = Math.PI / 2;
-    doorMesh.position.x = CL / 2;
-    scene.add(doorMesh);
-
     // Shared box geometry — BoxGeometry(dx, dz, dy) per reference HTML
     const geomA = new THREE.BoxGeometry(60, 60, 60);
     const geomB = new THREE.BoxGeometry(200, 100, 100);
     const edgeGeomA = new THREE.EdgesGeometry(geomA);
     const edgeGeomB = new THREE.EdgesGeometry(geomB);
-    const matA = new THREE.MeshLambertMaterial({ color: 0xe24b4a, transparent: true, opacity: 1 });
-    const matB = new THREE.MeshLambertMaterial({ color: 0x378add, transparent: true, opacity: 1 });
-    const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
+    const matA = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0 });
+    const matB = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0 });
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const edgeMat = new THREE.LineBasicMaterial({ color: isDark() ? 0xffffff : 0x000000 });
+    const themeObserver = new MutationObserver(() => {
+      edgeMat.color.set(isDark() ? 0xffffff : 0x000000);
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
 
     interface BoxRef {
       mesh: THREE.Mesh;
@@ -431,14 +538,13 @@ function CargoGrid() {
     return () => {
       cancelAnimationFrame(rafId);
       ro.disconnect();
+      themeObserver.disconnect();
       renderer.dispose();
       if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
-      [contGeom, contEdgeGeom, floorGeom, doorGeom, geomA, geomB, edgeGeomA, edgeGeomB].forEach(
-        (g) => g.dispose(),
+      [contGeom, contEdgeGeom, floorGeom, geomA, geomB, edgeGeomA, edgeGeomB].forEach((g) =>
+        g.dispose(),
       );
-      [contLineMat, contFillMat, floorMat, doorMat, matA, matB, edgeMat].forEach((m) =>
-        m.dispose(),
-      );
+      [contLineMat, contFillMat, floorMat, matA, matB, edgeMat].forEach((m) => m.dispose());
     };
   }, []);
 
@@ -465,8 +571,14 @@ function CargoGrid() {
 
 function Hero() {
   return (
-    <section className="min-h-dvh px-4 sm:px-6 bg-background flex items-center">
-      <div className="max-w-7xl mx-auto w-full pt-16">
+    <section className="relative min-h-dvh px-4 sm:px-6 bg-background flex items-center">
+      <div className="max-w-7xl mx-auto w-full pt-4 md:pt-6">
+        {/* Mobile logo — navbar yok, hero üstünde marka göstergesi */}
+        <div className="md:hidden flex items-center gap-2 mb-8">
+          <CargoPilotLogo className="w-[42px] h-[42px] shrink-0 text-foreground" />
+          <span className="font-bold text-foreground text-sm tracking-tight">Cargo Pilot</span>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-10 sm:gap-12 lg:gap-16 items-center">
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight mb-5 sm:mb-6">
@@ -501,11 +613,107 @@ function Hero() {
           </div>
         </div>
       </div>
+      <ScrollIndicator />
     </section>
   );
 }
 
+// ─── Container Scroll ───────────────────────────────────────────────────────
+
+function DashboardScrollSection() {
+  return (
+    <div className="overflow-x-hidden md:overflow-hidden">
+      <ContainerScroll
+        titleComponent={
+          <div className="mb-4">
+            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-muted-foreground mb-3">
+              Platform'a Göz Atın
+            </p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight">
+              Gerçek zamanlı operasyonel
+              <br />
+              <span className="text-muted-foreground">kontrol paneli</span>
+            </h2>
+          </div>
+        }
+      >
+        <img
+          src="/dashboard-light.png"
+          alt="Cargo Pilot Dashboard"
+          className="w-full h-full object-contain object-top block dark:hidden"
+          draggable={false}
+        />
+        <img
+          src="/dashboard-dark.png"
+          alt="Cargo Pilot Dashboard"
+          className="w-full h-full object-contain object-top hidden dark:block"
+          draggable={false}
+        />
+      </ContainerScroll>
+    </div>
+  );
+}
+
 // ─── Features ───────────────────────────────────────────────────────────────
+
+interface TiltCardProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function TiltCard({ children, className }: TiltCardProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<number>(0);
+  const [style, setStyle] = useState<React.CSSProperties>({});
+  const [spot, setSpot] = useState({ x: 50, y: 50, opacity: 0 });
+
+  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => {
+      const el = ref.current;
+      if (!el) return;
+      const { left, top, width, height } = el.getBoundingClientRect();
+      const nx = (e.clientX - left) / width;
+      const ny = (e.clientY - top) / height;
+      const rx = (0.5 - ny) * 14;
+      const ry = (nx - 0.5) * 14;
+      setStyle({
+        transform: `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.025)`,
+        transition: 'transform 0.08s ease-out',
+      });
+      setSpot({ x: nx * 100, y: ny * 100, opacity: 0.12 });
+    });
+  }
+
+  function onMouseLeave() {
+    cancelAnimationFrame(frameRef.current);
+    setStyle({
+      transform: 'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)',
+      transition: 'transform 0.5s ease-out',
+    });
+    setSpot((s) => ({ ...s, opacity: 0 }));
+  }
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      style={{ ...style, transformStyle: 'preserve-3d' }}
+      className={cn('relative overflow-hidden rounded-xl', className)}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-10 rounded-xl transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(circle at ${spot.x}% ${spot.y}%, rgba(255,255,255,${spot.opacity}), transparent 65%)`,
+          opacity: spot.opacity > 0 ? 1 : 0,
+        }}
+      />
+      {children}
+    </div>
+  );
+}
 
 interface FeatureCardProps {
   icon: ReactNode;
@@ -515,8 +723,8 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon, title, description }: FeatureCardProps) {
   return (
-    <div className="p-5 sm:p-6 rounded-xl border border-border bg-card hover:border-foreground/20 transition-colors duration-200">
-      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mb-4">
+    <div className="p-5 sm:p-6 rounded-xl border border-border/60 bg-card/50 backdrop-blur-sm hover:border-foreground/20 hover:bg-card/70 transition-colors duration-200 h-56">
+      <div className="w-10 h-10 rounded-lg bg-muted/70 flex items-center justify-center mb-4">
         {icon}
       </div>
       <h3 className="font-semibold text-card-foreground mb-2">{title}</h3>
@@ -526,6 +734,42 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
 }
 
 function Features() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      // Curtain reveal on the section
+      gsap.from(el, {
+        clipPath: 'inset(6% 0 0 0)',
+        y: 48,
+        opacity: 0,
+        duration: 1.1,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 88%',
+          toggleActions: 'restart none none reverse',
+        },
+      });
+      // Cards stagger
+      gsap.from('.feature-card', {
+        y: 36,
+        opacity: 0,
+        duration: 0.75,
+        stagger: 0.08,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 72%',
+          toggleActions: 'restart none none reverse',
+        },
+      });
+    }, el);
+    return () => ctx.revert();
+  }, []);
+
   const features = [
     {
       icon: <Layers className="w-5 h-5 text-foreground" />,
@@ -566,8 +810,26 @@ function Features() {
   ];
 
   return (
-    <section id="features" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-background">
-      <div className="max-w-7xl mx-auto">
+    <section
+      ref={sectionRef}
+      id="features"
+      className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-background overflow-hidden border-t-2 border-border/60 shadow-[0_-8px_32px_-4px_hsl(var(--foreground)/0.08)]"
+    >
+      {/* Crane animations — hang from the section divider line at top */}
+      <div
+        className="absolute left-0 top-0 w-[500px] h-[780px] hidden lg:block pointer-events-none select-none"
+        aria-hidden
+      >
+        <CraneAnimation mirror={false} />
+      </div>
+      <div
+        className="absolute right-0 top-0 w-[500px] h-[780px] hidden lg:block pointer-events-none select-none"
+        aria-hidden
+      >
+        <CraneAnimation mirror={true} />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto">
         <div className="text-center mb-10 sm:mb-14 md:mb-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             Ekibinizin daha akıllı yüklemesi için gereken her şey
@@ -578,7 +840,11 @@ function Features() {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
           {features.map((f) => (
-            <FeatureCard key={f.title} {...f} />
+            <div key={f.title} className="feature-card h-full">
+              <TiltCard className="h-full">
+                <FeatureCard {...f} />
+              </TiltCard>
+            </div>
           ))}
         </div>
       </div>
@@ -589,21 +855,69 @@ function Features() {
 // ─── How It Works ───────────────────────────────────────────────────────────
 
 function HowItWorks() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setIsDark(document.documentElement.classList.contains('dark')),
+    );
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      gsap.from('.how-title', {
+        y: 24,
+        opacity: 0,
+        duration: 0.7,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 82%',
+          toggleActions: 'restart none none reverse',
+        },
+      });
+      gsap.from('.how-step', {
+        y: 32,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.15,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 75%',
+          toggleActions: 'restart none none reverse',
+        },
+      });
+    }, el);
+    return () => ctx.revert();
+  }, []);
+
   const steps = [
     {
       number: '01',
-      title: "ERP'den veriyi çekin",
+      title: 'Hesabınızı oluşturun',
       description:
-        'SAP, Logo, Netsis veya benzeri ERP sisteminizle entegre olun. Ürün boyutları, ağırlıklar ve sipariş miktarları otomatik olarak aktarılır — manuel giriş gerekmez.',
+        'Dakikalar içinde ücretsiz hesap açın. Kredi kartı gerekmez, kurulum için teknik bilgi şart değil.',
     },
     {
       number: '02',
+      title: "ERP'den veriyi çekin",
+      description:
+        'SAP, Logo, Netsis veya benzeri ERP sisteminizle entegre olun. Ürün boyutları, ağırlıklar ve sipariş miktarları otomatik olarak aktarılır.',
+    },
+    {
+      number: '03',
       title: 'Yükleme planı oluşturun',
       description:
         'Bir araç seçin, optimizasyon kriterini belirleyin. Motor saniyeler içinde hacim, ağırlık dengesi, kırılganlık ve istifleme kurallarını göz önünde bulundurarak en uygun planı hesaplar.',
     },
     {
-      number: '03',
+      number: '04',
       title: 'İnceleyin, düzenleyin ve paylaşın',
       description:
         'Anında 3D plan alın. Gerekirse yerleşimleri manuel olarak ayarlayın, ardından PDF / Excel olarak dışa aktarın ya da ekibinizle canlı 3D bağlantısı paylaşın.',
@@ -611,31 +925,55 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-page-background">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-10 sm:mb-14 md:mb-16">
+    <section
+      ref={sectionRef}
+      id="how-it-works"
+      className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-page-background overflow-hidden"
+    >
+      {/* Globe — section level so overflow-hidden clips it correctly, desktop only */}
+      <div
+        className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center"
+        aria-hidden
+      >
+        <div className="w-[640px] h-[640px] opacity-30 dark:opacity-20">
+          <CobeGlobe
+            dark={isDark ? 1 : 0}
+            baseColor={isDark ? [0.08, 0.08, 0.14] : [1, 1, 1]}
+            markerColor={isDark ? [1, 1, 1] : [0, 0, 0]}
+            arcColor={isDark ? [1, 1, 1] : [0, 0, 0]}
+            glowColor={isDark ? [1, 1, 1] : [0.1, 0.1, 0.1]}
+            mapBrightness={isDark ? 4 : 9}
+            speed={0.003}
+          />
+        </div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto">
+        <div className="how-title text-center mb-10 sm:mb-14 md:mb-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             Nasıl Çalışır?
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-            ERP entegrasyonundan mükemmel, ihlalsiz bir yükleme planına üç adımda ulaşın.
+            Hesap oluşturmaktan mükemmel, ihlalsiz bir yükleme planına dört adımda ulaşın.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-8 sm:gap-6 lg:gap-8 relative">
-          <div className="hidden sm:block absolute top-6 left-[calc(33%+1rem)] right-[calc(33%+1rem)] h-px bg-border" />
+        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-6 lg:gap-8">
           {steps.map(({ number, title, description }, idx) => (
-            <div key={number} className="flex sm:block gap-5 sm:gap-0 relative">
+            <div key={number} className="how-step flex md:block gap-5 md:gap-0 relative">
+              {/* Desktop: horizontal connector to next step */}
               {idx < steps.length - 1 && (
-                <div className="sm:hidden absolute left-6 top-12 bottom-0 w-px bg-border -mb-8" />
+                <div className="hidden md:block absolute h-px bg-border top-[1.375rem] left-12 -right-[1.5rem] lg:-right-[2rem]" />
               )}
-              <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 sm:mb-6 relative z-10">
+              {/* Mobile: vertical connector */}
+              {idx < steps.length - 1 && (
+                <div className="md:hidden absolute left-6 top-12 bottom-0 w-px bg-border -mb-8" />
+              )}
+              <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 md:mb-6 relative z-10">
                 <span className="text-sm font-bold text-foreground">{number}</span>
               </div>
-              <div className="pb-8 sm:pb-0">
-                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                  {title}
-                </h3>
+              <div className="pb-8 md:pb-0">
+                <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">{title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-sm">{description}</p>
               </div>
             </div>
@@ -670,7 +1008,7 @@ function PricingCard({
   return (
     <div
       className={cn(
-        'rounded-2xl border p-5 sm:p-6 flex flex-col relative bg-card',
+        'rounded-2xl border p-5 sm:p-6 flex flex-col relative bg-card h-full',
         highlighted ? 'border-foreground ring-1 ring-foreground' : 'border-border',
       )}
     >
@@ -771,7 +1109,7 @@ function Pricing() {
             Ücretsiz başlayın. Filonuz büyüdükçe ölçeklendirin.
           </p>
         </div>
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 items-start pt-4">
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 items-stretch pt-4">
           {plans.map((p) => (
             <PricingCard key={p.name} {...p} />
           ))}
@@ -785,8 +1123,27 @@ function Pricing() {
 
 function CtaBanner() {
   return (
-    <section className="py-16 sm:py-20 px-4 sm:px-6 bg-page-background border-t border-border">
-      <div className="max-w-3xl mx-auto text-center">
+    <section className="py-16 sm:py-20 px-4 sm:px-6 bg-background border-t border-border relative overflow-hidden">
+      {/* Perspective grid background */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div
+          className="absolute inset-x-[-30%] top-0 h-[160%]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
+            `,
+            backgroundSize: '36px 36px',
+            transform: 'perspective(700px) rotateX(72deg)',
+            transformOrigin: 'center top',
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-background to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background to-transparent" />
+      </div>
+      <div className="max-w-3xl mx-auto text-center relative z-10">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
           Daha akıllı yüklemeye hazır mısınız?
         </h2>
@@ -818,24 +1175,22 @@ function Footer() {
     <footer className="border-t border-border bg-background py-8 sm:py-10 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-muted border border-border rounded-md flex items-center justify-center">
-            <Box className="w-3 h-3 text-foreground" />
-          </div>
+          <CargoPilotLogo className="w-9 h-9 shrink-0 text-foreground" />
           <span className="font-semibold text-foreground text-sm">Cargo Pilot</span>
         </div>
         <div className="flex items-center gap-4 sm:gap-6">
           {[
-            { label: 'Gizlilik', href: '#' },
-            { label: 'Kullanım Koşulları', href: '#' },
-            { label: 'İletişim', href: '#' },
+            { label: 'Gizlilik', href: '/gizlilik' },
+            { label: 'Kullanım Koşulları', href: '/kullanim-kosullari' },
+            { label: 'İletişim', href: '/iletisim' },
           ].map(({ label, href }) => (
-            <a
+            <Link
               key={label}
-              href={href}
+              to={href}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
             >
               {label}
-            </a>
+            </Link>
           ))}
         </div>
         <span className="text-xs text-muted-foreground">
@@ -854,7 +1209,7 @@ export function LandingPage() {
       <Navbar />
       <main>
         <Hero />
-
+        <DashboardScrollSection />
         <Features />
         <HowItWorks />
         <Pricing />

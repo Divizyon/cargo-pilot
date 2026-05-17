@@ -5,7 +5,12 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   :root {
+    color-scheme: light;
     /* ------------------------------------------------------------------ */
     /* Temel yüzey renkleri — #ffffff saf beyaz                             */
     /* ------------------------------------------------------------------ */
@@ -63,7 +68,7 @@
     /* ------------------------------------------------------------------ */
     /* Sidebar                                                              */
     /* ------------------------------------------------------------------ */
-    --page-background: 240 5% 96%; /* #F3F4F6 — sidebar dışı sayfa zemini */
+    --page-background: 0 0% 96.1%; /* #F5F5F5 — sidebar dışı sayfa zemini */
 
     /* Chart renkleri */
     --color-sevkiyat: #18181b;
@@ -80,6 +85,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
 
@@ -131,7 +137,6 @@
   html,
   body {
     height: 100%;
-    overflow: hidden;
   }
 
   body {
@@ -141,7 +146,6 @@
 
   #root {
     height: 100%;
-    overflow: hidden;
   }
 }
 
@@ -149,4 +153,14 @@
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

@@ -1,77 +1,53 @@
-import { type MouseEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileDown, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { downloadPlanPdf } from '@/lib/utils/downloadPlanPdf';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate } from '@/lib/utils/formatDate';
-import { ROUTES } from '@/lib/config/routes';
-import type { RecentPlan } from '@/lib/api/useRecentPlans';
+import {
+  fromKilograms,
+  type WeightUnitKey,
+} from '@/features/data-management/schemas/productSchema';
+import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
+import { cn } from '@/lib/utils';
 
 interface Props {
-  plan: RecentPlan;
+  plan: LoadingPlanListItem;
   isSelected: boolean;
 }
 
+const EPOCH_ISO = new Date(0).toISOString().slice(0, 10);
+
 export function RecentPlanRow({ plan, isSelected }: Props) {
-  const navigate = useNavigate();
   const setSelectedSnapshotPlanId = useUIStore((s) => s.setSelectedSnapshotPlanId);
   const dateFormat = useUnitStore((s) => s.dateFormat);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+
+  const weightValue = fromKilograms(plan.totalWeightKg, weightUnit as WeightUnitKey);
+  const weightLabel = `${weightValue % 1 === 0 ? weightValue : weightValue.toFixed(2)} ${weightUnit}`;
+  const dateLabel = plan.createdAt.startsWith(EPOCH_ISO)
+    ? '—'
+    : formatDate(plan.createdAt, dateFormat, true);
 
   function handleSelect() {
     setSelectedSnapshotPlanId(plan.id);
   }
 
-  function handleReportDetail(e: MouseEvent<HTMLButtonElement>) {
-    e.stopPropagation();
-    setSelectedSnapshotPlanId(plan.id);
-    navigate(`${ROUTES.REPORTS}?planId=${plan.id}`);
-  }
-
-  function handleDownload(e: MouseEvent<HTMLButtonElement>) {
-    e.stopPropagation();
-    downloadPlanPdf(plan.id);
-  }
-
   return (
     <li
       onClick={handleSelect}
-      className="flex items-center justify-between py-3 border-b last:border-b-0 px-6 cursor-pointer hover:bg-muted/40 transition-colors"
-      style={{ background: isSelected ? 'hsl(var(--muted) / 0.4)' : undefined }}
+      className={cn(
+        'grid items-center border-b last:border-b-0 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors text-sm',
+        'grid-cols-[minmax(0,1fr)_140px_48px_88px_72px_88px_72px]',
+        isSelected && 'bg-muted/40',
+      )}
     >
-      <div className="min-w-0 flex-1">
-        <button
-          onClick={handleSelect}
-          className="text-sm font-medium text-foreground hover:underline underline-offset-2 cursor-pointer text-left truncate block max-w-[240px]"
-        >
-          {plan.name}
-        </button>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {formatDate(plan.createdAt, dateFormat, true)}
-        </p>
-      </div>
-
-      <div className="flex items-center gap-0.5 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          title="PDF Raporu İndir"
-          onClick={handleDownload}
-        >
-          <FileDown className="size-4 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          title="Rapor Detayını Gör"
-          onClick={handleReportDetail}
-        >
-          <ExternalLink className="size-4 text-muted-foreground" />
-        </Button>
-      </div>
+      <span className="truncate font-medium text-foreground pr-3">{plan.planName}</span>
+      <span className="truncate text-muted-foreground pr-2">{plan.vehicleName ?? '—'}</span>
+      <span className="text-right text-muted-foreground tabular-nums">{plan.productCount}</span>
+      <span className="text-right text-muted-foreground tabular-nums pr-2">{weightLabel}</span>
+      <span className="text-right text-muted-foreground tabular-nums">
+        {plan.volumeFillPercentage.toFixed(1)}%
+      </span>
+      <span className="text-muted-foreground text-xs pl-2">{dateLabel}</span>
+      <div className="flex items-center justify-end gap-0.5" />
     </li>
   );
 }

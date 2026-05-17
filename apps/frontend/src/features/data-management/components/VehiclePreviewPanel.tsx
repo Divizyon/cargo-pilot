@@ -7,6 +7,11 @@ import { Switch } from '@/components/ui/switch';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
+import {
+  formatDimensionDisplay,
+  formatWeightDisplay,
+  formatVolumeDisplay,
+} from '@/lib/utils/unitConversion';
 import { formatAuditDate } from '@/lib/utils/formatAuditDate';
 import type { Vehicle } from '@/lib/types/vehicle';
 
@@ -34,6 +39,9 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   const { control } = form;
   const currentUser = useAuthStore((s) => s.user);
   const dateFormat = useUnitStore((s) => s.dateFormat);
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
+  const volumeUnit = useUnitStore((s) => s.volumeUnit);
 
   const [
     name,
@@ -72,18 +80,15 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
     ],
   });
 
-  const dims =
+  const dimsRaw =
     length && width && height
-      ? `${(length / 100).toFixed(1)}m × ${(height / 100).toFixed(1)}m × ${(width / 100).toFixed(2)}m`
+      ? `${formatDimensionDisplay(length, dimensionUnit)} × ${formatDimensionDisplay(height, dimensionUnit)} × ${formatDimensionDisplay(width, dimensionUnit)}`
       : '—';
-
-  const dimsRaw = length && width && height ? `${length} × ${height} × ${width} cm` : '—';
-  const cargo = maxCargoWeight ? `${Number(maxCargoWeight).toLocaleString('tr-TR')} kg` : '—';
-  const gross = grossWeight ? `${Number(grossWeight).toLocaleString('tr-TR')} kg` : '—';
-  const tare = tareWeight ? `${Number(tareWeight).toLocaleString('tr-TR')} kg` : '—';
+  const cargo = maxCargoWeight ? formatWeightDisplay(Number(maxCargoWeight), weightUnit) : '—';
+  const gross = grossWeight ? formatWeightDisplay(Number(grossWeight), weightUnit) : '—';
+  const tare = tareWeight ? formatWeightDisplay(Number(tareWeight), weightUnit) : '—';
   const axleCount = 1 + (axleB ? 1 : 0) + (axles ?? []).length;
-  const volume =
-    length && width && height ? ((length * width * height) / 1_000_000).toFixed(2) : null;
+  const volumeCm3 = length && width && height ? length * width * height : null;
 
   const currentUserName = currentUser?.fullName ?? '—';
   const isPassive = isActive === false || vehicle?.isActive === false;
@@ -114,10 +119,12 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background p-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-3">
       {/* Başlık + operasyonel durum */}
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] text-muted-foreground">Araç Önizleme</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Araç Önizleme
+        </p>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">Aktif</span>
           <FormField
@@ -159,13 +166,13 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
 
       {/* Hacim */}
       <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
-        <span className="text-[10px] text-muted-foreground">Hacim</span>
+        <span className="text-xs text-muted-foreground">Hacim</span>
         <span className="text-xs font-semibold tabular-nums text-foreground">
-          {volume ? `${volume} m³` : '—'}
+          {volumeCm3 ? formatVolumeDisplay(volumeCm3, volumeUnit) : '—'}
         </span>
       </div>
-      {volume && dims !== '—' && (
-        <p className="mb-1 text-right text-[10px] text-muted-foreground">{dims}</p>
+      {volumeCm3 !== null && dimsRaw !== '—' && (
+        <p className="mb-1 text-right text-[10px] text-muted-foreground">{dimsRaw}</p>
       )}
 
       {/* Özet satırları */}
@@ -175,7 +182,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
             key={r.label}
             className="flex items-center justify-between border-b border-border/50 py-1 last:border-0"
           >
-            <span className="text-[10px] text-muted-foreground">{r.label}</span>
+            <span className="text-xs text-muted-foreground">{r.label}</span>
             <span
               className={cn(
                 'max-w-[60%] truncate text-right text-xs tabular-nums',

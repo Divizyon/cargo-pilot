@@ -2,10 +2,11 @@ import type { ReactElement } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArrowUpDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  FileDown,
+  Download,
   Plus,
   SlidersHorizontal,
   Star,
@@ -164,13 +165,37 @@ const TYPE_CONFIG: Record<
   },
 };
 
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+
+type VehicleSortKey = 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc';
+
+const SORT_OPTIONS: { value: VehicleSortKey; label: string }[] = [
+  { value: 'date_desc', label: 'En Yeni' },
+  { value: 'date_asc', label: 'En Eski' },
+  { value: 'name_asc', label: "A'dan Z'ye" },
+  { value: 'name_desc', label: "Z'den A'ya" },
+];
+
+const SORT_TO_PARAMS: Record<VehicleSortKey, { sortBy: string; sortOrder: 'asc' | 'desc' }> = {
+  date_desc: { sortBy: 'createdAt', sortOrder: 'desc' },
+  date_asc: { sortBy: 'createdAt', sortOrder: 'asc' },
+  name_asc: { sortBy: 'name', sortOrder: 'asc' },
+  name_desc: { sortBy: 'name', sortOrder: 'desc' },
+};
+
+function applySortToVehicles(vehicles: Vehicle[], key: VehicleSortKey): Vehicle[] {
+  if (key === 'name_asc') return [...vehicles].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  if (key === 'name_desc') return [...vehicles].sort((a, b) => b.name.localeCompare(a.name, 'tr'));
+  return vehicles;
+}
+
 // ─── Door direction config ────────────────────────────────────────────────────
 
 const DOOR_CONFIG: Record<string, { label: string }> = {
-  rear: { label: 'Arka' },
+  rear: { label: 'Ön' },
   side: { label: 'Yan' },
   top: { label: 'Üst' },
-  rearAndSide: { label: 'Arka + Yan' },
+  rearAndSide: { label: 'Ön + Yan' },
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -190,19 +215,20 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 type DoorFilter = 'rear' | 'side' | 'top' | 'rearAndSide';
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: 'rear', label: 'Arka Kapı' },
+  { value: 'rear', label: 'Ön Kapı' },
   { value: 'side', label: 'Yan Kapı' },
   { value: 'top', label: 'Üst Kapı' },
-  { value: 'rearAndSide', label: 'Arka + Yan' },
+  { value: 'rearAndSide', label: 'Ön + Yan' },
 ];
 
 // ─── Status filter ────────────────────────────────────────────────────────────
 
-type StatusFilter = 'active' | 'draft' | '';
+type StatusFilter = 'active' | 'draft' | 'taslak' | '';
 
-const STATUS_FILTER_OPTIONS: { value: 'active' | 'draft'; label: string }[] = [
+const STATUS_FILTER_OPTIONS: { value: 'active' | 'draft' | 'taslak'; label: string }[] = [
   { value: 'active', label: 'Aktif' },
-  { value: 'draft', label: 'Arşivlenmiş' },
+  { value: 'taslak', label: 'Taslak' },
+  { value: 'draft', label: 'Pasif' },
 ];
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -336,7 +362,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
           <span
             className={cn(
               'h-1.5 w-1.5 shrink-0 rounded-full',
-              vehicle.status === 'draft'
+              vehicle.status === 'taslak'
                 ? 'bg-zinc-400'
                 : (vehicle.isActive ?? true)
                   ? 'bg-green-500'
@@ -344,7 +370,11 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
             )}
           />
           <span className="text-xs text-foreground">
-            {vehicle.status === 'draft' ? 'Taslak' : (vehicle.isActive ?? true) ? 'Aktif' : 'Pasif'}
+            {vehicle.status === 'taslak'
+              ? 'Taslak'
+              : (vehicle.isActive ?? true)
+                ? 'Aktif'
+                : 'Pasif'}
           </span>
         </div>
       </TableCell>
@@ -391,11 +421,14 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [doorFilters, setDoorFilters] = useState<Set<DoorFilter>>(new Set());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+  const [sortKey, setSortKey] = useState<VehicleSortKey>('date_desc');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showSortPanel, setShowSortPanel] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
   const tableCardRef = useRef<HTMLDivElement>(null);
   const { mutate: toggleFavorite } = useToggleFavorite();
 
@@ -433,6 +466,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     status: statusFilter || undefined,
     page,
     pageSize,
+    ...SORT_TO_PARAMS[sortKey],
   });
 
   const vehicles = data?.items ?? [];
@@ -450,6 +484,17 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
 
+  useEffect(() => {
+    if (!showSortPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setShowSortPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSortPanel]);
+
   function toggleDoorFilter(value: DoorFilter) {
     setDoorFilters((prev) => {
       const next = new Set(prev);
@@ -460,7 +505,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     setPage(1);
   }
 
-  function toggleStatusFilter(value: 'active' | 'draft') {
+  function toggleStatusFilter(value: 'active' | 'draft' | 'taslak') {
     setStatusFilter((prev) => (prev === value ? '' : value));
     setPage(1);
   }
@@ -471,10 +516,12 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     setPage(1);
   }
 
-  const filteredVehicles =
+  const doorFilteredVehicles =
     doorFilters.size === 0
       ? vehicles
       : vehicles.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
+
+  const filteredVehicles = applySortToVehicles(doorFilteredVehicles, sortKey);
 
   const showSkeleton = isLoading || isFetching;
   const hasActiveFilters = doorFilters.size > 0 || statusFilter !== '';
@@ -514,6 +561,49 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
         {/* Search */}
         <SearchInput onSearch={handleSearch} placeholder="Araç ismine göre ara..." />
 
+        {/* Sırala */}
+        <div ref={sortRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              'gap-1.5 text-xs',
+              sortKey !== 'date_desc' && 'border-primary text-primary ring-1 ring-primary/30',
+            )}
+            onClick={() => setShowSortPanel((v) => !v)}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            {SORT_OPTIONS.find((o) => o.value === sortKey)?.label ?? 'Sırala'}
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', showSortPanel && 'rotate-180')}
+            />
+          </Button>
+
+          {showSortPanel && (
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-border bg-background shadow-lg">
+              <div className="p-2">
+                {SORT_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortKey(value);
+                      setShowSortPanel(false);
+                      setPage(1);
+                    }}
+                    className={cn(
+                      'flex w-full items-center rounded-md px-2 py-1.5 text-xs hover:bg-muted',
+                      sortKey === value && 'font-semibold text-primary',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Filtrele */}
         <div ref={filterRef} className="relative shrink-0">
           <Button
@@ -527,11 +617,6 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filtrele
-            {hasActiveFilters && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {doorFilters.size}
-              </span>
-            )}
             <ChevronDown
               className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
             />
@@ -617,7 +702,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           className="shrink-0 gap-1.5 text-xs"
           onClick={() => setShowBulkImport(true)}
         >
-          <FileDown className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           İçe Aktar
         </Button>
 
@@ -638,7 +723,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       {/* Table card */}
       <div
         ref={tableCardRef}
-        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+        className="overflow-x-auto scrollbar-hide rounded-2xl border border-border bg-background"
       >
         {showSkeleton ? (
           <VehicleTableSkeleton />
@@ -656,7 +741,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   Plaka/Seri No
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk (X)
+                  Uzunluk/Çap (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik (Y)

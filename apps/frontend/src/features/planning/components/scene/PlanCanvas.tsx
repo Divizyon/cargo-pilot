@@ -37,36 +37,30 @@ function SnapshotBridge({
 }: {
   snapshotRef?: MutableRefObject<(() => string) | null>;
 }) {
-  const gl = useThree((state) => state.gl);
+  const { gl } = useThree();
   const requestSnapshot = useSceneStore((s) => s.requestSnapshot);
   const setSnapshotDataUrl = useSceneStore((s) => s.setSnapshotDataUrl);
 
   useEffect(() => {
     if (snapshotRef) {
-      snapshotRef.current = () => gl.domElement.toDataURL('image/png');
+      snapshotRef.current = () => gl.domElement.toDataURL('image/jpeg', 0.7);
+      return () => {
+        snapshotRef.current = null;
+      };
     }
-    return () => {
-      if (snapshotRef) snapshotRef.current = null;
-    };
   }, [gl, snapshotRef]);
 
   useEffect(() => {
     if (!requestSnapshot) return;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setSnapshotDataUrl(gl.domElement.toDataURL('image/png'));
-      });
-    });
+    setSnapshotDataUrl(gl.domElement.toDataURL('image/jpeg', 0.7));
   }, [requestSnapshot, gl, setSnapshotDataUrl]);
 
   return null;
 }
 
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
-  const animationMode = useSceneStore((s) => s.animationMode);
   const totalSteps = usePlanStore((s) => s.placements.length);
-  const showControls =
-    totalSteps > 0 && (animationMode === 'playing' || animationMode === 'stepped');
+  const showControls = totalSteps > 0;
 
   return (
     <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>

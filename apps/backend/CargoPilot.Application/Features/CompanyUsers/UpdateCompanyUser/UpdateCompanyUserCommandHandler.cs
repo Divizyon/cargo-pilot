@@ -4,26 +4,36 @@ using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace CargoPilot.Application.Features.CompanyUsers.UpdateCompanyUser;
 
 internal sealed class UpdateCompanyUserCommandHandler : IRequestHandler<UpdateCompanyUserCommand, Result<Guid>>
 {
+    private static readonly Action<ILogger, Guid, Exception?> LogAccessRemovedEmailFailed =
+        LoggerMessage.Define<Guid>(
+            LogLevel.Warning,
+            new EventId(3002, nameof(LogAccessRemovedEmailFailed)),
+            "Erişim kaldırma e-postası gönderilemedi. UserId={UserId}");
+
     private readonly IUserRepository _userRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmailService _emailService;
     private readonly IValidator<UpdateCompanyUserCommand> _validator;
+    private readonly ILogger<UpdateCompanyUserCommandHandler> _logger;
 
     public UpdateCompanyUserCommandHandler(
         IUserRepository userRepository,
         ICurrentUserService currentUserService,
         IEmailService emailService,
-        IValidator<UpdateCompanyUserCommand> validator)
+        IValidator<UpdateCompanyUserCommand> validator,
+        ILogger<UpdateCompanyUserCommandHandler> logger)
     {
         _userRepository = userRepository;
         _currentUserService = currentUserService;
         _emailService = emailService;
         _validator = validator;
+        _logger = logger;
     }
 
     public async Task<Result<Guid>> Handle(UpdateCompanyUserCommand request, CancellationToken cancellationToken)
@@ -102,9 +112,9 @@ internal sealed class UpdateCompanyUserCommandHandler : IRequestHandler<UpdateCo
                     $"{targetUser.FirstName} {targetUser.LastName}",
                     cancellationToken);
             }
-            catch
+            catch (Exception ex)
             {
-                // E-posta başarısız olsa dahi işlem geri alınmaz.
+                LogAccessRemovedEmailFailed(_logger, targetUser.Id, ex);
             }
         }
 

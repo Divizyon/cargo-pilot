@@ -26,6 +26,7 @@ import {
   type ErpConnectionFormValues,
 } from '@/features/platform/schemas/erpConnectionSchema';
 import {
+  useERPConnection,
   useERPSettings,
   useSaveERPSettings,
   useTestERPSettings,
@@ -39,6 +40,7 @@ export function ERPConnectionForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<TestResult>(null);
 
+  const { data: connection } = useERPConnection();
   const { data: existing, isLoading: isLoadingExisting } = useERPSettings();
   const { mutate: save, isPending: isSaving } = useSaveERPSettings();
   const { mutate: testConnection, isPending: isTesting } = useTestERPSettings();
@@ -94,6 +96,18 @@ export function ERPConnectionForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        {connection && (
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 flex items-center gap-3">
+            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">{connection.systemName}</p>
+              <p className="text-xs text-muted-foreground truncate">{connection.apiEndpoint}</p>
+            </div>
+            <span className="text-[11px] text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-full shrink-0">
+              Bağlı
+            </span>
+          </div>
+        )}
         <FormField
           control={form.control}
           name="systemType"
@@ -169,6 +183,12 @@ export function ERPConnectionForm() {
                   </button>
                 </div>
               </FormControl>
+              {existing?.hasPassword && !field.value && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />
+                  Kayıtlı şifre korunuyor — değiştirmek için yeni şifre girin.
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}

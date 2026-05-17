@@ -10,7 +10,7 @@ import { isGhosted, isPlacementVisible } from '@/lib/utils/sceneFilter';
 import { useLandingAnimation } from '@/features/planning/components/scene/useLandingAnimation';
 import { useLoadingAnimation } from '@/features/planning/components/scene/useLoadingAnimation';
 import { buildLoadOrder } from '@/lib/utils/loadOrder';
-import { buildBoxLabel } from '@/lib/utils/buildBoxLabel';
+import { buildBoxLabel, loadIcons } from '@/lib/utils/buildBoxLabel';
 import { buildAtlasTexture } from '@/lib/utils/buildAtlasTexture';
 import type { AtlasResult } from '@/lib/utils/buildAtlasTexture';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
@@ -69,6 +69,19 @@ const FACE_CONFIGS = [
 ] as const;
 
 const FACE_COUNT = FACE_CONFIGS.length;
+
+// FRAGILITY_LEVELS değerinden public SVG yolu
+const CONSTRAINT_ID_TO_SVG: Record<number, string> = {
+  1: '/icons/constraint-fragile.svg',
+  2: '/icons/constraint-liquid.svg',
+  3: '/icons/constraint-flammable.svg',
+  4: '/icons/constraint-oxidizing.svg',
+  5: '/icons/constraint-corrosive.svg',
+  6: '/icons/constraint-odor.svg',
+  7: '/icons/constraint-food.svg',
+  8: '/icons/constraint-dry.svg',
+  9: '/icons/constraint-chemical.svg',
+};
 
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = new THREE.Color(SCENE.COLORS.VIOLATION);
@@ -233,6 +246,8 @@ function InstancedBoxes() {
   // Animasyon için: globalIdx → geçerli pozisyon (cm, merkez)
   // Animasyon aktif değilken placements'tan hedef pozisyon kullanılır
   const animPositionsRef = useRef<Map<number, THREE.Vector3>>(new Map());
+  // Palet BoxWrapper'larını her animasyon frame'inde yeniden render etmek için — ref güncellenmesi React'ı tetiklemez
+  const [, forceUpdatePalets] = useState(0);
 
   // Animasyon için yükleme sırası (arka→ön, alt→üst, sol→sağ)
   const loadOrder = useMemo(() => buildLoadOrder(placements), [placements]);
@@ -241,7 +256,8 @@ function InstancedBoxes() {
 
   // Label atlas — box instance'ları için (palet/varil hariç)
   const labelPlaneRef = useRef<THREE.InstancedMesh>(null);
-  // globalIdx → atlasIdx (palet/varil hariç box'ların atlas tile sırası)
+
+  // globalIdx → atlasIdx (palet/varil hariç)
   const atlasIndexMap = useMemo<Map<number, number>>(() => {
     const map = new Map<number, number>();
     let atlasIdx = 0;
@@ -253,25 +269,42 @@ function InstancedBoxes() {
     return map;
   }, [placements, loadOrder]);
 
-  const atlas = useMemo<AtlasResult | null>(() => {
-    const itemSkuMap = new Map(selectedItems.map(({ item }) => [item.id, item.sku]));
+  const [atlas, setAtlas] = useState<AtlasResult | null>(null);
+
+  useEffect(() => {
+    const itemMap = new Map(selectedItems.map(({ item }) => [item.id, item]));
     const instanceCounter = new Map<string, number>();
-    const entries: { sku: string; seqNo: number; instanceNo: number; bgColor: string }[] = [];
+    const entries: Parameters<typeof buildAtlasTexture>[0] = [];
+
     loadOrder.forEach((globalIdx, seqIdx) => {
       const p = placements[globalIdx];
       if (!p || p.productType === 'palet' || p.productType === 'varil') return;
-      const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
+      const item = itemMap.get(p.itemId);
+      const sku = item?.sku ?? p.itemId.slice(0, 6);
       const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
       instanceCounter.set(p.itemId, instanceNo);
+
+      const constraintIconUrls = (item?.constraintIds ?? [])
+        .map((id) => CONSTRAINT_ID_TO_SVG[id])
+        .filter((url): url is string => url !== undefined);
+
       entries.push({
         sku,
         seqNo: seqIdx + 1,
         instanceNo,
         bgColor: p.color ?? SCENE.COLORS.NORMAL_STR,
+        constraintIconUrls,
       });
     });
-    if (entries.length === 0) return null;
-    return buildAtlasTexture(entries);
+
+    let cancelled = false;
+    buildAtlasTexture(entries).then((result) => {
+      if (!cancelled) setAtlas(entries.length === 0 ? null : result);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [placements, loadOrder, selectedItems]);
 
   // ShaderMaterial + InstancedBufferAttribute'ları atlas değişince güncelle
@@ -280,18 +313,17 @@ function InstancedBoxes() {
     return buildLabelMaterial(atlas);
   }, [atlas]);
 
-  // Plane geometry (1×1, UV 0..1) — tüm instance'lar paylaşır
+  // Plane geometry (1×1, UV 0..1) — box label'lar paylaşır
   const labelPlaneGeo = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
 
+  // Box UV attributes
   useEffect(() => {
     if (!atlas || boxIndices.length === 0) return;
 
     const { uvOffsets, cellSize } = atlas;
     const boxCount = boxIndices.length;
-    const total = boxCount * FACE_COUNT; // 6 yüz per box
+    const total = boxCount * FACE_COUNT;
 
-    // Her 6 ardışık instance = aynı kutunun 6 yüzü → aynı UV offset paylaşır
-    // atlasIndexMap: globalIdx → atlasIdx (palet/varil boşlukları sayılmaz)
     const uvData = new Float32Array(total * 2);
     const cellSizeData = new Float32Array(total).fill(cellSize);
 
@@ -332,6 +364,32 @@ function InstancedBoxes() {
       labelPlaneGeo.dispose();
     },
     [labelPlaneGeo],
+  );
+
+  // Palet kargo kutusu label texture'ları — globalIdx → CanvasTexture
+  const paletLabelTextures = useMemo<Map<number, THREE.CanvasTexture>>(() => {
+    const itemSkuMap = new Map(selectedItems.map(({ item }) => [item.id, item.sku]));
+    const instanceCounter = new Map<string, number>();
+    const map = new Map<number, THREE.CanvasTexture>();
+    loadOrder.forEach((globalIdx, seqIdx) => {
+      const p = placements[globalIdx];
+      if (!p || p.productType !== 'palet') return;
+      const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
+      const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
+      instanceCounter.set(p.itemId, instanceNo);
+      map.set(
+        globalIdx,
+        buildBoxLabel(sku, seqIdx + 1, instanceNo, p.color ?? SCENE.COLORS.NORMAL_STR),
+      );
+    });
+    return map;
+  }, [placements, loadOrder, selectedItems]);
+
+  useEffect(
+    () => () => {
+      paletLabelTextures.forEach((t) => t.dispose());
+    },
+    [paletLabelTextures],
   );
 
   // setPosition callback — useLoadingAnimation tarafından her frame'de çağrılır
@@ -544,9 +602,21 @@ function InstancedBoxes() {
       writeLabelPlaneMatrices(matrix, position, scale, quaternion, isStepped, currentAnimStep);
       labelPlaneRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [placements, boxIndices, cylIndices, loadOrder, atlas, writeLabelPlaneMatrices]);
 
-  useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
+    // Palet BoxWrapper'larını yeniden render ettir (ref güncellenmesi React'ı tetiklemez)
+    if (paletIndices.length > 0) {
+      forceUpdatePalets((t) => t + 1);
+    }
+  }, [placements, boxIndices, cylIndices, paletIndices, loadOrder, atlas, writeLabelPlaneMatrices]);
+
+  useLoadingAnimation(
+    placements,
+    loadOrder,
+    setAnimPosition,
+    onFrameUpdate,
+    vehicle?.length,
+    vehicle?.width,
+  );
 
   // Animasyon idle'a döndüğünde pozisyon cache'ini temizle
   useEffect(() => {
@@ -672,13 +742,14 @@ function InstancedBoxes() {
   // Ayrı effect: labelPlaneRef conditional JSX'ten mount olduğu için idle effect'i kaçırabilir
   useEffect(() => {
     if (isAnimActive) return;
-    if (!labelPlaneRef.current || !atlas) return;
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
     const scale = new THREE.Vector3();
     const quaternion = new THREE.Quaternion();
-    writeLabelPlaneMatrices(matrix, position, scale, quaternion, false, 0);
-    labelPlaneRef.current.instanceMatrix.needsUpdate = true;
+    if (labelPlaneRef.current && atlas) {
+      writeLabelPlaneMatrices(matrix, position, scale, quaternion, false, 0);
+      labelPlaneRef.current.instanceMatrix.needsUpdate = true;
+    }
   }, [isAnimActive, atlas, placements, writeLabelPlaneMatrices]);
 
   // Build edge lineSegments geometry for all visible non-ghosted boxes.
@@ -845,6 +916,7 @@ function InstancedBoxes() {
       })}
 
       {/* Palet items — InstancedMesh yerine ayrı BoxWrapper (tahtalı yapı için) */}
+      {/* eslint-disable-next-line react-hooks/refs */}
       {paletIndices.map((globalIdx) => {
         const p = placements[globalIdx];
         const visible = isPlacementVisible(p, globalIdx, {
@@ -857,22 +929,38 @@ function InstancedBoxes() {
         const isItemSelected =
           selectedInstanceId === globalIdx ||
           (selectedInstanceId === null && p.itemId === selectedItemId);
+
+        // Animasyon aktifken stepped modda henüz gelmemiş paletleri gizle
+        const seqIdx = isAnimActive ? loadOrder.indexOf(globalIdx) : -1;
+        const hiddenByAnim =
+          animationMode === 'stepped' &&
+          seqIdx >= 0 &&
+          seqIdx >= useSceneStore.getState().animationStep;
+
+        // Animasyon pozisyonunu oku — merkez → bottom-left-rear'a çevir
+        const animPos = isAnimActive ? animPositionsRef.current.get(globalIdx) : undefined;
+        const px = animPos ? animPos.x - p.width / 2 : p.positionX;
+        const py = animPos ? animPos.y - p.height / 2 : p.positionY;
+        const pz = animPos ? animPos.z - p.depth / 2 : p.positionZ;
+
         return (
           <BoxWrapper
             key={`palet-${globalIdx}`}
             width={p.width}
             height={p.height}
             depth={p.depth}
-            positionX={p.positionX}
-            positionY={p.positionY}
-            positionZ={p.positionZ}
+            positionX={px}
+            positionY={py}
+            positionZ={pz}
             color={
               p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
             }
             itemId={p.itemId}
             isSelected={isItemSelected}
+            isHidden={hiddenByAnim}
             isGhosted={ghosted}
             productType={p.productType}
+            labelTexture={ghosted ? null : (paletLabelTextures.get(globalIdx) ?? null)}
             onClick={() => {
               setSelectedItemId(null);
               setSelectedInstanceId(selectedInstanceId === globalIdx ? null : globalIdx);
@@ -961,15 +1049,14 @@ function BoxPathBoxes() {
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
 
   // Her placement için yükleme sıra no (1-based) ve aynı itemId içindeki instance no
-  // globalIdx → { seqNo, instanceNo, sku }
+  // globalIdx → { seqNo, instanceNo, sku } — varil hariç tüm tipler dahil
   const labelMap = useMemo(() => {
     const itemSkuMap = new Map(selectedItems.map(({ item }) => [item.id, item.sku]));
     const instanceCounter = new Map<string, number>();
-    // loadOrder sırasına göre seqNo ata — loadOrder fiziksel yükleme sırasıdır
     const result = new Map<number, { seqNo: number; instanceNo: number; sku: string }>();
     loadOrder.forEach((globalIdx, seqIdx) => {
       const p = placements[globalIdx];
-      if (!p) return;
+      if (!p || p.productType === 'varil') return;
       const sku = itemSkuMap.get(p.itemId) ?? p.itemId.slice(0, 6);
       const instanceNo = (instanceCounter.get(p.itemId) ?? 0) + 1;
       instanceCounter.set(p.itemId, instanceNo);
@@ -978,18 +1065,60 @@ function BoxPathBoxes() {
     return result;
   }, [placements, loadOrder, selectedItems]);
 
-  // Label texture cache: globalIdx → CanvasTexture (palet/varil için null)
-  const labelTextures = useMemo(() => {
-    const map = new Map<number, THREE.Texture>();
-    placements.forEach((p, i) => {
-      if (p.productType === 'palet' || p.productType === 'varil') return;
-      const info = labelMap.get(i);
-      if (!info) return;
-      const color = p.color ?? SCENE.COLORS.NORMAL_STR;
-      map.set(i, buildBoxLabel(info.sku, info.seqNo, info.instanceNo, color));
-    });
-    return map;
-  }, [placements, labelMap]);
+  // Label texture cache: globalIdx → CanvasTexture (varil için null, palet dahil)
+  // Async: ikonlar önceden yüklenir, sonra texture sync oluşturulur
+  const [labelTextures, setLabelTextures] = useState<Map<number, THREE.Texture>>(() => new Map());
+
+  useEffect(() => {
+    const itemMap = new Map(selectedItems.map(({ item }) => [item.id, item]));
+
+    // Tüm unique icon URL'lerini topla
+    const allUrls = Array.from(
+      new Set(
+        placements.flatMap((p) => {
+          if (p.productType === 'varil') return [];
+          const item = itemMap.get(p.itemId);
+          return (item?.constraintIds ?? [])
+            .map((id) => CONSTRAINT_ID_TO_SVG[id])
+            .filter((url): url is string => url !== undefined);
+        }),
+      ),
+    );
+
+    let cancelled = false;
+
+    const build = (loadedMap: Map<string, HTMLImageElement>) => {
+      const map = new Map<number, THREE.Texture>();
+      placements.forEach((p, i) => {
+        if (p.productType === 'varil') return;
+        const info = labelMap.get(i);
+        if (!info) return;
+        const color = p.color ?? SCENE.COLORS.NORMAL_STR;
+        const item = itemMap.get(p.itemId);
+        const iconImgs = (item?.constraintIds ?? [])
+          .map((id) => CONSTRAINT_ID_TO_SVG[id])
+          .filter((url): url is string => url !== undefined)
+          .map((url) => loadedMap.get(url)!)
+          .filter(Boolean);
+        map.set(i, buildBoxLabel(info.sku, info.seqNo, info.instanceNo, color, iconImgs));
+      });
+      if (!cancelled) setLabelTextures(map);
+    };
+
+    if (allUrls.length === 0) {
+      build(new Map());
+    } else {
+      loadIcons(allUrls).then((imgs) => {
+        const loadedMap = new Map<string, HTMLImageElement>();
+        allUrls.forEach((url, idx) => loadedMap.set(url, imgs[idx]));
+        build(loadedMap);
+      });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [placements, labelMap, selectedItems]);
 
   // Texture'ları dispose et
   useEffect(
@@ -1017,7 +1146,14 @@ function BoxPathBoxes() {
     // setAnimPosition zaten state update tetikliyor — ek forceUpdate gerekmez
   }, []);
 
-  useLoadingAnimation(placements, loadOrder, setAnimPosition, onFrameUpdate, vehicle?.length);
+  useLoadingAnimation(
+    placements,
+    loadOrder,
+    setAnimPosition,
+    onFrameUpdate,
+    vehicle?.length,
+    vehicle?.width,
+  );
 
   return (
     <>

@@ -10,7 +10,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/boxOrientations';
-import { SCENE } from '@/lib/config/scene-config';
+import { resolveProductColor } from '@/lib/config/productColors';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ const planVehicleApiSchema = z
     internalLength: z.number().optional(),
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
-    loadingType: z.number().int().optional(),
+    loadingType: z.number().int().nullable().optional(),
   })
   .nullable()
   .optional();
@@ -37,17 +37,20 @@ export const planListApiItemSchema = z
   .object({
     id: z.string(),
     planName: z.string().optional(),
-    name: z.string().optional(), // alternative field name
+    name: z.string().optional(),
     vehicleId: z.string().nullable().optional(),
+    vehicleName: z.string().optional(),
     vehicle: planVehicleApiSchema,
     fillRate: z.number().nullable().optional(),
     volumeFillRate: z.number().nullable().optional(),
     optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
     itemCount: z.number().int().nullable().optional(),
-    placementCount: z.number().int().nullable().optional(), // alternative field name
+    inputTotalQuantity: z.number().int().nullable().optional(),
+    placementCount: z.number().int().nullable().optional(),
     totalWeight: z.number().nullable().optional(),
-    totalWeightKg: z.number().nullable().optional(), // alternative field name
+    totalWeightKg: z.number().nullable().optional(),
     createdAt: z.string().optional(),
+    createdAtUtc: z.string().optional(),
     plannedAt: z.string().nullable().optional(),
     planCode: z.string().nullable().optional(),
     status: z.string().nullable().optional(),
@@ -156,6 +159,7 @@ export const planDetailApiResponseSchema = z.object({
       itemCount: z.number().int().nullable().optional(),
       totalWeight: z.number().nullable().optional(),
       createdAt: z.string().optional(),
+      createdAtUtc: z.string().optional(),
       plannedAt: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string().nullable().optional(),
@@ -239,17 +243,6 @@ function mapStatus(
 
 // ─── Mapper: placements → PlanProductGroup[] ─────────────────────────────────
 
-const GROUP_COLORS = [
-  '#3b82f6',
-  '#10b981',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4',
-  '#84cc16',
-  '#f97316',
-];
-
 export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): PlanProductGroup[] {
   // itemId → { item, count }
   const itemMap = new Map<string, { p: PlacementItemApi; count: number }>();
@@ -270,17 +263,16 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
     string,
     { color: string; entries: Array<{ id: string; p: PlacementItemApi; count: number }> }
   >();
-  let colorIdx = 0;
-
   for (const [itemId, { p, count }] of itemMap) {
     const item = p.item;
     const groupName = item?.groupName ?? item?.categoryName ?? item?.category ?? 'Yük Grubu';
-    const groupColor =
-      item?.groupColor ?? item?.categoryColor ?? GROUP_COLORS[colorIdx % GROUP_COLORS.length];
+    const rawType = (item as Record<string, unknown> | undefined)?.['productType'] as
+      | string
+      | undefined;
+    const groupColor = resolveProductColor(rawType, groupName);
 
     if (!groupMap.has(groupName)) {
       groupMap.set(groupName, { color: groupColor, entries: [] });
-      colorIdx++;
     }
     groupMap.get(groupName)!.entries.push({ id: itemId, p, count });
   }
@@ -327,19 +319,6 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
 //   3=Roll(H,W,L)        4=YawPitch(H,L,W)  5=RollYaw(L,W,H)
 // We store placed dims directly and orientationIndex=0 so rendering needs no further rotation.
 
-const SKU_PALETTE = [
-  '#3b82f6',
-  '#f59e0b',
-  '#10b981',
-  '#ef4444',
-  '#8b5cf6',
-  '#06b6d4',
-  '#f97316',
-  '#84cc16',
-  '#ec4899',
-  '#6366f1',
-];
-
 function placedDimensions(
   w: number,
   h: number,
@@ -366,9 +345,6 @@ export function fromApiPlacementsToScene(
   rawPlacements: PlacementItemApi[],
   colorMap?: Record<string, string>,
 ): PlacementWithDimensions[] {
-  const skuColorIndex: Record<string, number> = {};
-  let colorIdx = 0;
-
   return rawPlacements.flatMap((p) => {
     const raw = p as Record<string, unknown>;
     const itemId = (raw.itemId as string | undefined) ?? (raw.id as string | undefined) ?? '';
@@ -390,16 +366,11 @@ export function fromApiPlacementsToScene(
 
     const { pw, ph, pd } = placedDimensions(origW, origH, origL, rotation);
 
-    let color = colorMap?.[sku];
-    if (!color) {
-      if (skuColorIndex[sku] === undefined) {
-        skuColorIndex[sku] = colorIdx++ % SKU_PALETTE.length;
-      }
-      color = SKU_PALETTE[skuColorIndex[sku]];
-    }
-
     const rawType = (item.productType as string | undefined)?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+
+    const groupName = (item.groupName ?? item.categoryName ?? item.category) as string | undefined;
+    const color = colorMap?.[sku] ?? resolveProductColor(productType, groupName);
 
     return [
       {
@@ -425,9 +396,11 @@ export function fromApiPlacementsToScene(
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
-  const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
+  const raw = api as Record<string, unknown>;
+  const planName = api.planName ?? (raw['name'] as string | undefined) ?? '—';
   const itemCount =
     api.itemCount ??
+    api.inputTotalQuantity ??
     api.placementCount ??
     ((api as Record<string, unknown>)['itemsCount'] as number | undefined) ??
     0;
@@ -436,28 +409,42 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     api.totalWeightKg ??
     ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
+  const createdAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const loadingType = v?.loadingType ?? null;
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
-    vehicleId: api.vehicleId ?? '',
-    vehicleName: v?.vehicleName ?? v?.name ?? '—',
-    vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
-    createdAt: api.createdAt ?? new Date(0).toISOString(),
+    vehicleId: api.vehicleId ?? v?.id ?? '',
+    vehicleName:
+      v?.vehicleName ??
+      v?.name ??
+      api.vehicleName ??
+      (raw['vehicle_name'] as string | undefined) ??
+      '—',
+    vehiclePlate:
+      (v?.plateNumber ??
+        v?.plate ??
+        (raw['plateNumber'] as string | undefined) ??
+        (raw['plate'] as string | undefined)) ||
+      undefined,
+    createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
     productCount: itemCount,
     totalWeightKg: totalWeight,
     vehicleCapacityKg: v?.maxWeightCapacity ?? 1,
-    fillPercentage: Math.round(api.fillRate ?? 0),
-    volumeFillPercentage: Math.round(api.volumeFillRate ?? api.fillRate ?? 0),
+    fillPercentage: Math.round((api.fillRate ?? 0) * 100),
+    volumeFillPercentage: Math.round((api.volumeFillRate ?? api.fillRate ?? 0) * 100),
     interiorWidthM: v?.internalWidth ?? 0,
     interiorHeightM: v?.internalHeight ?? 0,
     interiorDepthM: v?.internalLength ?? 0,
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
-    doorDirection:
-      v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
-    doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
+    doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
+    thumbnailUrl: ((api as Record<string, unknown>)['thumbnailUrl'] ??
+      (api as Record<string, unknown>)['snapshotUrl'] ??
+      (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
   };
 }
 
@@ -475,6 +462,7 @@ const planItemDimensionsSchema = z
     weight: z.number().catch(0),
     imageUrl: z.string().nullable().optional(),
     productType: z.string().nullable().optional(),
+    constraintIds: z.array(z.number().int()).optional(),
   })
   .passthrough();
 
@@ -557,6 +545,7 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
     allowFaceLeft: true,
     allowFaceRight: true,
     imageUrl: raw.imageUrl ?? undefined,
+    constraintIds: raw.constraintIds ?? [],
   } as Item;
 }
 
@@ -580,8 +569,8 @@ export function fromApiFullDetail(
             : VehicleType.Tir,
         doorDirection:
           v.loadingType != null
-            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-            : DoorDirection.Rear,
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Front)
+            : DoorDirection.Front,
         doorSide:
           v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
         isFavorite: false,
@@ -595,15 +584,17 @@ export function fromApiFullDetail(
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;
 
-  // Build color map from inputItems order
+  // Build color map from inputItems — renk (productType × yük grubu) kombinasyonuna göre belirlenir
   const skuColorMap: Record<string, string> = {};
-  const palette = SCENE.COLORS.SKU_PALETTE;
-  let colorIdx = 0;
   const inputItems = (data.inputItems ?? []).map((ii: InputItemFull) => {
     const item = apiItemToItem(ii.item);
     if (!skuColorMap[item.sku]) {
-      skuColorMap[item.sku] = palette[colorIdx % palette.length];
-      colorIdx++;
+      const rawItem = ii.item as Record<string, unknown>;
+      const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
+        | string
+        | undefined;
+      const productType = (rawItem.productType as string | undefined) ?? item.productType;
+      skuColorMap[item.sku] = resolveProductColor(productType, groupName);
     }
     return { item, quantity: ii.quantity };
   });
@@ -615,9 +606,13 @@ export function fromApiFullDetail(
       pd: depth,
     } = placedDimensions(p.item.width, p.item.height, p.item.length, p.rotation);
     const itemSku = p.item.sku || p.item.sKU || p.itemId;
-    const color = skuColorMap[itemSku] ?? palette[0];
     const rawType = p.item.productType?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+    const rawItem = p.item as Record<string, unknown>;
+    const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
+      | string
+      | undefined;
+    const color = skuColorMap[itemSku] ?? resolveProductColor(productType, groupName);
     return {
       itemId: p.itemId,
       positionX: p.positionX,

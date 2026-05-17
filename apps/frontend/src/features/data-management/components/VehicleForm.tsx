@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Controller, useWatch } from 'react-hook-form';
+import { Controller, useFormState, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Form } from '@/components/ui/form';
 import { VehicleTypeSelector } from './VehicleTypeSelector';
@@ -62,6 +62,7 @@ export function VehicleForm({
   isCreateMode = false,
 }: VehicleFormProps) {
   const form = useVehicleForm(defaultValues);
+  const { isDirty } = useFormState({ control: form.control });
   const { showAxleSection, showKingpinSection } = useVehicleFormVisibility(form.control);
   const axlesRef = useRef<VehicleAdditionalAxlesHandle>(null);
   const vehicleType = useWatch({ control: form.control, name: 'vehicleType' });
@@ -93,7 +94,7 @@ export function VehicleForm({
                   form.setValue('plate', '');
                   form.clearErrors('plate');
                   const dir = form.getValues('doorDirection');
-                  if (dir === 'rearAndSide') {
+                  if (dir === 'top' || dir === 'rearAndSide') {
                     form.setValue('doorDirection', 'rear');
                   }
                 } else {
@@ -176,7 +177,7 @@ export function VehicleForm({
       {/* 6. KAPI YÖNÜ */}
       <div className="space-y-4 py-6">
         <SectionTitle>Kapı Yönü</SectionTitle>
-        <VehicleDoorDirectionField form={form} />
+        <VehicleDoorDirectionField form={form} vehicleType={vehicleType} />
       </div>
 
       {/* ÖZEL TAŞIMA NOTLARI */}
@@ -199,8 +200,9 @@ export function VehicleForm({
           <FormWithPreviewLayout
             className="flex-1 min-h-0"
             formContent={formContent}
+            actionBarVisible={isDirty}
             actionBar={
-              <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
+              <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
                 <VehicleFormActions
                   form={form}
                   isSubmitting={isSubmitting}

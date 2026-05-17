@@ -9,9 +9,10 @@ using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Local secret override: appsettings.Development.Local.json gitignored'dır,
-// gerçek SA parolası buraya yazılır (appsettings.Development.json'a değil).
-builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
+// Local secret override: sadece Development ortamında yüklenir.
+// Docker/CI gibi ortamlarda bu dosya yoktur veya yüklenmez.
+if (builder.Environment.IsDevelopment())
+    builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
 
 builder.Host.UseSerilog((context, configuration) =>
     configuration

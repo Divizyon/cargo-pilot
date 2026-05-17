@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Copy, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { ProductForm } from '@/features/data-management/components/ProductForm';
 import { ProductDeleteDialog } from '@/features/data-management/components/ProductDeleteDialog';
-import { ProductDuplicateDialog } from '@/features/data-management/components/ProductDuplicateDialog';
+import { ErpSourceBadge } from '@/features/data-management/components/ErpSourceBadge';
 import { useItem, useUpdateItem } from '@/lib/api/useItems';
 import { itemToFormValues } from '@/lib/api/itemMappers';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ export function ProductEditPage() {
   const { data: item, isLoading, isError } = useItem(id ?? '');
   const updateItem = useUpdateItem();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
 
   if (isLoading) {
     return (
@@ -41,21 +40,15 @@ export function ProductEditPage() {
     <div className="flex h-full flex-col gap-4">
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
+            <ErpSourceBadge erpProviderName={item.erpProviderName} />
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {item.name} — fiziksel özelliklerini ve kısıtlarını görüntüleyin veya güncelleyin.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={() => setShowDuplicateDialog(true)}
-          >
-            <Copy className="h-3.5 w-3.5" />
-            Kopyala
-          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -68,7 +61,7 @@ export function ProductEditPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex flex-col flex-1 min-h-0">
         <ProductForm
           defaultValues={itemToFormValues(item)}
           isSubmitting={updateItem.isPending}
@@ -84,12 +77,6 @@ export function ProductEditPage() {
         item={showDeleteDialog ? item : null}
         onClose={() => setShowDeleteDialog(false)}
         onDeleted={() => navigate('/products')}
-      />
-
-      <ProductDuplicateDialog
-        item={showDuplicateDialog ? item : null}
-        onClose={() => setShowDuplicateDialog(false)}
-        onDuplicated={(newId) => navigate(`/products/${newId}/edit`)}
       />
     </div>
   );

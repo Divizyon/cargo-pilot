@@ -1,4 +1,5 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common;
 using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -117,7 +118,16 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         var inputTotalQuantity = activeItems.Sum(i => i.Quantity);
 
         var optimizationInput = BuildInput(vehicle, activeItems, itemMap, groupMap, request.OptimizationCriteria);
-        var result = _optimizationEngine.Run(optimizationInput);
+
+        var contamination = ContaminationFilter.Filter(optimizationInput.Items);
+        var finalInput = contamination.Contaminated.Count > 0
+            ? optimizationInput with { Items = contamination.Passed }
+            : optimizationInput;
+
+        var engineResult = _optimizationEngine.Run(finalInput);
+        var result = contamination.Contaminated.Count > 0
+            ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
+            : engineResult;
 
         var planId = Guid.NewGuid();
         var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
@@ -153,7 +163,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                     item.Width, item.Height, item.Length, item.Weight,
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
                     item.AllowedRotations, r.Quantity,
-                    group?.Id, group?.UnloadingOrder);
+                    group?.Id, group?.UnloadingOrder,
+                    item.StackGroup, item.GetIncompatibleGroups());
             })
             .ToList();
 

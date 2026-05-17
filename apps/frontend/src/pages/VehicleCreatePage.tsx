@@ -16,9 +16,17 @@ export function VehicleCreatePage() {
         </p>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex flex-col flex-1 min-h-0">
         <VehicleForm
           isCreateMode
+          defaultValues={{
+            vehicleType: 'Konteyner',
+            length: 1200,
+            width: 240,
+            height: 260,
+            doorDirection: 'side',
+            doorSide: 'right',
+          }}
           isSubmitting={createVehicle.isPending}
           onCancel={() => navigate('/vehicles')}
           onSubmit={(values) =>

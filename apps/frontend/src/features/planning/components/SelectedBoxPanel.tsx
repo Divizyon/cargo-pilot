@@ -111,14 +111,17 @@ function OrientationButton({ idx, active, disabled, onClick }: OrientationButton
           className={cn(
             'relative flex aspect-square items-center justify-center rounded-md border transition-colors',
             active
-              ? 'border-zinc-900 bg-zinc-900 text-white'
-              : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+              ? 'border-foreground bg-foreground text-background'
+              : 'border-border bg-background text-foreground hover:bg-accent',
             disabled && 'cursor-not-allowed opacity-50',
           )}
         >
           <FacePreviewIcon idx={idx} />
           {disabled && (
-            <Lock className="absolute right-1 top-1 h-3 w-3 text-zinc-400" strokeWidth={2.5} />
+            <Lock
+              className="absolute right-1 top-1 h-3 w-3 text-muted-foreground"
+              strokeWidth={2.5}
+            />
           )}
         </button>
       </TooltipTrigger>
@@ -139,21 +142,21 @@ function SelectedBoxSummary({ item, width, height, depth, isViolation }: Selecte
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="truncate text-sm font-semibold text-zinc-800">{item.name}</p>
-        <span className="shrink-0 text-xs text-zinc-400">{item.sku}</span>
+        <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
+        <span className="shrink-0 text-xs text-muted-foreground">{item.sku}</span>
       </div>
-      <div className="grid grid-cols-3 gap-2 rounded-md bg-zinc-50 p-2 text-center">
+      <div className="grid grid-cols-3 gap-2 rounded-md bg-muted/40 p-2 text-center">
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Genişlik</p>
-          <p className="text-xs font-medium text-zinc-800">{width} cm</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Genişlik</p>
+          <p className="text-xs font-medium text-foreground">{width} cm</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Yükseklik</p>
-          <p className="text-xs font-medium text-zinc-800">{height} cm</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Yükseklik</p>
+          <p className="text-xs font-medium text-foreground">{height} cm</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Derinlik</p>
-          <p className="text-xs font-medium text-zinc-800">{depth} cm</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Derinlik</p>
+          <p className="text-xs font-medium text-foreground">{depth} cm</p>
         </div>
       </div>
       {isViolation && (
@@ -175,14 +178,14 @@ export function SelectedBoxPanel() {
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="border-t border-zinc-100 px-4 py-3">
+      <div className="border-t border-border px-4 py-3">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm text-zinc-800">Seçili Kutu</span>
+          <span className="text-sm text-foreground">Seçili Kutu</span>
           <button
             type="button"
             onClick={clear}
             title="Seçimi kaldır"
-            className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -197,7 +200,7 @@ export function SelectedBoxPanel() {
         />
 
         <div className="mt-3">
-          <p className="mb-2 text-xs font-medium text-zinc-500">Yön (yere değen yüz)</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Yön (yere değen yüz)</p>
           <div className="grid grid-cols-3 gap-2">
             {ORIENTATION_LIST.map((idx) => (
               <OrientationButton
