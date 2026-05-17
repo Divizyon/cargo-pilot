@@ -392,7 +392,8 @@ export function fromApiPlacementsToScene(
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
-  const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
+  const raw = api as Record<string, unknown>;
+  const planName = api.planName ?? (raw['name'] as string | undefined) ?? '—';
   const itemCount =
     api.itemCount ??
     api.placementCount ??
@@ -408,8 +409,14 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
     vehicleId: api.vehicleId ?? '',
-    vehicleName: v?.vehicleName ?? v?.name ?? '—',
-    vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
+    vehicleName:
+      v?.vehicleName ??
+      v?.name ??
+      (raw['vehicleName'] as string | undefined) ??
+      (raw['vehicle_name'] as string | undefined) ??
+      '—',
+    vehiclePlate:
+      (v?.plateNumber ?? v?.plate ?? (raw['plateNumber'] as string | undefined) ?? (raw['plate'] as string | undefined)) || undefined,
     createdAt: api.createdAt ?? new Date(0).toISOString(),
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
@@ -425,7 +432,9 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     doorDirection:
       v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
     doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
-    thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
+    thumbnailUrl: ((api as Record<string, unknown>)['thumbnailUrl'] ??
+      (api as Record<string, unknown>)['snapshotUrl'] ??
+      (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
   };
 }
 
