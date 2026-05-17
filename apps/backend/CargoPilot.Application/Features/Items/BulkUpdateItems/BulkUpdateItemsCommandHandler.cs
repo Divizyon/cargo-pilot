@@ -158,6 +158,7 @@ public sealed class BulkUpdateItemsCommandHandler
                 allowedRotations: cmd.AllowedRotations,
                 imageUrl: cmd.ImageUrl,
                 stackGroup: cmd.StackGroup,
+                incompatibleGroups: cmd.IncompatibleGroups,
                 specialNotes: cmd.SpecialNotes,
                 constraintIds: cmd.ConstraintIds);
         }
