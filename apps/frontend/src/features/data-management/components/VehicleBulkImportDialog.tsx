@@ -33,10 +33,10 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
 const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top', 'rearAndSide'] as const;
 
 const DOOR_DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Arka',
+  rear: 'Ön',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Arka + Yan',
+  rearAndSide: 'Ön + Yan',
 };
 
 const editableRowSchema = z.object({
@@ -114,7 +114,7 @@ function normalizeDoor(raw: unknown): string {
   const s = String(raw ?? '')
     .toLowerCase()
     .trim();
-  if (s === 'arka' || s === 'rear') return 'rear';
+  if (s === 'ön' || s === 'on' || s === 'arka' || s === 'rear') return 'rear';
   if (s === 'yan' || s === 'side') return 'side';
   if (s === 'üst' || s === 'ust' || s === 'top') return 'top';
   if (s === 'rearandside' || s === 'arka+yan' || s === 'arka + yan') return 'rearAndSide';
