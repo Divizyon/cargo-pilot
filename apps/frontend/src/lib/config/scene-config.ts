@@ -64,7 +64,7 @@ export const SCENE = {
     ] as string[],
   },
 
-  DOOR_REAR_OPEN_ANGLE: Math.PI * 0.72,
+  DOOR_REAR_OPEN_ANGLE: Math.PI * (230 / 180),
   DOOR_SIDE_OPEN_ANGLE: Math.PI * 0.5,
   DOOR_EASING: 0.055,
   DOOR_THICKNESS_CM: 5,
