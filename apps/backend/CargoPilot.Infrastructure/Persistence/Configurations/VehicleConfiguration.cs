@@ -75,7 +75,7 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
 
         builder.Property(vehicle => vehicle.PlateNumber)
             .HasMaxLength(50)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(vehicle => vehicle.InternalWidth)
             .IsRequired()

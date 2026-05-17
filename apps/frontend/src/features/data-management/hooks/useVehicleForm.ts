@@ -18,7 +18,7 @@ export function useVehicleForm(
       status: 'active',
       isActive: true,
       vehicleType: 'Tir',
-      doorDirection: 'rear',
+      doorDirection: 'front',
       ...defaultValues,
     },
     mode: 'onSubmit',
