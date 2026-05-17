@@ -553,28 +553,28 @@ export function fromApiFullDetail(
       ? {
           id: v.id,
           name: v.vehicleName ?? v.name ?? '—',
-        plate: v.plateNumber ?? v.plate ?? '',
-        width: v.internalWidth ?? 0,
-        height: v.internalHeight ?? 0,
-        length: v.internalLength ?? 0,
-        maxCargoWeight: v.maxWeightCapacity ?? 0,
-        vehicleType:
-          v.vehicleType != null
-            ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
-            : VehicleType.Tir,
-        doorDirection:
-          v.loadingType != null
-            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-            : DoorDirection.Rear,
-        doorSide:
-          v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
-        isFavorite: false,
-        isActive: true,
-        isDeleted: false,
-        createdAt: new Date(0).toISOString(),
-        createdBy: { id: '', fullName: '' },
-      }
-    : null;
+          plate: v.plateNumber ?? v.plate ?? '',
+          width: v.internalWidth ?? 0,
+          height: v.internalHeight ?? 0,
+          length: v.internalLength ?? 0,
+          maxCargoWeight: v.maxWeightCapacity ?? 0,
+          vehicleType:
+            v.vehicleType != null
+              ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
+              : VehicleType.Tir,
+          doorDirection:
+            v.loadingType != null
+              ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
+              : DoorDirection.Rear,
+          doorSide:
+            v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+          isFavorite: false,
+          isActive: true,
+          isDeleted: false,
+          createdAt: new Date(0).toISOString(),
+          createdBy: { id: '', fullName: '' },
+        }
+      : null;
 
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;

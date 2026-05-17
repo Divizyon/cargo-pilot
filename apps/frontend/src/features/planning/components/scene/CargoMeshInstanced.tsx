@@ -73,8 +73,8 @@ const FACE_COUNT = FACE_CONFIGS.length;
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = new THREE.Color(SCENE.COLORS.VIOLATION);
 const COLOR_NORMAL = new THREE.Color(SCENE.COLORS.NORMAL);
-const COLOR_FOCUS = new THREE.Color(SCENE.COLORS.SELECTED);   // amber — grup içi parlama
-const COLOR_DIM_TARGET = new THREE.Color(0x444444);            // grup dışı sönük taban
+const COLOR_FOCUS = new THREE.Color(SCENE.COLORS.SELECTED); // amber — grup içi parlama
+const COLOR_DIM_TARGET = new THREE.Color(0x444444); // grup dışı sönük taban
 const SCALE_ZERO = new THREE.Vector3(0, 0, 0);
 
 // Pre-allocated axis vectors for cylinder orientation (reused across frames)
