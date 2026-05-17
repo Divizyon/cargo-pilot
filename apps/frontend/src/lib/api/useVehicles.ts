@@ -158,6 +158,7 @@ export function useVehicles(filters?: VehicleFilters) {
       for (const item of rawItems) {
         const result = vehicleListApiItemSchema.safeParse(item);
         if (result.success) {
+          if (result.data.id === '00000000-0000-0000-0000-000000000000') continue;
           validItems.push(fromApiVehicleListItem(result.data));
         } else {
           console.error(

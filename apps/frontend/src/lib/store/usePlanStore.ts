@@ -6,6 +6,7 @@ import type {
   PlacementWithDimensions,
   UnfitItem,
   UnfitReason,
+  GroupDefinition,
 } from '@/lib/types/loadingPlan';
 import { UnfitReason as UnfitReasonConst } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
@@ -275,6 +276,22 @@ interface PlanStore {
   retryUnfitItem: (itemId: string) => void;
   setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
   clearPreview: () => void;
+  planName: string;
+  isPlanDetail: boolean;
+  cascadeOffer: { nextVehicleName: string; unfitCount: number } | null;
+  groups: GroupDefinition[];
+  /** itemId → clientGroupId */
+  itemGroupAssignments: Record<string, string>;
+  setPlanName: (name: string) => void;
+  setIsPlanDetail: (v: boolean) => void;
+  reorderVehicles: (fromInstanceId: string, toInstanceId: string) => void;
+  dismissCascade: () => void;
+  acceptCascade: () => void;
+  addGroup: (group: Omit<GroupDefinition, 'unloadingOrder'>) => void;
+  removeGroup: (clientGroupId: string) => void;
+  updateGroup: (clientGroupId: string, updates: { name?: string; color?: string }) => void;
+  assignItemToGroup: (itemId: string, clientGroupId: string | null) => void;
+  syncGroups: (groups: GroupDefinition[], assignments: Record<string, string>) => void;
   reset: () => void;
 }
 
@@ -317,6 +334,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
   unfitItems: [],
   previewItemId: null,
   previewPlacements: [],
+  planName: '',
+  isPlanDetail: false,
+  cascadeOffer: null,
+  groups: [],
+  itemGroupAssignments: {},
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -642,6 +664,105 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   clearPreview: () => set({ previewItemId: null, previewPlacements: [] }),
 
+  setPlanName: (name) => set({ planName: name }),
+  setIsPlanDetail: (v) => set({ isPlanDetail: v }),
+
+  reorderVehicles: (fromId, toId) =>
+    set((s) => {
+      const vecs = s.selectedVehicles;
+      const oldIdx = vecs.findIndex((e) => e.instanceId === fromId);
+      const newIdx = vecs.findIndex((e) => e.instanceId === toId);
+      if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return {};
+      const reordered = [...vecs];
+      const [moved] = reordered.splice(oldIdx, 1);
+      reordered.splice(newIdx, 0, moved);
+      const newPrimary = reordered[0];
+      const oldPrimary = vecs[0];
+
+      let base: Partial<PlanStore> = { selectedVehicles: reordered };
+
+      if (newPrimary.instanceId !== oldPrimary.instanceId) {
+        const rebuild = rebuildForVehicle(newPrimary.vehicle, s);
+        if (rebuild) {
+          base = { ...base, selectedVehicle: newPrimary.vehicle, ...rebuild };
+        } else {
+          base = { ...base, selectedVehicle: newPrimary.vehicle };
+        }
+      }
+
+      const unfitCount =
+        (base as { unfitItems?: UnfitItem[] }).unfitItems?.length ?? s.unfitItems.length;
+      const secondVehicle = reordered[1];
+      if (unfitCount > 0 && secondVehicle) {
+        base = {
+          ...base,
+          cascadeOffer: { nextVehicleName: secondVehicle.vehicle.name, unfitCount },
+        };
+      }
+
+      return base;
+    }),
+
+  dismissCascade: () => set({ cascadeOffer: null }),
+
+  addGroup: (group) =>
+    set((s) => ({
+      groups: [...s.groups, { ...group, unloadingOrder: s.groups.length + 1 }],
+    })),
+
+  removeGroup: (clientGroupId) =>
+    set((s) => {
+      const filtered = s.groups.filter((g) => g.clientGroupId !== clientGroupId);
+      const reordered = filtered.map((g, i) => ({ ...g, unloadingOrder: i + 1 }));
+      const newAssignments = Object.fromEntries(
+        Object.entries(s.itemGroupAssignments).filter(([, gId]) => gId !== clientGroupId),
+      );
+      return { groups: reordered, itemGroupAssignments: newAssignments };
+    }),
+
+  updateGroup: (clientGroupId, updates) =>
+    set((s) => ({
+      groups: s.groups.map((g) => (g.clientGroupId === clientGroupId ? { ...g, ...updates } : g)),
+    })),
+
+  assignItemToGroup: (itemId, clientGroupId) =>
+    set((s) => {
+      if (clientGroupId === null) {
+        const rest = Object.fromEntries(
+          Object.entries(s.itemGroupAssignments).filter(([k]) => k !== itemId),
+        );
+        return { itemGroupAssignments: rest };
+      }
+      return { itemGroupAssignments: { ...s.itemGroupAssignments, [itemId]: clientGroupId } };
+    }),
+
+  syncGroups: (groups, assignments) => set({ groups, itemGroupAssignments: assignments }),
+
+  acceptCascade: () =>
+    set((s) => {
+      if (!s.cascadeOffer || s.unfitItems.length === 0) return { cascadeOffer: null };
+      const secondaryEntry = s.selectedVehicles[1];
+      if (!secondaryEntry) return { cascadeOffer: null };
+      let cascadePlacements: PlacementWithDimensions[] = [];
+      const remainingUnfit: UnfitItem[] = [];
+      for (const unfit of s.unfitItems) {
+        const color = s.skuColorMap[unfit.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+        const { placed, unfitByReason } = buildPlacements(
+          unfit.item,
+          unfit.quantity,
+          color,
+          secondaryEntry.vehicle,
+          cascadePlacements,
+        );
+        cascadePlacements = [...cascadePlacements, ...placed];
+        const unfitTotal = Object.values(unfitByReason).reduce((a, b) => a + (b ?? 0), 0);
+        if (unfitTotal > 0) {
+          remainingUnfit.push(unfit);
+        }
+      }
+      return { cascadeOffer: null, unfitItems: remainingUnfit };
+    }),
+
   reset: () =>
     set({
       selectedVehicle: null,
@@ -653,5 +774,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
       unfitItems: [],
       previewItemId: null,
       previewPlacements: [],
+      planName: '',
+      isPlanDetail: false,
+      cascadeOffer: null,
+      groups: [],
+      itemGroupAssignments: {},
     }),
 }));
