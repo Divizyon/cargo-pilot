@@ -14,10 +14,9 @@ public sealed class DuplicateVehicleCommandValidator : AbstractValidator<Duplica
             .MaximumLength(200)
             .WithMessage("Araç adı en fazla 200 karakter olabilir.");
 
-        RuleFor(x => x.PlateNumber)
-            .NotEmpty()
-            .WithMessage("Plaka zorunludur.")
-            .MaximumLength(50)
-            .WithMessage("Plaka en fazla 50 karakter olabilir.");
+        When(x => x.PlateNumber is not null, () =>
+            RuleFor(x => x.PlateNumber!)
+                .MaximumLength(50)
+                .WithMessage("Plaka en fazla 50 karakter olabilir."));
     }
 }

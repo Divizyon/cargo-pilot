@@ -7,7 +7,7 @@ public sealed class Vehicle : BaseEntity {
     public string VehicleName { get; private set; } = null!;
     public string? Description { get; private set; }
     public VehicleType VehicleType { get; private set; }
-    public string PlateNumber { get; private set; } = null!;
+    public string? PlateNumber { get; private set; }
     public decimal InternalWidth { get; private set; }
     public decimal InternalHeight { get; private set; }
     public decimal InternalLength { get; private set; }
@@ -54,7 +54,7 @@ public sealed class Vehicle : BaseEntity {
         string vehicleName,
         string? description,
         VehicleType vehicleType,
-        string plateNumber,
+        string? plateNumber,
         decimal internalWidth,
         decimal internalHeight,
         decimal internalLength,
@@ -97,7 +97,7 @@ public sealed class Vehicle : BaseEntity {
         Guid id,
         string vehicleName,
         VehicleType vehicleType,
-        string plateNumber,
+        string? plateNumber,
         decimal internalWidth,
         decimal internalHeight,
         decimal internalLength,
@@ -130,7 +130,7 @@ public sealed class Vehicle : BaseEntity {
         Guid id,
         string vehicleName,
         VehicleType vehicleType,
-        string plateNumber,
+        string? plateNumber,
         decimal internalWidth,
         decimal internalHeight,
         decimal internalLength,

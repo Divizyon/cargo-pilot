@@ -30,7 +30,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
             var term = searchTerm.Trim();
             query = query.Where(v =>
                 v.VehicleName.Contains(term) ||
-                v.PlateNumber.Contains(term));
+                (v.PlateNumber != null && v.PlateNumber.Contains(term)));
         }
 
         if (vehicleType.HasValue) {

@@ -7,6 +7,5 @@ public sealed record DuplicateVehicleRequest(
     [StringLength(200, ErrorMessage = "Araç adı en fazla 200 karakter olabilir.")]
     string VehicleName,
 
-    [Required(ErrorMessage = "Plaka zorunludur.")]
     [StringLength(50, ErrorMessage = "Plaka en fazla 50 karakter olabilir.")]
-    string PlateNumber);
+    string? PlateNumber);
