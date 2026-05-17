@@ -1162,6 +1162,7 @@ export function ProductForm({
                 constraintLabels={selectedConstraints
                   .map((v) => CONSTRAINT_OPTIONS.find((o) => o.value === v)?.label)
                   .filter((l): l is string => l !== undefined)}
+                constraintValues={selectedConstraints}
                 allowRotateX={allowRotateX}
                 allowRotateY={allowRotateY}
                 allowRotateZ={allowRotateZ}
@@ -1187,6 +1188,7 @@ interface PreviewPanelProps {
   volumeCm3: number;
   maxStackCount: number | undefined;
   constraintLabels: string[];
+  constraintValues: string[];
   allowRotateX: boolean;
   allowRotateY: boolean;
   allowRotateZ: boolean;
@@ -1207,6 +1209,7 @@ function PreviewPanel(props: PreviewPanelProps) {
     volumeCm3,
     maxStackCount,
     constraintLabels,
+    constraintValues,
     allowRotateX,
     allowRotateY,
     allowRotateZ,
@@ -1286,6 +1289,7 @@ function PreviewPanel(props: PreviewPanelProps) {
             color={resolveProductColor(productType, stackGroup)}
             sku={sku}
             name={name}
+            constraintIconUrls={constraintValues.map((v) => `/icons/constraint-${v}.svg`)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
