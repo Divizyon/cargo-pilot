@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ClipboardList,
   DatabaseZap,
+  HelpCircle,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -26,6 +27,7 @@ import { useUIStore } from '@/lib/store/useUIStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
+import { OnboardingDialog } from '@/features/platform/components/OnboardingDialog';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
@@ -373,6 +375,7 @@ export function DashboardLayout() {
   const [windowCollapsed, setWindowCollapsed] = useState(false);
   const [isMobileWidth, setIsMobileWidth] = useState(false);
   const [isBelowLg, setIsBelowLg] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { showWarning, countdown, extendSession } = useSessionTimeout();
   const { pathname } = useLocation();
@@ -418,7 +421,7 @@ export function DashboardLayout() {
       </div>
 
       {/* Main content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile header — non-focus routes always; focus routes on tablet (below lg) */}
         {(!isFocusRoute || isBelowLg) && (
           <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 lg:hidden">
@@ -456,7 +459,19 @@ export function DashboardLayout() {
         </main>
       </div>
 
+      {!isFocusRoute && (
+        <button
+          onClick={() => setShowOnboarding(true)}
+          className="absolute right-4 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:flex"
+          title="Rehberi tekrar göster"
+          aria-label="Rehberi tekrar göster"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </button>
+      )}
+
       <SessionTimeoutDialog open={showWarning} countdown={countdown} onExtend={extendSession} />
+      <OnboardingDialog open={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>
   );
 }
