@@ -1,17 +1,22 @@
 import { useState, useRef, useEffect, useMemo, type ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
-  AlertTriangle,
   Box,
   Check,
+  CheckCheck,
   ChevronDown,
   ChevronRight,
   Cylinder,
   Droplets,
+  Eye,
+  EyeOff,
   Flame,
   FlaskConical,
   FolderPlus,
+  ArrowDown,
+  ArrowUp,
   Layers,
   Leaf,
   Loader2,
@@ -25,6 +30,7 @@ import {
   Search,
   SlidersHorizontal,
   Sun,
+  Trash2,
   Utensils,
   Wind,
   Wine,
@@ -45,12 +51,78 @@ import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
+import { ROUTES } from '@/lib/config/routes';
 import { useItems } from '@/lib/api/useItems';
-import { AddItemModal } from './AddItemModal';
+import {
+  useCreateGroup,
+  useUpdateGroup,
+  useDeleteGroup,
+  useAssignItemToGroup,
+} from '@/lib/api/useGroups';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
 import type { Item } from '@/lib/types/item';
 
 const VIRTUAL_THRESHOLD = 100;
+
+// ─── Constraint SVG icons ─────────────────────────────────────────────────────
+
+function NonStackableIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="18" height="15" rx="2" />
+      <path d="M9 15 V8" />
+      <path d="M6 11 L9 8 L12 11" />
+      <path d="M15 15 V8" />
+      <path d="M12 11 L15 8 L18 11" />
+      <line x1="2" y1="21" x2="22" y2="21" />
+    </svg>
+  );
+}
+
+// X rotation: inward-curving vertical arcs on left and right (sweep-flag 0), derived from AxisBoxIllustration X arrows
+function RotateXIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" strokeLinecap="round" className={className} aria-hidden>
+      <path d="M2.5 1.5 A 2.5 5 0 0 0 2.5 12.5" stroke="currentColor" strokeWidth="1.4" />
+      <polygon points="2.5,13.5 0,11 5,11" fill="currentColor" />
+      <path d="M11.5 12.5 A 2.5 5 0 0 0 11.5 1.5" stroke="currentColor" strokeWidth="1.4" />
+      <polygon points="11.5,0.5 9,3 14,3" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Y rotation: horizontal arcs on top and bottom, derived from AxisBoxIllustration Y arrows
+function RotateYIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" strokeLinecap="round" className={className} aria-hidden>
+      <path d="M2 4 A 5 2.5 0 0 1 12 4" stroke="currentColor" strokeWidth="1.4" />
+      <polygon points="12,4 9.5,2 9.5,6" fill="currentColor" />
+      <path d="M12 10 A 5 2.5 0 0 1 2 10" stroke="currentColor" strokeWidth="1.4" />
+      <polygon points="2,10 4.5,8 4.5,12" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Z rotation: outward-curving vertical arcs on right and left (sweep-flag 1), derived from AxisBoxIllustration Z arrows
+function RotateZIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" strokeLinecap="round" className={className} aria-hidden>
+      <path d="M11.5 1.5 A 2.5 5 0 0 1 11.5 12.5" stroke="currentColor" strokeWidth="1.4" />
+      <polygon points="11.5,13.5 9,11 14,11" fill="currentColor" />
+      <path d="M2.5 12.5 A 2.5 5 0 0 1 2.5 1.5" stroke="currentColor" strokeWidth="1.4" />
+      <polygon points="2.5,0.5 0,3 5,3" fill="currentColor" />
+    </svg>
+  );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -158,52 +230,71 @@ interface ConstraintMeta {
   colorClass: string;
 }
 
+const FRAGILITY_CONSTRAINT: Record<
+  number,
+  { label: string; Icon: ElementType; colorClass: string }
+> = {
+  1: { label: 'Kırılgan', Icon: Wine, colorClass: 'text-amber-600' },
+  2: { label: 'Sıvı İçerir', Icon: Droplets, colorClass: 'text-blue-600' },
+  5: { label: 'Aşındırıcı', Icon: Flame, colorClass: 'text-orange-600' },
+  6: { label: 'Kokuya Hassas', Icon: Wind, colorClass: 'text-green-600' },
+  7: { label: 'Gıda Teması', Icon: Utensils, colorClass: 'text-green-600' },
+  8: { label: 'Kuru', Icon: Sun, colorClass: 'text-muted-foreground' },
+  9: { label: 'Kimyasal', Icon: FlaskConical, colorClass: 'text-purple-600' },
+  10: { label: 'Organik', Icon: Leaf, colorClass: 'text-green-600' },
+};
+
 function getItemConstraints(item: Item): ConstraintMeta[] {
   const list: ConstraintMeta[] = [];
-  if (item.fragility === 1)
+
+  const fragilityDef = FRAGILITY_CONSTRAINT[item.fragility];
+  if (fragilityDef) {
+    list.push({ key: `fragility-${item.fragility}`, ...fragilityDef });
+  }
+
+  if (!item.isStackable) {
     list.push({
-      key: 'fragile',
-      label: 'Kırılgan',
-      Icon: AlertTriangle,
-      colorClass: 'text-amber-500',
+      key: 'nostack',
+      label: 'İstiflenemez',
+      Icon: NonStackableIcon,
+      colorClass: 'text-muted-foreground',
     });
-  if (item.fragility >= 2)
-    list.push({
-      key: 'hazmat',
-      label: 'Tehlikeli Madde',
-      Icon: Flame,
-      colorClass: 'text-rose-500',
-    });
-  if (!item.isStackable)
-    list.push({ key: 'nostack', label: 'Yığılamaz', Icon: Layers, colorClass: 'text-purple-500' });
-  if (!item.allowRotateX)
+  }
+
+  if (!item.allowRotateX) {
     list.push({
       key: 'noRotX',
       label: 'X ekseni kısıtlı',
-      Icon: RotateCcw,
-      colorClass: 'text-blue-500',
+      Icon: RotateXIcon,
+      colorClass: 'text-muted-foreground',
     });
-  if (!item.allowRotateY)
+  }
+  if (!item.allowRotateY) {
     list.push({
       key: 'noRotY',
       label: 'Y ekseni kısıtlı',
-      Icon: RotateCcw,
-      colorClass: 'text-blue-500',
+      Icon: RotateYIcon,
+      colorClass: 'text-muted-foreground',
     });
-  if (!item.allowRotateZ)
+  }
+  if (!item.allowRotateZ) {
     list.push({
       key: 'noRotZ',
       label: 'Z ekseni kısıtlı',
-      Icon: RotateCcw,
-      colorClass: 'text-blue-500',
+      Icon: RotateZIcon,
+      colorClass: 'text-muted-foreground',
     });
-  if (item.stackGroup?.trim())
+  }
+
+  if (item.stackGroup?.trim()) {
     list.push({
       key: 'group',
       label: `Yük Grubu: ${item.stackGroup}`,
       Icon: Package,
       colorClass: 'text-muted-foreground',
     });
+  }
+
   return list;
 }
 
@@ -262,6 +353,11 @@ interface StoreItemRowProps {
   onEdit?: () => void;
   onAddToGroup?: (groupId: string) => void;
   onClearStackGroup?: () => void;
+  onSelect?: () => void;
+  isHidden?: boolean;
+  onToggleVisibility?: () => void;
+  onRemoveFromGroup?: (action: 'ungroup' | 'remove') => void;
+  onUpdateQty?: (qty: number) => void;
 }
 
 function StoreItemRow({
@@ -278,6 +374,11 @@ function StoreItemRow({
   onEdit,
   onAddToGroup,
   onClearStackGroup,
+  onSelect,
+  isHidden = false,
+  onToggleVisibility,
+  onRemoveFromGroup,
+  onUpdateQty,
 }: StoreItemRowProps) {
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
@@ -294,11 +395,14 @@ function StoreItemRow({
       )}
     >
       <div
-        onClick={onToggleExpand}
+        onClick={() => {
+          onToggleExpand();
+          onSelect?.();
+        }}
         className={cn(
-          'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
-          isPlaced ? 'bg-muted/40' : 'hover:bg-accent',
-          isExpanded && 'bg-muted/40',
+          'group/item-row flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
+          isPlaced ? 'bg-zinc-50/80' : 'hover:bg-zinc-50',
+          isExpanded && 'bg-zinc-50',
         )}
       >
         <TypeIcon
@@ -306,8 +410,20 @@ function StoreItemRow({
           style={iconColor ? { color: iconColor } : undefined}
           strokeWidth={1.5}
         />
-        <span className="flex-1 min-w-0 text-xs text-foreground truncate">{item.name}</span>
-        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">{item.sku}</span>
+        <span className="flex-1 min-w-0 text-xs text-zinc-800 truncate">{item.name}</span>
+        <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">{item.sku}</span>
+        {onToggleVisibility !== undefined && (
+          <button
+            title={isHidden ? 'Göster' : 'Gizle'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleVisibility();
+            }}
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-500 hover:bg-zinc-100 transition-colors"
+          >
+            {isHidden ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+          </button>
+        )}
         {onEdit && (
           <button
             title="Düzenle"
@@ -375,8 +491,8 @@ function StoreItemRow({
               {item.specialNotes}
             </p>
           )}
-          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
-            {!isPlaced ? (
+          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-zinc-100">
+            {!isPlaced && !onRemoveFromGroup ? (
               <>
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-muted-foreground">Adet</span>
@@ -464,17 +580,140 @@ function StoreItemRow({
                 </div>
               </>
             ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove?.();
-                  onToggleExpand();
-                }}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
-              >
-                <PackageMinus className="w-3 h-3" />
-                Çıkar
-              </button>
+              <div className="flex items-center justify-between w-full gap-2">
+                {/* Left: Gruba Ekle + quantity controls */}
+                <div className="flex items-center gap-1.5">
+                  {groups && groups.length > 0 && onAddToGroup && (
+                    <DropdownMenu>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                              >
+                                <FolderPlus className="w-3.5 h-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            Gruba Ekle
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <DropdownMenuContent side="top" align="start" className="w-44 p-1">
+                        {groups.map((g) => (
+                          <DropdownMenuItem
+                            key={g.id}
+                            className="flex items-center gap-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAddToGroup(g.id);
+                            }}
+                          >
+                            <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
+                            <span className="truncate">{g.ad}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  {onUpdateQty && (
+                    <>
+                      <div className="flex items-center rounded border border-zinc-200 overflow-hidden">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocalQty((v) => Math.max(1, v - 1));
+                          }}
+                          className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
+                        >
+                          <Minus className="w-2 h-2" />
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          value={localQty}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value, 10);
+                            if (!isNaN(v) && v >= 1) setLocalQty(v);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-8 text-center text-[11px] tabular-nums text-zinc-700 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocalQty((v) => v + 1);
+                          }}
+                          className="w-5 h-5 flex items-center justify-center hover:bg-zinc-100 text-zinc-500 transition-colors"
+                        >
+                          <Plus className="w-2 h-2" />
+                        </button>
+                      </div>
+                      {localQty !== quantity && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateQty(localQty);
+                          }}
+                          className="text-[11px] text-zinc-600 hover:text-zinc-900 px-1.5 py-0.5 rounded hover:bg-zinc-100 transition-colors"
+                        >
+                          Güncelle
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Right: Çıkar */}
+                {onRemoveFromGroup ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-rose-600 transition-colors ml-auto"
+                      >
+                        <PackageMinus className="w-3 h-3" />
+                        Çıkar
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" align="end" className="w-52 p-1">
+                      <DropdownMenuItem
+                        className="text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveFromGroup('ungroup');
+                        }}
+                      >
+                        Gruptan çıkar, grupsuzlara ekle
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-xs text-rose-600 focus:text-rose-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveFromGroup('remove');
+                        }}
+                      >
+                        Yüklü ürünlerden çıkar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove?.();
+                      onToggleExpand();
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-rose-600 transition-colors ml-auto"
+                  >
+                    <PackageMinus className="w-3 h-3" />
+                    Çıkar
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -483,15 +722,93 @@ function StoreItemRow({
   );
 }
 
+// ─── PlanNameField ────────────────────────────────────────────────────────────
+
+interface PlanNameFieldProps {
+  value: string;
+  onChange: (name: string) => void;
+  isNew: boolean;
+}
+
+function PlanNameField({ value, onChange, isNew }: PlanNameFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.select();
+  }, [editing]);
+
+  function commit() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== value) {
+      onChange(trimmed);
+    } else {
+      setDraft(value);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        autoFocus
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          }
+          if (e.key === 'Escape') {
+            setEditing(false);
+            setDraft(value);
+          }
+        }}
+        placeholder="Plan adı girin…"
+        className="w-full text-sm font-medium text-zinc-800 bg-transparent outline-none border-b border-zinc-300 focus:border-zinc-500 py-0.5 transition-colors"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="group/pname flex items-center gap-1.5 w-full text-left min-w-0"
+    >
+      {value ? (
+        <span className="text-sm font-medium text-zinc-800 truncate flex-1">{value}</span>
+      ) : (
+        <span className={cn('text-sm flex-1', isNew ? 'text-rose-400' : 'text-zinc-400')}>
+          {isNew ? 'Plan adı gerekli…' : 'Plan adı girin…'}
+        </span>
+      )}
+      <Pencil className="w-3 h-3 shrink-0 text-zinc-300 group-hover/pname:text-zinc-500 transition-colors" />
+    </button>
+  );
+}
+
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
-export function PlanLeftPanel() {
+interface PlanLeftPanelProps {
+  fromPlanId?: string;
+  onRenamePlan?: (name: string) => Promise<void>;
+}
+
+export function PlanLeftPanel({ fromPlanId, onRenamePlan }: PlanLeftPanelProps) {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>
   >([]);
+  // Tracks whether we've already restored groups from the store (for existing plans).
+  const restoredFromStoreRef = useRef(false);
   const [ungroupedIds, setUngroupedIds] = useState<string[]>([]);
-  const [showItemModal, setShowItemModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
@@ -509,6 +826,15 @@ export function PlanLeftPanel() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
 
+  const createGroup = useCreateGroup();
+  const updateGroup = useUpdateGroup();
+  const deleteGroup = useDeleteGroup();
+  const assignItemToGroup = useAssignItemToGroup();
+
+  // Temp IDs (g-<timestamp>) are used for groups not yet persisted to the backend.
+  // Backend calls that need a real group ID skip temp IDs gracefully.
+  const isTempId = (id: string) => id.startsWith('g-');
+
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
   const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
 
@@ -524,11 +850,22 @@ export function PlanLeftPanel() {
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
+  const planName = usePlanStore((s) => s.planName);
+  const setPlanName = usePlanStore((s) => s.setPlanName);
+  const syncGroups = usePlanStore((s) => s.syncGroups);
+  const storeGroups = usePlanStore((s) => s.groups);
+  const storeAssignments = usePlanStore((s) => s.itemGroupAssignments);
+  const cascadeOffer = usePlanStore((s) => s.cascadeOffer);
+  const dismissCascade = usePlanStore((s) => s.dismissCascade);
+  const acceptCascade = usePlanStore((s) => s.acceptCascade);
 
   const canPlace = !!selectedVehicle;
 
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
+  const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
+  const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
+  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
 
   const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
@@ -569,6 +906,42 @@ export function PlanLeftPanel() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
+
+  // When opening an existing plan, restore local group state from store (populated by PlanAutoLoader).
+  useEffect(() => {
+    if (!fromPlanId || restoredFromStoreRef.current || storeGroups.length === 0) return;
+    restoredFromStoreRef.current = true;
+    setGroups(
+      storeGroups.map((g) => ({
+        id: g.clientGroupId,
+        ad: g.name,
+        acik: true,
+        color: g.color,
+        itemIdler: Object.entries(storeAssignments)
+          .filter(([, gId]) => gId === g.clientGroupId)
+          .map(([itemId]) => itemId),
+      })),
+    );
+  }, [fromPlanId, storeGroups, storeAssignments]);
+
+  // Sync local group state → store so API calls pick up group assignments.
+  // Guard: skip until restoration is done for existing plans (avoids clobbering loaded data).
+  useEffect(() => {
+    if (fromPlanId && !restoredFromStoreRef.current) return;
+    const apiGroups = groups.map((g, i) => ({
+      clientGroupId: g.id,
+      name: g.ad,
+      color: g.color,
+      unloadingOrder: i + 1,
+    }));
+    const assignments: Record<string, string> = {};
+    for (const g of groups) {
+      for (const itemId of g.itemIdler) {
+        assignments[itemId] = g.id;
+      }
+    }
+    syncGroups(apiGroups, assignments);
+  }, [groups, fromPlanId, syncGroups]);
 
   const hasActiveFilters = activeConstraints.size > 0;
 
@@ -614,16 +987,16 @@ export function PlanLeftPanel() {
 
   const filteredCatalogOnlyItems = useMemo(() => {
     if (activeTab !== 'unloaded') return [];
-    const planIds = new Set(selectedItems.map((si) => si.item.id));
-    return apiItems.filter(
-      (item) =>
-        !planIds.has(item.id) &&
-        !placedIds.has(item.id) &&
-        itemMatchesFilters(item, search, activeConstraints),
-    );
-  }, [apiItems, selectedItems, placedIds, activeTab, search, activeConstraints]);
+    return apiItems.filter((item) => itemMatchesFilters(item, search, activeConstraints));
+  }, [apiItems, activeTab, search, activeConstraints]);
+
+  const catalogItemsCount = useMemo(
+    () => apiItems.filter((item) => itemMatchesFilters(item, search, activeConstraints)).length,
+    [apiItems, search, activeConstraints],
+  );
 
   const flatDisplayItems = useMemo(() => {
+    if (activeTab !== 'loaded') return [];
     const seen = new Set<string>();
     const result: string[] = [];
 
@@ -632,10 +1005,7 @@ export function PlanLeftPanel() {
       seen.add(id);
       if (groupedIds.has(id)) continue;
       const entry = selectedItems.find((si) => si.item.id === id);
-      if (!entry) continue;
-      const isPlaced = placedIds.has(id);
-      if (activeTab === 'loaded' && !isPlaced) continue;
-      if (activeTab === 'unloaded' && isPlaced) continue;
+      if (!entry || !placedIds.has(id)) continue;
       if (!itemMatchesFilters(entry.item, search, activeConstraints)) continue;
       result.push(id);
     }
@@ -645,9 +1015,7 @@ export function PlanLeftPanel() {
       if (seen.has(id)) continue;
       seen.add(id);
       if (groupedIds.has(id)) continue;
-      const isPlaced = placedIds.has(id);
-      if (activeTab === 'loaded' && !isPlaced) continue;
-      if (activeTab === 'unloaded' && isPlaced) continue;
+      if (!placedIds.has(id)) continue;
       if (!itemMatchesFilters(si.item, search, activeConstraints)) continue;
       result.push(id);
     }
@@ -660,20 +1028,7 @@ export function PlanLeftPanel() {
   const groupedUnloadedSections = useMemo(() => {
     if (activeTab !== 'unloaded' || groupSelectionMode) return null;
     const groupMap = new Map<string, ItemRef[]>();
-    const noGroupPlan: ItemRef[] = [];
     const noGroupCatalog: ItemRef[] = [];
-
-    for (const id of flatDisplayItems) {
-      const entry = selectedItems.find((si) => si.item.id === id);
-      if (!entry) continue;
-      const sg = clearedStackGroups.has(id) ? null : entry.item.stackGroup?.trim() || null;
-      if (sg) {
-        if (!groupMap.has(sg)) groupMap.set(sg, []);
-        groupMap.get(sg)!.push({ id, isCatalog: false });
-      } else {
-        noGroupPlan.push({ id, isCatalog: false });
-      }
-    }
 
     for (const item of filteredCatalogOnlyItems) {
       const sg = clearedStackGroups.has(item.id) ? null : item.stackGroup?.trim() || null;
@@ -685,15 +1040,8 @@ export function PlanLeftPanel() {
       }
     }
 
-    return { groupMap, noGroupPlan, noGroupCatalog };
-  }, [
-    activeTab,
-    groupSelectionMode,
-    flatDisplayItems,
-    filteredCatalogOnlyItems,
-    clearedStackGroups,
-    selectedItems,
-  ]);
+    return { groupMap, noGroupCatalog };
+  }, [activeTab, groupSelectionMode, filteredCatalogOnlyItems, clearedStackGroups]);
 
   const shouldVirtualize = flatDisplayItems.length >= VIRTUAL_THRESHOLD;
 
@@ -705,18 +1053,10 @@ export function PlanLeftPanel() {
     overscan: 8,
   });
 
-  // All items available for group selection (plan items + catalog items in Ürün Listesi)
   const groupSelectionItems = useMemo(() => {
     if (!groupSelectionMode) return [];
-    const planIds = new Set(selectedItems.map((si) => si.item.id));
-    const catalogOnly = apiItems.filter(
-      (item) => !planIds.has(item.id) && itemMatchesFilters(item, search, activeConstraints),
-    );
-    const planUnplaced = selectedItems.filter(
-      (si) => !placedIds.has(si.item.id) && itemMatchesFilters(si.item, search, activeConstraints),
-    );
-    return [...planUnplaced.map((si) => si.item), ...catalogOnly];
-  }, [groupSelectionMode, selectedItems, apiItems, placedIds, search, activeConstraints]);
+    return apiItems.filter((item) => itemMatchesFilters(item, search, activeConstraints));
+  }, [groupSelectionMode, apiItems, search, activeConstraints]);
 
   function lookupEntry(id: string) {
     return selectedItems.find((si) => si.item.id === id);
@@ -729,16 +1069,36 @@ export function PlanLeftPanel() {
       focusedGroupItemIds.length === itemIds.length &&
       itemIds.every((id) => focusedGroupItemIds.includes(id));
     setFocusedGroupItemIds(isSameFocus ? null : itemIds);
+    if (!isSameFocus) {
+      useSceneStore.getState().setSelectedItemId(null);
+      useSceneStore.getState().setSelectedInstanceId(null);
+    }
   }
 
-  function handleAddGroup() {
-    const id = `g-${Date.now()}`;
+  async function handleAddGroup() {
+    const tempId = `g-${Date.now()}`;
     const num = groups.length + 1;
+    const name = `Grup ${num}`;
     const usedColors = groups.map((g) => g.color);
     const available = GROUP_ICON_COLORS.filter((c) => !usedColors.includes(c));
     const pool = available.length > 0 ? available : [...GROUP_ICON_COLORS];
     const color = pool[Math.floor(Math.random() * pool.length)];
-    setGroups((prev) => [...prev, { id, ad: `Grup ${num}`, acik: true, itemIdler: [], color }]);
+
+    setGroups((prev) => [...prev, { id: tempId, ad: name, acik: true, itemIdler: [], color }]);
+
+    if (fromPlanId) {
+      try {
+        const realId = await createGroup.mutateAsync({
+          planId: fromPlanId,
+          name,
+          color,
+          unloadingOrder: num,
+        });
+        setGroups((prev) => prev.map((g) => (g.id === tempId ? { ...g, id: realId } : g)));
+      } catch {
+        setGroups((prev) => prev.filter((g) => g.id !== tempId));
+      }
+    }
   }
 
   function handleStartGroupSelection(groupId: string) {
@@ -752,22 +1112,20 @@ export function PlanLeftPanel() {
     const newItemIds: string[] = [];
 
     selectedForGroup.forEach((itemId) => {
+      const catalogItem = apiItems.find((i) => i.id === itemId);
+      if (!catalogItem) return;
       const planEntry = selectedItems.find((si) => si.item.id === itemId);
       if (planEntry) {
         if (!placedIds.has(itemId)) togglePlacement(itemId);
-        newItemIds.push(itemId);
       } else {
-        const catalogItem = apiItems.find((i) => i.id === itemId);
-        if (catalogItem) {
-          const color =
-            SCENE.COLORS.SKU_PALETTE[
-              Object.keys(skuColorMap).length % SCENE.COLORS.SKU_PALETTE.length
-            ];
-          addManualItem(catalogItem, 1, color);
-          setUngroupedIds((prev) => [...prev, itemId]);
-          newItemIds.push(itemId);
-        }
+        const color =
+          SCENE.COLORS.SKU_PALETTE[
+            Object.keys(skuColorMap).length % SCENE.COLORS.SKU_PALETTE.length
+          ];
+        addManualItem(catalogItem, 1, color);
+        setUngroupedIds((prev) => [...prev, itemId]);
       }
+      newItemIds.push(itemId);
     });
 
     setGroups((prev) =>
@@ -777,16 +1135,106 @@ export function PlanLeftPanel() {
           : g,
       ),
     );
+
+    if (fromPlanId && !isTempId(groupSelectionMode)) {
+      for (const itemId of newItemIds) {
+        void assignItemToGroup
+          .mutateAsync({
+            planId: fromPlanId,
+            inputItemId: itemId,
+            groupId: groupSelectionMode,
+          })
+          .catch(() => undefined);
+      }
+    }
+
     setGroupSelectionMode(null);
     setSelectedForGroup(new Set());
     setActiveTab('loaded');
   }
 
   function handleRenameGroup(groupId: string, name: string) {
-    if (name.trim()) {
-      setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, ad: name.trim() } : g)));
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setEditingGroupId(null);
+      return;
     }
+    setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, ad: trimmed } : g)));
     setEditingGroupId(null);
+    if (fromPlanId && !isTempId(groupId)) {
+      const group = groups.find((g) => g.id === groupId);
+      const idx = groups.findIndex((g) => g.id === groupId);
+      if (group) {
+        void updateGroup.mutate({
+          planId: fromPlanId,
+          groupId,
+          name: trimmed,
+          color: group.color,
+          unloadingOrder: idx + 1,
+        });
+      }
+    }
+  }
+
+  function handleDeleteGroup(groupId: string) {
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) return;
+    setUngroupedIds((prev) => [...new Set([...prev, ...group.itemIdler])]);
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    if (focusedGroupItemIds !== null) setFocusedGroupItemIds(null);
+    if (fromPlanId && !isTempId(groupId)) {
+      void deleteGroup.mutate({ planId: fromPlanId, groupId });
+    }
+  }
+
+  function handleMoveGroup(groupId: string, direction: 'up' | 'down') {
+    const idx = groups.findIndex((g) => g.id === groupId);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= groups.length) return;
+
+    setGroups((prev) => {
+      const next = [...prev];
+      [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+      return next;
+    });
+
+    if (fromPlanId) {
+      // g1 moves from targetIdx → idx; g2 moves from idx → targetIdx
+      const g1 = groups[targetIdx];
+      const g2 = groups[idx];
+      if (!isTempId(g1.id)) {
+        void updateGroup.mutate({
+          planId: fromPlanId,
+          groupId: g1.id,
+          name: g1.ad,
+          color: g1.color,
+          unloadingOrder: idx + 1,
+        });
+      }
+      if (!isTempId(g2.id)) {
+        void updateGroup.mutate({
+          planId: fromPlanId,
+          groupId: g2.id,
+          name: g2.ad,
+          color: g2.color,
+          unloadingOrder: targetIdx + 1,
+        });
+      }
+    }
+  }
+
+  function handleToggleGroupVisibility(itemIds: string[]) {
+    const state = useSceneStore.getState();
+    const allHidden = itemIds.length > 0 && itemIds.every((id) => state.hiddenItemIds.includes(id));
+    if (allHidden) {
+      useSceneStore.setState({
+        hiddenItemIds: state.hiddenItemIds.filter((id) => !itemIds.includes(id)),
+      });
+    } else {
+      const toAdd = itemIds.filter((id) => !state.hiddenItemIds.includes(id));
+      useSceneStore.setState({ hiddenItemIds: [...state.hiddenItemIds, ...toAdd] });
+    }
   }
 
   const groupOptions: GroupOption[] = groups.map((g) => ({ id: g.id, ad: g.ad, color: g.color }));
@@ -801,6 +1249,12 @@ export function PlanLeftPanel() {
       canPlace,
       isExpanded: expandedId === id,
       groups: groupOptions,
+      isHidden: hiddenItemIds.includes(id),
+      onToggleVisibility: () => toggleHiddenItem(id),
+      onSelect: () => {
+        setSelectedItemId(id);
+        setFocusedGroupItemIds(null);
+      },
       onToggleExpand: () => setExpandedId((prev) => (prev === id ? null : id)),
       onPlace: (qty: number) => {
         if (qty !== entry.quantity) {
@@ -809,6 +1263,12 @@ export function PlanLeftPanel() {
         }
         togglePlacement(id);
       },
+      onUpdateQty: isPlaced
+        ? (qty: number) => {
+            const color = skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+            updateItem(id, entry.item, qty, color);
+          }
+        : undefined,
       onRemove: () => togglePlacement(id),
       onEdit: () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
@@ -818,11 +1278,19 @@ export function PlanLeftPanel() {
             g.id === groupId ? { ...g, itemIdler: [...new Set([...g.itemIdler, id])] } : g,
           ),
         );
+        if (fromPlanId && !isTempId(groupId)) {
+          void assignItemToGroup.mutate({ planId: fromPlanId, inputItemId: id, groupId });
+        }
       },
     };
   };
 
   const activeGroupName = groups.find((g) => g.id === groupSelectionMode)?.ad ?? 'Grup';
+
+  function handlePlanNameChange(name: string) {
+    setPlanName(name);
+    void onRenamePlan?.(name);
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -832,11 +1300,16 @@ export function PlanLeftPanel() {
         <Button
           size="icon"
           title="Ürün Ekle"
-          className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-          onClick={() => setShowItemModal(true)}
+          className="h-7 w-7 bg-zinc-900 text-white hover:bg-zinc-700"
+          onClick={() => navigate(ROUTES.PRODUCTS_NEW)}
         >
           <Plus className="w-3.5 h-3.5" />
         </Button>
+      </div>
+
+      {/* Plan name */}
+      <div className="px-3 py-2 border-b border-zinc-100 shrink-0">
+        <PlanNameField value={planName} onChange={handlePlanNameChange} isNew={!fromPlanId} />
       </div>
 
       {/* Tabs */}
@@ -845,17 +1318,8 @@ export function PlanLeftPanel() {
           <TabsList className="w-full h-7 bg-muted">
             <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
               Ürün Listesi
-              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                {(() => {
-                  const planUnloaded = selectedItems.filter(
-                    (si) => !placedIds.has(si.item.id),
-                  ).length;
-                  const planIds = new Set(selectedItems.map((si) => si.item.id));
-                  const catalogOnly = apiItems.filter(
-                    (i) => !planIds.has(i.id) && !placedIds.has(i.id),
-                  ).length;
-                  return `(${planUnloaded + catalogOnly})`;
-                })()}
+              <span className="ml-1 text-[10px] tabular-nums text-zinc-400">
+                ({catalogItemsCount})
               </span>
             </TabsTrigger>
             <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
@@ -963,16 +1427,23 @@ export function PlanLeftPanel() {
             {/* Grup Oluştur button */}
             {!groupSelectionMode && (
               <button
-                onClick={handleAddGroup}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-accent transition-colors self-start mb-0.5"
+                onClick={() => {
+                  void handleAddGroup();
+                }}
+                disabled={createGroup.isPending}
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 px-2 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors self-start mb-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <FolderPlus className="w-3.5 h-3.5" />
+                {createGroup.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FolderPlus className="w-3.5 h-3.5" />
+                )}
                 <span>Grup Oluştur</span>
               </button>
             )}
 
             {/* Groups */}
-            {groups.map((g) => {
+            {groups.map((g, groupIndex) => {
               const groupEntries = g.itemIdler
                 .map(lookupEntry)
                 .filter((e): e is { item: Item; quantity: number } => e !== undefined);
@@ -1044,9 +1515,78 @@ export function PlanLeftPanel() {
                       )}
                     </button>
 
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {groupTotal} kalem
+                    {/* Unloading order badge + move buttons */}
+                    <span
+                      title={`Boşaltma sırası: ${groupIndex + 1}`}
+                      className="shrink-0 text-[10px] tabular-nums text-zinc-400 bg-zinc-100 rounded px-1 py-0.5 leading-none"
+                    >
+                      ↑{groupIndex + 1}
                     </span>
+
+                    <div className="shrink-0 flex items-center opacity-0 group-hover/grp:opacity-100 transition-opacity">
+                      <button
+                        title="Yukarı taşı (önce boşalt)"
+                        disabled={groupIndex === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveGroup(g.id, 'up');
+                        }}
+                        className="w-4 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-700 disabled:opacity-20 disabled:cursor-not-allowed"
+                      >
+                        <ArrowUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        title="Aşağı taşı (sonra boşalt)"
+                        disabled={groupIndex === groups.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveGroup(g.id, 'down');
+                        }}
+                        className="w-4 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-700 disabled:opacity-20 disabled:cursor-not-allowed"
+                      >
+                        <ArrowDown className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <span className="text-xs text-zinc-400 shrink-0">{groupTotal} kalem</span>
+
+                    {/* Toggle group visibility */}
+                    {(() => {
+                      const isGroupHidden =
+                        g.itemIdler.length > 0 &&
+                        g.itemIdler.every((id) => hiddenItemIds.includes(id));
+                      return (
+                        <button
+                          title={isGroupHidden ? 'Grubu Göster' : 'Grubu Gizle'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleGroupVisibility(g.itemIdler);
+                          }}
+                          className={cn(
+                            'shrink-0 w-5 h-5 rounded flex items-center justify-center transition-opacity text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100',
+                            isGroupHidden ? 'opacity-100' : 'opacity-0 group-hover/grp:opacity-100',
+                          )}
+                        >
+                          {isGroupHidden ? (
+                            <EyeOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <Eye className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      );
+                    })()}
+
+                    {/* Delete group */}
+                    <button
+                      title="Grubu Sil"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGroup(g.id);
+                      }}
+                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
 
                     {/* Add products to group */}
                     <button
@@ -1066,7 +1606,35 @@ export function PlanLeftPanel() {
                       const id = entry.item.id;
                       const props = commonRowProps(id);
                       if (!props) return null;
-                      return <StoreItemRow key={id} {...props} indent iconColor={g.color} />;
+                      return (
+                        <StoreItemRow
+                          key={id}
+                          {...props}
+                          indent
+                          iconColor={g.color}
+                          onRemoveFromGroup={(action) => {
+                            setGroups((prev) =>
+                              prev.map((grp) =>
+                                grp.id === g.id
+                                  ? { ...grp, itemIdler: grp.itemIdler.filter((iid) => iid !== id) }
+                                  : grp,
+                              ),
+                            );
+                            if (action === 'ungroup') {
+                              setUngroupedIds((prev) => [...new Set([...prev, id])]);
+                            } else {
+                              togglePlacement(id);
+                            }
+                            if (fromPlanId && !isTempId(g.id)) {
+                              void assignItemToGroup.mutate({
+                                planId: fromPlanId,
+                                inputItemId: id,
+                                groupId: null,
+                              });
+                            }
+                          }}
+                        />
+                      );
                     })}
                 </div>
               );
@@ -1164,6 +1732,23 @@ export function PlanLeftPanel() {
                     Object.keys(usePlanStore.getState().skuColorMap).length %
                       SCENE.COLORS.SKU_PALETTE.length
                   ];
+                const planProps = commonRowProps(itemId);
+                if (planProps) {
+                  return (
+                    <StoreItemRow
+                      key={itemId}
+                      {...planProps}
+                      iconColor={itemIconColorMap[itemId]}
+                      onClearStackGroup={() =>
+                        setClearedStackGroups((prev) => {
+                          const next = new Set(prev);
+                          next.add(itemId);
+                          return next;
+                        })
+                      }
+                    />
+                  );
+                }
                 return (
                   <StoreItemRow
                     key={itemId}
@@ -1256,27 +1841,9 @@ export function PlanLeftPanel() {
               );
             })}
 
-            {/* Ungrouped plan items */}
-            {groupedUnloadedSections.noGroupPlan.length > 0 && (
-              <div className="flex flex-col gap-px">
-                {groupedUnloadedSections.noGroupPlan.map((ref) => {
-                  const props = commonRowProps(ref.id);
-                  if (!props) return null;
-                  return (
-                    <StoreItemRow key={ref.id} {...props} iconColor={itemIconColorMap[ref.id]} />
-                  );
-                })}
-              </div>
-            )}
-
             {/* Ungrouped catalog items */}
             {groupedUnloadedSections.noGroupCatalog.length > 0 && (
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2 px-3 py-1.5">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                    Katalog
-                  </span>
-                </div>
+              <div className="flex flex-col gap-px">
                 {groupedUnloadedSections.noGroupCatalog.map((ref) => {
                   const catalogItem = apiItems.find((i) => i.id === ref.id);
                   if (!catalogItem) return null;
@@ -1285,6 +1852,16 @@ export function PlanLeftPanel() {
                       Object.keys(usePlanStore.getState().skuColorMap).length %
                         SCENE.COLORS.SKU_PALETTE.length
                     ];
+                  const planProps = commonRowProps(ref.id);
+                  if (planProps) {
+                    return (
+                      <StoreItemRow
+                        key={ref.id}
+                        {...planProps}
+                        iconColor={itemIconColorMap[ref.id]}
+                      />
+                    );
+                  }
                   return (
                     <StoreItemRow
                       key={ref.id}
@@ -1336,35 +1913,117 @@ export function PlanLeftPanel() {
       </div>
 
       {/* Sticky "Gruba Ekle" panel — shown when in group selection mode */}
-      {groupSelectionMode && (
-        <div className="shrink-0 border-t border-border px-3 py-2 flex items-center justify-between gap-2 bg-background">
-          <span className="text-xs text-muted-foreground shrink-0">
-            {selectedForGroup.size} ürün seçildi
-          </span>
-          <div className="flex items-center gap-2">
+      {groupSelectionMode &&
+        (() => {
+          const allSelected =
+            groupSelectionItems.length > 0 &&
+            groupSelectionItems.every((item) => selectedForGroup.has(item.id));
+          return (
+            <div className="shrink-0 border-t border-zinc-100 px-3 py-2 flex items-center justify-between gap-2 bg-white">
+              <span className="text-xs text-zinc-500 shrink-0">
+                {selectedForGroup.size} ürün seçildi
+              </span>
+              <div className="flex items-center gap-1">
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          setGroupSelectionMode(null);
+                          setSelectedForGroup(new Set());
+                          setActiveTab('loaded');
+                        }}
+                        className="w-7 h-7 flex items-center justify-center rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      İptal
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          if (allSelected) {
+                            setSelectedForGroup(new Set());
+                          } else {
+                            setSelectedForGroup(new Set(groupSelectionItems.map((i) => i.id)));
+                          }
+                        }}
+                        className={cn(
+                          'w-7 h-7 flex items-center justify-center rounded transition-colors',
+                          allSelected
+                            ? 'text-zinc-900 bg-zinc-100 hover:bg-zinc-200'
+                            : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100',
+                        )}
+                      >
+                        <CheckCheck className="w-3.5 h-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {allSelected ? 'Tümünü Kaldır' : 'Tümünü Seç'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Button
+                  size="sm"
+                  disabled={selectedForGroup.size === 0}
+                  onClick={handleConfirmGroupSelection}
+                  className="h-7 text-xs bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40"
+                >
+                  Gruba Ekle ({selectedForGroup.size})
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+
+      <UnfitItemsPanel />
+
+      {/* Cascade distribution offer */}
+      {cascadeOffer && (
+        <div className="shrink-0 mx-3 mb-2 mt-1 rounded-xl border border-zinc-200 bg-white shadow-md p-3 flex flex-col gap-2">
+          <p className="text-xs text-zinc-700 leading-relaxed">
+            <span className="font-medium">{cascadeOffer.unfitCount} ürün</span> birincil araca
+            sığmadı. <span className="font-medium">{cascadeOffer.nextVehicleName}</span>&apos;a
+            otomatik dağıtmak ister misiniz?
+          </p>
+          <div className="flex items-center gap-2 justify-end">
             <button
-              onClick={() => {
-                setGroupSelectionMode(null);
-                setSelectedForGroup(new Set());
-                setActiveTab('loaded');
-              }}
-              className="h-7 text-xs text-muted-foreground hover:text-muted-foreground px-2 transition-colors"
+              onClick={dismissCascade}
+              className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors px-2 py-1"
             >
-              İptal
+              Hayır
             </button>
             <Button
               size="sm"
-              disabled={selectedForGroup.size === 0}
-              onClick={handleConfirmGroupSelection}
-              className="h-7 text-xs bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+              className="h-7 text-xs bg-zinc-900 text-white hover:bg-zinc-700"
+              onClick={() => {
+                const before = usePlanStore.getState().unfitItems.length;
+                acceptCascade();
+                const after = usePlanStore.getState().unfitItems.length;
+                const distributed = before - after;
+                if (distributed > 0) {
+                  toast.success(
+                    `${distributed} ürün ${cascadeOffer.nextVehicleName} aracına dağıtıldı.`,
+                    { position: 'bottom-right' },
+                  );
+                } else {
+                  toast.info(`Ürünler ${cascadeOffer.nextVehicleName} aracına da sığmadı.`, {
+                    position: 'bottom-right',
+                  });
+                }
+              }}
             >
-              Gruba Ekle ({selectedForGroup.size})
+              Evet, Dağıt
             </Button>
           </div>
         </div>
       )}
-
-      <UnfitItemsPanel />
 
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-border px-3 py-2 flex items-center gap-2">
@@ -1392,8 +2051,6 @@ export function PlanLeftPanel() {
           )}
         </div>
       )}
-
-      <AddItemModal open={showItemModal} onOpenChange={setShowItemModal} />
     </div>
   );
 }

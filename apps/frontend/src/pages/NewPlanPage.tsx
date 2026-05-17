@@ -1,27 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
-import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
   useUploadPlanThumbnail,
+  useRenameLoadingPlan,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -48,6 +39,9 @@ function PlanAutoLoader({
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
+  const setPlanName = usePlanStore((s) => s.setPlanName);
+  const setIsPlanDetail = usePlanStore((s) => s.setIsPlanDetail);
+  const syncGroups = usePlanStore((s) => s.syncGroups);
 
   const appliedRef = useRef(false);
 
@@ -58,15 +52,19 @@ function PlanAutoLoader({
 
   useEffect(() => {
     if (appliedRef.current || !isSuccess || !data) return;
-    if (!data.vehicle) return;
 
     appliedRef.current = true;
 
-    setVehicle(data.vehicle);
-    onVehicleSelected();
+    if (data.vehicle) {
+      setVehicle(data.vehicle);
+      onVehicleSelected();
+    }
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
+    setPlanName(data.planName ?? '');
+    setIsPlanDetail(true);
+    syncGroups(data.groups, data.itemGroupAssignments);
     onLoaded?.();
   }, [
     isSuccess,
@@ -75,6 +73,9 @@ function PlanAutoLoader({
     initItems,
     setPlacements,
     setUnplacedItems,
+    setPlanName,
+    setIsPlanDetail,
+    syncGroups,
     onVehicleSelected,
     onLoaded,
   ]);
@@ -89,19 +90,24 @@ export function NewPlanPage() {
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
   const [refetchKey, setRefetchKey] = useState(0);
-  const [nameDialogOpen, setNameDialogOpen] = useState(false);
-  const [planNameInput, setPlanNameInput] = useState('');
   const { id: fromPlanId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
   const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
+  const { mutateAsync: renamePlan } = useRenameLoadingPlan();
+
+  const planName = usePlanStore((s) => s.planName);
+  const placements = usePlanStore((s) => s.placements);
 
   useEffect(() => {
     if (!fromPlanId) {
-      usePlanStore.getState().reset();
+      const { planName: name, isPlanDetail } = usePlanStore.getState();
+      if (!name.trim() || isPlanDetail) {
+        usePlanStore.getState().reset();
+      }
     }
-    // fromPlanId is from URL params and stable per mount
+    // runs once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -125,41 +131,54 @@ export function NewPlanPage() {
     setRightOpen(false);
   }, []);
 
-  const handleOptimize = useCallback(() => {
-    const { selectedVehicle: vehicle, selectedItems: items, placements } = usePlanStore.getState();
-    if (!vehicle || items.length === 0) return;
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
-
-    const defaultName = `${vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
-    setPlanNameInput(defaultName);
-    setNameDialogOpen(true);
-  }, []);
-
   const handleConfirmCreate = useCallback(async () => {
     const {
       selectedVehicle: vehicle,
       selectedItems: items,
       placements,
       criteria,
+      planName: name,
     } = usePlanStore.getState();
-    if (!vehicle || !planNameInput.trim()) return;
+    if (!vehicle || !name.trim()) return;
+    if (vehicle.id === '00000000-0000-0000-0000-000000000000') {
+      toast.error('Seçili araç geçersiz. Lütfen araç listesinden tekrar seçin.', { position: 'bottom-right' });
+      return;
+    }
 
     const placedIds = new Set(placements.map((p) => p.itemId));
     const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
     if (itemsToSend.length === 0) return;
 
-    setNameDialogOpen(false);
-    const id = await createPlan({
-      planName: planNameInput.trim(),
-      vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
-      optimizationCriteria: criteria,
-    });
-    const dataUrl = snapshotRef.current?.();
-    if (dataUrl) uploadThumbnail({ id, dataUrl });
-    navigate(planningDetailRoute(id), { replace: true });
-  }, [planNameInput, createPlan, navigate, uploadThumbnail]);
+    try {
+      const id = await createPlan({
+        planName: name.trim(),
+        vehicleIds: [vehicle.id],
+        items: itemsToSend.map((si) => ({
+          itemId: si.item.id,
+          quantity: si.quantity,
+        })),
+        optimizationCriteria: criteria,
+      });
+      const dataUrl = snapshotRef.current?.();
+      if (dataUrl) uploadThumbnail({ id, dataUrl });
+      navigate(planningDetailRoute(id), { replace: true });
+    } catch {
+      // onError in useCreateLoadingPlan handles the toast
+    }
+  }, [createPlan, navigate, uploadThumbnail]);
+
+  const handleOptimize = useCallback(() => {
+    const {
+      selectedVehicle: vehicle,
+      selectedItems: items,
+      placements,
+      planName: name,
+    } = usePlanStore.getState();
+    if (!vehicle || items.length === 0 || !name.trim()) return;
+    const placedIds = new Set(placements.map((p) => p.itemId));
+    if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
+    void handleConfirmCreate();
+  }, [handleConfirmCreate]);
 
   const handlePlanLoaded = useCallback(() => {
     const planId = pendingSnapshotPlanId.current;
@@ -180,58 +199,50 @@ export function NewPlanPage() {
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
-    const { selectedVehicle: vehicle, selectedItems: items, criteria } = usePlanStore.getState();
+    const {
+      selectedVehicle: vehicle,
+      selectedItems: items,
+      criteria,
+      groups,
+      itemGroupAssignments,
+    } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
+    if (vehicle.id === '00000000-0000-0000-0000-000000000000') {
+      toast.error('Seçili araç geçersiz. Lütfen araç listesinden tekrar seçin.', { position: 'bottom-right' });
+      return;
+    }
 
-    await reoptimizePlan({
-      id: fromPlanId,
-      vehicleId: vehicle.id,
-      items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
-      optimizationCriteria: criteria,
-    });
-    pendingSnapshotPlanId.current = fromPlanId;
-    setRefetchKey((k) => k + 1);
-    setAnimationReady(true);
+    try {
+      await reoptimizePlan({
+        id: fromPlanId,
+        vehicleIds: [vehicle.id],
+        items: items.map((si) => ({
+          itemId: si.item.id,
+          quantity: si.quantity,
+          ...(itemGroupAssignments[si.item.id] ? { groupId: itemGroupAssignments[si.item.id] } : {}),
+        })),
+        optimizationCriteria: criteria,
+        ...(groups.length > 0 ? { groups } : {}),
+      });
+      pendingSnapshotPlanId.current = fromPlanId;
+      setRefetchKey((k) => k + 1);
+      setAnimationReady(true);
+    } catch {
+      // onError in useReoptimizeLoadingPlan handles the toast
+    }
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
-  return (
-    <div className="flex flex-col h-full bg-muted overflow-hidden">
-      <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Plan Adı</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
-              Yükleme planına bir ad verin
-            </Label>
-            <Input
-              id="plan-name"
-              value={planNameInput}
-              onChange={(e) => setPlanNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleConfirmCreate();
-              }}
-              className="h-9 text-sm"
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
-              İptal
-            </Button>
-            <Button
-              size="sm"
-              disabled={!planNameInput.trim() || isCreating}
-              onClick={() => void handleConfirmCreate()}
-              className="bg-foreground text-background hover:bg-foreground/80"
-            >
-              {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  const handleRenamePlan = useCallback(
+    async (name: string) => {
+      if (!fromPlanId) return;
+      usePlanStore.getState().setPlanName(name);
+      await renamePlan({ id: fromPlanId, planName: name });
+    },
+    [fromPlanId, renamePlan],
+  );
 
+  return (
+    <div className="flex flex-col h-full bg-zinc-100 overflow-hidden">
       {fromPlanId && (
         <PlanAutoLoader
           planId={fromPlanId}
@@ -242,12 +253,7 @@ export function NewPlanPage() {
       )}
       {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
       <div className="relative flex flex-1 min-h-0 overflow-hidden">
-        {/* BalancePanel — sağ panelin solunda */}
-        <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
-          <BalancePanel />
-        </div>
-
-        {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
+        {/* Sol panel toggle butonu */}
         <button
           onClick={() => setLeftOpen((v) => !v)}
           title={leftOpen ? 'Ürünler panelini kapat' : 'Ürünler panelini aç'}
@@ -270,8 +276,11 @@ export function NewPlanPage() {
             leftOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-            <PlanLeftPanel />
+          <div className="h-full bg-white rounded-xl border border-zinc-200 overflow-hidden">
+            <PlanLeftPanel
+              fromPlanId={fromPlanId}
+              onRenamePlan={fromPlanId ? handleRenamePlan : undefined}
+            />
           </div>
         </div>
 
@@ -287,7 +296,7 @@ export function NewPlanPage() {
           </div>
         </div>
 
-        {/* Sağ panel — her zaman görünür, araç listesi toggle ile açılır/kapanır */}
+        {/* Sağ panel */}
         <div className="absolute top-[68px] bottom-3 right-0 w-[320px] z-10 px-3">
           <PlanRightPanel
             vehiclesOpen={rightOpen}
@@ -295,7 +304,7 @@ export function NewPlanPage() {
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
             onLoadAnimation={handleLoadAnimation}
             isOptimizing={fromPlanId ? isReoptimizing : isCreating}
-            canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
+            canOptimize={fromPlanId ? !isReoptimizing : !isCreating && !!planName.trim() && placements.length > 0}
             getSnapshot={() => snapshotRef.current?.() ?? ''}
             planId={fromPlanId}
             planName={planDetail?.planName}
