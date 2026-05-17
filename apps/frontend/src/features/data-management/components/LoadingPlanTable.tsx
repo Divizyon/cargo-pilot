@@ -229,10 +229,10 @@ export function LoadingPlanTable({ filters, onPlanSelect }: Props) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const { search, statusTab, plate, vehicleNames, dateFrom, dateTo } = filters;
+  const { search, statusTab, dateFrom, dateTo } = filters;
 
   const { data, isLoading, isError } = useLoadingPlanList(
-    { search, status: statusTab, plate, vehicleNames, dateFrom, dateTo },
+    { search, status: statusTab === 'all' ? undefined : statusTab, dateFrom, dateTo },
     page,
     pageSize,
   );

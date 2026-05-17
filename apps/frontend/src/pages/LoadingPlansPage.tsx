@@ -37,10 +37,10 @@ function CardGrid({ filters }: CardGridProps) {
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  const { search, plate, vehicleNames, dateFrom, dateTo } = filters;
+  const { search, statusTab, dateFrom, dateTo } = filters;
 
   const { data, isLoading } = useLoadingPlanList(
-    { search, plate, vehicleNames, dateFrom, dateTo },
+    { search, status: statusTab === 'all' ? undefined : statusTab, dateFrom, dateTo },
     page,
     pageSize,
   );
@@ -120,10 +120,8 @@ export function LoadingPlansPage() {
   const completedCount = completedData?.totalCount ?? 0;
   const draftCount = draftData?.totalCount ?? 0;
 
-  const allVehicleNames = allData?.allVehicleNames ?? [];
-
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* Başlık */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -134,7 +132,10 @@ export function LoadingPlansPage() {
         </div>
       </div>
 
-      {/* Anlık görüntü (snapshot) bölümü */}
+      {/* Filtre çubuğu — başlığın hemen altında */}
+      <LoadingPlanFilterBar filters={filters} />
+
+      {/* Anlık görüntü (snapshot) */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={<FileText className="h-5 w-5" />} value={totalCount} label="Toplam Plan" />
         <StatCard
@@ -152,10 +153,7 @@ export function LoadingPlansPage() {
         <StatCard icon={<ClipboardList className="h-5 w-5" />} value={draftCount} label="Taslak" />
       </div>
 
-      {/* Arama + filtre çubuğu (snapshot'ın hemen altında, sabit — AC1) */}
-      <LoadingPlanFilterBar filters={filters} allVehicleNames={allVehicleNames} />
-
-      {/* Kart grid (3 sütun — AC6) */}
+      {/* Kart grid */}
       <CardGrid filters={filters} />
     </div>
   );
