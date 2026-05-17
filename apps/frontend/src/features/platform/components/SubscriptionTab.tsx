@@ -227,7 +227,7 @@ export function SubscriptionTab() {
               </p>
 
               {/* Price */}
-              <div className="mb-3 flex items-end gap-1">
+              <div className="mb-1 flex items-end gap-1">
                 <span className="text-3xl font-extrabold tracking-tight text-foreground">
                   {plan.price}
                 </span>
@@ -235,6 +235,9 @@ export function SubscriptionTab() {
                   <span className="mb-0.5 text-sm text-muted-foreground">{plan.period}</span>
                 )}
               </div>
+              <p className={cn('mb-1 text-[11px] text-muted-foreground', !plan.period && 'invisible')}>
+                KDV dahil
+              </p>
 
               {/* Divider */}
               <Separator className="mb-3" />
