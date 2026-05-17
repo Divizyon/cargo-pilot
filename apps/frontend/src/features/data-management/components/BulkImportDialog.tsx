@@ -229,7 +229,7 @@ export function BulkImportDialog({
   draftItemIds,
 }: BulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [rows, setRows] = useState<EditableRow[]>([]);
+  const [rows, setRows] = useState<EditableRow[]>(() => initialRows ?? []);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
 
   const prevOpenRef = useRef(false);
@@ -315,7 +315,7 @@ export function BulkImportDialog({
 
   // ─── Empty state: file picker ─────────────────────────────────────────────
 
-  if (rows.length === 0) {
+  if (rows.length === 0 && !draftItemIds) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-lg">
