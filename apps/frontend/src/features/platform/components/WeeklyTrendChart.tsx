@@ -16,6 +16,8 @@ interface Props {
 }
 
 export function WeeklyTrendChart({ data }: Props) {
+  const hasTeslim = data.some((d) => d.teslim > 0);
+
   return (
     <div className="rounded-xl border bg-card p-4 shadow-none">
       <div className="flex items-start justify-between mb-1">
@@ -50,14 +52,16 @@ export function WeeklyTrendChart({ data }: Props) {
             fill="#18181b"
             fillOpacity={0.08}
           />
-          <Area
-            type="monotone"
-            dataKey="teslim"
-            stroke="#d4d4d8"
-            strokeWidth={1.5}
-            fill="#d4d4d8"
-            fillOpacity={0.3}
-          />
+          {hasTeslim && (
+            <Area
+              type="monotone"
+              dataKey="teslim"
+              stroke="#d4d4d8"
+              strokeWidth={1.5}
+              fill="#d4d4d8"
+              fillOpacity={0.3}
+            />
+          )}
         </AreaChart>
       </ChartContainer>
     </div>
