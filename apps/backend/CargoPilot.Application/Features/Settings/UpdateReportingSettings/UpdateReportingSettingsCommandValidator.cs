@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace CargoPilot.Application.Features.Settings.UpdateReportingSettings;
 
-internal sealed class UpdateReportingSettingsCommandValidator
+public sealed class UpdateReportingSettingsCommandValidator
     : AbstractValidator<UpdateReportingSettingsCommand>
 {
     public UpdateReportingSettingsCommandValidator()
