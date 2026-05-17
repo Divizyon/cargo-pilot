@@ -45,7 +45,7 @@ public sealed class ApproveDraftItemCommandHandler : IRequestHandler<ApproveDraf
             existingItem.Update(draft.SKU, draft.Barcode, draft.Name, draft.ProductType, draft.Category,
                 draft.Width, draft.Height, draft.Length, draft.Diameter, draft.Weight, draft.FragilityType,
                 draft.IsStackable, draft.MaxStackCount, draft.MaxWeightOnTop, draft.AllowedRotations,
-                draft.ImageUrl, draft.StackGroup, draft.SpecialNotes, draft.GetConstraintIds());
+                draft.ImageUrl, draft.StackGroup, null, draft.SpecialNotes, draft.GetConstraintIds());
 
             draft.Approve();
 
