@@ -27,15 +27,16 @@ export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
 };
 
 // loadingType int → { direction, doorSide }
+// Backend: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
 export const LOADING_TYPE_FROM_INT: Record<
   number,
   { direction: DoorDirection; doorSide?: 'right' | 'left' }
 > = {
-  0: { direction: DoorDirection.Front },
-  1: { direction: DoorDirection.Front },
-  2: { direction: DoorDirection.Front },
-  3: { direction: DoorDirection.Front },
-  4: { direction: DoorDirection.Front },
+  0: { direction: DoorDirection.Rear },
+  1: { direction: DoorDirection.Side, doorSide: 'right' },
+  2: { direction: DoorDirection.Side, doorSide: 'left' },
+  3: { direction: DoorDirection.RearAndSide },
+  4: { direction: DoorDirection.Top },
 };
 
 // ─── Backend response schema ──────────────────────────────────────────────────
