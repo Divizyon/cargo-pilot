@@ -570,7 +570,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           onClick={() => exportItemsToExcel(filteredItems ?? [])}
           disabled={!filteredItems || filteredItems.length === 0}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Upload className="h-3.5 w-3.5" />
           Dışa Aktar
         </Button>
 
@@ -581,7 +581,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           className="shrink-0 gap-1.5 text-xs"
           onClick={() => setShowBulkImport(true)}
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           İçe Aktar
         </Button>
 
