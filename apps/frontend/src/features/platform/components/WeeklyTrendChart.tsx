@@ -9,7 +9,6 @@ import type { WeeklyTrendItem } from '@/lib/api/useDashboardStats';
 
 const chartConfig: ChartConfig = {
   sevkiyat: { label: 'Sevkiyat', color: 'var(--color-sevkiyat)' },
-  teslim: { label: 'Teslim', color: 'var(--color-teslim)' },
 };
 
 interface Props {
@@ -22,16 +21,12 @@ export function WeeklyTrendChart({ data }: Props) {
       <div className="flex items-start justify-between mb-1">
         <div>
           <p className="text-base font-semibold text-foreground">Haftalık Sevkiyat Trendi</p>
-          <p className="text-sm text-muted-foreground">Toplam sevkiyat ve teslim karşılaştırması</p>
+          <p className="text-sm text-muted-foreground">Toplam sevkiyat trendi</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full bg-foreground" />
             Sevkiyat
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-zinc-300" />
-            Teslim
           </span>
         </div>
       </div>
