@@ -147,7 +147,7 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
 const PALLET_HEIGHT_CM = 14;
 
 function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
-  // Palet sabit 14 cm; kargo kutusu kalan yükseklik
+  // heightCm = kullanıcının girdiği toplam yükseklik; palet sabit 14 cm, kargo = kalan
   const paletH = Math.min(PALLET_HEIGHT_CM, heightCm);
   const cargoH = Math.max(0, heightCm - paletH);
   const totalH = paletH + cargoH;
@@ -161,8 +161,8 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
   const crossD = 0.5 * yUnit;
   const crossGapD = yUnit;
 
-  const slatH = paletH * 2;
-  const carrierH = paletH * 0.25;
+  const slatH = paletH * 0.22;
+  const carrierH = paletH * 0.5;
   const crossH = paletH;
 
   const [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges] = useMemo(() => {
