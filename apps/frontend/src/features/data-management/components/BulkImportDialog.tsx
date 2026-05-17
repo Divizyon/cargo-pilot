@@ -55,10 +55,11 @@ interface BulkImportDialogProps {
 
 // ─── Row model ────────────────────────────────────────────────────────────────
 
+const LOAD_GROUPS = ['Kimya', 'Tehlikeli Madde', 'Gıda', 'Elektronik', 'Tekstil', 'Genel'] as const;
+
 const editableRowSchema = z.object({
   _id: z.string(),
   sku: z.string(),
-  barcode: z.string(),
   name: z.string(),
   tip: z.string(),
   width: z.string(),
@@ -67,6 +68,7 @@ const editableRowSchema = z.object({
   weight: z.string(),
   fragility: z.string(),
   constraintIds: z.array(z.number().int()),
+  incompatibleGroups: z.array(z.string()),
   isStackable: z.boolean(),
   maxStackCount: z.string(),
   allowRotateX: z.boolean(),
@@ -78,7 +80,10 @@ const editableRowSchema = z.object({
 export type EditableRow = z.infer<typeof editableRowSchema>;
 
 type RowErrors = Partial<
-  Record<'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight', string>
+  Record<
+    'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight' | 'incompatibleGroups',
+    string
+  >
 >;
 
 // ─── Validation & mapping ─────────────────────────────────────────────────────
@@ -92,6 +97,7 @@ function validateRow(row: EditableRow): RowErrors {
   if (!row.height || Number(row.height) <= 0) e.height = 'Pozitif sayı';
   if (!row.length || Number(row.length) <= 0) e.length = 'Pozitif sayı';
   if (!row.weight || Number(row.weight) <= 0) e.weight = 'Pozitif sayı';
+  if (row.incompatibleGroups.length === 0) e.incompatibleGroups = 'Zorunlu alan';
   return e;
 }
 
@@ -109,7 +115,6 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
   const fragilityType = row.constraintIds.length > 0 ? Math.max(...row.constraintIds) : 0;
   return {
     sku: row.sku.trim(),
-    barcode: row.barcode.trim() || null,
     name: row.name.trim(),
     productType: row.tip,
     category: tipToCategory(row.tip),
@@ -123,6 +128,7 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
     constraintIds: row.constraintIds,
+    incompatibleGroups: row.incompatibleGroups,
     specialNotes: row.notes.trim() || null,
   };
 }
@@ -145,8 +151,8 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
     maxStackCount,
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
-    barcode: row.barcode.trim() || null,
     constraintIds: row.constraintIds,
+    incompatibleGroups: row.incompatibleGroups,
     specialNotes: row.notes.trim() || null,
   };
 }
@@ -167,7 +173,6 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
     editableRowSchema.parse({
       _id: crypto.randomUUID(),
       sku: String(r['SKU'] ?? ''),
-      barcode: String(r['Barkod'] ?? ''),
       name: String(r['Ürün Adı'] ?? ''),
       tip:
         String(r['Tip (koli/varil/palet)'] ?? '')
@@ -182,6 +187,10 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
         const v = Number(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? 0);
         return v > 0 ? [v] : [];
       })(),
+      incompatibleGroups: String(r['Yük Grubu'] ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => (LOAD_GROUPS as readonly string[]).includes(s)),
       isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
       maxStackCount: String(r['Maks Kat'] ?? '1'),
       allowRotateX: parseBool(r['X Dönüşümü (true/false)'], true),
@@ -196,7 +205,6 @@ function emptyRow(): EditableRow {
   return editableRowSchema.parse({
     _id: crypto.randomUUID(),
     sku: '',
-    barcode: '',
     name: '',
     tip: '',
     width: '',
@@ -205,6 +213,7 @@ function emptyRow(): EditableRow {
     weight: '',
     fragility: '0',
     constraintIds: [],
+    incompatibleGroups: [],
     isStackable: false,
     maxStackCount: '1',
     allowRotateX: true,
@@ -265,6 +274,67 @@ function FragilityCell({ constraintIds, onChange }: FragilityCellProps) {
                 onCheckedChange={() => toggle(opt.value)}
               />
               {opt.label}
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── Load group multi-select cell ─────────────────────────────────────────────
+
+interface LoadGroupCellProps {
+  selected: string[];
+  error?: string;
+  onChange: (groups: string[]) => void;
+}
+
+function LoadGroupCell({ selected, error, onChange }: LoadGroupCellProps) {
+  const set = new Set(selected);
+
+  const label =
+    selected.length === 0
+      ? 'Seçiniz'
+      : selected.length === 1
+        ? selected[0]
+        : `${selected[0]}, ${selected.slice(1).join(', ')}`.slice(0, 16) +
+          (selected.length > 1 ? '…' : '');
+
+  function toggle(g: string) {
+    const next = new Set(set);
+    if (next.has(g)) next.delete(g);
+    else next.add(g);
+    onChange(Array.from(next));
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex h-7 w-full items-center justify-between gap-1 rounded border px-1.5 text-xs',
+            error
+              ? 'border-destructive bg-destructive/5 text-destructive'
+              : selected.length > 0
+                ? 'border-border bg-background text-foreground'
+                : 'border-border bg-background text-muted-foreground',
+          )}
+        >
+          <span className="truncate">{label}</span>
+          <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2" align="start">
+        <div className="space-y-1">
+          {LOAD_GROUPS.map((g) => (
+            <label
+              key={g}
+              className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-muted"
+            >
+              <Checkbox checked={set.has(g)} onCheckedChange={() => toggle(g)} />
+              {g}
             </label>
           ))}
         </div>
@@ -510,13 +580,13 @@ export function BulkImportDialog({
                 <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
                 <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
                 <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
-                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Barkod</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk/Çap (X) *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik (Y) *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Derinlik (Z) *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
                 <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Kırılganlık</th>
+                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Yük Grubu *</th>
                 <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
@@ -558,14 +628,6 @@ export function BulkImportDialog({
                         value={row.sku}
                         onChange={(v) => patchRow(row._id, { sku: v })}
                         error={errs.sku}
-                      />
-                    </td>
-
-                    {/* Barkod */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.barcode}
-                        onChange={(v) => patchRow(row._id, { barcode: v })}
                       />
                     </td>
 
@@ -640,6 +702,15 @@ export function BulkImportDialog({
                             fragility: ids.length > 0 ? String(Math.max(...ids)) : '0',
                           })
                         }
+                      />
+                    </td>
+
+                    {/* Yük Grubu */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <LoadGroupCell
+                        selected={row.incompatibleGroups}
+                        error={errs.incompatibleGroups}
+                        onChange={(groups) => patchRow(row._id, { incompatibleGroups: groups })}
                       />
                     </td>
 

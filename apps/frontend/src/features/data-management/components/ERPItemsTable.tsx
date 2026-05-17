@@ -99,6 +99,7 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
     allowRotateY,
     allowRotateZ,
     constraintIds: item.constraintIds ?? [],
+    incompatibleGroups: [],
     notes: item.specialNotes ?? '',
   };
 }
