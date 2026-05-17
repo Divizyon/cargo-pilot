@@ -1,11 +1,27 @@
 import { z } from 'zod';
 import {
   toCentimeters,
+  fromCentimeters,
+  toKilograms,
+  fromKilograms,
   type ProductFormValues,
   type ProductType,
+  type DimensionUnitKey,
+  type WeightUnitKey,
 } from '@/features/data-management/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
+
+const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
+  Kimya: ['Gıda', 'Elektronik', 'Tekstil'],
+  'Tehlikeli Madde': ['Gıda', 'Genel', 'Tekstil'],
+  Gıda: ['Kimya', 'Tehlikeli Madde'],
+  Elektronik: ['Kimya', 'Tehlikeli Madde'],
+  Tekstil: ['Kimya', 'Tehlikeli Madde'],
+  Genel: ['Tehlikeli Madde'],
+};
+
+const PALLET_HEIGHT_CM = 14;
 
 export const ITEM_CATEGORY = {
   Package: 0,
@@ -17,7 +33,11 @@ export type ItemCategoryValue = (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGOR
 export const ALLOWED_ROTATIONS = {
   All: 0,
   NoVertical: 1,
-  Fixed: 2,
+  AllLocked: 2,
+  NoYaw: 3,
+  PitchOnly: 4,
+  RollOnly: 5,
+  YawOnly: 6,
 } as const;
 export type AllowedRotationsValue = (typeof ALLOWED_ROTATIONS)[keyof typeof ALLOWED_ROTATIONS];
 
@@ -55,9 +75,14 @@ export function toAllowedRotations(
   allowRotateY: boolean,
   allowRotateZ: boolean,
 ): AllowedRotationsValue {
-  if (allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.All;
-  if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoVertical;
-  return ALLOWED_ROTATIONS.Fixed;
+  if (allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.All; // T T T
+  if (!allowRotateX && allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.NoVertical; // F T F
+  if (!allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.AllLocked; // F F F
+  if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // T F T
+  if (allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.PitchOnly; // T F F
+  if (!allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.RollOnly; // F F T
+  if (!allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // F T T → en yakın
+  return ALLOWED_ROTATIONS.AllLocked; // T T F → fallback
 }
 
 export function toMaxWeightOnTop(
@@ -123,11 +148,22 @@ function fromAllowedRotations(v: number): {
   allowRotateY: boolean;
   allowRotateZ: boolean;
 } {
-  if (v === ALLOWED_ROTATIONS.All)
-    return { allowRotateX: true, allowRotateY: true, allowRotateZ: true };
-  if (v === ALLOWED_ROTATIONS.NoVertical)
-    return { allowRotateX: true, allowRotateY: false, allowRotateZ: true };
-  return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
+  switch (v) {
+    case ALLOWED_ROTATIONS.All:
+      return { allowRotateX: true, allowRotateY: true, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.NoVertical:
+      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.NoYaw:
+      return { allowRotateX: true, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.PitchOnly:
+      return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
+    case ALLOWED_ROTATIONS.RollOnly:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.YawOnly:
+      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
+    default:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
+  }
 }
 
 export function fromApiItem(api: ItemApi): Item {
@@ -159,14 +195,16 @@ export function fromApiItem(api: ItemApi): Item {
 }
 
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
+  const { dimensionUnit, weightUnit } = useUnitStore.getState();
+  const unit = dimensionUnit as DimensionUnitKey;
   return {
     name: item.name,
     sku: item.sku,
     productType: item.productType,
-    width: item.width,
-    height: item.height,
-    length: item.length,
-    weight: item.weight,
+    width: fromCentimeters(item.width, unit),
+    height: fromCentimeters(item.height, unit),
+    length: fromCentimeters(item.length, unit),
+    weight: fromKilograms(item.weight, weightUnit as WeightUnitKey),
     fragility: item.fragility,
     isStackable: item.isStackable,
     maxStackCount: item.maxStackCount,
@@ -176,7 +214,12 @@ export function itemToFormValues(item: Item): Partial<ProductFormValues> {
     notes: item.specialNotes ?? '',
     stackGroup: item.stackGroup ?? undefined,
     constraintIds: item.constraintIds ?? [],
-    incompatibleGroups: item.incompatibleGroups ?? [],
+    incompatibleGroups:
+      (item.incompatibleGroups ?? []).length > 0
+        ? item.incompatibleGroups
+        : item.stackGroup
+          ? (INCOMPATIBLE_BY_GROUP[item.stackGroup] ?? [])
+          : [],
   };
 }
 
@@ -185,9 +228,10 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
   const maxStackCount = isStackable ? (values.maxStackCount ?? 1) : 0;
   const trimmedNotes = values.notes?.trim();
 
-  const { dimensionUnit } = useUnitStore.getState();
+  const { dimensionUnit, weightUnit } = useUnitStore.getState();
   const widthCm = toCentimeters(values.width, dimensionUnit);
   const isVaril = values.productType === 'varil';
+  const weightKg = toKilograms(values.weight, weightUnit as WeightUnitKey);
 
   return {
     sku: values.sku,
@@ -195,13 +239,15 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
     productType: values.productType,
     category: toCategory(values.productType),
     width: widthCm,
-    height: toCentimeters(values.height, dimensionUnit),
+    height:
+      toCentimeters(values.height, dimensionUnit) +
+      (values.productType === 'palet' ? PALLET_HEIGHT_CM : 0),
     length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
-    weight: values.weight,
+    weight: weightKg,
     fragilityType: values.fragility,
     isStackable,
     maxStackCount,
-    maxWeightOnTop: toMaxWeightOnTop(values.weight, isStackable, maxStackCount),
+    maxWeightOnTop: toMaxWeightOnTop(weightKg, isStackable, maxStackCount),
     allowedRotations: toAllowedRotations(
       values.allowRotateX,
       values.allowRotateY,

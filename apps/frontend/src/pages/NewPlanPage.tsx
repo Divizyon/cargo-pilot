@@ -246,7 +246,7 @@ export function NewPlanPage() {
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
-    <div className="flex flex-col h-full bg-muted overflow-hidden">
+    <div className="flex flex-col h-full bg-page-background overflow-hidden">
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>

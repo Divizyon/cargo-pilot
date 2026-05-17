@@ -302,6 +302,22 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         if (ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
         if (ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
 
+        // Yükseklikler farklıysa: eski konumların üstündeki kutular havada kalabilir.
+        // a, B'nin eski Y'sindedir (a.Y = B_eski.Y); a.H = A'nın yüksekliği → A'nın eski üst yüzeyi = b.Y + a.H
+        // b, A'nın eski Y'sindedir (b.Y = A_eski.Y); b.H = B'nin yüksekliği → B'nin eski üst yüzeyi = a.Y + b.H
+        if (a.H != b.H)
+        {
+            var oldATopY = b.Y + a.H;
+            var oldBTopY = a.Y + b.H;
+
+            foreach (var c in others)
+            {
+                if (c.Y != oldATopY && c.Y != oldBTopY) continue;
+                var supportersOfC = others.Where(p => p != c).Append(a).Append(b).ToList();
+                if (!HasSupportFor(c, supportersOfC)) return false;
+            }
+        }
+
         return true;
     }
 

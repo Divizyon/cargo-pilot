@@ -1,6 +1,7 @@
 using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
+using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
@@ -10,6 +11,7 @@ using CargoPilot.Application.Features.Plans.Groups.DeleteGroup;
 using CargoPilot.Application.Features.Plans.Groups.UpdateGroup;
 using CargoPilot.Application.Features.Plans.ReOptimizePlan;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
+using CargoPilot.Application.Features.Plans.UploadPlanThumbnail;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -150,6 +152,26 @@ public sealed class PlansController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new UpdatePlanNameCommand(id, request.PlanName), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Dashboard istatistiklerini döner: araç verimliliği (ortalama fill rate), toplam yüklenen tonaj ve toplam yükleme sayısı.
+    /// Sadece OptimizationStatus = Calculated olan planlar dahil edilir.
+    /// startDate/endDate parametreleri sağlanmazsa tüm zamanı kapsar.
+    /// </summary>
+    /// <param name="startDate">Başlangıç tarihi (UTC, opsiyonel).</param>
+    /// <param name="endDate">Bitiş tarihi (UTC, opsiyonel).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Dashboard istatistikleri döner.</response>
+    [HttpGet("stats")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDashboardStats(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetDashboardStatsQuery(startDate, endDate), cancellationToken);
         return HandleResult(result);
     }
 
@@ -304,6 +326,29 @@ public sealed class PlansController : BaseController
     }
 
     /// <summary>
+    /// Yükleme planına thumbnail yükler.
+    /// </summary>
+    /// <param name="id">Planın ID'si.</param>
+    /// <param name="request">Base64 formatında görüntü.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Thumbnail URL döndürüldü.</response>
+    /// <response code="400">Geçersiz görüntü formatı.</response>
+    /// <response code="404">Plan bulunamadı.</response>
+    [HttpPost("{id:guid}/thumbnail")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadThumbnail(
+        [FromRoute] Guid id,
+        [FromBody] UploadThumbnailRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UploadPlanThumbnailCommand(id, request.ImageBase64);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Yükleme planını soft-delete ile siler.
     /// </summary>
     /// <param name="id">Silinecek planın ID'si.</param>
@@ -345,4 +390,7 @@ public sealed record DeleteGroupRequest(
 
 /// <summary>PUT /items/{inputItemId}/group request body.</summary>
 public sealed record AssignItemToGroupRequest(Guid? GroupId);
+
+/// <summary>POST /{id}/thumbnail request body.</summary>
+public sealed record UploadThumbnailRequest(string ImageBase64);
 

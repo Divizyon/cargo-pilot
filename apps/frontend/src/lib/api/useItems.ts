@@ -58,6 +58,8 @@ export interface ItemFilters {
   search?: string;
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface PaginatedItems {
@@ -75,6 +77,8 @@ export function useItems(filters?: ItemFilters) {
       if (filters?.search) params.set('searchTerm', filters.search);
       if (filters?.page !== undefined) params.set('page', String(filters.page));
       if (filters?.pageSize !== undefined) params.set('pageSize', String(filters.pageSize));
+      if (filters?.sortBy) params.set('sortBy', filters.sortBy);
+      if (filters?.sortOrder) params.set('sortOrder', filters.sortOrder);
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`${ITEMS_ENDPOINT}${qs ? `?${qs}` : ''}`);
       const parsed = paginatedItemsApiSchema.parse(data);

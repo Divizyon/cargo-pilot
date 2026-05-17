@@ -28,6 +28,7 @@ export type DimensionUnitId = (typeof DIMENSION_UNITS)[DimensionUnitKey];
 
 export const WEIGHT_UNITS = {
   kg: 1,
+  ton: 1000,
 } as const;
 
 export type WeightUnitKey = keyof typeof WEIGHT_UNITS;
@@ -61,14 +62,7 @@ export const productSchema = z
   .refine((data) => !data.isStackable || data.maxStackCount !== undefined, {
     message: 'validations.product.maxStackRequired',
     path: ['maxStackCount'],
-  })
-  .refine(
-    (data) => {
-      if (data.productType !== 'palet') return true;
-      return data.height <= 20;
-    },
-    { message: 'validations.product.paletMaxHeight', path: ['height'] },
-  );
+  });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -81,10 +75,19 @@ export function toCentimeters(value: number, unit: DimensionUnitKey): number {
   return value * TO_CM[unit];
 }
 
+export function fromCentimeters(cm: number, unit: DimensionUnitKey): number {
+  return cm / TO_CM[unit];
+}
+
 const TO_KG: Record<WeightUnitKey, number> = {
   kg: 1,
+  ton: 1000,
 };
 
 export function toKilograms(value: number, unit: WeightUnitKey): number {
   return value * TO_KG[unit];
+}
+
+export function fromKilograms(kg: number, unit: WeightUnitKey): number {
+  return kg / TO_KG[unit];
 }

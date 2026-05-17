@@ -1,3 +1,4 @@
+using CargoPilot.Domain.Enums;
 using FluentValidation;
 
 namespace CargoPilot.Application.Features.Vehicles.CreateVehicle;
@@ -16,8 +17,8 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
             .IsInEnum().WithMessage("Geçersiz araç tipi.");
 
         RuleFor(x => x.PlateNumber)
-            .NotEmpty().WithMessage("Plaka zorunludur.")
-            .MaximumLength(50).WithMessage("Plaka en fazla 50 karakter olabilir.");
+            .MaximumLength(50).WithMessage("Plaka en fazla 50 karakter olabilir.")
+            .When(x => x.PlateNumber is not null);
 
         RuleFor(x => x.InternalWidth)
             .GreaterThan(0).WithMessage("İç genişlik sıfırdan büyük olmalıdır.");
@@ -36,6 +37,11 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
 
         RuleFor(x => x.LoadingType)
             .IsInEnum().WithMessage("Geçersiz yükleme tipi.");
+
+        When(x => x.VehicleType == VehicleType.Container, () =>
+            RuleFor(x => x.LoadingType)
+                .NotEqual(LoadingType.Top)
+                .WithMessage("Konteyner için üst yükleme yönü geçerli değildir."));
 
         When(x => x.KingPinDistanceMm.HasValue, () =>
             RuleFor(x => x.KingPinDistanceMm!.Value)

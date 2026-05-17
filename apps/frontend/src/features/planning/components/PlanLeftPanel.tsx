@@ -877,7 +877,7 @@ export function PlanLeftPanel() {
       <div className="px-2 pt-2 shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
           <TabsList className="w-full h-7 bg-muted">
-            <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
+            <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
               Ürün Listesi
               <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
                 {(() => {
@@ -892,7 +892,7 @@ export function PlanLeftPanel() {
                 })()}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
+            <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
               Yüklü Ürünler
               <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
                 ({placedIds.size})

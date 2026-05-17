@@ -26,7 +26,12 @@ interface BoxWrapperProps {
 
 // ─── PaletContent ──────────────────────────────────────────────────────────────
 // Tahtalı palet yapısı — center-relative koordinatlarda (origin = bounding box merkezi).
-// Üst deck (6 tahta) + bağlantı blokları (3×3) + alt stringer (3 tahta).
+// Backend toplam yüksekliği (palet + kargo) gönderir.
+// Palet: sabit PALLET_H_CM yüksekliğinde tahtalı yapı (alt kısım).
+// Kargo: kalan yükseklikte düz kutu (üst kısım), ürün rengiyle.
+
+const PALLET_H_CM = 14;
+const PALLET_WOOD_COLOR = '#c8a96e';
 
 function PaletMat({
   color,
@@ -56,6 +61,7 @@ function PaletContent({
   opacity,
   isSelected,
   isGhosted,
+  labelTexture,
 }: {
   width: number;
   height: number;
@@ -64,20 +70,25 @@ function PaletContent({
   opacity: number;
   isSelected: boolean;
   isGhosted: boolean;
+  labelTexture?: THREE.Texture | null;
 }) {
-  // Yükseklik dağılımı: %20 üst deck, %60 bloklar, %20 alt stringer
-  const deckH = height * 0.2;
-  const blockH = height * 0.6;
+  // Backend toplam yüksekliği gönderir: paletH sabit, cargoH = kalan
+  const paletH = Math.min(PALLET_H_CM, height);
+  const cargoH = Math.max(0, height - paletH);
 
-  // Genişlik: 6 tahta + 5 boşluk, tahta=3x, boşluk=x → 23x=width
+  // Palet geometrisi için oransal hesaplar (paletH üzerinden)
+  const deckH = paletH * 0.2;
+  const blockH = paletH * 0.6;
+
+  // Genişlik: 6 tahta + 5 boşluk → 23x=width
   const xUnit = width / 23;
   const slatW = 3 * xUnit;
 
-  // Derinlik: 3 stringer (ProductPreview3D ile aynı oran: yUnit = depth/3.5)
+  // Derinlik: 3 stringer
   const yUnit = depth / 3.5;
   const crossD = 0.5 * yUnit;
 
-  // 6 üst tahta merkez X (center-relative)
+  // 6 üst tahta merkez X (center-relative, tüm bounding box merkezine göre)
   const slatCentersX = useMemo(() => {
     const unit = width / 23;
     const sw = 3 * unit;
@@ -91,8 +102,15 @@ function PaletContent({
     return Array.from({ length: 3 }, (_, i) => -depth / 2 + i * (cd + unit) + cd / 2);
   }, [depth]);
 
-  const topY = height / 2 - deckH / 2;
-  const btmY = -height / 2 + deckH / 2;
+  // Bounding box merkezi = Y:0. Palet altta, kargo üstte.
+  // Palet alt kenarı: -height/2, üst kenarı: -height/2 + paletH
+  // Kargo alt kenarı: -height/2 + paletH, üst kenarı: +height/2
+  const paletBottomY = -height / 2;
+  const paletCenterY = paletBottomY + paletH / 2;
+  const cargoCenterY = paletBottomY + paletH + cargoH / 2;
+
+  const topDeckY = paletCenterY + paletH / 2 - deckH / 2;
+  const btmDeckY = paletCenterY - paletH / 2 + deckH / 2;
 
   if (isGhosted) {
     return (
@@ -111,28 +129,62 @@ function PaletContent({
 
   return (
     <>
-      {/* Üst deck: 6 tahta, tam derinlikte */}
+      {/* Üst deck: 6 tahta */}
       {slatCentersX.map((bx, i) => (
-        <mesh key={`ts${i}`} position={[bx, topY, 0]}>
+        <mesh key={`ts${i}`} position={[bx, topDeckY, 0]}>
           <boxGeometry args={[slatW, deckH, depth]} />
-          <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
         </mesh>
       ))}
-      {/* Alt stringer: 3 tahta, tam genişlikte */}
+      {/* Alt stringer: 3 tahta */}
       {crossCentersZ.map((bz, i) => (
-        <mesh key={`bs${i}`} position={[0, btmY, bz]}>
+        <mesh key={`bs${i}`} position={[0, btmDeckY, bz]}>
           <boxGeometry args={[width, deckH, crossD]} />
-          <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
         </mesh>
       ))}
       {/* Bağlantı blokları: 3×3 ızgara */}
       {crossCentersZ.map((bz, zi) =>
         [slatCentersX[0], slatCentersX[2], slatCentersX[5]].map((bx, xi) => (
-          <mesh key={`bl${zi}${xi}`} position={[bx, 0, bz]}>
+          <mesh key={`bl${zi}${xi}`} position={[bx, paletCenterY, bz]}>
             <boxGeometry args={[slatW, blockH, crossD]} />
-            <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+            <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
           </mesh>
         )),
+      )}
+      {/* Kargo kutusu: palet üstünde, taban hariç 5 yüze label */}
+      {cargoH > 0 && (
+        <mesh position={[0, cargoCenterY, 0]}>
+          <boxGeometry args={[width, cargoH, depth]} />
+          {labelTexture ? (
+            // BoxGeometry yüz sırası: +X(0), -X(1), +Y(2), -Y(3/taban), +Z(4), -Z(5)
+            // Taban (-Y, index 3) düz renk; diğer 5 yüze texture
+            <>
+              {[0, 1, 2, 3, 4, 5].map((face) =>
+                face === 3 ? (
+                  <meshStandardMaterial
+                    key={face}
+                    attach={`material-${face}`}
+                    color={color}
+                    transparent
+                    opacity={isSelected ? 0.95 : opacity}
+                    emissive={isSelected ? color : '#000000'}
+                    emissiveIntensity={isSelected ? 0.25 : 0}
+                  />
+                ) : (
+                  <meshStandardMaterial
+                    key={face}
+                    attach={`material-${face}`}
+                    map={labelTexture}
+                    color="#ffffff"
+                  />
+                ),
+              )}
+            </>
+          ) : (
+            <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          )}
+        </mesh>
       )}
     </>
   );
@@ -252,6 +304,7 @@ export function BoxWrapper({
           opacity={opacity}
           isSelected={isSelected}
           isGhosted={isGhosted}
+          labelTexture={labelTexture}
         />
       </group>
     );

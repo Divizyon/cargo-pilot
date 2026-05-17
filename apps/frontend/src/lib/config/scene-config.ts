@@ -28,14 +28,14 @@ export const SCENE = {
   CONTACT_SHADOW_SCALE_FACTOR: 2,
 
   COLORS: {
-    VIOLATION: 0xdc2626,
-    VIOLATION_STR: '#dc2626',
-    SELECTED: 0xfbbf24,
-    SELECTED_STR: '#fbbf24',
+    VIOLATION: 0xe11d48, // Crimson Edge
+    VIOLATION_STR: '#E11D48',
+    SELECTED: 0xa7f3d0, // Mint Frost
+    SELECTED_STR: '#A7F3D0',
     COG_NORMAL: 0xfbbf24,
-    COG_WARNING: 0xdc2626,
-    NORMAL: 0x2563eb,
-    NORMAL_STR: '#2563eb',
+    COG_WARNING: 0xe11d48,
+    NORMAL: 0x2dd4bf, // Industrial Teal
+    NORMAL_STR: '#2DD4BF',
     CONTAINER_EDGE: '#334155',
     CONTAINER_DOOR: '#f59e0b',
     CONTAINER_INSIDE: '#d4c9a8',
@@ -46,23 +46,25 @@ export const SCENE = {
       C: 0xf59e0b,
       D: 0x22c55e,
     },
+    // Yük grubu bilinmediğinde fallback olarak kullanılan palet
     SKU_PALETTE: [
-      '#6366f1',
-      '#0ea5e9',
-      '#f59e0b',
-      '#f43f5e',
-      '#8b5cf6',
-      '#fb923c',
-      '#22c55e',
-      '#3b82f6',
-      '#ef4444',
-      '#14b8a6',
-      '#ec4899',
-      '#84cc16',
+      '#34D399', // Cargo Emerald  — Gıda
+      '#FBBF24', // Modern Amber   — Kimya
+      '#FB923C', // Safety Orange  — Tehlikeli Madde
+      '#A855F7', // Cyber Violet   — Elektronik
+      '#D97706', // Desert Sand    — Tekstil
+      '#94A3B8', // Slate 400      — Genel
+      '#2DD4BF', // Industrial Teal
+      '#818CF8', // Logistics Indigo
+      '#FB7185', // Steel Rose
+      '#0EA5E9', // Deep Ocean
+      '#84CC16', // Electric Lime
+      '#4338CA', // Midnight Cobalt
+      '#334155', // Volcanic Grey
     ] as string[],
   },
 
-  DOOR_REAR_OPEN_ANGLE: Math.PI * 0.72,
+  DOOR_REAR_OPEN_ANGLE: Math.PI * (230 / 180),
   DOOR_SIDE_OPEN_ANGLE: Math.PI * 0.5,
   DOOR_EASING: 0.055,
   DOOR_THICKNESS_CM: 5,

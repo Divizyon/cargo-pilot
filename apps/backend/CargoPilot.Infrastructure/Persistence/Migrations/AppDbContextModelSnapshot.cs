@@ -816,6 +816,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
 
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("TotalWeight")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
@@ -1740,7 +1743,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("PlateNumber")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -1809,6 +1811,25 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Vehicles_MaxWeightCapacity_Positive", "[MaxWeightCapacity] > 0");
                         });
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.AppUser", b =>
