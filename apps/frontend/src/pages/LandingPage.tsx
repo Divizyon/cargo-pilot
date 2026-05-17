@@ -814,10 +814,16 @@ function Features() {
       className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-background overflow-hidden"
     >
       {/* Crane animations behind cards */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-72 h-[480px] hidden lg:block pointer-events-none select-none" aria-hidden>
+      <div
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-[500px] h-[480px] hidden lg:block pointer-events-none select-none"
+        aria-hidden
+      >
         <CraneAnimation mirror={false} />
       </div>
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-72 h-[480px] hidden lg:block pointer-events-none select-none" aria-hidden>
+      <div
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[480px] hidden lg:block pointer-events-none select-none"
+        aria-hidden
+      >
         <CraneAnimation mirror={true} />
       </div>
 
@@ -1368,7 +1374,7 @@ function CtaBanner() {
       {/* Perspective grid background */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div
-          className="absolute inset-x-[-30%] bottom-[-10%] h-[90%]"
+          className="absolute inset-x-[-30%] top-0 h-[160%]"
           style={{
             backgroundImage: `
               linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
@@ -1379,8 +1385,10 @@ function CtaBanner() {
             transformOrigin: 'center top',
           }}
         />
-        <div className="absolute inset-x-0 top-0 h-3/4 bg-gradient-to-b from-background via-background/80 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-background to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background to-transparent" />
       </div>
       <div className="max-w-3xl mx-auto text-center relative z-10">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
