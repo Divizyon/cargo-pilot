@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sparkles, Package, Truck, LayoutDashboard, Share2, PlugZap } from 'lucide-react';
+import { CargoPilotLogo } from '@/components/shared/CargoPilotLogo';
 
 const STEPS = [
   {
@@ -123,10 +124,14 @@ export function OnboardingDialog({ open, onClose }: OnboardingDialogProps) {
                 transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 className="flex flex-col gap-4"
               >
-                {/* Monochrome icon */}
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-muted ring-1 ring-border">
-                  <Icon className="w-5 h-5 text-foreground" />
-                </div>
+                {/* Icon — logo for welcome step, lucide icon for others */}
+                {step === 0 ? (
+                  <CargoPilotLogo className="w-12 h-12 text-foreground" />
+                ) : (
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-muted ring-1 ring-border">
+                    <Icon className="w-5 h-5 text-foreground" />
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <DialogTitle className="text-base font-semibold leading-snug text-foreground">

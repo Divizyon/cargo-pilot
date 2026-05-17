@@ -47,7 +47,7 @@ export const vehicleSchema = z.object({
   isFavorite: z.boolean().default(false),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
-  status: z.enum(['active', 'draft']).optional(),
+  status: z.enum(['active', 'draft', 'taslak']).optional(),
   createdAt: z.string().datetime(),
   createdBy: z.object({ id: z.string(), fullName: z.string() }),
   updatedAt: z.string().datetime().optional(),

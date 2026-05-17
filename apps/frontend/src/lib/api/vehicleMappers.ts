@@ -239,7 +239,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     isFavorite: api.isFavorite,
     isActive: api.isActive,
     isDeleted: api.isDeleted,
-    status: (api.status as 'active' | 'draft' | undefined) ?? undefined,
+    status: (api.status as 'active' | 'draft' | 'taslak' | undefined) ?? undefined,
     createdAt: api.createdAt,
     createdBy: api.createdBy ?? { id: '', fullName: '' },
     updatedAt: api.updatedAt ?? undefined,

@@ -96,7 +96,7 @@ export const vehicleFormSchema = z
     axles: z.array(axleEntrySchema).optional(),
 
     // VY-14: Taslak durumu
-    status: z.enum(['active', 'draft']).optional(),
+    status: z.enum(['active', 'draft', 'taslak']).optional(),
 
     // VY-15: Operasyonel uygunluk
     isActive: z.boolean().optional(),

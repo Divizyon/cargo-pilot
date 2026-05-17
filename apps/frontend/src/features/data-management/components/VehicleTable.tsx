@@ -228,7 +228,7 @@ type StatusFilter = 'active' | 'draft' | 'taslak' | '';
 const STATUS_FILTER_OPTIONS: { value: 'active' | 'draft' | 'taslak'; label: string }[] = [
   { value: 'active', label: 'Aktif' },
   { value: 'taslak', label: 'Taslak' },
-  { value: 'draft', label: 'Arşivlenmiş' },
+  { value: 'draft', label: 'Pasif' },
 ];
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -362,7 +362,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
           <span
             className={cn(
               'h-1.5 w-1.5 shrink-0 rounded-full',
-              vehicle.status === 'draft'
+              vehicle.status === 'taslak'
                 ? 'bg-zinc-400'
                 : (vehicle.isActive ?? true)
                   ? 'bg-green-500'
@@ -370,7 +370,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
             )}
           />
           <span className="text-xs text-foreground">
-            {vehicle.status === 'draft' ? 'Taslak' : (vehicle.isActive ?? true) ? 'Aktif' : 'Pasif'}
+            {vehicle.status === 'taslak' ? 'Taslak' : (vehicle.isActive ?? true) ? 'Aktif' : 'Pasif'}
           </span>
         </div>
       </TableCell>
@@ -464,34 +464,6 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     pageSize,
     ...SORT_TO_PARAMS[sortKey],
   });
-
-  const { data: activeCountData } = useVehicles({
-    search: searchTerm || undefined,
-    vehicleType: category !== 'all' ? category : undefined,
-    status: 'active',
-    page: 1,
-    pageSize: 1,
-  });
-  const { data: taslakCountData } = useVehicles({
-    search: searchTerm || undefined,
-    vehicleType: category !== 'all' ? category : undefined,
-    status: 'taslak',
-    page: 1,
-    pageSize: 1,
-  });
-  const { data: draftCountData } = useVehicles({
-    search: searchTerm || undefined,
-    vehicleType: category !== 'all' ? category : undefined,
-    status: 'draft',
-    page: 1,
-    pageSize: 1,
-  });
-
-  const statusCounts: Record<'active' | 'draft' | 'taslak', number> = {
-    active: activeCountData?.totalCount ?? 0,
-    taslak: taslakCountData?.totalCount ?? 0,
-    draft: draftCountData?.totalCount ?? 0,
-  };
 
   const vehicles = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -641,11 +613,6 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filtrele
-            {hasActiveFilters && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {doorFilters.size}
-              </span>
-            )}
             <ChevronDown
               className={cn('h-3.5 w-3.5 transition-transform', showFilterPanel && 'rotate-180')}
             />
@@ -668,9 +635,6 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                         onCheckedChange={() => toggleStatusFilter(value)}
                       />
                       <span className="text-xs">{label}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {statusCounts[value]}
-                      </span>
                     </label>
                   ))}
                 </div>
