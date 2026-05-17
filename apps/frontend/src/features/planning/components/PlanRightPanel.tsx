@@ -696,8 +696,8 @@ export function PlanRightPanel({
             </div>
           )}
 
-          {/* Tab: Araç Listesi */}
-          {activeVehicleTab === 'list' && (
+          {/* Tab: Araç Listesi — read-only modda gizle */}
+          {!readOnly && activeVehicleTab === 'list' && (
             <>
               <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
                 <div className="relative flex-1">
