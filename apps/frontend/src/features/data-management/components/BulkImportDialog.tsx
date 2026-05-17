@@ -1,19 +1,13 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
-import { Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
 import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useBulkCreateItems, type BackendError } from '@/lib/api/useItems';
 import {
@@ -31,6 +25,18 @@ import { downloadItemImportTemplate } from '@/lib/utils/export-utils';
 
 // Google Sheets şablonu oluşturulduğunda bu URL'i buraya ekleyin
 const ITEM_SHEETS_TEMPLATE_URL = '';
+
+const FRAGILITY_OPTIONS = [
+  { value: 1, label: 'Kırılgan' },
+  { value: 2, label: 'Sıvı' },
+  { value: 3, label: 'Yanıcı' },
+  { value: 4, label: 'Oksitleyici' },
+  { value: 5, label: 'Aşındırıcı' },
+  { value: 6, label: 'Kokuya Hassas' },
+  { value: 7, label: 'Gıda Teması' },
+  { value: 8, label: 'Kuru Tut' },
+  { value: 9, label: 'Kimyasal' },
+] as const;
 
 interface BulkImportDialogProps {
   open: boolean;
@@ -53,6 +59,7 @@ const editableRowSchema = z.object({
   length: z.string(),
   weight: z.string(),
   fragility: z.string(),
+  constraintIds: z.array(z.number().int()),
   isStackable: z.boolean(),
   maxStackCount: z.string(),
   allowRotateX: z.boolean(),
@@ -92,7 +99,7 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
   const isStackable = row.isStackable;
   const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
   const maxStackCount = isStackable ? rawMax : 0;
-  const fragilityType = Math.min(Math.max(Math.round(Number(row.fragility) || 0), 0), 9);
+  const fragilityType = row.constraintIds.length > 0 ? Math.max(...row.constraintIds) : 0;
   return {
     sku: row.sku.trim(),
     barcode: row.barcode.trim() || null,
@@ -108,6 +115,7 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
     maxStackCount,
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
+    constraintIds: row.constraintIds,
     specialNotes: row.notes.trim() || null,
   };
 }
@@ -117,6 +125,7 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
   const isStackable = row.isStackable;
   const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
   const maxStackCount = isStackable ? rawMax : 0;
+  const fragilityType = row.constraintIds.length > 0 ? Math.max(...row.constraintIds) : 0;
   return {
     productType: row.tip,
     category: tipToCategory(row.tip),
@@ -124,12 +133,13 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
     height: Number(row.height),
     length: Number(row.length),
     weight,
-    fragilityType: Math.min(Math.max(Math.round(Number(row.fragility) || 0), 0), 9),
+    fragilityType,
     isStackable,
     maxStackCount,
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
     barcode: row.barcode.trim() || null,
+    constraintIds: row.constraintIds,
     specialNotes: row.notes.trim() || null,
   };
 }
@@ -161,6 +171,10 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       length: String(r['Uzunluk(cm)'] ?? ''),
       weight: String(r['Ağırlık(kg)'] ?? ''),
       fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
+      constraintIds: (() => {
+        const v = Number(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? 0);
+        return v > 0 ? [v] : [];
+      })(),
       isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
       maxStackCount: String(r['Maks Kat'] ?? '1'),
       allowRotateX: parseBool(r['X Dönüşümü (true/false)'], true),
@@ -183,6 +197,7 @@ function emptyRow(): EditableRow {
     length: '',
     weight: '',
     fragility: '0',
+    constraintIds: [],
     isStackable: false,
     maxStackCount: '1',
     allowRotateX: true,
@@ -190,6 +205,65 @@ function emptyRow(): EditableRow {
     allowRotateZ: true,
     notes: '',
   });
+}
+
+// ─── Fragility multi-select cell ──────────────────────────────────────────────
+
+interface FragilityCellProps {
+  constraintIds: number[];
+  onChange: (ids: number[]) => void;
+}
+
+function FragilityCell({ constraintIds, onChange }: FragilityCellProps) {
+  const selected = new Set(constraintIds);
+
+  const label =
+    constraintIds.length === 0
+      ? 'Normal'
+      : constraintIds.length === 1
+        ? (FRAGILITY_OPTIONS.find((o) => o.value === constraintIds[0])?.label ?? '—')
+        : `${constraintIds.length} tür`;
+
+  function toggle(val: number) {
+    const next = new Set(selected);
+    if (next.has(val)) next.delete(val);
+    else next.add(val);
+    onChange(Array.from(next));
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex h-7 w-full items-center justify-between gap-1 rounded border px-1.5 text-xs',
+            'border-border bg-background hover:bg-muted/50',
+            constraintIds.length > 0 ? 'text-foreground' : 'text-muted-foreground',
+          )}
+        >
+          <span className="truncate">{label}</span>
+          <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-44 p-2" align="start">
+        <div className="space-y-1">
+          {FRAGILITY_OPTIONS.map((opt) => (
+            <label
+              key={opt.value}
+              className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-muted"
+            >
+              <Checkbox
+                checked={selected.has(opt.value)}
+                onCheckedChange={() => toggle(opt.value)}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 // ─── Cell components ──────────────────────────────────────────────────────────
@@ -551,24 +625,15 @@ export function BulkImportDialog({
 
                     {/* Kısıtlar */}
                     <td className="border-b border-border/40 px-2 py-0.5">
-                      <Select
-                        value={row.fragility}
-                        onValueChange={(v) => patchRow(row._id, { fragility: v })}
-                      >
-                        <SelectTrigger className="h-7 border border-border bg-background px-1 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">Normal</SelectItem>
-                          <SelectItem value="1">Kırılgan</SelectItem>
-                          <SelectItem value="2">Sıvı</SelectItem>
-                          <SelectItem value="5">Aşındırıcı</SelectItem>
-                          <SelectItem value="6">Kokuya Hassas</SelectItem>
-                          <SelectItem value="7">Gıda Teması</SelectItem>
-                          <SelectItem value="8">Kuru</SelectItem>
-                          <SelectItem value="9">Kimyasal</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FragilityCell
+                        constraintIds={row.constraintIds}
+                        onChange={(ids) =>
+                          patchRow(row._id, {
+                            constraintIds: ids,
+                            fragility: ids.length > 0 ? String(Math.max(...ids)) : '0',
+                          })
+                        }
+                      />
                     </td>
 
                     {/* İstiflenebilir */}
