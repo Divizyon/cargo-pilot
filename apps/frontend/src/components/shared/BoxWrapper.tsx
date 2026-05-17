@@ -60,6 +60,7 @@ function PaletContent({
   opacity,
   isSelected,
   isGhosted,
+  labelTexture,
 }: {
   width: number;
   height: number;
@@ -68,6 +69,7 @@ function PaletContent({
   opacity: number;
   isSelected: boolean;
   isGhosted: boolean;
+  labelTexture?: THREE.Texture | null;
 }) {
   // Backend toplam yüksekliği gönderir: paletH sabit, cargoH = kalan
   const paletH = Math.min(PALLET_H_CM, height);
@@ -149,11 +151,38 @@ function PaletContent({
           </mesh>
         )),
       )}
-      {/* Kargo kutusu: palet üstünde, ürün rengiyle */}
+      {/* Kargo kutusu: palet üstünde, taban hariç 5 yüze label */}
       {cargoH > 0 && (
         <mesh position={[0, cargoCenterY, 0]}>
           <boxGeometry args={[width, cargoH, depth]} />
-          <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          {labelTexture ? (
+            // BoxGeometry yüz sırası: +X(0), -X(1), +Y(2), -Y(3/taban), +Z(4), -Z(5)
+            // Taban (-Y, index 3) düz renk; diğer 5 yüze texture
+            <>
+              {[0, 1, 2, 3, 4, 5].map((face) =>
+                face === 3 ? (
+                  <meshStandardMaterial
+                    key={face}
+                    attach={`material-${face}`}
+                    color={color}
+                    transparent
+                    opacity={isSelected ? 0.95 : opacity}
+                    emissive={isSelected ? color : '#000000'}
+                    emissiveIntensity={isSelected ? 0.25 : 0}
+                  />
+                ) : (
+                  <meshStandardMaterial
+                    key={face}
+                    attach={`material-${face}`}
+                    map={labelTexture}
+                    color="#ffffff"
+                  />
+                ),
+              )}
+            </>
+          ) : (
+            <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+          )}
         </mesh>
       )}
     </>
@@ -274,6 +303,7 @@ export function BoxWrapper({
           opacity={opacity}
           isSelected={isSelected}
           isGhosted={isGhosted}
+          labelTexture={labelTexture}
         />
       </group>
     );
