@@ -28,6 +28,9 @@ import { ShareLinksPage } from '@/pages/ShareLinksPage';
 import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage';
 import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage';
 import { ERPItemsPage } from '@/pages/ERPItemsPage';
+import { PrivacyPage } from '@/pages/PrivacyPage';
+import { TermsPage } from '@/pages/TermsPage';
+import { ContactPage } from '@/pages/ContactPage';
 
 export const router = createBrowserRouter([
   {
@@ -69,6 +72,18 @@ export const router = createBrowserRouter([
   {
     path: '/share/:token',
     element: <SharePage />,
+  },
+  {
+    path: '/gizlilik',
+    element: <PrivacyPage />,
+  },
+  {
+    path: '/kullanim-kosullari',
+    element: <TermsPage />,
+  },
+  {
+    path: '/iletisim',
+    element: <ContactPage />,
   },
   {
     path: '/security/revoke',

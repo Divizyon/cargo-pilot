@@ -14,4 +14,5 @@ public sealed record PlanSummaryDto(
     int UnplacedQuantity,
     Guid VehicleId,
     string VehicleName,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? ThumbnailUrl);
