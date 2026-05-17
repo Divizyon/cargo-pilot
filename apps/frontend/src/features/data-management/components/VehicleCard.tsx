@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -6,9 +6,6 @@ import {
   ArrowUpDown,
   MoveHorizontal,
   Scale,
-  Layers3,
-  ChevronDown,
-  ChevronRight,
   Trash2,
 } from 'lucide-react';
 import {
@@ -31,15 +28,13 @@ import type {
 } from '@/lib/types/loadingPlan';
 import { useLoadingPlanProducts } from '@/lib/api/useLoadingPlans';
 
-// ─── Constraint icons + Turkish labels ───────────────────────────────────────
+// ─── Constraint icons ─────────────────────────────────────────────────────────
 
-const CONSTRAINT_ICON: Record<string, ReactNode> = {
+const CONSTRAINT_ICON: Record<string, React.ReactNode> = {
   fragile: <AlertCircle className="w-3 h-3 text-rose-500" />,
   liquid: <RotateCcw className="w-3 h-3 text-blue-500" />,
   bottom_only: <ArrowUpDown className="w-3 h-3 text-amber-500" />,
   no_rotate: <MoveHorizontal className="w-3 h-3 text-zinc-400" />,
-  heavy_side: <Scale className="w-3 h-3 text-purple-500" />,
-  hazmat: <AlertCircle className="w-3 h-3 text-orange-500" />,
 };
 
 const CONSTRAINT_LABEL: Record<string, string> = {
@@ -47,11 +42,9 @@ const CONSTRAINT_LABEL: Record<string, string> = {
   liquid: 'Sıvı',
   bottom_only: 'Sadece Alta',
   no_rotate: 'Döndürülemez',
-  heavy_side: 'Ağır Yük',
-  hazmat: 'Tehlikeli Madde',
 };
 
-// ─── Fill helpers ─────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getFillClass(pct: number): string {
   if (pct >= 100) return 'text-destructive font-semibold';
@@ -60,107 +53,51 @@ function getFillClass(pct: number): string {
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
-function truncate(text: string, max = 60): string {
-  return text.length > max ? text.slice(0, max) + '…' : text;
+// ─── Flat product row ─────────────────────────────────────────────────────────
+
+const ITEM_ROW_H = 36;
+
+interface FlatProduct extends PlanProductItem {
+  groupColor: string;
+  groupName: string;
 }
 
-// ─── Product row ──────────────────────────────────────────────────────────────
-
-function ProductItemRow({ product }: { product: PlanProductItem }) {
-  return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-      <div className="flex-1 min-w-0">
-        <span
-          className="text-xs font-medium text-foreground truncate block"
-          title={product.name.length > 60 ? product.name : undefined}
-        >
-          {truncate(product.name)}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-border text-[10px] font-semibold text-foreground bg-muted/50">
-          x{product.quantity}
-        </span>
-        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-          <Scale className="w-3 h-3" />
-          {product.unitWeightKg} kg
-        </span>
-        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-          <Layers3 className="w-3 h-3" />
-          {product.layerCount}
-        </span>
-        {product.constraints.length > 0 && (
-          <div className="flex items-center gap-0.5">
-            {product.constraints.map((c) => (
-              <span key={c} title={CONSTRAINT_LABEL[c] ?? c} className="flex items-center">
-                {CONSTRAINT_ICON[c] ?? null}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+function flattenGroups(groups: PlanProductGroup[]): FlatProduct[] {
+  return groups.flatMap((g) =>
+    g.products.map((p) => ({ ...p, groupColor: g.color, groupName: g.name })),
   );
 }
 
-// ─── Group block (collapse/expand) ───────────────────────────────────────────
-
-const PRODUCTS_PER_GROUP_THRESHOLD = 20;
-
-function GroupBlock({ group }: { group: PlanProductGroup }) {
-  const [open, setOpen] = useState(true);
-  const [showAll, setShowAll] = useState(false);
-
-  const totalQty = group.products.reduce((sum, p) => sum + p.quantity, 0);
-  const visibleProducts =
-    showAll || group.products.length <= PRODUCTS_PER_GROUP_THRESHOLD
-      ? group.products
-      : group.products.slice(0, PRODUCTS_PER_GROUP_THRESHOLD);
-  const hiddenCount = group.products.length - PRODUCTS_PER_GROUP_THRESHOLD;
-
+function ProductRow({ product }: { product: FlatProduct }) {
   return (
-    <div>
-      <button
-        className="flex w-full items-center gap-2 px-4 py-2 text-left border-b border-border hover:bg-muted/40 transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span
-          className="w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: group.color }}
-        />
-        <span className="flex-1 text-[11px] font-semibold text-foreground truncate">
-          {group.name}
-        </span>
-        <span className="text-[10px] text-muted-foreground font-mono shrink-0">
-          {group.id.slice(0, 8)}
-        </span>
-        <span className="text-[11px] text-muted-foreground shrink-0 ml-1">{totalQty} ürün</span>
-        {open ? (
-          <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-        )}
-      </button>
-      {open && (
-        <div>
-          {visibleProducts.map((p) => (
-            <ProductItemRow key={p.id} product={p} />
+    <div className="flex items-center gap-2 px-4 py-0 border-b border-border last:border-0" style={{ height: ITEM_ROW_H }}>
+      <span
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ backgroundColor: product.groupColor }}
+        title={product.groupName}
+      />
+      <span className="flex-1 min-w-0 text-xs text-foreground truncate">{product.name}</span>
+      <span className="text-[10px] font-semibold text-foreground bg-muted/60 border border-border px-1.5 rounded shrink-0">
+        x{product.quantity}
+      </span>
+      <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0">
+        <Scale className="w-3 h-3" />
+        {product.unitWeightKg}kg
+      </span>
+      {product.constraints.length > 0 && (
+        <div className="flex items-center gap-0.5 shrink-0">
+          {product.constraints.slice(0, 2).map((c) => (
+            <span key={c} title={CONSTRAINT_LABEL[c] ?? c}>
+              {CONSTRAINT_ICON[c] ?? null}
+            </span>
           ))}
-          {!showAll && hiddenCount > 0 && (
-            <button
-              className="w-full px-4 py-2 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-center"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAll(true);
-              }}
-            >
-              Daha fazla göster ({hiddenCount} ürün)
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -173,28 +110,32 @@ interface VehicleCardProps {
   plan: LoadingPlanListItem;
   index: number;
   onSelect?: () => void;
+  previewHeight?: number;
+  productsMaxHeight?: number;
 }
 
-export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
+export function VehicleCard({
+  plan,
+  index,
+  onSelect,
+  previewHeight = 120,
+  productsMaxHeight = 260,
+}: VehicleCardProps) {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
-
   const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
 
+  const flatProducts = flattenGroups(productGroups as PlanProductGroup[]);
+
   function handleClick() {
-    if (onSelect) {
-      onSelect();
-    } else {
-      navigate(planningDetailRoute(plan.id));
-    }
+    if (onSelect) onSelect();
+    else navigate(planningDetailRoute(plan.id));
   }
 
   const volumePct = plan.volumeFillPercentage;
   const weightPct = plan.fillPercentage;
   const planDate = formatDate(plan.plannedAt ?? plan.createdAt);
-
-  // Dimensions: stored in cm, display in meters
   const widthM = (plan.interiorWidthM / 100).toFixed(2);
   const heightM = (plan.interiorHeightM / 100).toFixed(2);
   const depthM = (plan.interiorDepthM / 100).toFixed(2);
@@ -204,35 +145,27 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
       className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       onClick={handleClick}
     >
-      {/* ── Plan header (Plan Üst Bilgisi) ── */}
-      <div className="px-4 pt-3 pb-3 border-b border-border">
-        {/* Sıra no + plan adı + tarih */}
+      {/* ── Header ── */}
+      <div className="px-4 pt-3 pb-3 border-b border-border shrink-0">
         <div className="flex items-start gap-2.5 mb-3">
           <span className="mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold shrink-0">
             {index + 1}
           </span>
           <div className="flex-1 min-w-0">
-            <p
-              className="text-sm font-semibold text-foreground leading-tight truncate"
-              title={plan.planName.length > 60 ? plan.planName : undefined}
-            >
-              {truncate(plan.planName)}
+            <p className="text-sm font-semibold text-foreground leading-tight truncate">
+              {plan.planName}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{planDate}</p>
           </div>
           <button
             aria-label="Planı sil"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteOpen(true);
-            }}
+            onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
             className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Araç teknik bilgileri (AC1–AC5) */}
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-base font-bold text-foreground leading-tight truncate">
@@ -245,29 +178,21 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
               {widthM} × {depthM} × {heightM} m
             </p>
           </div>
-
-          {/* Doluluk göstergeleri üst bölümde (AC3–AC5) */}
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className={cn('text-[11px]', getFillClass(volumePct))}>
               Hacim: {volumePct.toFixed(0)}%
-              {volumePct >= 100 && (
-                <span className="ml-1 text-destructive text-[10px]">Kapasite aşıldı</span>
-              )}
             </span>
             <span className={cn('text-[11px]', getFillClass(weightPct))}>
               Ağırlık: {weightPct.toFixed(0)}%
-              {weightPct >= 100 && (
-                <span className="ml-1 text-destructive text-[10px]">Kapasite aşıldı</span>
-              )}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ── 3D taslak / snapshot alanı ── */}
+      {/* ── 3D Preview ── */}
       <div
-        className="relative flex items-center justify-center bg-muted/40 border-b border-border overflow-hidden"
-        style={{ height: 120 }}
+        className="relative flex items-center justify-center bg-muted/40 border-b border-border overflow-hidden shrink-0"
+        style={{ height: previewHeight }}
         onClick={(e) => e.stopPropagation()}
       >
         {plan.thumbnailUrl ? (
@@ -285,84 +210,14 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <rect
-                x="10"
-                y="20"
-                width="120"
-                height="50"
-                rx="3"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <rect
-                x="10"
-                y="20"
-                width="22"
-                height="50"
-                rx="2"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <rect
-                x="36"
-                y="28"
-                width="22"
-                height="20"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
-              <rect
-                x="62"
-                y="28"
-                width="22"
-                height="20"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
-              <rect
-                x="88"
-                y="28"
-                width="22"
-                height="20"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
-              <rect
-                x="36"
-                y="52"
-                width="22"
-                height="12"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
-              <rect
-                x="62"
-                y="52"
-                width="22"
-                height="12"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
-              <rect
-                x="88"
-                y="52"
-                width="22"
-                height="12"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
+              <rect x="10" y="20" width="120" height="50" rx="3" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="10" y="20" width="22" height="50" rx="2" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="36" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <rect x="62" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <rect x="88" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <rect x="36" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <rect x="62" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <rect x="88" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
               <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
               <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
               <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
@@ -374,14 +229,20 @@ export function VehicleCard({ plan, index, onSelect }: VehicleCardProps) {
         )}
       </div>
 
-      {/* ── Product groups (AC6–AC8) ── */}
-      <div className="flex-1 overflow-y-auto max-h-[320px]" onClick={(e) => e.stopPropagation()}>
-        {(productGroups as PlanProductGroup[]).length > 0 ? (
-          (productGroups as PlanProductGroup[]).map((g) => <GroupBlock key={g.id} group={g} />)
-        ) : (
-          <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+      {/* ── Scrollable product list ── */}
+      <div
+        className="overflow-y-auto scrollbar-hide"
+        style={{ height: productsMaxHeight }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {flatProducts.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
             Ürün bulunamadı.
           </div>
+        ) : (
+          flatProducts.map((product) => (
+            <ProductRow key={`${product.id}-${product.groupColor}`} product={product} />
+          ))
         )}
       </div>
 
