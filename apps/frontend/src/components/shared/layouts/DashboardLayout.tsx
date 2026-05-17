@@ -182,7 +182,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
             isCollapsed ? 'lg:justify-center' : 'gap-3',
           )}
         >
-          <CargoPilotLogo className="h-9 w-9 shrink-0 text-foreground" />
+          <CargoPilotLogo className="h-[54px] w-[54px] shrink-0 text-foreground" />
           <div className={cn(isCollapsed && 'lg:hidden')}>
             <span className="block text-[15px] font-bold tracking-[0.15em] text-foreground">
               CARGOPILOT
@@ -440,7 +440,7 @@ export function DashboardLayout() {
               to="/dashboard"
               className="flex items-center gap-2 transition-opacity hover:opacity-80"
             >
-              <CargoPilotLogo className="h-7 w-7 text-foreground" />
+              <CargoPilotLogo className="h-[42px] w-[42px] text-foreground" />
               <span className="text-sm font-bold tracking-[0.15em] text-foreground">
                 CARGOPILOT
               </span>
