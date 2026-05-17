@@ -2,11 +2,11 @@ import { Badge } from '@/components/ui/badge';
 
 interface Props {
   isActive: boolean;
-  status?: 'active' | 'draft';
+  status?: 'active' | 'draft' | 'taslak';
 }
 
 export function VehicleStatusBadge({ isActive, status }: Props) {
-  if (status === 'draft') {
+  if (status === 'taslak') {
     return <Badge variant="secondary">Taslak</Badge>;
   }
   if (!isActive) {
