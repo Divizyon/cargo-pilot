@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ClipboardList,
   DatabaseZap,
+  HelpCircle,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -26,7 +27,9 @@ import { useUIStore } from '@/lib/store/useUIStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 import { SessionTimeoutDialog } from '@/features/platform/components/SessionTimeoutDialog';
+import { OnboardingDialog } from '@/features/platform/components/OnboardingDialog';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
+import { useNotificationUnreadCount } from '@/lib/api/useNotifications';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -58,8 +61,8 @@ const MAIN_NAV: NavItemDef[] = [
   { icon: DatabaseZap, label: 'ERP Ürünleri', path: '/erp', end: false },
 ];
 
-const BOTTOM_NAV: NavItemDef[] = [
-  { icon: Bell, label: 'Bildirimler', path: '/notifications', end: false, badge: 3 },
+const BOTTOM_NAV_BASE: NavItemDef[] = [
+  { icon: Bell, label: 'Bildirimler', path: '/notifications', end: false },
   { icon: Settings, label: 'Ayarlar', path: '/settings', end: false },
 ];
 
@@ -138,6 +141,11 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const { data: quota } = useUsageQuota();
   const planLimitReached = quota ? isQuotaExceeded(quota.plans) : false;
+  const { data: unreadCount = 0 } = useNotificationUnreadCount();
+
+  const bottomNav = BOTTOM_NAV_BASE.map((item) =>
+    item.path === '/notifications' && unreadCount > 0 ? { ...item, badge: unreadCount } : item,
+  );
 
   return (
     <aside
@@ -236,7 +244,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
 
         {/* Bottom nav — above user profile */}
         <div className="mt-auto space-y-0.5">
-          {BOTTOM_NAV.map((item) => (
+          {bottomNav.map((item) => (
             <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
           ))}
           {/* Theme toggle row */}
@@ -373,6 +381,7 @@ export function DashboardLayout() {
   const [windowCollapsed, setWindowCollapsed] = useState(false);
   const [isMobileWidth, setIsMobileWidth] = useState(false);
   const [isBelowLg, setIsBelowLg] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { showWarning, countdown, extendSession } = useSessionTimeout();
   const { pathname } = useLocation();
@@ -418,7 +427,7 @@ export function DashboardLayout() {
       </div>
 
       {/* Main content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile header — non-focus routes always; focus routes on tablet (below lg) */}
         {(!isFocusRoute || isBelowLg) && (
           <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4 lg:hidden">
@@ -456,7 +465,19 @@ export function DashboardLayout() {
         </main>
       </div>
 
+      {!isFocusRoute && (
+        <button
+          onClick={() => setShowOnboarding(true)}
+          className="absolute right-4 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:flex"
+          title="Rehberi tekrar göster"
+          aria-label="Rehberi tekrar göster"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </button>
+      )}
+
       <SessionTimeoutDialog open={showWarning} countdown={countdown} onExtend={extendSession} />
+      <OnboardingDialog open={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>
   );
 }
