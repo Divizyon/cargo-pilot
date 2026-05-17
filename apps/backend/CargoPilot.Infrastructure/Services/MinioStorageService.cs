@@ -45,6 +45,15 @@ internal sealed partial class MinioStorageService : IStorageService
         return $"{scheme}://{_endpoint}/{_bucketName}/{objectKey}";
     }
 
+    public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        var removeArgs = new RemoveObjectArgs()
+            .WithBucket(_bucketName)
+            .WithObject(objectKey);
+
+        await _client.RemoveObjectAsync(removeArgs, cancellationToken);
+    }
+
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
     {
         var existsArgs = new BucketExistsArgs().WithBucket(_bucketName);
