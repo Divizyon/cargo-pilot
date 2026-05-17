@@ -1740,7 +1740,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("PlateNumber")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
