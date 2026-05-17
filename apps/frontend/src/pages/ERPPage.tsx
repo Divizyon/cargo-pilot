@@ -7,6 +7,7 @@ import { ERPPendingMatches } from '@/features/platform/components/ERPPendingMatc
 import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
 import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
 import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
+import { ERPDraftItems } from '@/features/platform/components/ERPDraftItems';
 import { ERPUserMapping } from '@/features/platform/components/ERPUserMapping';
 import {
   useERPConnection,
@@ -14,11 +15,13 @@ import {
   useERPShipmentOrders,
   useERPSyncHistory,
 } from '@/lib/api/useERPIntegration';
+import { useDraftItems } from '@/lib/api/useDraftItems';
 import { ErpShipmentStatus } from '@/lib/types/erp';
 
 type TabId =
   | 'baglanti'
   | 'eslestirme'
+  | 'taslak-urunler'
   | 'sevkiyatlar'
   | 'senkronizasyon'
   | 'gecmis'
@@ -40,6 +43,11 @@ const TABS: TabDef[] = [
     id: 'eslestirme',
     label: 'Eşleştirmeler',
     description: 'ERP ürünlerini Cargo Pilot kalemleriyle eşleştirin.',
+  },
+  {
+    id: 'taslak-urunler',
+    label: 'Taslak Ürünler',
+    description: 'ERP\'den gelen taslak ürünleri inceleyin, onaylayın veya reddedin.',
   },
   {
     id: 'sevkiyatlar',
@@ -72,8 +80,10 @@ function tabBadge(
   pendingMatchCount: number,
   pendingShipmentCount: number,
   syncErrorCount: number,
+  draftItemCount: number,
 ): number {
   if (tabId === 'eslestirme') return pendingMatchCount;
+  if (tabId === 'taslak-urunler') return draftItemCount;
   if (tabId === 'sevkiyatlar') return pendingShipmentCount;
   if (tabId === 'gecmis') return syncErrorCount;
   return 0;
@@ -91,11 +101,13 @@ export function ERPPage() {
   const { data: pendingMatches } = useERPPendingMatches(integrationId);
   const { data: shipmentOrders } = useERPShipmentOrders({ status: ErpShipmentStatus.Pending });
   const { data: syncRuns } = useERPSyncHistory();
+  const { data: draftItemsPage } = useDraftItems({ page: 1, pageSize: 1, status: 0 });
 
   const pendingMatchCount = pendingMatches?.length ?? 0;
   const pendingShipmentCount = shipmentOrders?.length ?? 0;
   const syncErrorCount =
     syncRuns?.flatMap((r) => r.entries).filter((e) => e.status === 'Error').length ?? 0;
+  const draftItemCount = draftItemsPage?.totalCount ?? 0;
 
   function navigateToTab(tab: TabId) {
     setSearchParams({ tab }, { replace: false });
@@ -122,6 +134,7 @@ export function ERPPage() {
                 pendingMatchCount,
                 pendingShipmentCount,
                 syncErrorCount,
+                draftItemCount,
               );
               return (
                 <button
@@ -152,6 +165,7 @@ export function ERPPage() {
           <SettingsTabShell title={activeTabDef.label} description={activeTabDef.description}>
             {activeTab === 'baglanti' && <ERPConnectionForm />}
             {activeTab === 'eslestirme' && <ERPPendingMatches />}
+            {activeTab === 'taslak-urunler' && <ERPDraftItems />}
             {activeTab === 'sevkiyatlar' && <ERPShipmentOrders />}
             {activeTab === 'senkronizasyon' && <ERPSyncPanel />}
             {activeTab === 'gecmis' && <ERPSyncHistory />}

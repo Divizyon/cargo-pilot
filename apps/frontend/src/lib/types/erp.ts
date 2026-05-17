@@ -71,10 +71,11 @@ export const erpSavedMatchSchema = z.object({
 export type ErpSavedMatch = z.infer<typeof erpSavedMatchSchema>;
 
 export const erpSyncSummarySchema = z.object({
+  syncLogId: z.string().uuid().optional(),
   added: z.number().int().min(0),
   updated: z.number().int().min(0),
   skipped: z.number().int().min(0),
-  syncedAt: z.string().datetime({ offset: true }),
+  syncedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export type ErpSyncSummary = z.infer<typeof erpSyncSummarySchema>;

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronLeft, ChevronRight, Loader2, RefreshCw, SlidersHorizontal, Upload } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, RefreshCw, SlidersHorizontal, Upload, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,10 +15,9 @@ import {
 } from '@/components/ui/table';
 import {
   useERPConnection,
-  useERPPendingMappingsPaginated,
   useTriggerERPSync,
-  type ErpPendingMappingItem,
 } from '@/lib/api/useERPIntegration';
+import { useDraftItems, type DraftItem } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
@@ -28,331 +27,45 @@ const ROW_H = 48;
 const HEADER_ROW_H = 36;
 const BELOW_TABLE_H = 80;
 
-// ─── Mock data (no ERP connection) ───────────────────────────────────────────
-
-const MOCK_ITEMS: ErpPendingMappingItem[] = [
-  {
-    id: 'mock-1',
-    erpProductId: 'STK001',
-    erpProductName: 'Ahşap Kargo Kutusu',
-    erpSku: 'STK001',
-    erpWeight: 15,
-    erpWidth: 60,
-    erpHeight: 40,
-    erpLength: 80,
-    erpCategory: 'AHSAP',
-    erpBarcode: '8691234567890',
-  },
-  {
-    id: 'mock-2',
-    erpProductId: 'STK002',
-    erpProductName: 'Metal Depo Kasası',
-    erpSku: 'MTL-002',
-    erpWeight: 45,
-    erpWidth: 120,
-    erpHeight: 60,
-    erpLength: 100,
-    erpCategory: 'METAL',
-    erpBarcode: '8699876543210',
-  },
-  {
-    id: 'mock-3',
-    erpProductId: 'STK003',
-    erpProductName: 'Plastik Saklama Kabı',
-    erpSku: 'PLT-003',
-    erpWeight: 3.5,
-    erpWidth: 30,
-    erpHeight: 20,
-    erpLength: 40,
-    erpCategory: 'PLASTIK',
-    erpBarcode: '8695551234567',
-  },
-  {
-    id: 'mock-4',
-    erpProductId: 'STK004',
-    erpProductName: 'Elektronik Aksesuar Kutusu',
-    erpSku: 'ELK-004',
-    erpWeight: 2.8,
-    erpWidth: 25,
-    erpHeight: 15,
-    erpLength: 35,
-    erpCategory: 'ELEKTRONIK',
-    erpBarcode: '8697778889990',
-  },
-  {
-    id: 'mock-5',
-    erpProductId: 'STK005',
-    erpProductName: 'Tekstil Karton Kolisi',
-    erpSku: 'TKS-005',
-    erpWeight: 8,
-    erpWidth: 50,
-    erpHeight: 50,
-    erpLength: 60,
-    erpCategory: 'TEKSTIL',
-    erpBarcode: '8691112223334',
-  },
-  {
-    id: 'mock-6',
-    erpProductId: 'STK006',
-    erpProductName: 'Cam Eşya Nakliye Kasası',
-    erpSku: 'CAM-006',
-    erpWeight: 22,
-    erpWidth: 80,
-    erpHeight: 70,
-    erpLength: 90,
-    erpCategory: 'CAM',
-    erpBarcode: '8694445556667',
-  },
-  {
-    id: 'mock-7',
-    erpProductId: 'STK007',
-    erpProductName: 'Endüstriyel Boya Kovası',
-    erpSku: 'BYA-007',
-    erpWeight: 18,
-    erpWidth: 35,
-    erpHeight: 45,
-    erpLength: 35,
-    erpCategory: 'KIMYASAL',
-    erpBarcode: '8692223334445',
-  },
-  {
-    id: 'mock-8',
-    erpProductId: 'STK008',
-    erpProductName: 'Kağıt Rulo Ambalaj',
-    erpSku: 'KAG-008',
-    erpWeight: 12,
-    erpWidth: 100,
-    erpHeight: 60,
-    erpLength: 60,
-    erpCategory: 'KAGIT',
-    erpBarcode: '8696667778889',
-  },
-  {
-    id: 'mock-9',
-    erpProductId: 'STK009',
-    erpProductName: 'Demir Profil Paketi',
-    erpSku: 'DMR-009',
-    erpWeight: 85,
-    erpWidth: 200,
-    erpHeight: 20,
-    erpLength: 30,
-    erpCategory: 'METAL',
-    erpBarcode: '8693334445556',
-  },
-  {
-    id: 'mock-10',
-    erpProductId: 'STK010',
-    erpProductName: 'Organik Gübre Torbası',
-    erpSku: 'GBR-010',
-    erpWeight: 25,
-    erpWidth: 55,
-    erpHeight: 80,
-    erpLength: 30,
-    erpCategory: 'TARIM',
-    erpBarcode: '8698889990001',
-  },
-  {
-    id: 'mock-11',
-    erpProductId: 'STK011',
-    erpProductName: 'Seramik Fayans Kutusu',
-    erpSku: 'SRM-011',
-    erpWeight: 30,
-    erpWidth: 60,
-    erpHeight: 15,
-    erpLength: 60,
-    erpCategory: 'SERAMIK',
-    erpBarcode: '8691230004567',
-  },
-  {
-    id: 'mock-12',
-    erpProductId: 'STK012',
-    erpProductName: 'Otomotiv Yedek Parça',
-    erpSku: 'OTO-012',
-    erpWeight: 9,
-    erpWidth: 40,
-    erpHeight: 25,
-    erpLength: 50,
-    erpCategory: 'OTOMOTIV',
-    erpBarcode: '8695670001234',
-  },
-  {
-    id: 'mock-13',
-    erpProductId: 'STK013',
-    erpProductName: 'Bebek Bezi Karton Koli',
-    erpSku: 'BBK-013',
-    erpWeight: 5.5,
-    erpWidth: 70,
-    erpHeight: 45,
-    erpLength: 50,
-    erpCategory: 'TEKSTIL',
-    erpBarcode: '8699001112223',
-  },
-  {
-    id: 'mock-14',
-    erpProductId: 'STK014',
-    erpProductName: 'Gıda Konserve Kasası',
-    erpSku: 'GDA-014',
-    erpWeight: 20,
-    erpWidth: 45,
-    erpHeight: 30,
-    erpLength: 55,
-    erpCategory: 'GIDA',
-    erpBarcode: '8694561237890',
-  },
-  {
-    id: 'mock-15',
-    erpProductId: 'STK015',
-    erpProductName: 'İnşaat Malzeme Torbası',
-    erpSku: 'INS-015',
-    erpWeight: 40,
-    erpWidth: 65,
-    erpHeight: 90,
-    erpLength: 35,
-    erpCategory: 'INSAAT',
-    erpBarcode: '8697894561230',
-  },
-  {
-    id: 'mock-16',
-    erpProductId: 'STK016',
-    erpProductName: 'Plastik Boru Demeti',
-    erpSku: 'BRU-016',
-    erpWeight: 14,
-    erpWidth: 150,
-    erpHeight: 25,
-    erpLength: 25,
-    erpCategory: 'PLASTIK',
-    erpBarcode: '8692346781230',
-  },
-  {
-    id: 'mock-17',
-    erpProductId: 'STK017',
-    erpProductName: 'Mobilya Aksesuar Kutusu',
-    erpSku: 'MOB-017',
-    erpWeight: 6,
-    erpWidth: 35,
-    erpHeight: 20,
-    erpLength: 45,
-    erpCategory: 'MOBILYA',
-    erpBarcode: '8691237894560',
-  },
-  {
-    id: 'mock-18',
-    erpProductId: 'STK018',
-    erpProductName: 'Tarım İlacı Bidonu',
-    erpSku: 'TRM-018',
-    erpWeight: 11,
-    erpWidth: 25,
-    erpHeight: 40,
-    erpLength: 25,
-    erpCategory: 'TARIM',
-    erpBarcode: '8696781234560',
-  },
-  {
-    id: 'mock-19',
-    erpProductId: 'STK019',
-    erpProductName: 'Tekstil Ürünü Balya',
-    erpSku: 'BAL-019',
-    erpWeight: 35,
-    erpWidth: 90,
-    erpHeight: 60,
-    erpLength: 70,
-    erpCategory: 'TEKSTIL',
-    erpBarcode: '8694560001237',
-  },
-  {
-    id: 'mock-20',
-    erpProductId: 'STK020',
-    erpProductName: 'Elektronik Kart Paketi',
-    erpSku: 'ELK-020',
-    erpWeight: 1.2,
-    erpWidth: 20,
-    erpHeight: 10,
-    erpLength: 30,
-    erpCategory: 'ELEKTRONIK',
-    erpBarcode: '8693456780001',
-  },
-  {
-    id: 'mock-21',
-    erpProductId: 'STK021',
-    erpProductName: 'Alüminyum Profil Kutusu',
-    erpSku: 'ALM-021',
-    erpWeight: 28,
-    erpWidth: 180,
-    erpHeight: 15,
-    erpLength: 20,
-    erpCategory: 'METAL',
-    erpBarcode: '8691122334456',
-  },
-  {
-    id: 'mock-22',
-    erpProductId: 'STK022',
-    erpProductName: 'Deterjan Koli',
-    erpSku: 'DTR-022',
-    erpWeight: 16,
-    erpWidth: 55,
-    erpHeight: 40,
-    erpLength: 45,
-    erpCategory: 'KIMYASAL',
-    erpBarcode: '8695544332210',
-  },
-  {
-    id: 'mock-23',
-    erpProductId: 'STK023',
-    erpProductName: 'Spor Malzeme Çantası',
-    erpSku: 'SPR-023',
-    erpWeight: 4.5,
-    erpWidth: 60,
-    erpHeight: 35,
-    erpLength: 30,
-    erpCategory: 'TEKSTIL',
-    erpBarcode: '8698877665544',
-  },
-  {
-    id: 'mock-24',
-    erpProductId: 'STK024',
-    erpProductName: 'Ahşap Palet',
-    erpSku: 'PLT-024',
-    erpWeight: 20,
-    erpWidth: 120,
-    erpHeight: 14,
-    erpLength: 80,
-    erpCategory: 'AHSAP',
-    erpBarcode: '8692233445566',
-  },
-  {
-    id: 'mock-25',
-    erpProductId: 'STK025',
-    erpProductName: 'Soğuk Zincir Köpük Kutu',
-    erpSku: 'SGK-025',
-    erpWeight: 3,
-    erpWidth: 40,
-    erpHeight: 30,
-    erpLength: 50,
-    erpCategory: 'GIDA',
-    erpBarcode: '8697766554433',
-  },
-];
+const DRAFT_PENDING = 0;
+const DRAFT_APPROVED = 1;
+const DRAFT_REJECTED = 2;
 
 // ─── ERP → BulkImportDialog row dönüşümü (cm → mm) ──────────────────────────
 
-function erpItemToImportRow(item: ErpPendingMappingItem): EditableRow {
+function draftItemToImportRow(item: DraftItem): EditableRow {
+  let tip: string;
+  if (item.category === 1) tip = 'palet';
+  else if (item.category === 0) tip = 'koli';
+  else tip = 'varil';
+
+  let allowRotateX = false, allowRotateY = false, allowRotateZ = false;
+  switch (item.allowedRotations) {
+    case 0: allowRotateX = true;  allowRotateY = true;  allowRotateZ = true;  break;
+    case 1: allowRotateX = false; allowRotateY = true;  allowRotateZ = false; break;
+    case 3: allowRotateX = true;  allowRotateY = false; allowRotateZ = true;  break;
+    case 4: allowRotateX = true;  allowRotateY = false; allowRotateZ = false; break;
+    case 5: allowRotateX = false; allowRotateY = false; allowRotateZ = true;  break;
+    case 6: allowRotateX = false; allowRotateY = true;  allowRotateZ = false; break;
+  }
+
   return {
     _id: crypto.randomUUID(),
-    name: item.erpProductName,
-    sku: item.erpSku ?? '',
-    barcode: item.erpBarcode ?? '',
-    tip: '',
-    width: item.erpWidth != null ? String(item.erpWidth) : '',
-    height: item.erpHeight != null ? String(item.erpHeight) : '',
-    length: item.erpLength != null ? String(item.erpLength) : '',
-    weight: item.erpWeight != null ? String(item.erpWeight) : '',
-    fragility: '0',
-    isStackable: false,
-    maxStackCount: '1',
-    allowRotateX: true,
-    allowRotateY: true,
-    allowRotateZ: true,
-    notes: '',
+    name: item.name,
+    sku: item.sku ?? '',
+    barcode: item.barcode ?? '',
+    tip,
+    width: String(item.width),
+    height: String(item.height),
+    length: String(item.length),
+    weight: String(item.weight),
+    fragility: String(item.fragilityType),
+    isStackable: item.isStackable,
+    maxStackCount: String(item.maxStackCount > 0 ? item.maxStackCount : 1),
+    allowRotateX,
+    allowRotateY,
+    allowRotateZ,
+    notes: item.specialNotes ?? '',
   };
 }
 
@@ -405,6 +118,7 @@ export function ERPItemsTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<EditableRow[]>([]);
+  const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
 
@@ -444,50 +158,45 @@ export function ERPItemsTable() {
   const queryPageSize = isSearching ? 100 : pageSize;
 
   const {
-    data: mappingsPage,
+    data: draftPage,
     isLoading,
     isFetching,
-  } = useERPPendingMappingsPaginated(integrationId, {
-    page: queryPage,
-    pageSize: queryPageSize,
-    status: 0,
-  });
+  } = useDraftItems({ page: queryPage, pageSize: queryPageSize });
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 
-  const useMock = !integrationId;
-  const allItems = useMock ? MOCK_ITEMS : (mappingsPage?.items ?? []);
+  const allItems = draftPage?.items ?? [];
 
   const uniqueCategories = Array.from(
-    new Set(allItems.map((i) => i.erpCategory).filter((c): c is string => Boolean(c))),
+    new Set(allItems.map((i) => i.productType).filter((c): c is string => Boolean(c))),
   ).sort();
 
   const filteredItems = allItems.filter((item) => {
-    if (hasActiveFilters && !categoryFilters.has(item.erpCategory ?? '')) return false;
+    if (hasActiveFilters && !categoryFilters.has(item.productType ?? '')) return false;
     if (!isSearching) return true;
     const q = searchTerm.toLowerCase();
     return (
-      item.erpProductName.toLowerCase().includes(q) ||
-      (item.erpSku ?? '').toLowerCase().includes(q) ||
-      item.erpProductId.toLowerCase().includes(q) ||
-      (item.erpBarcode ?? '').toLowerCase().includes(q)
+      item.name.toLowerCase().includes(q) ||
+      (item.sku ?? '').toLowerCase().includes(q) ||
+      (item.erpId ?? '').toLowerCase().includes(q) ||
+      (item.barcode ?? '').toLowerCase().includes(q)
     );
   });
 
-  const totalCount = useMock || isSearching ? filteredItems.length : (mappingsPage?.totalCount ?? 0);
+  const totalCount = isSearching ? filteredItems.length : (draftPage?.totalCount ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const displayedItems =
-    isSearching || useMock
-      ? filteredItems.slice((page - 1) * pageSize, page * pageSize)
-      : filteredItems;
+  const displayedItems = isSearching
+    ? filteredItems.slice((page - 1) * pageSize, page * pageSize)
+    : filteredItems;
 
-  const showSkeleton = !useMock && (isLoading || isFetching);
+  const showSkeleton = isLoading || isFetching;
   const isEmpty = !showSkeleton && displayedItems.length === 0 && !isSearching;
   const noResults = !showSkeleton && displayedItems.length === 0 && isSearching;
 
+  const selectableItems = filteredItems.filter((i) => i.status === DRAFT_PENDING);
   const allSelected =
-    filteredItems.length > 0 && filteredItems.every((i) => selectedIds.has(i.id));
-  const someSelected = !allSelected && filteredItems.some((i) => selectedIds.has(i.id));
+    selectableItems.length > 0 && selectableItems.every((i) => selectedIds.has(i.id));
+  const someSelected = !allSelected && selectableItems.some((i) => selectedIds.has(i.id));
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
@@ -496,7 +205,7 @@ export function ERPItemsTable() {
 
   function handleSelectAll(checked: boolean | 'indeterminate') {
     if (checked === true) {
-      setSelectedIds(new Set(filteredItems.map((i) => i.id)));
+      setSelectedIds(new Set(selectableItems.map((i) => i.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -518,7 +227,11 @@ export function ERPItemsTable() {
 
   function handleOpenImport() {
     const selected = filteredItems.filter((item) => selectedIds.has(item.id));
-    setImportRows(selected.map(erpItemToImportRow));
+    const rows = selected.map(draftItemToImportRow);
+    const draftIds: Record<string, string> = {};
+    rows.forEach((row, i) => { draftIds[row._id] = selected[i].id; });
+    setImportRows(rows);
+    setImportDraftIds(draftIds);
     setImportOpen(true);
   }
 
@@ -672,46 +385,59 @@ export function ERPItemsTable() {
                 </TableRow>
               )}
               {displayedItems.map((row) => (
-                <TableRow key={row.id} className="h-12">
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    'h-12',
+                    row.status === DRAFT_APPROVED && 'bg-emerald-50/40 dark:bg-emerald-950/20',
+                    row.status === DRAFT_REJECTED && 'opacity-50',
+                  )}
+                >
                   <TableCell className="py-0 px-3">
-                    <Checkbox
-                      checked={selectedIds.has(row.id)}
-                      onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
-                      aria-label={`${row.erpProductName} satırını seç`}
-                    />
+                    {row.status === DRAFT_PENDING ? (
+                      <Checkbox
+                        checked={selectedIds.has(row.id)}
+                        onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
+                        aria-label={`${row.name} satırını seç`}
+                      />
+                    ) : row.status === DRAFT_APPROVED ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Aktarıldı" />
+                    ) : row.status === DRAFT_REJECTED ? (
+                      <XCircle className="h-4 w-4 text-destructive/60" aria-label="Reddedildi" />
+                    ) : null}
                   </TableCell>
                   <TableCell className="py-0 px-3 max-w-[176px]">
-                    <span className="block truncate text-xs text-muted-foreground" title={row.erpProductName}>
-                      {row.erpProductName}
+                    <span className="block truncate text-xs text-muted-foreground" title={row.name}>
+                      {row.name}
                     </span>
                   </TableCell>
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
-                    {row.erpCategory ?? '—'}
+                    {row.productType ?? '—'}
                   </TableCell>
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
-                    {row.erpSku ?? row.erpProductId}
+                    {row.sku ?? row.erpId ?? '—'}
                   </TableCell>
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
-                    {row.erpBarcode ?? '—'}
+                    {row.barcode ?? '—'}
                   </TableCell>
                   <TableCell className="py-0 px-3">
                     <span className="text-xs text-foreground">
-                      {row.erpWidth != null ? formatDimensionDisplay(row.erpWidth, dimensionUnit) : '—'}
+                      {formatDimensionDisplay(row.width, dimensionUnit)}
                     </span>
                   </TableCell>
                   <TableCell className="py-0 px-3">
                     <span className="text-xs text-foreground">
-                      {row.erpHeight != null ? formatDimensionDisplay(row.erpHeight, dimensionUnit) : '—'}
+                      {formatDimensionDisplay(row.height, dimensionUnit)}
                     </span>
                   </TableCell>
                   <TableCell className="py-0 px-3">
                     <span className="text-xs text-foreground">
-                      {row.erpLength != null ? formatDimensionDisplay(row.erpLength, dimensionUnit) : '—'}
+                      {formatDimensionDisplay(row.length, dimensionUnit)}
                     </span>
                   </TableCell>
                   <TableCell className="py-0 px-3">
                     <span className="text-xs text-foreground">
-                      {row.erpWeight != null ? `${row.erpWeight} kg` : '—'}
+                      {row.weight} kg
                     </span>
                   </TableCell>
                 </TableRow>
@@ -790,6 +516,7 @@ export function ERPItemsTable() {
         open={importOpen}
         onOpenChange={setImportOpen}
         initialRows={importRows}
+        draftItemIds={importDraftIds}
       />
     </div>
   );

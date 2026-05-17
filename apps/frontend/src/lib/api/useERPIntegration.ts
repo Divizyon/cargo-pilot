@@ -359,7 +359,7 @@ export function useERPSyncOptions() {
 export function useTriggerERPSync() {
   const queryClient = useQueryClient();
   return useMutation<
-    { added: number; updated: number; skipped: number; syncedAt: string },
+    { added: number; updated: number; skipped: number; syncedAt?: string; syncLogId?: string },
     AxiosError<ApiError>,
     { integrationId: string; categoryFilter?: string | null; warehouseFilter?: string | null }
   >({
@@ -376,6 +376,7 @@ export function useTriggerERPSync() {
     },
     onSuccess: (summary, { integrationId }) => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
       toast.success(
         `Senkronizasyon tamamlandı — ${summary.added} eklendi, ${summary.updated} güncellendi, ${summary.skipped} atlandı`,
