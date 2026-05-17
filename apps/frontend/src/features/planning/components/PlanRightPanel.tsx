@@ -603,10 +603,10 @@ export function PlanRightPanel({
         className={cn(
           'relative flex-1 min-h-0',
           'transition-transform duration-[220ms] ease-out',
-          !readOnly && !vehiclesOpen && 'translate-x-[calc(100%-0.75rem)]',
+          !vehiclesOpen && 'translate-x-[calc(100%-0.75rem)]',
         )}
       >
-        {!readOnly && onToggleVehicles && (
+        {onToggleVehicles && (
           <button
             onClick={onToggleVehicles}
             title={vehiclesOpen ? 'Araç listesini kapat' : 'Araç listesini aç'}
@@ -628,7 +628,7 @@ export function PlanRightPanel({
           className={cn(
             'h-full bg-background rounded-xl border border-border overflow-hidden flex flex-col',
             'transition-transform duration-[220ms] ease-out',
-            !readOnly && !vehiclesOpen && 'translate-x-6',
+            !vehiclesOpen && 'translate-x-6',
           )}
         >
           <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">

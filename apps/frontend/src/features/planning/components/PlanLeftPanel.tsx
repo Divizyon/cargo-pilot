@@ -835,7 +835,9 @@ export function PlanLeftPanel() {
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
-        <span className="text-sm text-foreground">Ürünler</span>
+        <span className="text-sm text-foreground">
+          {readOnly ? `Yüklü Ürünler (${placedIds.size})` : 'Ürünler'}
+        </span>
         {!readOnly && (
           <Button
             size="icon"
@@ -848,16 +850,9 @@ export function PlanLeftPanel() {
         )}
       </div>
 
-      {/* Tabs — read-only modda sadece başlık */}
+      {/* Tabs — read-only modda gizle */}
       <div className="px-2 pt-2 shrink-0">
-        {readOnly ? (
-          <div className="px-2 py-1 text-xs font-medium text-foreground">
-            Yüklü Ürünler
-            <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-              ({placedIds.size})
-            </span>
-          </div>
-        ) : (
+        {readOnly ? null : (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
             <TabsList className="w-full h-7 bg-muted">
               <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
