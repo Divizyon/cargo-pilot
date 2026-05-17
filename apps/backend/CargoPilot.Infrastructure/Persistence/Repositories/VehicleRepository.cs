@@ -64,12 +64,12 @@ internal sealed class VehicleRepository : IVehicleRepository {
             .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId, cancellationToken);
     }
 
-    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {
+    public async Task<bool> ExistsByPlateNumberAsync(string? plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {
         return await _context.Vehicles
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId, cancellationToken);
     }
 
-    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default) {
+    public async Task<bool> ExistsByPlateNumberAsync(string? plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default) {
         return await _context.Vehicles
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId && v.Id != excludeId, cancellationToken);
     }
