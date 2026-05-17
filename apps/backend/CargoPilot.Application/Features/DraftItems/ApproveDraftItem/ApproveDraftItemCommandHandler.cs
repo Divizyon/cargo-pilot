@@ -36,6 +36,26 @@ public sealed class ApproveDraftItemCommandHandler : IRequestHandler<ApproveDraf
         if (draft.Status == DraftItemStatus.Approved)
             return Result<Guid>.Failure(new Error(ErrorType.Conflict, "DraftItem.AlreadyApproved", "Bu taslak zaten onaylanmış."));
 
+        if (draft.Status == DraftItemStatus.UpdatePending)
+        {
+            var existingItem = await _itemRepository.GetByErpIdAsync(draft.ErpId, draft.IntegrationId, companyId.Value, cancellationToken);
+            if (existingItem is null)
+                return Result<Guid>.Failure(new Error(ErrorType.NotFound, "Item.NotFound", "Güncellenecek ürün bulunamadı."));
+
+            existingItem.Update(draft.SKU, draft.Barcode, draft.Name, draft.ProductType, draft.Category,
+                draft.Width, draft.Height, draft.Length, draft.Diameter, draft.Weight, draft.FragilityType,
+                draft.IsStackable, draft.MaxStackCount, draft.MaxWeightOnTop, draft.AllowedRotations,
+                draft.ImageUrl, draft.StackGroup, null, draft.SpecialNotes, draft.GetConstraintIds());
+
+            draft.Approve();
+
+            _itemRepository.Update(existingItem);
+            _draftItemRepository.Update(draft);
+            await _draftItemRepository.SaveChangesAsync(cancellationToken);
+
+            return Result<Guid>.Success(existingItem.Id);
+        }
+
         var item = new Item(
             Guid.NewGuid(),
             draft.SKU,
