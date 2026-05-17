@@ -48,6 +48,7 @@ import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
 import { AddItemModal } from './AddItemModal';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
+import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 
 const VIRTUAL_THRESHOLD = 100;
@@ -279,6 +280,7 @@ function StoreItemRow({
   onAddToGroup,
   onClearStackGroup,
 }: StoreItemRowProps) {
+  const readOnly = useReadOnly();
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
   const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
@@ -375,108 +377,110 @@ function StoreItemRow({
               {item.specialNotes}
             </p>
           )}
-          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
-            {!isPlaced ? (
-              <>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">Adet</span>
-                  <div className="flex items-center rounded border border-border overflow-hidden ml-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocalQty((v) => Math.max(1, v - 1));
-                      }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                    >
-                      <Minus className="w-2 h-2" />
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={localQty}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (!isNaN(v) && v >= 1) setLocalQty(v);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocalQty((v) => v + 1);
-                      }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                    >
-                      <Plus className="w-2 h-2" />
-                    </button>
+          {!readOnly && (
+            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
+              {!isPlaced ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">Adet</span>
+                    <div className="flex items-center rounded border border-border overflow-hidden ml-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocalQty((v) => Math.max(1, v - 1));
+                        }}
+                        className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
+                      >
+                        <Minus className="w-2 h-2" />
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={localQty}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isNaN(v) && v >= 1) setLocalQty(v);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocalQty((v) => v + 1);
+                        }}
+                        className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
+                      >
+                        <Plus className="w-2 h-2" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {groups && groups.length > 0 && onAddToGroup && (
-                    <DropdownMenu>
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
-                              >
-                                <FolderPlus className="w-3.5 h-3.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            Gruba Ekle
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <DropdownMenuContent side="top" align="end" className="w-44 p-1">
-                        {groups.map((g) => (
-                          <DropdownMenuItem
-                            key={g.id}
-                            className="flex items-center gap-2 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onAddToGroup(g.id);
-                            }}
-                          >
-                            <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
-                            <span className="truncate">{g.ad}</span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <Button
-                    size="sm"
-                    disabled={!canPlace}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlace(localQty);
-                      onToggleExpand();
-                    }}
-                    className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
-                  >
-                    Ekle
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove?.();
-                  onToggleExpand();
-                }}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
-              >
-                <PackageMinus className="w-3 h-3" />
-                Çıkar
-              </button>
-            )}
-          </div>
+                  <div className="flex items-center gap-1">
+                    {groups && groups.length > 0 && onAddToGroup && (
+                      <DropdownMenu>
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
+                                >
+                                  <FolderPlus className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Gruba Ekle
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent side="top" align="end" className="w-44 p-1">
+                          {groups.map((g) => (
+                            <DropdownMenuItem
+                              key={g.id}
+                              className="flex items-center gap-2 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddToGroup(g.id);
+                              }}
+                            >
+                              <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
+                              <span className="truncate">{g.ad}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <Button
+                      size="sm"
+                      disabled={!canPlace}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlace(localQty);
+                        onToggleExpand();
+                      }}
+                      className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
+                    >
+                      Ekle
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove?.();
+                    onToggleExpand();
+                  }}
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
+                >
+                  <PackageMinus className="w-3 h-3" />
+                  Çıkar
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -486,6 +490,7 @@ function StoreItemRow({
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
 export function PlanLeftPanel() {
+  const readOnly = useReadOnly();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>
@@ -810,7 +815,7 @@ export function PlanLeftPanel() {
         togglePlacement(id);
       },
       onRemove: () => togglePlacement(id),
-      onEdit: () => navigate(`/products/${id}/edit`),
+      onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
         if (!placedIds.has(id)) togglePlacement(id);
         setGroups((prev) =>
@@ -829,14 +834,16 @@ export function PlanLeftPanel() {
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
         <span className="text-sm text-foreground">Ürünler</span>
-        <Button
-          size="icon"
-          title="Ürün Ekle"
-          className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-          onClick={() => setShowItemModal(true)}
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </Button>
+        {!readOnly && (
+          <Button
+            size="icon"
+            title="Ürün Ekle"
+            className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
+            onClick={() => setShowItemModal(true)}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -961,7 +968,7 @@ export function PlanLeftPanel() {
         {activeTab === 'loaded' && (
           <>
             {/* Grup Oluştur button */}
-            {!groupSelectionMode && (
+            {!readOnly && !groupSelectionMode && (
               <button
                 onClick={handleAddGroup}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-accent transition-colors self-start mb-0.5"
@@ -1049,16 +1056,18 @@ export function PlanLeftPanel() {
                     </span>
 
                     {/* Add products to group */}
-                    <button
-                      title="Gruba Ürün Ekle"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartGroupSelection(g.id);
-                      }}
-                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
-                    >
-                      <PackagePlus className="w-3.5 h-3.5" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        title="Gruba Ürün Ekle"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartGroupSelection(g.id);
+                        }}
+                        className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
+                      >
+                        <PackagePlus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {g.acik &&

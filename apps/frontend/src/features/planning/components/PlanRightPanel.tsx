@@ -71,6 +71,7 @@ import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
+import { useReadOnly } from '../ReadOnlyContext';
 
 // ─── Vehicle type filter metadata ────────────────────────────────────────────
 
@@ -429,6 +430,7 @@ export function PlanRightPanel({
   planName,
   getSnapshot,
 }: PlanRightPanelProps) {
+  const readOnly = useReadOnly();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
@@ -591,232 +593,237 @@ export function PlanRightPanel({
 
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* ── Kutu 1: Araçlar */}
-      <div
-        className={cn(
-          'relative flex-1 min-h-0',
-          'transition-transform duration-[220ms] ease-out',
-          !vehiclesOpen && 'translate-x-[calc(100%-0.75rem)]',
-        )}
-      >
-        {onToggleVehicles && (
-          <button
-            onClick={onToggleVehicles}
-            title={vehiclesOpen ? 'Araç listesini kapat' : 'Araç listesini aç'}
-            className={cn(
-              'absolute top-1/2 -translate-y-1/2 -left-3 z-20',
-              'h-6 w-6 flex items-center justify-center rounded-full',
-              'border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground',
-            )}
-          >
-            {vehiclesOpen ? (
-              <ChevronRight className="h-3 w-3" />
-            ) : (
-              <ChevronLeft className="h-3 w-3" />
-            )}
-          </button>
-        )}
-
+      {/* ── Kutu 1: Araçlar — gizle: read-only modda */}
+      {!readOnly && (
         <div
           className={cn(
-            'h-full bg-background rounded-xl border border-border overflow-hidden flex flex-col',
+            'relative flex-1 min-h-0',
             'transition-transform duration-[220ms] ease-out',
-            !vehiclesOpen && 'translate-x-6',
+            !vehiclesOpen && 'translate-x-[calc(100%-0.75rem)]',
           )}
         >
-          <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
-            <span className="text-sm text-foreground">Araçlar</span>
-            <Button
-              size="icon"
-              title="Araç Ekle"
-              className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-              onClick={() => setShowVehicleModal(true)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-
-          {/* Vehicle tabs */}
-          <div className="px-2 pt-2 shrink-0">
-            <Tabs
-              value={activeVehicleTab}
-              onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
-            >
-              <TabsList className="w-full h-7 bg-muted">
-                <TabsTrigger value="selected" className="flex-1 text-xs h-6">
-                  Seçili Araç
-                  <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                    ({selectedVehicles.length})
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="list" className="flex-1 text-xs h-6">
-                  Araç Listesi
-                  <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                    ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          {/* Tab: Seçili Araç */}
-          {activeVehicleTab === 'selected' && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {selectedVehicles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
-                  <Truck className="w-8 h-8 text-muted-foreground/30" />
-                  <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
-                </div>
-              ) : (
-                <div className="p-2 flex flex-col gap-0.5">
-                  {selectedVehicles.map((entry) => (
-                    <SelectedVehicleCard
-                      key={entry.instanceId}
-                      instanceId={entry.instanceId}
-                      vehicle={entry.vehicle}
-                      isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
-                      onMakeActive={() => setActiveVehicle(entry.instanceId)}
-                      onDeselect={handleDeselectVehicle}
-                      onAddInstance={() => handleAddInstance(entry.vehicle)}
-                    />
-                  ))}
-                </div>
+          {onToggleVehicles && (
+            <button
+              onClick={onToggleVehicles}
+              title={vehiclesOpen ? 'Araç listesini kapat' : 'Araç listesini aç'}
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2 -left-3 z-20',
+                'h-6 w-6 flex items-center justify-center rounded-full',
+                'border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground',
               )}
-            </div>
+            >
+              {vehiclesOpen ? (
+                <ChevronRight className="h-3 w-3" />
+              ) : (
+                <ChevronLeft className="h-3 w-3" />
+              )}
+            </button>
           )}
 
-          {/* Tab: Araç Listesi */}
-          {activeVehicleTab === 'list' && (
-            <>
-              <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={vehicleSearch}
-                    onChange={(e) => setVehicleSearch(e.target.value)}
-                    placeholder="Araç adı ile ara…"
-                    className="h-7 pl-8 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-                  />
-                  {vehicleSearch && (
-                    <button
-                      onClick={() => setVehicleSearch('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
+          <div
+            className={cn(
+              'h-full bg-background rounded-xl border border-border overflow-hidden flex flex-col',
+              'transition-transform duration-[220ms] ease-out',
+              !vehiclesOpen && 'translate-x-6',
+            )}
+          >
+            <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
+              <span className="text-sm text-foreground">Araçlar</span>
+              <Button
+                size="icon"
+                title="Araç Ekle"
+                className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
+                onClick={() => setShowVehicleModal(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </Button>
+            </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      title="Araç tipine göre filtrele"
-                      className={cn(
-                        'h-7 w-7 shrink-0 border-border',
-                        activeVehicleTypes.size > 0
-                          ? 'bg-foreground text-background border-foreground hover:bg-foreground/80 hover:border-foreground/80'
-                          : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted',
-                      )}
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
-                      Araç Tipi
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {(
-                      Object.entries(VEHICLE_TYPE_META) as [
-                        VehicleTypeValue,
-                        { label: string; icon: typeof Truck },
-                      ][]
-                    ).map(([key, meta]) => {
-                      const Icon = meta.icon;
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={key}
-                          checked={activeVehicleTypes.has(key)}
-                          onCheckedChange={(checked: boolean) => {
-                            setActiveVehicleTypes((prev) => {
-                              const next = new Set(prev);
-                              if (checked) next.add(key);
-                              else next.delete(key);
-                              return next;
-                            });
-                          }}
-                          onSelect={(e: Event) => e.preventDefault()}
-                          className="text-xs gap-2"
-                        >
-                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                          {meta.label}
-                        </DropdownMenuCheckboxItem>
-                      );
-                    })}
-                    {activeVehicleTypes.size > 0 && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <button
-                          onClick={() => setActiveVehicleTypes(new Set())}
-                          className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
-                        >
-                          Filtreleri temizle
-                        </button>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+            {/* Vehicle tabs */}
+            <div className="px-2 pt-2 shrink-0">
+              <Tabs
+                value={activeVehicleTab}
+                onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
+              >
+                <TabsList className="w-full h-7 bg-muted">
+                  <TabsTrigger value="selected" className="flex-1 text-xs h-6">
+                    Seçili Araç
+                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                      ({selectedVehicles.length})
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="flex-1 text-xs h-6">
+                    Araç Listesi
+                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
+                      ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
-                {vehiclesLoading ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Araçlar yükleniyor…
-                  </div>
-                ) : listTabVehicles.length === 0 &&
-                  (vehicleSearch || activeVehicleTypes.size > 0) ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="w-6 h-6 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">
-                      {vehicleSearch
-                        ? `"${vehicleSearch}" için araç bulunamadı`
-                        : 'Seçili araç tipinde sonuç yok'}
-                    </p>
-                  </div>
-                ) : listTabVehicles.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+            {/* Tab: Seçili Araç */}
+            {activeVehicleTab === 'selected' && (
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {selectedVehicles.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
                     <Truck className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">
-                      {vehicles.length === 0 ? 'Henüz araç eklenmemiş' : 'Tüm araçlar seçili'}
-                    </p>
+                    <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
                   </div>
                 ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleVehicleDragEnd}
-                  >
-                    <SortableContext items={listSortableIds} strategy={verticalListSortingStrategy}>
-                      {listTabVehicles.map((v) => (
-                        <SortableVehicleListItem
-                          key={v.id}
-                          id={v.id}
-                          vehicle={v}
-                          onAddToSelected={handleSelectVehicle}
-                          onPreview={peekVehicle}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
+                  <div className="p-2 flex flex-col gap-0.5">
+                    {selectedVehicles.map((entry) => (
+                      <SelectedVehicleCard
+                        key={entry.instanceId}
+                        instanceId={entry.instanceId}
+                        vehicle={entry.vehicle}
+                        isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
+                        onMakeActive={() => setActiveVehicle(entry.instanceId)}
+                        onDeselect={handleDeselectVehicle}
+                        onAddInstance={() => handleAddInstance(entry.vehicle)}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
-            </>
-          )}
+            )}
+
+            {/* Tab: Araç Listesi */}
+            {activeVehicleTab === 'list' && (
+              <>
+                <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      value={vehicleSearch}
+                      onChange={(e) => setVehicleSearch(e.target.value)}
+                      placeholder="Araç adı ile ara…"
+                      className="h-7 pl-8 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
+                    />
+                    {vehicleSearch && (
+                      <button
+                        onClick={() => setVehicleSearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        title="Araç tipine göre filtrele"
+                        className={cn(
+                          'h-7 w-7 shrink-0 border-border',
+                          activeVehicleTypes.size > 0
+                            ? 'bg-foreground text-background border-foreground hover:bg-foreground/80 hover:border-foreground/80'
+                            : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted',
+                        )}
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
+                        Araç Tipi
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {(
+                        Object.entries(VEHICLE_TYPE_META) as [
+                          VehicleTypeValue,
+                          { label: string; icon: typeof Truck },
+                        ][]
+                      ).map(([key, meta]) => {
+                        const Icon = meta.icon;
+                        return (
+                          <DropdownMenuCheckboxItem
+                            key={key}
+                            checked={activeVehicleTypes.has(key)}
+                            onCheckedChange={(checked: boolean) => {
+                              setActiveVehicleTypes((prev) => {
+                                const next = new Set(prev);
+                                if (checked) next.add(key);
+                                else next.delete(key);
+                                return next;
+                              });
+                            }}
+                            onSelect={(e: Event) => e.preventDefault()}
+                            className="text-xs gap-2"
+                          >
+                            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                            {meta.label}
+                          </DropdownMenuCheckboxItem>
+                        );
+                      })}
+                      {activeVehicleTypes.size > 0 && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <button
+                            onClick={() => setActiveVehicleTypes(new Set())}
+                            className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
+                          >
+                            Filtreleri temizle
+                          </button>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+                  {vehiclesLoading ? (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Araçlar yükleniyor…
+                    </div>
+                  ) : listTabVehicles.length === 0 &&
+                    (vehicleSearch || activeVehicleTypes.size > 0) ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                      <Search className="w-6 h-6 text-muted-foreground/30" />
+                      <p className="text-xs text-muted-foreground">
+                        {vehicleSearch
+                          ? `"${vehicleSearch}" için araç bulunamadı`
+                          : 'Seçili araç tipinde sonuç yok'}
+                      </p>
+                    </div>
+                  ) : listTabVehicles.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                      <Truck className="w-8 h-8 text-muted-foreground/30" />
+                      <p className="text-xs text-muted-foreground">
+                        {vehicles.length === 0 ? 'Henüz araç eklenmemiş' : 'Tüm araçlar seçili'}
+                      </p>
+                    </div>
+                  ) : (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleVehicleDragEnd}
+                    >
+                      <SortableContext
+                        items={listSortableIds}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {listTabVehicles.map((v) => (
+                          <SortableVehicleListItem
+                            key={v.id}
+                            id={v.id}
+                            vehicle={v}
+                            onAddToSelected={handleSelectVehicle}
+                            onPreview={peekVehicle}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Kutu 2: Plan Özeti + aksiyonlar */}
       <div className="bg-background rounded-xl border border-border overflow-hidden shrink-0 flex flex-col">
@@ -879,23 +886,25 @@ export function PlanRightPanel({
                 <span>X-Ray</span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (!planId) {
-                    toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
-                      position: 'bottom-right',
-                    });
-                    return;
-                  }
-                  setShareDialogOpen(true);
-                }}
-                disabled={placements.length === 0}
-                title="Paylaş"
-                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Paylaş</span>
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => {
+                    if (!planId) {
+                      toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
+                        position: 'bottom-right',
+                      });
+                      return;
+                    }
+                    setShareDialogOpen(true);
+                  }}
+                  disabled={placements.length === 0}
+                  title="Paylaş"
+                  className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Paylaş</span>
+                </button>
+              )}
 
               <button
                 onClick={handlePdfExport}
@@ -959,52 +968,56 @@ export function PlanRightPanel({
             )}
           </div>
 
-          {/* Optimizasyon modu seçici */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
-            <div className="grid grid-cols-2 gap-1">
-              {(
-                [
-                  {
-                    value: OptimizationCriteria.Lifo,
-                    icon: ArrowDownUp,
-                    label: 'LIFO',
-                    title: 'Son giren ilk çıkar',
-                  },
-                  {
-                    value: OptimizationCriteria.WeightBalance,
-                    icon: Scale,
-                    label: 'Ağırlık Dengesi',
-                    title: 'Ağırlık dengesi',
-                  },
-                ] as const
-              ).map(({ value, icon: Icon, label, title }) => (
-                <button
-                  key={value}
-                  onClick={() => setCriteria(value)}
-                  title={title}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                    criteria === value
-                      ? 'bg-foreground text-background border-foreground'
-                      : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{label}</span>
-                </button>
-              ))}
+          {/* Optimizasyon modu seçici — gizle: read-only modda */}
+          {!readOnly && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
+              <div className="grid grid-cols-2 gap-1">
+                {(
+                  [
+                    {
+                      value: OptimizationCriteria.Lifo,
+                      icon: ArrowDownUp,
+                      label: 'LIFO',
+                      title: 'Son giren ilk çıkar',
+                    },
+                    {
+                      value: OptimizationCriteria.WeightBalance,
+                      icon: Scale,
+                      label: 'Ağırlık Dengesi',
+                      title: 'Ağırlık dengesi',
+                    },
+                  ] as const
+                ).map(({ value, icon: Icon, label, title }) => (
+                  <button
+                    key={value}
+                    onClick={() => setCriteria(value)}
+                    title={title}
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
+                      criteria === value
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <Button
-            className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-            disabled={!selectedVehicle || isOptimizing || !canOptimize}
-            onClick={onOptimize}
-          >
-            {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-            Optimizasyonu Başlat
-          </Button>
+          {!readOnly && (
+            <Button
+              className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+              disabled={!selectedVehicle || isOptimizing || !canOptimize}
+              onClick={onOptimize}
+            >
+              {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              Optimizasyonu Başlat
+            </Button>
+          )}
           {placements.length > 0 && (
             <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
               Yükleme Animasyonunu Başlat
