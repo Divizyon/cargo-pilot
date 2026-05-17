@@ -25,18 +25,20 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
         var shareLink = await _context.ShareLinks
             .AsNoTracking()
             .Include(sl => sl.Plan)
-                .ThenInclude(p => p.Vehicle)
+                .ThenInclude(p => p.Vehicles)
+                .ThenInclude(lpv => lpv.Vehicle)
             .FirstOrDefaultAsync(sl => sl.Token == token, cancellationToken);
 
         if (shareLink is null) return null;
 
         var plan = shareLink.Plan;
-        var vehicle = plan.Vehicle;
+        var vehicle = plan.Vehicles.OrderBy(v => v.SortOrder).Select(v => v.Vehicle).FirstOrDefault();
+        if (vehicle is null) return null;
 
         var placements = await _context.LoadingPlanPlacements
             .AsNoTracking()
             .Include(p => p.Item)
-            .Where(p => p.LoadingPlanId == plan.Id)
+            .Where(p => p.LoadingPlanId == plan.Id && p.VehicleId == vehicle.Id)
             .ToListAsync(cancellationToken);
 
         var inputItems = await _context.LoadingPlanInputItems

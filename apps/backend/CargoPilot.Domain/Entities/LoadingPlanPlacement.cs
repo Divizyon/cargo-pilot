@@ -5,6 +5,7 @@ namespace CargoPilot.Domain.Entities;
 public sealed class LoadingPlanPlacement : BaseEntity {
 #pragma warning disable S1144
     public Guid LoadingPlanId { get; private set; }
+    public Guid? VehicleId { get; private set; }
     public Guid ItemId { get; private set; }
     public decimal PositionX { get; private set; }
     public decimal PositionY { get; private set; }
@@ -13,6 +14,9 @@ public sealed class LoadingPlanPlacement : BaseEntity {
 #pragma warning restore S1144
 
     public LoadingPlan LoadingPlan { get; private set; } = null!;
+#pragma warning disable S1144
+    public Vehicle? Vehicle { get; private set; }
+#pragma warning restore S1144
     public Item Item { get; private set; } = null!;
 
     private LoadingPlanPlacement() { }
@@ -20,12 +24,14 @@ public sealed class LoadingPlanPlacement : BaseEntity {
     public LoadingPlanPlacement(
         Guid id,
         Guid loadingPlanId,
+        Guid? vehicleId,
         Guid itemId,
         decimal positionX,
         decimal positionY,
         decimal positionZ,
         LoadingPlanPlacementRotation rotation) : base(id) {
         LoadingPlanId = loadingPlanId;
+        VehicleId = vehicleId;
         ItemId = itemId;
         PositionX = positionX;
         PositionY = positionY;
