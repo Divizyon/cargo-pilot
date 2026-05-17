@@ -9,7 +9,7 @@ import type { VehicleFormValues } from '../schemas/vehicleSchema';
 interface VehicleDoorDirectionFieldProps {
   form: UseFormReturn<VehicleFormValues>;
   vehicleType?: VehicleTypeValue;
-  hideHeading?: boolean; // kept for API compatibility
+  hideHeading?: boolean;
 }
 
 const KONTEYNER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side] as const;
