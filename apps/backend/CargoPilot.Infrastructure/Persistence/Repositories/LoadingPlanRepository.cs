@@ -1,5 +1,6 @@
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
@@ -18,6 +19,42 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         _context = context;
     }
 
+    public async Task<DashboardStatsDto> GetDashboardStatsAsync(
+        Guid? companyId,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.LoadingPlans
+            .AsNoTracking()
+            .Where(p => p.CompanyId == companyId
+                     && p.OptimizationStatus == LoadingPlanOptimizationStatus.Calculated);
+
+        if (startDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
+
+        var stats = await query
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Count = g.Count(),
+                TotalWeight = g.Sum(p => p.TotalWeight),
+                AvgFillRate = g.Average(p => p.FillRate)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (stats is null)
+            return new DashboardStatsDto(0m, 0m, 0);
+
+        return new DashboardStatsDto(
+            Math.Round(stats.AvgFillRate * 100m, 1),
+            Math.Round(stats.TotalWeight / 1000m, 2),
+            stats.Count);
+    }
+
     public async Task<PagedResult<PlanSummaryDto>> GetPagedAsync(
         int page,
         int pageSize,
@@ -34,7 +71,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(p => p.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(plateNumber))
-            query = query.Where(p => p.Vehicle.PlateNumber.Contains(plateNumber));
+            query = query.Where(p => p.Vehicle.PlateNumber != null && p.Vehicle.PlateNumber.Contains(plateNumber));
 
         if (vehicleIds is { Count: > 0 })
             query = query.Where(p => vehicleIds.Contains(p.VehicleId));
