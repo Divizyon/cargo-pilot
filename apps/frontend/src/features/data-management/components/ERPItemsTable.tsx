@@ -27,6 +27,7 @@ import { useDraftItems, type DraftItem } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
+import { ErpSourceBadge } from './ErpSourceBadge';
 import { SearchInput } from './SearchInput';
 
 const ROW_H = 48;
@@ -104,7 +105,7 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-const SKELETON_COLS = 9;
+const SKELETON_COLS = 10;
 
 function ERPItemsTableSkeleton() {
   return (
@@ -441,6 +442,9 @@ export function ERPItemsTable() {
                 <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün
                 </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Kaynak
+                </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Kategori
                 </TableHead>
@@ -468,7 +472,7 @@ export function ERPItemsTable() {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     {!integrationId
@@ -507,6 +511,9 @@ export function ERPItemsTable() {
                     <span className="block truncate text-xs text-muted-foreground" title={row.name}>
                       {row.name}
                     </span>
+                  </TableCell>
+                  <TableCell className="py-0 px-3">
+                    <ErpSourceBadge erpProviderName={row.integrationSystemName} />
                   </TableCell>
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
                     {row.productType ?? '—'}
