@@ -59,7 +59,6 @@ export function DashboardStatsCards() {
       const source = weeklyPlans ?? allPlans ?? [];
       return source.length > 0 ? computeWeeklyTrend(source) : WEEKLY_TREND_PLACEHOLDER;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [weeklyPlans, allPlans],
   );
 

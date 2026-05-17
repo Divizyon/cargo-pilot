@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +17,7 @@ interface Props {
   isError?: boolean;
   onRetry?: () => void;
   formatValue?: (v: number) => string;
-  footer?: React.ReactNode;
+  footer?: ReactNode;
 }
 
 const defaultFormat = (v: number) => new Intl.NumberFormat('tr-TR').format(v);

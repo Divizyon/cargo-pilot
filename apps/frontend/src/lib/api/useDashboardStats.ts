@@ -19,27 +19,15 @@ const apiResponseSchema = z.object({
   }),
 });
 
-const weeklyTrendItemSchema = z.object({
-  day: z.string(),
-  sevkiyat: z.number(),
-  teslim: z.number(),
-});
-
-const statCardSchema = z.object({
-  value: z.number(),
-  subInfo: z.string(),
-  delta: z.number(),
-});
+export type WeeklyTrendItem = { day: string; sevkiyat: number; teslim: number };
+export type StatCard = { value: number; subInfo: string; delta: number };
 
 export type DashboardStatsData = {
-  vehicleEfficiency: z.infer<typeof statCardSchema>;
-  weeklyLoadedTonnage: z.infer<typeof statCardSchema>;
-  weeklyLoadingCount: z.infer<typeof statCardSchema>;
-  weeklyTrend: z.infer<typeof weeklyTrendItemSchema>[];
+  vehicleEfficiency: StatCard;
+  weeklyLoadedTonnage: StatCard;
+  weeklyLoadingCount: StatCard;
+  weeklyTrend: WeeklyTrendItem[];
 };
-
-export type WeeklyTrendItem = z.infer<typeof weeklyTrendItemSchema>;
-export type StatCard = z.infer<typeof statCardSchema>;
 
 export const WEEKLY_TREND_PLACEHOLDER: WeeklyTrendItem[] = [
   { day: 'Pzt', sevkiyat: 0, teslim: 0 },
