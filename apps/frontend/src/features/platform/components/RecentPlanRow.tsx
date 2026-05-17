@@ -1,7 +1,10 @@
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate } from '@/lib/utils/formatDate';
-import { fromKilograms, type WeightUnitKey } from '@/features/data-management/schemas/productSchema';
+import {
+  fromKilograms,
+  type WeightUnitKey,
+} from '@/features/data-management/schemas/productSchema';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { cn } from '@/lib/utils';
 

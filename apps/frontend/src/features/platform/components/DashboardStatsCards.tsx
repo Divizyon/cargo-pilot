@@ -54,13 +54,10 @@ export function DashboardStatsCards() {
   const aktifCount = items.filter((p) => p.status === PlanStatus.Aktif).length;
   const tamamlandiCount = items.filter((p) => p.status === PlanStatus.Tamamlandi).length;
 
-  const trendData = useMemo(
-    () => {
-      const source = weeklyPlans ?? allPlans ?? [];
-      return source.length > 0 ? computeWeeklyTrend(source) : WEEKLY_TREND_PLACEHOLDER;
-    },
-    [weeklyPlans, allPlans],
-  );
+  const trendData = useMemo(() => {
+    const source = weeklyPlans ?? allPlans ?? [];
+    return source.length > 0 ? computeWeeklyTrend(source) : WEEKLY_TREND_PLACEHOLDER;
+  }, [weeklyPlans, allPlans]);
 
   const vehicleSubInfo =
     vehiclesData !== undefined

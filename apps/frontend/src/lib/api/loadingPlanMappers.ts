@@ -423,7 +423,11 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
       (raw['vehicle_name'] as string | undefined) ??
       '—',
     vehiclePlate:
-      (v?.plateNumber ?? v?.plate ?? (raw['plateNumber'] as string | undefined) ?? (raw['plate'] as string | undefined)) || undefined,
+      (v?.plateNumber ??
+        v?.plate ??
+        (raw['plateNumber'] as string | undefined) ??
+        (raw['plate'] as string | undefined)) ||
+      undefined,
     createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
