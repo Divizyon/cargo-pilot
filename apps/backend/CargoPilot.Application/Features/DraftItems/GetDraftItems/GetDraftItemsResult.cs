@@ -31,4 +31,5 @@ public sealed record DraftItemDto(
     string? StackGroup,
     string? SpecialNotes,
     int[] ConstraintIds,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? IntegrationSystemName);
