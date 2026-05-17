@@ -39,7 +39,11 @@ import { useDeleteItem, useItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/calcVolume';
-import { formatDimensionDisplay, formatVolumeDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
+import {
+  formatDimensionDisplay,
+  formatVolumeDisplay,
+  formatWeightDisplay,
+} from '@/lib/utils/unitConversion';
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
@@ -275,14 +279,18 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
-        <span className="text-xs text-foreground">{formatWeightDisplay(item.weight, weightUnit)}</span>
+        <span className="text-xs text-foreground">
+          {formatWeightDisplay(item.weight, weightUnit)}
+        </span>
       </TableCell>
 
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
           <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
           {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
-            <span className="text-[10px] text-muted-foreground">maks {formatWeightDisplay(item.maxWeightOnTop!, weightUnit)}</span>
+            <span className="text-[10px] text-muted-foreground">
+              maks {formatWeightDisplay(item.maxWeightOnTop!, weightUnit)}
+            </span>
           )}
         </div>
       </TableCell>

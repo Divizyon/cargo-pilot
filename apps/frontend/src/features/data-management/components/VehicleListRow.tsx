@@ -65,7 +65,9 @@ export function VehicleListRow({ vehicle, onDelete, onDetail }: Props) {
       </TableCell>
       <TableCell className={cell}>
         <span className="font-mono text-xs text-muted-foreground">
-          {formatDimensionDisplay(vehicle.length, dimensionUnit)} × {formatDimensionDisplay(vehicle.width, dimensionUnit)} × {formatDimensionDisplay(vehicle.height, dimensionUnit)}
+          {formatDimensionDisplay(vehicle.length, dimensionUnit)} ×{' '}
+          {formatDimensionDisplay(vehicle.width, dimensionUnit)} ×{' '}
+          {formatDimensionDisplay(vehicle.height, dimensionUnit)}
         </span>
       </TableCell>
       <TableCell className={cell}>

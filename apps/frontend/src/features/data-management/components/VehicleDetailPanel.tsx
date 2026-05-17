@@ -50,16 +50,22 @@ export function VehicleDetailPanel({ vehicleId, onClose }: Props) {
 
               <dt className="text-muted-foreground">Boyutlar (X×Y×Z)</dt>
               <dd className="font-medium">
-                {formatDimensionDisplay(vehicle.length, dimensionUnit)} × {formatDimensionDisplay(vehicle.height, dimensionUnit)} × {formatDimensionDisplay(vehicle.width, dimensionUnit)}
+                {formatDimensionDisplay(vehicle.length, dimensionUnit)} ×{' '}
+                {formatDimensionDisplay(vehicle.height, dimensionUnit)} ×{' '}
+                {formatDimensionDisplay(vehicle.width, dimensionUnit)}
               </dd>
 
               <dt className="text-muted-foreground">Maks Kargo</dt>
-              <dd className="font-medium">{formatWeightDisplay(vehicle.maxCargoWeight, weightUnit)}</dd>
+              <dd className="font-medium">
+                {formatWeightDisplay(vehicle.maxCargoWeight, weightUnit)}
+              </dd>
 
               {vehicle.tareWeight !== undefined && (
                 <>
                   <dt className="text-muted-foreground">Boş Ağırlık</dt>
-                  <dd className="font-medium">{formatWeightDisplay(vehicle.tareWeight, weightUnit)}</dd>
+                  <dd className="font-medium">
+                    {formatWeightDisplay(vehicle.tareWeight, weightUnit)}
+                  </dd>
                 </>
               )}
 

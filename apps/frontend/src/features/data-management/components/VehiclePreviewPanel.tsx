@@ -7,7 +7,11 @@ import { Switch } from '@/components/ui/switch';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDimensionDisplay, formatWeightDisplay, formatVolumeDisplay } from '@/lib/utils/unitConversion';
+import {
+  formatDimensionDisplay,
+  formatWeightDisplay,
+  formatVolumeDisplay,
+} from '@/lib/utils/unitConversion';
 import { formatAuditDate } from '@/lib/utils/formatAuditDate';
 import type { Vehicle } from '@/lib/types/vehicle';
 

@@ -33,7 +33,9 @@ export function ArchivedVehicleView({ vehicle }: Props) {
 
           <dt className="text-muted-foreground">Boyutlar (U×G×Y)</dt>
           <dd>
-            {formatDimensionDisplay(vehicle.length, dimensionUnit)} × {formatDimensionDisplay(vehicle.width, dimensionUnit)} × {formatDimensionDisplay(vehicle.height, dimensionUnit)}
+            {formatDimensionDisplay(vehicle.length, dimensionUnit)} ×{' '}
+            {formatDimensionDisplay(vehicle.width, dimensionUnit)} ×{' '}
+            {formatDimensionDisplay(vehicle.height, dimensionUnit)}
           </dd>
 
           <dt className="text-muted-foreground">Maks Kargo</dt>

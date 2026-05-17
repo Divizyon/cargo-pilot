@@ -142,9 +142,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
   const { data: unreadCount = 0 } = useNotificationUnreadCount();
 
   const bottomNav = BOTTOM_NAV_BASE.map((item) =>
-    item.path === '/notifications' && unreadCount > 0
-      ? { ...item, badge: unreadCount }
-      : item,
+    item.path === '/notifications' && unreadCount > 0 ? { ...item, badge: unreadCount } : item,
   );
 
   return (
