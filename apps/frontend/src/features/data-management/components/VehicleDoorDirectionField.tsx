@@ -3,12 +3,13 @@ import { Controller } from 'react-hook-form';
 import { FormItem } from '@/components/ui/form';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DoorDirection, VehicleType } from '@/lib/types/vehicle';
+import type { VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleDoorDirectionFieldProps {
   form: UseFormReturn<VehicleFormValues>;
-  vehicleType?: string;
-  hideHeading?: boolean;
+  vehicleType?: VehicleTypeValue;
+  hideHeading?: boolean; // kept for API compatibility
 }
 
 const KONTEYNER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side] as const;
