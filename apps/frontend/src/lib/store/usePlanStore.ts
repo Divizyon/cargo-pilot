@@ -271,6 +271,7 @@ interface PlanStore {
   mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
   reorderItems: (activeId: string, overId: string) => void;
+  reorderVehicles: (activeId: string, overId: string) => void;
   removeUnfitItem: (itemId: string) => void;
   retryUnfitItem: (itemId: string) => void;
   setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
@@ -572,6 +573,22 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const insertIdx = oldIdx < newIdx ? newIdx - 1 : newIdx;
       items.splice(insertIdx, 0, removed);
       return { selectedItems: items };
+    }),
+
+  reorderVehicles: (activeId, overId) =>
+    set((s) => {
+      const list = [...s.selectedVehicles];
+      const oldIdx = list.findIndex((e) => e.instanceId === activeId);
+      const newIdx = list.findIndex((e) => e.instanceId === overId);
+      if (oldIdx === -1 || newIdx === -1) return {};
+      const [removed] = list.splice(oldIdx, 1);
+      list.splice(newIdx, 0, removed);
+      const newPrimary = list[0]?.vehicle ?? null;
+      if (newPrimary?.id === s.selectedVehicle?.id) return { selectedVehicles: list };
+      const rebuild = newPrimary ? rebuildForVehicle(newPrimary, s) : null;
+      return rebuild
+        ? { selectedVehicles: list, selectedVehicle: newPrimary, ...rebuild }
+        : { selectedVehicles: list, selectedVehicle: newPrimary };
     }),
 
   removeUnfitItem: (itemId) =>

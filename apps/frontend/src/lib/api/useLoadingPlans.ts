@@ -159,6 +159,8 @@ export function useLoadingPlanDetail(id: string | undefined) {
 interface CreateLoadingPlanInput {
   planName: string;
   vehicleId: string;
+  /** Sıralı araç ID listesi — index 0 = önce dolacak araç. Backend multi-vehicle için kullanır. */
+  vehicleIds?: string[];
   items: Array<{ itemId: string; quantity: number }>;
   optimizationCriteria: OptimizationCriteria;
 }
@@ -287,6 +289,8 @@ export function useApprovePlan() {
 interface ReoptimizeLoadingPlanInput {
   id: string;
   vehicleId: string;
+  /** Sıralı araç ID listesi — index 0 = önce dolacak araç. Backend multi-vehicle için kullanır. */
+  vehicleIds?: string[];
   items: Array<{ itemId: string; quantity: number }>;
   optimizationCriteria: OptimizationCriteria;
 }
@@ -294,9 +298,10 @@ interface ReoptimizeLoadingPlanInput {
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
-    mutationFn: async ({ id, vehicleId, items, optimizationCriteria }) => {
+    mutationFn: async ({ id, vehicleId, vehicleIds, items, optimizationCriteria }) => {
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
         vehicleId,
+        ...(vehicleIds && vehicleIds.length > 1 && { vehicleIds }),
         items,
         optimizationCriteria,
       });
