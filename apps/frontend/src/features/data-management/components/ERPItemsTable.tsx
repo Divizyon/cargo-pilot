@@ -203,10 +203,10 @@ export function ERPItemsTable() {
     { enabled: selectAllMode },
   );
 
-  useEffect(() => {
-    if (!selectAllMode || !allPendingPage) return;
-    setSelectedIds(new Set(allPendingPage.items.map((i) => i.id)));
-  }, [selectAllMode, allPendingPage]);
+  const effectiveSelectedIds: ReadonlySet<string> =
+    selectAllMode && allPendingPage
+      ? new Set(allPendingPage.items.map((i) => i.id))
+      : selectedIds;
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 
@@ -240,8 +240,8 @@ export function ERPItemsTable() {
 
   const selectableItems = filteredItems.filter((i) => i.status === DRAFT_PENDING);
   const allSelected =
-    selectAllMode || (selectableItems.length > 0 && selectableItems.every((i) => selectedIds.has(i.id)));
-  const someSelected = !allSelected && selectedIds.size > 0;
+    selectAllMode || (selectableItems.length > 0 && selectableItems.every((i) => effectiveSelectedIds.has(i.id)));
+  const someSelected = !allSelected && effectiveSelectedIds.size > 0;
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
@@ -258,6 +258,13 @@ export function ERPItemsTable() {
   }
 
   function handleSelectRow(id: string, checked: boolean) {
+    if (selectAllMode && allPendingPage) {
+      const materialized = new Set(allPendingPage.items.map((i) => i.id));
+      if (!checked) materialized.delete(id);
+      setSelectAllMode(false);
+      setSelectedIds(materialized);
+      return;
+    }
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -272,7 +279,7 @@ export function ERPItemsTable() {
   }
 
   function handleOpenImport() {
-    const selected = filteredItems.filter((item) => selectedIds.has(item.id));
+    const selected = filteredItems.filter((item) => effectiveSelectedIds.has(item.id));
     const rows = selected.map(draftItemToImportRow);
     const draftIds: Record<string, string> = {};
     rows.forEach((row, i) => {
@@ -481,7 +488,7 @@ export function ERPItemsTable() {
                   <TableCell className="py-0 px-3">
                     {row.status === DRAFT_PENDING ? (
                       <Checkbox
-                        checked={selectedIds.has(row.id)}
+                        checked={effectiveSelectedIds.has(row.id)}
                         onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
                         aria-label={`${row.name} satırını seç`}
                       />
@@ -574,7 +581,7 @@ export function ERPItemsTable() {
       <div
         className={cn(
           'fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-out',
-          selectedIds.size > 0
+          effectiveSelectedIds.size > 0
             ? 'translate-y-0 opacity-100'
             : 'translate-y-4 opacity-0 pointer-events-none',
         )}
@@ -583,7 +590,7 @@ export function ERPItemsTable() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setSelectedIds(new Set())}
+            onClick={() => { setSelectAllMode(false); setSelectedIds(new Set()); }}
             className="text-muted-foreground hover:text-foreground"
           >
             İptal Et
@@ -592,7 +599,7 @@ export function ERPItemsTable() {
             <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
             Ürünlere Aktar
             <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
-              {selectedIds.size}
+              {effectiveSelectedIds.size}
             </span>
           </Button>
         </div>
@@ -604,7 +611,7 @@ export function ERPItemsTable() {
         open={importOpen}
         onOpenChange={(open) => {
           setImportOpen(open);
-          if (!open) setSelectedIds(new Set());
+          if (!open) { setSelectAllMode(false); setSelectedIds(new Set()); }
         }}
         initialRows={importRows}
         draftItemIds={importDraftIds}
