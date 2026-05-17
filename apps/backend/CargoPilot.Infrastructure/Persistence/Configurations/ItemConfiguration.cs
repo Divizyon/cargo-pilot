@@ -88,6 +88,10 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.StackGroup)
             .HasMaxLength(100);
 
+        builder.Property(item => item.IncompatibleGroupsJson)
+            .IsRequired()
+            .HasDefaultValue("[]");
+
         builder.Property(item => item.SpecialNotes)
             .HasMaxLength(1000);
 
