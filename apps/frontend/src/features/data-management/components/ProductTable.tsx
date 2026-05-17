@@ -292,6 +292,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
           allowRotateX={item.allowRotateX}
           allowRotateY={item.allowRotateY}
           allowRotateZ={item.allowRotateZ}
+          constraintIds={item.constraintIds}
         />
       </TableCell>
 
@@ -609,13 +610,13 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk/Çap
+                  Uzunluk/Çap (X)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik
+                  Yükseklik (Y)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik
+                  Derinlik (Z)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim (m³)

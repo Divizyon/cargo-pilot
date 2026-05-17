@@ -37,7 +37,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProductForm } from '@/features/data-management/hooks/useProductForm';
 import {
@@ -51,6 +50,7 @@ import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
 import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
+import { resolveProductColor } from '@/lib/config/productColors';
 
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormValues>;
@@ -117,6 +117,7 @@ type ConstraintOption = {
   color: ConstraintColor;
   Icon: ComponentType<{ className?: string; strokeWidth?: string | number }>;
   fragilityValue?: number;
+  incompatibleGroups?: readonly string[];
 };
 
 function CorrosiveIcon({
@@ -153,6 +154,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'amber',
     Icon: Wine,
     fragilityValue: FRAGILITY_LEVELS.Fragile,
+    incompatibleGroups: [],
   },
   {
     value: 'liquid',
@@ -160,6 +162,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'blue',
     Icon: Droplets,
     fragilityValue: FRAGILITY_LEVELS.Liquid,
+    incompatibleGroups: ['Elektronik'],
   },
   {
     value: 'flammable',
@@ -167,6 +170,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'orange',
     Icon: Flame,
     fragilityValue: FRAGILITY_LEVELS.Flammable,
+    incompatibleGroups: ['Gıda', 'Elektronik'],
   },
   {
     value: 'oxidizing',
@@ -174,6 +178,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'amber',
     Icon: Zap,
     fragilityValue: FRAGILITY_LEVELS.Oxidizing,
+    incompatibleGroups: ['Gıda', 'Genel'],
   },
   {
     value: 'corrosive',
@@ -181,6 +186,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'green',
     Icon: CorrosiveIcon,
     fragilityValue: FRAGILITY_LEVELS.Corrosive,
+    incompatibleGroups: ['Gıda', 'Genel', 'Elektronik'],
   },
   {
     value: 'odor',
@@ -188,6 +194,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'purple',
     Icon: Wind,
     fragilityValue: FRAGILITY_LEVELS.OdorSensitive,
+    incompatibleGroups: ['Kimya', 'Tehlikeli Madde'],
   },
   {
     value: 'food',
@@ -195,6 +202,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'default',
     Icon: Utensils,
     fragilityValue: FRAGILITY_LEVELS.FoodContact,
+    incompatibleGroups: ['Kimya', 'Tehlikeli Madde'],
   },
   {
     value: 'dry',
@@ -202,6 +210,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'default',
     Icon: Sun,
     fragilityValue: FRAGILITY_LEVELS.KeepDry,
+    incompatibleGroups: ['Gıda'],
   },
   {
     value: 'chemical',
@@ -209,6 +218,7 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
     color: 'purple',
     Icon: FlaskConical,
     fragilityValue: FRAGILITY_LEVELS.Chemical,
+    incompatibleGroups: ['Gıda', 'Genel'],
   },
 ];
 
@@ -219,7 +229,17 @@ const INCOMPATIBLE_GROUPS = [
   { value: 'Tehlikeli Madde', Icon: Flame },
   { value: 'Kimya', Icon: FlaskConical },
   { value: 'Elektronik', Icon: Cpu },
+  { value: 'Tekstil', Icon: Package },
 ] as const;
+
+const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
+  Kimya: ['Gıda', 'Elektronik', 'Tekstil'],
+  'Tehlikeli Madde': ['Gıda', 'Genel', 'Tekstil'],
+  Gıda: ['Kimya', 'Tehlikeli Madde'],
+  Elektronik: ['Kimya', 'Tehlikeli Madde'],
+  Tekstil: ['Kimya', 'Tehlikeli Madde'],
+  Genel: ['Tehlikeli Madde'],
+};
 
 interface SectionTitleProps {
   children: ReactNode;
@@ -502,8 +522,6 @@ export function ProductForm({
     return match ? [match.value] : [];
   });
 
-  const [unlimitedStack, setUnlimitedStack] = useState(false);
-
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
 
@@ -521,6 +539,7 @@ export function ProductForm({
     allowRotateZ,
     notes,
     incompatibleGroups,
+    stackGroup,
   ] = useWatch({
     control: form.control,
     name: [
@@ -537,6 +556,7 @@ export function ProductForm({
       'allowRotateZ',
       'notes',
       'incompatibleGroups',
+      'stackGroup',
     ],
   });
 
@@ -564,12 +584,6 @@ export function ProductForm({
   const volumeCm3 = isVaril
     ? Math.PI * (widthCm / 2) ** 2 * heightCm
     : widthCm * heightCm * lengthCm;
-
-  function toggleIncompatibleGroup(group: string) {
-    const prev = form.getValues('incompatibleGroups') ?? [];
-    const next = prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group];
-    form.setValue('incompatibleGroups', next, { shouldDirty: true });
-  }
 
   const formFields = (
     <div className="divide-y divide-border">
@@ -671,7 +685,14 @@ export function ProductForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Yük Grubu</FormLabel>
-                <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v)}>
+                <Select
+                  value={field.value ?? ''}
+                  onValueChange={(v) => {
+                    field.onChange(v);
+                    const autoGroups = INCOMPATIBLE_BY_GROUP[v] ?? [];
+                    form.setValue('incompatibleGroups', autoGroups, { shouldDirty: true });
+                  }}
+                >
                   <FormControl>
                     <SelectTrigger className={COMPACT_INPUT}>
                       <SelectValue placeholder="Kimya, Gıda…" />
@@ -694,28 +715,11 @@ export function ProductForm({
             name="maxStackCount"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>İstif Sayısı</FormLabel>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Sınırsız</span>
-                    <Switch
-                      checked={unlimitedStack}
-                      onCheckedChange={(checked) => {
-                        setUnlimitedStack(checked);
-                        if (checked) {
-                          field.onChange(undefined);
-                          setMaxStackDisplay('');
-                          form.clearErrors('maxStackCount');
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
+                <FormLabel>İstif Sayısı</FormLabel>
                 <FormControl>
                   <Input
                     type="text"
                     inputMode="numeric"
-                    disabled={unlimitedStack}
                     className={COMPACT_INPUT}
                     placeholder="3"
                     value={maxStackDisplay}
@@ -781,6 +785,11 @@ export function ProductForm({
                 dimensionUnit={dimensionUnit}
                 label={`${t('forms.product.height')} (Y)`}
                 placeholder="80"
+                labelTooltip={
+                  isPallet
+                    ? 'Toplam yükseklik; palet (maks. 14 cm) ve üzerindeki yükü birlikte kapsar. Örn: 14 cm palet + 86 cm ürün = 100 cm girilmeli.'
+                    : undefined
+                }
               />
               <DimensionField
                 form={form}
@@ -830,105 +839,102 @@ export function ProductForm({
         </div>
       </div>
 
-      {/* 3. KISITLAR — sol: yük kısıtları, sağ: uyumsuz yük grupları */}
+      {/* 3. KISITLAR — yük kısıtları tek satır, altında uyumsuz gruplar */}
       <div className="space-y-4 py-6">
         <SectionTitle>{t('forms.product.sectionConstraints')}</SectionTitle>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* Sol: yük kısıtı chip'leri */}
-          <FormField
-            control={form.control}
-            name="fragility"
-            render={() => (
-              <FormItem>
-                <FormLabel>Yük Kısıtları</FormLabel>
-                <div className="flex flex-wrap gap-1.5">
-                  {CONSTRAINT_OPTIONS.map((opt) => {
-                    const isActive = selectedConstraints.includes(opt.value);
-                    return (
-                      <Button
-                        key={opt.value}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
-                          isActive
-                            ? 'border-primary bg-primary/10 hover:bg-primary/20'
-                            : 'text-muted-foreground hover:text-foreground',
-                        )}
-                        onClick={() => {
-                          const next = isActive
-                            ? selectedConstraints.filter((v) => v !== opt.value)
-                            : [...selectedConstraints, opt.value];
-                          setSelectedConstraints(next);
-                          const maxFragility = next.reduce((acc, v) => {
-                            const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
-                            return Math.max(acc, o?.fragilityValue ?? 0);
-                          }, 0);
-                          form.setValue('fragility', maxFragility, { shouldValidate: false });
-                          const ids = next
-                            .map(
-                              (v) =>
-                                CONSTRAINT_OPTIONS.find((c) => c.value === v)?.fragilityValue ?? 0,
-                            )
-                            .filter((id) => id > 0);
-                          form.setValue('constraintIds', ids, { shouldValidate: false });
-                          if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
-                            form.setValue('allowRotateZ', false, { shouldValidate: false });
-                          } else if (!isPallet) {
-                            form.setValue('allowRotateZ', true, { shouldValidate: false });
-                          }
-                        }}
-                      >
-                        <opt.Icon
-                          className={cn('h-4 w-4 shrink-0', ICON_COLOR_CLASSES[opt.color])}
-                          strokeWidth={1.8}
-                        />
-                        {opt.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Yük kısıtı chip'leri — tek satır */}
+        <FormField
+          control={form.control}
+          name="fragility"
+          render={() => (
+            <FormItem>
+              <FormLabel>Yük Kısıtları</FormLabel>
+              <div className="flex flex-wrap gap-1.5">
+                {CONSTRAINT_OPTIONS.map((opt) => {
+                  const isActive = selectedConstraints.includes(opt.value);
+                  return (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
+                        isActive
+                          ? 'border-primary bg-primary/10 hover:bg-primary/20'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                      onClick={() => {
+                        const next = isActive
+                          ? selectedConstraints.filter((v) => v !== opt.value)
+                          : [...selectedConstraints, opt.value];
+                        setSelectedConstraints(next);
+                        const maxFragility = next.reduce((acc, v) => {
+                          const o = CONSTRAINT_OPTIONS.find((c) => c.value === v);
+                          return Math.max(acc, o?.fragilityValue ?? 0);
+                        }, 0);
+                        form.setValue('fragility', maxFragility, {
+                          shouldDirty: true,
+                          shouldValidate: false,
+                        });
+                        const ids = next
+                          .map(
+                            (v) =>
+                              CONSTRAINT_OPTIONS.find((c) => c.value === v)?.fragilityValue ?? 0,
+                          )
+                          .filter((id) => id > 0);
+                        form.setValue('constraintIds', ids, {
+                          shouldDirty: true,
+                          shouldValidate: false,
+                        });
+                        if (maxFragility >= FRAGILITY_LEVELS.Fragile && !isPallet) {
+                          form.setValue('allowRotateZ', false, {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          });
+                        } else if (!isPallet) {
+                          form.setValue('allowRotateZ', true, {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          });
+                        }
+                      }}
+                    >
+                      <opt.Icon
+                        className={cn('h-4 w-4 shrink-0', ICON_COLOR_CLASSES[opt.color])}
+                        strokeWidth={1.8}
+                      />
+                      {opt.label}
+                    </Button>
+                  );
+                })}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* Sağ: uyumsuz yük grupları */}
-          <FormField
-            control={form.control}
-            name="incompatibleGroups"
-            render={() => (
-              <FormItem>
-                <FormLabel>Uyumsuz Yük Grupları</FormLabel>
-                <div className="flex flex-wrap gap-1.5">
-                  {INCOMPATIBLE_GROUPS.map(({ value: g, Icon }) => {
-                    const selected = (incompatibleGroups ?? []).includes(g);
-                    return (
-                      <Button
-                        key={g}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          'h-9 gap-1.5 rounded-md px-3 text-sm font-normal',
-                          selected
-                            ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive'
-                            : 'text-muted-foreground hover:text-foreground',
-                        )}
-                        onClick={() => toggleIncompatibleGroup(g)}
-                      >
-                        <Icon className="h-4 w-4" strokeWidth={1.5} />
-                        {g}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {/* Uyumsuz yük grupları — stackGroup seçimine göre otomatik, tek satır */}
+        {(incompatibleGroups ?? []).length > 0 && (
+          <div>
+            <p className="mb-1.5 text-sm font-medium leading-none">Uyumsuz Yük Grupları</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(incompatibleGroups ?? []).map((g) => {
+                const entry = INCOMPATIBLE_GROUPS.find((ig) => ig.value === g);
+                const Icon = entry?.Icon ?? Package;
+                return (
+                  <span
+                    key={g}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md bg-destructive/10 px-3 text-sm text-destructive"
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={1.5} />
+                    {g}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Eksen rotasyonu — ürün tipi butonlarıyla tutarlı */}
         <div className="space-y-2">
@@ -961,22 +967,16 @@ export function ProductForm({
               const isAutoDisabled =
                 (axisFieldName === 'allowRotateZ' && isZLocked) ||
                 (axisFieldName === 'allowRotateY' && isYLocked);
-              const totalLockedAxes = [allowRotateX, allowRotateY, allowRotateZ].filter(
-                (v) => v === false,
-              ).length;
               return (
                 <FormField
                   key={axisFieldName}
                   control={form.control}
                   name={axisFieldName}
                   render={({ field }) => {
-                    const wouldBeThirdLock = field.value === true && totalLockedAxes >= 2;
-                    const isDisabled = isAutoDisabled || wouldBeThirdLock;
+                    const isDisabled = isAutoDisabled;
                     const tooltipMsg = isAutoDisabled
                       ? t('forms.product.rotateZLockedWarning')
-                      : wouldBeThirdLock
-                        ? 'En fazla 2 dönüş kısıtı eklenebilir'
-                        : t(tooltipKey);
+                      : t(tooltipKey);
                     const isLocked = field.value === false;
                     return (
                       <FormItem className="m-0 flex-1 space-y-0">
@@ -1142,12 +1142,13 @@ export function ProductForm({
               <PreviewPanel
                 name={name}
                 productType={productType ?? 'koli'}
+                stackGroup={stackGroup}
                 length={length}
                 width={width}
                 height={height}
                 weight={weight}
                 volumeCm3={volumeCm3}
-                maxStackCount={unlimitedStack ? undefined : maxStackCount}
+                maxStackCount={maxStackCount}
                 constraintLabels={selectedConstraints
                   .map((v) => CONSTRAINT_OPTIONS.find((o) => o.value === v)?.label)
                   .filter((l): l is string => l !== undefined)}
@@ -1167,6 +1168,7 @@ export function ProductForm({
 interface PreviewPanelProps {
   name?: string;
   productType: 'koli' | 'varil' | 'palet';
+  stackGroup?: string;
   length?: number;
   width?: number;
   height?: number;
@@ -1185,6 +1187,7 @@ function PreviewPanel(props: PreviewPanelProps) {
   const {
     name,
     productType,
+    stackGroup,
     length,
     width,
     height,
@@ -1261,6 +1264,7 @@ function PreviewPanel(props: PreviewPanelProps) {
             heightCm={heightCm}
             depthCm={depthCm}
             productType={productType}
+            color={resolveProductColor(productType, stackGroup)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -1320,6 +1324,7 @@ interface DimensionFieldProps {
   label: string;
   placeholder?: string;
   onAfterChange?: (value: number | undefined) => void;
+  labelTooltip?: string;
 }
 
 function DimensionField({
@@ -1329,6 +1334,7 @@ function DimensionField({
   label,
   placeholder,
   onAfterChange,
+  labelTooltip,
 }: DimensionFieldProps) {
   const initVal = form.getValues(name);
   const [display, setDisplay] = useState<string>(() =>
@@ -1341,7 +1347,25 @@ function DimensionField({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <div className="flex items-center gap-1">
+            <FormLabel>{label}</FormLabel>
+            {labelTooltip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    aria-label={labelTooltip}
+                  >
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[220px]">{labelTooltip}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           <div className="relative">
             <FormControl>
               <Input

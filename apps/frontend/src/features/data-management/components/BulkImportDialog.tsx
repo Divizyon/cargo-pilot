@@ -22,6 +22,11 @@ import {
   toMaxWeightOnTop,
   type CreateItemRequest,
 } from '@/lib/api/itemMappers';
+import {
+  useUpdateDraftItem,
+  useBulkApproveDraftItems,
+  type UpdateDraftItemPayload,
+} from '@/lib/api/useDraftItems';
 import { downloadItemImportTemplate } from '@/lib/utils/export-utils';
 
 // Google Sheets şablonu oluşturulduğunda bu URL'i buraya ekleyin
@@ -30,6 +35,9 @@ const ITEM_SHEETS_TEMPLATE_URL = '';
 interface BulkImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialRows?: EditableRow[];
+  /** Maps row._id → draft item backend id. When present, PUT+approve-bulk is used instead of bulk-create. */
+  draftItemIds?: Record<string, string>;
 }
 
 // ─── Row model ────────────────────────────────────────────────────────────────
@@ -37,6 +45,7 @@ interface BulkImportDialogProps {
 const editableRowSchema = z.object({
   _id: z.string(),
   sku: z.string(),
+  barcode: z.string(),
   name: z.string(),
   tip: z.string(),
   width: z.string(),
@@ -52,7 +61,7 @@ const editableRowSchema = z.object({
   notes: z.string(),
 });
 
-type EditableRow = z.infer<typeof editableRowSchema>;
+export type EditableRow = z.infer<typeof editableRowSchema>;
 
 type RowErrors = Partial<
   Record<'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight', string>
@@ -86,18 +95,41 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
   const fragilityType = Math.min(Math.max(Math.round(Number(row.fragility) || 0), 0), 9);
   return {
     sku: row.sku.trim(),
+    barcode: row.barcode.trim() || null,
     name: row.name.trim(),
-    productType: row.tip || 'koli',
+    productType: row.tip,
     category: tipToCategory(row.tip),
-    width: Number(row.width) / 10,
-    height: Number(row.height) / 10,
-    length: Number(row.length) / 10,
+    width: Number(row.width),
+    height: Number(row.height),
+    length: Number(row.length),
     weight,
     fragilityType,
     isStackable,
     maxStackCount,
     maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
+    specialNotes: row.notes.trim() || null,
+  };
+}
+
+function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
+  const weight = Number(row.weight);
+  const isStackable = row.isStackable;
+  const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
+  const maxStackCount = isStackable ? rawMax : 0;
+  return {
+    productType: row.tip,
+    category: tipToCategory(row.tip),
+    width: Number(row.width),
+    height: Number(row.height),
+    length: Number(row.length),
+    weight,
+    fragilityType: Math.min(Math.max(Math.round(Number(row.fragility) || 0), 0), 9),
+    isStackable,
+    maxStackCount,
+    maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
+    allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
+    barcode: row.barcode.trim() || null,
     specialNotes: row.notes.trim() || null,
   };
 }
@@ -118,14 +150,15 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
     editableRowSchema.parse({
       _id: crypto.randomUUID(),
       sku: String(r['SKU'] ?? ''),
+      barcode: String(r['Barkod'] ?? ''),
       name: String(r['Ürün Adı'] ?? ''),
       tip:
         String(r['Tip (koli/varil/palet)'] ?? '')
           .toLowerCase()
           .trim() || 'koli',
-      width: String(r['Genişlik(mm)'] ?? ''),
-      height: String(r['Yükseklik(mm)'] ?? ''),
-      length: String(r['Uzunluk(mm)'] ?? ''),
+      width: String(r['Genişlik(cm)'] ?? ''),
+      height: String(r['Yükseklik(cm)'] ?? ''),
+      length: String(r['Uzunluk(cm)'] ?? ''),
       weight: String(r['Ağırlık(kg)'] ?? ''),
       fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
       isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
@@ -142,8 +175,9 @@ function emptyRow(): EditableRow {
   return editableRowSchema.parse({
     _id: crypto.randomUUID(),
     sku: '',
+    barcode: '',
     name: '',
-    tip: 'koli',
+    tip: '',
     width: '',
     height: '',
     length: '',
@@ -188,11 +222,27 @@ function TextCell({ value, onChange, error, type = 'text', className }: TextCell
 
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
-export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) {
+export function BulkImportDialog({
+  open,
+  onOpenChange,
+  initialRows,
+  draftItemIds,
+}: BulkImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
+
+  const prevOpenRef = useRef(false);
+  if (open !== prevOpenRef.current) {
+    prevOpenRef.current = open;
+    if (open && initialRows && initialRows.length > 0) {
+      setRows(initialRows);
+      setApiErrors([]);
+    }
+  }
   const bulkCreate = useBulkCreateItems();
+  const updateDraftItem = useUpdateDraftItem();
+  const bulkApproveDraft = useBulkApproveDraftItems();
 
   function patchRow(id: string, patch: Partial<EditableRow>) {
     setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...patch } : r)));
@@ -211,10 +261,29 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     if (e.target) e.target.value = '';
   }
 
-  function handleImport() {
+  async function handleImport() {
     const hasClientErrors = rows.some((r) => Object.keys(validateRow(r)).length > 0);
     if (hasClientErrors || rows.length === 0) return;
     setApiErrors([]);
+
+    if (draftItemIds) {
+      try {
+        await Promise.all(
+          rows.map((row) => {
+            const draftId = draftItemIds[row._id];
+            if (!draftId) return Promise.resolve();
+            return updateDraftItem.mutateAsync({ id: draftId, payload: rowToUpdatePayload(row) });
+          }),
+        );
+        const ids = rows.map((row) => draftItemIds[row._id]).filter(Boolean);
+        await bulkApproveDraft.mutateAsync(ids);
+        handleClose();
+      } catch {
+        // errors surfaced via toasts in mutation hooks
+      }
+      return;
+    }
+
     bulkCreate.mutate(
       { items: rows.map(rowToRequest) },
       {
@@ -240,7 +309,9 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
 
   const validations = rows.map((r) => ({ id: r._id, errors: validateRow(r) }));
   const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
-  const canImport = rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending;
+  const isDraftPending = updateDraftItem.isPending || bulkApproveDraft.isPending;
+  const canImport =
+    rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending && !isDraftPending;
 
   // ─── Empty state: file picker ─────────────────────────────────────────────
 
@@ -320,10 +391,12 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         <DialogHeader className="flex-none border-b px-6 py-4 pr-14">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle>Toplu Ürün İçe Aktar</DialogTitle>
+              <DialogTitle>
+                {draftItemIds ? 'Taslak Ürünleri Onayla' : 'Toplu Ürün İçe Aktar'}
+              </DialogTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından içe
-                aktarın.
+                Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından{' '}
+                {draftItemIds ? 'onaylayın.' : 'içe aktarın.'}
               </p>
             </div>
             <div className="mr-4">
@@ -362,14 +435,15 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
               <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
-                <th className="w-[12%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
+                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
+                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
+                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Barkod</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
-                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
-                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Genişlik/Çap *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık (kg) *</th>
-                <th className="w-[10%] whitespace-nowrap border-b px-2 py-1.5">Kısıtlar</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk/Çap (X) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik (Y) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Derinlik (Z) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
+                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Kırılganlık</th>
                 <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
@@ -405,6 +479,23 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                       />
                     </td>
 
+                    {/* SKU */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <TextCell
+                        value={row.sku}
+                        onChange={(v) => patchRow(row._id, { sku: v })}
+                        error={errs.sku}
+                      />
+                    </td>
+
+                    {/* Barkod */}
+                    <td className="border-b border-border/40 px-2 py-0.5">
+                      <TextCell
+                        value={row.barcode}
+                        onChange={(v) => patchRow(row._id, { barcode: v })}
+                      />
+                    </td>
+
                     {/* Tip */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <Select value={row.tip} onValueChange={(v) => patchRow(row._id, { tip: v })}>
@@ -416,7 +507,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                               : 'border-border bg-background',
                           )}
                         >
-                          <SelectValue />
+                          <SelectValue placeholder="Seçiniz" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="koli">Koli</SelectItem>
@@ -424,15 +515,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                           <SelectItem value="palet">Palet</SelectItem>
                         </SelectContent>
                       </Select>
-                    </td>
-
-                    {/* SKU */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.sku}
-                        onChange={(v) => patchRow(row._id, { sku: v })}
-                        error={errs.sku}
-                      />
                     </td>
 
                     {/* Genişlik */}
@@ -587,16 +669,44 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               <Plus className="h-3.5 w-3.5" />
               Satır Ekle
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs"
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <FileUp className="h-3.5 w-3.5" />
-              Dosya Değiştir
-            </Button>
+            {!draftItemIds && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FileUp className="h-3.5 w-3.5" />
+                  Dosya Değiştir
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  type="button"
+                  onClick={downloadItemImportTemplate}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Şablonu İndir
+                </Button>
+                {ITEM_SHEETS_TEMPLATE_URL && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    type="button"
+                    asChild
+                  >
+                    <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Google Sheets
+                    </a>
+                  </Button>
+                )}
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -604,31 +714,24 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               className="hidden"
               onChange={handleFileChange}
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs"
-              type="button"
-              onClick={downloadItemImportTemplate}
-            >
-              <Download className="h-3.5 w-3.5" />
-              Şablonu İndir
-            </Button>
-            {ITEM_SHEETS_TEMPLATE_URL && (
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" type="button" asChild>
-                <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Google Sheets
-                </a>
-              </Button>
-            )}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleClose} type="button">
               İptal
             </Button>
-            <Button size="sm" onClick={handleImport} disabled={!canImport} type="button">
-              {bulkCreate.isPending ? 'Yükleniyor…' : `${rows.length} Ürün Ekle`}
+            <Button
+              size="sm"
+              onClick={() => void handleImport()}
+              disabled={!canImport}
+              type="button"
+            >
+              {draftItemIds
+                ? isDraftPending
+                  ? 'Aktarılıyor…'
+                  : `${rows.length} Ürünü Onayla`
+                : bulkCreate.isPending
+                  ? 'Yükleniyor…'
+                  : `${rows.length} Ürün Ekle`}
             </Button>
           </div>
         </div>

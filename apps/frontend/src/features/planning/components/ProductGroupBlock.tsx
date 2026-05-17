@@ -29,18 +29,18 @@ export function ProductGroupBlock({ group, defaultOpen = true }: ProductGroupBlo
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+    <div className="rounded-xl border border-border bg-background overflow-hidden">
       {/* Group header */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-zinc-50 transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-accent transition-colors text-left"
       >
         {/* Collapse chevron */}
         {isOpen ? (
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
 
         {/* Color badge */}
@@ -50,10 +50,10 @@ export function ProductGroupBlock({ group, defaultOpen = true }: ProductGroupBlo
         />
 
         {/* Group name */}
-        <span className="text-sm font-medium text-zinc-800 flex-1 truncate">{group.name}</span>
+        <span className="text-sm font-medium text-foreground flex-1 truncate">{group.name}</span>
 
         {/* Group ID */}
-        <span className="text-[10px] text-zinc-400 font-mono shrink-0">{group.id}</span>
+        <span className="text-[10px] text-muted-foreground font-mono shrink-0">{group.id}</span>
 
         {/* Total quantity — rightmost */}
         <span
@@ -70,28 +70,28 @@ export function ProductGroupBlock({ group, defaultOpen = true }: ProductGroupBlo
       {/* Column header */}
       {isOpen && (
         <>
-          <div className="flex items-center gap-3 px-3 py-1.5 border-t border-zinc-100 bg-zinc-50">
-            <span className="flex-1 text-[10px] text-zinc-400">Ürün Adı</span>
-            <span className="text-[10px] text-zinc-400 w-10 text-right shrink-0">Adet</span>
-            <span className="text-[10px] text-zinc-400 w-16 text-right shrink-0">
+          <div className="flex items-center gap-3 px-3 py-1.5 border-t border-border bg-muted/40">
+            <span className="flex-1 text-[10px] text-muted-foreground">Ürün Adı</span>
+            <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">Adet</span>
+            <span className="text-[10px] text-muted-foreground w-16 text-right shrink-0">
               Birim Ağırlık
             </span>
-            <span className="text-[10px] text-zinc-400 w-10 shrink-0">Katman</span>
-            <span className="text-[10px] text-zinc-400 shrink-0">Kısıtlar</span>
+            <span className="text-[10px] text-muted-foreground w-10 shrink-0">Katman</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">Kısıtlar</span>
           </div>
 
-          <div className="divide-y divide-zinc-50">
+          <div className="divide-y divide-border">
             {visibleProducts.map((product) => (
               <ProductRow key={product.id} product={product} />
             ))}
           </div>
 
           {hasMore && (
-            <div className="px-3 py-2 border-t border-zinc-100">
+            <div className="px-3 py-2 border-t border-border">
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full h-7 text-xs text-zinc-500 hover:text-zinc-800"
+                className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleShowMore();

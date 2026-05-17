@@ -8,7 +8,7 @@ import { VehicleAuditSection } from './VehicleAuditSection';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 
 const DOOR_LABELS: Record<string, string> = {
-  rear: 'Arka',
+  rear: 'Ön',
   side: 'Yan',
   top: 'Üst',
 };

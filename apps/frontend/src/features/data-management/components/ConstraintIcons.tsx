@@ -8,6 +8,7 @@ import {
   Utensils,
   Wind,
   Wine,
+  Zap,
 } from 'lucide-react';
 
 import type { ElementType } from 'react';
@@ -20,6 +21,7 @@ interface ConstraintIconsProps {
   allowRotateX: boolean;
   allowRotateY: boolean;
   allowRotateZ: boolean;
+  constraintIds?: number[];
 }
 
 interface ConstraintDef {
@@ -57,6 +59,16 @@ const FRAGILITY_DEFS: Record<number, Omit<ConstraintDef, 'icon'> & { icon: Eleme
     label: 'Sıvı İçerir',
     className: 'border-blue-200 bg-blue-50 text-blue-600',
   },
+  3: {
+    icon: Flame,
+    label: 'Yanıcı',
+    className: 'border-orange-200 bg-orange-50 text-orange-600',
+  },
+  4: {
+    icon: Zap,
+    label: 'Yakıcı',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+  },
   5: {
     icon: Flame,
     label: 'Aşındırıcı',
@@ -87,11 +99,19 @@ function buildConstraints({
   allowRotateX,
   allowRotateY,
   allowRotateZ,
+  constraintIds,
 }: ConstraintIconsProps): ConstraintDef[] {
   const defs: ConstraintDef[] = [];
 
-  const fragilityDef = FRAGILITY_DEFS[fragility];
-  if (fragilityDef) defs.push(fragilityDef);
+  if (constraintIds && constraintIds.length > 0) {
+    for (const id of constraintIds) {
+      const def = FRAGILITY_DEFS[id];
+      if (def) defs.push(def);
+    }
+  } else {
+    const fragilityDef = FRAGILITY_DEFS[fragility];
+    if (fragilityDef) defs.push(fragilityDef);
+  }
 
   if (!isStackable) {
     defs.push({

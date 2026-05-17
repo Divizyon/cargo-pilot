@@ -277,7 +277,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
           isStackable,
           maxStackCount,
           maxWeightOnTop: toMaxWeightOnTop(data.weight, isStackable, maxStackCount),
-          allowedRotations: data.isNotRotatable ? ALLOWED_ROTATIONS.Fixed : ALLOWED_ROTATIONS.All,
+          allowedRotations: data.isNotRotatable
+            ? ALLOWED_ROTATIONS.AllLocked
+            : ALLOWED_ROTATIONS.All,
         });
 
         const item: Item = {
@@ -327,14 +329,16 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
           {/* ── Left: Form ───────────────────────────────────────────────── */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-5 p-6">
             <DialogHeader>
-              <DialogTitle className="text-base font-semibold text-zinc-900">
+              <DialogTitle className="text-base font-semibold text-foreground">
                 {isEditing ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
               </DialogTitle>
             </DialogHeader>
 
             {/* 1. Ürün Şekli / Tipi */}
             <div className="flex flex-col gap-2.5">
-              <span className="text-xs font-medium text-zinc-500">1. Ürün Şekli / Tipi</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                1. Ürün Şekli / Tipi
+              </span>
               <Controller
                 name="productType"
                 control={control}
@@ -348,8 +352,8 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                         className={cn(
                           'flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl border-2 text-xs font-medium transition-colors flex-1',
                           field.value === value
-                            ? 'border-zinc-900 bg-zinc-900 text-white'
-                            : 'border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700',
+                            ? 'border-foreground bg-foreground text-background'
+                            : 'border-border text-muted-foreground hover:border-border hover:text-foreground',
                         )}
                       >
                         <Icon className="w-5 h-5" strokeWidth={1.5} />
@@ -363,7 +367,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
             {/* 2. Fiziksel Boyutlar */}
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-medium text-zinc-500">2. Fiziksel Boyutlar</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                2. Fiziksel Boyutlar
+              </span>
               <Input
                 {...register('name')}
                 placeholder="Ürün Adı (Örn: Demir Palet)"
@@ -377,7 +383,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                   { key: 'weight' as const, label: 'AĞIRLIK (KG)' },
                 ].map(({ key, label }) => (
                   <div key={key} className="flex flex-col gap-1">
-                    <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">
+                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">
                       {label}
                     </Label>
                     <Input
@@ -392,7 +398,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <Label className="text-xs text-zinc-500 shrink-0">Adet</Label>
+                <Label className="text-xs text-muted-foreground shrink-0">Adet</Label>
                 <Input
                   type="number"
                   min="1"
@@ -428,7 +434,9 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
 
             {/* 3. Lojistik Kısıtlar */}
             <div className="flex flex-col gap-2.5">
-              <span className="text-xs font-medium text-zinc-500">3. Lojistik Kısıtlar</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                3. Lojistik Kısıtlar
+              </span>
               <div className="flex gap-2 flex-wrap">
                 {CONSTRAINTS.map(({ name: fieldName, label, Icon }) => (
                   <Controller
@@ -442,8 +450,8 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                         className={cn(
                           'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors',
                           field.value
-                            ? 'border-zinc-900 bg-zinc-900 text-white'
-                            : 'border-zinc-200 text-zinc-500 hover:border-zinc-400',
+                            ? 'border-foreground bg-foreground text-background'
+                            : 'border-border text-muted-foreground hover:border-border',
                         )}
                       >
                         <Icon className="w-3.5 h-3.5" strokeWidth={2} />
@@ -471,7 +479,7 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
               <Button
                 type="submit"
                 disabled={createPlanItem.isPending || exceedsVehicle}
-                className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-60"
+                className="flex-1 bg-foreground text-background hover:bg-foreground/80 disabled:opacity-60"
               >
                 {createPlanItem.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -482,8 +490,8 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
           </form>
 
           {/* ── Right: Preview ────────────────────────────────────────────── */}
-          <div className="w-52 bg-zinc-50 border-l border-zinc-100 flex flex-col items-center gap-4 p-5 shrink-0">
-            <div className="w-full aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+          <div className="w-52 bg-muted/40 border-l border-border flex flex-col items-center gap-4 p-5 shrink-0">
+            <div className="w-full aspect-square overflow-hidden rounded-xl border border-border bg-muted/40">
               <ProductPreview3D
                 widthCm={width || 1}
                 heightCm={height || 1}
@@ -494,21 +502,21 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
             </div>
 
             <div className="w-full text-center space-y-3">
-              <p className="text-sm font-semibold text-zinc-800 truncate">
+              <p className="text-sm font-semibold text-foreground truncate">
                 {name?.trim() || 'İsimsiz Ürün...'}
               </p>
 
               <div>
-                <span className="inline-block text-[10px] font-bold text-zinc-500 uppercase tracking-wide px-2 py-0.5 bg-zinc-200 rounded-sm">
+                <span className="inline-block text-[10px] font-bold text-muted-foreground uppercase tracking-wide px-2 py-0.5 bg-muted rounded-sm">
                   BOYUT & İSTİAP
                 </span>
-                <p className="text-[11px] text-zinc-500 mt-1.5">
+                <p className="text-[11px] text-muted-foreground mt-1.5">
                   {width || 0}×{length || 0}×{height || 0} cm · {weight || 0} kg
                 </p>
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide mb-1.5">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
                   AKTİF KISITLAR
                 </p>
                 {activeConstraints.length > 0 ? (
@@ -516,14 +524,14 @@ export function AddItemModal({ open, onOpenChange, editTarget, onSuccess }: AddI
                     {activeConstraints.map((c) => (
                       <span
                         key={c}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600"
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                       >
                         {c}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-100 text-zinc-400">
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                     Standart Taşıma
                   </span>
                 )}
