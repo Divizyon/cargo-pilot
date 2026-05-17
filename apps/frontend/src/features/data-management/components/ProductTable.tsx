@@ -47,6 +47,7 @@ import {
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
+import { ErpSourceBadge } from './ErpSourceBadge';
 import { SearchInput } from './SearchInput';
 
 const PRODUCT_TYPE_ICON = {
@@ -147,6 +148,7 @@ function HighlightText({ text, query }: HighlightTextProps) {
 const SKELETON_COL_WIDTHS = [
   'w-44',
   'w-16',
+  'w-20',
   'w-24',
   'w-16',
   'w-16',
@@ -181,6 +183,9 @@ function ProductTableSkeleton() {
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-4 w-14 rounded" />
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-14" />
@@ -243,6 +248,10 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       </TableCell>
 
       <TableCell className={cell}>
+        <ErpSourceBadge erpProviderName={item.erpProviderName} />
+      </TableCell>
+
+      <TableCell className={cell}>
         <div className="flex items-center gap-1 text-muted-foreground">
           <TypeIcon className="h-3 w-3 shrink-0" strokeWidth={1.5} />
           <span className="text-xs">{typeLabel}</span>
@@ -285,8 +294,14 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
 
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
-          {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
+          {item.isStackable ? (
+            <span className="text-xs text-foreground">
+              {item.maxStackCount === 0 ? 'Sınırsız' : `${item.maxStackCount} kat`}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+          {item.isStackable && item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
             <span className="text-[10px] text-muted-foreground">
               maks {formatWeightDisplay(item.maxWeightOnTop!, weightUnit)}
             </span>
@@ -694,6 +709,9 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   Ürün
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                  Kaynak
+                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tip
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
@@ -729,7 +747,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={11}
+                    colSpan={12}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     Henüz ürün eklenmemiş.

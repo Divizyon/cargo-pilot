@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { cn } from '@/lib/utils';
+import { CargoPilotLogo } from '@/components/shared/CargoPilotLogo';
 import {
   ArrowRight,
   Share2,
@@ -106,7 +107,7 @@ function Navbar() {
               to="/"
               className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
             >
-              <img src="/favicon.svg" alt="Cargo Pilot" className="w-7 h-7 shrink-0" />
+              <CargoPilotLogo className="w-7 h-7 shrink-0 text-foreground" />
               <span className="font-bold text-foreground text-sm tracking-tight">Cargo Pilot</span>
             </Link>
 
@@ -573,7 +574,7 @@ function Hero() {
       <div className="max-w-7xl mx-auto w-full pt-4 md:pt-6">
         {/* Mobile logo — navbar yok, hero üstünde marka göstergesi */}
         <div className="md:hidden flex items-center gap-2 mb-8">
-          <img src="/favicon.svg" alt="Cargo Pilot" className="w-7 h-7 shrink-0" />
+          <CargoPilotLogo className="w-7 h-7 shrink-0 text-foreground" />
           <span className="font-bold text-foreground text-sm tracking-tight">Cargo Pilot</span>
         </div>
 
@@ -1422,7 +1423,7 @@ function Footer() {
     <footer className="border-t border-border bg-background py-8 sm:py-10 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
         <div className="flex items-center gap-2">
-          <img src="/favicon.svg" alt="Cargo Pilot" className="w-6 h-6 shrink-0" />
+          <CargoPilotLogo className="w-6 h-6 shrink-0 text-foreground" />
           <span className="font-semibold text-foreground text-sm">Cargo Pilot</span>
         </div>
         <div className="flex items-center gap-4 sm:gap-6">

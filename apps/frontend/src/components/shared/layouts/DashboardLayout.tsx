@@ -17,9 +17,9 @@ import {
   Plus,
   Settings,
   Truck,
-  Waypoints,
   X,
 } from 'lucide-react';
+import { CargoPilotLogo } from '@/components/shared/CargoPilotLogo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/useAuthStore';
@@ -183,9 +183,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
             isCollapsed ? 'lg:justify-center' : 'gap-3',
           )}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
-            <Waypoints className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-          </div>
+          <CargoPilotLogo className="h-9 w-9 shrink-0 text-foreground" />
           <div className={cn(isCollapsed && 'lg:hidden')}>
             <span className="block text-[15px] font-bold tracking-[0.15em] text-foreground">
               CARGOPILOT
@@ -445,9 +443,7 @@ export function DashboardLayout() {
               to="/dashboard"
               className="flex items-center gap-2 transition-opacity hover:opacity-80"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-                <Waypoints className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
-              </div>
+              <CargoPilotLogo className="h-7 w-7 text-foreground" />
               <span className="text-sm font-bold tracking-[0.15em] text-foreground">
                 CARGOPILOT
               </span>

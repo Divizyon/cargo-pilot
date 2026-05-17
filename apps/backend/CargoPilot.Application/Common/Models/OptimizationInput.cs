@@ -25,4 +25,6 @@ public sealed record OptimizationItemInput(
     AllowedRotations AllowedRotations,
     int Quantity,
     Guid? GroupId = null,
-    int? UnloadingOrder = null);
+    int? UnloadingOrder = null,
+    string? StackGroup = null,
+    IReadOnlyList<string>? IncompatibleGroups = null);

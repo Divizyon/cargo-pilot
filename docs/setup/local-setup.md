@@ -124,7 +124,19 @@ Seed veriler yalnızca geliştirme ve test içindir. Production'da kontrollü ku
 | Frontend | `http://localhost:3001` |
 | Backend API | `http://localhost:8081` |
 | MinIO Console | `http://localhost:9003` |
+| MinIO S3 API | `http://localhost:9002` |
 | MSSQL | `localhost:1434` |
+
+{% hint style="info" %}
+`MINIO_PUBLIC_ENDPOINT` env değişkeni ortama göre farklı ayarlanır:
+
+| Ortam | Değer |
+|-------|-------|
+| Local | `http://localhost:9002` |
+| Test sunucu | `https://cargopilot.divizyon.org/media` |
+
+Sunucuda nginx `/media/` path'i MinIO S3 API'ye (port 9002) reverse proxy yapılmıştır.
+{% endhint %}
 
 ---
 
