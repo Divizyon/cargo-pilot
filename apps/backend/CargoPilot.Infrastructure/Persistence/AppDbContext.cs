@@ -25,6 +25,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<UserVehicleFavorite> UserVehicleFavorites => Set<UserVehicleFavorite>();
     public DbSet<LoadingPlan> LoadingPlans => Set<LoadingPlan>();
+    public DbSet<LoadingPlanVehicle> LoadingPlanVehicles => Set<LoadingPlanVehicle>();
     public DbSet<LoadingPlanItemGroup> LoadingPlanItemGroups => Set<LoadingPlanItemGroup>();
     public DbSet<LoadingPlanInputItem> LoadingPlanInputItems => Set<LoadingPlanInputItem>();
     public DbSet<LoadingPlanPlacement> LoadingPlanPlacements => Set<LoadingPlanPlacement>();
@@ -62,6 +63,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
         modelBuilder.ApplyConfiguration(new UserVehicleFavoriteConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanConfiguration());
+        modelBuilder.ApplyConfiguration(new LoadingPlanVehicleConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanItemGroupConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanInputItemConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanPlacementConfiguration());

@@ -22,7 +22,7 @@ public sealed record PlanDetailDto(
     DateTime CreatedAtUtc,
     ErpExportStatus? ErpExportStatus,
     string? ThumbnailUrl,
-    VehicleInPlanDto Vehicle,
+    IReadOnlyList<VehicleInPlanDto> Vehicles,
     IReadOnlyList<PlacementDto> Placements,
     IReadOnlyList<UnplacedItemDto> UnplacedItems,
     IReadOnlyList<WarningDto> Warnings,
