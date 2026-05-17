@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { SCENE } from '@/lib/config/scene-config';
 import type { ProductType } from '@/features/data-management/schemas/productSchema';
-import { buildBoxLabel } from '@/lib/utils/buildBoxLabel';
+import { buildBoxLabel, loadIcons } from '@/lib/utils/buildBoxLabel';
 
 interface Props {
   widthCm: number;
@@ -15,6 +15,7 @@ interface Props {
   color?: string;
   sku?: string;
   name?: string;
+  constraintIconUrls?: string[];
 }
 
 const TYPE_COLORS: Record<ProductType, string> = {
@@ -81,13 +82,37 @@ interface ShapeProps {
   color: string;
   sku?: string;
   name?: string;
+  constraintIconUrls?: string[];
 }
 
-function KoliScene({ widthCm, heightCm, depthCm, color, sku, name }: ShapeProps) {
+function KoliScene({
+  widthCm,
+  heightCm,
+  depthCm,
+  color,
+  sku,
+  name,
+  constraintIconUrls,
+}: ShapeProps) {
   const maxDim = Math.max(widthCm, heightCm, depthCm);
   const label = sku || name || '—';
 
-  const labelTexture = useMemo(() => buildBoxLabel(label, 1, 1, color), [label, color]);
+  const [iconImgs, setIconImgs] = useState<HTMLImageElement[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const urls = constraintIconUrls ?? [];
+    (urls.length > 0 ? loadIcons(urls) : Promise.resolve([] as HTMLImageElement[])).then((imgs) => {
+      if (!cancelled) setIconImgs(imgs);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [constraintIconUrls]);
+
+  const labelTexture = useMemo(
+    () => buildBoxLabel(label, 1, 1, color, iconImgs),
+    [label, color, iconImgs],
+  );
 
   useEffect(
     () => () => {
@@ -192,7 +217,15 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
 const PALLET_HEIGHT_CM = 14;
 const PALLET_WOOD_COLOR = '#c8a96e';
 
-function PaletScene({ widthCm, heightCm, depthCm, color, sku, name }: ShapeProps) {
+function PaletScene({
+  widthCm,
+  heightCm,
+  depthCm,
+  color,
+  sku,
+  name,
+  constraintIconUrls,
+}: ShapeProps) {
   // heightCm = kullanıcının girdiği toplam yükseklik; palet sabit 14 cm, kargo = kalan
   const paletH = Math.min(PALLET_HEIGHT_CM, heightCm);
   const cargoH = Math.max(0, heightCm - paletH);
@@ -200,7 +233,22 @@ function PaletScene({ widthCm, heightCm, depthCm, color, sku, name }: ShapeProps
   const maxDim = Math.max(widthCm, totalH, depthCm);
   const label = sku || name || '—';
 
-  const labelTexture = useMemo(() => buildBoxLabel(label, 1, 1, color), [label, color]);
+  const [iconImgs, setIconImgs] = useState<HTMLImageElement[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const urls = constraintIconUrls ?? [];
+    (urls.length > 0 ? loadIcons(urls) : Promise.resolve([] as HTMLImageElement[])).then((imgs) => {
+      if (!cancelled) setIconImgs(imgs);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [constraintIconUrls]);
+
+  const labelTexture = useMemo(
+    () => buildBoxLabel(label, 1, 1, color, iconImgs),
+    [label, color, iconImgs],
+  );
   useEffect(
     () => () => {
       labelTexture.dispose();
@@ -347,6 +395,7 @@ export function ProductPreview3D({
   color,
   sku,
   name,
+  constraintIconUrls,
 }: Props) {
   const resolvedColor = color ?? TYPE_COLORS[productType];
 
@@ -367,6 +416,7 @@ export function ProductPreview3D({
         color={resolvedColor}
         sku={sku}
         name={name}
+        constraintIconUrls={constraintIconUrls}
       />
     </Canvas>
   );
