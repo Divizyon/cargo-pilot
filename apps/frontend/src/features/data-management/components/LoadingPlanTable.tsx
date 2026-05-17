@@ -453,6 +453,15 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
     pageSize,
   );
 
+  const { data: allData } = useLoadingPlanList({ search, dateFrom, dateTo }, 1, 9999);
+
+  const tabCounts = {
+    all: allData?.totalCount ?? 0,
+    taslak: allData?.items.filter((p) => p.status === 'taslak').length ?? 0,
+    aktif: allData?.items.filter((p) => p.status === 'aktif').length ?? 0,
+    tamamlandi: allData?.items.filter((p) => p.status === 'tamamlandi').length ?? 0,
+  };
+
   const items = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -499,7 +508,21 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
-              {tab.label}
+              <span className="flex items-center gap-1.5">
+                {tab.label}
+                {tabCounts[tab.value as keyof typeof tabCounts] > 0 && (
+                  <span
+                    className={cn(
+                      'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none',
+                      statusTab === tab.value
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {tabCounts[tab.value as keyof typeof tabCounts]}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
