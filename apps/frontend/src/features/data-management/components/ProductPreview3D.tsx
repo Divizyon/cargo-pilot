@@ -5,6 +5,7 @@ import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { SCENE } from '@/lib/config/scene-config';
 import type { ProductType } from '@/features/data-management/schemas/productSchema';
+import { buildBoxLabel } from '@/lib/utils/buildBoxLabel';
 
 interface Props {
   widthCm: number;
@@ -12,6 +13,8 @@ interface Props {
   depthCm: number;
   productType?: ProductType;
   color?: string;
+  sku?: string;
+  name?: string;
 }
 
 const TYPE_COLORS: Record<ProductType, string> = {
@@ -22,6 +25,8 @@ const TYPE_COLORS: Record<ProductType, string> = {
 
 const PREVIEW_DIST_FACTOR = 2.5;
 const MESH_OPACITY = 0.85;
+const EDGE_COLOR = SCENE.COLORS.CONTAINER_EDGE;
+const EDGE_OPACITY = 0.55;
 
 function SceneSetup({
   maxDim,
@@ -74,10 +79,22 @@ interface ShapeProps {
   heightCm: number;
   depthCm: number;
   color: string;
+  sku?: string;
+  name?: string;
 }
 
-function KoliScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
+function KoliScene({ widthCm, heightCm, depthCm, color, sku, name }: ShapeProps) {
   const maxDim = Math.max(widthCm, heightCm, depthCm);
+  const label = sku || name || '—';
+
+  const labelTexture = useMemo(() => buildBoxLabel(label, 1, 1, color), [label, color]);
+
+  useEffect(
+    () => () => {
+      labelTexture.dispose();
+    },
+    [labelTexture],
+  );
 
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(widthCm, heightCm, depthCm);
@@ -99,10 +116,32 @@ function KoliScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
       <group>
         <mesh>
           <boxGeometry args={[widthCm, heightCm, depthCm]} />
-          <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+          {/* BoxGeometry yüz sırası: +X(0), -X(1), +Y(2), -Y(3/taban), +Z(4), -Z(5) */}
+          {[0, 1, 2, 3, 4, 5].map((face) =>
+            face === 3 ? (
+              <meshStandardMaterial
+                key={face}
+                attach={`material-${face}`}
+                color={color}
+                transparent
+                opacity={MESH_OPACITY}
+                metalness={0.1}
+                roughness={0.6}
+              />
+            ) : (
+              <meshStandardMaterial
+                key={face}
+                attach={`material-${face}`}
+                map={labelTexture}
+                color="#ffffff"
+                metalness={0.1}
+                roughness={0.6}
+              />
+            ),
+          )}
         </mesh>
         <lineSegments geometry={edgesGeo}>
-          <lineBasicMaterial color="#000000" />
+          <lineBasicMaterial color={EDGE_COLOR} transparent opacity={EDGE_OPACITY} />
         </lineSegments>
       </group>
     </>
@@ -134,10 +173,16 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
       <group>
         <mesh>
           <cylinderGeometry args={[radius, radius, heightCm, 32]} />
-          <meshStandardMaterial color={color} />
+          <meshStandardMaterial
+            color={color}
+            transparent
+            opacity={MESH_OPACITY}
+            metalness={0.1}
+            roughness={0.6}
+          />
         </mesh>
         <lineSegments geometry={edgesGeo}>
-          <lineBasicMaterial color="#000000" />
+          <lineBasicMaterial color={EDGE_COLOR} transparent opacity={EDGE_OPACITY} />
         </lineSegments>
       </group>
     </>
@@ -145,13 +190,23 @@ function VarilScene({ widthCm, heightCm, color }: ShapeProps) {
 }
 
 const PALLET_HEIGHT_CM = 14;
+const PALLET_WOOD_COLOR = '#c8a96e';
 
-function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
+function PaletScene({ widthCm, heightCm, depthCm, color, sku, name }: ShapeProps) {
   // heightCm = kullanıcının girdiği toplam yükseklik; palet sabit 14 cm, kargo = kalan
   const paletH = Math.min(PALLET_HEIGHT_CM, heightCm);
   const cargoH = Math.max(0, heightCm - paletH);
   const totalH = paletH + cargoH;
   const maxDim = Math.max(widthCm, totalH, depthCm);
+  const label = sku || name || '—';
+
+  const labelTexture = useMemo(() => buildBoxLabel(label, 1, 1, color), [label, color]);
+  useEffect(
+    () => () => {
+      labelTexture.dispose();
+    },
+    [labelTexture],
+  );
 
   const xUnit = widthCm / 23;
   const slatW = 3 * xUnit;
@@ -215,10 +270,10 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
         {slatCentersX.map((cx, i) => (
           <group key={`top-${i}`} position={[cx, topCenterY, depthCm / 2]}>
             <mesh geometry={slatGeo}>
-              <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+              <meshStandardMaterial color={PALLET_WOOD_COLOR} transparent opacity={MESH_OPACITY} />
             </mesh>
             <lineSegments geometry={slatEdges}>
-              <lineBasicMaterial color="#000000" />
+              <lineBasicMaterial color={EDGE_COLOR} transparent opacity={EDGE_OPACITY} />
             </lineSegments>
           </group>
         ))}
@@ -227,10 +282,10 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
         {slatCentersX.map((cx, i) => (
           <group key={`carrier-${i}`} position={[cx, carrierCenterY, depthCm / 2]}>
             <mesh geometry={carrierGeo}>
-              <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+              <meshStandardMaterial color={PALLET_WOOD_COLOR} transparent opacity={MESH_OPACITY} />
             </mesh>
             <lineSegments geometry={carrierEdges}>
-              <lineBasicMaterial color="#000000" />
+              <lineBasicMaterial color={EDGE_COLOR} transparent opacity={EDGE_OPACITY} />
             </lineSegments>
           </group>
         ))}
@@ -239,10 +294,10 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
         {crossZCenters.map((cz, i) => (
           <group key={`cross-${i}`} position={[widthCm / 2, crossCenterY, cz]}>
             <mesh geometry={crossGeo}>
-              <meshStandardMaterial color={color} transparent opacity={MESH_OPACITY} />
+              <meshStandardMaterial color={PALLET_WOOD_COLOR} transparent opacity={MESH_OPACITY} />
             </mesh>
             <lineSegments geometry={crossEdges}>
-              <lineBasicMaterial color="#000000" />
+              <lineBasicMaterial color={EDGE_COLOR} transparent opacity={EDGE_OPACITY} />
             </lineSegments>
           </group>
         ))}
@@ -251,14 +306,31 @@ function PaletScene({ widthCm, heightCm, depthCm, color }: ShapeProps) {
         {cargoGeo && cargoEdges && cargoH > 0 && (
           <group position={[widthCm / 2, cargoCenterY, depthCm / 2]}>
             <mesh geometry={cargoGeo}>
-              <meshStandardMaterial
-                color={SCENE.COLORS.NORMAL_STR}
-                transparent
-                opacity={MESH_OPACITY}
-              />
+              {[0, 1, 2, 3, 4, 5].map((face) =>
+                face === 3 ? (
+                  <meshStandardMaterial
+                    key={face}
+                    attach={`material-${face}`}
+                    color={color}
+                    transparent
+                    opacity={MESH_OPACITY}
+                    metalness={0.1}
+                    roughness={0.6}
+                  />
+                ) : (
+                  <meshStandardMaterial
+                    key={face}
+                    attach={`material-${face}`}
+                    map={labelTexture}
+                    color="#ffffff"
+                    metalness={0.1}
+                    roughness={0.6}
+                  />
+                ),
+              )}
             </mesh>
             <lineSegments geometry={cargoEdges}>
-              <lineBasicMaterial color="#000000" />
+              <lineBasicMaterial color={EDGE_COLOR} transparent opacity={EDGE_OPACITY} />
             </lineSegments>
           </group>
         )}
@@ -273,6 +345,8 @@ export function ProductPreview3D({
   depthCm,
   productType = 'koli',
   color,
+  sku,
+  name,
 }: Props) {
   const resolvedColor = color ?? TYPE_COLORS[productType];
 
@@ -291,6 +365,8 @@ export function ProductPreview3D({
         heightCm={heightCm}
         depthCm={depthCm}
         color={resolvedColor}
+        sku={sku}
+        name={name}
       />
     </Canvas>
   );
