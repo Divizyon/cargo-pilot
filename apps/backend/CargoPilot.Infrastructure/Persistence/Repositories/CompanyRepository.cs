@@ -23,6 +23,9 @@ internal sealed class CompanyRepository : ICompanyRepository
         return _dbContext.Companies.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => _dbContext.SaveChangesAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Company>> GetExpiringTrialCompaniesAsync(
         int daysAhead,
         CancellationToken cancellationToken = default)
@@ -46,7 +49,4 @@ internal sealed class CompanyRepository : ICompanyRepository
             .Where(c => c.TrialEndsAt != null && c.TrialEndsAt <= now)
             .ToListAsync(cancellationToken);
     }
-
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
-        => _dbContext.SaveChangesAsync(cancellationToken);
 }
