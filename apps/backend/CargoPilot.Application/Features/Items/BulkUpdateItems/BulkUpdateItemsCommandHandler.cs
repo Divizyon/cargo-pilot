@@ -32,6 +32,10 @@ public sealed class BulkUpdateItemsCommandHandler
             return Result<BulkUpdateItemsResponse>.Failure(
                 new Error(ErrorType.Validation, "BulkUpdateItem.EmptyList", "En az bir ürün gönderilmelidir."));
 
+        if (request.Items.Count > 500)
+            return Result<BulkUpdateItemsResponse>.Failure(
+                new Error(ErrorType.Validation, "BulkUpdateItem.TooManyItems", "En fazla 500 ürün gönderilebilir."));
+
         var companyId = _currentUserService.CompanyId;
         var failures = new List<ValidationFailure>();
 
@@ -92,11 +96,17 @@ public sealed class BulkUpdateItemsCommandHandler
         var existingById = existingItems.ToDictionary(x => x.Id);
 
         // Not-found check
+        var notFoundFailures = new List<ValidationFailure>();
         for (int i = 0; i < request.Items.Count; i++)
         {
             if (!existingById.ContainsKey(request.Items[i].Id))
-                failures.Add(new ValidationFailure($"[{i}].Id", "Ürün bulunamadı."));
+                notFoundFailures.Add(new ValidationFailure($"[{i}].Id", "Ürün bulunamadı."));
         }
+
+        if (notFoundFailures.Count > 0)
+            return Result<BulkUpdateItemsResponse>.Failure(
+                new Error(ErrorType.NotFound, "BulkUpdateItem.NotFound",
+                    "Bir veya daha fazla ürün bulunamadı.", notFoundFailures));
 
         // DB SKU conflict: find SKUs claimed by items outside this batch
         var targetSkus = request.Items
@@ -114,15 +124,17 @@ public sealed class BulkUpdateItemsCommandHandler
                 StringComparer.OrdinalIgnoreCase);
 
             if (conflictSkus.Count > 0)
+            {
+                var conflictFailures = new List<ValidationFailure>();
                 for (int i = 0; i < request.Items.Count; i++)
                     if (conflictSkus.Contains(request.Items[i].SKU))
-                        failures.Add(new ValidationFailure($"[{i}].SKU", "Bu SKU başka bir üründe zaten kullanılıyor."));
-        }
+                        conflictFailures.Add(new ValidationFailure($"[{i}].SKU", "Bu SKU başka bir üründe zaten kullanılıyor."));
 
-        if (failures.Count > 0)
-            return Result<BulkUpdateItemsResponse>.Failure(
-                new Error(ErrorType.Validation, "BulkUpdateItem.ValidationFailed",
-                    "Bir veya daha fazla satırda doğrulama hatası var.", failures));
+                return Result<BulkUpdateItemsResponse>.Failure(
+                    new Error(ErrorType.Conflict, "BulkUpdateItem.SkuConflict",
+                        "Bir veya daha fazla SKU başka bir üründe zaten kullanılıyor.", conflictFailures));
+            }
+        }
 
         // Apply all updates
         foreach (var cmd in request.Items)
@@ -152,6 +164,6 @@ public sealed class BulkUpdateItemsCommandHandler
 
         await _itemRepository.SaveChangesAsync(cancellationToken);
 
-        return Result<BulkUpdateItemsResponse>.Success(new BulkUpdateItemsResponse(request.Items.Count));
+        return Result<BulkUpdateItemsResponse>.Success(new BulkUpdateItemsResponse(existingById.Count));
     }
 }
