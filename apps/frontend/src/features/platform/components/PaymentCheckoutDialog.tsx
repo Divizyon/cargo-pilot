@@ -443,14 +443,17 @@ export function PaymentCheckoutInline({ initialPlan, onCancel }: PaymentCheckout
               </p>
               <p className="mt-0.5 text-sm font-semibold text-foreground">{planMeta.label}</p>
             </div>
-            <p className="text-lg font-bold text-foreground">
-              {planMeta.price}
-              {planMeta.period && (
-                <span className="ml-0.5 text-xs font-normal text-muted-foreground">
-                  {planMeta.period}
-                </span>
-              )}
-            </p>
+            <div className="text-right">
+              <p className="text-lg font-bold text-foreground">
+                {planMeta.price}
+                {planMeta.period && (
+                  <span className="ml-0.5 text-xs font-normal text-muted-foreground">
+                    {planMeta.period}
+                  </span>
+                )}
+              </p>
+              {planMeta.period && <p className="text-[10px] text-muted-foreground">KDV dahil</p>}
+            </div>
           </div>
 
           {apiError && (

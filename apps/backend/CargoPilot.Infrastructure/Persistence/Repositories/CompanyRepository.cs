@@ -46,4 +46,7 @@ internal sealed class CompanyRepository : ICompanyRepository
             .Where(c => c.TrialEndsAt != null && c.TrialEndsAt <= now)
             .ToListAsync(cancellationToken);
     }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => _dbContext.SaveChangesAsync(cancellationToken);
 }
