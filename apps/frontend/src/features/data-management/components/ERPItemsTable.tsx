@@ -1,7 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -86,7 +85,6 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
     _id: crypto.randomUUID(),
     name: item.name,
     sku: item.sku ?? '',
-    barcode: item.barcode ?? '',
     tip,
     width: String(item.width),
     height: String(item.height),
@@ -98,6 +96,8 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
     allowRotateX,
     allowRotateY,
     allowRotateZ,
+    constraintIds: item.constraintIds ?? [],
+    incompatibleGroups: [],
     notes: item.specialNotes ?? '',
   };
 }
@@ -154,6 +154,8 @@ export function ERPItemsTable() {
   const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
+  const [selectAllMode, setSelectAllMode] = useState(false);
 
   useEffect(() => {
     let last = pageSize;
@@ -194,7 +196,15 @@ export function ERPItemsTable() {
     data: draftPage,
     isLoading,
     isFetching,
-  } = useDraftItems({ page: queryPage, pageSize: queryPageSize });
+  } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
+
+  const { data: allPendingPage } = useDraftItems(
+    { page: 1, pageSize: 9999, status: DRAFT_PENDING },
+    { enabled: selectAllMode },
+  );
+
+  const effectiveSelectedIds: ReadonlySet<string> =
+    selectAllMode && allPendingPage ? new Set(allPendingPage.items.map((i) => i.id)) : selectedIds;
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
 
@@ -228,8 +238,9 @@ export function ERPItemsTable() {
 
   const selectableItems = filteredItems.filter((i) => i.status === DRAFT_PENDING);
   const allSelected =
-    selectableItems.length > 0 && selectableItems.every((i) => selectedIds.has(i.id));
-  const someSelected = !allSelected && selectableItems.some((i) => selectedIds.has(i.id));
+    selectAllMode ||
+    (selectableItems.length > 0 && selectableItems.every((i) => effectiveSelectedIds.has(i.id)));
+  const someSelected = !allSelected && effectiveSelectedIds.size > 0;
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
@@ -238,13 +249,21 @@ export function ERPItemsTable() {
 
   function handleSelectAll(checked: boolean | 'indeterminate') {
     if (checked === true) {
-      setSelectedIds(new Set(selectableItems.map((i) => i.id)));
+      setSelectAllMode(true);
     } else {
+      setSelectAllMode(false);
       setSelectedIds(new Set());
     }
   }
 
   function handleSelectRow(id: string, checked: boolean) {
+    if (selectAllMode && allPendingPage) {
+      const materialized = new Set(allPendingPage.items.map((i) => i.id));
+      if (!checked) materialized.delete(id);
+      setSelectAllMode(false);
+      setSelectedIds(materialized);
+      return;
+    }
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -259,7 +278,7 @@ export function ERPItemsTable() {
   }
 
   function handleOpenImport() {
-    const selected = filteredItems.filter((item) => selectedIds.has(item.id));
+    const selected = filteredItems.filter((item) => effectiveSelectedIds.has(item.id));
     const rows = selected.map(draftItemToImportRow);
     const draftIds: Record<string, string> = {};
     rows.forEach((row, i) => {
@@ -274,6 +293,35 @@ export function ERPItemsTable() {
     <div className="relative flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Durum filtreleri */}
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
+          {(
+            [
+              { value: DRAFT_PENDING, label: 'Bekleyenler' },
+              { value: DRAFT_APPROVED, label: 'Aktarılanlar' },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => {
+                setStatusFilter(tab.value);
+                setPage(1);
+                setSelectedIds(new Set());
+                setSelectAllMode(false);
+              }}
+              className={cn(
+                'h-auto rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                statusFilter === tab.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <SearchInput
           onSearch={handleSearch}
           placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..."
@@ -441,12 +489,16 @@ export function ERPItemsTable() {
                   <TableCell className="py-0 px-3">
                     {row.status === DRAFT_PENDING ? (
                       <Checkbox
-                        checked={selectedIds.has(row.id)}
+                        checked={effectiveSelectedIds.has(row.id)}
                         onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
                         aria-label={`${row.name} satırını seç`}
                       />
                     ) : row.status === DRAFT_APPROVED ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Aktarıldı" />
+                      <Checkbox
+                        checked
+                        aria-label="Aktarıldı"
+                        className="pointer-events-none data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                      />
                     ) : row.status === DRAFT_REJECTED ? (
                       <XCircle className="h-4 w-4 text-destructive/60" aria-label="Reddedildi" />
                     ) : null}
@@ -530,7 +582,7 @@ export function ERPItemsTable() {
       <div
         className={cn(
           'fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-out',
-          selectedIds.size > 0
+          effectiveSelectedIds.size > 0
             ? 'translate-y-0 opacity-100'
             : 'translate-y-4 opacity-0 pointer-events-none',
         )}
@@ -539,7 +591,10 @@ export function ERPItemsTable() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setSelectedIds(new Set())}
+            onClick={() => {
+              setSelectAllMode(false);
+              setSelectedIds(new Set());
+            }}
             className="text-muted-foreground hover:text-foreground"
           >
             İptal Et
@@ -548,7 +603,7 @@ export function ERPItemsTable() {
             <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
             Ürünlere Aktar
             <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
-              {selectedIds.size}
+              {effectiveSelectedIds.size}
             </span>
           </Button>
         </div>
@@ -556,8 +611,15 @@ export function ERPItemsTable() {
 
       {/* Transfer modal */}
       <BulkImportDialog
+        key={importOpen ? importRows.map((r) => r._id).join(',') : 'closed'}
         open={importOpen}
-        onOpenChange={setImportOpen}
+        onOpenChange={(open) => {
+          setImportOpen(open);
+          if (!open) {
+            setSelectAllMode(false);
+            setSelectedIds(new Set());
+          }
+        }}
         initialRows={importRows}
         draftItemIds={importDraftIds}
       />
