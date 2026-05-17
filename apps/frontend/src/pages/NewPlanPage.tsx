@@ -236,7 +236,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
             planId={fromPlanId}
             refetchKey={refetchKey}
             onVehicleSelected={handleVehicleSelected}
-            onLoaded={handlePlanLoaded}
           />
         )}
         {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
@@ -245,35 +244,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
             <BalancePanel />
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
-              İptal
-            </Button>
-            <Button
-              size="sm"
-              disabled={!planNameInput.trim() || isCreating}
-              onClick={() => void handleConfirmCreate()}
-              className="bg-foreground text-background hover:bg-foreground/80"
-            >
-              {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {fromPlanId && (
-        <PlanAutoLoader
-          planId={fromPlanId}
-          refetchKey={refetchKey}
-          onVehicleSelected={handleVehicleSelected}
-        />
-      )}
-      {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
-      <div className="relative flex flex-1 min-h-0 overflow-hidden">
-        {/* BalancePanel — sağ panelin solunda */}
-        <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
-          <BalancePanel />
-        </div>
 
           {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
           <button
