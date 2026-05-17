@@ -164,7 +164,7 @@ export function NewPlanPage() {
             clientGroupId: g.id,
             name: g.name,
             color: g.color,
-            unloadingOrder: idx + 1,
+            unloadingOrder: inlineGroups.length - idx,
           }))
         : undefined;
 
@@ -225,7 +225,7 @@ export function NewPlanPage() {
             clientGroupId: g.id,
             name: g.name,
             color: g.color,
-            unloadingOrder: idx + 1,
+            unloadingOrder: inlineGroups.length - idx,
           }))
         : undefined;
 

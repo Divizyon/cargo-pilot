@@ -762,6 +762,17 @@ export function PlanLeftPanel() {
     setFocusedGroupItemIds(isSameFocus ? null : itemIds);
   }
 
+  function addItemToGroup(
+    prev: Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>,
+    itemId: string,
+    targetGroupId: string,
+  ) {
+    return prev.map((g) => {
+      if (g.id === targetGroupId) return { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] };
+      return { ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) };
+    });
+  }
+
   function handleAddGroup() {
     const id = crypto.randomUUID();
     const num = groups.length + 1;
@@ -802,11 +813,7 @@ export function PlanLeftPanel() {
     });
 
     setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupSelectionMode
-          ? { ...g, itemIdler: [...new Set([...g.itemIdler, ...newItemIds])] }
-          : g,
-      ),
+      newItemIds.reduce((acc, itemId) => addItemToGroup(acc, itemId, groupSelectionMode), prev),
     );
     setGroupSelectionMode(null);
     setSelectedForGroup(new Set());
@@ -844,11 +851,7 @@ export function PlanLeftPanel() {
       onEdit: () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
         if (!placedIds.has(id)) togglePlacement(id);
-        setGroups((prev) =>
-          prev.map((g) =>
-            g.id === groupId ? { ...g, itemIdler: [...new Set([...g.itemIdler, id])] } : g,
-          ),
-        );
+        setGroups((prev) => addItemToGroup(prev, id, groupId));
       },
     };
   };
@@ -1214,13 +1217,7 @@ export function PlanLeftPanel() {
                     onAddToGroup={(groupId) => {
                       addManualItem(catalogItem, 1, color);
                       setUngroupedIds((prev) => [...prev, itemId]);
-                      setGroups((prev) =>
-                        prev.map((g) =>
-                          g.id === groupId
-                            ? { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] }
-                            : g,
-                        ),
-                      );
+                      setGroups((prev) => addItemToGroup(prev, itemId, groupId));
                     }}
                     onClearStackGroup={() =>
                       setClearedStackGroups((prev) => {
@@ -1335,13 +1332,7 @@ export function PlanLeftPanel() {
                       onAddToGroup={(groupId) => {
                         addManualItem(catalogItem, 1, color);
                         setUngroupedIds((prev) => [...prev, ref.id]);
-                        setGroups((prev) =>
-                          prev.map((g) =>
-                            g.id === groupId
-                              ? { ...g, itemIdler: [...new Set([...g.itemIdler, ref.id])] }
-                              : g,
-                          ),
-                        );
+                        setGroups((prev) => addItemToGroup(prev, ref.id, groupId));
                       }}
                     />
                   );
