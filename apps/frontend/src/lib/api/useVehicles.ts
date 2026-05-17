@@ -141,12 +141,19 @@ export function useVehicles(filters?: VehicleFilters) {
       }
 
       if (mergedFilters.status) {
-        params.set('isActive', String(mergedFilters.status === 'active'));
+        if (mergedFilters.status === 'taslak') {
+          params.set('status', 'taslak');
+        } else {
+          params.set('isActive', String(mergedFilters.status === 'active'));
+        }
       }
 
       if (mergedFilters.favoritesOnly) {
         params.set('onlyFavorites', 'true');
       }
+
+      if (mergedFilters.sortBy) params.set('sortBy', mergedFilters.sortBy);
+      if (mergedFilters.sortOrder) params.set('sortOrder', mergedFilters.sortOrder);
 
       const qs = params.toString();
       const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles${qs ? `?${qs}` : ''}`);
@@ -158,7 +165,6 @@ export function useVehicles(filters?: VehicleFilters) {
       for (const item of rawItems) {
         const result = vehicleListApiItemSchema.safeParse(item);
         if (result.success) {
-          if (result.data.id === '00000000-0000-0000-0000-000000000000') continue;
           validItems.push(fromApiVehicleListItem(result.data));
         } else {
           console.error(

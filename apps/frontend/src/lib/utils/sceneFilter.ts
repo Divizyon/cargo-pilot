@@ -7,16 +7,21 @@ interface PositionedBox {
 }
 
 /**
- * Ghost mode filtresi — yalnızca layer filtresi: activeLayer > 0 ise,
- * positionZ < activeLayer olan kutular ghost olur.
+ * Ghost mode filtresi — iki ayrı koşuldan biri ghost'u tetikler:
  *
- * Grup fokus artık ghost etmez; parlaklık farkı renk üzerinden sağlanır.
+ * 1. Grup fokus: focusedGroupItemIds dolu ise, grupta olmayan kutular ghost olur.
+ * 2. Layer filtresi: activeLayer > 0 ise, positionZ < activeLayer olan kutular ghost olur.
+ *
+ * Grup fokus, layer filtresinden önce değerlendirilir.
  */
 export function isGhosted(
   box: PositionedBox,
   activeLayer: number,
-  _focusedGroupItemIds: string[] | null = null,
+  focusedGroupItemIds: string[] | null = null,
 ): boolean {
+  if (focusedGroupItemIds !== null) {
+    return !focusedGroupItemIds.includes(box.itemId);
+  }
   if (activeLayer <= 0) return false;
   return box.positionZ < activeLayer;
 }

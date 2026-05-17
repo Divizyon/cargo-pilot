@@ -4,7 +4,6 @@ import type {
   PlanProductGroup,
   PlanProductItem,
   PlacementWithDimensions,
-  GroupDefinition,
 } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
@@ -27,7 +26,7 @@ const planVehicleApiSchema = z
     internalLength: z.number().optional(),
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
-    loadingType: z.number().int().optional(),
+    loadingType: z.number().int().nullable().optional(),
   })
   .nullable()
   .optional();
@@ -38,18 +37,20 @@ export const planListApiItemSchema = z
   .object({
     id: z.string(),
     planName: z.string().optional(),
-    name: z.string().optional(), // alternative field name
+    name: z.string().optional(),
     vehicleId: z.string().nullable().optional(),
+    vehicleName: z.string().optional(),
     vehicle: planVehicleApiSchema,
-    vehicles: z.array(planVehicleApiSchema).optional(),
     fillRate: z.number().nullable().optional(),
     volumeFillRate: z.number().nullable().optional(),
     optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
     itemCount: z.number().int().nullable().optional(),
-    placementCount: z.number().int().nullable().optional(), // alternative field name
+    inputTotalQuantity: z.number().int().nullable().optional(),
+    placementCount: z.number().int().nullable().optional(),
     totalWeight: z.number().nullable().optional(),
-    totalWeightKg: z.number().nullable().optional(), // alternative field name
+    totalWeightKg: z.number().nullable().optional(),
     createdAt: z.string().optional(),
+    createdAtUtc: z.string().optional(),
     plannedAt: z.string().nullable().optional(),
     planCode: z.string().nullable().optional(),
     status: z.string().nullable().optional(),
@@ -152,13 +153,13 @@ export const planDetailApiResponseSchema = z.object({
       planName: z.string(),
       vehicleId: z.string().uuid().optional(),
       vehicle: planVehicleApiSchema,
-      vehicles: z.array(planVehicleApiSchema).optional(),
       fillRate: z.number().nullable().optional(),
       volumeFillRate: z.number().nullable().optional(),
       optimizationStatus: z.union([z.number().int(), z.string()]).nullable().optional(),
       itemCount: z.number().int().nullable().optional(),
       totalWeight: z.number().nullable().optional(),
       createdAt: z.string().optional(),
+      createdAtUtc: z.string().optional(),
       plannedAt: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string().nullable().optional(),
@@ -394,10 +395,11 @@ export function fromApiPlacementsToScene(
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
-  const v = api.vehicles?.[0] ?? api.vehicle;
+  const v = api.vehicle;
   const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
   const itemCount =
     api.itemCount ??
+    api.inputTotalQuantity ??
     api.placementCount ??
     ((api as Record<string, unknown>)['itemsCount'] as number | undefined) ??
     0;
@@ -406,28 +408,29 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     api.totalWeightKg ??
     ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
+  const createdAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const loadingType = v?.loadingType ?? null;
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
     vehicleId: api.vehicleId ?? v?.id ?? '',
-    vehicleName: v?.vehicleName ?? v?.name ?? '—',
+    vehicleName: v?.vehicleName ?? v?.name ?? api.vehicleName ?? '—',
     vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
-    createdAt: api.createdAt ?? new Date(0).toISOString(),
+    createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
     productCount: itemCount,
     totalWeightKg: totalWeight,
     vehicleCapacityKg: v?.maxWeightCapacity ?? 1,
-    fillPercentage: Math.round(api.fillRate ?? 0),
-    volumeFillPercentage: Math.round(api.volumeFillRate ?? api.fillRate ?? 0),
+    fillPercentage: Math.round((api.fillRate ?? 0) * 100),
+    volumeFillPercentage: Math.round((api.volumeFillRate ?? api.fillRate ?? 0) * 100),
     interiorWidthM: v?.internalWidth ?? 0,
     interiorHeightM: v?.internalHeight ?? 0,
     interiorDepthM: v?.internalLength ?? 0,
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
-    doorDirection:
-      v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.direction : undefined,
-    doorSide: v?.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
+    doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
     thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
   };
 }
@@ -465,16 +468,8 @@ const inputItemFullSchema = z
     itemId: z.string(),
     quantity: z.number().int().min(1).catch(1),
     item: planItemDimensionsSchema,
-    groupId: z.string().nullable().optional(),
   })
   .passthrough();
-
-const groupDefinitionApiSchema = z.object({
-  clientGroupId: z.string(),
-  name: z.string(),
-  color: z.string().catch('#888888'),
-  unloadingOrder: z.number().int().catch(0),
-});
 
 export const planFullDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),
@@ -483,7 +478,6 @@ export const planFullDetailApiResponseSchema = z.object({
       id: z.string().uuid(),
       planName: z.string(),
       vehicle: planVehicleApiSchema,
-      vehicles: z.array(planVehicleApiSchema).optional(),
       placements: z.array(placementFullSchema).optional().default([]),
       inputItems: z.array(inputItemFullSchema).optional().default([]),
       unplacedItems: z
@@ -500,7 +494,6 @@ export const planFullDetailApiResponseSchema = z.object({
         )
         .optional()
         .default([]),
-      groups: z.array(groupDefinitionApiSchema).optional().default([]),
     })
     .passthrough(),
 });
@@ -512,8 +505,6 @@ export type PlanFullDetail = {
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
   unplacedItems: Array<{ itemId: string; quantity: number; reason: number; name: string }>;
-  groups: GroupDefinition[];
-  itemGroupAssignments: Record<string, string>;
 };
 
 function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
@@ -546,35 +537,34 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
 export function fromApiFullDetail(
   data: z.infer<typeof planFullDetailApiResponseSchema>['data'],
 ): PlanFullDetail {
-  const v = data.vehicles?.[0] ?? data.vehicle;
+  const v = data.vehicle;
 
-  const vehicle: Vehicle | null =
-    v?.id && v.id !== '00000000-0000-0000-0000-000000000000'
-      ? {
-          id: v.id,
-          name: v.vehicleName ?? v.name ?? '—',
-          plate: v.plateNumber ?? v.plate ?? '',
-          width: v.internalWidth ?? 0,
-          height: v.internalHeight ?? 0,
-          length: v.internalLength ?? 0,
-          maxCargoWeight: v.maxWeightCapacity ?? 0,
-          vehicleType:
-            v.vehicleType != null
-              ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
-              : VehicleType.Tir,
-          doorDirection:
-            v.loadingType != null
-              ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-              : DoorDirection.Rear,
-          doorSide:
-            v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
-          isFavorite: false,
-          isActive: true,
-          isDeleted: false,
-          createdAt: new Date(0).toISOString(),
-          createdBy: { id: '', fullName: '' },
-        }
-      : null;
+  const vehicle: Vehicle | null = v?.id
+    ? {
+        id: v.id,
+        name: v.vehicleName ?? v.name ?? '—',
+        plate: v.plateNumber ?? v.plate ?? '',
+        width: v.internalWidth ?? 0,
+        height: v.internalHeight ?? 0,
+        length: v.internalLength ?? 0,
+        maxCargoWeight: v.maxWeightCapacity ?? 0,
+        vehicleType:
+          v.vehicleType != null
+            ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
+            : VehicleType.Tir,
+        doorDirection:
+          v.loadingType != null
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
+            : DoorDirection.Rear,
+        doorSide:
+          v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+        isFavorite: false,
+        isActive: true,
+        isDeleted: false,
+        createdAt: new Date(0).toISOString(),
+        createdBy: { id: '', fullName: '' },
+      }
+    : null;
 
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;
@@ -640,29 +630,5 @@ export function fromApiFullDetail(
     name: u.item?.name ?? '',
   }));
 
-  const groups: GroupDefinition[] = (data.groups ?? []).map((g, i) => ({
-    clientGroupId: g.clientGroupId,
-    name: g.name,
-    color: g.color,
-    unloadingOrder: g.unloadingOrder || i + 1,
-  }));
-
-  type InputItemWithGroup = z.infer<typeof inputItemFullSchema>;
-  const itemGroupAssignments: Record<string, string> = {};
-  for (const ii of (data.inputItems ?? []) as InputItemWithGroup[]) {
-    if (ii.groupId) {
-      itemGroupAssignments[ii.itemId] = ii.groupId;
-    }
-  }
-
-  return {
-    planName,
-    vehicle,
-    inputItems,
-    placements,
-    skuColorMap,
-    unplacedItems,
-    groups,
-    itemGroupAssignments,
-  };
+  return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems };
 }
