@@ -1,13 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  AlertCircle,
-  RotateCcw,
-  ArrowUpDown,
-  MoveHorizontal,
-  Scale,
-  Trash2,
-} from 'lucide-react';
+import { AlertCircle, RotateCcw, ArrowUpDown, MoveHorizontal, Scale, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,7 +70,10 @@ function flattenGroups(groups: PlanProductGroup[]): FlatProduct[] {
 
 function ProductRow({ product }: { product: FlatProduct }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-0 border-b border-border last:border-0" style={{ height: ITEM_ROW_H }}>
+    <div
+      className="flex items-center gap-2 px-4 py-0 border-b border-border last:border-0"
+      style={{ height: ITEM_ROW_H }}
+    >
       <span
         className="w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: product.groupColor }}
@@ -159,7 +155,10 @@ export function VehicleCard({
           </div>
           <button
             aria-label="Planı sil"
-            onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteOpen(true);
+            }}
             className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -210,14 +209,84 @@ export function VehicleCard({
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <rect x="10" y="20" width="120" height="50" rx="3" stroke="currentColor" strokeWidth="1.5" />
-              <rect x="10" y="20" width="22" height="50" rx="2" stroke="currentColor" strokeWidth="1.5" />
-              <rect x="36" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-              <rect x="62" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-              <rect x="88" y="28" width="22" height="20" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-              <rect x="36" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-              <rect x="62" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-              <rect x="88" y="52" width="22" height="12" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <rect
+                x="10"
+                y="20"
+                width="120"
+                height="50"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="10"
+                y="20"
+                width="22"
+                height="50"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="36"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="62"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="88"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="36"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="62"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="88"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
               <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
               <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
               <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />

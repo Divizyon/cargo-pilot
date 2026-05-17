@@ -171,13 +171,11 @@ function TableSkeleton() {
     <Table className="min-w-[1000px] table-fixed">
       <TableHeader>
         <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-          {['w-64', 'w-40', 'w-28', 'w-28', 'w-28', 'w-24', 'w-28', 'w-32', 'w-20'].map(
-            (w, i) => (
-              <TableHead key={i}>
-                <Skeleton className={cn('h-3', w)} />
-              </TableHead>
-            ),
-          )}
+          {['w-64', 'w-40', 'w-28', 'w-28', 'w-28', 'w-24', 'w-28', 'w-32', 'w-20'].map((w, i) => (
+            <TableHead key={i}>
+              <Skeleton className={cn('h-3', w)} />
+            </TableHead>
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -418,7 +416,10 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
         next = Math.max(5, Math.floor(available / ROW_H));
       } else {
         const gridAvailable = available - GRID_V_PAD;
-        const cardH = Math.max(260, Math.floor((gridAvailable - (visibleRows - 1) * CARD_GAP) / visibleRows));
+        const cardH = Math.max(
+          260,
+          Math.floor((gridAvailable - (visibleRows - 1) * CARD_GAP) / visibleRows),
+        );
         const previewH = Math.max(60, Math.min(120, cardH - CARD_HEADER_H - 80));
         const productsH = Math.max(120, cardH - CARD_HEADER_H - previewH - 2);
         setCardHeight(cardH);
@@ -630,11 +631,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
           'rounded-2xl border border-border bg-background overflow-hidden',
           viewMode === 'table' && 'overflow-x-auto scrollbar-hide',
         )}
-        style={
-          cardContainerMaxH
-            ? { height: cardContainerMaxH }
-            : undefined
-        }
+        style={cardContainerMaxH ? { height: cardContainerMaxH } : undefined}
       >
         {viewMode === 'table' ? (
           <>
@@ -700,8 +697,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
               </span>
               {!showSkeleton && totalCount > 0 && (
                 <span className="ml-auto text-[10px] text-muted-foreground">
-                  Toplam{' '}
-                  <span className="font-medium text-foreground">{totalCount}</span> plan
+                  Toplam <span className="font-medium text-foreground">{totalCount}</span> plan
                 </span>
               )}
             </div>
@@ -712,10 +708,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
                 style={{ gridAutoRows: cardHeight }}
               >
                 {Array.from({ length: pageSize }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="animate-pulse rounded-xl border border-border bg-muted"
-                  />
+                  <div key={i} className="animate-pulse rounded-xl border border-border bg-muted" />
                 ))}
               </div>
             ) : items.length === 0 ? (
