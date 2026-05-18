@@ -428,7 +428,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
           260,
           Math.floor((gridAvailable - (visibleRows - 1) * CARD_GAP) / visibleRows),
         );
-        const previewH = Math.max(60, Math.min(120, cardH - CARD_HEADER_H - 80));
+        const previewH = Math.max(60, Math.min(160, cardH - CARD_HEADER_H - 80));
         const productsH = Math.max(120, cardH - CARD_HEADER_H - previewH - 2);
         setCardHeight(cardH);
         setPreviewHeight(previewH);
