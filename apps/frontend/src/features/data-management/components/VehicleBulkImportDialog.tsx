@@ -35,7 +35,7 @@ const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top'] as const;
 const DOOR_DIRECTION_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
-  top:  'Üst',
+  top: 'Üst',
 };
 
 const editableRowSchema = z.object({

@@ -34,8 +34,8 @@ export const LOADING_TYPE_FROM_INT: Record<
 > = {
   0: { direction: DoorDirection.Rear },
   1: { direction: DoorDirection.Side, doorSide: 'right' },
-  2: { direction: DoorDirection.Side, doorSide: 'left'  },
-  4: { direction: DoorDirection.Top  },
+  2: { direction: DoorDirection.Side, doorSide: 'left' },
+  4: { direction: DoorDirection.Top },
 };
 
 // ─── Backend response schema ──────────────────────────────────────────────────
