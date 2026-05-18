@@ -177,7 +177,7 @@ public sealed class VehiclesController : BaseController {
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
             request.AdditionalAxleMaxLoadKg,
-            IsDraft: request.IsDraft ?? false);
+            IsDraft: request.IsDraft);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

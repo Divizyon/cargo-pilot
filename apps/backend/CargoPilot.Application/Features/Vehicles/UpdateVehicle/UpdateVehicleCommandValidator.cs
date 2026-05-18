@@ -20,7 +20,7 @@ public sealed class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehi
             .MaximumLength(50).WithMessage("Plaka en fazla 50 karakter olabilir.")
             .When(x => x.PlateNumber is not null);
 
-        When(x => !x.IsDraft, () => {
+        When(x => x.IsDraft != true, () => {
             RuleFor(x => x.InternalWidth)
                 .GreaterThan(0).WithMessage("İç genişlik sıfırdan büyük olmalıdır.");
 

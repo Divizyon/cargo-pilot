@@ -36,6 +36,7 @@ public sealed class Vehicle : BaseEntity {
 
     public bool IsDraft { get; private set; }
 
+    [NotMapped]
     public string Status { get {
         if (IsDraft) return "taslak";
         if (IsActive) return "active";

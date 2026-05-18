@@ -61,6 +61,10 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
+        if (vehicle.IsDraft)
+            return Result<Guid>.Failure(
+                new Error(ErrorType.BusinessRule, "Vehicle.IsDraft", "Taslak araç ile plan oluşturulamaz."));
+
         var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
         var items = await _itemRepository.GetByIdsAsync(requestedItemIds, companyId, cancellationToken);
 

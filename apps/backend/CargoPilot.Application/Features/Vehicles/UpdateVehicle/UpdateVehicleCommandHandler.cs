@@ -67,7 +67,7 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
             layerCount: request.LayerCount,
             loadingType: request.LoadingType,
             isActive: request.IsActive,
-            isDraft: request.IsDraft);
+            isDraft: request.IsDraft ?? vehicle.IsDraft);
 
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 
