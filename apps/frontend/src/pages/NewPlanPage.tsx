@@ -23,7 +23,6 @@ import {
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
   useUploadPlanThumbnail,
-  fetchPlanUnplacedItems,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -93,7 +92,6 @@ export function NewPlanPage() {
   const [refetchKey, setRefetchKey] = useState(0);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [planNameInput, setPlanNameInput] = useState('');
-  const [isChaining, setIsChaining] = useState(false);
   const { id: fromPlanId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
@@ -129,25 +127,24 @@ export function NewPlanPage() {
   }, []);
 
   const handleOptimize = useCallback(() => {
-    const { selectedVehicle: vehicle, selectedItems: items, placements } = usePlanStore.getState();
-    if (!vehicle || items.length === 0) return;
+    const { selectedVehicles, selectedItems: items, placements } = usePlanStore.getState();
+    if (selectedVehicles.length === 0 || items.length === 0) return;
     const placedIds = new Set(placements.map((p) => p.itemId));
     if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
 
-    const defaultName = `${vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
+    const defaultName = `${selectedVehicles[0].vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
     setPlanNameInput(defaultName);
     setNameDialogOpen(true);
   }, []);
 
   const handleConfirmCreate = useCallback(async () => {
     const {
-      selectedVehicle: vehicle,
       selectedVehicles,
       selectedItems: items,
       placements,
       criteria,
     } = usePlanStore.getState();
-    if (!vehicle || !planNameInput.trim()) return;
+    if (selectedVehicles.length === 0 || !planNameInput.trim()) return;
 
     const placedIds = new Set(placements.map((p) => p.itemId));
     const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
@@ -155,11 +152,11 @@ export function NewPlanPage() {
 
     setNameDialogOpen(false);
 
-    let firstId: string;
+    let newId: string;
     try {
-      firstId = await createPlan({
+      newId = await createPlan({
         planName: planNameInput.trim(),
-        vehicleId: vehicle.id,
+        vehicleIds: selectedVehicles.map((e) => e.vehicle.id),
         items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
         optimizationCriteria: criteria,
       });
@@ -168,53 +165,9 @@ export function NewPlanPage() {
     }
 
     const dataUrl = snapshotRef.current?.();
-    if (dataUrl) uploadThumbnail({ id: firstId, dataUrl });
+    if (dataUrl) uploadThumbnail({ id: newId, dataUrl });
 
-    // Sonraki araçlara sığmayan ürünleri otomatik zincirle
-    const remainingVehicles = selectedVehicles.slice(1);
-    if (remainingVehicles.length > 0) {
-      setIsChaining(true);
-      try {
-        let overflow = await fetchPlanUnplacedItems(firstId);
-
-        for (const { vehicle: nextVehicle } of remainingVehicles) {
-          if (overflow.length === 0) break;
-
-          toast.loading(`${nextVehicle.name} için optimize ediliyor…`, {
-            id: 'vehicle-chain',
-            position: 'bottom-right',
-          });
-
-          try {
-            const nextId = await createPlan({
-              planName: `${nextVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`,
-              vehicleId: nextVehicle.id,
-              items: overflow,
-              optimizationCriteria: criteria,
-            });
-            overflow = await fetchPlanUnplacedItems(nextId);
-          } catch {
-            break;
-          }
-        }
-
-        toast.dismiss('vehicle-chain');
-        const totalOverflow = overflow.reduce((s, u) => s + u.quantity, 0);
-        if (totalOverflow === 0) {
-          toast.success('Tüm ürünler araçlara taslak olarak kaydedildi.', {
-            position: 'bottom-right',
-          });
-        } else {
-          toast.warning(`${totalOverflow} ürün hiçbir araca sığmadı.`, {
-            position: 'bottom-right',
-          });
-        }
-      } finally {
-        setIsChaining(false);
-      }
-    }
-
-    navigate(planningDetailRoute(firstId), { replace: true });
+    navigate(planningDetailRoute(newId), { replace: true });
   }, [planNameInput, createPlan, navigate, uploadThumbnail]);
 
   const handlePlanLoaded = useCallback(() => {
@@ -237,19 +190,15 @@ export function NewPlanPage() {
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
     const {
-      selectedVehicle: vehicle,
       selectedVehicles,
       selectedItems: items,
       criteria,
     } = usePlanStore.getState();
-    if (!vehicle || items.length === 0) return;
-
-    const orderedVehicleIds = selectedVehicles.map((e) => e.vehicle.id);
+    if (selectedVehicles.length === 0 || items.length === 0) return;
 
     await reoptimizePlan({
       id: fromPlanId,
-      vehicleId: vehicle.id,
-      ...(orderedVehicleIds.length > 1 && { vehicleIds: orderedVehicleIds }),
+      vehicleIds: selectedVehicles.map((e) => e.vehicle.id),
       items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
       optimizationCriteria: criteria,
     });
@@ -358,7 +307,7 @@ export function NewPlanPage() {
             onToggleVehicles={() => setRightOpen((v) => !v)}
             onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
             onLoadAnimation={handleLoadAnimation}
-            isOptimizing={fromPlanId ? isReoptimizing : isCreating || isChaining}
+            isOptimizing={fromPlanId ? isReoptimizing : isCreating}
             canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
             getSnapshot={() => snapshotRef.current?.() ?? ''}
             planId={fromPlanId}

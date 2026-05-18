@@ -528,7 +528,15 @@ export function PlanLeftPanel() {
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
 
-  const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
+  const placedIds = useMemo(
+    () =>
+      new Set(
+        placements
+          .filter((p) => !p.vehicleId || p.vehicleId === selectedVehicle?.id)
+          .map((p) => p.itemId),
+      ),
+    [placements, selectedVehicle],
+  );
 
   const prevSelectedLenRef = useRef(selectedItems.length);
   useEffect(() => {

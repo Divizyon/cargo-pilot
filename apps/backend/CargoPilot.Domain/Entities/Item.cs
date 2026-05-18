@@ -136,6 +136,17 @@ public sealed class Item : BaseEntity {
         SpecialNotes = specialNotes;
     }
 
+    public string[] GetIncompatibleGroups() {
+        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
+            return [];
+        try {
+            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
+        }
+        catch {
+            return [];
+        }
+    }
+
     public int[] GetConstraintIds() {
         if (string.IsNullOrEmpty(ConstraintIdsJson) || ConstraintIdsJson == "[]")
             return [];

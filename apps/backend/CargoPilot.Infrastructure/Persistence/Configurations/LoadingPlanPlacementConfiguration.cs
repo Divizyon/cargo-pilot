@@ -29,6 +29,8 @@ internal sealed class LoadingPlanPlacementConfiguration : IEntityTypeConfigurati
         builder.Property(placement => placement.LoadingPlanId)
             .IsRequired();
 
+        builder.Property(placement => placement.VehicleId);
+
         builder.Property(placement => placement.ItemId)
             .IsRequired();
 
@@ -51,6 +53,12 @@ internal sealed class LoadingPlanPlacementConfiguration : IEntityTypeConfigurati
             .WithMany()
             .HasForeignKey(placement => placement.LoadingPlanId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(placement => placement.Vehicle)
+            .WithMany()
+            .HasForeignKey(placement => placement.VehicleId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
 
         builder.HasOne(placement => placement.Item)
             .WithMany()

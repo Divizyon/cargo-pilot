@@ -1,17 +1,11 @@
 using FluentValidation;
 
-namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
+namespace CargoPilot.Application.Features.Plans.GetVehicleSuggestions;
 
-public sealed class ReOptimizePlanCommandValidator : AbstractValidator<ReOptimizePlanCommand>
+public sealed class GetVehicleSuggestionsQueryValidator : AbstractValidator<GetVehicleSuggestionsQuery>
 {
-    public ReOptimizePlanCommandValidator()
+    public GetVehicleSuggestionsQueryValidator()
     {
-        RuleFor(x => x.VehicleIds)
-            .NotEmpty().WithMessage("En az bir araç seçilmelidir.");
-
-        RuleForEach(x => x.VehicleIds)
-            .NotEmpty().WithMessage("Araç ID'si boş olamaz.");
-
         RuleFor(x => x.Items)
             .NotEmpty().WithMessage("İtem listesi boş olamaz.");
 

@@ -6,7 +6,7 @@ namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
 
 public sealed record ReOptimizePlanCommand(
     Guid Id,
-    Guid VehicleId,
+    IReadOnlyList<Guid> VehicleIds,
     IReadOnlyList<ReOptimizePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst)
     : IRequest<Result<Guid>>;

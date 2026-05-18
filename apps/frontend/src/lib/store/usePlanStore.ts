@@ -228,7 +228,10 @@ interface PlanStore {
   optimizationCount: number;
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
+  /** Çoklu araç görünümünde aktif araç — null ise tüm araçlar gösterilir */
+  activeVehicleId: string | null;
   setVehicle: (vehicle: Vehicle | null) => void;
+  setActiveVehicleId: (id: string | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
   peekVehicle: (vehicle: Vehicle) => void;
   addVehicle: (vehicle: Vehicle) => void;
@@ -321,6 +324,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
   optimizationCount: 0,
   previewItemId: null,
   previewPlacements: [],
+  activeVehicleId: null,
+
+  setActiveVehicleId: (id) => set({ activeVehicleId: id }),
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -678,5 +684,6 @@ export const usePlanStore = create<PlanStore>((set) => ({
       optimizationCount: 0,
       previewItemId: null,
       previewPlacements: [],
+      activeVehicleId: null,
     }),
 }));
