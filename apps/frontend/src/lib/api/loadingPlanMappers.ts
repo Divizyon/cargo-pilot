@@ -487,6 +487,7 @@ const placementFullSchema = z
     positionY: z.number(),
     positionZ: z.number(),
     rotation: z.number().int().min(0).max(5).catch(0),
+    stepIndex: z.number().int().nonnegative().catch(0),
     item: planItemDimensionsSchema,
   })
   .passthrough();
@@ -643,6 +644,8 @@ export function fromApiFullDetail(
       weight: p.item.weight,
       color,
       productType,
+      stepIndex: p.stepIndex,
+      itemName: p.item.name,
     };
   });
 

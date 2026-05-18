@@ -11,6 +11,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var placements = new List<PlacedBox>();
         var unplaced = new List<UnplacedBox>();
         var totalWeight = 0m;
+        var stepIndex = 0;
 
         var momentX = 0m;
         var momentZ = 0m;
@@ -91,7 +92,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                 continue;
             }
 
-            placements.Add(best);
+            placements.Add(best with { StepIndex = stepIndex++ });
             totalWeight += best.Weight;
             momentX += best.Weight * (best.X + best.W / 2m);
             momentZ += best.Weight * (best.Z + best.D / 2m);
@@ -134,7 +135,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         }
 
         var placedResults = placements
-            .Select(p => new PlacedItemResult(Guid.NewGuid(), p.ItemId, p.X, p.Y, p.Z, p.W, p.H, p.D, p.Rotation, p.Weight))
+            .Select(p => new PlacedItemResult(Guid.NewGuid(), p.ItemId, p.X, p.Y, p.Z, p.W, p.H, p.D, p.Rotation, p.Weight, p.StepIndex))
             .ToList();
 
         var unplacedResults = unplaced
@@ -595,7 +596,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         bool IsStackable,
         int MaxStackCount,
         decimal MaxWeightOnTop,
-        int? UnloadingOrder);
+        int? UnloadingOrder,
+        int StepIndex = 0);
 
     private sealed record UnplacedBox(Guid ItemId, UnplacedReason Reason);
 

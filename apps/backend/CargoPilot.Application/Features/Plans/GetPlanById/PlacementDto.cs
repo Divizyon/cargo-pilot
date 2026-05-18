@@ -9,4 +9,5 @@ public sealed record PlacementDto(
     decimal PositionY,
     decimal PositionZ,
     LoadingPlanPlacementRotation Rotation,
-    ItemInPlanDto Item);
+    ItemInPlanDto Item,
+    int StepIndex);

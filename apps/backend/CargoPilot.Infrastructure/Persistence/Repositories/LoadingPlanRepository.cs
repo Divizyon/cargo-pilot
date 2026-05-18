@@ -246,7 +246,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.PositionY,
                 p.PositionZ,
                 p.Rotation,
-                ToItemInPlanDto(p.Item)))
+                ToItemInPlanDto(p.Item),
+                p.StepIndex))
             .ToList();
 
         var unplacedItemDtos = unplacedItems
@@ -343,7 +344,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         CancellationToken cancellationToken = default)
     {
         var placements = result.Placements
-            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation))
+            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation, p.StepIndex))
             .ToList();
 
         var unplacedItems = result.UnplacedItems
@@ -395,7 +396,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         foreach (var w in oldWarnings) w.MarkAsDeleted();
 
         var newPlacements = result.Placements
-            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation))
+            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation, p.StepIndex))
             .ToList();
 
         var newUnplacedItems = result.UnplacedItems

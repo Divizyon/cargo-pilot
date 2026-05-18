@@ -23,7 +23,8 @@ public sealed record PlacedItemResult(
     decimal Height,
     decimal Depth,
     LoadingPlanPlacementRotation Rotation,
-    decimal Weight);
+    decimal Weight,
+    int StepIndex);
 
 public sealed record UnplacedItemResult(
     Guid ItemId,

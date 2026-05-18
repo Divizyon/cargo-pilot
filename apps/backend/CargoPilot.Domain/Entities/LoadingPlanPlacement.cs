@@ -17,6 +17,8 @@ public sealed class LoadingPlanPlacement : BaseEntity {
 
     private LoadingPlanPlacement() { }
 
+    public int StepIndex { get; private set; }
+
     public LoadingPlanPlacement(
         Guid id,
         Guid loadingPlanId,
@@ -24,12 +26,14 @@ public sealed class LoadingPlanPlacement : BaseEntity {
         decimal positionX,
         decimal positionY,
         decimal positionZ,
-        LoadingPlanPlacementRotation rotation) : base(id) {
+        LoadingPlanPlacementRotation rotation,
+        int stepIndex = 0) : base(id) {
         LoadingPlanId = loadingPlanId;
         ItemId = itemId;
         PositionX = positionX;
         PositionY = positionY;
         PositionZ = positionZ;
         Rotation = rotation;
+        StepIndex = stepIndex;
     }
 }

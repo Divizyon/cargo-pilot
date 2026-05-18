@@ -47,6 +47,10 @@ internal sealed class LoadingPlanPlacementConfiguration : IEntityTypeConfigurati
         builder.Property(placement => placement.Rotation)
             .IsRequired();
 
+        builder.Property(placement => placement.StepIndex)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.HasOne(placement => placement.LoadingPlan)
             .WithMany()
             .HasForeignKey(placement => placement.LoadingPlanId)

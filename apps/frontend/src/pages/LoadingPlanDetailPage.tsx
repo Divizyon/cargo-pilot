@@ -50,6 +50,7 @@ import {
   useExportPlanToERP,
 } from '@/lib/api/useLoadingPlans';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
+import { DebugStepPanel } from '@/features/planning/components/scene/DebugStepPanel';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { PlanStatus } from '@/lib/types/loadingPlan';
@@ -379,6 +380,7 @@ function ThreeDPlannerContent({
         {isLoaded ? (
           <>
             <PlanCanvas planId={planId} />
+            <DebugStepPanel groups={detail?.groups ?? []} />
             {animationMode !== 'playing' && animationMode !== 'stepped' && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
                 <Button
