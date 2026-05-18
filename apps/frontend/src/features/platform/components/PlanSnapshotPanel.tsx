@@ -106,8 +106,19 @@ export function PlanSnapshotPanel() {
   }
 
   return (
-    <div className="h-48 bg-muted/40">
-      <TruckPlaceholder />
+    <div className="h-48 bg-muted/40 overflow-hidden">
+      {plan.thumbnailUrl ? (
+        <img
+          src={plan.thumbnailUrl}
+          alt="3D önizleme"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      ) : (
+        <TruckPlaceholder />
+      )}
     </div>
   );
 }

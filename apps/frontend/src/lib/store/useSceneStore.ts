@@ -22,6 +22,7 @@ interface SceneStore {
   animationStep: number;
   /** Optimizasyon tamamlandı, kullanıcı "Yükle" butonuna basmayı bekliyor */
   animationReady: boolean;
+  sceneReady: boolean;
   requestSnapshot: boolean;
   snapshotDataUrl: string | null;
   setAnimationMode: (mode: AnimationMode) => void;
@@ -44,6 +45,7 @@ interface SceneStore {
   toggleXRayMode: () => void;
   toggleStressTestMode: () => void;
   setFocusedGroupItemIds: (ids: string[] | null) => void;
+  setSceneReady: (ready: boolean) => void;
   triggerSnapshot: () => void;
   setSnapshotDataUrl: (url: string | null) => void;
   clearSnapshot: () => void;
@@ -67,6 +69,7 @@ const initialState = {
   animationMode: 'idle' as AnimationMode,
   animationStep: 0,
   animationReady: false,
+  sceneReady: false,
   requestSnapshot: false,
   snapshotDataUrl: null as string | null,
 };
@@ -99,6 +102,7 @@ export const useSceneStore = create<SceneStore>((set) => ({
   toggleXRayMode: () => set((s) => ({ xRayMode: !s.xRayMode })),
   toggleStressTestMode: () => set((s) => ({ stressTestMode: !s.stressTestMode })),
   setFocusedGroupItemIds: (ids) => set({ focusedGroupItemIds: ids }),
+  setSceneReady: (ready) => set({ sceneReady: ready }),
   triggerSnapshot: () => set({ requestSnapshot: true }),
   setSnapshotDataUrl: (url) => set({ requestSnapshot: false, snapshotDataUrl: url }),
   clearSnapshot: () => set({ requestSnapshot: false, snapshotDataUrl: null }),
