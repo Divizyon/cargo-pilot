@@ -37,6 +37,7 @@ import {
 } from '@/lib/api/useCompanyMembers';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useSubscriptionStore } from '@/lib/store/useSubscriptionStore';
+import { useSubscription } from '@/lib/api/useSubscription';
 import { PLAN_MAX_MEMBERS } from '@/lib/config/plan-features';
 import { AddMemberDialog } from '@/features/platform/components/AddMemberDialog';
 
@@ -124,11 +125,14 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
   const updateRoleMutation = useUpdateMemberRole();
   const removeMutation = useRemoveMemberAccess();
 
+  useSubscription();
+
   const currentUserId = useAuthStore((s) => s.user?.id);
   const currentUserRole = useAuthStore((s) => s.user?.role);
   const currentPlan = useSubscriptionStore((s) => s.plan);
 
-  const isCurrentUserAdmin = currentUserRole === 'admin';
+  const isCurrentUserAdmin =
+    currentUserRole?.toLowerCase() === 'admin' || currentUserRole?.toLowerCase() === 'individual';
   const memberCount = members?.length ?? 0;
   const maxMembers = PLAN_MAX_MEMBERS[currentPlan];
   const isAtLimit = memberCount >= maxMembers;
