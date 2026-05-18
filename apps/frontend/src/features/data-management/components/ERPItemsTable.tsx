@@ -177,8 +177,12 @@ export function ERPItemsTable() {
       }
     };
     calculate();
+    const rafId = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', calculate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
