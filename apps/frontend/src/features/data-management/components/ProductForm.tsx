@@ -579,7 +579,8 @@ export function ProductForm({
   const isPallet = productType === 'palet';
   const isVaril = productType === 'varil';
 
-  const isZLocked = (fragility ?? 0) >= 1 || isPallet;
+  const isZLocked = (fragility ?? 0) >= 1 || isPallet || isVaril;
+  const isXLocked = isVaril;
   const isYLocked = isPallet;
 
   const widthCm = Number.isFinite(width) ? toCentimeters(width, dimensionUnit) : 0;
@@ -620,10 +621,14 @@ export function ProductForm({
                       }
                     }
                     if (value === 'varil') {
+                      form.setValue('allowRotateX', false, { shouldValidate: false });
+                      form.setValue('allowRotateZ', false, { shouldValidate: false });
                       const w = form.getValues('width');
                       if (w !== undefined && Number.isFinite(w)) {
                         form.setValue('length', w, { shouldDirty: false, shouldValidate: false });
                       }
+                    } else {
+                      form.setValue('allowRotateX', true, { shouldValidate: false });
                     }
                   }}
                   className="flex gap-2"
@@ -974,6 +979,7 @@ export function ProductForm({
           <div className="flex gap-2">
             {ROTATION_AXES.map(({ name: axisFieldName, tooltipKey, axis, axisLabel, subtitle }) => {
               const isAutoDisabled =
+                (axisFieldName === 'allowRotateX' && isXLocked) ||
                 (axisFieldName === 'allowRotateZ' && isZLocked) ||
                 (axisFieldName === 'allowRotateY' && isYLocked);
               return (
