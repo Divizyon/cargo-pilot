@@ -148,19 +148,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
 
   const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
 
-  useEffect(() => {
-    if (fromPlanId && planDetail?.planName) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPlanNameInput(planDetail.planName);
-    }
-  }, [fromPlanId, planDetail?.planName]);
-
-  const handlePlanNameCommit = useCallback(() => {
-    if (!fromPlanId || !planNameInput.trim()) return;
-    if (planNameInput.trim() === planDetail?.planName) return;
-    renamePlan({ id: fromPlanId, planName: planNameInput.trim() });
-  }, [fromPlanId, planNameInput, planDetail?.planName, renamePlan]);
-
   const handleLoaded = useCallback(() => {
     if (!fromPlanId) return;
     if (snapshotTakenRef.current) return;
@@ -177,6 +164,19 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       }
     }, 2500);
   }, [fromPlanId]);
+
+  useEffect(() => {
+    if (fromPlanId && planDetail?.planName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPlanNameInput(planDetail.planName);
+    }
+  }, [fromPlanId, planDetail?.planName]);
+
+  const handlePlanNameCommit = useCallback(() => {
+    if (!fromPlanId || !planNameInput.trim()) return;
+    if (planNameInput.trim() === planDetail?.planName) return;
+    renamePlan({ id: fromPlanId, planName: planNameInput.trim() });
+  }, [fromPlanId, planNameInput, planDetail?.planName, renamePlan]);
 
   useEffect(() => {
     function handleResize() {

@@ -60,6 +60,7 @@ function SnapshotBridge({
   return null;
 }
 
+
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
   return (
     <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
