@@ -219,12 +219,22 @@ export function useBulkCreateItems() {
     },
     onError: (error) => {
       const status = error.response?.status;
-      const message = error.response?.data?.error?.message;
+      const errData = error.response?.data?.error;
+      const message = errData?.message;
+      const failures = errData?.validationFailures;
 
       if (status === 400) {
-        toast.error(message ?? 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.', {
-          position: 'bottom-right',
-        });
+        if (failures?.length) {
+          const detail = failures
+            .map((f) => f.errorMessage ?? f.propertyName)
+            .filter(Boolean)
+            .join('; ');
+          toast.error(detail, { position: 'bottom-right' });
+        } else {
+          toast.error(message ?? 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.', {
+            position: 'bottom-right',
+          });
+        }
         return;
       }
 
