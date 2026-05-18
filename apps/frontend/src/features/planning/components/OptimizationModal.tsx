@@ -165,8 +165,10 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   }
 
   function handleStartClick() {
-    const { selectedItems } = usePlanStore.getState();
-    const conflicts = detectContaminationConflicts(selectedItems);
+    const { selectedItems, placements } = usePlanStore.getState();
+    const placedIds = new Set(placements.map((p) => p.itemId));
+    const placedItems = selectedItems.filter((si) => placedIds.has(si.item.id));
+    const conflicts = detectContaminationConflicts(placedItems);
     if (conflicts.length > 0) {
       setPendingConflicts(conflicts);
       setConfirmOpen(true);
