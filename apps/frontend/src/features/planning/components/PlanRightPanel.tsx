@@ -446,6 +446,8 @@ export function PlanRightPanel({
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const criteria = usePlanStore((s) => s.criteria);
   const setCriteria = usePlanStore((s) => s.setCriteria);
+  const clusterGroups = usePlanStore((s) => s.clusterGroups);
+  const setClusterGroups = usePlanStore((s) => s.setClusterGroups);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const showCog = useSceneStore((s) => s.showCog);
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
@@ -1013,14 +1015,73 @@ export function PlanRightPanel({
           )}
 
           {!readOnly && (
-            <Button
-              className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-              disabled={!selectedVehicle || isOptimizing || !canOptimize}
-              onClick={onOptimize}
-            >
-              {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-              Optimizasyonu Başlat
-            </Button>
+            <>
+              {/* Grup kümeleme modu */}
+              <div className="flex flex-col gap-1">
+                <span
+                  className={cn(
+                    'text-[10px] px-0.5',
+                    criteria === OptimizationCriteria.Lifo
+                      ? 'text-muted-foreground/40'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  Grup Yerleştirme
+                  {criteria === OptimizationCriteria.Lifo && (
+                    <span className="ml-1 text-[9px]">(LIFO ile kilitli)</span>
+                  )}
+                </span>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={() => setClusterGroups(true)}
+                    disabled={criteria === OptimizationCriteria.Lifo}
+                    title={
+                      criteria === OptimizationCriteria.Lifo
+                        ? 'LIFO modunda grup kümeleme devre dışı'
+                        : 'Gruplu ürünler bir arada kümelenir'
+                    }
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
+                      criteria === OptimizationCriteria.Lifo
+                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
+                        : clusterGroups
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
+                    )}
+                  >
+                    <span>Kümeleli</span>
+                  </button>
+                  <button
+                    onClick={() => setClusterGroups(false)}
+                    disabled={criteria === OptimizationCriteria.Lifo}
+                    title={
+                      criteria === OptimizationCriteria.Lifo
+                        ? 'LIFO modunda grup kümeleme devre dışı'
+                        : 'Tüm ürünler optimizasyon kriterine göre karışık yerleşir'
+                    }
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
+                      criteria === OptimizationCriteria.Lifo
+                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
+                        : !clusterGroups
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
+                    )}
+                  >
+                    <span>Karma</span>
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+                disabled={!selectedVehicle || isOptimizing || !canOptimize}
+                onClick={onOptimize}
+              >
+                {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                Optimizasyonu Başlat
+              </Button>
+            </>
           )}
           {placements.length > 0 && (
             <Button variant="outline" className="w-full" onClick={onLoadAnimation}>

@@ -8,5 +8,13 @@ public sealed record CreatePlanCommand(
     string PlanName,
     Guid VehicleId,
     IReadOnlyList<CreatePlanItemRequest> Items,
-    LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst)
+    LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
+    IReadOnlyList<CreatePlanGroupDefinition>? Groups = null,
+    bool ClusterGroups = true)
     : IRequest<Result<Guid>>;
+
+public sealed record CreatePlanGroupDefinition(
+    Guid ClientGroupId,
+    string Name,
+    string Color,
+    int UnloadingOrder);

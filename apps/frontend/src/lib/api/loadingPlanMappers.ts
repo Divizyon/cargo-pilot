@@ -450,6 +450,20 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
 
 // ─── Full detail schema (3D planner) ─────────────────────────────────────────
 
+const planGroupFullSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string(),
+    color: z.string(),
+    unloadingOrder: z.number().int(),
+    isActive: z.boolean().optional(),
+    items: z
+      .array(z.object({ itemId: z.string() }).passthrough())
+      .optional()
+      .default([]),
+  })
+  .passthrough();
+
 const planItemDimensionsSchema = z
   .object({
     id: z.string(),
@@ -494,6 +508,7 @@ export const planFullDetailApiResponseSchema = z.object({
       vehicle: planVehicleApiSchema,
       placements: z.array(placementFullSchema).optional().default([]),
       inputItems: z.array(inputItemFullSchema).optional().default([]),
+      groups: z.array(planGroupFullSchema).optional().default([]),
       unplacedItems: z
         .array(
           z
@@ -519,6 +534,7 @@ export type PlanFullDetail = {
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
   unplacedItems: Array<{ itemId: string; quantity: number; reason: number; name: string }>;
+  groups: Array<{ id: string; name: string; color: string; itemIds: string[] }>;
 };
 
 function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
@@ -645,5 +661,17 @@ export function fromApiFullDetail(
     name: u.item?.name ?? '',
   }));
 
-  return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems };
+  // Grupları UnloadingOrder ASC sıraya göre al — idx+1 ile unloadingOrder yeniden üretilir
+  type RawGroup = z.infer<typeof planGroupFullSchema>;
+  const groups = [...(data.groups ?? [])]
+    .sort((a: RawGroup, b: RawGroup) => a.unloadingOrder - b.unloadingOrder)
+    .map((g: RawGroup) => ({
+      id: g.id,
+      dbId: g.id,
+      name: g.name,
+      color: g.color,
+      itemIds: (g.items ?? []).map((i: { itemId: string }) => i.itemId),
+    }));
+
+  return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems, groups };
 }
