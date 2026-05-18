@@ -21,7 +21,6 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ArrowDownUp,
   Box,
-  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -100,7 +99,6 @@ interface VehicleListItemProps {
   dragHandleAttributes?: Record<string, unknown>;
   onAddToSelected: (v: Vehicle) => void;
   onPreview: (v: Vehicle) => void;
-  isSelected?: boolean;
 }
 
 function VehicleListItem({
@@ -110,7 +108,6 @@ function VehicleListItem({
   dragHandleAttributes,
   onAddToSelected,
   onPreview,
-  isSelected = false,
 }: VehicleListItemProps) {
   const [expanded, setExpanded] = useState(false);
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
@@ -137,18 +134,11 @@ function VehicleListItem({
         )}
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="relative shrink-0">
-            {isContainer ? (
-              <Package2 className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-            ) : (
-              <Truck className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-            )}
-            {isSelected && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 flex items-center justify-center">
-                <Check className="w-1.5 h-1.5 text-white" strokeWidth={3} />
-              </span>
-            )}
-          </div>
+          {isContainer ? (
+            <Package2 className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+          ) : (
+            <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm truncate text-foreground">{vehicle.name}</p>
             <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
@@ -514,10 +504,6 @@ export function PlanRightPanel({
   planName,
   getSnapshot,
 }: PlanRightPanelProps) {
-<<<<<<< HEAD
-=======
-  const readOnly = useReadOnly();
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   const navigate = useNavigate();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
@@ -530,8 +516,6 @@ export function PlanRightPanel({
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const criteria = usePlanStore((s) => s.criteria);
   const setCriteria = usePlanStore((s) => s.setCriteria);
-  const clusterGroups = usePlanStore((s) => s.clusterGroups);
-  const setClusterGroups = usePlanStore((s) => s.setClusterGroups);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const showCog = useSceneStore((s) => s.showCog);
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
@@ -676,25 +660,12 @@ export function PlanRightPanel({
     addVehicle(v);
   }
 
-<<<<<<< HEAD
-=======
-  // IDs of vehicle models currently in the selected list (for filtering Araç Listesi)
-  const selectedVehicleIds = useMemo(
-    () => new Set(selectedVehicles.map((e) => e.vehicle.id)),
-    [selectedVehicles],
-  );
-
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   const listTabVehicles = displayedVehicles;
 
   const listSortableIds = useMemo(() => {
     if (vehicleSearch.trim()) return listTabVehicles.map((v) => v.id);
-<<<<<<< HEAD
     const inOrder = vehicleOrder.filter((id) => listTabVehicles.some((v) => v.id === id));
     return inOrder.length > 0 ? inOrder : listTabVehicles.map((v) => v.id);
-=======
-    return vehicleOrder.length > 0 ? vehicleOrder : listTabVehicles.map((v) => v.id);
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   }, [vehicleOrder, vehicleSearch, listTabVehicles]);
 
   return (
@@ -734,7 +705,6 @@ export function PlanRightPanel({
         >
           <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
             <span className="text-sm text-foreground">Araçlar</span>
-<<<<<<< HEAD
             <Button
               size="icon"
               title="Araç Ekle"
@@ -743,18 +713,6 @@ export function PlanRightPanel({
             >
               <Plus className="w-3.5 h-3.5" />
             </Button>
-=======
-            {!readOnly && (
-              <Button
-                size="icon"
-                title="Araç Ekle"
-                className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-                onClick={() => navigate('/vehicles/new')}
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </Button>
-            )}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
           </div>
 
           {/* Vehicle tabs — tek DndContext, tab trigger droppable */}
@@ -800,14 +758,10 @@ export function PlanRightPanel({
                 {selectedVehicles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
                     <Truck className="w-8 h-8 text-muted-foreground/30" />
-<<<<<<< HEAD
                     <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
                     <p className="text-[10px] text-muted-foreground/60">
                       Araç listesinden seçili araçlara sürükleyin
                     </p>
-=======
-                    <p className="text-xs text-muted-foreground">Henüz araç eklenmemiş</p>
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
                   </div>
                 ) : (
                   <SortableContext
@@ -961,7 +915,6 @@ export function PlanRightPanel({
                           key={v.id}
                           id={v.id}
                           vehicle={v}
-                          isSelected={selectedVehicleIds.has(v.id)}
                           onAddToSelected={handleSelectVehicle}
                           onPreview={peekVehicle}
                         />
@@ -1154,7 +1107,6 @@ export function PlanRightPanel({
             </div>
           </div>
 
-<<<<<<< HEAD
           <Button
             className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
             disabled={!selectedVehicle || isOptimizing || !canOptimize}
@@ -1163,77 +1115,6 @@ export function PlanRightPanel({
             {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
             Optimizasyonu Başlat
           </Button>
-=======
-          {!readOnly && (
-            <>
-              {/* Grup kümeleme modu */}
-              <div className="flex flex-col gap-1">
-                <span
-                  className={cn(
-                    'text-[10px] px-0.5',
-                    criteria === OptimizationCriteria.Lifo
-                      ? 'text-muted-foreground/40'
-                      : 'text-muted-foreground',
-                  )}
-                >
-                  Grup Yerleştirme
-                  {criteria === OptimizationCriteria.Lifo && (
-                    <span className="ml-1 text-[9px]">(LIFO ile kilitli)</span>
-                  )}
-                </span>
-                <div className="grid grid-cols-2 gap-1">
-                  <button
-                    onClick={() => setClusterGroups(true)}
-                    disabled={criteria === OptimizationCriteria.Lifo}
-                    title={
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'LIFO modunda grup kümeleme devre dışı'
-                        : 'Gruplu ürünler bir arada kümelenir'
-                    }
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
-                        : clusterGroups
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <span>Kümeleli</span>
-                  </button>
-                  <button
-                    onClick={() => setClusterGroups(false)}
-                    disabled={criteria === OptimizationCriteria.Lifo}
-                    title={
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'LIFO modunda grup kümeleme devre dışı'
-                        : 'Tüm ürünler optimizasyon kriterine göre karışık yerleşir'
-                    }
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
-                        : !clusterGroups
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <span>Karma</span>
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-                disabled={!selectedVehicle || isOptimizing || !canOptimize}
-                onClick={onOptimize}
-              >
-                {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                Optimizasyonu Başlat
-              </Button>
-            </>
-          )}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
           {placements.length > 0 && (
             <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
               Yükleme Animasyonunu Başlat

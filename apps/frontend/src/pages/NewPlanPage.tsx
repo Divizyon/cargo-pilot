@@ -60,7 +60,8 @@ function PlanAutoLoader({
   useEffect(() => {
     if (appliedRef.current || !isSuccess || !data) return;
 
-    const allVehicles = data.vehicles.length > 0 ? data.vehicles : data.vehicle ? [data.vehicle] : [];
+    const allVehicles =
+      data.vehicles.length > 0 ? data.vehicles : data.vehicle ? [data.vehicle] : [];
     if (allVehicles.length === 0) return;
 
     appliedRef.current = true;
@@ -75,7 +76,6 @@ function PlanAutoLoader({
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
-    usePlanStore.getState().setInlineGroups(data.groups);
     onLoaded?.();
   }, [
     isSuccess,
@@ -145,14 +145,7 @@ export function NewPlanPage() {
   }, []);
 
   const handleConfirmCreate = useCallback(async () => {
-    const {
-      selectedVehicles,
-      selectedItems: items,
-      criteria,
-      clusterGroups,
-      inlineGroups,
-    } = usePlanStore.getState();
-<<<<<<< HEAD
+    const { selectedVehicles, selectedItems: items, criteria } = usePlanStore.getState();
     if (selectedVehicles.length === 0 || !planNameInput.trim()) return;
     if (items.length === 0) return;
 
@@ -185,50 +178,6 @@ export function NewPlanPage() {
         const dataUrl = snapshotRef.current?.();
         if (dataUrl) uploadThumbnail({ id: planId, dataUrl });
       });
-=======
-    if (!vehicle || !planNameInput.trim()) return;
-
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const rawItemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (rawItemsToSend.length === 0) return;
-
-    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
-    const deduped = new Map<string, (typeof rawItemsToSend)[number]>();
-    for (const si of rawItemsToSend) {
-      if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
-    }
-    const itemsToSend = [...deduped.values()];
-
-    const itemGroupMap = new Map<string, string>();
-    for (const g of inlineGroups) {
-      for (const itemId of g.itemIds) {
-        itemGroupMap.set(itemId, g.id);
-      }
-    }
-
-    const groups =
-      inlineGroups.length > 0
-        ? inlineGroups.map((g, idx) => ({
-            clientGroupId: g.id,
-            name: g.name,
-            color: g.color,
-            unloadingOrder: idx + 1,
-          }))
-        : undefined;
-
-    setNameDialogOpen(false);
-    const id = await createPlan({
-      planName: planNameInput.trim(),
-      vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({
-        itemId: si.item.id,
-        quantity: si.quantity,
-        groupId: itemGroupMap.get(si.item.id),
-      })),
-      optimizationCriteria: criteria,
-      clusterGroups,
-      groups,
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
     });
   }, [uploadThumbnail]);
 
@@ -239,64 +188,14 @@ export function NewPlanPage() {
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
-    const {
-      selectedVehicles,
-      selectedItems: items,
-      criteria,
-      clusterGroups,
-      inlineGroups,
-    } = usePlanStore.getState();
-<<<<<<< HEAD
+    const { selectedVehicles, selectedItems: items, criteria } = usePlanStore.getState();
     if (selectedVehicles.length === 0 || items.length === 0) return;
 
     await reoptimizePlan({
       id: fromPlanId,
       vehicleIds: selectedVehicles.map((e) => e.vehicle.id),
       items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
-=======
-    if (!vehicle || items.length === 0) return;
-
-    // Only send items that are currently placed — items removed via "Çıkar" must be excluded
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const rawItems = items.filter((si) => placedIds.has(si.item.id));
-    if (rawItems.length === 0) return;
-
-    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
-    const dedupedMap = new Map<string, (typeof items)[number]>();
-    for (const si of rawItems) {
-      if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
-    }
-    const dedupedItems = [...dedupedMap.values()];
-
-    const itemGroupMap = new Map<string, string>();
-    for (const g of inlineGroups) {
-      for (const itemId of g.itemIds) {
-        itemGroupMap.set(itemId, g.id);
-      }
-    }
-
-    const groups =
-      inlineGroups.length > 0
-        ? inlineGroups.map((g, idx) => ({
-            clientGroupId: g.id,
-            name: g.name,
-            color: g.color,
-            unloadingOrder: idx + 1,
-          }))
-        : undefined;
-
-    await reoptimizePlan({
-      id: fromPlanId,
-      vehicleId: vehicle.id,
-      items: dedupedItems.map((si) => ({
-        itemId: si.item.id,
-        quantity: si.quantity,
-        groupId: itemGroupMap.get(si.item.id),
-      })),
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
       optimizationCriteria: criteria,
-      clusterGroups,
-      groups,
     });
     pendingSnapshotPlanId.current = fromPlanId;
     setRefetchKey((k) => k + 1);
@@ -304,7 +203,6 @@ export function NewPlanPage() {
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
-<<<<<<< HEAD
     <div className="flex flex-col h-full bg-muted overflow-hidden">
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="sm:max-w-sm">
@@ -324,114 +222,6 @@ export function NewPlanPage() {
               }}
               className="h-9 text-sm"
               autoFocus
-=======
-    <ReadOnlyContext.Provider value={readOnly}>
-      <div className="flex flex-col h-full bg-page-background overflow-hidden">
-        {!readOnly && (
-          <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Plan Adı</DialogTitle>
-              </DialogHeader>
-              <div className="py-2">
-                <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
-                  Yükleme planına bir ad verin
-                </Label>
-                <Input
-                  id="plan-name"
-                  value={planNameInput}
-                  onChange={(e) => setPlanNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleConfirmCreate();
-                  }}
-                  className="h-9 text-sm"
-                  autoFocus
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={!planNameInput.trim() || isCreating}
-                  onClick={() => void handleConfirmCreate()}
-                  className="bg-foreground text-background hover:bg-foreground/80"
-                >
-                  {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {!readOnly && fromPlanId && (
-          <PlanAutoLoader
-            planId={fromPlanId}
-            refetchKey={refetchKey}
-            onVehicleSelected={handleVehicleSelected}
-          />
-        )}
-        {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
-        <div className="relative flex flex-1 min-h-0 overflow-hidden">
-          {/* BalancePanel — sağ panelin solunda */}
-          <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
-            <BalancePanel />
-          </div>
-
-          {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
-          <button
-            onClick={() => setLeftOpen((v) => !v)}
-            title={leftOpen ? 'Ürünler panelini kapat' : 'Ürünler panelini aç'}
-            className={cn(
-              'absolute top-1/2 -translate-y-1/2 z-20',
-              'h-6 w-6 flex items-center justify-center rounded-full',
-              'border border-border bg-background text-muted-foreground shadow-sm',
-              'transition-[left] duration-[220ms] ease-out hover:text-foreground',
-              leftOpen ? 'left-[296px]' : 'left-3',
-            )}
-          >
-            {leftOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          </button>
-
-          {/* Sol kayan panel */}
-          <div
-            className={cn(
-              'absolute top-3 bottom-3 left-0 w-[320px] z-10 px-3',
-              'transition-transform duration-[220ms] ease-out',
-              leftOpen ? 'translate-x-0' : '-translate-x-full',
-            )}
-          >
-            <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-              <PlanLeftPanel planId={fromPlanId} />
-            </div>
-          </div>
-
-          {/* Kamera presetleri — sağ üst */}
-          <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
-            <CameraPresetButtons />
-          </div>
-
-          {/* Merkez — 3D Viewport */}
-          <div className="flex-1 min-w-0 p-3 overflow-hidden">
-            <div className="relative h-full rounded-xl bg-background border border-border overflow-hidden">
-              <PlanCanvas snapshotRef={snapshotRef} />
-            </div>
-          </div>
-
-          {/* Sağ panel — her zaman görünür, araç listesi toggle ile açılır/kapanır */}
-          <div className="absolute top-[68px] bottom-3 right-0 w-[320px] z-10 px-3">
-            <PlanRightPanel
-              vehiclesOpen={rightOpen}
-              onToggleVehicles={() => setRightOpen((v) => !v)}
-              onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
-              onLoadAnimation={handleLoadAnimation}
-              isOptimizing={fromPlanId ? isReoptimizing : isCreating}
-              canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
-              getSnapshot={() => snapshotRef.current?.() ?? ''}
-              planId={fromPlanId}
-              planName={planDetail?.planName}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
             />
           </div>
           <DialogFooter>

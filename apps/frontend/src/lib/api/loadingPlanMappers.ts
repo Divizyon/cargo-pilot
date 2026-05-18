@@ -437,20 +437,6 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
 
 // ─── Full detail schema (3D planner) ─────────────────────────────────────────
 
-const planGroupFullSchema = z
-  .object({
-    id: z.string().uuid(),
-    name: z.string(),
-    color: z.string(),
-    unloadingOrder: z.number().int(),
-    isActive: z.boolean().optional(),
-    items: z
-      .array(z.object({ itemId: z.string() }).passthrough())
-      .optional()
-      .default([]),
-  })
-  .passthrough();
-
 const planItemDimensionsSchema = z
   .object({
     id: z.string(),
@@ -514,7 +500,6 @@ export const planFullDetailApiResponseSchema = z.object({
       vehicles: z.array(planVehicleInPlanSchema).optional().default([]),
       placements: z.array(placementFullSchema).optional().default([]),
       inputItems: z.array(inputItemFullSchema).optional().default([]),
-      groups: z.array(planGroupFullSchema).optional().default([]),
       unplacedItems: z
         .array(
           z
@@ -541,7 +526,6 @@ export type PlanFullDetail = {
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
   unplacedItems: Array<{ itemId: string; quantity: number; reason: number; name: string }>;
-  groups: Array<{ id: string; name: string; color: string; itemIds: string[] }>;
 };
 
 function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
@@ -591,8 +575,7 @@ function apiVehicleToVehicle(
       v.loadingType != null
         ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
         : DoorDirection.Rear,
-    doorSide:
-      v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    doorSide: v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
     isFavorite: false,
     isActive: true,
     isDeleted: false,
@@ -606,11 +589,14 @@ export function fromApiFullDetail(
 ): PlanFullDetail {
   // Multi-vehicle: prefer data.vehicles[], fall back to data.vehicle
   const rawVehicles = data.vehicles ?? [];
-  const vehicles: Vehicle[] = rawVehicles.length > 0
-    ? rawVehicles.map((v) => apiVehicleToVehicle(v as z.infer<typeof planVehicleApiSchema> & { vehicleId?: string }))
-    : data.vehicle?.id
-      ? [apiVehicleToVehicle(data.vehicle)]
-      : [];
+  const vehicles: Vehicle[] =
+    rawVehicles.length > 0
+      ? rawVehicles.map((v) =>
+          apiVehicleToVehicle(v as z.infer<typeof planVehicleApiSchema> & { vehicleId?: string }),
+        )
+      : data.vehicle?.id
+        ? [apiVehicleToVehicle(data.vehicle)]
+        : [];
 
   const vehicle: Vehicle | null = vehicles[0] ?? null;
 
@@ -679,21 +665,5 @@ export function fromApiFullDetail(
     name: u.item?.name ?? '',
   }));
 
-<<<<<<< HEAD
   return { planName, vehicle, vehicles, inputItems, placements, skuColorMap, unplacedItems };
-=======
-  // Grupları UnloadingOrder ASC sıraya göre al — idx+1 ile unloadingOrder yeniden üretilir
-  type RawGroup = z.infer<typeof planGroupFullSchema>;
-  const groups = [...(data.groups ?? [])]
-    .sort((a: RawGroup, b: RawGroup) => a.unloadingOrder - b.unloadingOrder)
-    .map((g: RawGroup) => ({
-      id: g.id,
-      dbId: g.id,
-      name: g.name,
-      color: g.color,
-      itemIds: (g.items ?? []).map((i: { itemId: string }) => i.itemId),
-    }));
-
-  return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems, groups };
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 }
