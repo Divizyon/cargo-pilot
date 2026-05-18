@@ -220,7 +220,6 @@ const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
   { value: 'rear', label: 'Arka Kapı' },
   { value: 'side', label: 'Yan Kapı' },
   { value: 'top', label: 'Üst Kapı' },
-  { value: 'rearAndSide', label: 'Arka + Yan' },
 ];
 
 // ─── Status filter ────────────────────────────────────────────────────────────
