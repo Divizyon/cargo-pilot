@@ -567,11 +567,18 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         <FilterTabs
           tabs={CATEGORY_TABS}
           value={category}
-          onChange={(v) => { setCategory(v as Parameters<typeof setCategory>[0]); setPage(1); }}
+          onChange={(v) => {
+            setCategory(v as Parameters<typeof setCategory>[0]);
+            setPage(1);
+          }}
         />
 
         {/* Search input */}
-        <SearchInput size="sm" onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+        <SearchInput
+          size="sm"
+          onSearch={handleSearch}
+          placeholder="SKU kodu veya ürün adı ile ara..."
+        />
 
         {/* Sırala */}
         <div ref={sortRef} className="relative shrink-0">

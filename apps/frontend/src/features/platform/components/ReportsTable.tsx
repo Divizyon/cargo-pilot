@@ -332,7 +332,12 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
         <FilterTabs
           tabs={PERIOD_TABS}
           value={!dateFrom && !dateTo ? period : ''}
-          onChange={(v) => { setPeriod(v as Parameters<typeof setPeriod>[0]); setDateFrom(''); setDateTo(''); setPage(1); }}
+          onChange={(v) => {
+            setPeriod(v as Parameters<typeof setPeriod>[0]);
+            setDateFrom('');
+            setDateTo('');
+            setPage(1);
+          }}
         />
 
         {/* Search */}

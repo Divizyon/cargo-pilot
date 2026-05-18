@@ -52,9 +52,7 @@ export function SearchInput({
         onChange={(e) => setRawValue(e.target.value)}
         placeholder={placeholder}
         aria-label="Ara"
-        className={cn(
-          isSm ? 'h-7 pl-7 pr-7 text-xs' : 'h-9 pl-9 pr-8 text-xs',
-        )}
+        className={cn(isSm ? 'h-7 pl-7 pr-7 text-xs' : 'h-9 pl-9 pr-8 text-xs')}
       />
       {rawValue && (
         <button

@@ -101,10 +101,18 @@ export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreate
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Vehicle type tabs */}
-      <FilterTabs tabs={TYPE_TABS} value={currentTab} onChange={(v) => handleTabClick(v as Parameters<typeof handleTabClick>[0])} />
+      <FilterTabs
+        tabs={TYPE_TABS}
+        value={currentTab}
+        onChange={(v) => handleTabClick(v as Parameters<typeof handleTabClick>[0])}
+      />
 
       {/* Search input */}
-      <SearchInput size="sm" onSearch={setSearchQuery} placeholder="Araç adı veya plaka ile ara..." />
+      <SearchInput
+        size="sm"
+        onSearch={setSearchQuery}
+        placeholder="Araç adı veya plaka ile ara..."
+      />
 
       {/* Sırala dropdown */}
       <div ref={sortRef} className="relative shrink-0">

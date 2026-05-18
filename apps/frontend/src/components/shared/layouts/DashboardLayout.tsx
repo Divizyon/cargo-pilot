@@ -80,7 +80,8 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
   const isActive = item.end
     ? pathname === item.path
     : pathname === item.path ||
-      (pathname.startsWith(item.path + '/') && !(item.path === '/planning' && pathname === '/planning/new'));
+      (pathname.startsWith(item.path + '/') &&
+        !(item.path === '/planning' && pathname === '/planning/new'));
 
   const controls = useAnimation();
   const wasActive = useRef(isActive);
@@ -112,10 +113,7 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
       >
         <motion.div animate={controls} className="shrink-0">
           <item.icon
-            className={cn(
-              'h-4 w-4',
-              isActive ? 'text-accent-foreground' : 'text-muted-foreground',
-            )}
+            className={cn('h-4 w-4', isActive ? 'text-accent-foreground' : 'text-muted-foreground')}
             strokeWidth={isActive ? 2.5 : 2}
           />
         </motion.div>

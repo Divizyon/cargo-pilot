@@ -1051,11 +1051,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
 
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-        <SearchInput
-          size="sm"
-          placeholder="İsim veya SKU ile ara…"
-          onSearch={setSearch}
-        />
+        <SearchInput size="sm" placeholder="İsim veya SKU ile ara…" onSearch={setSearch} />
 
         {/* Filter dropdown */}
         <div ref={filterRef} className="relative shrink-0">

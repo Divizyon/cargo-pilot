@@ -327,7 +327,12 @@ export function ERPItemsTable() {
             { value: String(DRAFT_UPDATE_PENDING), label: 'Güncellemeler' },
           ]}
           value={String(statusFilter)}
-          onChange={(v) => { setStatusFilter(Number(v)); setPage(1); setSelectedIds(new Set()); setSelectAllMode(false); }}
+          onChange={(v) => {
+            setStatusFilter(Number(v));
+            setPage(1);
+            setSelectedIds(new Set());
+            setSelectAllMode(false);
+          }}
         />
 
         <SearchInput

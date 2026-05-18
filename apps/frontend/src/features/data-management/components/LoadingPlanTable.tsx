@@ -514,7 +514,10 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
             count: tabCounts[tab.value as keyof typeof tabCounts],
           }))}
           value={statusTab}
-          onChange={(v) => { setStatusTab(v); setPage(1); }}
+          onChange={(v) => {
+            setStatusTab(v);
+            setPage(1);
+          }}
         />
 
         {/* Search */}
@@ -595,16 +598,23 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
 
         {/* View mode toggle */}
         <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {([
-            { value: 'card', icon: LayoutGrid, title: 'Kart görünümü' },
-            { value: 'table', icon: LayoutList, title: 'Liste görünümü' },
-          ] as const).map(({ value, icon: Icon, title }) => (
+          {(
+            [
+              { value: 'card', icon: LayoutGrid, title: 'Kart görünümü' },
+              { value: 'table', icon: LayoutList, title: 'Liste görünümü' },
+            ] as const
+          ).map(({ value, icon: Icon, title }) => (
             <button
               key={value}
-              onClick={() => { setViewMode(value); setPage(1); }}
+              onClick={() => {
+                setViewMode(value);
+                setPage(1);
+              }}
               className={cn(
                 'relative flex h-7 w-7 items-center justify-center rounded-md',
-                viewMode === value ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+                viewMode === value
+                  ? 'text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
               title={title}
             >

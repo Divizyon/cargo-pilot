@@ -660,77 +660,74 @@ export function PlanRightPanel({
           {/* Search + Filter — edit modda her tab'da göster */}
           {!readOnly && (
             <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-              <SearchInput
-                size="sm"
-                placeholder="Araç adı ile ara…"
-                onSearch={setVehicleSearch}
-              />
+              <SearchInput size="sm" placeholder="Araç adı ile ara…" onSearch={setVehicleSearch} />
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      title="Araç tipine göre filtrele"
-                      className={cn(
-                        'h-7 shrink-0 gap-1 px-2 text-xs',
-                        activeVehicleTypes.size > 0 && 'border-primary text-primary ring-1 ring-primary/30',
-                      )}
-                    >
-                      <SlidersHorizontal className="w-3 h-3" />
-                      {activeVehicleTypes.size > 0 && (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                          {activeVehicleTypes.size}
-                        </span>
-                      )}
-                      <ChevronDown className="w-3 h-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
-                      Araç Tipi
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {(
-                      Object.entries(VEHICLE_TYPE_META) as [
-                        VehicleTypeValue,
-                        { label: string; icon: typeof Truck },
-                      ][]
-                    ).map(([key, meta]) => {
-                      const Icon = meta.icon;
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={key}
-                          checked={activeVehicleTypes.has(key)}
-                          onCheckedChange={(checked: boolean) => {
-                            setActiveVehicleTypes((prev) => {
-                              const next = new Set(prev);
-                              if (checked) next.add(key);
-                              else next.delete(key);
-                              return next;
-                            });
-                          }}
-                          onSelect={(e: Event) => e.preventDefault()}
-                          className="text-xs gap-2"
-                        >
-                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                          {meta.label}
-                        </DropdownMenuCheckboxItem>
-                      );
-                    })}
-                    {activeVehicleTypes.size > 0 && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <button
-                          onClick={() => setActiveVehicleTypes(new Set())}
-                          className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
-                        >
-                          Filtreleri temizle
-                        </button>
-                      </>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Araç tipine göre filtrele"
+                    className={cn(
+                      'h-7 shrink-0 gap-1 px-2 text-xs',
+                      activeVehicleTypes.size > 0 &&
+                        'border-primary text-primary ring-1 ring-primary/30',
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  >
+                    <SlidersHorizontal className="w-3 h-3" />
+                    {activeVehicleTypes.size > 0 && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                        {activeVehicleTypes.size}
+                      </span>
+                    )}
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
+                    Araç Tipi
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {(
+                    Object.entries(VEHICLE_TYPE_META) as [
+                      VehicleTypeValue,
+                      { label: string; icon: typeof Truck },
+                    ][]
+                  ).map(([key, meta]) => {
+                    const Icon = meta.icon;
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={activeVehicleTypes.has(key)}
+                        onCheckedChange={(checked: boolean) => {
+                          setActiveVehicleTypes((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(key);
+                            else next.delete(key);
+                            return next;
+                          });
+                        }}
+                        onSelect={(e: Event) => e.preventDefault()}
+                        className="text-xs gap-2"
+                      >
+                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                        {meta.label}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+                  {activeVehicleTypes.size > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <button
+                        onClick={() => setActiveVehicleTypes(new Set())}
+                        className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
+                      >
+                        Filtreleri temizle
+                      </button>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
 
@@ -768,8 +765,7 @@ export function PlanRightPanel({
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Araçlar yükleniyor…
                 </div>
-              ) : listTabVehicles.length === 0 &&
-                (vehicleSearch || activeVehicleTypes.size > 0) ? (
+              ) : listTabVehicles.length === 0 && (vehicleSearch || activeVehicleTypes.size > 0) ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
                   <Search className="w-6 h-6 text-muted-foreground/30" />
                   <p className="text-xs text-muted-foreground">

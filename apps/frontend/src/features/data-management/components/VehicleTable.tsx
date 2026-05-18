@@ -566,7 +566,10 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
         <FilterTabs
           tabs={CATEGORY_TABS}
           value={category}
-          onChange={(v) => { setCategory(v as Parameters<typeof setCategory>[0]); setPage(1); }}
+          onChange={(v) => {
+            setCategory(v as Parameters<typeof setCategory>[0]);
+            setPage(1);
+          }}
         />
 
         {/* Search */}

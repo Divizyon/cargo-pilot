@@ -20,7 +20,10 @@ function getDirectionLabel(dir: string): string {
   return 'Üst';
 }
 
-export function VehicleDoorDirectionField({ form, vehicleType: _vehicleType }: VehicleDoorDirectionFieldProps) {
+export function VehicleDoorDirectionField({
+  form,
+  vehicleType: _vehicleType,
+}: VehicleDoorDirectionFieldProps) {
   return (
     <Controller
       control={form.control}
