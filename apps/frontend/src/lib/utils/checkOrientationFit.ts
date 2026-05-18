@@ -40,6 +40,7 @@ export function applyContainerOverflow(
   if (!vehicle) return placements;
   let mutated = false;
   const next = placements.map((p) => {
+    if (p.isStagingArea) return p;
     const overflow = !isInsideContainer(p, vehicle);
     if (!overflow || p.isViolation) return p;
     mutated = true;

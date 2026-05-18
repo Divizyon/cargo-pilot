@@ -86,7 +86,12 @@ const CONSTRAINT_ID_TO_SVG: Record<number, string> = {
 const INSTANCED_THRESHOLD = SCENE.INSTANCED_THRESHOLD;
 const COLOR_VIOLATION = new THREE.Color(SCENE.COLORS.VIOLATION);
 const COLOR_NORMAL = new THREE.Color(SCENE.COLORS.NORMAL);
+const STAGING_GREY = new THREE.Color(SCENE.COLORS.GRID);
 const SCALE_ZERO = new THREE.Vector3(0, 0, 0);
+
+function blendToGrey(hex: string, t: number): string {
+  return new THREE.Color(hex).lerp(new THREE.Color(SCENE.COLORS.GRID), t).getStyle();
+}
 
 // Pre-allocated axis vectors for cylinder orientation (reused across frames)
 const _CYL_AXIS_X = new THREE.Vector3(1, 0, 0);
@@ -575,7 +580,15 @@ function InstancedBoxes() {
       gRef.current!.setMatrixAt(instanceIdx, matrix);
       vRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      color.copy(p.isViolation ? COLOR_VIOLATION : p.color ? color.set(p.color) : COLOR_NORMAL);
+      if (p.isViolation) {
+        color.copy(COLOR_VIOLATION);
+      } else if (p.isStagingArea) {
+        (p.color ? color.set(p.color) : color.copy(COLOR_NORMAL)).lerp(STAGING_GREY, 0.35);
+      } else if (p.color) {
+        color.set(p.color);
+      } else {
+        color.copy(COLOR_NORMAL);
+      }
       oRef.current!.setColorAt(instanceIdx, color);
     }
 
@@ -706,7 +719,15 @@ function InstancedBoxes() {
       matrix.compose(position, quaternion, scale);
       vRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      color.copy(p.isViolation ? COLOR_VIOLATION : p.color ? color.set(p.color) : COLOR_NORMAL);
+      if (p.isViolation) {
+        color.copy(COLOR_VIOLATION);
+      } else if (p.isStagingArea) {
+        (p.color ? color.set(p.color) : color.copy(COLOR_NORMAL)).lerp(STAGING_GREY, 0.35);
+      } else if (p.color) {
+        color.set(p.color);
+      } else {
+        color.copy(COLOR_NORMAL);
+      }
       oRef.current!.setColorAt(instanceIdx, color);
     }
 
@@ -953,7 +974,11 @@ function InstancedBoxes() {
             positionY={py}
             positionZ={pz}
             color={
-              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+              p.isViolation
+                ? SCENE.COLORS.VIOLATION_STR
+                : p.isStagingArea
+                  ? blendToGrey(p.color ?? SCENE.COLORS.NORMAL_STR, 0.35)
+                  : (p.color ?? SCENE.COLORS.NORMAL_STR)
             }
             itemId={p.itemId}
             isSelected={isItemSelected}
@@ -992,7 +1017,11 @@ function InstancedBoxes() {
             positionY={p.positionY}
             positionZ={p.positionZ}
             color={
-              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+              p.isViolation
+                ? SCENE.COLORS.VIOLATION_STR
+                : p.isStagingArea
+                  ? blendToGrey(p.color ?? SCENE.COLORS.NORMAL_STR, 0.35)
+                  : (p.color ?? SCENE.COLORS.NORMAL_STR)
             }
             itemId={p.itemId}
             isSelected={true}
@@ -1194,7 +1223,11 @@ function BoxPathBoxes() {
             positionY={py}
             positionZ={pz}
             color={
-              p.isViolation ? SCENE.COLORS.VIOLATION_STR : (p.color ?? SCENE.COLORS.NORMAL_STR)
+              p.isViolation
+                ? SCENE.COLORS.VIOLATION_STR
+                : p.isStagingArea
+                  ? blendToGrey(p.color ?? SCENE.COLORS.NORMAL_STR, 0.35)
+                  : (p.color ?? SCENE.COLORS.NORMAL_STR)
             }
             itemId={p.itemId}
             isSelected={isInstanceSelected || isItemSelected}
