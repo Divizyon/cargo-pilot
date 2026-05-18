@@ -10,8 +10,7 @@ public sealed record CreatePlanCommand(
     IReadOnlyList<CreatePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     IReadOnlyList<CreatePlanGroupDefinition>? Groups = null,
-    bool ClusterGroups = true,
-    bool AllowContamination = false)
+    bool ClusterGroups = true)
     : IRequest<Result<Guid>>;
 
 public sealed record CreatePlanGroupDefinition(
