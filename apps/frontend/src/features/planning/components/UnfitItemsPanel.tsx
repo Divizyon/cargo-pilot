@@ -1,21 +1,39 @@
 import { useState } from 'react';
-import { Box, ChevronRight, Cylinder, Package, RotateCcw, Trash2 } from 'lucide-react';
+import { AlertCircle, Box, ChevronRight, Cylinder, Package, RotateCcw, Trash2 } from 'lucide-react';
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { UnfitReason } from '@/lib/types/loadingPlan';
 import type { UnfitItem } from '@/lib/types/loadingPlan';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  detectContaminationConflicts,
+  computeGroupVolumes,
+  type GroupVolume,
+  type ContaminationConflict,
+} from '@/lib/utils/contamination';
 
 const REASON_LABEL: Record<UnfitReason, string> = {
   [UnfitReason.Volume]: 'Hacim Yetersiz',
   [UnfitReason.Weight]: 'Ağırlık Limiti Aşıldı',
   [UnfitReason.Stacking]: 'İstif Kısıtı İhlali',
+  [UnfitReason.Contamination]: 'Uyumsuz Yük Grubu',
 };
 
 const REASON_CLASS: Record<UnfitReason, string> = {
   [UnfitReason.Volume]: 'bg-amber-50 text-amber-700 border border-amber-200',
   [UnfitReason.Weight]: 'bg-rose-50 text-rose-700 border border-rose-200',
   [UnfitReason.Stacking]: 'bg-orange-50 text-orange-700 border border-orange-200',
+  [UnfitReason.Contamination]: 'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
 const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
@@ -88,9 +106,37 @@ interface UnfitItemsPanelProps {
 
 export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
   const [open, setOpen] = useState(true);
+  const [pendingRetryContamination, setPendingRetryContamination] = useState<{
+    pendingAction: () => void;
+    groupVolumes: GroupVolume[];
+    conflicts: ContaminationConflict[];
+  } | null>(null);
+
   const unfitItems = usePlanStore((s) => s.unfitItems);
   const removeUnfitItem = usePlanStore((s) => s.removeUnfitItem);
   const retryUnfitItem = usePlanStore((s) => s.retryUnfitItem);
+
+  function handleRetry(unfitItem: UnfitItem) {
+    const doRetry = () => retryUnfitItem(unfitItem.item.id);
+    const newGroup = unfitItem.item.stackGroup;
+    if (newGroup) {
+      const { placements, selectedItems } = usePlanStore.getState();
+      const placedIds = new Set(placements.map((p) => p.itemId));
+      const curPlaced = selectedItems.filter((si) => placedIds.has(si.item.id));
+      const wouldBe = [...curPlaced, { item: unfitItem.item, quantity: unfitItem.quantity }];
+      const conflicts = detectContaminationConflicts(wouldBe);
+      const newGroupInConflict = conflicts.some(
+        (c) => c.groupA === newGroup || c.groupB === newGroup,
+      );
+      if (newGroupInConflict) {
+        const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+        const groupVolumes = computeGroupVolumes(wouldBe, involvedGroups);
+        setPendingRetryContamination({ pendingAction: doRetry, groupVolumes, conflicts });
+        return;
+      }
+    }
+    doRetry();
+  }
 
   if (unfitItems.length === 0) return null;
 
@@ -132,7 +178,7 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
               <UnfitItemRow
                 key={u.item.id}
                 unfitItem={u}
-                onRetry={() => retryUnfitItem(u.item.id)}
+                onRetry={() => handleRetry(u)}
                 onRemove={() => {
                   removeUnfitItem(u.item.id);
                   onFullRemove?.(u.item.id);
@@ -141,6 +187,76 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
             ))}
           </div>
         </div>
+      )}
+
+      {pendingRetryContamination && (
+        <AlertDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPendingRetryContamination(null);
+          }}
+        >
+          <AlertDialogContent className="sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {pendingRetryContamination.conflicts.length > 0
+                  ? 'Uyumsuz Yük Grupları'
+                  : 'Yük Grubu Seçimi'}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="flex flex-col gap-4 pt-1">
+                  {pendingRetryContamination.conflicts.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {pendingRetryContamination.conflicts.map((c, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">{c.groupA}</span>
+                          <span className="text-rose-400">ve</span>
+                          <span className="font-medium">{c.groupB}</span>
+                          <span className="text-muted-foreground">birlikte yüklenemez</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {pendingRetryContamination.groupVolumes.map((gv) => (
+                      <div
+                        key={gv.name}
+                        className="flex flex-col gap-1 p-3 rounded-lg border border-border bg-muted/40 text-left"
+                      >
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          {gv.name}
+                        </span>
+                        <span className="text-lg font-bold text-foreground tabular-nums">
+                          %{gv.pct}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {gv.volumeM3.toFixed(2)} m³
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Bu ürünü geri eklemek mevcut gruplarla çakışma yaratabilir.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                className="w-full bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+                onClick={() => {
+                  const action = pendingRetryContamination.pendingAction;
+                  setPendingRetryContamination(null);
+                  action();
+                }}
+              >
+                Yine de ekle
+              </Button>
+              <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
