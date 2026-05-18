@@ -30,7 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useVehicles, useToggleFavorite } from '@/lib/api/useVehicles';
+import { toast } from 'sonner';
+import { useVehicles, useToggleFavorite, fetchAllVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
@@ -192,10 +193,11 @@ function applySortToVehicles(vehicles: Vehicle[], key: VehicleSortKey): Vehicle[
 // ─── Door direction config ────────────────────────────────────────────────────
 
 const DOOR_CONFIG: Record<string, { label: string }> = {
-  rear: { label: 'Ön' },
+  front: { label: 'Ön' },
+  rear: { label: 'Arka' },
   side: { label: 'Yan' },
   top: { label: 'Üst' },
-  rearAndSide: { label: 'Ön + Yan' },
+  rearAndSide: { label: 'Arka + Yan' },
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -215,10 +217,9 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 type DoorFilter = 'rear' | 'side' | 'top' | 'rearAndSide';
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: 'rear', label: 'Ön Kapı' },
+  { value: 'rear', label: 'Arka Kapı' },
   { value: 'side', label: 'Yan Kapı' },
   { value: 'top', label: 'Üst Kapı' },
-  { value: 'rearAndSide', label: 'Ön + Yan' },
 ];
 
 // ─── Status filter ────────────────────────────────────────────────────────────
@@ -426,6 +427,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
   const [showSortPanel, setShowSortPanel] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -450,8 +452,12 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       }
     };
     calculate();
+    const rafId = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', calculate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -468,6 +474,27 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     pageSize,
     ...SORT_TO_PARAMS[sortKey],
   });
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const allVehicles = await fetchAllVehicles({
+        search: searchTerm || undefined,
+        vehicleType: category !== 'all' ? category : undefined,
+        status: statusFilter || undefined,
+        ...SORT_TO_PARAMS[sortKey],
+      });
+      const doorFiltered =
+        doorFilters.size === 0
+          ? allVehicles
+          : allVehicles.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
+      exportVehiclesToExcel(applySortToVehicles(doorFiltered, sortKey), {});
+    } catch {
+      toast.error('Dışa aktarma başarısız. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   const vehicles = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -688,11 +715,11 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
-          onClick={() => exportVehiclesToExcel(filteredVehicles, {})}
-          disabled={filteredVehicles.length === 0}
+          onClick={() => void handleExport()}
+          disabled={totalCount === 0 || isExporting}
         >
           <Upload className="h-3.5 w-3.5" />
-          Dışa Aktar
+          {isExporting ? 'Aktarılıyor...' : 'Dışa Aktar'}
         </Button>
 
         {/* İçe Aktar */}

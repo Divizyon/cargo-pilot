@@ -99,14 +99,14 @@ export function PlanSnapshotPanel() {
 
   if (!plan) {
     return (
-      <div className="flex items-center justify-center h-48 bg-muted/40 text-sm text-muted-foreground text-center px-4">
+      <div className="flex items-center justify-center h-48 bg-muted/20 text-sm text-muted-foreground text-center px-4">
         Bir plan seçin
       </div>
     );
   }
 
   return (
-    <div className="h-48 bg-muted/40">
+    <div className="h-48 bg-muted/20">
       <TruckPlaceholder />
     </div>
   );

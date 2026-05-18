@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -374,6 +375,23 @@ function TextCell({ value, onChange, error, type = 'text', className }: TextCell
   );
 }
 
+function findDuplicateSkuIds(rows: EditableRow[]): Set<string> {
+  const skuCount = new Map<string, number>();
+  for (const row of rows) {
+    const sku = row.sku.trim().toLowerCase();
+    if (!sku) continue;
+    skuCount.set(sku, (skuCount.get(sku) ?? 0) + 1);
+  }
+  return new Set(
+    rows
+      .filter((r) => {
+        const sku = r.sku.trim().toLowerCase();
+        return sku && (skuCount.get(sku) ?? 0) > 1;
+      })
+      .map((r) => r._id),
+  );
+}
+
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
 export function BulkImportDialog({
@@ -455,7 +473,14 @@ export function BulkImportDialog({
     setApiErrors([]);
   }
 
-  const validations = rows.map((r) => ({ id: r._id, errors: validateRow(r) }));
+  const duplicateSkuIds = findDuplicateSkuIds(rows);
+  const validations = rows.map((r) => ({
+    id: r._id,
+    errors: {
+      ...validateRow(r),
+      ...(duplicateSkuIds.has(r._id) ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' } : {}),
+    },
+  }));
   const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
   const isDraftPending = updateDraftItem.isPending || bulkApproveDraft.isPending;
   const canImport =
@@ -558,7 +583,7 @@ export function BulkImportDialog({
                 </span>
               ) : (
                 <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                  {rows.length} satır hazır
+                  {rows.length} ürün eklendi
                 </span>
               )}
             </div>
@@ -656,7 +681,7 @@ export function BulkImportDialog({
                         <SelectContent>
                           <SelectItem value="koli">Koli</SelectItem>
                           <SelectItem value="varil">Varil</SelectItem>
-                          <SelectItem value="palet">Palet</SelectItem>
+                          <SelectItem value="palet">Paletli Ürün</SelectItem>
                         </SelectContent>
                       </Select>
                     </td>
@@ -774,10 +799,24 @@ export function BulkImportDialog({
 
                     {/* Notlar */}
                     <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.notes}
-                        onChange={(v) => patchRow(row._id, { notes: v })}
-                      />
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip open={row.notes.trim() ? undefined : false}>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <TextCell
+                                value={row.notes}
+                                onChange={(v) => patchRow(row._id, { notes: v })}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="max-w-64 whitespace-pre-wrap break-words"
+                          >
+                            {row.notes}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </td>
 
                     {/* Sil */}
