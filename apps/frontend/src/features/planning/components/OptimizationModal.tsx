@@ -94,6 +94,21 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   const [localGroupOrder, setLocalGroupOrder] = useState<InlineGroup[]>(
     () => usePlanStore.getState().inlineGroups,
   );
+
+  const placements = usePlanStore((s) => s.placements);
+  const selectedItems = usePlanStore((s) => s.selectedItems);
+
+  const ungroupedPlacedCount =
+    localCriteria === OptimizationCriteria.Lifo
+      ? (() => {
+          const placedIds = new Set(placements.map((p) => p.itemId));
+          const assignedIds = new Set(localGroupOrder.flatMap((g) => g.itemIds));
+          return selectedItems.filter(
+            (si) => placedIds.has(si.item.id) && !assignedIds.has(si.item.id),
+          ).length;
+        })()
+      : 0;
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -176,10 +191,18 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200">
               <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-px" />
-              <p className="text-[10px] text-amber-700 leading-relaxed">
-                LIFO algoritması için grupları önceliklendirmeniz gerekiyor. Kapıdan{' '}
-                <strong>ilk inecek grubu en üste</strong> sürükleyin.
-              </p>
+              {ungroupedPlacedCount > 0 ? (
+                <p className="text-[10px] text-amber-700 leading-relaxed">
+                  <strong>{ungroupedPlacedCount} yerleştirilmiş ürün</strong> herhangi bir gruba
+                  atanmamış. LIFO optimizasyonu başlatmak için tüm ürünleri sol paneldeki grup
+                  menüsünden bir gruba ekleyin.
+                </p>
+              ) : (
+                <p className="text-[10px] text-amber-700 leading-relaxed">
+                  LIFO algoritması için grupları önceliklendirmeniz gerekiyor. Kapıdan{' '}
+                  <strong>ilk inecek grubu en üste</strong> sürükleyin.
+                </p>
+              )}
             </div>
             <span className="text-[10px] text-muted-foreground px-0.5">Grup Önceliklendirme</span>
             {localGroupOrder.length === 0 ? (
@@ -226,7 +249,7 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
       <DialogFooter>
         <Button
           className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-          disabled={isOptimizing || disabled}
+          disabled={isOptimizing || disabled || ungroupedPlacedCount > 0}
           onClick={handleStartClick}
         >
           {isOptimizing && (
