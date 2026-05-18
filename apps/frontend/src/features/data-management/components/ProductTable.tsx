@@ -22,6 +22,7 @@ import {
   Wind,
   Wine,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useDeleteItem, useItems } from '@/lib/api/useItems';
+import { useDeleteItem, useItems, fetchAllItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/calcVolume';
@@ -258,7 +259,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       <TableCell className={cell}>
         <div className="flex items-center gap-1 text-muted-foreground">
           <TypeIcon className="h-3 w-3 shrink-0" strokeWidth={1.5} />
-          <span className="text-xs">{typeLabel}</span>
+          <span className="whitespace-nowrap text-xs">{typeLabel}</span>
         </div>
       </TableCell>
 
@@ -394,6 +395,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
   const [showSortPanel, setShowSortPanel] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('date_desc');
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -417,8 +419,12 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
       }
     };
     calculate();
+    const rafId = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', calculate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -470,6 +476,34 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showSortPanel]);
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const allItems = await fetchAllItems({
+        search: searchTerm || undefined,
+        ...(isDateSort && {
+          sortBy: 'createdAt',
+          sortOrder: sortKey === 'date_asc' ? 'asc' : 'desc',
+        }),
+      });
+      const categoryFilteredAll =
+        category === 'all'
+          ? allItems
+          : allItems.filter((i) => i.productType === CATEGORY_TO_PRODUCT_TYPE[category]);
+      const constraintFilteredAll =
+        constraintFilters.size === 0
+          ? categoryFilteredAll
+          : categoryFilteredAll.filter((i) =>
+              [...constraintFilters].some((f) => matchesConstraintFilter(i, f)),
+            );
+      exportItemsToExcel(applySortToItems(constraintFilteredAll, sortKey) ?? []);
+    } catch {
+      toast.error('Dışa aktarma başarısız. Lütfen tekrar deneyin.', { position: 'bottom-right' });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   const handleDelete = useCallback(
     (item: Item) => {
@@ -666,11 +700,11 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
-          onClick={() => exportItemsToExcel(sortedItems ?? [])}
-          disabled={!sortedItems || sortedItems.length === 0}
+          onClick={() => void handleExport()}
+          disabled={isExporting || !sortedItems || sortedItems.length === 0}
         >
           <Upload className="h-3.5 w-3.5" />
-          Dışa Aktar
+          {isExporting ? 'Aktarılıyor…' : 'Dışa Aktar'}
         </Button>
 
         {/* İçe Aktar / Toplu Ürün Ekle */}
@@ -712,7 +746,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                 <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tip
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">

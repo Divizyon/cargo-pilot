@@ -17,7 +17,6 @@ import { ProfileForm } from '@/features/platform/components/ProfileForm';
 import { CompanyMembersTable } from '@/features/platform/components/CompanyMembersTable';
 import { SubscriptionTab } from '@/features/platform/components/SubscriptionTab';
 import { RegionalSettingsTab } from '@/features/platform/components/settings/RegionalSettingsTab';
-import { VisualizationSettingsTab } from '@/features/platform/components/settings/VisualizationSettingsTab';
 import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
 import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionForm';
 import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
@@ -68,11 +67,6 @@ const GENERAL_TABS: TabDef[] = [
     id: 'bolgesel-ayarlar',
     label: 'Bölgesel ve Birim Ayarları',
     description: 'Dil, saat dilimi ve ölçü birimlerini yapılandırın.',
-  },
-  {
-    id: 'goruntu-ayarlari',
-    label: 'Görselleştirme ve Arayüz',
-    description: 'Tema ve 3D sahne görünüm tercihlerini ayarlayın.',
   },
   {
     id: 'raporlama-ayarlari',
@@ -231,11 +225,6 @@ export function UnifiedSettingsPage() {
             {activeTab === 'bolgesel-ayarlar' && (
               <RegionalSettingsTab
                 onDirtyChange={(dirty) => handleDirtyChange('bolgesel-ayarlar', dirty)}
-              />
-            )}
-            {activeTab === 'goruntu-ayarlari' && (
-              <VisualizationSettingsTab
-                onDirtyChange={(dirty) => handleDirtyChange('goruntu-ayarlari', dirty)}
               />
             )}
             {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}

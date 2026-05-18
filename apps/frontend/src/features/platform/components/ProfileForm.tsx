@@ -324,7 +324,7 @@ export function ProfileForm() {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { firstName: '', lastName: '', companyName: '' },
+    defaultValues: { firstName: '', lastName: '' },
     mode: 'onBlur',
   });
 
@@ -333,7 +333,6 @@ export function ProfileForm() {
     form.reset({
       firstName: profile.firstName,
       lastName: profile.lastName,
-      companyName: profile.companyName ?? '',
     });
   }, [profile, form]);
 
@@ -341,7 +340,6 @@ export function ProfileForm() {
     updateProfile({
       firstName: values.firstName,
       lastName: values.lastName,
-      companyName: values.companyName || null,
     });
   }
 
@@ -373,29 +371,11 @@ export function ProfileForm() {
               control={form.control}
               name="lastName"
               render={({ field }) => (
-                <FormItem className="flex items-start gap-6 space-y-0 border-b border-border py-3">
+                <FormItem className="flex items-start gap-6 space-y-0 py-3">
                   <span className="w-52 shrink-0 pt-2 text-sm text-foreground">Soyad</span>
                   <div className="flex flex-1 max-w-[280px] flex-col gap-1">
                     <FormControl>
                       <Input className="h-9" placeholder="Soyadınız" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem className="flex items-start gap-6 space-y-0 py-3">
-                  <span className="w-52 shrink-0 pt-2 text-sm text-foreground">
-                    Firma Adı{' '}
-                    <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
-                  </span>
-                  <div className="flex flex-1 max-w-[280px] flex-col gap-1">
-                    <FormControl>
-                      <Input className="h-9" placeholder="Firma adı giriniz" {...field} />
                     </FormControl>
                     <FormMessage />
                   </div>
