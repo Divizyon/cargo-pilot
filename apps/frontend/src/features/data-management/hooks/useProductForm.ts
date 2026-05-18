@@ -35,6 +35,15 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
     };
   };
 
+  const rotationOverride: Partial<ProductFormValues> = (() => {
+    const type = defaultValues?.productType;
+    const fragility = defaultValues?.fragility ?? 0;
+    if (type === 'varil') return { allowRotateX: false, allowRotateZ: false };
+    if (type === 'palet') return { allowRotateY: false, allowRotateZ: false };
+    if (fragility >= 1) return { allowRotateZ: false };
+    return {};
+  })();
+
   return useForm<ProductFormValues>({
     resolver,
     defaultValues: {
@@ -49,6 +58,7 @@ export function useProductForm(defaultValues?: Partial<ProductFormValues>) {
       incompatibleGroups: [],
       constraintIds: [],
       ...defaultValues,
+      ...rotationOverride,
     },
     mode: 'onChange',
   });
