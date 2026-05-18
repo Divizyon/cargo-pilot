@@ -160,7 +160,7 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
 
         builder.HasIndex(vehicle => new { vehicle.CompanyId, vehicle.PlateNumber })
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0")
+            .HasFilter("[IsDeleted] = 0 AND [PlateNumber] IS NOT NULL")
             .HasDatabaseName("IX_Vehicles_CompanyId_PlateNumber");
 
         builder.HasQueryFilter(vehicle => !vehicle.IsDeleted);
