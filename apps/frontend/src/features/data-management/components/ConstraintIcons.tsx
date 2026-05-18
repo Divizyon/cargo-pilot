@@ -15,6 +15,33 @@ import type { ElementType } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
+function CorrosiveIcon({
+  className,
+  strokeWidth = 2,
+}: {
+  className?: string;
+  strokeWidth?: string | number;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M9 3H5v4l7 9 7-9V3h-4" />
+      <path d="M9 3l3 4 3-4" />
+      <path d="M5 21c2-2 4-2 7-2s5 0 7 2" />
+    </svg>
+  );
+}
+
 interface ConstraintIconsProps {
   fragility: number;
   isStackable: boolean;
@@ -70,9 +97,9 @@ const FRAGILITY_DEFS: Record<number, Omit<ConstraintDef, 'icon'> & { icon: Eleme
     className: 'border-amber-200 bg-amber-50 text-amber-700',
   },
   5: {
-    icon: Flame,
+    icon: CorrosiveIcon,
     label: 'Aşındırıcı',
-    className: 'border-orange-200 bg-orange-50 text-orange-600',
+    className: 'border-green-200 bg-green-50 text-green-600',
   },
   6: {
     icon: Wind,

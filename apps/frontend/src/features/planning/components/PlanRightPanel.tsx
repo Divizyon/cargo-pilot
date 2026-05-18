@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -19,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ArrowDownUp,
   Box,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -68,7 +70,6 @@ import {
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
-import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
 import { useReadOnly } from '../ReadOnlyContext';
@@ -99,6 +100,7 @@ interface VehicleListItemProps {
   dragHandleAttributes?: Record<string, unknown>;
   onAddToSelected: (v: Vehicle) => void;
   onPreview: (v: Vehicle) => void;
+  isSelected?: boolean;
 }
 
 function VehicleListItem({
@@ -108,6 +110,7 @@ function VehicleListItem({
   dragHandleAttributes,
   onAddToSelected,
   onPreview,
+  isSelected = false,
 }: VehicleListItemProps) {
   const [expanded, setExpanded] = useState(false);
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
@@ -134,11 +137,18 @@ function VehicleListItem({
         )}
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          {isContainer ? (
-            <Package2 className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
-          ) : (
-            <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
-          )}
+          <div className="relative shrink-0">
+            {isContainer ? (
+              <Package2 className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+            ) : (
+              <Truck className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+            )}
+            {isSelected && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 flex items-center justify-center">
+                <Check className="w-1.5 h-1.5 text-white" strokeWidth={3} />
+              </span>
+            )}
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm truncate text-foreground">{vehicle.name}</p>
             <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
@@ -436,6 +446,7 @@ export function PlanRightPanel({
   getSnapshot,
 }: PlanRightPanelProps) {
   const readOnly = useReadOnly();
+  const navigate = useNavigate();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
@@ -457,8 +468,6 @@ export function PlanRightPanel({
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
-  const pendingSelectIdRef = useRef<string | null>(null);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [activeVehicleTab, setActiveVehicleTab] = useState<'list' | 'selected'>('list');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [activeVehicleTypes, setActiveVehicleTypes] = useState<Set<VehicleTypeValue>>(new Set());
@@ -518,16 +527,6 @@ export function PlanRightPanel({
   }
 
   useEffect(() => {
-    if (!pendingSelectIdRef.current) return;
-    const found = vehicles.find((v) => v.id === pendingSelectIdRef.current);
-    if (found) {
-      addVehicle(found);
-      setActiveVehicleTab('selected');
-      pendingSelectIdRef.current = null;
-    }
-  }, [vehicles, addVehicle]);
-
-  useEffect(() => {
     setActiveLayer(debouncedSlider);
   }, [debouncedSlider, setActiveLayer]);
 
@@ -563,10 +562,6 @@ export function PlanRightPanel({
     }
   }
 
-  function handleVehicleCreated(id: string | null) {
-    if (id) pendingSelectIdRef.current = id;
-  }
-
   function handleSelectVehicle(v: Vehicle) {
     addVehicle(v);
     setActiveVehicleTab('selected');
@@ -587,16 +582,12 @@ export function PlanRightPanel({
     [selectedVehicles],
   );
 
-  const listTabVehicles = useMemo(
-    () => displayedVehicles.filter((v) => !selectedVehicleIds.has(v.id)),
-    [displayedVehicles, selectedVehicleIds],
-  );
+  const listTabVehicles = displayedVehicles;
 
   const listSortableIds = useMemo(() => {
     if (vehicleSearch.trim()) return listTabVehicles.map((v) => v.id);
-    const filtered = vehicleOrder.filter((id) => !selectedVehicleIds.has(id));
-    return filtered.length > 0 ? filtered : listTabVehicles.map((v) => v.id);
-  }, [vehicleOrder, vehicleSearch, listTabVehicles, selectedVehicleIds]);
+    return vehicleOrder.length > 0 ? vehicleOrder : listTabVehicles.map((v) => v.id);
+  }, [vehicleOrder, vehicleSearch, listTabVehicles]);
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -640,7 +631,7 @@ export function PlanRightPanel({
                 size="icon"
                 title="Araç Ekle"
                 className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-                onClick={() => setShowVehicleModal(true)}
+                onClick={() => navigate('/vehicles/new')}
               >
                 <Plus className="w-3.5 h-3.5" />
               </Button>
@@ -664,7 +655,7 @@ export function PlanRightPanel({
                   <TabsTrigger value="list" className="flex-1 text-xs h-6">
                     Araç Listesi
                     <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                      ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
+                      ({vehicles.length})
                     </span>
                   </TabsTrigger>
                 </TabsList>
@@ -802,9 +793,7 @@ export function PlanRightPanel({
                 ) : listTabVehicles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
                     <Truck className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">
-                      {vehicles.length === 0 ? 'Henüz araç eklenmemiş' : 'Tüm araçlar seçili'}
-                    </p>
+                    <p className="text-xs text-muted-foreground">Henüz araç eklenmemiş</p>
                   </div>
                 ) : (
                   <DndContext
@@ -818,6 +807,7 @@ export function PlanRightPanel({
                           key={v.id}
                           id={v.id}
                           vehicle={v}
+                          isSelected={selectedVehicleIds.has(v.id)}
                           onAddToSelected={handleSelectVehicle}
                           onPreview={peekVehicle}
                         />
@@ -1090,12 +1080,6 @@ export function PlanRightPanel({
           )}
         </div>
       </div>
-
-      <AddVehicleModal
-        open={showVehicleModal}
-        onOpenChange={setShowVehicleModal}
-        onCreated={handleVehicleCreated}
-      />
 
       {planId && (
         <ShareLinkDialog
