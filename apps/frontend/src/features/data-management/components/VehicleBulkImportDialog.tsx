@@ -134,9 +134,7 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       width: String(r['Genişlik (cm)'] ?? ''),
       height: String(r['Yükseklik (cm)'] ?? ''),
       maxCargoWeight: String(r['Maks Yük (kg)'] ?? ''),
-      doorDirection: normalizeDoor(
-        r['Kapı Yönü (rear/side/top)'] ?? r['Kapı Yönü'] ?? 'rear',
-      ),
+      doorDirection: normalizeDoor(r['Kapı Yönü (rear/side/top)'] ?? r['Kapı Yönü'] ?? 'rear'),
     }),
   );
 }
