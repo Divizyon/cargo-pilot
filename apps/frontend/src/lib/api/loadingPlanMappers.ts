@@ -477,6 +477,8 @@ const planItemDimensionsSchema = z
     imageUrl: z.string().nullable().optional(),
     productType: z.string().nullable().optional(),
     constraintIds: z.array(z.number().int()).optional(),
+    stackGroup: z.string().nullable().optional(),
+    incompatibleGroups: z.array(z.string()).optional(),
   })
   .passthrough();
 
@@ -562,6 +564,10 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
     allowFaceRight: true,
     imageUrl: raw.imageUrl ?? undefined,
     constraintIds: raw.constraintIds ?? [],
+    stackGroup: raw.stackGroup ?? null,
+    incompatibleGroups: raw.incompatibleGroups ?? [],
+    specialNotes: null,
+    erpProviderName: null,
   } as Item;
 }
 
