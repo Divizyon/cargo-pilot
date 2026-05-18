@@ -58,7 +58,6 @@ function SnapshotBridge({
   return null;
 }
 
-
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
   const totalSteps = usePlanStore((s) => s.placements.length);
   const showControls = totalSteps > 0;
