@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -12,7 +13,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -76,10 +76,21 @@ export function ERPConnectionForm() {
     form.trigger().then((valid) => {
       if (!valid) return;
       const values = form.getValues();
+      if (existing?.hasPassword && !values.password) {
+        setTestResult({
+          success: false,
+          message: 'Bağlantıyı test etmek için şifrenizi tekrar girin.',
+        });
+        return;
+      }
       setTestResult(null);
       testConnection(values, {
         onSuccess: (result) => setTestResult(result),
-        onError: () => setTestResult({ success: false, message: 'Bağlantı test edilemedi.' }),
+        onError: (error) => {
+          const d = error.response?.data;
+          const msg = d?.detail ?? d?.title ?? 'Bağlantı test edilemedi.';
+          setTestResult({ success: false, message: msg });
+        },
       });
     });
   }
@@ -209,19 +220,26 @@ export function ERPConnectionForm() {
         />
 
         {testResult !== null && (
-          <Alert variant={testResult.success ? 'default' : 'destructive'}>
-            {testResult.success ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            ) : (
-              <XCircle className="h-4 w-4" />
+          <div
+            className={cn(
+              'flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm',
+              testResult.success
+                ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300'
+                : 'border-destructive/40 bg-destructive/10 text-destructive',
             )}
-            <AlertDescription>
+          >
+            {testResult.success ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+            ) : (
+              <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
+            <span>
               {testResult.success
-                ? 'Bağlantı başarılı. ERP sistemine ulaşıldı.'
+                ? (testResult.message ?? 'Bağlantı başarılı.')
                 : (testResult.message ??
                   'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.')}
-            </AlertDescription>
-          </Alert>
+            </span>
+          </div>
         )}
 
         <Separator />
