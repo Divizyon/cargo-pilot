@@ -248,25 +248,36 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap)
     {
-        var originalByItemId = originalItems
-            .GroupBy(r => r.ItemId)
-            .ToDictionary(g => g.Key, g => g.First());
+        // Engine, sığmayan ürünleri (ItemId, Reason) çiftine göre gruplar; aynı ItemId birden fazla
+        // sebepten sığmazsa birden fazla satır döner. Önce ItemId başına toplam sığmayan adeti hesapla.
+        var totalUnplacedByItemId = unplacedItems
+            .GroupBy(u => u.ItemId)
+            .ToDictionary(g => g.Key, g => g.Sum(u => u.Quantity));
 
-        return unplacedItems
-            .Where(u => u.Quantity > 0)
-            .Select(u =>
-            {
-                var item = itemMap[u.ItemId];
-                originalByItemId.TryGetValue(u.ItemId, out var original);
-                var group = original?.GroupId.HasValue == true && groupMap.TryGetValue(original.GroupId.Value, out var g) ? g : null;
-                return new OptimizationItemInput(
-                    item.Id, item.SKU, item.Name, item.ImageUrl,
-                    item.Width, item.Height, item.Length, item.Weight,
-                    item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
-                    item.AllowedRotations, u.Quantity,
-                    group?.Id, group?.UnloadingOrder,
-                    item.StackGroup);
-            })
-            .ToList();
+        // Orijinal istek sırasını (per-grup, UnloadingOrder dahil) koruyarak yeniden oluştur.
+        // Kalan adet havuzundan tüketerek her orijinal girdi için doğru grup bilgisi korunur.
+        var remaining = new Dictionary<Guid, int>(totalUnplacedByItemId);
+        var result = new List<OptimizationItemInput>();
+
+        foreach (var r in originalItems)
+        {
+            if (!remaining.TryGetValue(r.ItemId, out var available) || available <= 0) continue;
+
+            var item = itemMap[r.ItemId];
+            var group = r.GroupId.HasValue && groupMap.TryGetValue(r.GroupId.Value, out var g) ? g : null;
+            var qty = Math.Min(available, r.Quantity);
+
+            result.Add(new OptimizationItemInput(
+                item.Id, item.SKU, item.Name, item.ImageUrl,
+                item.Width, item.Height, item.Length, item.Weight,
+                item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
+                item.AllowedRotations, qty,
+                group?.Id, group?.UnloadingOrder,
+                item.StackGroup));
+
+            remaining[r.ItemId] = available - qty;
+        }
+
+        return result;
     }
 }

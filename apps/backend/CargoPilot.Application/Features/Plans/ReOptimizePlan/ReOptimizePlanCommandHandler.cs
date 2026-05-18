@@ -192,16 +192,18 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         IReadOnlyList<UnplacedItemResult> unplacedItems,
         Dictionary<Guid, Item> itemMap)
     {
+        // Engine, sığmayan ürünleri (ItemId, Reason) çiftine göre gruplar; aynı ItemId birden fazla
+        // sebepten sığmazsa birden fazla satır döner — ItemId başına birleştir.
         return unplacedItems
-            .Where(u => u.Quantity > 0)
-            .Select(u =>
+            .GroupBy(u => u.ItemId)
+            .Select(g =>
             {
-                var item = itemMap[u.ItemId];
+                var item = itemMap[g.Key];
                 return new OptimizationItemInput(
                     item.Id, item.SKU, item.Name, item.ImageUrl,
                     item.Width, item.Height, item.Length, item.Weight,
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
-                    item.AllowedRotations, u.Quantity,
+                    item.AllowedRotations, g.Sum(u => u.Quantity),
                     StackGroup: item.StackGroup);
             })
             .ToList();

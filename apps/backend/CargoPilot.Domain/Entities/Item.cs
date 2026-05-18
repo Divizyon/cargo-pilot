@@ -158,17 +158,6 @@ public sealed class Item : BaseEntity {
         }
     }
 
-    public string[] GetIncompatibleGroups() {
-        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
-            return [];
-        try {
-            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
-        }
-        catch {
-            return [];
-        }
-    }
-
     private static string SerializeConstraintIds(int[]? constraintIds) {
         if (constraintIds is null or { Length: 0 })
             return "[]";

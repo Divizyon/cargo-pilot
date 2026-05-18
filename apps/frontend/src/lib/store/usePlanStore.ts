@@ -376,11 +376,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const entry = s.selectedVehicles.find((e) => e.instanceId === instanceId);
       if (!entry) return {};
       const reordered = [entry, ...s.selectedVehicles.filter((e) => e.instanceId !== instanceId)];
-      if (entry.vehicle.id === s.selectedVehicle?.id) return { selectedVehicles: reordered };
-      const rebuild = rebuildForVehicle(entry.vehicle, s);
-      return rebuild
-        ? { selectedVehicle: entry.vehicle, selectedVehicles: reordered, ...rebuild }
-        : { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
+      return { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
     }),
 
   updateVehicle: (instanceId, vehicle) =>
@@ -508,9 +504,28 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setPlacements: (placements) =>
     set((s) => ({
       placements: computeViolations(placements),
+      unfitItems: [],
       optimizationCount: s.optimizationCount + 1,
     })),
-  setUnplacedItems: (_items) => set({}),
+  setUnplacedItems: (items) =>
+    set((s) => {
+      const reasonMap: Record<number, UnfitReason> = {
+        2: UnfitReasonConst.Weight,
+        3: UnfitReasonConst.Stacking,
+      };
+      const newUnfitItems: UnfitItem[] = items
+        .map((u) => {
+          const found = s.selectedItems.find((si) => si.item.id === u.itemId);
+          if (!found) return null;
+          return {
+            item: found.item,
+            quantity: u.quantity,
+            reason: reasonMap[u.reason] ?? UnfitReasonConst.Volume,
+          } satisfies UnfitItem;
+        })
+        .filter((x): x is UnfitItem => x !== null);
+      return { unfitItems: newUnfitItems };
+    }),
 
   mockPlacements: (count) =>
     set((s) => {

@@ -291,14 +291,18 @@ function PlanSummaryPanel() {
 
   const stats = useMemo(() => {
     if (!selectedVehicle) return null;
+    const vehicleId = selectedVehicle.id;
+    const vehiclePlacements = debouncedPlacements.filter(
+      (p) => !p.vehicleId || p.vehicleId === vehicleId,
+    );
     const vehicleVol = selectedVehicle.width * selectedVehicle.height * selectedVehicle.length;
     const weightMap = new Map(selectedItems.map(({ item }) => [item.id, item.weight]));
-    const cargoVolCm3 = debouncedPlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
-    const totalWeight = debouncedPlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
+    const cargoVolCm3 = vehiclePlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
+    const totalWeight = vehiclePlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
     const volumePct =
       vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
     const remainingM3 = parseFloat(Math.max(0, (vehicleVol - cargoVolCm3) / 1_000_000).toFixed(2));
-    return { volumePct, totalWeight, remainingM3, placedCount: debouncedPlacements.length };
+    return { volumePct, totalWeight, remainingM3, placedCount: vehiclePlacements.length };
   }, [debouncedPlacements, selectedVehicle, selectedItems]);
 
   if (!stats) {

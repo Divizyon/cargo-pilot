@@ -45,6 +45,7 @@ function PlanAutoLoader({
   const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
+  const addVehicle = usePlanStore((s) => s.addVehicle);
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
@@ -58,11 +59,18 @@ function PlanAutoLoader({
 
   useEffect(() => {
     if (appliedRef.current || !isSuccess || !data) return;
-    if (!data.vehicle) return;
+
+    const allVehicles = data.vehicles.length > 0 ? data.vehicles : data.vehicle ? [data.vehicle] : [];
+    if (allVehicles.length === 0) return;
 
     appliedRef.current = true;
 
-    setVehicle(data.vehicle);
+    // Birden fazla araç varsa hepsini store'a ekle; birincisi primary olarak setVehicle ile atanır.
+    setVehicle(allVehicles[0]);
+    for (let i = 1; i < allVehicles.length; i++) {
+      addVehicle(allVehicles[i]);
+    }
+
     onVehicleSelected();
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
@@ -72,6 +80,7 @@ function PlanAutoLoader({
     isSuccess,
     data,
     setVehicle,
+    addVehicle,
     initItems,
     setPlacements,
     setUnplacedItems,
@@ -126,10 +135,8 @@ export function NewPlanPage() {
   }, []);
 
   const handleOptimize = useCallback(() => {
-    const { selectedVehicles, selectedItems: items, placements } = usePlanStore.getState();
+    const { selectedVehicles, selectedItems: items } = usePlanStore.getState();
     if (selectedVehicles.length === 0 || items.length === 0) return;
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
 
     const defaultName = `${selectedVehicles[0].vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
     setPlanNameInput(defaultName);
@@ -140,14 +147,10 @@ export function NewPlanPage() {
     const {
       selectedVehicles,
       selectedItems: items,
-      placements,
       criteria,
     } = usePlanStore.getState();
     if (selectedVehicles.length === 0 || !planNameInput.trim()) return;
-
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (itemsToSend.length === 0) return;
+    if (items.length === 0) return;
 
     setNameDialogOpen(false);
 
@@ -156,7 +159,7 @@ export function NewPlanPage() {
       newId = await createPlan({
         planName: planNameInput.trim(),
         vehicleIds: selectedVehicles.map((e) => e.vehicle.id),
-        items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+        items: items.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
         optimizationCriteria: criteria,
       });
     } catch {
