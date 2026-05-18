@@ -27,7 +27,6 @@ import { useDraftItems, type DraftItem } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
-import { ErpSourceBadge } from './ErpSourceBadge';
 import { SearchInput } from './SearchInput';
 
 const ROW_H = 48;
@@ -442,9 +441,6 @@ export function ERPItemsTable() {
                 <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün
                 </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Kaynak
-                </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Kategori
                 </TableHead>
@@ -472,7 +468,7 @@ export function ERPItemsTable() {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={10}
+                    colSpan={9}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     {!integrationId
@@ -508,12 +504,14 @@ export function ERPItemsTable() {
                     ) : null}
                   </TableCell>
                   <TableCell className="py-0 px-3 max-w-[176px]">
-                    <span className="block truncate text-xs text-muted-foreground" title={row.name}>
-                      {row.name}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-0 px-3">
-                    <ErpSourceBadge erpProviderName={row.integrationSystemName} />
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {row.integrationSystemName?.toLowerCase().includes('logo') && (
+                        <img src="/icons/erp-logo.png" alt="Logo" className="h-6 w-auto shrink-0 object-contain" />
+                      )}
+                      <span className="block truncate text-xs text-muted-foreground" title={row.name}>
+                        {row.name}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
                     {row.productType ?? '—'}

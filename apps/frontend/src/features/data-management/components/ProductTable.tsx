@@ -47,7 +47,6 @@ import {
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
-import { ErpSourceBadge } from './ErpSourceBadge';
 import { SearchInput } from './SearchInput';
 
 const PRODUCT_TYPE_ICON = {
@@ -242,13 +241,14 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
   return (
     <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
       <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <span className="block truncate text-xs text-muted-foreground" title={item.name}>
-          <HighlightText text={item.name} query={searchTerm} />
-        </span>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <ErpSourceBadge erpProviderName={item.erpProviderName} />
+        <div className="flex items-center gap-1.5 min-w-0">
+          {item.erpProviderName?.toLowerCase().includes('logo') && (
+            <img src="/icons/erp-logo.png" alt="Logo" className="h-6 w-auto shrink-0 object-contain" />
+          )}
+          <span className="block truncate text-xs text-muted-foreground" title={item.name}>
+            <HighlightText text={item.name} query={searchTerm} />
+          </span>
+        </div>
       </TableCell>
 
       <TableCell className={cell}>
@@ -707,9 +707,6 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-44 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün
-                </TableHead>
-                <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Kaynak
                 </TableHead>
                 <TableHead className="w-20 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tip
