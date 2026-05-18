@@ -408,13 +408,22 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
       const top = tableCardRef.current.getBoundingClientRect().top;
       const containerAvailable = Math.max(300, window.innerHeight - top - BELOW_TABLE_H);
       setCardContainerMaxH(containerAvailable);
-      const cols = window.innerWidth >= 1920 ? 4 : 3;
-      const visibleRows = window.innerWidth >= 1536 ? 2 : 1;
+      const cols =
+        window.innerWidth >= 1920
+          ? 4
+          : window.innerWidth >= 1024
+            ? 3
+            : window.innerWidth >= 768
+              ? 2
+              : 1;
       const available = containerAvailable - HEADER_ROW_H;
       let next: number;
       if (viewMode === 'table') {
         next = Math.max(5, Math.floor(available / ROW_H));
       } else {
+        // Only use 2 rows when there is enough vertical space for 2 minimum-height cards
+        const twoRowMinAvailable = 2 * 260 + CARD_GAP + GRID_V_PAD + 16;
+        const visibleRows = window.innerWidth >= 1536 && available >= twoRowMinAvailable ? 2 : 1;
         const gridAvailable = available - GRID_V_PAD;
         const cardH = Math.max(
           260,
@@ -434,8 +443,13 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
       }
     };
     calculate();
+    // Re-run after layout settles to get accurate getBoundingClientRect values
+    const rafId = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', calculate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
@@ -727,7 +741,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
 
             {showSkeleton ? (
               <div
-                className="grid grid-cols-3 gap-3 px-4 py-3 min-[1920px]:grid-cols-4"
+                className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-2 lg:grid-cols-3 min-[1920px]:grid-cols-4"
                 style={{ gridAutoRows: cardHeight }}
               >
                 {Array.from({ length: pageSize }).map((_, i) => (
@@ -740,7 +754,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
               </div>
             ) : (
               <div
-                className="grid grid-cols-3 gap-3 px-4 py-3 min-[1920px]:grid-cols-4"
+                className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-2 lg:grid-cols-3 min-[1920px]:grid-cols-4"
                 style={{ gridAutoRows: cardHeight }}
               >
                 {items.map((plan, i) => (
