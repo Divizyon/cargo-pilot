@@ -78,11 +78,14 @@ export function useSessionTimeout() {
         { baseURL: API_BASE_URL, withCredentials: true },
       );
       setAccessToken(data.data.accessToken);
+      updateActivity();
+      setShowWarning(false);
     } catch {
-      // Token yenileme başarısız olsa bile zamanlayıcıyı sıfırla
+      clearAllTimers();
+      clearAuth();
+      sessionStorage.setItem('logout_reason', 'token_expired');
+      window.location.href = '/auth/login';
     }
-    updateActivity();
-    setShowWarning(false);
   }
 
   return { showWarning, countdown, extendSession };
