@@ -384,7 +384,11 @@ function applyClientFilters(
     result = result.filter((p) => new Date(p.plannedAt ?? p.createdAt).getTime() <= to.getTime());
   }
   if (filters?.status) {
-    result = result.filter((p) => p.status === filters.status);
+    if (filters.status === 'tamamlandi') {
+      result = result.filter((p) => p.status === 'tamamlandi' || p.status === 'aktif');
+    } else {
+      result = result.filter((p) => p.status === filters.status);
+    }
   }
   return result;
 }

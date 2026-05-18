@@ -69,6 +69,36 @@ export interface PaginatedItems {
   pageSize: number;
 }
 
+export async function fetchAllItems(
+  filters?: Pick<ItemFilters, 'search' | 'sortBy' | 'sortOrder'>,
+): Promise<Item[]> {
+  const PAGE_SIZE = 100;
+
+  async function fetchPage(page: number) {
+    const params = new URLSearchParams();
+    if (filters?.search) params.set('searchTerm', filters.search);
+    params.set('page', String(page));
+    params.set('pageSize', String(PAGE_SIZE));
+    if (filters?.sortBy) params.set('sortBy', filters.sortBy);
+    if (filters?.sortOrder) params.set('sortOrder', filters.sortOrder);
+    const { data } = await axiosInstance.get<unknown>(`${ITEMS_ENDPOINT}?${params.toString()}`);
+    const parsed = paginatedItemsApiSchema.parse(data);
+    return {
+      items: parsed.data.items.map(fromApiItem),
+      totalCount: parsed.data.totalCount,
+    };
+  }
+
+  const first = await fetchPage(1);
+  const totalPages = Math.ceil(first.totalCount / PAGE_SIZE);
+  if (totalPages <= 1) return first.items;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2)),
+  );
+  return [...first.items, ...rest.flatMap((r) => r.items)];
+}
+
 export function useItems(filters?: ItemFilters) {
   return useQuery({
     queryKey: ['items', filters] as const,
