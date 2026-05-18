@@ -117,9 +117,7 @@ export function DebugStepPanel({ groups }: DebugStepPanelProps) {
                     <span className="font-mono text-zinc-400 w-5 shrink-0">
                       {(p.stepIndex ?? 0) + 1}
                     </span>
-                    <span className="truncate flex-1">
-                      {p.itemName ?? p.itemId.slice(0, 8)}
-                    </span>
+                    <span className="truncate flex-1">{p.itemName ?? p.itemId.slice(0, 8)}</span>
                     {grp && (
                       <span
                         className="inline-block h-2 w-2 rounded-full shrink-0"
