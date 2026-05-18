@@ -136,22 +136,22 @@ public sealed class Item : BaseEntity {
         SpecialNotes = specialNotes;
     }
 
-    public string[] GetIncompatibleGroups() {
-        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
+    public int[] GetConstraintIds() {
+        if (string.IsNullOrEmpty(ConstraintIdsJson) || ConstraintIdsJson == "[]")
             return [];
         try {
-            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
+            return JsonSerializer.Deserialize<int[]>(ConstraintIdsJson) ?? [];
         }
         catch {
             return [];
         }
     }
 
-    public int[] GetConstraintIds() {
-        if (string.IsNullOrEmpty(ConstraintIdsJson) || ConstraintIdsJson == "[]")
+    public string[] GetIncompatibleGroups() {
+        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
             return [];
         try {
-            return JsonSerializer.Deserialize<int[]>(ConstraintIdsJson) ?? [];
+            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
         }
         catch {
             return [];

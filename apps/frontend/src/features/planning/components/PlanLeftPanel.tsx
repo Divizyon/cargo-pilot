@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, type ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
+  AlertCircle,
   Box,
   Check,
   ChevronDown,
@@ -38,8 +39,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterTabs } from '@/components/shared/FilterTabs';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -47,13 +48,26 @@ import type { InlineGroup } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
-<<<<<<< HEAD
-=======
 import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 import { UnfitItemsPanel } from './UnfitItemsPanel';
+import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import {
+  detectContaminationConflicts,
+  computeGroupVolumes,
+  type GroupVolume,
+  type ContaminationConflict,
+} from '@/lib/utils/contamination';
 
 const VIRTUAL_THRESHOLD = 100;
 
@@ -234,6 +248,7 @@ function StoreItemRow({
   onAddToGroup,
   onClearStackGroup,
 }: StoreItemRowProps) {
+  const readOnly = useReadOnly();
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
   const [inputValue, setInputValue] = useState(String(quantity));
@@ -316,117 +331,16 @@ function StoreItemRow({
               {item.specialNotes}
             </p>
           )}
-<<<<<<< HEAD
-          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
-            {!isPlaced ? (
-              <>
-=======
           {!readOnly && (
             <div className="flex flex-col gap-0.5 pt-1.5 border-t border-border">
               <div className="flex items-center justify-between gap-2">
                 {/* Adet */}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-muted-foreground">Adet</span>
                   <div className="flex items-center rounded border border-border overflow-hidden ml-1">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-<<<<<<< HEAD
-                        setLocalQty((v) => Math.max(1, v - 1));
-                      }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                    >
-                      <Minus className="w-2 h-2" />
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={localQty}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (!isNaN(v) && v >= 1) setLocalQty(v);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocalQty((v) => v + 1);
-                      }}
-                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                    >
-                      <Plus className="w-2 h-2" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {groups && groups.length > 0 && onAddToGroup && (
-                    <DropdownMenu>
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
-                              >
-                                <FolderPlus className="w-3.5 h-3.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            Gruba Ekle
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <DropdownMenuContent side="top" align="end" className="w-44 p-1">
-                        {groups.map((g) => (
-                          <DropdownMenuItem
-                            key={g.id}
-                            className="flex items-center gap-2 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onAddToGroup(g.id);
-                            }}
-                          >
-                            <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
-                            <span className="truncate">{g.ad}</span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <Button
-                    size="sm"
-                    disabled={!canPlace}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlace(localQty);
-                      onToggleExpand();
-                    }}
-                    className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
-                  >
-                    Ekle
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove?.();
-                  onToggleExpand();
-                }}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
-              >
-                <PackageMinus className="w-3 h-3" />
-                Çıkar
-              </button>
-            )}
-          </div>
-=======
                         const v = Math.max(1, localQty - 1);
                         setLocalQty(v);
                         setInputValue(String(v));
@@ -585,7 +499,6 @@ function StoreItemRow({
               )}
             </div>
           )}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
         </div>
       )}
     </div>
@@ -594,16 +507,12 @@ function StoreItemRow({
 
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
-export function PlanLeftPanel() {
-=======
 interface PlanLeftPanelProps {
   planId?: string;
 }
 
 export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const readOnly = useReadOnly();
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   const navigate = useNavigate();
   const { mutateAsync: deleteGroupApi } = useDeletePlanGroup();
   const [groups, setGroups] = useState<
@@ -613,7 +522,9 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
-  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>('unloaded');
+  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>(
+    readOnly ? 'loaded' : 'unloaded',
+  );
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -628,6 +539,12 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const [clearedStackGroups, setClearedStackGroups] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
+
+  const [pendingPlaceContamination, setPendingPlaceContamination] = useState<{
+    pendingAction: () => void;
+    groupVolumes: GroupVolume[];
+    conflicts: ContaminationConflict[];
+  } | null>(null);
 
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
   const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
@@ -683,15 +600,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     setInlineGroups(mapped);
   }, [groups, setInlineGroups]);
 
-  const placedIds = useMemo(
-    () =>
-      new Set(
-        placements
-          .filter((p) => !p.vehicleId || p.vehicleId === selectedVehicle?.id)
-          .map((p) => p.itemId),
-      ),
-    [placements, selectedVehicle],
-  );
+  const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
   const prevSelectedLenRef = useRef(selectedItems.length);
   useEffect(() => {
@@ -716,6 +625,26 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     if (ungroupedIds.length > 0) return;
     if (selectedItems.length > 0) {
       setUngroupedIds(selectedItems.map((si) => si.item.id));
+      // apiItems hazırsa, plan API'sinden gelen item'larda eksik kalan constraintIds'i doldur
+      if (apiItems.length > 0) {
+        const fullItemMap = new Map(apiItems.map((item) => [item.id, item]));
+        selectedItems.forEach(({ item, quantity }) => {
+          const full = fullItemMap.get(item.id);
+          if (
+            full &&
+            (!item.constraintIds || item.constraintIds.length === 0) &&
+            full.constraintIds &&
+            full.constraintIds.length > 0
+          ) {
+            updateItem(
+              item.id,
+              { ...item, constraintIds: full.constraintIds },
+              quantity,
+              usePlanStore.getState().skuColorMap[item.sku] ?? SCENE.COLORS.NORMAL_STR,
+            );
+          }
+        });
+      }
       return;
     }
     if (apiItems.length > 0) {
@@ -791,6 +720,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       (item) => !planIds.has(item.id) && itemMatchesFilters(item, search, activeConstraints),
     );
   }, [apiItems, selectedItems, activeTab, search, activeConstraints]);
+
+  const unloadedCount = useMemo(() => {
+    const planIds = new Set(selectedItems.map((si) => si.item.id));
+    return selectedItems.length + apiItems.filter((i) => !planIds.has(i.id)).length;
+  }, [selectedItems, apiItems]);
 
   const flatDisplayItems = useMemo(() => {
     const seen = new Set<string>();
@@ -1045,10 +979,28 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
           const color = skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
           updateItem(id, entry.item, qty, color);
         }
-        togglePlacement(id);
+        const doPlace = () => togglePlacement(id);
+        const newGroup = entry.item.stackGroup;
+        if (newGroup) {
+          const { placements: cur, selectedItems: si } = usePlanStore.getState();
+          const curPlacedIds = new Set(cur.map((p) => p.itemId));
+          const curPlaced = si.filter((s) => curPlacedIds.has(s.item.id));
+          const wouldBe = [...curPlaced, { item: entry.item, quantity: qty }];
+          const conflicts = detectContaminationConflicts(wouldBe);
+          const newGroupInConflict = conflicts.some(
+            (c) => c.groupA === newGroup || c.groupB === newGroup,
+          );
+          if (newGroupInConflict) {
+            const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+            const groupVolumes = computeGroupVolumes(wouldBe, involvedGroups);
+            setPendingPlaceContamination({ pendingAction: doPlace, groupVolumes, conflicts });
+            return;
+          }
+        }
+        doPlace();
       },
       onRemove: () => togglePlacement(id),
-      onEdit: () => navigate(`/products/${id}/edit`),
+      onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
         if (!placedIds.has(id)) togglePlacement(id);
         setGroups((prev) => addItemToGroup(prev, id, groupId));
@@ -1066,17 +1018,6 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-center justify-between shrink-0 border-b border-border">
-<<<<<<< HEAD
-        <span className="text-sm text-foreground">Ürünler</span>
-        <Button
-          size="icon"
-          title="Ürün Ekle"
-          className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-          onClick={() => navigate('/products/new')}
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </Button>
-=======
         <span className="text-sm text-foreground">
           {readOnly ? `Yüklü Ürünler (${placedIds.size})` : 'Ürünler'}
         </span>
@@ -1090,82 +1031,27 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             <Plus className="w-3.5 h-3.5" />
           </Button>
         )}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
       </div>
 
-      {/* Tabs */}
-      <div className="px-2 pt-2 shrink-0">
-<<<<<<< HEAD
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-          <TabsList className="w-full h-7 bg-muted">
-            <TabsTrigger value="unloaded" className="flex-1 text-xs h-5.5">
-              Ürün Listesi
-              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                {(() => {
-                  const planUnloaded = selectedItems.filter(
-                    (si) => !placedIds.has(si.item.id),
-                  ).length;
-                  const planIds = new Set(selectedItems.map((si) => si.item.id));
-                  const catalogOnly = apiItems.filter(
-                    (i) => !planIds.has(i.id) && !placedIds.has(i.id),
-                  ).length;
-                  return `(${planUnloaded + catalogOnly})`;
-                })()}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="loaded" className="flex-1 text-xs h-5.5">
-              Yüklü Ürünler
-              <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                ({placedIds.size})
-              </span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-=======
-        {readOnly ? null : (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-            <TabsList className="w-full h-7 bg-muted">
-              <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
-                Ürün Listesi
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  {(() => {
-                    const planIds = new Set(selectedItems.map((si) => si.item.id));
-                    const catalogOnly = apiItems.filter((i) => !planIds.has(i.id)).length;
-                    return `(${selectedItems.length + catalogOnly})`;
-                  })()}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
-                Yüklü Ürünler
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  ({placedIds.size})
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
-      </div>
+      {/* Tabs — read-only modda gizle */}
+      {!readOnly && (
+        <div className="px-2 pt-2 shrink-0">
+          <FilterTabs
+            className="w-full"
+            fullWidth
+            tabs={[
+              { value: 'unloaded', label: 'Ürün Listesi', count: unloadedCount },
+              { value: 'loaded', label: 'Yüklü Ürünler', count: placedIds.size },
+            ]}
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}
+          />
+        </div>
+      )}
 
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="İsim veya SKU ile ara…"
-            className="h-7 pl-7 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <SearchInput size="sm" placeholder="İsim veya SKU ile ara…" onSearch={setSearch} />
 
         {/* Filter dropdown */}
         <div ref={filterRef} className="relative shrink-0">
@@ -1240,7 +1126,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         {activeTab === 'loaded' && (
           <>
             {/* Grup Oluştur button */}
-            {!groupSelectionMode && (
+            {!readOnly && !groupSelectionMode && (
               <button
                 onClick={handleAddGroup}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-accent transition-colors self-start mb-0.5"
@@ -1445,29 +1331,8 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                           </div>
                         </TooltipContent>
                       )}
-<<<<<<< HEAD
-                    </button>
-
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {groupTotal} kalem
-                    </span>
-
-                    {/* Add products to group */}
-                    <button
-                      title="Gruba Ürün Ekle"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartGroupSelection(g.id);
-                      }}
-                      className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
-                    >
-                      <PackagePlus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-=======
                     </Tooltip>
                   </TooltipProvider>
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 
                   {g.acik &&
                     filteredGroupEntries.map((entry) => {
@@ -1859,6 +1724,76 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             </Button>
           )}
         </div>
+      )}
+
+      {pendingPlaceContamination && (
+        <AlertDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPendingPlaceContamination(null);
+          }}
+        >
+          <AlertDialogContent className="sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {pendingPlaceContamination.conflicts.length > 0
+                  ? 'Uyumsuz Yük Grupları'
+                  : 'Yük Grubu Seçimi'}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="flex flex-col gap-4 pt-1">
+                  {pendingPlaceContamination.conflicts.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {pendingPlaceContamination.conflicts.map((c, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">{c.groupA}</span>
+                          <span className="text-rose-400">ve</span>
+                          <span className="font-medium">{c.groupB}</span>
+                          <span className="text-muted-foreground">birlikte yüklenemez</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {pendingPlaceContamination.groupVolumes.map((gv) => (
+                      <div
+                        key={gv.name}
+                        className="flex flex-col gap-1 p-3 rounded-lg border border-border bg-muted/40 text-left"
+                      >
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          {gv.name}
+                        </span>
+                        <span className="text-lg font-bold text-foreground tabular-nums">
+                          %{gv.pct}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {gv.volumeM3.toFixed(2)} m³
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Bu ürünü eklemek mevcut gruplarla çakışma yaratabilir.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                className="w-full bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+                onClick={() => {
+                  const action = pendingPlaceContamination.pendingAction;
+                  setPendingPlaceContamination(null);
+                  action();
+                }}
+              >
+                Yine de ekle
+              </Button>
+              <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

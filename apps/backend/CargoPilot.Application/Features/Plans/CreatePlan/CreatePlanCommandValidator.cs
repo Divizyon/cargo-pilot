@@ -10,10 +10,7 @@ public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCom
             .NotEmpty().WithMessage("Plan adı boş olamaz.")
             .MaximumLength(100).WithMessage("Plan adı en fazla 100 karakter olabilir.");
 
-        RuleFor(x => x.VehicleIds)
-            .NotEmpty().WithMessage("En az bir araç seçilmelidir.");
-
-        RuleForEach(x => x.VehicleIds)
+        RuleFor(x => x.VehicleId)
             .NotEmpty().WithMessage("Araç ID'si boş olamaz.");
 
         RuleFor(x => x.Items)

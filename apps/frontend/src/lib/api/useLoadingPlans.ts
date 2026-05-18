@@ -141,7 +141,6 @@ export function useLoadingPlanDetail(id: string | undefined) {
         return {
           planName: '—',
           vehicle: null,
-          vehicles: [],
           inputItems: [],
           placements: [],
           skuColorMap: {},
@@ -167,25 +166,27 @@ interface PlanGroupDefinition {
 
 interface CreateLoadingPlanInput {
   planName: string;
-<<<<<<< HEAD
-  vehicleIds: string[];
-  items: Array<{ itemId: string; quantity: number }>;
-=======
   vehicleId: string;
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
   clusterGroups?: boolean;
+  allowContamination?: boolean;
 }
 
 export function useCreateLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
-    mutationFn: async ({ groups, clusterGroups, ...rest }: CreateLoadingPlanInput) => {
+    mutationFn: async ({
+      groups,
+      clusterGroups,
+      allowContamination,
+      ...rest
+    }: CreateLoadingPlanInput) => {
       const body: Record<string, unknown> = { ...rest };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
+      if (allowContamination) body['allowContamination'] = allowContamination;
       const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', body);
 
       // API returns the UUID directly as a string
@@ -305,29 +306,17 @@ export function useApprovePlan() {
 
 interface ReoptimizeLoadingPlanInput {
   id: string;
-<<<<<<< HEAD
-  vehicleIds: string[];
-  items: Array<{ itemId: string; quantity: number }>;
-=======
   vehicleId: string;
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
   clusterGroups?: boolean;
+  allowContamination?: boolean;
 }
 
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
-<<<<<<< HEAD
-    mutationFn: async ({ id, vehicleIds, items, optimizationCriteria }) => {
-      const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
-        vehicleIds,
-        items,
-        optimizationCriteria,
-      });
-=======
     mutationFn: async ({
       id,
       vehicleId,
@@ -335,12 +324,13 @@ export function useReoptimizeLoadingPlan() {
       optimizationCriteria,
       groups,
       clusterGroups,
+      allowContamination,
     }: ReoptimizeLoadingPlanInput) => {
       const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
+      if (allowContamination) body['allowContamination'] = allowContamination;
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, body);
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
         return data;
@@ -538,38 +528,4 @@ export function useExportPlanToERP() {
       toast.error(detail ?? 'ERP aktarımı başarısız', { position: 'bottom-right' });
     },
   });
-}
-
-// ─── Thumbnail upload ─────────────────────────────────────────────────────────
-
-export function useUploadPlanThumbnail() {
-  const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ProblemDetails>, { id: string; dataUrl: string }>({
-    mutationFn: ({ id, dataUrl }) =>
-      axiosInstance
-        .post(`/api/v1/loading-plans/${id}/thumbnail`, { imageBase64: dataUrl })
-        .then(() => undefined),
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
-      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
-    },
-  });
-}
-
-// ─── Imperative fetch helper (araç zincirleme taşma) ─────────────────────────
-
-export async function fetchPlanUnplacedItems(
-  id: string,
-): Promise<Array<{ itemId: string; quantity: number }>> {
-  try {
-    const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${id}`);
-    const parsed = planFullDetailApiResponseSchema.safeParse(data);
-    if (!parsed.success) return [];
-    return fromApiFullDetail(parsed.data.data).unplacedItems.map((u) => ({
-      itemId: u.itemId,
-      quantity: u.quantity,
-    }));
-  } catch {
-    return [];
-  }
 }

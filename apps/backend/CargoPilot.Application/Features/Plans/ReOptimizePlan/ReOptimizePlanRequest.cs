@@ -3,7 +3,7 @@ using CargoPilot.Domain.Enums;
 namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
 
 public sealed record ReOptimizePlanRequest(
-    IReadOnlyList<Guid> VehicleIds,
+    Guid VehicleId,
     IReadOnlyList<ReOptimizePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,

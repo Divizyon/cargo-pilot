@@ -5,6 +5,7 @@ using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Domain.Entities;
+using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CargoPilot.Infrastructure.Persistence.Repositories;
@@ -16,6 +17,42 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     public LoadingPlanRepository(AppDbContext context)
     {
         _context = context;
+    }
+
+    public async Task<DashboardStatsDto> GetDashboardStatsAsync(
+        Guid? companyId,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.LoadingPlans
+            .AsNoTracking()
+            .Where(p => p.CompanyId == companyId
+                     && p.OptimizationStatus == LoadingPlanOptimizationStatus.Calculated);
+
+        if (startDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
+
+        var stats = await query
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Count = g.Count(),
+                TotalWeight = g.Sum(p => p.TotalWeight),
+                AvgFillRate = g.Average(p => p.FillRate)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (stats is null)
+            return new DashboardStatsDto(0m, 0m, 0);
+
+        return new DashboardStatsDto(
+            Math.Round(stats.AvgFillRate * 100m, 1),
+            Math.Round(stats.TotalWeight / 1000m, 2),
+            stats.Count);
     }
 
     public async Task<PagedResult<PlanSummaryDto>> GetPagedAsync(
@@ -34,10 +71,10 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(p => p.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(plateNumber))
-            query = query.Where(p => p.Vehicles.Any(v => v.Vehicle.PlateNumber != null && v.Vehicle.PlateNumber.Contains(plateNumber)));
+            query = query.Where(p => p.Vehicle.PlateNumber != null && p.Vehicle.PlateNumber.Contains(plateNumber));
 
         if (vehicleIds is { Count: > 0 })
-            query = query.Where(p => p.Vehicles.Any(v => vehicleIds.Contains(v.VehicleId)));
+            query = query.Where(p => vehicleIds.Contains(p.VehicleId));
 
         if (planDateStart.HasValue)
         {
@@ -78,15 +115,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.InputTotalQuantity,
                 p.PlacedQuantity,
                 p.UnplacedQuantity,
-                p.Vehicles
-                    .OrderBy(v => v.SortOrder)
-                    .Select(v => new VehicleSummaryInPlanDto(
-                        v.VehicleId,
-                        v.Vehicle.VehicleName,
-                        v.Vehicle.PlateNumber,
-                        v.Vehicle.VehicleType,
-                        v.SortOrder))
-                    .ToList(),
+                p.VehicleId,
+                p.Vehicle.VehicleName,
                 p.CreatedAtUtc,
                 p.ThumbnailUrl))
             .ToListAsync(cancellationToken);
@@ -117,7 +147,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
 
         if (vehicleId.HasValue)
-            query = query.Where(p => p.Vehicles.Any(v => v.VehicleId == vehicleId.Value));
+            query = query.Where(p => p.VehicleId == vehicleId.Value);
 
         if (minFillRate.HasValue)
             query = query.Where(p => p.FillRate >= minFillRate.Value);
@@ -135,10 +165,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
                 p.Id,
                 p.PlanName,
                 p.CreatedAtUtc,
-                p.Vehicles
-                    .OrderBy(v => v.SortOrder)
-                    .Select(v => v.Vehicle.PlateNumber)
-                    .FirstOrDefault(),
+                p.Vehicle.PlateNumber,
                 p.FillRate,
                 p.OptimizationStatus,
                 p.ReportId,
@@ -155,8 +182,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     {
         var plan = await _context.LoadingPlans
             .AsNoTracking()
-            .Include(p => p.Vehicles)
-                .ThenInclude(v => v.Vehicle)
+            .Include(p => p.Vehicle)
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
         if (plan is null) return null;
@@ -202,30 +228,20 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         List<LoadingPlanInputItem> inputItems,
         List<LoadingPlanItemGroup> groups)
     {
-        var vehicleDtos = plan.Vehicles
-            .OrderBy(v => v.SortOrder)
-            .Select(v => new VehicleInPlanDto(
-                v.Vehicle.Id,
-                v.Vehicle.VehicleName,
-                v.Vehicle.PlateNumber,
-                v.Vehicle.VehicleType,
-                v.Vehicle.InternalWidth,
-                v.Vehicle.InternalHeight,
-                v.Vehicle.InternalLength,
-                v.Vehicle.MaxWeightCapacity,
-                v.SortOrder))
-            .ToList();
-
-        var primaryVehicle = plan.Vehicles
-            .OrderBy(v => v.SortOrder)
-            .Select(v => v.Vehicle)
-            .FirstOrDefault();
+        var vehicleDto = new VehicleInPlanDto(
+            plan.Vehicle.Id,
+            plan.Vehicle.VehicleName,
+            plan.Vehicle.PlateNumber,
+            plan.Vehicle.VehicleType,
+            plan.Vehicle.InternalWidth,
+            plan.Vehicle.InternalHeight,
+            plan.Vehicle.InternalLength,
+            plan.Vehicle.MaxWeightCapacity);
 
         var placementDtos = placements
             .Select(p => new PlacementDto(
                 p.Id,
                 p.ItemId,
-                p.VehicleId,
                 p.PositionX,
                 p.PositionY,
                 p.PositionZ,
@@ -290,12 +306,12 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.CenterOfGravityX,
             plan.CenterOfGravityY,
             plan.CenterOfGravityZ,
-            primaryVehicle is not null ? CalcBalanceOffset(plan.CenterOfGravityX, primaryVehicle.InternalWidth) : null,
-            primaryVehicle is not null ? CalcBalanceOffset(plan.CenterOfGravityZ, primaryVehicle.InternalLength) : null,
+            CalcBalanceOffset(plan.CenterOfGravityX, plan.Vehicle.InternalWidth),
+            CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
             plan.CreatedAtUtc,
             plan.ErpExportStatus,
             plan.ThumbnailUrl,
-            vehicleDtos,
+            vehicleDto,
             placementDtos,
             unplacedItemDtos,
             warningDtos,
@@ -317,50 +333,34 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         => await _context.LoadingPlanInputItems
             .FirstOrDefaultAsync(i => i.Id == inputItemId && i.LoadingPlanId == planId, cancellationToken);
 
-    public async Task<IReadOnlyList<Guid>> GetPlanVehicleIdsAsync(Guid planId, CancellationToken cancellationToken = default)
-        => await _context.LoadingPlanVehicles
-            .Where(lpv => lpv.LoadingPlanId == planId)
-            .OrderBy(lpv => lpv.SortOrder)
-            .Select(lpv => lpv.VehicleId)
-            .ToListAsync(cancellationToken);
-
-    public async Task UpdateVehicleOrderAsync(Guid planId, IReadOnlyList<Guid> orderedVehicleIds, CancellationToken cancellationToken = default)
-    {
-        var planVehicles = await _context.LoadingPlanVehicles
-            .Where(lpv => lpv.LoadingPlanId == planId)
-            .ToListAsync(cancellationToken);
-
-        for (var i = 0; i < orderedVehicleIds.Count; i++)
-        {
-            var lpv = planVehicles.FirstOrDefault(x => x.VehicleId == orderedVehicleIds[i]);
-            lpv?.UpdateSortOrder(i);
-        }
-
-        await _context.SaveChangesAsync(cancellationToken);
-    }
-
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
 
     public async Task SaveWithResultAsync(
         LoadingPlan plan,
-        IReadOnlyList<LoadingPlanVehicle> vehicles,
         IReadOnlyList<LoadingPlanInputItem> inputItems,
-        IReadOnlyList<(Guid VehicleId, IReadOnlyList<PlacedItemResult> Placements)> vehiclePlacements,
-        IReadOnlyList<UnplacedItemResult> finalUnplacedItems,
+        OptimizationResult result,
         CancellationToken cancellationToken = default)
     {
-        var placements = vehiclePlacements
-            .SelectMany(vp => vp.Placements.Select(p =>
-                new LoadingPlanPlacement(p.PlacementId, plan.Id, vp.VehicleId, p.ItemId, p.X, p.Y, p.Z, p.Rotation)))
+        var placements = result.Placements
+            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation))
             .ToList();
 
-        var unplacedItems = finalUnplacedItems
+        var unplacedItems = result.UnplacedItems
             .Select(u => new LoadingPlanUnplacedItem(Guid.NewGuid(), plan.Id, u.ItemId, u.Quantity, u.Reason))
             .ToList();
 
+        plan.ApplyOptimizationResult(
+            LoadingPlanOptimizationStatus.Calculated,
+            result.TotalWeight,
+            result.FillRate,
+            result.Placements.Count,
+            result.UnplacedItems.Sum(u => u.Quantity),
+            result.CenterOfGravityX,
+            result.CenterOfGravityY,
+            result.CenterOfGravityZ);
+
         _context.LoadingPlans.Add(plan);
-        _context.LoadingPlanVehicles.AddRange(vehicles);
         _context.LoadingPlanInputItems.AddRange(inputItems);
         _context.LoadingPlanPlacements.AddRange(placements);
         _context.LoadingPlanUnplacedItems.AddRange(unplacedItems);
@@ -370,17 +370,10 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
 
     public async Task ReOptimizeWithResultAsync(
         LoadingPlan plan,
-        IReadOnlyList<LoadingPlanVehicle> newVehicles,
         IReadOnlyList<LoadingPlanInputItem> newInputItems,
-        IReadOnlyList<(Guid VehicleId, IReadOnlyList<PlacedItemResult> Placements)> vehiclePlacements,
-        IReadOnlyList<UnplacedItemResult> finalUnplacedItems,
+        OptimizationResult result,
         CancellationToken cancellationToken = default)
     {
-        var oldVehicles = await _context.LoadingPlanVehicles
-            .Where(v => v.LoadingPlanId == plan.Id)
-            .ToListAsync(cancellationToken);
-        _context.LoadingPlanVehicles.RemoveRange(oldVehicles);
-
         var oldInputItems = await _context.LoadingPlanInputItems
             .Where(i => i.LoadingPlanId == plan.Id)
             .ToListAsync(cancellationToken);
@@ -401,48 +394,29 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .ToListAsync(cancellationToken);
         foreach (var w in oldWarnings) w.MarkAsDeleted();
 
-        var newPlacements = vehiclePlacements
-            .SelectMany(vp => vp.Placements.Select(p =>
-                new LoadingPlanPlacement(p.PlacementId, plan.Id, vp.VehicleId, p.ItemId, p.X, p.Y, p.Z, p.Rotation)))
+        var newPlacements = result.Placements
+            .Select(p => new LoadingPlanPlacement(p.PlacementId, plan.Id, p.ItemId, p.X, p.Y, p.Z, p.Rotation))
             .ToList();
 
-        var newUnplacedItems = finalUnplacedItems
+        var newUnplacedItems = result.UnplacedItems
             .Select(u => new LoadingPlanUnplacedItem(Guid.NewGuid(), plan.Id, u.ItemId, u.Quantity, u.Reason))
             .ToList();
 
-        _context.LoadingPlanVehicles.AddRange(newVehicles);
+        plan.ApplyOptimizationResult(
+            LoadingPlanOptimizationStatus.Calculated,
+            result.TotalWeight,
+            result.FillRate,
+            result.Placements.Count,
+            result.UnplacedItems.Sum(u => u.Quantity),
+            result.CenterOfGravityX,
+            result.CenterOfGravityY,
+            result.CenterOfGravityZ);
+
         _context.LoadingPlanInputItems.AddRange(newInputItems);
         _context.LoadingPlanPlacements.AddRange(newPlacements);
         _context.LoadingPlanUnplacedItems.AddRange(newUnplacedItems);
 
         await _context.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task<DashboardStatsDto> GetDashboardStatsAsync(
-        Guid? companyId,
-        DateTime? startDate,
-        DateTime? endDate,
-        CancellationToken cancellationToken = default)
-    {
-        var query = _context.LoadingPlans
-            .AsNoTracking()
-            .Where(p => p.CompanyId == companyId);
-
-        if (startDate.HasValue)
-            query = query.Where(p => p.CreatedAtUtc >= startDate.Value);
-
-        if (endDate.HasValue)
-            query = query.Where(p => p.CreatedAtUtc <= endDate.Value);
-
-        var totalPlans = await query.CountAsync(cancellationToken);
-        var avgFillRate = totalPlans > 0
-            ? await query.AverageAsync(p => p.FillRate, cancellationToken)
-            : 0m;
-        var totalWeight = totalPlans > 0
-            ? await query.SumAsync(p => p.TotalWeight, cancellationToken)
-            : 0m;
-
-        return new DashboardStatsDto(Math.Round(avgFillRate, 2), Math.Round(totalWeight, 2), totalPlans);
     }
 
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>

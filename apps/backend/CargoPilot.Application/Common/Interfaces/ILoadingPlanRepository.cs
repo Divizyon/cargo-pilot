@@ -4,8 +4,6 @@ using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
 using CargoPilot.Application.Features.Plans.GetPlans;
 using CargoPilot.Domain.Entities;
-using PlacedItemResult = CargoPilot.Application.Common.Models.PlacedItemResult;
-using UnplacedItemResult = CargoPilot.Application.Common.Models.UnplacedItemResult;
 
 namespace CargoPilot.Application.Common.Interfaces;
 
@@ -46,8 +44,6 @@ public interface ILoadingPlanRepository
         CancellationToken cancellationToken = default);
 
     Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Guid>> GetPlanVehicleIdsAsync(Guid planId, CancellationToken cancellationToken = default);
-    Task UpdateVehicleOrderAsync(Guid planId, IReadOnlyList<Guid> orderedVehicleIds, CancellationToken cancellationToken = default);
     Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
 
@@ -57,17 +53,13 @@ public interface ILoadingPlanRepository
 
     Task SaveWithResultAsync(
         LoadingPlan plan,
-        IReadOnlyList<LoadingPlanVehicle> vehicles,
         IReadOnlyList<LoadingPlanInputItem> inputItems,
-        IReadOnlyList<(Guid VehicleId, IReadOnlyList<PlacedItemResult> Placements)> vehiclePlacements,
-        IReadOnlyList<UnplacedItemResult> finalUnplacedItems,
+        OptimizationResult result,
         CancellationToken cancellationToken = default);
 
     Task ReOptimizeWithResultAsync(
         LoadingPlan plan,
-        IReadOnlyList<LoadingPlanVehicle> newVehicles,
         IReadOnlyList<LoadingPlanInputItem> newInputItems,
-        IReadOnlyList<(Guid VehicleId, IReadOnlyList<PlacedItemResult> Placements)> vehiclePlacements,
-        IReadOnlyList<UnplacedItemResult> finalUnplacedItems,
+        OptimizationResult result,
         CancellationToken cancellationToken = default);
 }

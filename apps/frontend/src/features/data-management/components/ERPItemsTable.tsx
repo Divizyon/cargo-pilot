@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import {
   Check,
   ChevronDown,
@@ -36,7 +37,7 @@ import {
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 
 const ROW_H = 48;
 const HEADER_ROW_H = 36;
@@ -319,36 +320,23 @@ export function ERPItemsTable() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Durum filtreleri */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {(
-            [
-              { value: DRAFT_PENDING, label: 'Bekleyenler' },
-              { value: DRAFT_APPROVED, label: 'Aktarılanlar' },
-              { value: DRAFT_UPDATE_PENDING, label: 'Güncellemeler' },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => {
-                setStatusFilter(tab.value);
-                setPage(1);
-                setSelectedIds(new Set());
-                setSelectAllMode(false);
-              }}
-              className={cn(
-                'h-auto rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                statusFilter === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          tabs={[
+            { value: String(DRAFT_PENDING), label: 'Bekleyenler' },
+            { value: String(DRAFT_APPROVED), label: 'Aktarılanlar' },
+            { value: String(DRAFT_UPDATE_PENDING), label: 'Güncellemeler' },
+          ]}
+          value={String(statusFilter)}
+          onChange={(v) => {
+            setStatusFilter(Number(v));
+            setPage(1);
+            setSelectedIds(new Set());
+            setSelectAllMode(false);
+          }}
+        />
 
         <SearchInput
+          size="sm"
           onSearch={handleSearch}
           placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..."
         />

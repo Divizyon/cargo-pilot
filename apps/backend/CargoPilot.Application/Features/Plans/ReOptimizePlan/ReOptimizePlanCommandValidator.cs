@@ -6,10 +6,7 @@ public sealed class ReOptimizePlanCommandValidator : AbstractValidator<ReOptimiz
 {
     public ReOptimizePlanCommandValidator()
     {
-        RuleFor(x => x.VehicleIds)
-            .NotEmpty().WithMessage("En az bir araç seçilmelidir.");
-
-        RuleForEach(x => x.VehicleIds)
+        RuleFor(x => x.VehicleId)
             .NotEmpty().WithMessage("Araç ID'si boş olamaz.");
 
         RuleFor(x => x.Items)

@@ -396,7 +396,8 @@ export function fromApiPlacementsToScene(
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
-  const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
+  const raw = api as Record<string, unknown>;
+  const planName = api.planName ?? (raw['name'] as string | undefined) ?? '—';
   const itemCount =
     api.itemCount ??
     api.inputTotalQuantity ??
@@ -415,8 +416,18 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
     vehicleId: api.vehicleId ?? v?.id ?? '',
-    vehicleName: v?.vehicleName ?? v?.name ?? api.vehicleName ?? '—',
-    vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
+    vehicleName:
+      v?.vehicleName ??
+      v?.name ??
+      api.vehicleName ??
+      (raw['vehicle_name'] as string | undefined) ??
+      '—',
+    vehiclePlate:
+      (v?.plateNumber ??
+        v?.plate ??
+        (raw['plateNumber'] as string | undefined) ??
+        (raw['plate'] as string | undefined)) ||
+      undefined,
     createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
@@ -431,7 +442,9 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
     doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
     doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
-    thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
+    thumbnailUrl: ((api as Record<string, unknown>)['thumbnailUrl'] ??
+      (api as Record<string, unknown>)['snapshotUrl'] ??
+      (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
   };
 }
 
@@ -463,13 +476,15 @@ const planItemDimensionsSchema = z
     weight: z.number().catch(0),
     imageUrl: z.string().nullable().optional(),
     productType: z.string().nullable().optional(),
+    constraintIds: z.array(z.number().int()).optional(),
+    stackGroup: z.string().nullable().optional(),
+    incompatibleGroups: z.array(z.string()).optional(),
   })
   .passthrough();
 
 const placementFullSchema = z
   .object({
     itemId: z.string(),
-    vehicleId: z.string().optional(),
     positionX: z.number(),
     positionY: z.number(),
     positionZ: z.number(),
@@ -486,24 +501,6 @@ const inputItemFullSchema = z
   })
   .passthrough();
 
-const planVehicleInPlanSchema = z
-  .object({
-    id: z.string().uuid().optional(),
-    vehicleName: z.string().optional(),
-    name: z.string().optional(),
-    plateNumber: z.string().nullable().optional(),
-    plate: z.string().nullable().optional(),
-    internalWidth: z.number().optional(),
-    internalHeight: z.number().optional(),
-    internalLength: z.number().optional(),
-    maxWeightCapacity: z.number().optional(),
-    vehicleType: z.number().int().optional(),
-    loadingType: z.number().int().nullable().optional(),
-    vehicleId: z.string().uuid().optional(),
-    sortOrder: z.number().int().optional(),
-  })
-  .passthrough();
-
 export const planFullDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),
   data: z
@@ -511,7 +508,6 @@ export const planFullDetailApiResponseSchema = z.object({
       id: z.string().uuid(),
       planName: z.string(),
       vehicle: planVehicleApiSchema,
-      vehicles: z.array(planVehicleInPlanSchema).optional().default([]),
       placements: z.array(placementFullSchema).optional().default([]),
       inputItems: z.array(inputItemFullSchema).optional().default([]),
       groups: z.array(planGroupFullSchema).optional().default([]),
@@ -536,7 +532,6 @@ export const planFullDetailApiResponseSchema = z.object({
 export type PlanFullDetail = {
   planName: string;
   vehicle: Vehicle | null;
-  vehicles: Vehicle[];
   inputItems: Array<{ item: Item; quantity: number }>;
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
@@ -568,51 +563,45 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
     allowFaceLeft: true,
     allowFaceRight: true,
     imageUrl: raw.imageUrl ?? undefined,
+    constraintIds: raw.constraintIds ?? [],
+    stackGroup: raw.stackGroup ?? null,
+    incompatibleGroups: raw.incompatibleGroups ?? [],
+    specialNotes: null,
+    erpProviderName: null,
   } as Item;
-}
-
-function apiVehicleToVehicle(
-  v: z.infer<typeof planVehicleApiSchema> & { vehicleId?: string },
-): Vehicle {
-  const id = v.vehicleId ?? v.id ?? '';
-  return {
-    id,
-    name: v.vehicleName ?? v.name ?? '—',
-    plate: v.plateNumber ?? v.plate ?? '',
-    width: v.internalWidth ?? 0,
-    height: v.internalHeight ?? 0,
-    length: v.internalLength ?? 0,
-    maxCargoWeight: v.maxWeightCapacity ?? 0,
-    vehicleType:
-      v.vehicleType != null
-        ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
-        : VehicleType.Tir,
-    doorDirection:
-      v.loadingType != null
-        ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-        : DoorDirection.Rear,
-    doorSide:
-      v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
-    isFavorite: false,
-    isActive: true,
-    isDeleted: false,
-    createdAt: new Date(0).toISOString(),
-    createdBy: { id: '', fullName: '' },
-  };
 }
 
 export function fromApiFullDetail(
   data: z.infer<typeof planFullDetailApiResponseSchema>['data'],
 ): PlanFullDetail {
-  // Multi-vehicle: prefer data.vehicles[], fall back to data.vehicle
-  const rawVehicles = data.vehicles ?? [];
-  const vehicles: Vehicle[] = rawVehicles.length > 0
-    ? rawVehicles.map((v) => apiVehicleToVehicle(v as z.infer<typeof planVehicleApiSchema> & { vehicleId?: string }))
-    : data.vehicle?.id
-      ? [apiVehicleToVehicle(data.vehicle)]
-      : [];
+  const v = data.vehicle;
 
-  const vehicle: Vehicle | null = vehicles[0] ?? null;
+  const vehicle: Vehicle | null = v?.id
+    ? {
+        id: v.id,
+        name: v.vehicleName ?? v.name ?? '—',
+        plate: v.plateNumber ?? v.plate ?? '',
+        width: v.internalWidth ?? 0,
+        height: v.internalHeight ?? 0,
+        length: v.internalLength ?? 0,
+        maxCargoWeight: v.maxWeightCapacity ?? 0,
+        vehicleType:
+          v.vehicleType != null
+            ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
+            : VehicleType.Tir,
+        doorDirection:
+          v.loadingType != null
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Front)
+            : DoorDirection.Front,
+        doorSide:
+          v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+        isFavorite: false,
+        isActive: true,
+        isDeleted: false,
+        createdAt: new Date(0).toISOString(),
+        createdBy: { id: '', fullName: '' },
+      }
+    : null;
 
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;
@@ -648,7 +637,6 @@ export function fromApiFullDetail(
     const color = skuColorMap[itemSku] ?? resolveProductColor(productType, groupName);
     return {
       itemId: p.itemId,
-      vehicleId: p.vehicleId,
       positionX: p.positionX,
       positionY: p.positionY,
       positionZ: p.positionZ,
@@ -679,9 +667,6 @@ export function fromApiFullDetail(
     name: u.item?.name ?? '',
   }));
 
-<<<<<<< HEAD
-  return { planName, vehicle, vehicles, inputItems, placements, skuColorMap, unplacedItems };
-=======
   // Grupları UnloadingOrder ASC sıraya göre al — idx+1 ile unloadingOrder yeniden üretilir
   type RawGroup = z.infer<typeof planGroupFullSchema>;
   const groups = [...(data.groups ?? [])]
@@ -695,5 +680,4 @@ export function fromApiFullDetail(
     }));
 
   return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems, groups };
->>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 }

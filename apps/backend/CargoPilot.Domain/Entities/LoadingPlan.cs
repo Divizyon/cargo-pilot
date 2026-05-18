@@ -5,6 +5,7 @@ namespace CargoPilot.Domain.Entities;
 public sealed class LoadingPlan : BaseEntity {
 #pragma warning disable S1144
     public string PlanName { get; private set; } = null!;
+    public Guid VehicleId { get; private set; }
     public LoadingPlanOptimizationCriteria OptimizationCriteria { get; private set; }
     public LoadingPlanOptimizationStatus OptimizationStatus { get; private set; }
     public string? ErrorCode { get; private set; }
@@ -24,7 +25,7 @@ public sealed class LoadingPlan : BaseEntity {
     public ErpExportStatus? ErpExportStatus { get; private set; }
 #pragma warning restore S1144
 
-    public List<LoadingPlanVehicle> Vehicles { get; private set; } = [];
+    public Vehicle Vehicle { get; private set; } = null!;
 #pragma warning disable S1144
     public Company? Company { get; private set; }
 #pragma warning restore S1144
@@ -33,7 +34,8 @@ public sealed class LoadingPlan : BaseEntity {
 
     public void UpdatePlanName(string planName) => PlanName = planName;
 
-    public void Reoptimize(LoadingPlanOptimizationCriteria optimizationCriteria, int inputTotalQuantity) {
+    public void Reoptimize(Guid vehicleId, LoadingPlanOptimizationCriteria optimizationCriteria, int inputTotalQuantity) {
+        VehicleId = vehicleId;
         OptimizationCriteria = optimizationCriteria;
         InputTotalQuantity = inputTotalQuantity;
     }
@@ -69,10 +71,12 @@ public sealed class LoadingPlan : BaseEntity {
     public LoadingPlan(
         Guid id,
         string planName,
+        Guid vehicleId,
         LoadingPlanOptimizationCriteria optimizationCriteria,
         int inputTotalQuantity,
         Guid? companyId = null) : base(id) {
         PlanName = planName;
+        VehicleId = vehicleId;
         OptimizationCriteria = optimizationCriteria;
         OptimizationStatus = LoadingPlanOptimizationStatus.Draft;
         TotalWeight = 0m;
