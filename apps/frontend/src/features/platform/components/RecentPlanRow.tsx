@@ -1,8 +1,8 @@
-import { type MouseEvent } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileDown, ExternalLink } from 'lucide-react';
+import { FileDown, ExternalLink, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { downloadPlanPdf } from '@/lib/utils/downloadPlanPdf';
+import { useDownloadPlanPdf } from '@/lib/api/useReports';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate } from '@/lib/utils/formatDate';
@@ -13,6 +13,7 @@ import {
 } from '@/features/data-management/schemas/productSchema';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { cn } from '@/lib/utils';
+import { ShareLinkDialog } from '@/features/planning/components/ShareLinkDialog';
 
 interface Props {
   plan: LoadingPlanListItem;
@@ -26,6 +27,8 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
   const setSelectedSnapshotPlanId = useUIStore((s) => s.setSelectedSnapshotPlanId);
   const dateFormat = useUnitStore((s) => s.dateFormat);
   const weightUnit = useUnitStore((s) => s.weightUnit);
+  const downloadPdf = useDownloadPlanPdf();
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
   const weightValue = fromKilograms(plan.totalWeightKg, weightUnit as WeightUnitKey);
   const weightLabel = `${weightValue % 1 === 0 ? weightValue : weightValue.toFixed(2)} ${weightUnit}`;
@@ -44,15 +47,16 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
 
   function handleDownload(e: MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
-    downloadPlanPdf(plan.id);
+    downloadPdf.mutate({ id: plan.id, planName: plan.planName });
   }
 
   return (
+    <>
     <li
       onClick={handleSelect}
       className={cn(
         'grid items-center border-b last:border-b-0 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors text-sm',
-        'grid-cols-[minmax(0,1fr)_140px_48px_88px_72px_88px_72px]',
+        'grid-cols-[minmax(0,1fr)_140px_48px_88px_72px_88px_96px]',
         isSelected && 'bg-muted/40',
       )}
     >
@@ -83,7 +87,23 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
         >
           <ExternalLink className="size-3.5 text-muted-foreground" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          title="Paylaş"
+          onClick={(e) => { e.stopPropagation(); setLinkDialogOpen(true); }}
+        >
+          <Share2 className="size-3.5 text-muted-foreground" />
+        </Button>
       </div>
     </li>
+    <ShareLinkDialog
+      open={linkDialogOpen}
+      onOpenChange={setLinkDialogOpen}
+      planId={plan.id}
+      planName={plan.planName}
+    />
+</>
   );
 }
