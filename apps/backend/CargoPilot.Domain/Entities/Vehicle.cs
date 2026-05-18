@@ -8,10 +8,10 @@ public sealed class Vehicle : BaseEntity {
     public string? Description { get; private set; }
     public VehicleType VehicleType { get; private set; }
     public string? PlateNumber { get; private set; }
-    public decimal InternalWidth { get; private set; }
-    public decimal InternalHeight { get; private set; }
-    public decimal InternalLength { get; private set; }
-    public decimal MaxWeightCapacity { get; private set; }
+    public decimal? InternalWidth { get; private set; }
+    public decimal? InternalHeight { get; private set; }
+    public decimal? InternalLength { get; private set; }
+    public decimal? MaxWeightCapacity { get; private set; }
     public decimal? KingPinDistanceMm { get; private set; }
     public decimal? KingPinTareWeightKg { get; private set; }
     public decimal? KingPinMaxLoadKg { get; private set; }
@@ -22,7 +22,7 @@ public sealed class Vehicle : BaseEntity {
     public decimal? AdditionalAxleTareWeightKg { get; private set; }
     public decimal? AdditionalAxleMaxLoadKg { get; private set; }
 #pragma warning disable S1144
-    
+
 #pragma warning restore S1144
     public int LayerCount { get; private set; }
     public LoadingType LoadingType { get; private set; }
@@ -38,14 +38,14 @@ public sealed class Vehicle : BaseEntity {
 
     [NotMapped]
     public string Status { get {
-        if (IsDraft) return "taslak";
-        if (IsActive) return "active";
-        return "pasif";
+        if (IsDraft) return VehicleStatus.Draft;
+        if (IsActive) return VehicleStatus.Active;
+        return VehicleStatus.Passive;
     } }
 
     // Computed from millimeter dimensions as m^3.
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-    public decimal Volume { get; private set; }
+    public decimal? Volume { get; private set; }
 
     private Vehicle() { }
 
@@ -64,10 +64,10 @@ public sealed class Vehicle : BaseEntity {
         string? description,
         VehicleType vehicleType,
         string? plateNumber,
-        decimal internalWidth,
-        decimal internalHeight,
-        decimal internalLength,
-        decimal maxWeightCapacity,
+        decimal? internalWidth,
+        decimal? internalHeight,
+        decimal? internalLength,
+        decimal? maxWeightCapacity,
         decimal? kingPinDistanceMm,
         decimal? kingPinTareWeightKg,
         decimal? kingPinMaxLoadKg,
@@ -109,10 +109,10 @@ public sealed class Vehicle : BaseEntity {
         string vehicleName,
         VehicleType vehicleType,
         string? plateNumber,
-        decimal internalWidth,
-        decimal internalHeight,
-        decimal internalLength,
-        decimal maxWeightCapacity,
+        decimal? internalWidth,
+        decimal? internalHeight,
+        decimal? internalLength,
+        decimal? maxWeightCapacity,
         int layerCount,
         LoadingType loadingType,
         Guid? companyId) : this(
@@ -142,10 +142,10 @@ public sealed class Vehicle : BaseEntity {
         string vehicleName,
         VehicleType vehicleType,
         string? plateNumber,
-        decimal internalWidth,
-        decimal internalHeight,
-        decimal internalLength,
-        decimal maxWeightCapacity,
+        decimal? internalWidth,
+        decimal? internalHeight,
+        decimal? internalLength,
+        decimal? maxWeightCapacity,
         decimal? kingPinDistanceMm,
         decimal? kingPinTareWeightKg,
         decimal? kingPinMaxLoadKg,

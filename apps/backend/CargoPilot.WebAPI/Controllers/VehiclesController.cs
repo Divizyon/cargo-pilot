@@ -54,13 +54,13 @@ public sealed class VehiclesController : BaseController {
         [FromQuery] bool isExport = false,
         CancellationToken cancellationToken = default) {
         bool? isDraft = status?.ToLowerInvariant() switch {
-            "taslak" => true,
-            "active" => false,
+            VehicleStatus.Draft => true,
+            VehicleStatus.Active => false,
             _ => null
         };
         bool? effectiveIsActive = status?.ToLowerInvariant() switch {
-            "active" => true,
-            "pasif" => false,
+            VehicleStatus.Active => true,
+            VehicleStatus.Passive => false,
             _ => isActive
         };
         var query = new SearchVehiclesQuery(

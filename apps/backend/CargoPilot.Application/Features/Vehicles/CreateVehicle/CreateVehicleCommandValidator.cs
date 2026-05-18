@@ -22,15 +22,19 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
 
         When(x => !x.IsDraft, () => {
             RuleFor(x => x.InternalWidth)
+                .NotNull().WithMessage("İç genişlik zorunludur.")
                 .GreaterThan(0).WithMessage("İç genişlik sıfırdan büyük olmalıdır.");
 
             RuleFor(x => x.InternalHeight)
+                .NotNull().WithMessage("İç yükseklik zorunludur.")
                 .GreaterThan(0).WithMessage("İç yükseklik sıfırdan büyük olmalıdır.");
 
             RuleFor(x => x.InternalLength)
+                .NotNull().WithMessage("İç uzunluk zorunludur.")
                 .GreaterThan(0).WithMessage("İç uzunluk sıfırdan büyük olmalıdır.");
 
             RuleFor(x => x.MaxWeightCapacity)
+                .NotNull().WithMessage("Maksimum yük kapasitesi zorunludur.")
                 .GreaterThan(0).WithMessage("Maksimum yük kapasitesi sıfırdan büyük olmalıdır.");
 
             RuleFor(x => x.LayerCount)

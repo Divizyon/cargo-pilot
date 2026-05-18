@@ -149,8 +149,10 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             .ToList();
 
         return new OptimizationInput(
-            vehicle.InternalWidth, vehicle.InternalHeight,
-            vehicle.InternalLength, vehicle.MaxWeightCapacity,
+            vehicle.InternalWidth.GetValueOrDefault(),
+            vehicle.InternalHeight.GetValueOrDefault(),
+            vehicle.InternalLength.GetValueOrDefault(),
+            vehicle.MaxWeightCapacity.GetValueOrDefault(),
             inputs, criteria, vehicle.LoadingType, clusterGroups);
     }
 }
