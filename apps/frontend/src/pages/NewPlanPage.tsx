@@ -46,6 +46,7 @@ function PlanAutoLoader({
   const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
+  const addVehicle = usePlanStore((s) => s.addVehicle);
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
@@ -72,7 +73,15 @@ function PlanAutoLoader({
 
     appliedDataRef.current = data;
 
-    setVehicle(data.vehicle);
+    // Multi-vehicle: set primary first, then add remaining vehicles in order
+    if (data.vehicles && data.vehicles.length > 1) {
+      setVehicle(data.vehicles[0]);
+      for (let i = 1; i < data.vehicles.length; i++) {
+        addVehicle(data.vehicles[i]);
+      }
+    } else {
+      setVehicle(data.vehicle);
+    }
     onVehicleSelected();
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
@@ -148,38 +157,34 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   }, []);
 
   const handleOptimize = useCallback(() => {
-    const { selectedVehicle: vehicle, selectedItems: items, placements } = usePlanStore.getState();
-    if (!vehicle || items.length === 0) return;
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
+    const { selectedVehicles, selectedItems: items } = usePlanStore.getState();
+    if (selectedVehicles.length === 0 || items.length === 0) return;
 
-    const defaultName = `${vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
+    const primaryVehicle = selectedVehicles[0].vehicle;
+    const defaultName = `${primaryVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
     setPlanNameInput(defaultName);
     setNameDialogOpen(true);
   }, []);
 
   const handleConfirmCreate = useCallback(async () => {
     const {
-      selectedVehicle: vehicle,
+      selectedVehicles,
       selectedItems: items,
-      placements,
       criteria,
       clusterGroups,
       allowContamination,
       inlineGroups,
     } = usePlanStore.getState();
-    if (!vehicle || !planNameInput.trim()) return;
+    if (selectedVehicles.length === 0 || !planNameInput.trim()) return;
 
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const rawItemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (rawItemsToSend.length === 0) return;
-
-    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
-    const deduped = new Map<string, (typeof rawItemsToSend)[number]>();
-    for (const si of rawItemsToSend) {
+    // Send ALL selectedItems — backend waterfall decides which vehicle each item goes into.
+    // Deduplicate by itemId in case selectedItems accumulated duplicates.
+    const deduped = new Map<string, (typeof items)[number]>();
+    for (const si of items) {
       if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
     }
     const itemsToSend = [...deduped.values()];
+    if (itemsToSend.length === 0) return;
 
     const itemGroupMap = new Map<string, string>();
     for (const g of inlineGroups) {
@@ -198,10 +203,13 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           }))
         : undefined;
 
+    // All selected vehicles in their current order — waterfall processes them sequentially.
+    const vehicleIds = selectedVehicles.map((e) => e.vehicle.id);
+
     setNameDialogOpen(false);
     const id = await createPlan({
       planName: planNameInput.trim(),
-      vehicleId: vehicle.id,
+      vehicleIds,
       items: itemsToSend.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,
@@ -225,7 +233,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     const {
       selectedVehicle: vehicle,
       selectedItems: items,
-      placements,
       criteria,
       clusterGroups,
       allowContamination,
@@ -233,17 +240,15 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
 
-    // Only send items that are currently placed — items removed via "Çıkar" must be excluded
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const rawItems = items.filter((si) => placedIds.has(si.item.id));
-    if (rawItems.length === 0) return;
-
-    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    // Send ALL selectedItems (placed + unfit) — backend waterfall decides which vehicle to use.
+    // Items explicitly removed via "Çıkar" are already absent from selectedItems.
+    // Deduplicate by itemId in case selectedItems has accumulated duplicates.
     const dedupedMap = new Map<string, (typeof items)[number]>();
-    for (const si of rawItems) {
+    for (const si of items) {
       if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
     }
     const dedupedItems = [...dedupedMap.values()];
+    if (dedupedItems.length === 0) return;
 
     const itemGroupMap = new Map<string, string>();
     for (const g of inlineGroups) {
@@ -262,9 +267,16 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           }))
         : undefined;
 
+    // Send ALL selected vehicles in their current order — waterfall requires full list
+    const { selectedVehicles } = usePlanStore.getState();
+    const vehicleIds =
+      selectedVehicles.length > 0
+        ? selectedVehicles.map((e) => e.vehicle.id)
+        : [vehicle.id];
+
     await reoptimizePlan({
       id: fromPlanId,
-      vehicleId: vehicle.id,
+      vehicleIds,
       items: dedupedItems.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,

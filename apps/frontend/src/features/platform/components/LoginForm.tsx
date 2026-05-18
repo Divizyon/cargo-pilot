@@ -144,7 +144,7 @@ export function LoginForm() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Giriş Yap</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Gir</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           Hesabınıza erişmek için bilgilerinizi girin
         </p>
@@ -221,7 +221,7 @@ export function LoginForm() {
                       className={cn(
                         'pl-10',
                         form.formState.errors.email &&
-                          'border-2 border-[#E24B4A] bg-[#E24B4A]/5 focus-visible:ring-0 focus-visible:border-[#E24B4A]',
+                        'border-2 border-[#E24B4A] bg-[#E24B4A]/5 focus-visible:ring-0 focus-visible:border-[#E24B4A]',
                       )}
                       {...field}
                     />
