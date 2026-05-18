@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,23 @@ internal sealed class IntegrationRepository : IIntegrationRepository
 
     public Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => _dbContext.Integrations.AnyAsync(i => i.CompanyId == companyId, cancellationToken);
+
+    public async Task<PagedResult<SyncLog>> ListSyncLogsAsync(
+        Guid integrationId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.SyncLogs
+            .AsNoTracking()
+            .Where(l => l.IntegrationId == integrationId)
+            .OrderByDescending(l => l.StartedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<SyncLog>(items, totalCount, page, pageSize);
+    }
 
     public void Add(Integration integration) => _dbContext.Integrations.Add(integration);
 
