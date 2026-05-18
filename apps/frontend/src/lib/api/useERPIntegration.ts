@@ -113,7 +113,7 @@ const syncLogsPageResponseSchema = z.object({
 
 const testConnectionResponseSchema = z.object({
   isSuccess: z.boolean(),
-  data: z.object({ success: z.boolean(), message: z.string().nullable().optional() }),
+  data: z.object({ isSuccess: z.boolean(), message: z.string().nullable().optional() }),
 });
 
 const erpSettingsApiResponseSchema = z.object({
@@ -186,7 +186,7 @@ export function useTestERPSettings() {
         body,
       );
       const parsed = testConnectionResponseSchema.parse(data);
-      return parsed.data;
+      return { success: parsed.data.isSuccess, message: parsed.data.message };
     },
   });
 }

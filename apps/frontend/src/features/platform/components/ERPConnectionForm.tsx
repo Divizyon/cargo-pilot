@@ -221,7 +221,7 @@ export function ERPConnectionForm() {
             )}
             <AlertDescription>
               {testResult.success
-                ? 'Bağlantı başarılı. ERP sistemine ulaşıldı.'
+                ? (testResult.message ?? 'Bağlantı başarılı.')
                 : (testResult.message ??
                   'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.')}
             </AlertDescription>
