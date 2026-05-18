@@ -56,6 +56,10 @@ public sealed class ApproveDraftItemCommandHandler : IRequestHandler<ApproveDraf
             return Result<Guid>.Success(existingItem.Id);
         }
 
+        var skuExists = await _itemRepository.ExistsBySkuAsync(draft.SKU, companyId.Value, cancellationToken);
+        if (skuExists)
+            return Result<Guid>.Failure(new Error(ErrorType.Conflict, "Item.SkuAlreadyExists", "Bu SKU ile kayıtlı bir ürün zaten mevcut."));
+
         var item = new Item(
             Guid.NewGuid(),
             draft.SKU,
