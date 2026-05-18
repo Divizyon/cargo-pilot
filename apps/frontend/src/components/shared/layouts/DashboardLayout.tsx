@@ -415,7 +415,7 @@ export function DashboardLayout() {
       <div
         className={cn(
           'fixed inset-y-0 left-0 z-30 transition-transform duration-200',
-          'lg:static lg:z-auto lg:translate-x-0',
+          'lg:static lg:z-10 lg:translate-x-0',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
