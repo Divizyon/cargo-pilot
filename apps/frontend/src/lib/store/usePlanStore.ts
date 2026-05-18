@@ -418,9 +418,12 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   addManualItem: (item, qty, color) =>
     set((s) => {
-      if (!s.selectedVehicle)
-        return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
+      if (!s.selectedVehicle)
+        return {
+          selectedItems: [...s.selectedItems, { item, quantity: qty }],
+          skuColorMap: updatedColorMap,
+        };
       const { placed, unfitByReason } = buildPlacements(
         item,
         qty,

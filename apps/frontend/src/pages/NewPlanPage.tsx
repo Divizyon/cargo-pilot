@@ -49,6 +49,7 @@ function PlanAutoLoader({
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
+  const setInlineGroups = usePlanStore((s) => s.setInlineGroups);
 
   const appliedRef = useRef(false);
 
@@ -76,6 +77,7 @@ function PlanAutoLoader({
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
+    setInlineGroups(data.groups);
     onLoaded?.();
   }, [
     isSuccess,
@@ -85,6 +87,7 @@ function PlanAutoLoader({
     initItems,
     setPlacements,
     setUnplacedItems,
+    setInlineGroups,
     onVehicleSelected,
     onLoaded,
   ]);

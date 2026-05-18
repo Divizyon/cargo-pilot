@@ -526,6 +526,7 @@ export type PlanFullDetail = {
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
   unplacedItems: Array<{ itemId: string; quantity: number; reason: number; name: string }>;
+  groups: Array<{ id: string; name: string; color: string; itemIds: string[] }>;
 };
 
 function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
@@ -665,5 +666,23 @@ export function fromApiFullDetail(
     name: u.item?.name ?? '',
   }));
 
-  return { planName, vehicle, vehicles, inputItems, placements, skuColorMap, unplacedItems };
+  const rawGroups = (data as Record<string, unknown>)['groups'];
+  const groups = Array.isArray(rawGroups)
+    ? rawGroups
+        .map((g) => {
+          const raw = g as Record<string, unknown>;
+          const id = typeof raw['id'] === 'string' ? raw['id'] : '';
+          const name = typeof raw['name'] === 'string' ? raw['name'] : '';
+          const color = typeof raw['color'] === 'string' ? raw['color'] : '';
+          const items = Array.isArray(raw['items']) ? (raw['items'] as Array<Record<string, unknown>>) : [];
+          const itemIds = items
+            .map((i) => (typeof i['itemId'] === 'string' ? i['itemId'] : ''))
+            .filter((x) => x.length > 0);
+          if (!id || !name || !color) return null;
+          return { id, name, color, itemIds };
+        })
+        .filter((g): g is { id: string; name: string; color: string; itemIds: string[] } => g !== null)
+    : [];
+
+  return { planName, vehicle, vehicles, inputItems, placements, skuColorMap, unplacedItems, groups };
 }
