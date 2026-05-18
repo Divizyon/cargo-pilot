@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
@@ -49,18 +50,27 @@ function PlanAutoLoader({
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
 
-  const appliedRef = useRef(false);
+  // Tracks the last data object that was applied — identity check prevents double-apply.
+  const appliedDataRef = useRef<typeof data | null>(null);
 
+  // planId change → full reset (navigating to a different plan)
   useEffect(() => {
-    appliedRef.current = false;
+    appliedDataRef.current = null;
     usePlanStore.getState().reset();
-  }, [planId, refetchKey]);
+  }, [planId]);
+
+  // refetchKey change (re-optimization) → allow re-apply without resetting vehicle/items
+  useEffect(() => {
+    if (refetchKey === 0) return;
+    appliedDataRef.current = null;
+  }, [refetchKey]);
 
   useEffect(() => {
-    if (appliedRef.current || !isSuccess || !data) return;
+    if (!isSuccess || !data) return;
     if (!data.vehicle) return;
+    if (appliedDataRef.current === data) return;
 
-    appliedRef.current = true;
+    appliedDataRef.current = data;
 
     setVehicle(data.vehicle);
     onVehicleSelected();
@@ -68,6 +78,15 @@ function PlanAutoLoader({
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
     usePlanStore.getState().setInlineGroups(data.groups);
+
+    const contaminated = data.unplacedItems.filter((u) => u.reason === 4);
+    if (contaminated.length > 0) {
+      toast.warning(
+        `${contaminated.length} ürün uyumsuz yük grubu nedeniyle yüklenemedi ve sığmayan ürünler listesine eklendi.`,
+        { duration: 6000 },
+      );
+    }
+
     onLoaded?.();
   }, [
     isSuccess,
