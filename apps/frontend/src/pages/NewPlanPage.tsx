@@ -157,8 +157,11 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   }, []);
 
   const handleOptimize = useCallback(() => {
-    const { selectedVehicles, selectedItems: items } = usePlanStore.getState();
-    if (selectedVehicles.length === 0 || items.length === 0) return;
+    const { selectedVehicles, placements, unfitItems } = usePlanStore.getState();
+    if (selectedVehicles.length === 0) return;
+
+    // Only allow optimization if user has staged at least one item (placed or unfit)
+    if (placements.length === 0 && unfitItems.length === 0) return;
 
     const primaryVehicle = selectedVehicles[0].vehicle;
     const defaultName = `${primaryVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
@@ -170,6 +173,8 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     const {
       selectedVehicles,
       selectedItems: items,
+      placements,
+      unfitItems,
       criteria,
       clusterGroups,
       allowContamination,
@@ -177,14 +182,21 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     } = usePlanStore.getState();
     if (selectedVehicles.length === 0 || !planNameInput.trim()) return;
 
-    // Send ALL selectedItems — backend waterfall decides which vehicle each item goes into.
+    // Only send items the user explicitly staged (placed in scene OR in unfitItems).
+    // Items browsed from catalog but not staged (addItem only, no placement) are excluded.
+    const activeIds = new Set([
+      ...placements.map((p) => p.itemId),
+      ...unfitItems.map((u) => u.item.id),
+    ]);
+    const activeItems = items.filter((si) => activeIds.has(si.item.id));
+    if (activeItems.length === 0) return;
+
     // Deduplicate by itemId in case selectedItems accumulated duplicates.
     const deduped = new Map<string, (typeof items)[number]>();
-    for (const si of items) {
+    for (const si of activeItems) {
       if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
     }
     const itemsToSend = [...deduped.values()];
-    if (itemsToSend.length === 0) return;
 
     const itemGroupMap = new Map<string, string>();
     for (const g of inlineGroups) {
@@ -233,6 +245,8 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     const {
       selectedVehicle: vehicle,
       selectedItems: items,
+      placements,
+      unfitItems,
       criteria,
       clusterGroups,
       allowContamination,
@@ -240,11 +254,17 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
 
-    // Send ALL selectedItems (placed + unfit) — backend waterfall decides which vehicle to use.
-    // Items explicitly removed via "Çıkar" are already absent from selectedItems.
+    // Only send items the user explicitly staged (placed OR previously unfit) —
+    // prevents catalog-browsed-but-not-staged items from leaking into re-optimization.
+    const activeIds = new Set([
+      ...placements.map((p) => p.itemId),
+      ...unfitItems.map((u) => u.item.id),
+    ]);
+    const activeItems = items.filter((si) => activeIds.has(si.item.id));
+
     // Deduplicate by itemId in case selectedItems has accumulated duplicates.
     const dedupedMap = new Map<string, (typeof items)[number]>();
-    for (const si of items) {
+    for (const si of activeItems) {
       if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
     }
     const dedupedItems = [...dedupedMap.values()];

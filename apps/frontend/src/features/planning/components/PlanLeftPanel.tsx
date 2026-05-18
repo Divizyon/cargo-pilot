@@ -554,6 +554,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const placements = usePlanStore((s) => s.placements);
+  const removeItem = usePlanStore((s) => s.removeItem);
   const togglePlacement = usePlanStore((s) => s.togglePlacement);
   const addManualItem = usePlanStore((s) => s.addManualItem);
   const updateItem = usePlanStore((s) => s.updateItem);
@@ -999,7 +1000,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         }
         doPlace();
       },
-      onRemove: () => togglePlacement(id),
+      onRemove: () => removeItem(id),
       onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
         if (!placedIds.has(id)) togglePlacement(id);
@@ -1692,7 +1693,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
 
       <UnfitItemsPanel
         onFullRemove={(itemId) => {
-          if (placedIds.has(itemId)) togglePlacement(itemId);
+          removeItem(itemId);
           setGroups((prev) =>
             prev.map((g) => ({ ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) })),
           );
