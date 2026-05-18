@@ -94,7 +94,7 @@ export function VehicleForm({
                   form.setValue('plate', '');
                   form.clearErrors('plate');
                   const dir = form.getValues('doorDirection');
-                  if (dir === 'top') {
+                  if (dir === 'rearAndSide') {
                     form.setValue('doorDirection', 'rear');
                   }
                 } else {

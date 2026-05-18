@@ -41,6 +41,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   productType: z.enum([ProductType.Koli, ProductType.Varil, ProductType.Palet]).optional(),
   stepIndex: z.number().int().nonnegative().optional(),
   itemName: z.string().optional(),
+  isStagingArea: z.boolean().optional(),
 });
 
 export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;
@@ -95,7 +96,7 @@ export const loadingPlanListItemSchema = z.object({
   interiorHeightM: z.number().positive(),
   interiorDepthM: z.number().positive(),
   vehicleType: z.enum(['Tir', 'Kamyon', 'Kamposet', 'Konteyner']).optional(),
-  doorDirection: z.enum(['rear', 'side', 'top']).optional(),
+  doorDirection: z.enum(['front', 'rear', 'side', 'top', 'rearAndSide']).optional(),
   doorSide: z.enum(['right', 'left']).optional(),
   thumbnailUrl: z.string().nullable().optional(),
 });
