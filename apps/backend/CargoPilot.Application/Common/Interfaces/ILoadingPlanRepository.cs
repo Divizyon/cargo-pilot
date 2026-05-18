@@ -51,6 +51,11 @@ public interface ILoadingPlanRepository
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
+    Task SaveDraftAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> inputItems,
+        CancellationToken cancellationToken = default);
+
     Task SaveWithResultAsync(
         LoadingPlan plan,
         IReadOnlyList<LoadingPlanInputItem> inputItems,
