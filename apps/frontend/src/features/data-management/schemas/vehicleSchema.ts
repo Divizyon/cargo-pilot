@@ -63,7 +63,7 @@ export const vehicleFormSchema = z
       .optional(),
 
     // VY-07: Kapı yönü
-    doorDirection: z.enum(['rear', 'side', 'top'] as const, {
+    doorDirection: z.enum(['rear', 'side', 'top', 'rearAndSide'] as const, {
       message: 'Lütfen kapı yönünü seçiniz',
     }),
     doorSide: z.enum(['right', 'left'] as const).optional(),

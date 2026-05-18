@@ -86,6 +86,7 @@ const DOOR_LABEL: Record<DoorDirection, string> = {
   rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
+  rearAndSide: 'Arka ve Yan',
 };
 
 // ─── VehicleListItem ──────────────────────────────────────────────────────────
