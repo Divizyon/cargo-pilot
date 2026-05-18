@@ -13,7 +13,7 @@ import {
   useERPConnection,
   useERPPendingMatches,
   useERPShipmentOrders,
-  useERPSyncHistory,
+  useERPSyncLogs,
 } from '@/lib/api/useERPIntegration';
 import { useDraftItems } from '@/lib/api/useDraftItems';
 import { ErpShipmentStatus } from '@/lib/types/erp';
@@ -99,14 +99,16 @@ export function ERPPage() {
   const integrationId = connection?.id;
 
   const { data: pendingMatches } = useERPPendingMatches(integrationId);
-  const { data: shipmentOrders } = useERPShipmentOrders({ status: ErpShipmentStatus.Pending });
-  const { data: syncRuns } = useERPSyncHistory();
+  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, {
+    status: ErpShipmentStatus.Pending,
+  });
+  const { data: syncLogsPage } = useERPSyncLogs(integrationId, { page: 1, pageSize: 20 });
   const { data: draftItemsPage } = useDraftItems({ page: 1, pageSize: 1, status: 0 });
 
   const pendingMatchCount = pendingMatches?.length ?? 0;
   const pendingShipmentCount = shipmentOrders?.length ?? 0;
   const syncErrorCount =
-    syncRuns?.flatMap((r) => r.entries).filter((e) => e.status === 'Error').length ?? 0;
+    syncLogsPage?.items.filter((l) => l.status === 2 || l.status === 3).length ?? 0;
   const draftItemCount = draftItemsPage?.totalCount ?? 0;
 
   function navigateToTab(tab: TabId) {
