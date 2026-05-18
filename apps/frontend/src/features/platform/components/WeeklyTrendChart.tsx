@@ -8,7 +8,7 @@ import {
 import type { WeeklyTrendItem } from '@/lib/api/useDashboardStats';
 
 const chartConfig: ChartConfig = {
-  sevkiyat: { label: 'Sevkiyat', color: 'var(--color-sevkiyat)' },
+  sevkiyat: { label: 'Yükleme Planları', color: 'hsl(var(--foreground))' },
 };
 
 interface Props {
@@ -22,13 +22,13 @@ export function WeeklyTrendChart({ data }: Props) {
     <div className="rounded-xl border bg-card p-4 shadow-none">
       <div className="flex items-start justify-between mb-1">
         <div>
-          <p className="text-base font-semibold text-foreground">Haftalık Sevkiyat Trendi</p>
-          <p className="text-sm text-muted-foreground">Toplam sevkiyat trendi</p>
+          <p className="text-base font-semibold text-foreground">Haftalık Yükleme Planları Trendi</p>
+          <p className="text-sm text-muted-foreground">Toplam yükleme planları trendi</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full bg-foreground" />
-            Sevkiyat
+            Yükleme Planları
           </span>
         </div>
       </div>
@@ -47,18 +47,18 @@ export function WeeklyTrendChart({ data }: Props) {
           <Area
             type="monotone"
             dataKey="sevkiyat"
-            stroke="#18181b"
+            stroke="hsl(var(--foreground))"
             strokeWidth={1.5}
-            fill="#18181b"
+            fill="hsl(var(--foreground))"
             fillOpacity={0.08}
           />
           {hasTeslim && (
             <Area
               type="monotone"
               dataKey="teslim"
-              stroke="#d4d4d8"
+              stroke="hsl(var(--muted-foreground))"
               strokeWidth={1.5}
-              fill="#d4d4d8"
+              fill="hsl(var(--muted-foreground))"
               fillOpacity={0.3}
             />
           )}
