@@ -145,9 +145,14 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         var contamination = request.AllowContamination
             ? new ContaminationFilter.Result(optimizationInput.Items, [])
             : ContaminationFilter.Filter(optimizationInput.Items);
-        var finalInput = contamination.Contaminated.Count > 0
-            ? optimizationInput with { Items = contamination.Passed }
-            : optimizationInput;
+
+        var itemsForEngine = request.AllowContamination
+            ? optimizationInput.Items
+                .Select(i => i with { IncompatibleGroups = null })
+                .ToList()
+            : contamination.Passed;
+
+        var finalInput = optimizationInput with { Items = itemsForEngine };
 
         var engineResult = _optimizationEngine.Run(finalInput);
         var result = contamination.Contaminated.Count > 0
