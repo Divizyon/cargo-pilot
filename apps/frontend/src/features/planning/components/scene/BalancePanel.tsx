@@ -94,7 +94,10 @@ export function BalancePanel() {
       weightByItemId[item.id] = item.weight;
     }
 
-    const inputs = buildCogInputs(placements, weightByItemId);
+    const inputs = buildCogInputs(
+      placements.filter((p) => !p.isStagingArea),
+      weightByItemId,
+    );
     const cog = calcCenterOfGravity(inputs);
     if (!cog) return null;
 
