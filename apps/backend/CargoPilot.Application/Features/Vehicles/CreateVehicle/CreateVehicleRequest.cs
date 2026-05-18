@@ -21,4 +21,5 @@ public sealed record CreateVehicleRequest(
     decimal? MainAxleMaxLoadKg,
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
-    decimal? AdditionalAxleMaxLoadKg);
+    decimal? AdditionalAxleMaxLoadKg,
+    bool? IsDraft = null);

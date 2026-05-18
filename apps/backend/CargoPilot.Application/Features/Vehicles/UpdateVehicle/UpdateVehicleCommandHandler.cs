@@ -66,7 +66,8 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
             additionalAxleMaxLoadKg: request.AdditionalAxleMaxLoadKg,
             layerCount: request.LayerCount,
             loadingType: request.LoadingType,
-            isActive: request.IsActive);
+            isActive: request.IsActive,
+            isDraft: request.IsDraft);
 
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 

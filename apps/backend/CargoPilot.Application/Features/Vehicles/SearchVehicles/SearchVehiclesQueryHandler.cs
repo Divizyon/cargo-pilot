@@ -55,6 +55,7 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             page,
             pageSize,
             _currentUserService.CompanyId,
+            request.IsDraft,
             cancellationToken);
 
         var userIds = pagedVehicles.Items
@@ -70,32 +71,36 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             : new HashSet<Guid>();
 
         var dtos = pagedVehicles.Items
-            .Select(v => new VehicleSummaryDto(
-                v.Id,
-                v.VehicleName,
-                v.VehicleType,
-                v.PlateNumber,
-                v.InternalWidth,
-                v.InternalHeight,
-                v.InternalLength,
-                v.MaxWeightCapacity,
-                v.LayerCount,
-                v.LoadingType,
-                v.Volume,
-                v.IsActive,
-                favoriteSet.Contains(v.Id),
-                v.CompanyId,
-                v.Description,
-                v.KingPinDistanceMm,
-                v.KingPinTareWeightKg,
-                v.KingPinMaxLoadKg,
-                v.MainAxleDistanceMm,
-                v.MainAxleTareWeightKg,
-                v.MainAxleMaxLoadKg,
-                v.AdditionalAxleDistanceMm,
-                v.AdditionalAxleTareWeightKg,
-                v.AdditionalAxleMaxLoadKg,
-                ResolveAuditUser(v, userMap)))
+            .Select(v => {
+                string status = ResolveStatus(v.IsDraft, v.IsActive);
+                return new VehicleSummaryDto(
+                    v.Id,
+                    v.VehicleName,
+                    v.VehicleType,
+                    v.PlateNumber,
+                    v.InternalWidth,
+                    v.InternalHeight,
+                    v.InternalLength,
+                    v.MaxWeightCapacity,
+                    v.LayerCount,
+                    v.LoadingType,
+                    v.Volume,
+                    v.IsActive,
+                    favoriteSet.Contains(v.Id),
+                    v.CompanyId,
+                    v.Description,
+                    v.KingPinDistanceMm,
+                    v.KingPinTareWeightKg,
+                    v.KingPinMaxLoadKg,
+                    v.MainAxleDistanceMm,
+                    v.MainAxleTareWeightKg,
+                    v.MainAxleMaxLoadKg,
+                    v.AdditionalAxleDistanceMm,
+                    v.AdditionalAxleTareWeightKg,
+                    v.AdditionalAxleMaxLoadKg,
+                    ResolveAuditUser(v, userMap),
+                    status);
+            })
             .ToList();
 
         var result = new PagedResult<VehicleSummaryDto>(
@@ -115,5 +120,11 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
             return null;
 
         return new AuditUserDto($"{user.FirstName} {user.LastName}".Trim(), user.Email);
+    }
+
+    private static string ResolveStatus(bool isDraft, bool isActive) {
+        if (isDraft) return "taslak";
+        if (isActive) return "active";
+        return "pasif";
     }
 }

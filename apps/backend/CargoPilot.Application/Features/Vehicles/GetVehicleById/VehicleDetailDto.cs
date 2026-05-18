@@ -30,4 +30,5 @@ public sealed record VehicleDetailDto(
     DateTime CreatedAtUtc,
     AuditUserDto? CreatedBy,
     DateTime? UpdatedAtUtc,
-    AuditUserDto? UpdatedBy);
+    AuditUserDto? UpdatedBy,
+    string? Status);

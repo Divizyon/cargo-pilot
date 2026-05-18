@@ -34,6 +34,8 @@ public sealed class Vehicle : BaseEntity {
     public Integration? Integration { get; private set; }
 #pragma warning restore S1144
 
+    public bool IsDraft { get; private set; }
+
     // Computed from millimeter dimensions as m^3.
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public decimal Volume { get; private set; }
@@ -70,7 +72,8 @@ public sealed class Vehicle : BaseEntity {
         decimal? additionalAxleMaxLoadKg,
         int layerCount,
         LoadingType loadingType,
-        bool isActive) {
+        bool isActive,
+        bool isDraft = false) {
         VehicleName = vehicleName;
         Description = description;
         VehicleType = vehicleType;
@@ -90,6 +93,7 @@ public sealed class Vehicle : BaseEntity {
         AdditionalAxleMaxLoadKg = additionalAxleMaxLoadKg;
         LayerCount = layerCount;
         LoadingType = loadingType;
+        IsDraft = isDraft;
         SetIsActive(isActive);
     }
 
@@ -147,7 +151,8 @@ public sealed class Vehicle : BaseEntity {
         int layerCount,
         LoadingType loadingType,
         Guid? companyId,
-        string? description = null) : base(id) {
+        string? description = null,
+        bool isDraft = false) : base(id) {
         VehicleName = vehicleName;
         Description = description;
         VehicleType = vehicleType;
@@ -168,5 +173,6 @@ public sealed class Vehicle : BaseEntity {
         LayerCount = layerCount;
         LoadingType = loadingType;
         CompanyId = companyId;
+        IsDraft = isDraft;
     }
 }

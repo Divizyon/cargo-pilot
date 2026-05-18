@@ -23,4 +23,5 @@ public sealed record CreateVehicleCommand(
     decimal? MainAxleMaxLoadKg,
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
-    decimal? AdditionalAxleMaxLoadKg) : IRequest<Result<Guid>>;
+    decimal? AdditionalAxleMaxLoadKg,
+    bool IsDraft = false) : IRequest<Result<Guid>>;

@@ -22,4 +22,5 @@ public sealed record UpdateVehicleRequest(
     decimal? MainAxleMaxLoadKg,
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
-    decimal? AdditionalAxleMaxLoadKg);
+    decimal? AdditionalAxleMaxLoadKg,
+    bool? IsDraft = null);
