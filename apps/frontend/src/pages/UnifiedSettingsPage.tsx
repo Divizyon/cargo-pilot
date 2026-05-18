@@ -23,7 +23,11 @@ import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionF
 import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
 import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
 import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
-import { useERPConnection, useERPShipmentOrders, useERPSyncLogs } from '@/lib/api/useERPIntegration';
+import {
+  useERPConnection,
+  useERPShipmentOrders,
+  useERPSyncLogs,
+} from '@/lib/api/useERPIntegration';
 import { ErpShipmentStatus } from '@/lib/types/erp';
 
 type TabId =
@@ -118,7 +122,9 @@ export function UnifiedSettingsPage() {
 
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
-  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, { status: ErpShipmentStatus.Pending });
+  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, {
+    status: ErpShipmentStatus.Pending,
+  });
   const { data: syncLogsPage } = useERPSyncLogs(integrationId, { page: 1, pageSize: 20 });
 
   const pendingShipmentCount = shipmentOrders?.length ?? 0;

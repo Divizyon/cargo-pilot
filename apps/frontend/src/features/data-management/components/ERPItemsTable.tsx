@@ -540,9 +540,16 @@ export function ERPItemsTable() {
                   <TableCell className="py-0 px-3 max-w-[176px]">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {row.integrationSystemName?.toLowerCase().includes('logo') && (
-                        <img src="/icons/erp-logo.png" alt="Logo" className="h-6 w-auto shrink-0 object-contain" />
+                        <img
+                          src="/icons/erp-logo.png"
+                          alt="Logo"
+                          className="h-6 w-auto shrink-0 object-contain"
+                        />
                       )}
-                      <span className="block truncate text-xs text-muted-foreground" title={row.name}>
+                      <span
+                        className="block truncate text-xs text-muted-foreground"
+                        title={row.name}
+                      >
                         {row.name}
                       </span>
                     </div>

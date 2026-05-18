@@ -99,7 +99,9 @@ export function ERPPage() {
   const integrationId = connection?.id;
 
   const { data: pendingMatches } = useERPPendingMatches(integrationId);
-  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, { status: ErpShipmentStatus.Pending });
+  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, {
+    status: ErpShipmentStatus.Pending,
+  });
   const { data: syncLogsPage } = useERPSyncLogs(integrationId, { page: 1, pageSize: 20 });
   const { data: draftItemsPage } = useDraftItems({ page: 1, pageSize: 1, status: 0 });
 

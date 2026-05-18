@@ -24,7 +24,10 @@ const STATUS_LABEL: Record<SyncLogStatusValue, string> = {
   [SyncLogStatus.Failed]: 'Başarısız',
 };
 
-const STATUS_VARIANT: Record<SyncLogStatusValue, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const STATUS_VARIANT: Record<
+  SyncLogStatusValue,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
   [SyncLogStatus.Running]: 'secondary',
   [SyncLogStatus.Success]: 'default',
   [SyncLogStatus.PartialFailure]: 'outline',
@@ -94,9 +97,7 @@ export function ERPSyncHistory() {
                         {STATUS_LABEL[log.status]}
                       </Badge>
                     </td>
-                    <td className="px-4 py-0 text-xs text-foreground">
-                      {log.syncedRecordCount}
-                    </td>
+                    <td className="px-4 py-0 text-xs text-foreground">{log.syncedRecordCount}</td>
                     <td className="px-4 py-0 text-xs text-destructive max-w-xs truncate">
                       {log.errorMessage ?? '—'}
                     </td>

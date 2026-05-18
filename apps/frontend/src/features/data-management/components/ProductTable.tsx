@@ -243,7 +243,11 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
       <TableCell className={cn(cell, 'max-w-[176px]')}>
         <div className="flex items-center gap-1.5 min-w-0">
           {item.erpProviderName?.toLowerCase().includes('logo') && (
-            <img src="/icons/erp-logo.png" alt="Logo" className="h-6 w-auto shrink-0 object-contain" />
+            <img
+              src="/icons/erp-logo.png"
+              alt="Logo"
+              className="h-6 w-auto shrink-0 object-contain"
+            />
           )}
           <span className="block truncate text-xs text-muted-foreground" title={item.name}>
             <HighlightText text={item.name} query={searchTerm} />

@@ -540,7 +540,11 @@ export function BulkImportDialog({
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle>
-                {isUpdate ? 'ERP Güncellemeyi Onayla' : draftItemIds ? 'Taslak Ürünleri Onayla' : 'Toplu Ürün İçe Aktar'}
+                {isUpdate
+                  ? 'ERP Güncellemeyi Onayla'
+                  : draftItemIds
+                    ? 'Taslak Ürünleri Onayla'
+                    : 'Toplu Ürün İçe Aktar'}
               </DialogTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından{' '}
@@ -867,8 +871,12 @@ export function BulkImportDialog({
             >
               {draftItemIds
                 ? isDraftPending
-                  ? isUpdate ? 'Güncelleniyor…' : 'Aktarılıyor…'
-                  : isUpdate ? `${rows.length} Ürünü Güncelle` : `${rows.length} Ürünü Onayla`
+                  ? isUpdate
+                    ? 'Güncelleniyor…'
+                    : 'Aktarılıyor…'
+                  : isUpdate
+                    ? `${rows.length} Ürünü Güncelle`
+                    : `${rows.length} Ürünü Onayla`
                 : bulkCreate.isPending
                   ? 'Yükleniyor…'
                   : `${rows.length} Ürün Ekle`}
