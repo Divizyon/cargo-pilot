@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import { ROUTES } from '@/lib/config/routes';
 import {
   useReports,
@@ -328,30 +329,11 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Period tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {PERIOD_TABS.map((tab) => (
-            <Button
-              key={tab.value}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setPeriod(tab.value);
-                setDateFrom('');
-                setDateTo('');
-                setPage(1);
-              }}
-              className={cn(
-                'h-auto rounded-md px-3 py-1 text-xs font-medium',
-                period === tab.value && !dateFrom && !dateTo
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </Button>
-          ))}
-        </div>
+        <FilterTabs
+          tabs={PERIOD_TABS}
+          value={!dateFrom && !dateTo ? period : ''}
+          onChange={(v) => { setPeriod(v as Parameters<typeof setPeriod>[0]); setDateFrom(''); setDateTo(''); setPage(1); }}
+        />
 
         {/* Search */}
         <div className="relative flex-1">

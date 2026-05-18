@@ -18,6 +18,7 @@ const ROW_H = 48; // h-12
 const HEADER_ROW_H = 36; // h-9
 const BELOW_TABLE_H = 80; // pagination + gap + bottom padding
 import { cn } from '@/lib/utils';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -535,28 +536,11 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Category tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {CATEGORY_TABS.map((tab) => (
-            <Button
-              key={tab.value}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCategory(tab.value);
-                setPage(1);
-              }}
-              className={cn(
-                'h-auto rounded-md px-3 py-1 text-xs font-medium',
-                category === tab.value
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </Button>
-          ))}
-        </div>
+        <FilterTabs
+          tabs={CATEGORY_TABS}
+          value={category}
+          onChange={(v) => { setCategory(v as Parameters<typeof setCategory>[0]); setPage(1); }}
+        />
 
         {/* Search */}
         <SearchInput onSearch={handleSearch} placeholder="Araç ismine göre ara..." />

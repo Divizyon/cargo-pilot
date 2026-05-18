@@ -165,6 +165,25 @@ export function useRejectDraftItem() {
   });
 }
 
+export function useBulkApproveItemsIndividual() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ApiError>, string[]>({
+    mutationFn: (ids) =>
+      Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/approve`))).then(
+        () => {},
+      ),
+    onSuccess: (_data, ids) => {
+      void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+      toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      toast.error(detail ?? 'Toplu onaylama başarısız.', { position: 'bottom-right' });
+    },
+  });
+}
+
 export function useBulkRejectDraftItems() {
   const queryClient = useQueryClient();
   return useMutation<void, AxiosError<ApiError>, string[]>({

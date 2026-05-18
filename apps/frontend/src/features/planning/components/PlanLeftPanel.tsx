@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -699,6 +699,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     );
   }, [apiItems, selectedItems, activeTab, search, activeConstraints]);
 
+  const unloadedCount = useMemo(() => {
+    const planIds = new Set(selectedItems.map((si) => si.item.id));
+    return selectedItems.length + apiItems.filter((i) => !planIds.has(i.id)).length;
+  }, [selectedItems, apiItems]);
+
   const flatDisplayItems = useMemo(() => {
     const seen = new Set<string>();
     const result: string[] = [];
@@ -989,30 +994,19 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       </div>
 
       {/* Tabs — read-only modda gizle */}
-      <div className="px-2 pt-2 shrink-0">
-        {readOnly ? null : (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-            <TabsList className="w-full h-7 bg-muted">
-              <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
-                Ürün Listesi
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  {(() => {
-                    const planIds = new Set(selectedItems.map((si) => si.item.id));
-                    const catalogOnly = apiItems.filter((i) => !planIds.has(i.id)).length;
-                    return `(${selectedItems.length + catalogOnly})`;
-                  })()}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
-                Yüklü Ürünler
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  ({placedIds.size})
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-      </div>
+      {!readOnly && (
+        <div className="px-2 pt-2 shrink-0">
+          <FilterTabs
+            className="w-full"
+            tabs={[
+              { value: 'unloaded', label: 'Ürün Listesi', count: unloadedCount },
+              { value: 'loaded', label: 'Yüklü Ürünler', count: placedIds.size },
+            ]}
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}
+          />
+        </div>
+      )}
 
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
