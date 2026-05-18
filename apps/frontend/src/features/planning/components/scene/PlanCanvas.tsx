@@ -1,6 +1,8 @@
-import { Suspense, useEffect, type MutableRefObject } from 'react';
+import { Suspense, useEffect, useState, type MutableRefObject } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Html, Stats, useProgress } from '@react-three/drei';
+import { Stats, useProgress } from '@react-three/drei';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SCENE } from '@/lib/config/scene-config';
 import { SceneLights } from '@/features/planning/components/scene/SceneLights';
 import { SceneControls } from '@/features/planning/components/scene/SceneControls';
 import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
@@ -8,7 +10,6 @@ import { ContainerMesh } from '@/features/planning/components/scene/ContainerMes
 import { CogMarker } from '@/features/planning/components/scene/CogMarker';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { StepAnimationControls } from '@/features/planning/components/scene/StepAnimationControls';
-import { SCENE } from '@/lib/config/scene-config';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
@@ -20,16 +21,19 @@ interface PlanCanvasProps {
   snapshotRef?: MutableRefObject<(() => string) | null>;
 }
 
-function SceneLoader() {
-  const { progress } = useProgress();
-  return (
-    <Html center>
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
-      </div>
-    </Html>
-  );
+function SceneLoadingOverlay() {
+  const { active } = useProgress();
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    if (!active) {
+      const t = setTimeout(() => setShow(false), 200);
+      return () => clearTimeout(t);
+    }
+  }, [active]);
+
+  if (!show) return null;
+  return <Skeleton className="absolute inset-0 z-10 rounded-none" />;
 }
 
 function SnapshotBridge({
@@ -80,7 +84,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
         {import.meta.env.DEV && <Stats />}
         <SceneDisposer />
         <SnapshotBridge snapshotRef={snapshotRef} />
-        <Suspense fallback={<SceneLoader />}>
+        <Suspense fallback={null}>
           <SceneLights />
           <SceneControls />
           <SceneFloor />
@@ -89,6 +93,7 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
           <CogMarker />
         </Suspense>
       </Canvas>
+      <SceneLoadingOverlay />
       <SelectedBoxCoords />
       {showControls && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[520px] max-w-[calc(100%-2rem)]">

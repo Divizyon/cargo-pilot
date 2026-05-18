@@ -1,9 +1,9 @@
 namespace CargoPilot.Application.Features.Shares.GetSharePlanByToken;
 
 public sealed record ShareVehicleDataDto(
-    decimal Width,
-    decimal Height,
-    decimal Length,
+    decimal? Width,
+    decimal? Height,
+    decimal? Length,
     string DoorDirection,
     string? VehicleType);
 
@@ -34,7 +34,7 @@ public sealed record SharePlanDto(
     string Status,
     int ProductCount,
     decimal TotalWeightKg,
-    decimal VehicleCapacityKg,
+    decimal? VehicleCapacityKg,
     decimal FillPercentage,
     bool IsExpired,
     ShareVehicleDataDto? VehicleData,
