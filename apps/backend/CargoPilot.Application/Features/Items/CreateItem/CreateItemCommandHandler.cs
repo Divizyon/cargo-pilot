@@ -13,15 +13,18 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
 {
     private readonly IItemRepository _itemRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<CreateItemCommand> _validator;
 
     public CreateItemCommandHandler(
         IItemRepository itemRepository,
         ICurrentUserService currentUserService,
+        INotificationService notificationService,
         IValidator<CreateItemCommand> validator)
     {
         _itemRepository = itemRepository;
         _currentUserService = currentUserService;
+        _notificationService = notificationService;
         _validator = validator;
     }
 
@@ -46,9 +49,30 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
             var currentCount = await _itemRepository.CountByUserAsync(userId, cancellationToken);
             var maxCount = SubscriptionLimits.GetMaxItemCount(SubscriptionType.Free);
             if (currentCount >= maxCount)
+            {
+                await _notificationService.CreateAsync(
+                    userId: userId,
+                    companyId: companyId,
+                    type: NotificationType.UsageLimitReached,
+                    title: "Ürün Kotası Doldu",
+                    description: $"Maksimum ürün sayısına ({maxCount}) ulaştınız. Daha fazla ürün eklemek için planınızı yükseltin.",
+                    cancellationToken: cancellationToken);
                 return Result<Guid>.Failure(
                     new Error(ErrorType.BusinessRule, "Item.LimitExceeded",
                         "Abonelik planı kapsamındaki maksimum ürün sayısına ulaşıldı."));
+            }
+
+            var warningThreshold = (int)(maxCount * 0.8);
+            if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount)
+            {
+                await _notificationService.CreateAsync(
+                    userId: userId,
+                    companyId: companyId,
+                    type: NotificationType.UsageLimitWarning,
+                    title: "Ürün Kotası Dolmak Üzere",
+                    description: $"Ürün kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
+                    cancellationToken: cancellationToken);
+            }
         }
 
         var skuExists = await _itemRepository.ExistsBySkuAsync(request.SKU, companyId, cancellationToken);
