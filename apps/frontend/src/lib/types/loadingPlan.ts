@@ -48,6 +48,7 @@ export const UnfitReason = {
   Volume: 'volume',
   Weight: 'weight',
   Stacking: 'stacking',
+  Contamination: 'contamination',
 } as const;
 
 export type UnfitReason = (typeof UnfitReason)[keyof typeof UnfitReason];

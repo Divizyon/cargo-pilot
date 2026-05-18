@@ -18,7 +18,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  ArrowDownUp,
   Box,
   Check,
   ChevronDown,
@@ -34,12 +33,12 @@ import {
   Package2,
   Plus,
   Printer,
-  Scale,
   Search,
   Share2,
   SlidersHorizontal,
   Truck,
   X,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -56,7 +55,8 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import { OptimizationModal } from './OptimizationModal';
+import { AddVehicleModal } from './AddVehicleModal';
 import { toast } from 'sonner';
 import { SCENE } from '@/lib/config/scene-config';
 import { useDebounce } from '@/lib/utils/useDebounce';
@@ -455,10 +455,6 @@ export function PlanRightPanel({
   const selectedVehicles = usePlanStore((s) => s.selectedVehicles);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
-  const criteria = usePlanStore((s) => s.criteria);
-  const setCriteria = usePlanStore((s) => s.setCriteria);
-  const clusterGroups = usePlanStore((s) => s.clusterGroups);
-  const setClusterGroups = usePlanStore((s) => s.setClusterGroups);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const showCog = useSceneStore((s) => s.showCog);
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
@@ -468,12 +464,15 @@ export function PlanRightPanel({
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
+  const pendingSelectIdRef = useRef<string | null>(null);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [activeVehicleTab, setActiveVehicleTab] = useState<'list' | 'selected'>('list');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [activeVehicleTypes, setActiveVehicleTypes] = useState<Set<VehicleTypeValue>>(new Set());
   const [vehicleOrder, setVehicleOrder] = useState<string[]>([]);
 
   // Analysis & export state
+  const [optimizationModalOpen, setOptimizationModalOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [xrayPanelOpen, setXrayPanelOpen] = useState(false);
@@ -560,6 +559,10 @@ export function PlanRightPanel({
     } finally {
       setIsPdfLoading(false);
     }
+  }
+
+  function handleVehicleCreated(id: string | null) {
+    if (id) pendingSelectIdRef.current = id;
   }
 
   function handleSelectVehicle(v: Vehicle) {
@@ -948,114 +951,15 @@ export function PlanRightPanel({
             )}
           </div>
 
-          {/* Optimizasyon modu seçici — gizle: read-only modda */}
           {!readOnly && (
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
-              <div className="grid grid-cols-2 gap-1">
-                {(
-                  [
-                    {
-                      value: OptimizationCriteria.Lifo,
-                      icon: ArrowDownUp,
-                      label: 'LIFO',
-                      title: 'Son giren ilk çıkar',
-                    },
-                    {
-                      value: OptimizationCriteria.WeightBalance,
-                      icon: Scale,
-                      label: 'Ağırlık Dengesi',
-                      title: 'Ağırlık dengesi',
-                    },
-                  ] as const
-                ).map(({ value, icon: Icon, label, title }) => (
-                  <button
-                    key={value}
-                    onClick={() => setCriteria(value)}
-                    title={title}
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === value
-                        ? 'bg-foreground text-background border-foreground'
-                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!readOnly && (
-            <>
-              {/* Grup kümeleme modu */}
-              <div className="flex flex-col gap-1">
-                <span
-                  className={cn(
-                    'text-[10px] px-0.5',
-                    criteria === OptimizationCriteria.Lifo
-                      ? 'text-muted-foreground/40'
-                      : 'text-muted-foreground',
-                  )}
-                >
-                  Grup Yerleştirme
-                  {criteria === OptimizationCriteria.Lifo && (
-                    <span className="ml-1 text-[9px]">(LIFO ile kilitli)</span>
-                  )}
-                </span>
-                <div className="grid grid-cols-2 gap-1">
-                  <button
-                    onClick={() => setClusterGroups(true)}
-                    disabled={criteria === OptimizationCriteria.Lifo}
-                    title={
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'LIFO modunda grup kümeleme devre dışı'
-                        : 'Gruplu ürünler bir arada kümelenir'
-                    }
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
-                        : clusterGroups
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <span>Kümeleli</span>
-                  </button>
-                  <button
-                    onClick={() => setClusterGroups(false)}
-                    disabled={criteria === OptimizationCriteria.Lifo}
-                    title={
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'LIFO modunda grup kümeleme devre dışı'
-                        : 'Tüm ürünler optimizasyon kriterine göre karışık yerleşir'
-                    }
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
-                        : !clusterGroups
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <span>Karma</span>
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-                disabled={!selectedVehicle || isOptimizing || !canOptimize}
-                onClick={onOptimize}
-              >
-                {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                Optimizasyonu Başlat
-              </Button>
-            </>
+            <Button
+              className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+              disabled={!selectedVehicle || !canOptimize}
+              onClick={() => setOptimizationModalOpen(true)}
+            >
+              <Zap className="mr-2 h-3.5 w-3.5" />
+              Yükle
+            </Button>
           )}
           {placements.length > 0 && (
             <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
@@ -1064,6 +968,23 @@ export function PlanRightPanel({
           )}
         </div>
       </div>
+
+      <OptimizationModal
+        open={optimizationModalOpen}
+        onOpenChange={setOptimizationModalOpen}
+        onConfirm={() => {
+          setOptimizationModalOpen(false);
+          onOptimize?.();
+        }}
+        isOptimizing={isOptimizing}
+        disabled={!selectedVehicle}
+      />
+
+      <AddVehicleModal
+        open={showVehicleModal}
+        onOpenChange={setShowVehicleModal}
+        onCreated={handleVehicleCreated}
+      />
 
       {planId && (
         <ShareLinkDialog

@@ -323,6 +323,7 @@ interface PlanStore {
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
   clusterGroups: boolean;
+  allowContamination: boolean;
   placements: PlacementWithDimensions[];
   unfitItems: UnfitItem[];
   previewItemId: string | null;
@@ -360,6 +361,7 @@ interface PlanStore {
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
   setClusterGroups: (v: boolean) => void;
+  setAllowContamination: (v: boolean) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
   setUnplacedItems: (items: UnplacedEntry[]) => void;
   /**
@@ -418,6 +420,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   skuColorMap: {},
   criteria: 2,
   clusterGroups: true,
+  allowContamination: false,
   placements: [],
   unfitItems: [],
   previewItemId: null,
@@ -593,6 +596,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setCriteria: (criteria) => set({ criteria }),
   setClusterGroups: (clusterGroups: boolean) => set({ clusterGroups }),
+  setAllowContamination: (allowContamination: boolean) => set({ allowContamination }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
   setUnplacedItems: (items) =>
     set((s) => {
@@ -766,6 +770,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       skuColorMap: {},
       criteria: 2,
       clusterGroups: true,
+      allowContamination: false,
       placements: [],
       unfitItems: [],
       previewItemId: null,
