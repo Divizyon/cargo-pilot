@@ -42,7 +42,11 @@ export function ProductEditPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
-            <ErpSourceBadge erpProviderName={item.erpProviderName} />
+            {item.erpProviderName?.toLowerCase().includes('logo') ? (
+              <img src="/icons/erp-logo.png" alt="Logo" className="h-6 w-auto object-contain" />
+            ) : (
+              <ErpSourceBadge erpProviderName={item.erpProviderName} />
+            )}
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {item.name} — fiziksel özelliklerini ve kısıtlarını görüntüleyin veya güncelleyin.

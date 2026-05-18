@@ -51,6 +51,8 @@ interface BulkImportDialogProps {
   initialRows?: EditableRow[];
   /** Maps row._id → draft item backend id. When present, PUT+approve-bulk is used instead of bulk-create. */
   draftItemIds?: Record<string, string>;
+  /** 'update' mode changes dialog title and confirm button text for UpdatePending flow. */
+  mode?: 'import' | 'update';
 }
 
 // ─── Row model ────────────────────────────────────────────────────────────────
@@ -379,7 +381,9 @@ export function BulkImportDialog({
   onOpenChange,
   initialRows,
   draftItemIds,
+  mode = 'import',
 }: BulkImportDialogProps) {
+  const isUpdate = mode === 'update';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>(() => initialRows ?? []);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
@@ -536,7 +540,11 @@ export function BulkImportDialog({
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle>
-                {draftItemIds ? 'Taslak Ürünleri Onayla' : 'Toplu Ürün İçe Aktar'}
+                {isUpdate
+                  ? 'ERP Güncellemeyi Onayla'
+                  : draftItemIds
+                    ? 'Taslak Ürünleri Onayla'
+                    : 'Toplu Ürün İçe Aktar'}
               </DialogTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından{' '}
@@ -863,8 +871,12 @@ export function BulkImportDialog({
             >
               {draftItemIds
                 ? isDraftPending
-                  ? 'Aktarılıyor…'
-                  : `${rows.length} Ürünü Onayla`
+                  ? isUpdate
+                    ? 'Güncelleniyor…'
+                    : 'Aktarılıyor…'
+                  : isUpdate
+                    ? `${rows.length} Ürünü Güncelle`
+                    : `${rows.length} Ürünü Onayla`
                 : bulkCreate.isPending
                   ? 'Yükleniyor…'
                   : `${rows.length} Ürün Ekle`}
