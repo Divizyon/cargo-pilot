@@ -246,7 +246,7 @@ export function useTestERPConnection() {
     mutationFn: async (values) => {
       const { data } = await axiosInstance.post<unknown>(`${ERP_BASE}/test-connection`, values);
       const parsed = testConnectionResponseSchema.parse(data);
-      return parsed.data;
+      return { success: parsed.data.isSuccess, message: parsed.data.message };
     },
   });
 }
