@@ -178,11 +178,14 @@ export const erpSyncRunSchema = z.object({
 
 export type ErpSyncRun = z.infer<typeof erpSyncRunSchema>;
 
+export const SyncLogStatus = { Running: 0, Success: 1, PartialFailure: 2, Failed: 3 } as const;
+export type SyncLogStatusValue = (typeof SyncLogStatus)[keyof typeof SyncLogStatus];
+
 export const syncLogDtoSchema = z.object({
   id: z.string(),
-  startedAt: z.string().datetime({ offset: true }),
-  completedAt: z.string().datetime({ offset: true }).nullable(),
-  status: z.enum(['Running', 'Success', 'PartialFailure', 'Failed']),
+  startedAt: z.string(),
+  completedAt: z.string().nullable(),
+  status: z.number().int() as z.ZodType<SyncLogStatusValue>,
   syncedRecordCount: z.number().int().min(0),
   errorMessage: z.string().nullable(),
 });

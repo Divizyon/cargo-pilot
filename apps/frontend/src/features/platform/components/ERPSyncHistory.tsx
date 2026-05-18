@@ -6,28 +6,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useERPConnection, useERPSyncLogs } from '@/lib/api/useERPIntegration';
-import type { SyncLogDto } from '@/lib/types/erp';
+import { SyncLogStatus, type SyncLogStatusValue } from '@/lib/types/erp';
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—';
-  return format(parseISO(iso), 'dd.MM.yyyy HH:mm', { locale: tr });
+  try {
+    return format(parseISO(iso), 'dd.MM.yyyy HH:mm', { locale: tr });
+  } catch {
+    return iso;
+  }
 }
 
-const STATUS_LABEL: Record<SyncLogDto['status'], string> = {
-  Running: 'Devam Ediyor',
-  Success: 'Başarılı',
-  PartialFailure: 'Kısmi Hata',
-  Failed: 'Başarısız',
+const STATUS_LABEL: Record<SyncLogStatusValue, string> = {
+  [SyncLogStatus.Running]: 'Devam Ediyor',
+  [SyncLogStatus.Success]: 'Başarılı',
+  [SyncLogStatus.PartialFailure]: 'Kısmi Hata',
+  [SyncLogStatus.Failed]: 'Başarısız',
 };
 
-const STATUS_VARIANT: Record<
-  SyncLogDto['status'],
-  'default' | 'secondary' | 'destructive' | 'outline'
-> = {
-  Running: 'secondary',
-  Success: 'default',
-  PartialFailure: 'outline',
-  Failed: 'destructive',
+const STATUS_VARIANT: Record<SyncLogStatusValue, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  [SyncLogStatus.Running]: 'secondary',
+  [SyncLogStatus.Success]: 'default',
+  [SyncLogStatus.PartialFailure]: 'outline',
+  [SyncLogStatus.Failed]: 'destructive',
 };
 
 const PAGE_SIZE = 20;

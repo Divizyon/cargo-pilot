@@ -23,7 +23,7 @@ import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionF
 import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
 import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
 import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
-import { useERPShipmentOrders, useERPSyncHistory } from '@/lib/api/useERPIntegration';
+import { useERPConnection, useERPShipmentOrders, useERPSyncLogs } from '@/lib/api/useERPIntegration';
 import { ErpShipmentStatus } from '@/lib/types/erp';
 
 type TabId =
@@ -116,12 +116,14 @@ export function UnifiedSettingsPage() {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const dirtyTabs = useRef<Set<TabId>>(new Set());
 
-  const { data: shipmentOrders } = useERPShipmentOrders({ status: ErpShipmentStatus.Pending });
-  const { data: syncRuns } = useERPSyncHistory();
+  const { data: connection } = useERPConnection();
+  const integrationId = connection?.id;
+  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, { status: ErpShipmentStatus.Pending });
+  const { data: syncLogsPage } = useERPSyncLogs(integrationId, { page: 1, pageSize: 20 });
 
   const pendingShipmentCount = shipmentOrders?.length ?? 0;
   const syncErrorCount =
-    syncRuns?.flatMap((r) => r.entries).filter((e) => e.status === 'Error').length ?? 0;
+    syncLogsPage?.items.filter((l) => l.status === 2 || l.status === 3).length ?? 0;
 
   function getErpBadge(tabId: TabId): number {
     if (tabId === 'erp-sevkiyatlar') return pendingShipmentCount;
