@@ -16,7 +16,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AlertCircle, ArrowDownUp, BarChart3, GripVertical, Scale } from 'lucide-react';
+import { AlertCircle, ArrowDownUp, BarChart3, Check, GripVertical, Scale } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -119,6 +119,7 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
     () => usePlanStore.getState().inlineGroups,
   );
   const [contamination, setContamination] = useState<ContaminationState | null>(null);
+  const [selectedGroupNames, setSelectedGroupNames] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -164,15 +165,13 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
     const { selectedItems, placements } = usePlanStore.getState();
     const placedIds = new Set(placements.map((p) => p.itemId));
     const placedItems = selectedItems.filter((si) => placedIds.has(si.item.id));
+    const conflicts = detectContaminationConflicts(placedItems);
 
-    const allGroups = [
-      ...new Set(placedItems.map((si) => si.item.stackGroup).filter((g): g is string => !!g)),
-    ];
-
-    if (allGroups.length >= 1) {
-      const conflicts = detectContaminationConflicts(placedItems);
-      const groupVolumes = computeGroupVolumes(placedItems, allGroups);
+    if (conflicts.length > 0) {
+      const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+      const groupVolumes = computeGroupVolumes(placedItems, involvedGroups);
       setContamination({ conflicts, groupVolumes, placedItems });
+      setSelectedGroupNames(new Set(involvedGroups));
       return;
     }
 
@@ -302,66 +301,108 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
       <AlertDialog
         open={contamination !== null}
         onOpenChange={(open) => {
-          if (!open) setContamination(null);
+          if (!open) {
+            setContamination(null);
+            setSelectedGroupNames(new Set());
+          }
         }}
       >
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {contamination && contamination.conflicts.length > 0
-                ? 'Uyumsuz Yük Grupları'
-                : 'Yük Grubu Seçimi'}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Uyumsuz Yük Grupları</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="flex flex-col gap-4 pt-1">
-                {/* Conflict list — only when known incompatible pairs exist */}
-                {contamination && contamination.conflicts.length > 0 && (
-                  <div className="flex flex-col gap-1">
-                    {contamination.conflicts.map((c, i) => (
-                      <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span className="font-medium">{c.groupA}</span>
-                        <span className="text-rose-400">ve</span>
-                        <span className="font-medium">{c.groupB}</span>
-                        <span className="text-muted-foreground">birlikte yüklenemez</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Aktif çakışmalar — seçili gruplar arasındaki çakışmaları göster */}
+                {(() => {
+                  const activeConflicts = (contamination?.conflicts ?? []).filter(
+                    (c) => selectedGroupNames.has(c.groupA) && selectedGroupNames.has(c.groupB),
+                  );
+                  return activeConflicts.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {activeConflicts.map((c, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">{c.groupA}</span>
+                          <span className="text-rose-400">ve</span>
+                          <span className="font-medium">{c.groupB}</span>
+                          <span className="text-muted-foreground">birlikte yüklenemez</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                      <Check className="w-3 h-3 shrink-0" />
+                      <span>Seçili gruplar arasında çakışma yok</span>
+                    </div>
+                  );
+                })()}
 
-                {/* Volume cards */}
+                {/* Çoklu seçim kartları */}
                 <div className="grid grid-cols-2 gap-2">
-                  {contamination?.groupVolumes.map((gv) => (
-                    <button
-                      key={gv.name}
-                      onClick={() => {
-                        const others = contamination.groupVolumes
-                          .map((g) => g.name)
-                          .filter((n) => n !== gv.name);
-                        setContamination(null);
-                        commitAndConfirm(others);
-                      }}
-                      className="flex flex-col gap-1 p-3 rounded-lg border border-border bg-muted/40 hover:bg-accent hover:border-foreground/20 transition-colors text-left"
-                    >
-                      <span className="text-xs font-semibold text-foreground truncate">
-                        {gv.name}
-                      </span>
-                      <span className="text-lg font-bold text-foreground tabular-nums">
-                        %{gv.pct}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
-                        {gv.volumeM3.toFixed(2)} m³
-                      </span>
-                      <span className="text-[10px] text-foreground/60 mt-0.5">
-                        Sadece bunu gönder →
-                      </span>
-                    </button>
-                  ))}
+                  {contamination?.groupVolumes.map((gv) => {
+                    const isSelected = selectedGroupNames.has(gv.name);
+                    const conflictsWith = (contamination?.conflicts ?? [])
+                      .filter(
+                        (c) =>
+                          (c.groupA === gv.name && selectedGroupNames.has(c.groupB)) ||
+                          (c.groupB === gv.name && selectedGroupNames.has(c.groupA)),
+                      )
+                      .map((c) => (c.groupA === gv.name ? c.groupB : c.groupA));
+                    return (
+                      <button
+                        key={gv.name}
+                        onClick={() =>
+                          setSelectedGroupNames((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(gv.name)) next.delete(gv.name);
+                            else next.add(gv.name);
+                            return next;
+                          })
+                        }
+                        className={cn(
+                          'flex flex-col gap-1 p-3 rounded-lg border transition-colors text-left',
+                          isSelected
+                            ? conflictsWith.length > 0
+                              ? 'border-rose-300 bg-rose-50'
+                              : 'border-foreground/20 bg-accent'
+                            : 'border-border bg-muted/20 opacity-40',
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={cn(
+                              'w-3 h-3 rounded border-2 flex items-center justify-center shrink-0',
+                              isSelected
+                                ? 'bg-foreground border-foreground'
+                                : 'border-muted-foreground',
+                            )}
+                          >
+                            {isSelected && (
+                              <Check className="w-2 h-2 text-background" strokeWidth={3} />
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-foreground truncate">
+                            {gv.name}
+                          </span>
+                        </div>
+                        <span className="text-lg font-bold text-foreground tabular-nums">
+                          %{gv.pct}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {gv.volumeM3.toFixed(2)} m³
+                        </span>
+                        {isSelected && conflictsWith.length > 0 && (
+                          <span className="text-[9px] text-rose-600 mt-0.5 leading-tight">
+                            ⚠ {conflictsWith.join(', ')} ile çakışıyor
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <p className="text-[10px] text-muted-foreground">
-                  Bir karta tıklayarak yalnızca o grubu gönderin, ya da aşağıdaki seçeneklerden
-                  birini kullanın.
+                  Göndermek istediğin grupları seç. Seçilmeyen gruplar optimizasyona dahil edilmez.
                 </p>
               </div>
             </AlertDialogDescription>
@@ -370,12 +411,16 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
             <Button
               className="w-full bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+              disabled={selectedGroupNames.size === 0}
               onClick={() => {
+                const involvedGroupNames = (contamination?.groupVolumes ?? []).map((gv) => gv.name);
+                const excludeGroups = involvedGroupNames.filter((n) => !selectedGroupNames.has(n));
                 setContamination(null);
-                commitAndConfirm([]);
+                setSelectedGroupNames(new Set());
+                commitAndConfirm(excludeGroups);
               }}
             >
-              Tümünü gönder
+              Seçilenleri Gönder
             </Button>
             <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
           </AlertDialogFooter>

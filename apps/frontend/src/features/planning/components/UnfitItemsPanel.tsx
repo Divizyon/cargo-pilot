@@ -124,12 +124,13 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
       const placedIds = new Set(placements.map((p) => p.itemId));
       const curPlaced = selectedItems.filter((si) => placedIds.has(si.item.id));
       const wouldBe = [...curPlaced, { item: unfitItem.item, quantity: unfitItem.quantity }];
-      const allGroups = [
-        ...new Set(wouldBe.map((si) => si.item.stackGroup).filter((g): g is string => !!g)),
-      ];
-      if (allGroups.length >= 2) {
-        const conflicts = detectContaminationConflicts(wouldBe);
-        const groupVolumes = computeGroupVolumes(wouldBe, allGroups);
+      const conflicts = detectContaminationConflicts(wouldBe);
+      const newGroupInConflict = conflicts.some(
+        (c) => c.groupA === newGroup || c.groupB === newGroup,
+      );
+      if (newGroupInConflict) {
+        const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+        const groupVolumes = computeGroupVolumes(wouldBe, involvedGroups);
         setPendingRetryContamination({ pendingAction: doRetry, groupVolumes, conflicts });
         return;
       }

@@ -982,12 +982,13 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
           const curPlacedIds = new Set(cur.map((p) => p.itemId));
           const curPlaced = si.filter((s) => curPlacedIds.has(s.item.id));
           const wouldBe = [...curPlaced, { item: entry.item, quantity: qty }];
-          const allGroups = [
-            ...new Set(wouldBe.map((s) => s.item.stackGroup).filter((g): g is string => !!g)),
-          ];
-          if (allGroups.length >= 2) {
-            const conflicts = detectContaminationConflicts(wouldBe);
-            const groupVolumes = computeGroupVolumes(wouldBe, allGroups);
+          const conflicts = detectContaminationConflicts(wouldBe);
+          const newGroupInConflict = conflicts.some(
+            (c) => c.groupA === newGroup || c.groupB === newGroup,
+          );
+          if (newGroupInConflict) {
+            const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+            const groupVolumes = computeGroupVolumes(wouldBe, involvedGroups);
             setPendingPlaceContamination({ pendingAction: doPlace, groupVolumes, conflicts });
             return;
           }
