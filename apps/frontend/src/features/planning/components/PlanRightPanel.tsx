@@ -1002,7 +1002,6 @@ export function PlanRightPanel({
         onCreated={handleVehicleCreated}
       />
 
-
       {planId && (
         <ShareLinkDialog
           open={shareDialogOpen}
