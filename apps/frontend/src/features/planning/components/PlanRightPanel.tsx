@@ -654,41 +654,14 @@ export function PlanRightPanel({
             </div>
           )}
 
-          {/* Tab: Seçili Araç — read-only modda doğrudan göster */}
-          {(readOnly || activeVehicleTab === 'selected') && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {selectedVehicles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
-                  <Truck className="w-8 h-8 text-muted-foreground/30" />
-                  <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
-                </div>
-              ) : (
-                <div className="p-2 flex flex-col gap-0.5">
-                  {selectedVehicles.map((entry) => (
-                    <SelectedVehicleCard
-                      key={entry.instanceId}
-                      instanceId={entry.instanceId}
-                      vehicle={entry.vehicle}
-                      isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
-                      onMakeActive={() => setActiveVehicle(entry.instanceId)}
-                      onDeselect={handleDeselectVehicle}
-                      onAddInstance={() => handleAddInstance(entry.vehicle)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tab: Araç Listesi — read-only modda gizle */}
-          {!readOnly && activeVehicleTab === 'list' && (
-            <>
-              <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-                <SearchInput
-                  size="sm"
-                  placeholder="Araç adı ile ara…"
-                  onSearch={setVehicleSearch}
-                />
+          {/* Search + Filter — edit modda her tab'da göster */}
+          {!readOnly && (
+            <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
+              <SearchInput
+                size="sm"
+                placeholder="Araç adı ile ara…"
+                onSearch={setVehicleSearch}
+              />
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -755,51 +728,79 @@ export function PlanRightPanel({
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
+            </div>
+          )}
 
-              <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
-                {vehiclesLoading ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Araçlar yükleniyor…
-                  </div>
-                ) : listTabVehicles.length === 0 &&
-                  (vehicleSearch || activeVehicleTypes.size > 0) ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="w-6 h-6 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">
-                      {vehicleSearch
-                        ? `"${vehicleSearch}" için araç bulunamadı`
-                        : 'Seçili araç tipinde sonuç yok'}
-                    </p>
-                  </div>
-                ) : listTabVehicles.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Truck className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">Henüz araç eklenmemiş</p>
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleVehicleDragEnd}
-                  >
-                    <SortableContext items={listSortableIds} strategy={verticalListSortingStrategy}>
-                      {listTabVehicles.map((v) => (
-                        <SortableVehicleListItem
-                          key={v.id}
-                          id={v.id}
-                          vehicle={v}
-                          isSelected={selectedVehicleIds.has(v.id)}
-                          onAddToSelected={handleSelectVehicle}
-                          onPreview={peekVehicle}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
-                )}
-              </div>
-            </>
+          {/* Tab: Seçili Araç içeriği */}
+          {(readOnly || activeVehicleTab === 'selected') && (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {selectedVehicles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
+                  <Truck className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
+                </div>
+              ) : (
+                <div className="p-2 flex flex-col gap-0.5">
+                  {selectedVehicles.map((entry) => (
+                    <SelectedVehicleCard
+                      key={entry.instanceId}
+                      instanceId={entry.instanceId}
+                      vehicle={entry.vehicle}
+                      isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
+                      onMakeActive={() => setActiveVehicle(entry.instanceId)}
+                      onDeselect={handleDeselectVehicle}
+                      onAddInstance={() => handleAddInstance(entry.vehicle)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab: Araç Listesi içeriği */}
+          {!readOnly && activeVehicleTab === 'list' && (
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+              {vehiclesLoading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Araçlar yükleniyor…
+                </div>
+              ) : listTabVehicles.length === 0 &&
+                (vehicleSearch || activeVehicleTypes.size > 0) ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                  <Search className="w-6 h-6 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">
+                    {vehicleSearch
+                      ? `"${vehicleSearch}" için araç bulunamadı`
+                      : 'Seçili araç tipinde sonuç yok'}
+                  </p>
+                </div>
+              ) : listTabVehicles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                  <Truck className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Henüz araç eklenmemiş</p>
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleVehicleDragEnd}
+                >
+                  <SortableContext items={listSortableIds} strategy={verticalListSortingStrategy}>
+                    {listTabVehicles.map((v) => (
+                      <SortableVehicleListItem
+                        key={v.id}
+                        id={v.id}
+                        vehicle={v}
+                        isSelected={selectedVehicleIds.has(v.id)}
+                        onAddToSelected={handleSelectVehicle}
+                        onPreview={peekVehicle}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
           )}
         </div>
       </div>

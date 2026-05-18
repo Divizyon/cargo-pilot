@@ -79,7 +79,8 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
   const { pathname } = useLocation();
   const isActive = item.end
     ? pathname === item.path
-    : pathname === item.path || pathname.startsWith(item.path + '/');
+    : pathname === item.path ||
+      (pathname.startsWith(item.path + '/') && !(item.path === '/planning' && pathname === '/planning/new'));
 
   const controls = useAnimation();
   const wasActive = useRef(isActive);
@@ -154,6 +155,7 @@ function getInitials(name: string): string {
 
 function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const user = useAuthStore((s) => s.user);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const { data: quota } = useUsageQuota();
@@ -241,7 +243,9 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
             isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
             planLimitReached
               ? 'cursor-not-allowed bg-muted text-muted-foreground'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90',
+              : pathname === '/planning/new'
+                ? 'bg-primary/20 text-primary ring-1 ring-primary/40'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90',
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
