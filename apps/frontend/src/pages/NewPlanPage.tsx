@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';

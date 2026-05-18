@@ -472,10 +472,23 @@ const inputItemFullSchema = z
   })
   .passthrough();
 
-const planVehicleInPlanSchema = planVehicleApiSchema.extend({
-  vehicleId: z.string().uuid().optional(),
-  sortOrder: z.number().int().optional(),
-});
+const planVehicleInPlanSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    vehicleName: z.string().optional(),
+    name: z.string().optional(),
+    plateNumber: z.string().nullable().optional(),
+    plate: z.string().nullable().optional(),
+    internalWidth: z.number().optional(),
+    internalHeight: z.number().optional(),
+    internalLength: z.number().optional(),
+    maxWeightCapacity: z.number().optional(),
+    vehicleType: z.number().int().optional(),
+    loadingType: z.number().int().nullable().optional(),
+    vehicleId: z.string().uuid().optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .passthrough();
 
 export const planFullDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),

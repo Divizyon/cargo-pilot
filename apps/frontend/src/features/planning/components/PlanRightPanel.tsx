@@ -83,10 +83,11 @@ const VEHICLE_TYPE_META: Record<VehicleTypeValue, { label: string; icon: typeof 
 };
 
 const DOOR_LABEL: Record<DoorDirection, string> = {
-  rear: 'Ön',
+  front: 'Ön',
+  rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Ön + Yan',
+  rearAndSide: 'Arka + Yan',
 };
 
 // ─── VehicleListItem ──────────────────────────────────────────────────────────
