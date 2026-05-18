@@ -266,11 +266,7 @@ export function OptimizationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         {open && (
-          <ModalContent
-            onConfirm={onConfirm}
-            isOptimizing={isOptimizing}
-            disabled={disabled}
-          />
+          <ModalContent onConfirm={onConfirm} isOptimizing={isOptimizing} disabled={disabled} />
         )}
       </DialogContent>
     </Dialog>

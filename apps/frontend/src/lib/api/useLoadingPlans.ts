@@ -177,7 +177,12 @@ interface CreateLoadingPlanInput {
 export function useCreateLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
-    mutationFn: async ({ groups, clusterGroups, allowContamination, ...rest }: CreateLoadingPlanInput) => {
+    mutationFn: async ({
+      groups,
+      clusterGroups,
+      allowContamination,
+      ...rest
+    }: CreateLoadingPlanInput) => {
       const body: Record<string, unknown> = { ...rest };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
