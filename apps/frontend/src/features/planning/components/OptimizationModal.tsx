@@ -26,13 +26,12 @@ import {
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,6 +41,8 @@ import { usePlanStore, type InlineGroup } from '@/lib/store/usePlanStore';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import { INCOMPATIBLE_BY_GROUP } from '@/lib/api/itemMappers';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function detectContaminationConflicts(
   items: Array<{ item: Item; quantity: number }>,
@@ -58,7 +59,6 @@ function detectContaminationConflicts(
     const { stackGroup } = si.item;
     if (!stackGroup) continue;
 
-    // Use explicitly set incompatibleGroups, fall back to hardcoded mapping
     const incompatible =
       (si.item.incompatibleGroups ?? []).length > 0
         ? si.item.incompatibleGroups!
@@ -76,13 +76,42 @@ function detectContaminationConflicts(
   return conflicts;
 }
 
-interface OptimizationModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-  isOptimizing?: boolean;
-  disabled?: boolean;
+interface GroupVolume {
+  name: string;
+  volumeM3: number;
+  pct: number;
 }
+
+function computeGroupVolumes(
+  placedItems: Array<{ item: Item; quantity: number }>,
+  groups: string[],
+): GroupVolume[] {
+  const volumes: Record<string, number> = {};
+  for (const g of groups) volumes[g] = 0;
+
+  for (const si of placedItems) {
+    const g = si.item.stackGroup;
+    if (!g || !(g in volumes)) continue;
+    volumes[g] += si.item.width * si.item.height * si.item.length * si.quantity;
+  }
+
+  const total = Object.values(volumes).reduce((s, v) => s + v, 0);
+  return groups.map((name) => ({
+    name,
+    volumeM3: volumes[name] / 1_000_000,
+    pct: total > 0 ? Math.round((volumes[name] / total) * 100) : 0,
+  }));
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ContaminationState {
+  conflicts: { groupA: string; groupB: string }[];
+  groupVolumes: GroupVolume[];
+  placedItems: Array<{ item: Item; quantity: number }>;
+}
+
+// ─── SortableGroupRow ─────────────────────────────────────────────────────────
 
 interface SortableGroupRowProps {
   group: InlineGroup;
@@ -118,7 +147,17 @@ function SortableGroupRow({ group }: SortableGroupRowProps) {
   );
 }
 
-// ─── Modal content (mounts fresh on each open — useState initializers run from store) ──
+// ─── OptimizationModal props ──────────────────────────────────────────────────
+
+interface OptimizationModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  isOptimizing?: boolean;
+  disabled?: boolean;
+}
+
+// ─── Modal content ────────────────────────────────────────────────────────────
 
 interface ModalContentProps {
   onConfirm: () => void;
@@ -136,10 +175,7 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   const [localGroupOrder, setLocalGroupOrder] = useState<InlineGroup[]>(
     () => usePlanStore.getState().inlineGroups,
   );
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingConflicts, setPendingConflicts] = useState<{ groupA: string; groupB: string }[]>(
-    [],
-  );
+  const [contamination, setContamination] = useState<ContaminationState | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -156,11 +192,28 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
     });
   }
 
-  function commitAndConfirm() {
-    const { setCriteria, setClusterGroups, setInlineGroups } = usePlanStore.getState();
+  function commitAndConfirm(excludeGroups: string[] = []) {
+    const {
+      setCriteria,
+      setClusterGroups,
+      setInlineGroups,
+      placements,
+      selectedItems,
+      setPlacements,
+    } = usePlanStore.getState();
     setCriteria(localCriteria);
     setClusterGroups(localClusterGroups);
     setInlineGroups(localGroupOrder);
+
+    if (excludeGroups.length > 0) {
+      const excludedIds = new Set(
+        selectedItems
+          .filter((si) => excludeGroups.includes(si.item.stackGroup ?? ''))
+          .map((si) => si.item.id),
+      );
+      setPlacements(placements.filter((p) => !excludedIds.has(p.itemId)));
+    }
+
     onConfirm();
   }
 
@@ -169,11 +222,14 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
     const placedIds = new Set(placements.map((p) => p.itemId));
     const placedItems = selectedItems.filter((si) => placedIds.has(si.item.id));
     const conflicts = detectContaminationConflicts(placedItems);
+
     if (conflicts.length > 0) {
-      setPendingConflicts(conflicts);
-      setConfirmOpen(true);
+      const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+      const groupVolumes = computeGroupVolumes(placedItems, involvedGroups);
+      setContamination({ conflicts, groupVolumes, placedItems });
       return;
     }
+
     commitAndConfirm();
   }
 
@@ -296,43 +352,80 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
         </Button>
       </DialogFooter>
 
-      {/* Contamination confirmation — separate AlertDialog */}
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
+      {/* Contamination group-choice dialog */}
+      <AlertDialog
+        open={contamination !== null}
+        onOpenChange={(open) => {
+          if (!open) setContamination(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Uyumsuz Yük Grupları</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-muted-foreground">
-                  Seçili ürünler arasında birlikte yüklenemeyen gruplar tespit edildi. Devam
-                  ederseniz uyumsuz gruplardan biri yüklenemeyecek ve sığmayan ürünler listesine
-                  eklenecek.
-                </p>
+              <div className="flex flex-col gap-4 pt-1">
+                {/* Conflict list */}
                 <div className="flex flex-col gap-1">
-                  {pendingConflicts.map((c, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-rose-50 border border-rose-200 text-xs"
-                    >
-                      <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
-                      <span className="font-medium text-rose-700">{c.groupA}</span>
+                  {contamination?.conflicts.map((c, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      <span className="font-medium">{c.groupA}</span>
                       <span className="text-rose-400">ve</span>
-                      <span className="font-medium text-rose-700">{c.groupB}</span>
-                      <span className="text-rose-500">birlikte yüklenemez</span>
+                      <span className="font-medium">{c.groupB}</span>
+                      <span className="text-muted-foreground">birlikte yüklenemez</span>
                     </div>
                   ))}
                 </div>
+
+                {/* Volume cards */}
+                <div className="grid grid-cols-2 gap-2">
+                  {contamination?.groupVolumes.map((gv) => (
+                    <button
+                      key={gv.name}
+                      onClick={() => {
+                        const others = contamination.groupVolumes
+                          .map((g) => g.name)
+                          .filter((n) => n !== gv.name);
+                        setContamination(null);
+                        commitAndConfirm(others);
+                      }}
+                      className="flex flex-col gap-1 p-3 rounded-lg border border-border bg-muted/40 hover:bg-accent hover:border-foreground/20 transition-colors text-left"
+                    >
+                      <span className="text-xs font-semibold text-foreground truncate">
+                        {gv.name}
+                      </span>
+                      <span className="text-lg font-bold text-foreground tabular-nums">
+                        %{gv.pct}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {gv.volumeM3.toFixed(2)} m³
+                      </span>
+                      <span className="text-[10px] text-foreground/60 mt-0.5">
+                        Sadece bunu gönder →
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  Bir karta tıklayarak yalnızca o grubu gönderin, ya da aşağıdaki seçeneklerden
+                  birini kullanın.
+                </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-foreground text-background hover:bg-foreground/80"
-              onClick={commitAndConfirm}
+
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              className="w-full bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+              onClick={() => {
+                setContamination(null);
+                commitAndConfirm([]);
+              }}
             >
-              Yine de Devam Et
-            </AlertDialogAction>
+              Her ikisini de gönder (sistem karar verir)
+            </Button>
+            <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
