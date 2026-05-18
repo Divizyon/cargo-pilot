@@ -511,30 +511,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((s) => {
       const alreadyPlaced = s.placements.some((p) => p.itemId === itemId);
       if (alreadyPlaced) {
-        return {
-          placements: s.placements.filter((p) => p.itemId !== itemId),
-          unfitItems: s.unfitItems.filter((u) => u.item.id !== itemId),
-        };
+        return { placements: s.placements.filter((p) => p.itemId !== itemId) };
       }
       if (!s.selectedVehicle) return {};
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const { placed, unfitByReason } = buildPlacements(
+      const staged = buildStagingPlacements(
         entry.item,
         entry.quantity,
         color,
-        s.selectedVehicle,
+        s.selectedVehicle.width,
         s.placements,
       );
-      if (placed.length === 0) {
-        return { unfitItems: mergeUnfitItem(s.unfitItems, entry.item, unfitByReason) };
-      }
-      const next = [...s.placements, ...placed];
-      return {
-        placements: computeViolations(next),
-        unfitItems: mergeUnfitItem(s.unfitItems, entry.item, unfitByReason),
-      };
+      return { placements: [...s.placements, ...staged] };
     }),
 
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
