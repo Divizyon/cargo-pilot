@@ -82,7 +82,11 @@ function UnfitItemRow({
   );
 }
 
-export function UnfitItemsPanel() {
+interface UnfitItemsPanelProps {
+  onFullRemove?: (itemId: string) => void;
+}
+
+export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
   const [open, setOpen] = useState(true);
   const unfitItems = usePlanStore((s) => s.unfitItems);
   const removeUnfitItem = usePlanStore((s) => s.removeUnfitItem);
@@ -129,7 +133,10 @@ export function UnfitItemsPanel() {
                 key={u.item.id}
                 unfitItem={u}
                 onRetry={() => retryUnfitItem(u.item.id)}
-                onRemove={() => removeUnfitItem(u.item.id)}
+                onRemove={() => {
+                  removeUnfitItem(u.item.id);
+                  onFullRemove?.(u.item.id);
+                }}
               />
             ))}
           </div>
