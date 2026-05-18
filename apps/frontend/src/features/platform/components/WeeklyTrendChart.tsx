@@ -42,7 +42,7 @@ export function WeeklyTrendChart({ data }: Props) {
             tickLine={false}
             tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
           />
-          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} domain={[0, 'auto']} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} domain={[0, 'auto']} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Area
             type="monotone"

@@ -61,7 +61,6 @@ import { VehicleCard } from './VehicleCard';
 const STATUS_TABS = [
   { value: 'all', label: 'Tümü' },
   { value: 'taslak', label: 'Taslak' },
-  { value: 'aktif', label: 'Aktif' },
   { value: 'tamamlandi', label: 'Tamamlandı' },
 ];
 
@@ -472,8 +471,8 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
   const tabCounts = {
     all: allData?.totalCount ?? 0,
     taslak: allData?.items.filter((p) => p.status === 'taslak').length ?? 0,
-    aktif: allData?.items.filter((p) => p.status === 'aktif').length ?? 0,
-    tamamlandi: allData?.items.filter((p) => p.status === 'tamamlandi').length ?? 0,
+    tamamlandi:
+      allData?.items.filter((p) => p.status === 'tamamlandi' || p.status === 'aktif').length ?? 0,
   };
 
   const items = data?.items ?? [];

@@ -48,11 +48,39 @@ export function DashboardStatsCards() {
     void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
   }
 
-  const items = allPlans ?? [];
+  const weeklyFilteredItems = useMemo(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    return (weeklyPlans ?? []).filter((p) => {
+      const d = new Date(p.plannedAt ?? p.createdAt);
+      return !isNaN(d.getTime()) && d >= monday;
+    });
+  }, [weeklyPlans]);
 
-  const taslakCount = items.filter((p) => p.status === PlanStatus.Taslak).length;
-  const aktifCount = items.filter((p) => p.status === PlanStatus.Aktif).length;
-  const tamamlandiCount = items.filter((p) => p.status === PlanStatus.Tamamlandi).length;
+  const taslakCount = weeklyFilteredItems.filter((p) => p.status === PlanStatus.Taslak).length;
+  const tamamlandiCount = weeklyFilteredItems.filter((p) => p.status === PlanStatus.Tamamlandi).length;
+
+  const weeklyEfficiency = useMemo(() => {
+    const totalVehicles = vehiclesData?.totalCount ?? 0;
+    if (totalVehicles === 0) return 0;
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const thisWeekPlans = (weeklyPlans ?? allPlans ?? []).filter((p) => {
+      const d = new Date(p.plannedAt ?? p.createdAt);
+      const diff = Math.floor((d.getTime() - monday.getTime()) / 86400000);
+      return diff >= 0 && diff < 7;
+    });
+    const uniqueVehicleCount = new Set(thisWeekPlans.map((p) => p.vehicleId)).size;
+    return Math.round((uniqueVehicleCount / totalVehicles) * 100);
+  }, [weeklyPlans, allPlans, vehiclesData]);
 
   const trendData = useMemo(() => {
     const source = weeklyPlans ?? allPlans ?? [];
@@ -72,10 +100,6 @@ export function DashboardStatsCards() {
       </span>
       <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <span className="size-2 rounded-full bg-blue-500 shrink-0" />
-        {aktifCount} Aktif
-      </span>
-      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
         {tamamlandiCount} Tamamlandı
       </span>
     </div>
@@ -85,18 +109,18 @@ export function DashboardStatsCards() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         <StatSummaryCard
-          title="Araç Verimliliği"
+          title="Bu Hafta Araç Verimliliği"
           icon={Gauge}
-          value={data?.vehicleEfficiency.value ?? 0}
+          value={weeklyEfficiency}
           subInfo={vehicleSubInfo}
-          delta={data?.vehicleEfficiency.delta ?? 0}
+          delta={0}
           isLoading={isLoading}
           isError={isError}
           onRetry={handleRetry}
           formatValue={efficiencyFormat}
         />
         <StatSummaryCard
-          title="Toplam Yüklenen Tonaj"
+          title="Bu Hafta Yüklenen Tonaj"
           icon={Scale}
           value={data?.weeklyLoadedTonnage.value ?? 0}
           subInfo={data?.weeklyLoadedTonnage.subInfo ?? ''}
@@ -107,7 +131,7 @@ export function DashboardStatsCards() {
           formatValue={tonnageFormat}
         />
         <StatSummaryCard
-          title="Toplam Yükleme Sayısı"
+          title="Bu Hafta Yükleme Sayısı"
           icon={ClipboardList}
           value={data?.weeklyLoadingCount.value ?? 0}
           subInfo=""
