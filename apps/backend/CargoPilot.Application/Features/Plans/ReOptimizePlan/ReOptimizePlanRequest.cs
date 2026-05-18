@@ -7,7 +7,8 @@ public sealed record ReOptimizePlanRequest(
     IReadOnlyList<ReOptimizePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
-    bool ClusterGroups = true);
+    bool ClusterGroups = true,
+    bool AllowContamination = false);
 
 public sealed record ReOptimizePlanGroupDefinition(
     Guid ClientGroupId,
