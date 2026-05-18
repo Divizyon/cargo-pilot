@@ -146,6 +146,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       placements,
       criteria,
       clusterGroups,
+      allowContamination,
       inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || !planNameInput.trim()) return;
@@ -189,6 +190,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       })),
       optimizationCriteria: criteria,
       clusterGroups,
+      allowContamination,
       groups,
     });
     navigate(planningDetailRoute(id), { replace: true });
@@ -207,6 +209,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       placements,
       criteria,
       clusterGroups,
+      allowContamination,
       inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
@@ -250,6 +253,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       })),
       optimizationCriteria: criteria,
       clusterGroups,
+      allowContamination,
       groups,
     });
     setRefetchKey((k) => k + 1);

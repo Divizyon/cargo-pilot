@@ -267,6 +267,8 @@ interface PlanStore {
   previewPlacements: PlacementWithDimensions[];
   inlineGroups: InlineGroup[];
   setInlineGroups: (groups: InlineGroup[]) => void;
+  allowContamination: boolean;
+  setAllowContamination: (v: boolean) => void;
   setVehicle: (vehicle: Vehicle | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
   peekVehicle: (vehicle: Vehicle) => void;
@@ -362,6 +364,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   previewPlacements: [],
   inlineGroups: [],
   setInlineGroups: (groups) => set({ inlineGroups: groups }),
+  allowContamination: false,
+  setAllowContamination: (v) => set({ allowContamination: v }),
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -704,6 +708,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       skuColorMap: {},
       criteria: 2,
       clusterGroups: true,
+      allowContamination: false,
       placements: [],
       unfitItems: [],
       previewItemId: null,
