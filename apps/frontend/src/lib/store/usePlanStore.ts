@@ -199,27 +199,89 @@ function buildStagingPlacements(
   vehicleWidth: number,
   existingPlacements: PlacementWithDimensions[],
 ): PlacementWithDimensions[] {
-  const stagingX = vehicleWidth + SCENE.STAGING_GAP_CM;
-  const existingStaging = existingPlacements.filter((p) => p.isStagingArea);
-  const maxZ =
-    existingStaging.length > 0 ? Math.max(...existingStaging.map((p) => p.positionZ + p.depth)) : 0;
+  const originX = vehicleWidth + SCENE.STAGING_GAP_CM;
+  const maxX = originX + SCENE.STAGING_WIDTH_CM;
+  const maxZ = SCENE.STAGING_DEPTH_CM;
+  const gap = SCENE.STAGING_INTER_GAP_CM;
+  const w = item.width;
+  const h = item.height;
+  const d = item.length;
 
-  return Array.from({ length: qty }, (_, i) => ({
-    itemId: item.id,
-    positionX: stagingX,
-    positionY: 0,
-    positionZ: maxZ + i * (item.length + SCENE.STAGING_INTER_GAP_CM),
-    orientationIndex: 0 as const,
-    layer: 1,
-    isViolation: false,
-    isStagingArea: true,
-    width: item.width,
-    height: item.height,
-    depth: item.length,
-    weight: item.weight,
-    color,
-    productType: item.productType,
-  }));
+  const existing = existingPlacements.filter((p) => p.isStagingArea);
+
+  // Mevcut staging'den cursor'u çıkar: en üst Y katını bul, o kattaki son pozisyonu al
+  let curX = originX;
+  let curZ = 0;
+  let curY = 0;
+  let rowDepth = 0;
+  let layerHeight = 0; // mevcut Y katındaki en yüksek kutu
+
+  for (const p of existing) {
+    if (p.positionY > curY) {
+      curY = p.positionY;
+      curX = originX;
+      curZ = 0;
+      rowDepth = 0;
+      layerHeight = 0;
+    }
+    if (p.positionY === curY) {
+      layerHeight = Math.max(layerHeight, p.height);
+      if (p.positionZ + p.depth > curZ + rowDepth) rowDepth = p.positionZ + p.depth - curZ;
+      if (p.positionX + p.width + gap > curX) curX = p.positionX + p.width + gap;
+    }
+  }
+  // Cursor X taşmışsa yeni Z satırına geç
+  if (existing.length > 0 && curX + w > maxX) {
+    curX = originX;
+    curZ += rowDepth + gap;
+    rowDepth = 0;
+  }
+  // Cursor Z taşmışsa yeni Y katına çık
+  if (existing.length > 0 && curZ + d > maxZ) {
+    curY += layerHeight + gap;
+    curX = originX;
+    curZ = 0;
+    rowDepth = 0;
+  }
+
+  const result: PlacementWithDimensions[] = [];
+
+  for (let i = 0; i < qty; i++) {
+    result.push({
+      itemId: item.id,
+      positionX: curX,
+      positionY: curY,
+      positionZ: curZ,
+      orientationIndex: 0 as const,
+      layer: 1,
+      isViolation: false,
+      isStagingArea: true,
+      width: w,
+      height: h,
+      depth: d,
+      weight: item.weight,
+      color,
+      productType: item.productType,
+    });
+
+    rowDepth = Math.max(rowDepth, d);
+    layerHeight = Math.max(layerHeight, h);
+    curX += w + gap;
+
+    if (curX + w > maxX) {
+      curX = originX;
+      curZ += rowDepth + gap;
+      rowDepth = 0;
+
+      if (curZ + d > maxZ) {
+        curY += layerHeight + gap;
+        curZ = 0;
+        layerHeight = 0;
+      }
+    }
+  }
+
+  return result;
 }
 
 function primaryUnfitReason(unfitByReason: Partial<Record<UnfitReason, number>>): UnfitReason {
