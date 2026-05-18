@@ -77,12 +77,11 @@ function SortableGroupRow({ group }: SortableGroupRowProps) {
 
 interface ModalContentProps {
   onConfirm: () => void;
-  onClose: () => void;
   isOptimizing: boolean;
   disabled: boolean;
 }
 
-function ModalContent({ onConfirm, onClose, isOptimizing, disabled }: ModalContentProps) {
+function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) {
   const [localCriteria, setLocalCriteria] = useState<OptimizationCriteria>(
     () => usePlanStore.getState().criteria,
   );
@@ -269,7 +268,6 @@ export function OptimizationModal({
         {open && (
           <ModalContent
             onConfirm={onConfirm}
-            onClose={() => onOpenChange(false)}
             isOptimizing={isOptimizing}
             disabled={disabled}
           />
