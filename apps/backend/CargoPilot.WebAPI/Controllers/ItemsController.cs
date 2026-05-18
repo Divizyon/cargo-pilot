@@ -1,4 +1,5 @@
 using CargoPilot.Application.Features.Items.BulkCreateItems;
+using CargoPilot.Application.Features.Items.BulkUpdateItems;
 using CargoPilot.Application.Features.Items.CreateItem;
 using CargoPilot.Application.Features.Items.DeleteItem;
 using CargoPilot.Application.Features.Items.GetItemById;
@@ -121,6 +122,26 @@ public sealed class ItemsController : BaseController
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
 
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Birden fazla ürünü tek seferde günceller. Herhangi bir satırda hata varsa hiçbir kayıt güncellenmez.
+    /// </summary>
+    /// <response code="200">Tüm ürünler güncellendi; güncellenen kayıt sayısı döner.</response>
+    /// <response code="400">Bir veya daha fazla satırda doğrulama hatası; hangi satırda ne hatası olduğu liste halinde döner.</response>
+    /// <response code="404">Bir veya daha fazla ürün bulunamadı.</response>
+    /// <response code="409">Bir veya daha fazla SKU başka bir üründe zaten kullanılıyor.</response>
+    [HttpPut("bulk")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> BulkUpdateItems(
+        [FromBody] BulkUpdateItemsCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
 
