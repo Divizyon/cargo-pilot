@@ -62,7 +62,9 @@ export function DashboardStatsCards() {
   }, [weeklyPlans]);
 
   const taslakCount = weeklyFilteredItems.filter((p) => p.status === PlanStatus.Taslak).length;
-  const tamamlandiCount = weeklyFilteredItems.filter((p) => p.status === PlanStatus.Tamamlandi).length;
+  const tamamlandiCount = weeklyFilteredItems.filter(
+    (p) => p.status === PlanStatus.Tamamlandi,
+  ).length;
 
   const weeklyEfficiency = useMemo(() => {
     const totalVehicles = vehiclesData?.totalCount ?? 0;

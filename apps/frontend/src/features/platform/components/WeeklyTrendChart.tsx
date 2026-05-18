@@ -22,7 +22,9 @@ export function WeeklyTrendChart({ data }: Props) {
     <div className="rounded-xl border bg-card p-4 shadow-none">
       <div className="flex items-start justify-between mb-1">
         <div>
-          <p className="text-base font-semibold text-foreground">Haftalık Yükleme Planları Trendi</p>
+          <p className="text-base font-semibold text-foreground">
+            Haftalık Yükleme Planları Trendi
+          </p>
           <p className="text-sm text-muted-foreground">Toplam yükleme planları trendi</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -42,7 +44,13 @@ export function WeeklyTrendChart({ data }: Props) {
             tickLine={false}
             tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
           />
-          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} domain={[0, 'auto']} allowDecimals={false} />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12 }}
+            domain={[0, 'auto']}
+            allowDecimals={false}
+          />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Area
             type="monotone"
