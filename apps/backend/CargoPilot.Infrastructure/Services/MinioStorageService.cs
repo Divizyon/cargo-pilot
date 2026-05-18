@@ -13,13 +13,15 @@ internal sealed partial class MinioStorageService : IStorageService
     private readonly string _bucketName;
     private readonly string _publicEndpoint;
     private readonly bool _useSSL;
+    private readonly bool _hasCustomPublicEndpoint;
     private readonly ILogger<MinioStorageService> _logger;
 
     public MinioStorageService(IMinioClient client, IOptions<MinioSettings> options, ILogger<MinioStorageService> logger)
     {
         _client = client;
         _bucketName = options.Value.BucketName;
-        _publicEndpoint = string.IsNullOrEmpty(options.Value.PublicEndpoint) ? options.Value.Endpoint : options.Value.PublicEndpoint;
+        _hasCustomPublicEndpoint = !string.IsNullOrEmpty(options.Value.PublicEndpoint);
+        _publicEndpoint = _hasCustomPublicEndpoint ? options.Value.PublicEndpoint! : options.Value.Endpoint;
         _useSSL = options.Value.UseSSL;
         _logger = logger;
     }
@@ -41,8 +43,15 @@ internal sealed partial class MinioStorageService : IStorageService
 
         await _client.PutObjectAsync(putArgs, cancellationToken);
 
-        var scheme = _useSSL ? "https" : "http";
-        return $"{scheme}://{_publicEndpoint}/{_bucketName}/{objectKey}";
+        var baseUrl = _publicEndpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                      _publicEndpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? _publicEndpoint
+            : $"{(_useSSL ? "https" : "http")}://{_publicEndpoint}";
+
+        // PublicEndpoint set edilmişse nginx zaten bucket'ı route eder, tekrar ekleme.
+        return _hasCustomPublicEndpoint
+            ? $"{baseUrl}/{objectKey}"
+            : $"{baseUrl}/{_bucketName}/{objectKey}";
     }
 
     public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
