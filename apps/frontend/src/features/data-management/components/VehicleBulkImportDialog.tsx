@@ -32,11 +32,7 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
 };
 const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top'] as const;
 
-const DOOR_DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Arka',
-  side: 'Yan',
-  top: 'Üst',
-};
+const DOOR_DIRECTION_LABELS: Record<string, string> = { rear: 'Arka', side: 'Yan', top: 'Üst' };
 
 const editableRowSchema = z.object({
   _id: z.string(),
