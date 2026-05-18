@@ -100,7 +100,9 @@ export function computeViolations(
   const violating = new Set<number>();
 
   for (let i = 0; i < placements.length; i++) {
+    if (placements[i].isStagingArea) continue;
     for (let j = i + 1; j < placements.length; j++) {
+      if (placements[j].isStagingArea) continue;
       if (boxesIntersect(placements[i], placements[j])) {
         violating.add(i);
         violating.add(j);
