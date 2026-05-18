@@ -30,6 +30,30 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore, type InlineGroup } from '@/lib/store/usePlanStore';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import type { Item } from '@/lib/types/item';
+
+function detectContaminationConflicts(
+  items: Array<{ item: Item; quantity: number }>,
+): { groupA: string; groupB: string }[] {
+  const presentGroups = new Set(
+    items.map((si) => si.item.stackGroup).filter((g): g is string => !!g),
+  );
+  const seen = new Set<string>();
+  const conflicts: { groupA: string; groupB: string }[] = [];
+  for (const si of items) {
+    const { stackGroup, incompatibleGroups } = si.item;
+    if (!stackGroup || !incompatibleGroups) continue;
+    for (const other of incompatibleGroups) {
+      if (!presentGroups.has(other)) continue;
+      const key = [stackGroup, other].sort().join('||');
+      if (!seen.has(key)) {
+        seen.add(key);
+        conflicts.push({ groupA: stackGroup, groupB: other });
+      }
+    }
+  }
+  return conflicts;
+}
 
 interface OptimizationModalProps {
   open: boolean;
@@ -91,6 +115,9 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   const [localGroupOrder, setLocalGroupOrder] = useState<InlineGroup[]>(
     () => usePlanStore.getState().inlineGroups,
   );
+  const [contaminationConflicts, setContaminationConflicts] = useState<
+    { groupA: string; groupB: string }[]
+  >([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -107,12 +134,22 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
     });
   }
 
-  function handleConfirm() {
+  function commitAndConfirm() {
     const { setCriteria, setClusterGroups, setInlineGroups } = usePlanStore.getState();
     setCriteria(localCriteria);
     setClusterGroups(localClusterGroups);
     setInlineGroups(localGroupOrder);
     onConfirm();
+  }
+
+  function handleConfirm() {
+    const { selectedItems } = usePlanStore.getState();
+    const conflicts = detectContaminationConflicts(selectedItems);
+    if (conflicts.length > 0) {
+      setContaminationConflicts(conflicts);
+      return;
+    }
+    commitAndConfirm();
   }
 
   const algorithms = [
@@ -135,6 +172,57 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
       title: 'Kapı önceliklendirmesi',
     },
   ] as const;
+
+  if (contaminationConflicts.length > 0) {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle className="text-sm">Uyumsuz Yük Grupları</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-1">
+          <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-rose-50 border border-rose-200">
+            <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-px" />
+            <p className="text-[10px] text-rose-700 leading-relaxed">
+              Seçili ürünler arasında birlikte yüklenemeyen gruplar var. Devam ederseniz uyumsuz
+              gruplardan biri yüklenemeyecek ve sığmayan ürünler listesine eklenecek.
+            </p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-muted-foreground px-0.5">Çakışan Gruplar</span>
+            {contaminationConflicts.map((c, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-[10px] text-foreground"
+              >
+                <span className="font-medium">{c.groupA}</span>
+                <span className="text-muted-foreground">↔</span>
+                <span className="font-medium">{c.groupB}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter className="flex gap-2 sm:justify-between">
+          <Button
+            variant="outline"
+            className="flex-1 text-xs h-8"
+            onClick={() => setContaminationConflicts([])}
+          >
+            İptal
+          </Button>
+          <Button
+            className="flex-1 bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+            disabled={isOptimizing}
+            onClick={commitAndConfirm}
+          >
+            {isOptimizing && (
+              <span className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-background border-t-transparent" />
+            )}
+            Yine de Devam Et
+          </Button>
+        </DialogFooter>
+      </>
+    );
+  }
 
   return (
     <>
