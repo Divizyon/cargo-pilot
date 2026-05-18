@@ -535,14 +535,18 @@ export function useERPShipmentOrders(
   return useQuery({
     queryKey: ['erp', 'shipment-orders', integrationId, filters] as const,
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.status) params.set('status', filters.status);
-      const qs = params.toString();
-      const { data } = await axiosInstance.get<unknown>(
-        `${ERP_BASE}/${integrationId}/shipment-orders${qs ? `?${qs}` : ''}`,
-      );
-      const parsed = erpShipmentOrdersResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
+      try {
+        const params = new URLSearchParams();
+        if (filters?.status) params.set('status', filters.status);
+        const qs = params.toString();
+        const { data } = await axiosInstance.get<unknown>(
+          `${ERP_BASE}/${integrationId}/shipment-orders${qs ? `?${qs}` : ''}`,
+        );
+        const parsed = erpShipmentOrdersResponseSchema.safeParse(data);
+        return parsed.success ? parsed.data.data : [];
+      } catch {
+        return [];
+      }
     },
     enabled: Boolean(integrationId),
     retry: false,
