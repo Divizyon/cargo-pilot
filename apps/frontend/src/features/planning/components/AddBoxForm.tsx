@@ -173,7 +173,6 @@ interface AddBoxFormProps {
 export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) {
   const addManualItem = usePlanStore((s) => s.addManualItem);
   const updateItem = usePlanStore((s) => s.updateItem);
-  const setPreview = usePlanStore((s) => s.setPreview);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
   const [showPalette, setShowPalette] = useState(false);
 
@@ -304,9 +303,6 @@ export function AddBoxForm({ onClose, onSuccess, editTarget }: AddBoxFormProps) 
       updateItem(editTarget.itemId, item, data.quantity, data.color);
     } else {
       addManualItem(item, data.quantity, data.color);
-      // Landing animasyonunu tetikle: yeni eklenen kutular previewPlacements'a yazılır,
-      // useLandingAnimation bunları yukarıdan hedef pozisyona düşürür.
-      setPreview(item.id, item, data.quantity, data.color);
     }
 
     onSuccess?.();

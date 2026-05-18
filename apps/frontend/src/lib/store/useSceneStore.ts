@@ -35,6 +35,7 @@ interface SceneStore {
   setSelectedItemId: (id: string | null) => void;
   setSelectedInstanceId: (id: number | null) => void;
   toggleHiddenItem: (id: string) => void;
+  setHiddenItemIds: (ids: string[]) => void;
   setDisplayMode: (mode: DisplayMode) => void;
   toggleDisplayMode: () => void;
   setCameraPreset: (preset: CameraPreset | null) => void;
@@ -89,6 +90,7 @@ export const useSceneStore = create<SceneStore>((set) => ({
         ? s.hiddenItemIds.filter((x) => x !== id)
         : [...s.hiddenItemIds, id],
     })),
+  setHiddenItemIds: (ids) => set({ hiddenItemIds: ids }),
   setDisplayMode: (mode) => set({ displayMode: mode }),
   toggleDisplayMode: () =>
     set((s) => ({ displayMode: s.displayMode === 'solid' ? 'wireframe' : 'solid' })),

@@ -192,6 +192,98 @@ function buildPlacements(
   return { placed: result, unfitByReason };
 }
 
+function buildStagingPlacements(
+  item: Item,
+  qty: number,
+  color: string,
+  vehicleWidth: number,
+  existingPlacements: PlacementWithDimensions[],
+): PlacementWithDimensions[] {
+  const originX = vehicleWidth + SCENE.STAGING_GAP_CM;
+  const maxX = originX + SCENE.STAGING_WIDTH_CM;
+  const maxZ = SCENE.STAGING_DEPTH_CM;
+  const gap = SCENE.STAGING_INTER_GAP_CM;
+  const w = item.width;
+  const h = item.height;
+  const d = item.length;
+
+  const existing = existingPlacements.filter((p) => p.isStagingArea);
+
+  // Mevcut staging'den cursor'u çıkar: en üst Y katını bul, o kattaki son pozisyonu al
+  let curX = originX;
+  let curZ = 0;
+  let curY = 0;
+  let rowDepth = 0;
+  let layerHeight = 0; // mevcut Y katındaki en yüksek kutu
+
+  for (const p of existing) {
+    if (p.positionY > curY) {
+      curY = p.positionY;
+      curX = originX;
+      curZ = 0;
+      rowDepth = 0;
+      layerHeight = 0;
+    }
+    if (p.positionY === curY) {
+      layerHeight = Math.max(layerHeight, p.height);
+      if (p.positionZ + p.depth > curZ + rowDepth) rowDepth = p.positionZ + p.depth - curZ;
+      if (p.positionX + p.width + gap > curX) curX = p.positionX + p.width + gap;
+    }
+  }
+  // Cursor X taşmışsa yeni Z satırına geç
+  if (existing.length > 0 && curX + w > maxX) {
+    curX = originX;
+    curZ += rowDepth + gap;
+    rowDepth = 0;
+  }
+  // Cursor Z taşmışsa yeni Y katına çık
+  if (existing.length > 0 && curZ + d > maxZ) {
+    curY += layerHeight + gap;
+    curX = originX;
+    curZ = 0;
+    rowDepth = 0;
+  }
+
+  const result: PlacementWithDimensions[] = [];
+
+  for (let i = 0; i < qty; i++) {
+    result.push({
+      itemId: item.id,
+      positionX: curX,
+      positionY: curY,
+      positionZ: curZ,
+      orientationIndex: 0 as const,
+      layer: 1,
+      isViolation: false,
+      isStagingArea: true,
+      width: w,
+      height: h,
+      depth: d,
+      weight: item.weight,
+      color,
+      productType: item.productType,
+    });
+
+    rowDepth = Math.max(rowDepth, d);
+    layerHeight = Math.max(layerHeight, h);
+    curX += w + gap;
+
+    if (curX + w > maxX) {
+      curX = originX;
+      curZ += rowDepth + gap;
+      rowDepth = 0;
+
+      if (curZ + d > maxZ) {
+        curY += layerHeight + gap;
+        curZ = 0;
+        layerHeight = 0;
+      }
+    }
+  }
+
+  return result;
+}
+
 function primaryUnfitReason(unfitByReason: Partial<Record<UnfitReason, number>>): UnfitReason {
   if (unfitByReason[UnfitReasonConst.Weight]) return UnfitReasonConst.Weight;
   if (unfitByReason[UnfitReasonConst.Stacking]) return UnfitReasonConst.Stacking;
@@ -216,20 +308,34 @@ export interface UnplacedEntry {
   name: string;
 }
 
+export interface InlineGroup {
+  id: string;
+  dbId?: string; // set when loaded from API (real DB uuid); undefined for locally-created groups
+  name: string;
+  color: string;
+  itemIds: string[];
+}
+
 interface PlanStore {
   selectedVehicle: Vehicle | null;
   selectedVehicles: Array<{ instanceId: string; vehicle: Vehicle }>;
   selectedItems: Array<{ item: Item; quantity: number }>;
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
+  clusterGroups: boolean;
   placements: PlacementWithDimensions[];
   unfitItems: UnfitItem[];
   /** Optimizasyon tamamlandığında artar — BalancePanel dismiss sıfırlamak için kullanır */
   optimizationCount: number;
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
+<<<<<<< HEAD
   /** Çoklu araç görünümünde aktif araç — null ise tüm araçlar gösterilir */
   activeVehicleId: string | null;
+=======
+  inlineGroups: InlineGroup[];
+  setInlineGroups: (groups: InlineGroup[]) => void;
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   setVehicle: (vehicle: Vehicle | null) => void;
   setActiveVehicleId: (id: string | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
@@ -261,6 +367,7 @@ interface PlanStore {
   togglePlacement: (itemId: string) => void;
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
+  setClusterGroups: (v: boolean) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
   setUnplacedItems: (items: UnplacedEntry[]) => void;
   /**
@@ -319,14 +426,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
   selectedItems: [],
   skuColorMap: {},
   criteria: 2,
+  clusterGroups: true,
   placements: [],
   unfitItems: [],
   optimizationCount: 0,
   previewItemId: null,
   previewPlacements: [],
+<<<<<<< HEAD
   activeVehicleId: null,
 
   setActiveVehicleId: (id) => set({ activeVehicleId: id }),
+=======
+  inlineGroups: [],
+  setInlineGroups: (groups) => set({ inlineGroups: groups }),
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -401,22 +514,22 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   addManualItem: (item, qty, color) =>
     set((s) => {
-      if (!s.selectedVehicle)
-        return { selectedItems: [...s.selectedItems, { item, quantity: qty }] };
       const updatedColorMap = { ...s.skuColorMap, [item.sku]: color };
-      const { placed, unfitByReason } = buildPlacements(
+      const updatedItems = [...s.selectedItems, { item, quantity: qty }];
+      if (!s.selectedVehicle) {
+        return { selectedItems: updatedItems, skuColorMap: updatedColorMap };
+      }
+      const staged = buildStagingPlacements(
         item,
         qty,
         color,
-        s.selectedVehicle,
+        s.selectedVehicle.width,
         s.placements,
       );
-      const next = [...s.placements, ...placed];
       return {
-        selectedItems: [...s.selectedItems, { item, quantity: qty }],
+        selectedItems: updatedItems,
         skuColorMap: updatedColorMap,
-        placements: computeViolations(next),
-        unfitItems: mergeUnfitItem(s.unfitItems, item, unfitByReason),
+        placements: [...s.placements, ...staged],
       };
     }),
 
@@ -472,35 +585,26 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((s) => {
       const alreadyPlaced = s.placements.some((p) => p.itemId === itemId);
       if (alreadyPlaced) {
-        return {
-          placements: s.placements.filter((p) => p.itemId !== itemId),
-          unfitItems: s.unfitItems.filter((u) => u.item.id !== itemId),
-        };
+        return { placements: s.placements.filter((p) => p.itemId !== itemId) };
       }
       if (!s.selectedVehicle) return {};
       const entry = s.selectedItems.find((si) => si.item.id === itemId);
       if (!entry) return {};
       const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-      const { placed, unfitByReason } = buildPlacements(
+      const staged = buildStagingPlacements(
         entry.item,
         entry.quantity,
         color,
-        s.selectedVehicle,
+        s.selectedVehicle.width,
         s.placements,
       );
-      if (placed.length === 0) {
-        return { unfitItems: mergeUnfitItem(s.unfitItems, entry.item, unfitByReason) };
-      }
-      const next = [...s.placements, ...placed];
-      return {
-        placements: computeViolations(next),
-        unfitItems: mergeUnfitItem(s.unfitItems, entry.item, unfitByReason),
-      };
+      return { placements: [...s.placements, ...staged] };
     }),
 
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
 
   setCriteria: (criteria) => set({ criteria }),
+<<<<<<< HEAD
   setPlacements: (placements) =>
     set((s) => ({
       placements: computeViolations(placements),
@@ -525,6 +629,28 @@ export const usePlanStore = create<PlanStore>((set) => ({
         })
         .filter((x): x is UnfitItem => x !== null);
       return { unfitItems: newUnfitItems };
+=======
+  setClusterGroups: (clusterGroups: boolean) => set({ clusterGroups }),
+  setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+  setUnplacedItems: (items) =>
+    set((s) => {
+      if (!s.selectedVehicle || items.length === 0) return {};
+      let stagingPlacements = [...s.placements];
+      for (const u of items) {
+        const entry = s.selectedItems.find((si) => si.item.id === u.itemId);
+        if (!entry) continue;
+        const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+        const staged = buildStagingPlacements(
+          entry.item,
+          u.quantity,
+          color,
+          s.selectedVehicle.width,
+          stagingPlacements,
+        );
+        stagingPlacements = [...stagingPlacements, ...staged];
+      }
+      return { placements: stagingPlacements };
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
     }),
 
   mockPlacements: (count) =>
@@ -694,11 +820,16 @@ export const usePlanStore = create<PlanStore>((set) => ({
       selectedItems: [],
       skuColorMap: {},
       criteria: 2,
+      clusterGroups: true,
       placements: [],
       unfitItems: [],
       optimizationCount: 0,
       previewItemId: null,
       previewPlacements: [],
+<<<<<<< HEAD
       activeVehicleId: null,
+=======
+      inlineGroups: [],
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
     }),
 }));

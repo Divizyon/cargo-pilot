@@ -113,6 +113,7 @@ export interface VehicleFilters {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  enabled?: boolean;
 }
 
 function useCompanyId() {
@@ -124,11 +125,66 @@ export interface VehiclesPage {
   totalCount: number;
 }
 
+export async function fetchAllVehicles(
+  filters?: Pick<VehicleFilters, 'search' | 'vehicleType' | 'status' | 'sortBy' | 'sortOrder'>,
+): Promise<Vehicle[]> {
+  const PAGE_SIZE = 100;
+
+  async function fetchPage(page: number) {
+    const params = new URLSearchParams();
+    params.set('isDeleted', 'false');
+    if (filters?.search) params.set('searchTerm', filters.search);
+    params.set('page', String(page));
+    params.set('pageSize', String(PAGE_SIZE));
+
+    if (filters?.vehicleType) {
+      const typeInt = VEHICLE_TYPE_INT[filters.vehicleType as keyof typeof VEHICLE_TYPE_INT];
+      if (typeInt !== undefined) params.set('vehicleType', String(typeInt));
+    }
+
+    if (filters?.status) {
+      if (filters.status === 'taslak') {
+        params.set('status', 'taslak');
+      } else {
+        params.set('isActive', String(filters.status === 'active'));
+      }
+    }
+
+    if (filters?.sortBy) params.set('sortBy', filters.sortBy);
+    if (filters?.sortOrder) params.set('sortOrder', filters.sortOrder);
+
+    const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles?${params.toString()}`);
+    const raw = (data as Record<string, unknown>)?.data as Record<string, unknown>;
+    const rawItems = raw?.items;
+    const totalCount = (raw?.totalCount as number) ?? 0;
+
+    const items: Vehicle[] = [];
+    if (Array.isArray(rawItems)) {
+      for (const item of rawItems) {
+        const result = vehicleListApiItemSchema.safeParse(item);
+        if (result.success) items.push(fromApiVehicleListItem(result.data));
+      }
+    }
+    return { items, totalCount };
+  }
+
+  const first = await fetchPage(1);
+  const totalPages = Math.ceil(first.totalCount / PAGE_SIZE);
+  if (totalPages <= 1) return first.items;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2)),
+  );
+  return [...first.items, ...rest.flatMap((r) => r.items)];
+}
+
 export function useVehicles(filters?: VehicleFilters) {
   const companyId = useCompanyId();
-  const mergedFilters = { isDeleted: false, ...filters };
+  const { enabled: enabledOption, ...restFilters } = filters ?? {};
+  const mergedFilters = { isDeleted: false, ...restFilters };
   return useQuery({
     queryKey: ['vehicles', companyId, mergedFilters] as const,
+    enabled: enabledOption !== false,
     queryFn: async (): Promise<VehiclesPage> => {
       const params = new URLSearchParams();
       if (mergedFilters.search) params.set('searchTerm', mergedFilters.search);

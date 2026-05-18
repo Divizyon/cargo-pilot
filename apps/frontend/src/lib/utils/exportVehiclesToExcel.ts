@@ -5,9 +5,11 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate, getExcelDateCellValue } from '@/lib/utils/formatDate';
 
 const DOOR_LABELS: Record<string, string> = {
-  rear: 'Ön',
+  front: 'Ön',
+  rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
+  rearAndSide: 'Arka + Yan',
 };
 
 export function exportVehiclesToExcel(vehicles: Vehicle[], _filters?: VehicleFilters): void {

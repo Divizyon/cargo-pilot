@@ -40,6 +40,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   weight: z.number().nonnegative().default(0),
   color: z.string().optional(),
   productType: z.enum([ProductType.Koli, ProductType.Varil, ProductType.Palet]).optional(),
+  isStagingArea: z.boolean().optional(),
 });
 
 export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;

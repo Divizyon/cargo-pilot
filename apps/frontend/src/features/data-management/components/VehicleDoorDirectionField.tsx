@@ -12,11 +12,11 @@ interface VehicleDoorDirectionFieldProps {
   hideHeading?: boolean;
 }
 
-const KONTEYNER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side] as const;
+const KONTEYNER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top] as const;
 const OTHER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top] as const;
 
-function getDirectionLabel(dir: string, isKonteyner: boolean): string {
-  if (dir === DoorDirection.Rear) return isKonteyner ? 'Ön' : 'Arka';
+function getDirectionLabel(dir: string): string {
+  if (dir === DoorDirection.Rear) return 'Arka';
   if (dir === DoorDirection.Side) return 'Yan';
   return 'Üst';
 }
@@ -45,10 +45,10 @@ export function VehicleDoorDirectionField({ form, vehicleType }: VehicleDoorDire
               <ToggleGroupItem
                 key={dir}
                 value={dir}
-                aria-label={getDirectionLabel(dir, isKonteyner)}
+                aria-label={getDirectionLabel(dir)}
                 className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
               >
-                {getDirectionLabel(dir, isKonteyner)}
+                {getDirectionLabel(dir)}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>

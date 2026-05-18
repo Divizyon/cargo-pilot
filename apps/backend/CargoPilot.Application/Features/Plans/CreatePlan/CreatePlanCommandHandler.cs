@@ -84,8 +84,9 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var itemMap = items.ToDictionary(i => i.Id);
 
+        // Load groups for any GroupId present in the request; filter out inactive ones
         var requestedGroupIds = request.Items
-            .Where(i => i.GroupId.HasValue)
+            .Where(i => i.GroupId.HasValue && !inlineClientIds.Contains(i.GroupId!.Value))
             .Select(i => i.GroupId!.Value)
             .Distinct()
             .ToList();
@@ -118,37 +119,32 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var inputTotalQuantity = activeItems.Sum(i => i.Quantity);
 
-        // SortOrder: araçlar request'teki sırayla indexlenir
-        var vehicleMap = vehicles.ToDictionary(v => v.Id);
-        var sortedVehicles = distinctVehicleIds
-            .Select((id, index) => (Vehicle: vehicleMap[id], SortOrder: index))
-            .ToList();
+        var optimizationInput = BuildInput(vehicle, activeItems, itemMap, groupMap, request.OptimizationCriteria);
+
+        var contamination = ContaminationFilter.Filter(optimizationInput.Items);
+        var finalInput = contamination.Contaminated.Count > 0
+            ? optimizationInput with { Items = contamination.Passed }
+            : optimizationInput;
 
         var (vehiclePlacements, finalUnplaced, aggregateStats) =
             RunWaterfallOptimization(sortedVehicles, activeItems, itemMap, groupMap, request.OptimizationCriteria);
 
         var planId = Guid.NewGuid();
-        var plan = new LoadingPlan(planId, request.PlanName, request.OptimizationCriteria, inputTotalQuantity, companyId);
-        plan.ApplyOptimizationResult(
-            LoadingPlanOptimizationStatus.Calculated,
-            aggregateStats.TotalWeight,
-            aggregateStats.FillRate,
-            aggregateStats.PlacedCount,
-            finalUnplaced.Sum(u => u.Quantity),
-            aggregateStats.CogX,
-            aggregateStats.CogY,
-            aggregateStats.CogZ);
-
-        var planVehicles = sortedVehicles
-            .Select(sv => new LoadingPlanVehicle(planId, sv.Vehicle.Id, sv.SortOrder))
-            .ToList();
-
+        var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
         var inputItems = activeItems
             .Select(i =>
             {
                 var inputItem = new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity);
-                if (i.GroupId.HasValue && groupMap.ContainsKey(i.GroupId.Value))
-                    inputItem.AssignGroup(i.GroupId);
+                if (i.GroupId.HasValue)
+                {
+                    // Inline map'te ClientGroupId olarak gelebilir; gerçek DB ID'ye çevir
+                    Guid? resolvedId;
+                    if (inlineGroupMap.TryGetValue(i.GroupId.Value, out var inlineGroup))
+                        resolvedId = inlineGroup.Id;
+                    else
+                        resolvedId = groupMap.ContainsKey(i.GroupId.Value) ? i.GroupId : null;
+                    inputItem.AssignGroup(resolvedId);
+                }
                 return inputItem;
             })
             .ToList();
@@ -167,7 +163,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         List<CreatePlanItemRequest> activeItems,
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap,
-        LoadingPlanOptimizationCriteria criteria)
+        LoadingPlanOptimizationCriteria criteria,
+        bool clusterGroups)
     {
         var vehiclePlacements = new List<(Guid VehicleId, IReadOnlyList<PlacedItemResult> Placements)>();
         var currentItems = BuildOptimizationItems(activeItems, itemMap, groupMap);
@@ -240,44 +237,10 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                     item.StackGroup);
             })
             .ToList();
-    }
 
-    private static List<OptimizationItemInput> RebuildItemsFromUnplaced(
-        IReadOnlyList<UnplacedItemResult> unplacedItems,
-        IReadOnlyList<CreatePlanItemRequest> originalItems,
-        Dictionary<Guid, Item> itemMap,
-        Dictionary<Guid, LoadingPlanItemGroup> groupMap)
-    {
-        // Engine, sığmayan ürünleri (ItemId, Reason) çiftine göre gruplar; aynı ItemId birden fazla
-        // sebepten sığmazsa birden fazla satır döner. Önce ItemId başına toplam sığmayan adeti hesapla.
-        var totalUnplacedByItemId = unplacedItems
-            .GroupBy(u => u.ItemId)
-            .ToDictionary(g => g.Key, g => g.Sum(u => u.Quantity));
-
-        // Orijinal istek sırasını (per-grup, UnloadingOrder dahil) koruyarak yeniden oluştur.
-        // Kalan adet havuzundan tüketerek her orijinal girdi için doğru grup bilgisi korunur.
-        var remaining = new Dictionary<Guid, int>(totalUnplacedByItemId);
-        var result = new List<OptimizationItemInput>();
-
-        foreach (var r in originalItems)
-        {
-            if (!remaining.TryGetValue(r.ItemId, out var available) || available <= 0) continue;
-
-            var item = itemMap[r.ItemId];
-            var group = r.GroupId.HasValue && groupMap.TryGetValue(r.GroupId.Value, out var g) ? g : null;
-            var qty = Math.Min(available, r.Quantity);
-
-            result.Add(new OptimizationItemInput(
-                item.Id, item.SKU, item.Name, item.ImageUrl,
-                item.Width, item.Height, item.Length, item.Weight,
-                item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
-                item.AllowedRotations, qty,
-                group?.Id, group?.UnloadingOrder,
-                item.StackGroup));
-
-            remaining[r.ItemId] = available - qty;
-        }
-
-        return result;
+        return new OptimizationInput(
+            vehicle.InternalWidth, vehicle.InternalHeight,
+            vehicle.InternalLength, vehicle.MaxWeightCapacity,
+            inputs, criteria);
     }
 }

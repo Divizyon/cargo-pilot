@@ -27,16 +27,16 @@ const VEHICLE_TYPE_OPTIONS = ['Tir', 'Kamyon', 'Kamposet', 'Konteyner'] as const
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   Tir: 'Tır',
   Kamyon: 'Kamyon',
-  Kamposet: 'Kamposet',
+  Kamposet: 'Römork',
   Konteyner: 'Konteyner',
 };
 const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top', 'rearAndSide'] as const;
 
 const DOOR_DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Ön',
+  rear: 'Arka',
   side: 'Yan',
   top: 'Üst',
-  rearAndSide: 'Ön + Yan',
+  rearAndSide: 'Arka + Yan',
 };
 
 const editableRowSchema = z.object({

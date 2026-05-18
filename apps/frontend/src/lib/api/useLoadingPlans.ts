@@ -146,6 +146,7 @@ export function useLoadingPlanDetail(id: string | undefined) {
           placements: [],
           skuColorMap: {},
           unplacedItems: [],
+          groups: [],
         };
       }
       return fromApiFullDetail(parsed.data.data);
@@ -157,18 +158,35 @@ export function useLoadingPlanDetail(id: string | undefined) {
 
 // ─── Create mutation ───────────────────────────────────────────────────────────
 
+interface PlanGroupDefinition {
+  clientGroupId: string;
+  name: string;
+  color: string;
+  unloadingOrder: number;
+}
+
 interface CreateLoadingPlanInput {
   planName: string;
+<<<<<<< HEAD
   vehicleIds: string[];
   items: Array<{ itemId: string; quantity: number }>;
+=======
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number; groupId?: string }>;
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   optimizationCriteria: OptimizationCriteria;
+  groups?: PlanGroupDefinition[];
+  clusterGroups?: boolean;
 }
 
 export function useCreateLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
-    mutationFn: async (input) => {
-      const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', input);
+    mutationFn: async ({ groups, clusterGroups, ...rest }: CreateLoadingPlanInput) => {
+      const body: Record<string, unknown> = { ...rest };
+      if (groups && groups.length > 0) body['groups'] = groups;
+      if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
+      const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', body);
 
       // API returns the UUID directly as a string
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
@@ -287,20 +305,42 @@ export function useApprovePlan() {
 
 interface ReoptimizeLoadingPlanInput {
   id: string;
+<<<<<<< HEAD
   vehicleIds: string[];
   items: Array<{ itemId: string; quantity: number }>;
+=======
+  vehicleId: string;
+  items: Array<{ itemId: string; quantity: number; groupId?: string }>;
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   optimizationCriteria: OptimizationCriteria;
+  groups?: PlanGroupDefinition[];
+  clusterGroups?: boolean;
 }
 
 export function useReoptimizeLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
+<<<<<<< HEAD
     mutationFn: async ({ id, vehicleIds, items, optimizationCriteria }) => {
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, {
         vehicleIds,
         items,
         optimizationCriteria,
       });
+=======
+    mutationFn: async ({
+      id,
+      vehicleId,
+      items,
+      optimizationCriteria,
+      groups,
+      clusterGroups,
+    }: ReoptimizeLoadingPlanInput) => {
+      const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
+      if (groups && groups.length > 0) body['groups'] = groups;
+      if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
+      const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, body);
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
         return data;
@@ -364,7 +404,11 @@ function applyClientFilters(
     result = result.filter((p) => new Date(p.plannedAt ?? p.createdAt).getTime() <= to.getTime());
   }
   if (filters?.status) {
-    result = result.filter((p) => p.status === filters.status);
+    if (filters.status === 'tamamlandi') {
+      result = result.filter((p) => p.status === 'tamamlandi' || p.status === 'aktif');
+    } else {
+      result = result.filter((p) => p.status === filters.status);
+    }
   }
   return result;
 }
@@ -436,6 +480,35 @@ export function useLoadingPlanUnplaced(planId: string | null) {
     },
     enabled: Boolean(planId),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Thumbnail upload mutation ────────────────────────────────────────────────
+
+export function useUploadPlanThumbnail() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ProblemDetails>, { id: string; dataUrl: string }>({
+    mutationFn: ({ id, dataUrl }) =>
+      axiosInstance
+        .post(`/api/v1/loading-plans/${id}/thumbnail`, { imageBase64: dataUrl })
+        .then(() => undefined),
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
+      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
+    },
+  });
+}
+
+// ─── Delete plan group mutation ───────────────────────────────────────────────
+
+export function useDeletePlanGroup() {
+  return useMutation<void, AxiosError<ProblemDetails>, { planId: string; groupId: string }>({
+    mutationFn: ({ planId, groupId }) =>
+      axiosInstance
+        .delete(`/api/v1/loading-plans/${planId}/groups/${groupId}`, {
+          data: { moveItemsToNull: true },
+        })
+        .then(() => undefined),
   });
 }
 

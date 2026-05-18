@@ -8,7 +8,9 @@ public sealed record ReOptimizePlanCommand(
     Guid Id,
     IReadOnlyList<Guid> VehicleIds,
     IReadOnlyList<ReOptimizePlanItemRequest> Items,
-    LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst)
+    LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
+    IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
+    bool ClusterGroups = true)
     : IRequest<Result<Guid>>;
 
-public sealed record ReOptimizePlanItemRequest(Guid ItemId, int Quantity);
+public sealed record ReOptimizePlanItemRequest(Guid ItemId, int Quantity, Guid? GroupId = null);
