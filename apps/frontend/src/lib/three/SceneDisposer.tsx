@@ -35,7 +35,5 @@ function disposeScene(scene: THREE.Scene, gl: THREE.WebGLRenderer): void {
   const tracker = new ResourceTracker();
   tracker.track(scene);
   tracker.disposeAll();
-
   gl.dispose();
-  gl.forceContextLoss();
 }
