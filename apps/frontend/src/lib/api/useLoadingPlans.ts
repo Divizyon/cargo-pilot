@@ -186,7 +186,7 @@ export function useCreateLoadingPlan() {
       const body: Record<string, unknown> = { ...rest };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
-      if (allowContamination !== undefined) body['allowContamination'] = allowContamination;
+      if (allowContamination) body['allowContamination'] = allowContamination;
       const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', body);
 
       // API returns the UUID directly as a string
@@ -329,7 +329,7 @@ export function useReoptimizeLoadingPlan() {
       const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
-      if (allowContamination !== undefined) body['allowContamination'] = allowContamination;
+      if (allowContamination) body['allowContamination'] = allowContamination;
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, body);
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {

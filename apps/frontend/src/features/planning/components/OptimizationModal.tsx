@@ -91,6 +91,9 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   const [localClusterGroups, setLocalClusterGroups] = useState(
     () => usePlanStore.getState().clusterGroups,
   );
+  const [localAllowContamination, setLocalAllowContamination] = useState(
+    () => usePlanStore.getState().allowContamination,
+  );
   const [localGroupOrder, setLocalGroupOrder] = useState<InlineGroup[]>(
     () => usePlanStore.getState().inlineGroups,
   );
@@ -125,9 +128,11 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   }
 
   function handleStartClick() {
-    const { setCriteria, setClusterGroups, setInlineGroups } = usePlanStore.getState();
+    const { setCriteria, setClusterGroups, setAllowContamination, setInlineGroups } =
+      usePlanStore.getState();
     setCriteria(localCriteria);
     setClusterGroups(localClusterGroups);
+    setAllowContamination(localAllowContamination);
     setInlineGroups(localGroupOrder);
     onConfirm();
   }
@@ -241,6 +246,17 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
             />
             <Label htmlFor="cluster-groups" className="text-xs leading-snug cursor-pointer">
               Aynı grup içerisindeki ürünleri bir arada yükle
+            </Label>
+          </div>
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="allow-contamination"
+              checked={localAllowContamination}
+              onCheckedChange={(v) => setLocalAllowContamination(Boolean(v))}
+              className="mt-0.5"
+            />
+            <Label htmlFor="allow-contamination" className="text-xs leading-snug cursor-pointer">
+              Uyumsuz yük gruplarını aynı araca yükle
             </Label>
           </div>
         </div>
