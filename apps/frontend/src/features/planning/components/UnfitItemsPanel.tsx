@@ -10,12 +10,14 @@ const REASON_LABEL: Record<UnfitReason, string> = {
   [UnfitReason.Volume]: 'Hacim Yetersiz',
   [UnfitReason.Weight]: 'Ağırlık Limiti Aşıldı',
   [UnfitReason.Stacking]: 'İstif Kısıtı İhlali',
+  [UnfitReason.Contamination]: 'Uyumsuz Yük Grubu',
 };
 
 const REASON_CLASS: Record<UnfitReason, string> = {
   [UnfitReason.Volume]: 'bg-amber-50 text-amber-700 border border-amber-200',
   [UnfitReason.Weight]: 'bg-rose-50 text-rose-700 border border-rose-200',
   [UnfitReason.Stacking]: 'bg-orange-50 text-orange-700 border border-orange-200',
+  [UnfitReason.Contamination]: 'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
 const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
