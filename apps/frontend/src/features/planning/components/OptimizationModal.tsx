@@ -226,7 +226,7 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
       ...new Set(placedItems.map((si) => si.item.stackGroup).filter((g): g is string => !!g)),
     ];
 
-    if (allGroups.length >= 2) {
+    if (allGroups.length >= 1) {
       const conflicts = detectContaminationConflicts(placedItems);
       const groupVolumes = computeGroupVolumes(placedItems, allGroups);
       setContamination({ conflicts, groupVolumes, placedItems });
