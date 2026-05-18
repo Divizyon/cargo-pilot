@@ -438,22 +438,6 @@ export function useLoadingPlanUnplaced(planId: string | null) {
   });
 }
 
-// ─── Thumbnail upload mutation ────────────────────────────────────────────────
-
-export function useUploadPlanThumbnail() {
-  const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ProblemDetails>, { id: string; dataUrl: string }>({
-    mutationFn: ({ id, dataUrl }) =>
-      axiosInstance
-        .post(`/api/v1/loading-plans/${id}/thumbnail`, { imageBase64: dataUrl })
-        .then(() => undefined),
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
-      void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
-    },
-  });
-}
-
 // ─── ERP export mutation ───────────────────────────────────────────────────────
 
 export function useExportPlanToERP() {

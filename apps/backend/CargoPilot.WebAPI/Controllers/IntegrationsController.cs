@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.Integrations.GetSyncLogs;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
 using CargoPilot.Application.Features.Integrations.ListIntegrations;
 using CargoPilot.Application.Features.Integrations.PendingItemMappings;
@@ -36,6 +37,30 @@ public sealed class IntegrationsController : BaseController
     public async Task<IActionResult> List(CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new ListIntegrationsQuery(), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Entegrasyona ait senkronizasyon geçmişini sayfalı olarak listeler.
+    /// </summary>
+    /// <param name="id">Entegrasyon ID'si.</param>
+    /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
+    /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Senkronizasyon geçmişi sayfalı döner.</response>
+    /// <response code="404">Entegrasyon bulunamadı.</response>
+    [HttpGet("{id:guid}/sync-logs")]
+    [Authorize(Policy = "CompanyAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSyncLogs(
+        [FromRoute] Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetSyncLogsQuery(id, page, pageSize), cancellationToken);
         return HandleResult(result);
     }
 
