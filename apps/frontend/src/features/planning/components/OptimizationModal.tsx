@@ -88,9 +88,6 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   const [localClusterGroups, setLocalClusterGroups] = useState(
     () => usePlanStore.getState().clusterGroups,
   );
-  const [localAllowContamination, setLocalAllowContamination] = useState(
-    () => usePlanStore.getState().allowContamination,
-  );
   const [localGroupOrder, setLocalGroupOrder] = useState<InlineGroup[]>(
     () => usePlanStore.getState().inlineGroups,
   );
@@ -111,11 +108,9 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
   }
 
   function handleConfirm() {
-    const { setCriteria, setClusterGroups, setAllowContamination, setInlineGroups } =
-      usePlanStore.getState();
+    const { setCriteria, setClusterGroups, setInlineGroups } = usePlanStore.getState();
     setCriteria(localCriteria);
     setClusterGroups(localClusterGroups);
-    setAllowContamination(localAllowContamination);
     setInlineGroups(localGroupOrder);
     onConfirm();
   }
@@ -212,17 +207,6 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
 
         {/* Checkboxes */}
         <div className="flex flex-col gap-2.5">
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id="allow-contamination"
-              checked={localAllowContamination}
-              onCheckedChange={(v) => setLocalAllowContamination(Boolean(v))}
-              className="mt-0.5"
-            />
-            <Label htmlFor="allow-contamination" className="text-xs leading-snug cursor-pointer">
-              Uyumsuz yük gruplarını aynı araca yükle
-            </Label>
-          </div>
           <div className="flex items-start gap-2">
             <Checkbox
               id="cluster-groups"
