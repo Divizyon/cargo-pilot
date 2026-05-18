@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useERPShipmentOrders } from '@/lib/api/useERPIntegration';
+import { useERPConnection, useERPShipmentOrders } from '@/lib/api/useERPIntegration';
 import {
   ErpShipmentStatus,
   type ErpShipmentOrder,
@@ -100,7 +100,8 @@ export function ERPShipmentOrders() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  const { data: orders, isLoading } = useERPShipmentOrders(filters);
+  const { data: connection } = useERPConnection();
+  const { data: orders, isLoading } = useERPShipmentOrders(connection?.id, filters);
 
   const filterValue = filters.status ?? 'all';
   const pendingOrders = orders?.filter((o) => o.status === ErpShipmentStatus.Pending) ?? [];

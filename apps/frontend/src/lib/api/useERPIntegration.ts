@@ -15,6 +15,7 @@ import {
   erpSyncSummarySchema,
   erpUnassignedDataItemSchema,
   erpUserMappingSchema,
+  syncLogDtoSchema,
   type ErpShipmentOrderFilters,
   type ErpSyncInterval,
 } from '@/lib/types/erp';
@@ -100,9 +101,19 @@ const erpSyncHistoryResponseSchema = z.object({
   data: z.array(erpSyncRunSchema),
 });
 
+const syncLogsPageResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.object({
+    items: z.array(syncLogDtoSchema),
+    totalCount: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  }),
+});
+
 const testConnectionResponseSchema = z.object({
   isSuccess: z.boolean(),
-  data: z.object({ success: z.boolean(), message: z.string().nullable().optional() }),
+  data: z.object({ isSuccess: z.boolean(), message: z.string().nullable().optional() }),
 });
 
 const erpSettingsApiResponseSchema = z.object({
@@ -143,6 +154,7 @@ export function useSaveERPSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
+      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-settings'] });
       queryClient.refetchQueries({ queryKey: ['erp', 'connection'] });
       toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
     },
@@ -174,7 +186,7 @@ export function useTestERPSettings() {
         body,
       );
       const parsed = testConnectionResponseSchema.parse(data);
-      return parsed.data;
+      return { success: parsed.data.isSuccess, message: parsed.data.message };
     },
   });
 }
@@ -234,7 +246,7 @@ export function useTestERPConnection() {
     mutationFn: async (values) => {
       const { data } = await axiosInstance.post<unknown>(`${ERP_BASE}/test-connection`, values);
       const parsed = testConnectionResponseSchema.parse(data);
-      return parsed.data;
+      return { success: parsed.data.isSuccess, message: parsed.data.message };
     },
   });
 }
@@ -474,6 +486,30 @@ export function useERPSyncHistory() {
   });
 }
 
+export interface SyncLogsParams {
+  page: number;
+  pageSize: number;
+}
+
+export function useERPSyncLogs(integrationId: string | undefined, params: SyncLogsParams) {
+  return useQuery({
+    queryKey: ['erp', 'sync-logs', integrationId, params] as const,
+    queryFn: async () => {
+      const p = new URLSearchParams();
+      p.set('page', String(params.page));
+      p.set('pageSize', String(params.pageSize));
+      const { data } = await axiosInstance.get<unknown>(
+        `${ERP_BASE}/${integrationId}/sync-logs?${p.toString()}`,
+      );
+      const parsed = syncLogsPageResponseSchema.safeParse(data);
+      if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
+      return parsed.data.data;
+    },
+    enabled: Boolean(integrationId),
+    retry: false,
+  });
+}
+
 export function useRetryERPSyncItem() {
   const queryClient = useQueryClient();
   return useMutation<unknown, AxiosError<ApiError>, { logEntryId: string }>({
@@ -492,19 +528,27 @@ export function useRetryERPSyncItem() {
   });
 }
 
-export function useERPShipmentOrders(filters?: ErpShipmentOrderFilters) {
+export function useERPShipmentOrders(
+  integrationId: string | undefined,
+  filters?: ErpShipmentOrderFilters,
+) {
   return useQuery({
-    queryKey: ['erp', 'shipment-orders', filters] as const,
+    queryKey: ['erp', 'shipment-orders', integrationId, filters] as const,
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.status) params.set('status', filters.status);
-      const qs = params.toString();
-      const { data } = await axiosInstance.get<unknown>(
-        `${ERP_BASE}/shipment-orders${qs ? `?${qs}` : ''}`,
-      );
-      const parsed = erpShipmentOrdersResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
+      try {
+        const params = new URLSearchParams();
+        if (filters?.status) params.set('status', filters.status);
+        const qs = params.toString();
+        const { data } = await axiosInstance.get<unknown>(
+          `${ERP_BASE}/${integrationId}/shipment-orders${qs ? `?${qs}` : ''}`,
+        );
+        const parsed = erpShipmentOrdersResponseSchema.safeParse(data);
+        return parsed.success ? parsed.data.data : [];
+      } catch {
+        return [];
+      }
     },
+    enabled: Boolean(integrationId),
     retry: false,
   });
 }
