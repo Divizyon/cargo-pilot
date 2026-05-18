@@ -40,6 +40,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   weight: z.number().nonnegative().default(0),
   color: z.string().optional(),
   productType: z.enum([ProductType.Koli, ProductType.Varil, ProductType.Palet]).optional(),
+  isStagingArea: z.boolean().optional(),
 });
 
 export type PlacementWithDimensions = z.infer<typeof placementWithDimensionsSchema>;
@@ -48,6 +49,7 @@ export const UnfitReason = {
   Volume: 'volume',
   Weight: 'weight',
   Stacking: 'stacking',
+  Contamination: 'contamination',
 } as const;
 
 export type UnfitReason = (typeof UnfitReason)[keyof typeof UnfitReason];

@@ -13,6 +13,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
     private readonly ILoadingPlanRepository _planRepository;
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IItemRepository _itemRepository;
+    private readonly ILoadingPlanItemGroupRepository _groupRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
     private readonly IValidator<ReOptimizePlanCommand> _validator;
@@ -21,6 +22,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         ILoadingPlanRepository planRepository,
         IVehicleRepository vehicleRepository,
         IItemRepository itemRepository,
+        ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
         IValidator<ReOptimizePlanCommand> validator)
@@ -28,6 +30,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
         _itemRepository = itemRepository;
+        _groupRepository = groupRepository;
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
         _validator = validator;
@@ -81,8 +84,23 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             .Select((id, index) => (Vehicle: vehicleMap[id], SortOrder: index))
             .ToList();
 
+        // Mevcut grupları sil — her reoptimize yeni grup satırları oluşturur, eskiler silinmezse birikirdi
+        await _groupRepository.DeleteByPlanIdAsync(plan.Id, cancellationToken);
+
+        // Inline grup tanımları varsa entity'leri oluştur ve DB kayıt izleyicisine ekle
+        Dictionary<Guid, LoadingPlanItemGroup> inlineGroupMap = [];
+        if (request.Groups is { Count: > 0 })
+        {
+            foreach (var gd in request.Groups)
+            {
+                var entity = new LoadingPlanItemGroup(Guid.NewGuid(), plan.Id, gd.Name, gd.Color, gd.UnloadingOrder);
+                _groupRepository.Add(entity);
+                inlineGroupMap[gd.ClientGroupId] = entity;
+            }
+        }
+
         var (vehiclePlacements, finalUnplaced, aggregateStats) =
-            RunWaterfallOptimization(sortedVehicles, request.Items, itemMap, request.OptimizationCriteria);
+            RunWaterfallOptimization(sortedVehicles, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria);
 
         plan.Reoptimize(request.OptimizationCriteria, inputTotalQuantity);
         plan.ApplyOptimizationResult(
@@ -100,7 +118,13 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             .ToList();
 
         var newInputItems = request.Items
-            .Select(i => new LoadingPlanInputItem(Guid.NewGuid(), plan.Id, i.ItemId, i.Quantity))
+            .Select(i =>
+            {
+                var inputItem = new LoadingPlanInputItem(Guid.NewGuid(), plan.Id, i.ItemId, i.Quantity);
+                if (i.GroupId.HasValue && inlineGroupMap.TryGetValue(i.GroupId.Value, out var inlineGroup))
+                    inputItem.AssignGroup(inlineGroup.Id);
+                return inputItem;
+            })
             .ToList();
 
         await _planRepository.ReOptimizeWithResultAsync(plan, newPlanVehicles, newInputItems, vehiclePlacements, finalUnplaced, cancellationToken);
@@ -116,10 +140,11 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         List<(Vehicle Vehicle, int SortOrder)> sortedVehicles,
         IReadOnlyList<ReOptimizePlanItemRequest> requestItems,
         Dictionary<Guid, Item> itemMap,
+        Dictionary<Guid, LoadingPlanItemGroup> groupMap,
         LoadingPlanOptimizationCriteria criteria)
     {
         var vehiclePlacements = new List<(Guid VehicleId, IReadOnlyList<PlacedItemResult> Placements)>();
-        var currentItems = BuildOptimizationItems(requestItems, itemMap);
+        var currentItems = BuildOptimizationItems(requestItems, itemMap, groupMap);
 
         decimal totalWeight = 0;
         decimal totalVehicleVolume = 0;
@@ -172,18 +197,21 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
 
     private static List<OptimizationItemInput> BuildOptimizationItems(
         IReadOnlyList<ReOptimizePlanItemRequest> requestItems,
-        Dictionary<Guid, Item> itemMap)
+        Dictionary<Guid, Item> itemMap,
+        Dictionary<Guid, LoadingPlanItemGroup> groupMap)
     {
         return requestItems
             .Select(r =>
             {
                 var item = itemMap[r.ItemId];
+                var group = r.GroupId.HasValue && groupMap.TryGetValue(r.GroupId.Value, out var g) ? g : null;
                 return new OptimizationItemInput(
                     item.Id, item.SKU, item.Name, item.ImageUrl,
                     item.Width, item.Height, item.Length, item.Weight,
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
                     item.AllowedRotations, r.Quantity,
-                    StackGroup: item.StackGroup);
+                    group?.Id, group?.UnloadingOrder,
+                    item.StackGroup);
             })
             .ToList();
     }

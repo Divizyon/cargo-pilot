@@ -32,6 +32,17 @@ internal sealed class LoadingPlanItemGroupRepository : ILoadingPlanItemGroupRepo
     public void Add(LoadingPlanItemGroup group)
         => _context.LoadingPlanItemGroups.Add(group);
 
+    public async Task DeleteByPlanIdAsync(Guid planId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        await _context.LoadingPlanItemGroups
+            .Where(g => g.LoadingPlanId == planId && !g.IsDeleted)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(g => g.IsDeleted, true)
+                .SetProperty(g => g.DeletedAtUtc, now)
+                .SetProperty(g => g.IsActive, false), cancellationToken);
+    }
+
     public async Task NullifyGroupOnItemsAsync(Guid groupId, CancellationToken cancellationToken = default)
         => await _context.LoadingPlanInputItems
             .Where(i => i.GroupId == groupId)

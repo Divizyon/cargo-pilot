@@ -1,9 +1,16 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import type { PlanProductGroup } from '@/lib/types/loadingPlan';
 import { axiosInstance } from './axiosInstance';
-import { planDetailApiResponseSchema, fromApiDetailPlacements } from './loadingPlanMappers';
+import {
+  planDetailApiResponseSchema,
+  fromApiDetailPlacements,
+  planFullDetailApiResponseSchema,
+  fromApiFullDetail,
+} from './loadingPlanMappers';
+import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 
 export const planReportSchema = z.object({
   id: z.uuid(),
@@ -210,18 +217,46 @@ export function useReportDetail(id: string) {
   });
 }
 
+async function fetchSnapshotAsDataUrl(url: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return undefined;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 export function useDownloadPlanPdf() {
   return useMutation({
-    mutationFn: async ({ id, planName }: { id: string; planName: string }) => {
-      const { data } = await axiosInstance.get<Blob>(`/api/v1/loading-plans/${id}/pdf`, {
-        responseType: 'blob',
+    mutationFn: async ({ id }: { id: string; planName: string }) => {
+      const { data: raw } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${id}`);
+      const parsed = planFullDetailApiResponseSchema.safeParse(raw);
+      if (!parsed.success) throw new Error('Plan verisi alınamadı');
+      const detail = fromApiFullDetail(parsed.data.data);
+      const rawData = parsed.data.data as Record<string, unknown>;
+      const remoteUrl = (rawData.thumbnailUrl ??
+        rawData.snapshotUrl ??
+        rawData.snapshotImageUrl) as string | null | undefined;
+
+      const snapshotDataUrl = remoteUrl ? await fetchSnapshotAsDataUrl(remoteUrl) : undefined;
+
+      await exportPlanToPdf({
+        planId: id,
+        placements: detail.placements,
+        items: detail.inputItems.map((ii) => ii.item),
+        vehicle: detail.vehicle,
+        snapshotDataUrl,
       });
-      const blobUrl = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `${planName}_rapor.pdf`;
-      a.click();
-      URL.revokeObjectURL(blobUrl);
+    },
+    onError: () => {
+      toast.error('PDF oluşturulamadı. Lütfen tekrar deneyin.', { position: 'bottom-right' });
     },
   });
 }

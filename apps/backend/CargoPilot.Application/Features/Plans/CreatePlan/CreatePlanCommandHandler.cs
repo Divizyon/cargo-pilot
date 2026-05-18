@@ -84,8 +84,13 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var itemMap = items.ToDictionary(i => i.Id);
 
+        // Inline grup clientGroupId'leri DB'de henüz yok — sadece DB kayıtlı grup ID'lerini sorgula
+        var inlineClientIds = request.Groups?
+            .Select(g => g.ClientGroupId)
+            .ToHashSet() ?? [];
+
         var requestedGroupIds = request.Items
-            .Where(i => i.GroupId.HasValue)
+            .Where(i => i.GroupId.HasValue && !inlineClientIds.Contains(i.GroupId!.Value))
             .Select(i => i.GroupId!.Value)
             .Distinct()
             .ToList();
@@ -124,10 +129,28 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             .Select((id, index) => (Vehicle: vehicleMap[id], SortOrder: index))
             .ToList();
 
-        var (vehiclePlacements, finalUnplaced, aggregateStats) =
-            RunWaterfallOptimization(sortedVehicles, activeItems, itemMap, groupMap, request.OptimizationCriteria);
-
         var planId = Guid.NewGuid();
+
+        // Inline grup tanımları varsa entity'leri oluştur ve DB kayıt izleyicisine ekle
+        Dictionary<Guid, LoadingPlanItemGroup> inlineGroupMap = [];
+        if (request.Groups is { Count: > 0 })
+        {
+            foreach (var gd in request.Groups)
+            {
+                var entity = new LoadingPlanItemGroup(Guid.NewGuid(), planId, gd.Name, gd.Color, gd.UnloadingOrder);
+                _groupRepository.Add(entity);
+                inlineGroupMap[gd.ClientGroupId] = entity;
+            }
+        }
+
+        // Birleşik harita: inline önce, DB sonra (backward compat)
+        var combinedGroupMap = inlineGroupMap
+            .Concat(groupMap.Where(kv => !inlineGroupMap.ContainsKey(kv.Key)))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        var (vehiclePlacements, finalUnplaced, aggregateStats) =
+            RunWaterfallOptimization(sortedVehicles, activeItems, itemMap, combinedGroupMap, request.OptimizationCriteria);
+
         var plan = new LoadingPlan(planId, request.PlanName, request.OptimizationCriteria, inputTotalQuantity, companyId);
         plan.ApplyOptimizationResult(
             LoadingPlanOptimizationStatus.Calculated,
@@ -147,8 +170,16 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             .Select(i =>
             {
                 var inputItem = new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity);
-                if (i.GroupId.HasValue && groupMap.ContainsKey(i.GroupId.Value))
-                    inputItem.AssignGroup(i.GroupId);
+                if (i.GroupId.HasValue)
+                {
+                    // Inline map'te ClientGroupId olarak gelebilir; gerçek DB ID'ye çevir
+                    Guid? resolvedId;
+                    if (inlineGroupMap.TryGetValue(i.GroupId.Value, out var inlineGroup))
+                        resolvedId = inlineGroup.Id;
+                    else
+                        resolvedId = groupMap.ContainsKey(i.GroupId.Value) ? i.GroupId : null;
+                    inputItem.AssignGroup(resolvedId);
+                }
                 return inputItem;
             })
             .ToList();

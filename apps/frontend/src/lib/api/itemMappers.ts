@@ -12,7 +12,7 @@ import {
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 
-const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
+export const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
   Kimya: ['Gıda', 'Elektronik', 'Tekstil'],
   'Tehlikeli Madde': ['Gıda', 'Genel', 'Tekstil'],
   Gıda: ['Kimya', 'Tehlikeli Madde'],
