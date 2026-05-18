@@ -22,7 +22,6 @@ import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
-  useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -68,6 +67,7 @@ function PlanAutoLoader({
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
+    usePlanStore.getState().setInlineGroups(data.groups);
     onLoaded?.();
   }, [
     isSuccess,
@@ -89,7 +89,6 @@ interface NewPlanPageProps {
 
 export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const snapshotRef = useRef<(() => string) | null>(null);
-  const pendingSnapshotPlanId = useRef<string | null>(null);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
@@ -100,7 +99,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
-  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
 
   useEffect(() => {
     if (!readOnly && !fromPlanId) {
@@ -147,36 +145,54 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       selectedItems: items,
       placements,
       criteria,
+      clusterGroups,
+      inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || !planNameInput.trim()) return;
 
     const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (itemsToSend.length === 0) return;
+    const rawItemsToSend = items.filter((si) => placedIds.has(si.item.id));
+    if (rawItemsToSend.length === 0) return;
+
+    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    const deduped = new Map<string, (typeof rawItemsToSend)[number]>();
+    for (const si of rawItemsToSend) {
+      if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
+    }
+    const itemsToSend = [...deduped.values()];
+
+    const itemGroupMap = new Map<string, string>();
+    for (const g of inlineGroups) {
+      for (const itemId of g.itemIds) {
+        itemGroupMap.set(itemId, g.id);
+      }
+    }
+
+    const groups =
+      inlineGroups.length > 0
+        ? inlineGroups.map((g, idx) => ({
+            clientGroupId: g.id,
+            name: g.name,
+            color: g.color,
+            unloadingOrder: idx + 1,
+          }))
+        : undefined;
 
     setNameDialogOpen(false);
     const id = await createPlan({
       planName: planNameInput.trim(),
       vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: itemsToSend.map((si) => ({
+        itemId: si.item.id,
+        quantity: si.quantity,
+        groupId: itemGroupMap.get(si.item.id),
+      })),
       optimizationCriteria: criteria,
+      clusterGroups,
+      groups,
     });
-    const dataUrl = snapshotRef.current?.();
-    if (dataUrl) uploadThumbnail({ id, dataUrl });
     navigate(planningDetailRoute(id), { replace: true });
-  }, [planNameInput, createPlan, navigate, uploadThumbnail]);
-
-  const handlePlanLoaded = useCallback(() => {
-    const planId = pendingSnapshotPlanId.current;
-    if (!planId) return;
-    pendingSnapshotPlanId.current = null;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const dataUrl = snapshotRef.current?.();
-        if (dataUrl) uploadThumbnail({ id: planId, dataUrl });
-      });
-    });
-  }, [uploadThumbnail]);
+  }, [planNameInput, createPlan, navigate]);
 
   const handleLoadAnimation = useCallback(() => {
     if (usePlanStore.getState().placements.length === 0) return;
@@ -190,20 +206,52 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       selectedItems: items,
       placements,
       criteria,
+      clusterGroups,
+      inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
 
+    // Only send items that are currently placed — items removed via "Çıkar" must be excluded
     const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (itemsToSend.length === 0) return;
+    const rawItems = items.filter((si) => placedIds.has(si.item.id));
+    if (rawItems.length === 0) return;
+
+    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    const dedupedMap = new Map<string, (typeof items)[number]>();
+    for (const si of rawItems) {
+      if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
+    }
+    const dedupedItems = [...dedupedMap.values()];
+
+    const itemGroupMap = new Map<string, string>();
+    for (const g of inlineGroups) {
+      for (const itemId of g.itemIds) {
+        itemGroupMap.set(itemId, g.id);
+      }
+    }
+
+    const groups =
+      inlineGroups.length > 0
+        ? inlineGroups.map((g, idx) => ({
+            clientGroupId: g.id,
+            name: g.name,
+            color: g.color,
+            unloadingOrder: idx + 1,
+          }))
+        : undefined;
 
     await reoptimizePlan({
       id: fromPlanId,
       vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: dedupedItems.map((si) => ({
+        itemId: si.item.id,
+        quantity: si.quantity,
+        groupId: itemGroupMap.get(si.item.id),
+      })),
       optimizationCriteria: criteria,
+      clusterGroups,
+      groups,
     });
-    pendingSnapshotPlanId.current = fromPlanId;
     setRefetchKey((k) => k + 1);
     setAnimationReady(true);
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
@@ -254,7 +302,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
             planId={fromPlanId}
             refetchKey={refetchKey}
             onVehicleSelected={handleVehicleSelected}
-            onLoaded={handlePlanLoaded}
           />
         )}
         {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
@@ -288,7 +335,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
             )}
           >
             <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-              <PlanLeftPanel />
+              <PlanLeftPanel planId={fromPlanId} />
             </div>
           </div>
 

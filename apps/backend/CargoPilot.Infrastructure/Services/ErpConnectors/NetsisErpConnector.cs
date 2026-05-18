@@ -1,18 +1,12 @@
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Domain.Enums;
+using Microsoft.Data.SqlClient;
 
 namespace CargoPilot.Infrastructure.Services.ErpConnectors;
 
 internal sealed class NetsisErpConnector : IErpConnector
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    public NetsisErpConnector(IHttpClientFactory httpClientFactory)
-    {
-        _httpClientFactory = httpClientFactory;
-    }
-
     public ErpProviderType ProviderType => ErpProviderType.Netsis;
 
     public async Task<ErpConnectionResult> TestConnectionAsync(
@@ -24,14 +18,24 @@ internal sealed class NetsisErpConnector : IErpConnector
     {
         try
         {
-            using var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(10);
-            await client.GetAsync(serverAddress, cancellationToken);
+            var connectionString = new SqlConnectionStringBuilder
+            {
+                DataSource = serverAddress,
+                InitialCatalog = companyCode,
+                UserID = username,
+                Password = password,
+                TrustServerCertificate = true,
+                Encrypt = true,
+                ConnectTimeout = 10
+            }.ConnectionString;
+
+            await using var conn = new SqlConnection(connectionString);
+            await conn.OpenAsync(cancellationToken);
             return new ErpConnectionResult(true, null);
         }
-        catch (HttpRequestException)
+        catch (SqlException ex)
         {
-            return new ErpConnectionResult(false, "Sunucuya ulaşılamadı. Sunucu adresini kontrol edin.");
+            return new ErpConnectionResult(false, $"Veritabanına bağlanılamadı: {ex.Message}");
         }
         catch (TaskCanceledException)
         {

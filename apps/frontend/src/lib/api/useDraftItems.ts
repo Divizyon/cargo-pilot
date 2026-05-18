@@ -6,6 +6,11 @@ import { axiosInstance } from './axiosInstance';
 
 const DRAFT_BASE = '/api/v1/draft-items';
 
+export const DRAFT_PENDING = 0;
+export const DRAFT_APPROVED = 1;
+export const DRAFT_REJECTED = 2;
+export const DRAFT_UPDATE_PENDING = 3;
+
 interface ApiError {
   detail?: string;
   title?: string;
@@ -156,6 +161,23 @@ export function useRejectDraftItem() {
     onError: (error) => {
       const detail = error.response?.data?.detail;
       toast.error(detail ?? 'Ürün reddedilemedi.', { position: 'bottom-right' });
+    },
+  });
+}
+
+export function useBulkRejectDraftItems() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ApiError>, string[]>({
+    mutationFn: (ids) =>
+      Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`))).then(() => {}),
+    onSuccess: (_data, ids) => {
+      void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+      toast.success(`${ids.length} güncelleme reddedildi.`, { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      toast.error(detail ?? 'Reddetme işlemi başarısız.', { position: 'bottom-right' });
     },
   });
 }

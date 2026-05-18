@@ -70,6 +70,7 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
             allowedRotations: request.AllowedRotations,
             imageUrl: request.ImageUrl,
             stackGroup: request.StackGroup,
+            incompatibleGroups: request.IncompatibleGroups,
             specialNotes: request.SpecialNotes,
             constraintIds: request.ConstraintIds);
 
