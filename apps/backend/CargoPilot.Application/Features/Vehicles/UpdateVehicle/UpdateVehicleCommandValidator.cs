@@ -20,20 +20,26 @@ public sealed class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehi
             .MaximumLength(50).WithMessage("Plaka en fazla 50 karakter olabilir.")
             .When(x => x.PlateNumber is not null);
 
-        RuleFor(x => x.InternalWidth)
-            .GreaterThan(0).WithMessage("İç genişlik sıfırdan büyük olmalıdır.");
+        When(x => x.IsDraft == false, () => {
+            RuleFor(x => x.InternalWidth)
+                .NotNull().WithMessage("İç genişlik zorunludur.")
+                .GreaterThan(0).WithMessage("İç genişlik sıfırdan büyük olmalıdır.");
 
-        RuleFor(x => x.InternalHeight)
-            .GreaterThan(0).WithMessage("İç yükseklik sıfırdan büyük olmalıdır.");
+            RuleFor(x => x.InternalHeight)
+                .NotNull().WithMessage("İç yükseklik zorunludur.")
+                .GreaterThan(0).WithMessage("İç yükseklik sıfırdan büyük olmalıdır.");
 
-        RuleFor(x => x.InternalLength)
-            .GreaterThan(0).WithMessage("İç uzunluk sıfırdan büyük olmalıdır.");
+            RuleFor(x => x.InternalLength)
+                .NotNull().WithMessage("İç uzunluk zorunludur.")
+                .GreaterThan(0).WithMessage("İç uzunluk sıfırdan büyük olmalıdır.");
 
-        RuleFor(x => x.MaxWeightCapacity)
-            .GreaterThan(0).WithMessage("Maksimum yük kapasitesi sıfırdan büyük olmalıdır.");
+            RuleFor(x => x.MaxWeightCapacity)
+                .NotNull().WithMessage("Maksimum yük kapasitesi zorunludur.")
+                .GreaterThan(0).WithMessage("Maksimum yük kapasitesi sıfırdan büyük olmalıdır.");
 
-        RuleFor(x => x.LayerCount)
-            .GreaterThanOrEqualTo(1).WithMessage("Kat sayısı en az 1 olmalıdır.");
+            RuleFor(x => x.LayerCount)
+                .GreaterThanOrEqualTo(1).WithMessage("Kat sayısı en az 1 olmalıdır.");
+        });
 
         RuleFor(x => x.LoadingType)
             .IsInEnum().WithMessage("Geçersiz yükleme tipi.");

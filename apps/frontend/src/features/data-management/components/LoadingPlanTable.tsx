@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
@@ -53,7 +55,7 @@ import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { useLoadingPlanFilters } from '../hooks/useLoadingPlanFilters';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleCard } from './VehicleCard';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -61,7 +63,6 @@ import { VehicleCard } from './VehicleCard';
 const STATUS_TABS = [
   { value: 'all', label: 'Tümü' },
   { value: 'taslak', label: 'Taslak' },
-  { value: 'aktif', label: 'Aktif' },
   { value: 'tamamlandi', label: 'Tamamlandı' },
 ];
 
@@ -408,13 +409,22 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
       const top = tableCardRef.current.getBoundingClientRect().top;
       const containerAvailable = Math.max(300, window.innerHeight - top - BELOW_TABLE_H);
       setCardContainerMaxH(containerAvailable);
-      const cols = window.innerWidth >= 1920 ? 4 : 3;
-      const visibleRows = window.innerWidth >= 1536 ? 2 : 1;
+      const cols =
+        window.innerWidth >= 1920
+          ? 4
+          : window.innerWidth >= 1024
+            ? 3
+            : window.innerWidth >= 768
+              ? 2
+              : 1;
       const available = containerAvailable - HEADER_ROW_H;
       let next: number;
       if (viewMode === 'table') {
         next = Math.max(5, Math.floor(available / ROW_H));
       } else {
+        // Only use 2 rows when there is enough vertical space for 2 minimum-height cards
+        const twoRowMinAvailable = 2 * 260 + CARD_GAP + GRID_V_PAD + 16;
+        const visibleRows = window.innerWidth >= 1536 && available >= twoRowMinAvailable ? 2 : 1;
         const gridAvailable = available - GRID_V_PAD;
         const cardH = Math.max(
           260,
@@ -434,8 +444,13 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
       }
     };
     calculate();
+    // Re-run after layout settles to get accurate getBoundingClientRect values
+    const rafId = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', calculate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
@@ -458,8 +473,8 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
   const tabCounts = {
     all: allData?.totalCount ?? 0,
     taslak: allData?.items.filter((p) => p.status === 'taslak').length ?? 0,
-    aktif: allData?.items.filter((p) => p.status === 'aktif').length ?? 0,
-    tamamlandi: allData?.items.filter((p) => p.status === 'tamamlandi').length ?? 0,
+    tamamlandi:
+      allData?.items.filter((p) => p.status === 'tamamlandi' || p.status === 'aktif').length ?? 0,
   };
 
   const items = data?.items ?? [];
@@ -493,42 +508,21 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Status tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => {
-                setStatusTab(tab.value);
-                setPage(1);
-              }}
-              className={cn(
-                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                statusTab === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                {tab.label}
-                {tabCounts[tab.value as keyof typeof tabCounts] > 0 && (
-                  <span
-                    className={cn(
-                      'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none',
-                      statusTab === tab.value
-                        ? 'bg-primary-foreground/20 text-primary-foreground'
-                        : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {tabCounts[tab.value as keyof typeof tabCounts]}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          tabs={STATUS_TABS.map((tab) => ({
+            ...tab,
+            count: tabCounts[tab.value as keyof typeof tabCounts],
+          }))}
+          value={statusTab}
+          onChange={(v) => {
+            setStatusTab(v);
+            setPage(1);
+          }}
+        />
 
         {/* Search */}
         <SearchInput
+          size="sm"
           onSearch={handleSearch}
           placeholder="Plan adı veya araç adı ile ara..."
           initialValue={search}
@@ -604,36 +598,36 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
 
         {/* View mode toggle */}
         <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          <button
-            onClick={() => {
-              setViewMode('card');
-              setPage(1);
-            }}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              viewMode === 'card'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="Kart görünümü"
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('table');
-              setPage(1);
-            }}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              viewMode === 'table'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="Liste görünümü"
-          >
-            <LayoutList className="h-3.5 w-3.5" />
-          </button>
+          {(
+            [
+              { value: 'card', icon: LayoutGrid, title: 'Kart görünümü' },
+              { value: 'table', icon: LayoutList, title: 'Liste görünümü' },
+            ] as const
+          ).map(({ value, icon: Icon, title }) => (
+            <button
+              key={value}
+              onClick={() => {
+                setViewMode(value);
+                setPage(1);
+              }}
+              className={cn(
+                'relative flex h-7 w-7 items-center justify-center rounded-md',
+                viewMode === value
+                  ? 'text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              title={title}
+            >
+              {viewMode === value && (
+                <motion.div
+                  layoutId="viewModePill"
+                  className="absolute inset-0 rounded-md bg-primary"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <Icon className="relative z-10 h-3.5 w-3.5" />
+            </button>
+          ))}
         </div>
 
         {/* Yeni Plan Oluştur */}
@@ -727,7 +721,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
 
             {showSkeleton ? (
               <div
-                className="grid grid-cols-3 gap-3 px-4 py-3 min-[1920px]:grid-cols-4"
+                className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-2 lg:grid-cols-3 min-[1920px]:grid-cols-4"
                 style={{ gridAutoRows: cardHeight }}
               >
                 {Array.from({ length: pageSize }).map((_, i) => (
@@ -740,7 +734,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
               </div>
             ) : (
               <div
-                className="grid grid-cols-3 gap-3 px-4 py-3 min-[1920px]:grid-cols-4"
+                className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-2 lg:grid-cols-3 min-[1920px]:grid-cols-4"
                 style={{ gridAutoRows: cardHeight }}
               >
                 {items.map((plan, i) => (

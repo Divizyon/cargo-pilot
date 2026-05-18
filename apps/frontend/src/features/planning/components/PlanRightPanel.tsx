@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, type HTMLAttributes } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -17,8 +18,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  ArrowDownUp,
   Box,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -32,17 +33,17 @@ import {
   Package2,
   Plus,
   Printer,
-  Scale,
   Search,
   Share2,
   SlidersHorizontal,
   Truck,
   X,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterTabs } from '@/components/shared/FilterTabs';
+import { SearchInput } from '@/components/shared/SearchInput';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -54,7 +55,8 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import { OptimizationModal } from './OptimizationModal';
+import { AddVehicleModal } from './AddVehicleModal';
 import { toast } from 'sonner';
 import { SCENE } from '@/lib/config/scene-config';
 import { useDebounce } from '@/lib/utils/useDebounce';
@@ -68,7 +70,6 @@ import {
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
-import { AddVehicleModal } from './AddVehicleModal';
 import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
 import { useReadOnly } from '../ReadOnlyContext';
@@ -99,6 +100,7 @@ interface VehicleListItemProps {
   dragHandleAttributes?: Record<string, unknown>;
   onAddToSelected: (v: Vehicle) => void;
   onPreview: (v: Vehicle) => void;
+  isSelected?: boolean;
 }
 
 function VehicleListItem({
@@ -108,6 +110,7 @@ function VehicleListItem({
   dragHandleAttributes,
   onAddToSelected,
   onPreview,
+  isSelected = false,
 }: VehicleListItemProps) {
   const [expanded, setExpanded] = useState(false);
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
@@ -134,11 +137,18 @@ function VehicleListItem({
         )}
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          {isContainer ? (
-            <Package2 className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
-          ) : (
-            <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
-          )}
+          <div className="relative shrink-0">
+            {isContainer ? (
+              <Package2 className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+            ) : (
+              <Truck className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+            )}
+            {isSelected && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 flex items-center justify-center">
+                <Check className="w-1.5 h-1.5 text-white" strokeWidth={3} />
+              </span>
+            )}
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm truncate text-foreground">{vehicle.name}</p>
             <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
@@ -436,6 +446,7 @@ export function PlanRightPanel({
   getSnapshot,
 }: PlanRightPanelProps) {
   const readOnly = useReadOnly();
+  const navigate = useNavigate();
   const addVehicle = usePlanStore((s) => s.addVehicle);
   const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
@@ -444,10 +455,6 @@ export function PlanRightPanel({
   const selectedVehicles = usePlanStore((s) => s.selectedVehicles);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
-  const criteria = usePlanStore((s) => s.criteria);
-  const setCriteria = usePlanStore((s) => s.setCriteria);
-  const clusterGroups = usePlanStore((s) => s.clusterGroups);
-  const setClusterGroups = usePlanStore((s) => s.setClusterGroups);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
   const showCog = useSceneStore((s) => s.showCog);
   const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
@@ -465,6 +472,7 @@ export function PlanRightPanel({
   const [vehicleOrder, setVehicleOrder] = useState<string[]>([]);
 
   // Analysis & export state
+  const [optimizationModalOpen, setOptimizationModalOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [xrayPanelOpen, setXrayPanelOpen] = useState(false);
@@ -516,16 +524,6 @@ export function PlanRightPanel({
       return arrayMove(ids, oldIndex, newIndex);
     });
   }
-
-  useEffect(() => {
-    if (!pendingSelectIdRef.current) return;
-    const found = vehicles.find((v) => v.id === pendingSelectIdRef.current);
-    if (found) {
-      addVehicle(found);
-      setActiveVehicleTab('selected');
-      pendingSelectIdRef.current = null;
-    }
-  }, [vehicles, addVehicle]);
 
   useEffect(() => {
     setActiveLayer(debouncedSlider);
@@ -587,16 +585,12 @@ export function PlanRightPanel({
     [selectedVehicles],
   );
 
-  const listTabVehicles = useMemo(
-    () => displayedVehicles.filter((v) => !selectedVehicleIds.has(v.id)),
-    [displayedVehicles, selectedVehicleIds],
-  );
+  const listTabVehicles = displayedVehicles;
 
   const listSortableIds = useMemo(() => {
     if (vehicleSearch.trim()) return listTabVehicles.map((v) => v.id);
-    const filtered = vehicleOrder.filter((id) => !selectedVehicleIds.has(id));
-    return filtered.length > 0 ? filtered : listTabVehicles.map((v) => v.id);
-  }, [vehicleOrder, vehicleSearch, listTabVehicles, selectedVehicleIds]);
+    return vehicleOrder.length > 0 ? vehicleOrder : listTabVehicles.map((v) => v.id);
+  }, [vehicleOrder, vehicleSearch, listTabVehicles]);
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -640,7 +634,7 @@ export function PlanRightPanel({
                 size="icon"
                 title="Araç Ekle"
                 className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-                onClick={() => setShowVehicleModal(true)}
+                onClick={() => navigate('/vehicles/new')}
               >
                 <Plus className="w-3.5 h-3.5" />
               </Button>
@@ -650,29 +644,94 @@ export function PlanRightPanel({
           {/* Vehicle tabs — edit modda göster */}
           {!readOnly && (
             <div className="px-2 pt-2 shrink-0">
-              <Tabs
+              <FilterTabs
+                className="w-full"
+                fullWidth
+                tabs={[
+                  { value: 'selected', label: 'Seçili Araç', count: selectedVehicles.length },
+                  { value: 'list', label: 'Araç Listesi', count: vehicles.length },
+                ]}
                 value={activeVehicleTab}
-                onValueChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
-              >
-                <TabsList className="w-full h-7 bg-muted">
-                  <TabsTrigger value="selected" className="flex-1 text-xs h-6">
-                    Seçili Araç
-                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                      ({selectedVehicles.length})
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger value="list" className="flex-1 text-xs h-6">
-                    Araç Listesi
-                    <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                      ({vehicles.filter((v) => !selectedVehicleIds.has(v.id)).length})
-                    </span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+                onChange={(v) => setActiveVehicleTab(v as 'list' | 'selected')}
+              />
             </div>
           )}
 
-          {/* Tab: Seçili Araç — read-only modda doğrudan göster */}
+          {/* Search + Filter — edit modda her tab'da göster */}
+          {!readOnly && (
+            <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
+              <SearchInput size="sm" placeholder="Araç adı ile ara…" onSearch={setVehicleSearch} />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Araç tipine göre filtrele"
+                    className={cn(
+                      'h-7 shrink-0 gap-1 px-2 text-xs',
+                      activeVehicleTypes.size > 0 &&
+                        'border-primary text-primary ring-1 ring-primary/30',
+                    )}
+                  >
+                    <SlidersHorizontal className="w-3 h-3" />
+                    {activeVehicleTypes.size > 0 && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                        {activeVehicleTypes.size}
+                      </span>
+                    )}
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
+                    Araç Tipi
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {(
+                    Object.entries(VEHICLE_TYPE_META) as [
+                      VehicleTypeValue,
+                      { label: string; icon: typeof Truck },
+                    ][]
+                  ).map(([key, meta]) => {
+                    const Icon = meta.icon;
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={activeVehicleTypes.has(key)}
+                        onCheckedChange={(checked: boolean) => {
+                          setActiveVehicleTypes((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(key);
+                            else next.delete(key);
+                            return next;
+                          });
+                        }}
+                        onSelect={(e: Event) => e.preventDefault()}
+                        className="text-xs gap-2"
+                      >
+                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                        {meta.label}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+                  {activeVehicleTypes.size > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <button
+                        onClick={() => setActiveVehicleTypes(new Set())}
+                        className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
+                      >
+                        Filtreleri temizle
+                      </button>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+
+          {/* Tab: Seçili Araç içeriği */}
           {(readOnly || activeVehicleTab === 'selected') && (
             <div className="flex-1 min-h-0 overflow-y-auto">
               {selectedVehicles.length === 0 ? (
@@ -698,135 +757,49 @@ export function PlanRightPanel({
             </div>
           )}
 
-          {/* Tab: Araç Listesi — read-only modda gizle */}
+          {/* Tab: Araç Listesi içeriği */}
           {!readOnly && activeVehicleTab === 'list' && (
-            <>
-              <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={vehicleSearch}
-                    onChange={(e) => setVehicleSearch(e.target.value)}
-                    placeholder="Araç adı ile ara…"
-                    className="h-7 pl-8 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-                  />
-                  {vehicleSearch && (
-                    <button
-                      onClick={() => setVehicleSearch('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+              {vehiclesLoading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Araçlar yükleniyor…
                 </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      title="Araç tipine göre filtrele"
-                      className={cn(
-                        'h-7 w-7 shrink-0 border-border',
-                        activeVehicleTypes.size > 0
-                          ? 'bg-foreground text-background border-foreground hover:bg-foreground/80 hover:border-foreground/80'
-                          : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted',
-                      )}
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide py-1">
-                      Araç Tipi
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {(
-                      Object.entries(VEHICLE_TYPE_META) as [
-                        VehicleTypeValue,
-                        { label: string; icon: typeof Truck },
-                      ][]
-                    ).map(([key, meta]) => {
-                      const Icon = meta.icon;
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={key}
-                          checked={activeVehicleTypes.has(key)}
-                          onCheckedChange={(checked: boolean) => {
-                            setActiveVehicleTypes((prev) => {
-                              const next = new Set(prev);
-                              if (checked) next.add(key);
-                              else next.delete(key);
-                              return next;
-                            });
-                          }}
-                          onSelect={(e: Event) => e.preventDefault()}
-                          className="text-xs gap-2"
-                        >
-                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                          {meta.label}
-                        </DropdownMenuCheckboxItem>
-                      );
-                    })}
-                    {activeVehicleTypes.size > 0 && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <button
-                          onClick={() => setActiveVehicleTypes(new Set())}
-                          className="w-full text-[10px] text-muted-foreground hover:text-foreground px-2 py-1.5 text-left transition-colors"
-                        >
-                          Filtreleri temizle
-                        </button>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
-                {vehiclesLoading ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Araçlar yükleniyor…
-                  </div>
-                ) : listTabVehicles.length === 0 &&
-                  (vehicleSearch || activeVehicleTypes.size > 0) ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="w-6 h-6 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">
-                      {vehicleSearch
-                        ? `"${vehicleSearch}" için araç bulunamadı`
-                        : 'Seçili araç tipinde sonuç yok'}
-                    </p>
-                  </div>
-                ) : listTabVehicles.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Truck className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">
-                      {vehicles.length === 0 ? 'Henüz araç eklenmemiş' : 'Tüm araçlar seçili'}
-                    </p>
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleVehicleDragEnd}
-                  >
-                    <SortableContext items={listSortableIds} strategy={verticalListSortingStrategy}>
-                      {listTabVehicles.map((v) => (
-                        <SortableVehicleListItem
-                          key={v.id}
-                          id={v.id}
-                          vehicle={v}
-                          onAddToSelected={handleSelectVehicle}
-                          onPreview={peekVehicle}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
-                )}
-              </div>
-            </>
+              ) : listTabVehicles.length === 0 && (vehicleSearch || activeVehicleTypes.size > 0) ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                  <Search className="w-6 h-6 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">
+                    {vehicleSearch
+                      ? `"${vehicleSearch}" için araç bulunamadı`
+                      : 'Seçili araç tipinde sonuç yok'}
+                  </p>
+                </div>
+              ) : listTabVehicles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                  <Truck className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Henüz araç eklenmemiş</p>
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleVehicleDragEnd}
+                >
+                  <SortableContext items={listSortableIds} strategy={verticalListSortingStrategy}>
+                    {listTabVehicles.map((v) => (
+                      <SortableVehicleListItem
+                        key={v.id}
+                        id={v.id}
+                        vehicle={v}
+                        isSelected={selectedVehicleIds.has(v.id)}
+                        onAddToSelected={handleSelectVehicle}
+                        onPreview={peekVehicle}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -974,114 +947,15 @@ export function PlanRightPanel({
             )}
           </div>
 
-          {/* Optimizasyon modu seçici — gizle: read-only modda */}
           {!readOnly && (
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-muted-foreground px-0.5">Yerleştirme Modu</span>
-              <div className="grid grid-cols-2 gap-1">
-                {(
-                  [
-                    {
-                      value: OptimizationCriteria.Lifo,
-                      icon: ArrowDownUp,
-                      label: 'LIFO',
-                      title: 'Son giren ilk çıkar',
-                    },
-                    {
-                      value: OptimizationCriteria.WeightBalance,
-                      icon: Scale,
-                      label: 'Ağırlık Dengesi',
-                      title: 'Ağırlık dengesi',
-                    },
-                  ] as const
-                ).map(({ value, icon: Icon, label, title }) => (
-                  <button
-                    key={value}
-                    onClick={() => setCriteria(value)}
-                    title={title}
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === value
-                        ? 'bg-foreground text-background border-foreground'
-                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!readOnly && (
-            <>
-              {/* Grup kümeleme modu */}
-              <div className="flex flex-col gap-1">
-                <span
-                  className={cn(
-                    'text-[10px] px-0.5',
-                    criteria === OptimizationCriteria.Lifo
-                      ? 'text-muted-foreground/40'
-                      : 'text-muted-foreground',
-                  )}
-                >
-                  Grup Yerleştirme
-                  {criteria === OptimizationCriteria.Lifo && (
-                    <span className="ml-1 text-[9px]">(LIFO ile kilitli)</span>
-                  )}
-                </span>
-                <div className="grid grid-cols-2 gap-1">
-                  <button
-                    onClick={() => setClusterGroups(true)}
-                    disabled={criteria === OptimizationCriteria.Lifo}
-                    title={
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'LIFO modunda grup kümeleme devre dışı'
-                        : 'Gruplu ürünler bir arada kümelenir'
-                    }
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
-                        : clusterGroups
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <span>Kümeleli</span>
-                  </button>
-                  <button
-                    onClick={() => setClusterGroups(false)}
-                    disabled={criteria === OptimizationCriteria.Lifo}
-                    title={
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'LIFO modunda grup kümeleme devre dışı'
-                        : 'Tüm ürünler optimizasyon kriterine göre karışık yerleşir'
-                    }
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                      criteria === OptimizationCriteria.Lifo
-                        ? 'opacity-40 cursor-not-allowed bg-background text-muted-foreground border-border'
-                        : !clusterGroups
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    <span>Karma</span>
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
-                disabled={!selectedVehicle || isOptimizing || !canOptimize}
-                onClick={onOptimize}
-              >
-                {isOptimizing && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                Optimizasyonu Başlat
-              </Button>
-            </>
+            <Button
+              className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
+              disabled={!selectedVehicle || !canOptimize}
+              onClick={() => setOptimizationModalOpen(true)}
+            >
+              <Zap className="mr-2 h-3.5 w-3.5" />
+              Yükle
+            </Button>
           )}
           {placements.length > 0 && (
             <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
@@ -1090,6 +964,17 @@ export function PlanRightPanel({
           )}
         </div>
       </div>
+
+      <OptimizationModal
+        open={optimizationModalOpen}
+        onOpenChange={setOptimizationModalOpen}
+        onConfirm={() => {
+          setOptimizationModalOpen(false);
+          onOptimize?.();
+        }}
+        isOptimizing={isOptimizing}
+        disabled={!selectedVehicle}
+      />
 
       <AddVehicleModal
         open={showVehicleModal}

@@ -176,15 +176,22 @@ interface CreateLoadingPlanInput {
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
   clusterGroups?: boolean;
+  allowContamination?: boolean;
 }
 
 export function useCreateLoadingPlan() {
   const queryClient = useQueryClient();
   return useMutation<string, AxiosError<ProblemDetails>, CreateLoadingPlanInput>({
-    mutationFn: async ({ groups, clusterGroups, ...rest }: CreateLoadingPlanInput) => {
+    mutationFn: async ({
+      groups,
+      clusterGroups,
+      allowContamination,
+      ...rest
+    }: CreateLoadingPlanInput) => {
       const body: Record<string, unknown> = { ...rest };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
+      if (allowContamination) body['allowContamination'] = allowContamination;
       const { data } = await axiosInstance.post<unknown>('/api/v1/loading-plans', body);
 
       // API returns the UUID directly as a string
@@ -309,6 +316,7 @@ interface ReoptimizeLoadingPlanInput {
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
   clusterGroups?: boolean;
+  allowContamination?: boolean;
 }
 
 export function useReoptimizeLoadingPlan() {
@@ -321,10 +329,12 @@ export function useReoptimizeLoadingPlan() {
       optimizationCriteria,
       groups,
       clusterGroups,
+      allowContamination,
     }: ReoptimizeLoadingPlanInput) => {
       const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
+      if (allowContamination) body['allowContamination'] = allowContamination;
       const { data } = await axiosInstance.put<unknown>(`/api/v1/loading-plans/${id}`, body);
 
       if (typeof data === 'string' && data !== '00000000-0000-0000-0000-000000000000') {
@@ -389,7 +399,11 @@ function applyClientFilters(
     result = result.filter((p) => new Date(p.plannedAt ?? p.createdAt).getTime() <= to.getTime());
   }
   if (filters?.status) {
-    result = result.filter((p) => p.status === filters.status);
+    if (filters.status === 'tamamlandi') {
+      result = result.filter((p) => p.status === 'tamamlandi' || p.status === 'aktif');
+    } else {
+      result = result.filter((p) => p.status === filters.status);
+    }
   }
   return result;
 }

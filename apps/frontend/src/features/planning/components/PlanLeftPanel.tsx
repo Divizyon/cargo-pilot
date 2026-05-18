@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo, type ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
-  AlertTriangle,
+  AlertCircle,
   Box,
   Check,
   ChevronDown,
@@ -39,8 +39,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterTabs } from '@/components/shared/FilterTabs';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -49,10 +49,25 @@ import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
 import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
-import { AddItemModal } from './AddItemModal';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
+import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import {
+  detectContaminationConflicts,
+  computeGroupVolumes,
+  type GroupVolume,
+  type ContaminationConflict,
+} from '@/lib/utils/contamination';
 
 const VIRTUAL_THRESHOLD = 100;
 
@@ -155,62 +170,6 @@ function itemMatchesFilters(
   return true;
 }
 
-interface ConstraintMeta {
-  key: string;
-  label: string;
-  Icon: ElementType;
-  colorClass: string;
-}
-
-function getItemConstraints(item: Item): ConstraintMeta[] {
-  const list: ConstraintMeta[] = [];
-  if (item.fragility === 1)
-    list.push({
-      key: 'fragile',
-      label: 'Kırılgan',
-      Icon: AlertTriangle,
-      colorClass: 'text-amber-500',
-    });
-  if (item.fragility >= 2)
-    list.push({
-      key: 'hazmat',
-      label: 'Tehlikeli Madde',
-      Icon: Flame,
-      colorClass: 'text-rose-500',
-    });
-  if (!item.isStackable)
-    list.push({ key: 'nostack', label: 'Yığılamaz', Icon: Layers, colorClass: 'text-purple-500' });
-  if (!item.allowRotateX)
-    list.push({
-      key: 'noRotX',
-      label: 'X ekseni kısıtlı',
-      Icon: RotateCcw,
-      colorClass: 'text-blue-500',
-    });
-  if (!item.allowRotateY)
-    list.push({
-      key: 'noRotY',
-      label: 'Y ekseni kısıtlı',
-      Icon: RotateCcw,
-      colorClass: 'text-blue-500',
-    });
-  if (!item.allowRotateZ)
-    list.push({
-      key: 'noRotZ',
-      label: 'Z ekseni kısıtlı',
-      Icon: RotateCcw,
-      colorClass: 'text-blue-500',
-    });
-  if (item.stackGroup?.trim())
-    list.push({
-      key: 'group',
-      label: `Yük Grubu: ${item.stackGroup}`,
-      Icon: Package,
-      colorClass: 'text-muted-foreground',
-    });
-  return list;
-}
-
 // ─── GroupSelectionRow ────────────────────────────────────────────────────────
 
 interface GroupSelectionRowProps {
@@ -261,8 +220,11 @@ interface StoreItemRowProps {
   iconColor?: string;
   groups?: GroupOption[];
   onToggleExpand: () => void;
+  onToggleVisibility?: () => void;
+  isHidden?: boolean;
   onPlace: (qty: number) => void;
   onRemove?: () => void;
+  onRemoveFromGroup?: () => void;
   onEdit?: () => void;
   onAddToGroup?: (groupId: string) => void;
   onClearStackGroup?: () => void;
@@ -277,8 +239,11 @@ function StoreItemRow({
   iconColor,
   groups,
   onToggleExpand,
+  onToggleVisibility,
+  isHidden = false,
   onPlace,
   onRemove,
+  onRemoveFromGroup,
   onEdit,
   onAddToGroup,
   onClearStackGroup,
@@ -286,9 +251,8 @@ function StoreItemRow({
   const readOnly = useReadOnly();
   const { item, quantity } = storeEntry;
   const [localQty, setLocalQty] = useState(quantity);
+  const [inputValue, setInputValue] = useState(String(quantity));
   const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
-  const constraints = getItemConstraints(item);
-  const hasConstraints = constraints.length > 0;
 
   return (
     <div
@@ -299,11 +263,12 @@ function StoreItemRow({
       )}
     >
       <div
-        onClick={onToggleExpand}
+        onClick={onToggleVisibility ?? onToggleExpand}
         className={cn(
           'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
           isPlaced ? 'bg-muted/40' : 'hover:bg-accent',
           isExpanded && 'bg-muted/40',
+          isHidden && 'opacity-40',
         )}
       >
         <TypeIcon
@@ -313,24 +278,20 @@ function StoreItemRow({
         />
         <span className="flex-1 min-w-0 text-xs text-foreground truncate">{item.name}</span>
         <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">{item.sku}</span>
-        {onEdit && (
-          <button
-            title="Düzenle"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-muted-foreground/30 hover:text-muted-foreground hover:bg-accent transition-colors"
-          >
-            <Pencil className="w-2.5 h-2.5" />
-          </button>
-        )}
-        <ChevronDown
-          className={cn(
-            'w-3 h-3 shrink-0 text-muted-foreground/50 transition-transform duration-150',
-            isExpanded && 'rotate-180',
-          )}
-        />
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand();
+          }}
+          className="shrink-0 flex items-center justify-center"
+        >
+          <ChevronDown
+            className={cn(
+              'w-3 h-3 text-muted-foreground/50 transition-transform duration-150',
+              isExpanded && 'rotate-180',
+            )}
+          />
+        </button>
       </div>
 
       {isExpanded && (
@@ -338,24 +299,14 @@ function StoreItemRow({
           <p className="text-[11px] text-muted-foreground tabular-nums">
             {item.width}×{item.height}×{item.length} cm · {item.weight} kg
           </p>
-          {hasConstraints && (
-            <TooltipProvider delayDuration={100}>
-              <div className="flex items-center gap-1.5">
-                {constraints.map((c) => (
-                  <Tooltip key={c.key}>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-default">
-                        <c.Icon className={cn('w-3.5 h-3.5', c.colorClass)} strokeWidth={2} />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
-                      {c.label}
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-            </TooltipProvider>
-          )}
+          <ConstraintIcons
+            fragility={item.fragility}
+            isStackable={item.isStackable}
+            allowRotateX={item.allowRotateX}
+            allowRotateY={item.allowRotateY}
+            allowRotateZ={item.allowRotateZ}
+            constraintIds={item.constraintIds}
+          />
           {item.stackGroup?.trim() && (
             <div className="flex items-center gap-1.5 text-[11px]">
               <Package className="w-3 h-3 text-muted-foreground shrink-0" />
@@ -381,106 +332,170 @@ function StoreItemRow({
             </p>
           )}
           {!readOnly && (
-            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border">
-              {!isPlaced ? (
-                <>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground">Adet</span>
-                    <div className="flex items-center rounded border border-border overflow-hidden ml-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLocalQty((v) => Math.max(1, v - 1));
-                        }}
-                        className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                      >
-                        <Minus className="w-2 h-2" />
-                      </button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={localQty}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
-                          if (!isNaN(v) && v >= 1) setLocalQty(v);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLocalQty((v) => v + 1);
-                        }}
-                        className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
-                      >
-                        <Plus className="w-2 h-2" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {groups && groups.length > 0 && onAddToGroup && (
-                      <DropdownMenu>
-                        <TooltipProvider delayDuration={300}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
-                                >
-                                  <FolderPlus className="w-3.5 h-3.5" />
-                                </button>
-                              </DropdownMenuTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs">
-                              Gruba Ekle
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <DropdownMenuContent side="top" align="end" className="w-44 p-1">
-                          {groups.map((g) => (
-                            <DropdownMenuItem
-                              key={g.id}
-                              className="flex items-center gap-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAddToGroup(g.id);
-                              }}
-                            >
-                              <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: g.color }} />
-                              <span className="truncate">{g.ad}</span>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                    <Button
-                      size="sm"
-                      disabled={!canPlace}
+            <div className="flex flex-col gap-0.5 pt-1.5 border-t border-border">
+              <div className="flex items-center justify-between gap-2">
+                {/* Adet */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground">Adet</span>
+                  <div className="flex items-center rounded border border-border overflow-hidden ml-1">
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onPlace(localQty);
+                        const v = Math.max(1, localQty - 1);
+                        setLocalQty(v);
+                        setInputValue(String(v));
+                      }}
+                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
+                    >
+                      <Minus className="w-2 h-2" />
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      value={inputValue}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setInputValue(raw);
+                        const parsed = parseInt(raw, 10);
+                        if (!isNaN(parsed) && parsed >= 1) setLocalQty(parsed);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const v = localQty + 1;
+                        setLocalQty(v);
+                        setInputValue(String(v));
+                      }}
+                      className="w-5 h-5 flex items-center justify-center hover:bg-accent text-muted-foreground transition-colors"
+                    >
+                      <Plus className="w-2 h-2" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Aksiyon butonları */}
+                <div className="flex items-center gap-1">
+                  {onEdit && (
+                    <button
+                      title="Düzenle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit();
+                      }}
+                      className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-muted-foreground hover:bg-accent transition-colors"
+                    >
+                      <Pencil className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                  {!isPlaced ? (
+                    <>
+                      {groups && groups.length > 0 && onAddToGroup && (
+                        <DropdownMenu>
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
+                                  >
+                                    <FolderPlus className="w-3.5 h-3.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                Gruba Ekle
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <DropdownMenuContent side="top" align="end" className="w-44 p-1">
+                            {groups.map((g) => (
+                              <DropdownMenuItem
+                                key={g.id}
+                                className="flex items-center gap-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onAddToGroup(g.id);
+                                }}
+                              >
+                                <Layers
+                                  className="w-3.5 h-3.5 shrink-0"
+                                  style={{ color: g.color }}
+                                />
+                                <span className="truncate">{g.ad}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                      <Button
+                        size="sm"
+                        disabled={!canPlace}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPlace(localQty);
+                          onToggleExpand();
+                        }}
+                        className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
+                      >
+                        Ekle
+                      </Button>
+                    </>
+                  ) : onRemoveFromGroup ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
+                        >
+                          <PackageMinus className="w-3 h-3" />
+                          Çıkar
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="top" align="end" className="min-w-0 w-auto p-0">
+                        <DropdownMenuItem
+                          className="text-[10px] px-2 py-0.5 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveFromGroup();
+                            onToggleExpand();
+                          }}
+                        >
+                          Gruptan Çıkar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-[10px] px-2 py-0.5 cursor-pointer text-rose-600 focus:text-rose-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemove?.();
+                            onToggleExpand();
+                          }}
+                        >
+                          Yüklüden Çıkar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove?.();
                         onToggleExpand();
                       }}
-                      className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
                     >
-                      Ekle
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove?.();
-                    onToggleExpand();
-                  }}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
-                >
-                  <PackageMinus className="w-3 h-3" />
-                  Çıkar
-                </button>
+                      <PackageMinus className="w-3 h-3" />
+                      Çıkar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {inputValue === '' && (
+                <span className="text-[10px] text-rose-500 pl-0.5">boş olamaz</span>
               )}
             </div>
           )}
@@ -504,7 +519,6 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>
   >([]);
   const [ungroupedIds, setUngroupedIds] = useState<string[]>([]);
-  const [showItemModal, setShowItemModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
@@ -517,12 +531,20 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   // Group management state
   const [groupSelectionMode, setGroupSelectionMode] = useState<string | null>(null);
   const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set());
+  const [groupSelectionCurrentOnly, setGroupSelectionCurrentOnly] = useState(false);
+  const [groupSelectionAction, setGroupSelectionAction] = useState<'add' | 'remove'>('add');
 
   // stackGroup collapsible state for Ürün Listesi tab
   const [openStackGroups, setOpenStackGroups] = useState<Set<string>>(new Set());
   const [clearedStackGroups, setClearedStackGroups] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
+
+  const [pendingPlaceContamination, setPendingPlaceContamination] = useState<{
+    pendingAction: () => void;
+    groupVolumes: GroupVolume[];
+    conflicts: ContaminationConflict[];
+  } | null>(null);
 
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
   const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
@@ -547,6 +569,9 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
 
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
+  const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
+  const setHiddenItemIds = useSceneStore((s) => s.setHiddenItemIds);
+  const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
 
   // Mevcut plan yüklendiğinde store'dan grupları geri yükle
   useEffect(() => {
@@ -581,9 +606,20 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   useEffect(() => {
     if (prevSelectedLenRef.current > 0 && selectedItems.length === 0 && placements.length === 0) {
       setUngroupedIds([]);
+      setGroups([]);
+      useSceneStore.getState().setHiddenItemIds([]);
     }
     prevSelectedLenRef.current = selectedItems.length;
   }, [selectedItems.length, placements.length]);
+
+  const prevPlanIdRef = useRef<string | undefined>(planId);
+  useEffect(() => {
+    if (prevPlanIdRef.current === planId) return;
+    prevPlanIdRef.current = planId;
+    setGroups([]);
+    setUngroupedIds([]);
+    useSceneStore.getState().setHiddenItemIds([]);
+  }, [planId]);
 
   useEffect(() => {
     if (ungroupedIds.length > 0) return;
@@ -681,12 +717,14 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     if (activeTab !== 'unloaded') return [];
     const planIds = new Set(selectedItems.map((si) => si.item.id));
     return apiItems.filter(
-      (item) =>
-        !planIds.has(item.id) &&
-        !placedIds.has(item.id) &&
-        itemMatchesFilters(item, search, activeConstraints),
+      (item) => !planIds.has(item.id) && itemMatchesFilters(item, search, activeConstraints),
     );
-  }, [apiItems, selectedItems, placedIds, activeTab, search, activeConstraints]);
+  }, [apiItems, selectedItems, activeTab, search, activeConstraints]);
+
+  const unloadedCount = useMemo(() => {
+    const planIds = new Set(selectedItems.map((si) => si.item.id));
+    return selectedItems.length + apiItems.filter((i) => !planIds.has(i.id)).length;
+  }, [selectedItems, apiItems]);
 
   const flatDisplayItems = useMemo(() => {
     const seen = new Set<string>();
@@ -700,7 +738,6 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       if (!entry) continue;
       const isPlaced = placedIds.has(id);
       if (activeTab === 'loaded' && !isPlaced) continue;
-      if (activeTab === 'unloaded' && isPlaced) continue;
       if (!itemMatchesFilters(entry.item, search, activeConstraints)) continue;
       result.push(id);
     }
@@ -712,7 +749,6 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       if (groupedIds.has(id)) continue;
       const isPlaced = placedIds.has(id);
       if (activeTab === 'loaded' && !isPlaced) continue;
-      if (activeTab === 'unloaded' && isPlaced) continue;
       if (!itemMatchesFilters(si.item, search, activeConstraints)) continue;
       result.push(id);
     }
@@ -773,6 +809,17 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   // All items available for group selection (plan items + catalog items in Ürün Listesi)
   const groupSelectionItems = useMemo(() => {
     if (!groupSelectionMode) return [];
+
+    if (groupSelectionCurrentOnly) {
+      const currentIds = new Set(groups.find((g) => g.id === groupSelectionMode)?.itemIdler ?? []);
+      return selectedItems
+        .filter(
+          (si) =>
+            currentIds.has(si.item.id) && itemMatchesFilters(si.item, search, activeConstraints),
+        )
+        .map((si) => si.item);
+    }
+
     const planIds = new Set(selectedItems.map((si) => si.item.id));
     const catalogOnly = apiItems.filter(
       (item) => !planIds.has(item.id) && itemMatchesFilters(item, search, activeConstraints),
@@ -781,19 +828,33 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       (si) => !placedIds.has(si.item.id) && itemMatchesFilters(si.item, search, activeConstraints),
     );
     return [...planUnplaced.map((si) => si.item), ...catalogOnly];
-  }, [groupSelectionMode, selectedItems, apiItems, placedIds, search, activeConstraints]);
+  }, [
+    groupSelectionMode,
+    groupSelectionCurrentOnly,
+    groups,
+    selectedItems,
+    apiItems,
+    placedIds,
+    search,
+    activeConstraints,
+  ]);
 
   function lookupEntry(id: string) {
     return selectedItems.find((si) => si.item.id === id);
   }
 
-  function toggleGroup(groupId: string, itemIds: string[]) {
+  function toggleGroup(groupId: string) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, acik: !g.acik } : g)));
-    const isSameFocus =
-      focusedGroupItemIds !== null &&
-      focusedGroupItemIds.length === itemIds.length &&
-      itemIds.every((id) => focusedGroupItemIds.includes(id));
-    setFocusedGroupItemIds(isSameFocus ? null : itemIds);
+  }
+
+  function toggleGroupVisibility(itemIdler: string[]) {
+    if (itemIdler.length === 0) return;
+    const allHidden = itemIdler.every((id) => hiddenItemIds.includes(id));
+    if (allHidden) {
+      setHiddenItemIds(hiddenItemIds.filter((id) => !itemIdler.includes(id)));
+    } else {
+      setHiddenItemIds([...new Set([...hiddenItemIds, ...itemIdler])]);
+    }
   }
 
   function addItemToGroup(
@@ -833,14 +894,36 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     }
   }
 
-  function handleStartGroupSelection(groupId: string) {
+  function handleStartGroupSelection(
+    groupId: string,
+    options?: { preSelected?: Set<string>; currentOnly?: boolean; action?: 'add' | 'remove' },
+  ) {
     setGroupSelectionMode(groupId);
-    setSelectedForGroup(new Set());
+    setSelectedForGroup(options?.preSelected ?? new Set());
+    setGroupSelectionCurrentOnly(options?.currentOnly ?? false);
+    setGroupSelectionAction(options?.action ?? 'add');
     setActiveTab('unloaded');
   }
 
   function handleConfirmGroupSelection() {
     if (!groupSelectionMode) return;
+    setGroupSelectionCurrentOnly(false);
+
+    if (groupSelectionAction === 'remove') {
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupSelectionMode
+            ? { ...g, itemIdler: g.itemIdler.filter((id) => !selectedForGroup.has(id)) }
+            : g,
+        ),
+      );
+      setGroupSelectionMode(null);
+      setSelectedForGroup(new Set());
+      setGroupSelectionAction('add');
+      setActiveTab('loaded');
+      return;
+    }
+
     const newItemIds: string[] = [];
 
     selectedForGroup.forEach((itemId) => {
@@ -857,6 +940,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             ];
           addManualItem(catalogItem, 1, color);
           setUngroupedIds((prev) => [...prev, itemId]);
+          usePlanStore.getState().togglePlacement(itemId);
           newItemIds.push(itemId);
         }
       }
@@ -895,7 +979,25 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
           const color = skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
           updateItem(id, entry.item, qty, color);
         }
-        togglePlacement(id);
+        const doPlace = () => togglePlacement(id);
+        const newGroup = entry.item.stackGroup;
+        if (newGroup) {
+          const { placements: cur, selectedItems: si } = usePlanStore.getState();
+          const curPlacedIds = new Set(cur.map((p) => p.itemId));
+          const curPlaced = si.filter((s) => curPlacedIds.has(s.item.id));
+          const wouldBe = [...curPlaced, { item: entry.item, quantity: qty }];
+          const conflicts = detectContaminationConflicts(wouldBe);
+          const newGroupInConflict = conflicts.some(
+            (c) => c.groupA === newGroup || c.groupB === newGroup,
+          );
+          if (newGroupInConflict) {
+            const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+            const groupVolumes = computeGroupVolumes(wouldBe, involvedGroups);
+            setPendingPlaceContamination({ pendingAction: doPlace, groupVolumes, conflicts });
+            return;
+          }
+        }
+        doPlace();
       },
       onRemove: () => togglePlacement(id),
       onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
@@ -907,6 +1009,10 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   };
 
   const activeGroupName = groups.find((g) => g.id === groupSelectionMode)?.ad ?? 'Grup';
+
+  const allGroupItemsSelected =
+    groupSelectionItems.length > 0 &&
+    groupSelectionItems.every((item) => selectedForGroup.has(item.id));
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -920,7 +1026,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             size="icon"
             title="Ürün Ekle"
             className="h-7 w-7 bg-foreground text-background hover:bg-foreground/80"
-            onClick={() => setShowItemModal(true)}
+            onClick={() => navigate('/products/new')}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
@@ -928,55 +1034,24 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       </div>
 
       {/* Tabs — read-only modda gizle */}
-      <div className="px-2 pt-2 shrink-0">
-        {readOnly ? null : (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-            <TabsList className="w-full h-7 bg-muted">
-              <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
-                Ürün Listesi
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  {(() => {
-                    const planUnloaded = selectedItems.filter(
-                      (si) => !placedIds.has(si.item.id),
-                    ).length;
-                    const planIds = new Set(selectedItems.map((si) => si.item.id));
-                    const catalogOnly = apiItems.filter(
-                      (i) => !planIds.has(i.id) && !placedIds.has(i.id),
-                    ).length;
-                    return `(${planUnloaded + catalogOnly})`;
-                  })()}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
-                Yüklü Ürünler
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  ({placedIds.size})
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-      </div>
+      {!readOnly && (
+        <div className="px-2 pt-2 shrink-0">
+          <FilterTabs
+            className="w-full"
+            fullWidth
+            tabs={[
+              { value: 'unloaded', label: 'Ürün Listesi', count: unloadedCount },
+              { value: 'loaded', label: 'Yüklü Ürünler', count: placedIds.size },
+            ]}
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}
+          />
+        </div>
+      )}
 
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="İsim veya SKU ile ara…"
-            className="h-7 pl-7 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <SearchInput size="sm" placeholder="İsim veya SKU ile ara…" onSearch={setSearch} />
 
         {/* Filter dropdown */}
         <div ref={filterRef} className="relative shrink-0">
@@ -1076,103 +1151,213 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                 g.itemIdler.length === focusedGroupItemIds.length &&
                 g.itemIdler.every((id) => focusedGroupItemIds.includes(id));
 
+              const groupWeight = groupEntries.reduce(
+                (sum, e) => sum + e.item.weight * e.quantity,
+                0,
+              );
+              const groupVolumeCm3 = groupEntries.reduce(
+                (sum, e) => sum + e.item.width * e.item.height * e.item.length * e.quantity,
+                0,
+              );
+              const vehicleVolumeCm3 = selectedVehicle
+                ? selectedVehicle.width * selectedVehicle.height * selectedVehicle.length
+                : 0;
+              const volumePct =
+                vehicleVolumeCm3 > 0 ? (groupVolumeCm3 / vehicleVolumeCm3) * 100 : 0;
+
+              const isGroupHidden =
+                g.itemIdler.length > 0 && g.itemIdler.every((id) => hiddenItemIds.includes(id));
+
               return (
                 <div key={g.id} className="flex flex-col gap-0.5">
                   {/* Group header row */}
-                  <div
-                    className={cn(
-                      'group/grp flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
-                      isFocused
-                        ? 'bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-100'
-                        : 'hover:bg-accent',
-                    )}
-                  >
-                    {/* Expand toggle + icon + name */}
-                    <button
-                      onClick={() => toggleGroup(g.id, g.itemIdler)}
-                      className="flex items-center gap-2 flex-1 min-w-0"
-                    >
-                      <ChevronRight
-                        className={cn(
-                          'w-3.5 h-3.5 shrink-0 transition-transform duration-150',
-                          isFocused ? 'text-amber-500' : 'text-muted-foreground',
-                          g.acik && 'rotate-90',
-                        )}
-                      />
-                      <Layers
-                        className="w-4 h-4 shrink-0"
-                        style={{ color: isFocused ? '#f59e0b' : g.color }}
-                        strokeWidth={2}
-                      />
-                      {editingGroupId === g.id ? (
-                        <input
-                          value={editingGroupName}
-                          autoFocus
-                          className="flex-1 min-w-0 text-sm bg-transparent border-b border-border outline-none text-foreground px-0"
-                          onChange={(e) => setEditingGroupName(e.target.value)}
-                          onBlur={() => handleRenameGroup(g.id, editingGroupName)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRenameGroup(g.id, editingGroupName);
-                            if (e.key === 'Escape') setEditingGroupId(null);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span
+                  <TooltipProvider delayDuration={600}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          onClick={() => toggleGroupVisibility(g.itemIdler)}
                           className={cn(
-                            'text-sm flex-1 text-left truncate cursor-text',
-                            isFocused ? 'text-amber-700 font-medium' : 'text-foreground',
+                            'group/grp flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer',
+                            isGroupHidden && 'opacity-50',
+                            isFocused
+                              ? 'bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-100'
+                              : 'hover:bg-accent',
                           )}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            setEditingGroupId(g.id);
-                            setEditingGroupName(g.ad);
-                          }}
                         >
-                          {g.ad}
-                        </span>
+                          {/* Expand — only the arrow */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleGroup(g.id);
+                            }}
+                            className="shrink-0 flex items-center justify-center"
+                          >
+                            <ChevronRight
+                              className={cn(
+                                'w-3.5 h-3.5 transition-transform duration-150',
+                                isFocused ? 'text-amber-500' : 'text-muted-foreground',
+                                g.acik && 'rotate-90',
+                              )}
+                            />
+                          </button>
+
+                          <Layers
+                            className="w-4 h-4 shrink-0"
+                            style={{ color: isFocused ? '#f59e0b' : g.color }}
+                            strokeWidth={2}
+                          />
+
+                          {editingGroupId === g.id ? (
+                            <input
+                              value={editingGroupName}
+                              autoFocus
+                              className="flex-1 min-w-0 text-sm bg-transparent border-b border-border outline-none text-foreground px-0"
+                              onChange={(e) => setEditingGroupName(e.target.value)}
+                              onBlur={() => handleRenameGroup(g.id, editingGroupName)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameGroup(g.id, editingGroupName);
+                                if (e.key === 'Escape') setEditingGroupId(null);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <>
+                              <span
+                                className={cn(
+                                  'text-sm flex-1 text-left truncate',
+                                  isFocused ? 'text-amber-700 font-medium' : 'text-foreground',
+                                )}
+                                onDoubleClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingGroupId(g.id);
+                                  setEditingGroupName(g.ad);
+                                }}
+                              >
+                                {g.ad}
+                              </span>
+                              <div
+                                role="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingGroupId(g.id);
+                                  setEditingGroupName(g.ad);
+                                }}
+                                className="shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer"
+                              >
+                                <Pencil className="w-2.5 h-2.5" />
+                              </div>
+                            </>
+                          )}
+
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {groupTotal} ürün
+                          </span>
+
+                          {/* Add/remove products from group */}
+                          {!readOnly && (
+                            <>
+                              <button
+                                title="Gruba Ürün Ekle"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartGroupSelection(g.id);
+                                }}
+                                className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
+                              >
+                                <PackagePlus className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                title="Gruptakileri Seç"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartGroupSelection(g.id, {
+                                    currentOnly: true,
+                                    action: 'remove',
+                                  });
+                                }}
+                                className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
+                              >
+                                <PackageMinus className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Delete group */}
+                              <button
+                                title="Grubu Sil"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleDeleteGroup(g.id);
+                                }}
+                                className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 hover:bg-accent"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      {groupEntries.length > 0 && (
+                        <TooltipContent
+                          side="right"
+                          align="center"
+                          className="p-1.5 w-24 space-y-1"
+                        >
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Hacim
+                            </p>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-xs font-medium tabular-nums">
+                                {volumePct.toFixed(1)}%
+                              </span>
+                              <span className="text-[9px] text-muted-foreground">
+                                {(groupVolumeCm3 / 1_000_000).toFixed(2)} m³
+                              </span>
+                            </div>
+                            <div className="h-0.5 w-full rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full bg-foreground/70 rounded-full"
+                                style={{ width: `${Math.min(volumePct, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Ağırlık
+                            </p>
+                            <span className="text-xs font-medium tabular-nums">
+                              {groupWeight.toLocaleString('tr-TR', { maximumFractionDigits: 1 })} kg
+                            </span>
+                          </div>
+                        </TooltipContent>
                       )}
-                    </button>
-
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {groupTotal} kalem
-                    </span>
-
-                    {/* Add products to group */}
-                    {!readOnly && (
-                      <>
-                        <button
-                          title="Gruba Ürün Ekle"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartGroupSelection(g.id);
-                          }}
-                          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
-                        >
-                          <PackagePlus className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Delete group */}
-                        <button
-                          title="Grubu Sil"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleDeleteGroup(g.id);
-                          }}
-                          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 hover:bg-accent"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
+                    </Tooltip>
+                  </TooltipProvider>
 
                   {g.acik &&
                     filteredGroupEntries.map((entry) => {
                       const id = entry.item.id;
                       const props = commonRowProps(id);
                       if (!props) return null;
-                      return <StoreItemRow key={id} {...props} indent iconColor={g.color} />;
+                      return (
+                        <StoreItemRow
+                          key={id}
+                          {...props}
+                          indent
+                          iconColor={g.color}
+                          onToggleVisibility={() => toggleHiddenItem(id)}
+                          isHidden={hiddenItemIds.includes(id)}
+                          onRemoveFromGroup={() =>
+                            setGroups((prev) =>
+                              prev.map((grp) =>
+                                grp.id === g.id
+                                  ? { ...grp, itemIdler: grp.itemIdler.filter((gid) => gid !== id) }
+                                  : grp,
+                              ),
+                            )
+                          }
+                        />
+                      );
                     })}
                 </div>
               );
@@ -1240,7 +1425,12 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <StoreItemRow {...props} iconColor={itemIconColorMap[id]} />
+                      <StoreItemRow
+                        {...props}
+                        iconColor={itemIconColorMap[id]}
+                        onToggleVisibility={() => toggleHiddenItem(id)}
+                        isHidden={hiddenItemIds.includes(id)}
+                      />
                     </div>
                   );
                 })}
@@ -1250,7 +1440,15 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                 {flatDisplayItems.map((id) => {
                   const props = commonRowProps(id);
                   if (!props) return null;
-                  return <StoreItemRow key={id} {...props} iconColor={itemIconColorMap[id]} />;
+                  return (
+                    <StoreItemRow
+                      key={id}
+                      {...props}
+                      iconColor={itemIconColorMap[id]}
+                      onToggleVisibility={() => toggleHiddenItem(id)}
+                      isHidden={hiddenItemIds.includes(id)}
+                    />
+                  );
                 })}
               </div>
             )}
@@ -1436,10 +1634,42 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             {selectedForGroup.size} ürün seçildi
           </span>
           <div className="flex items-center gap-2">
+            {groupSelectionItems.length > 0 && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        if (allGroupItemsSelected) {
+                          setSelectedForGroup(new Set());
+                        } else {
+                          setSelectedForGroup(new Set(groupSelectionItems.map((i) => i.id)));
+                        }
+                      }}
+                      className={cn(
+                        'w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors cursor-pointer',
+                        allGroupItemsSelected
+                          ? 'bg-foreground border-foreground'
+                          : 'border-border hover:border-muted-foreground',
+                      )}
+                    >
+                      {allGroupItemsSelected && (
+                        <Check className="w-2.5 h-2.5 text-background" strokeWidth={3} />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {allGroupItemsSelected ? 'Tüm seçimi kaldır' : 'Tümünü gruba ekle'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <button
               onClick={() => {
                 setGroupSelectionMode(null);
                 setSelectedForGroup(new Set());
+                setGroupSelectionCurrentOnly(false);
+                setGroupSelectionAction('add');
                 setActiveTab('loaded');
               }}
               className="h-7 text-xs text-muted-foreground hover:text-muted-foreground px-2 transition-colors"
@@ -1452,13 +1682,22 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
               onClick={handleConfirmGroupSelection}
               className="h-7 text-xs bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
             >
-              Gruba Ekle ({selectedForGroup.size})
+              {groupSelectionAction === 'remove'
+                ? `Gruptan Çıkar (${selectedForGroup.size})`
+                : `Gruba Ekle (${selectedForGroup.size})`}
             </Button>
           </div>
         </div>
       )}
 
-      <UnfitItemsPanel />
+      <UnfitItemsPanel
+        onFullRemove={(itemId) => {
+          if (placedIds.has(itemId)) togglePlacement(itemId);
+          setGroups((prev) =>
+            prev.map((g) => ({ ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) })),
+          );
+        }}
+      />
 
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-border px-3 py-2 flex items-center gap-2">
@@ -1487,7 +1726,75 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         </div>
       )}
 
-      <AddItemModal open={showItemModal} onOpenChange={setShowItemModal} />
+      {pendingPlaceContamination && (
+        <AlertDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPendingPlaceContamination(null);
+          }}
+        >
+          <AlertDialogContent className="sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {pendingPlaceContamination.conflicts.length > 0
+                  ? 'Uyumsuz Yük Grupları'
+                  : 'Yük Grubu Seçimi'}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="flex flex-col gap-4 pt-1">
+                  {pendingPlaceContamination.conflicts.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {pendingPlaceContamination.conflicts.map((c, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">{c.groupA}</span>
+                          <span className="text-rose-400">ve</span>
+                          <span className="font-medium">{c.groupB}</span>
+                          <span className="text-muted-foreground">birlikte yüklenemez</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {pendingPlaceContamination.groupVolumes.map((gv) => (
+                      <div
+                        key={gv.name}
+                        className="flex flex-col gap-1 p-3 rounded-lg border border-border bg-muted/40 text-left"
+                      >
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          {gv.name}
+                        </span>
+                        <span className="text-lg font-bold text-foreground tabular-nums">
+                          %{gv.pct}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {gv.volumeM3.toFixed(2)} m³
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Bu ürünü eklemek mevcut gruplarla çakışma yaratabilir.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                className="w-full bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+                onClick={() => {
+                  const action = pendingPlaceContamination.pendingAction;
+                  setPendingPlaceContamination(null);
+                  action();
+                }}
+              >
+                Yine de ekle
+              </Button>
+              <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

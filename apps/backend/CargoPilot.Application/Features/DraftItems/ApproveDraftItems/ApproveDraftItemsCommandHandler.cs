@@ -63,6 +63,13 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
                 continue;
             }
 
+            var skuExists = await _itemRepository.ExistsBySkuAsync(draft.SKU, companyId.Value, cancellationToken);
+            if (skuExists)
+            {
+                skipped++;
+                continue;
+            }
+
             var item = new Item(
                 Guid.NewGuid(),
                 draft.SKU,

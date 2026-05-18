@@ -11,4 +11,5 @@ public sealed record SearchVehiclesQuery(
     bool? OnlyFavorites = null,
     int Page = 1,
     int PageSize = 20,
-    bool IsExport = false) : IRequest<Result<PagedResult<VehicleSummaryDto>>>;
+    bool IsExport = false,
+    bool? IsDraft = null) : IRequest<Result<PagedResult<VehicleSummaryDto>>>;
