@@ -103,17 +103,13 @@ export function useWeeklyTrendPlans() {
     queryKey: ['weekly-trend-plans', userId] as const,
     queryFn: () => {
       const now = new Date();
-      const dayOfWeek = now.getDay();
-      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + diffToMonday);
-      monday.setHours(0, 0, 0, 0);
+      const sixDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
       return fetchLoadingPlans({
         page: 1,
         pageSize: 200,
         sortBy: 'createdAt',
         sortDirection: 'desc',
-        startDate: monday.toISOString(),
+        startDate: sixDaysAgo.toISOString(),
       });
     },
     staleTime: 0,

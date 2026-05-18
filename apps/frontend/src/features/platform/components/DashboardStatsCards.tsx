@@ -15,15 +15,7 @@ import { WeeklyTrendChart } from './WeeklyTrendChart';
 const efficiencyFormat = (v: number) => `%${Number.isFinite(v) ? Math.round(v) : 0}`;
 const tonnageFormat = (v: number) => `${new Intl.NumberFormat('tr-TR').format(v)} ton`;
 
-function resolvePlanDate(plannedAt: string | undefined, createdAt: string): Date {
-  if (plannedAt) {
-    const d = new Date(plannedAt);
-    if (!isNaN(d.getTime())) return d;
-  }
-  return new Date(createdAt);
-}
-
-function computeWeeklyTrend(items: { plannedAt?: string; createdAt: string }[]) {
+function computeWeeklyTrend(items: { createdAt: string }[]) {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -35,7 +27,7 @@ function computeWeeklyTrend(items: { plannedAt?: string; createdAt: string }[]) 
   const counts = [0, 0, 0, 0, 0, 0, 0];
 
   for (const plan of items) {
-    const date = resolvePlanDate(plan.plannedAt, plan.createdAt);
+    const date = new Date(plan.createdAt);
     if (isNaN(date.getTime())) continue;
     const diff = Math.floor((date.getTime() - monday.getTime()) / 86400000);
     if (diff >= 0 && diff < 7) counts[diff]++;
@@ -73,7 +65,7 @@ export function DashboardStatsCards() {
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
     return effectivePlans.filter((p) => {
-      const d = resolvePlanDate(p.plannedAt, p.createdAt);
+      const d = new Date(p.createdAt);
       return !isNaN(d.getTime()) && d >= monday;
     });
   }, [effectivePlans]);
@@ -93,7 +85,8 @@ export function DashboardStatsCards() {
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
     const thisWeekPlans = effectivePlans.filter((p) => {
-      const d = resolvePlanDate(p.plannedAt, p.createdAt);
+      const d = new Date(p.createdAt);
+      if (isNaN(d.getTime())) return false;
       const diff = Math.floor((d.getTime() - monday.getTime()) / 86400000);
       return diff >= 0 && diff < 7;
     });

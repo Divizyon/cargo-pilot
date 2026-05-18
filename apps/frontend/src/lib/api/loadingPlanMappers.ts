@@ -392,6 +392,15 @@ export function fromApiPlacementsToScene(
   });
 }
 
+// Backend bazen timezone bilgisi olmadan UTC datetime döndürür (örn: "2026-05-18T21:41:00").
+// JavaScript bunu yerel saat olarak parse eder ve hatalı görüntüler. 'Z' ekleyerek UTC garantiliyoruz.
+function normalizeUtcDatetime(s: string): string {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !s.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(s)) {
+    return s + 'Z';
+  }
+  return s;
+}
+
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
@@ -409,7 +418,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     api.totalWeightKg ??
     ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
-  const createdAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const createdAt = normalizeUtcDatetime(rawCreatedAt);
   const loadingType = v?.loadingType ?? null;
   return {
     id: api.id,
