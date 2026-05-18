@@ -28,11 +28,11 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import {
   NotificationSeverity,
   NotificationType,
@@ -237,30 +237,14 @@ export function NotificationsPanel() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {FILTER_TABS.map((t) => (
-            <Button
-              key={t.value}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setTab(t.value);
-              }}
-              className={cn(
-                'relative h-auto rounded-md px-3 py-1 text-xs font-medium',
-                tab === t.value
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {t.label}
-              {t.value === 'unread' && totalUnread > 0 && (
-                <Badge className="ml-1.5 h-4 min-w-4 px-1 text-[10px]">{totalUnread}</Badge>
-              )}
-            </Button>
-          ))}
-        </div>
+        <FilterTabs
+          tabs={FILTER_TABS.map((t) => ({
+            ...t,
+            count: t.value === 'unread' ? totalUnread : undefined,
+          }))}
+          value={tab}
+          onChange={(v) => setTab(v as Parameters<typeof setTab>[0])}
+        />
 
         {/* Search */}
         <div className="relative flex-1">
