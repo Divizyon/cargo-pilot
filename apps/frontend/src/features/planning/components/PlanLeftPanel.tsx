@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   AlertCircle,
-  AlertTriangle,
   Box,
   Check,
   ChevronDown,
