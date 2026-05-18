@@ -1,6 +1,7 @@
 using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
+using CargoPilot.Application.Features.Plans.GetVehicleSuggestions;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
@@ -10,6 +11,7 @@ using CargoPilot.Application.Features.Plans.Groups.CreateGroup;
 using CargoPilot.Application.Features.Plans.Groups.DeleteGroup;
 using CargoPilot.Application.Features.Plans.Groups.UpdateGroup;
 using CargoPilot.Application.Features.Plans.ReOptimizePlan;
+using CargoPilot.Application.Features.Plans.ReorderPlanVehicles;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
 using CargoPilot.Application.Features.Plans.UploadPlanThumbnail;
 using MediatR;
@@ -128,7 +130,11 @@ public sealed class PlansController : BaseController
         [FromBody] ReOptimizePlanRequest request,
         CancellationToken cancellationToken = default)
     {
+<<<<<<< HEAD
+        var command = new ReOptimizePlanCommand(id, request.VehicleIds, request.Items, request.OptimizationCriteria);
+=======
         var command = new ReOptimizePlanCommand(id, request.VehicleId, request.Items, request.OptimizationCriteria, request.Groups, request.ClusterGroups);
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
@@ -365,7 +371,60 @@ public sealed class PlansController : BaseController
         var result = await _mediator.Send(new DeletePlanCommand(id), cancellationToken);
         return HandleResult(result);
     }
+
+    /// <summary>
+    /// Plandaki araçların sıralamasını günceller. VehicleIds, planda kayıtlı araçların yeni sıralamasını belirtir.
+    /// Araç ekleme/çıkarma yapılamaz; yalnızca mevcut araçların sırası değiştirilebilir.
+    /// Not: Mevcut placement'lar yeniden hesaplanmaz; sıra değişikliği yalnızca bir sonraki re-optimizasyonda etkin olur.
+    /// Frontend kullanıcıyı bu konuda bilgilendirmelidir.
+    /// </summary>
+    /// <param name="id">Planın ID'si.</param>
+    /// <param name="request">Yeni araç sırası (tüm araçların ID listesi).</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç sırası güncellendi.</response>
+    /// <response code="400">Doğrulama hatası veya araç listesi plandakilerle eşleşmiyor.</response>
+    /// <response code="404">Plan bulunamadı.</response>
+    [HttpPatch("{id:guid}/vehicle-order")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReorderVehicles(
+        [FromRoute] Guid id,
+        [FromBody] ReorderPlanVehiclesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new ReorderPlanVehiclesCommand(id, request.VehicleIds);
+        var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Verilen ürün listesine göre şirketin aktif araçlarını hacim algoritmasıyla sıralayarak öneri döner.
+    /// CanFitAll=true olanlar önce, ardından tahmini doluluk oranına göre sıralanır.
+    /// Not: Hacim ve ağırlık bazlı yaklaşık hesaplamadır (approximate). Stacking, rotasyon kısıtları
+    /// ve boyut uyumsuzlukları kontrol edilmez; gerçek yerleştirme sonucu farklı olabilir.
+    /// </summary>
+    /// <param name="request">Item ID ve miktar çiftlerinin listesi.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="200">Araç önerileri sıralı liste olarak döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Bir veya daha fazla item bulunamadı.</response>
+    [HttpPost("vehicle-suggestions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetVehicleSuggestions(
+        [FromBody] GetVehicleSuggestionsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetVehicleSuggestionsQuery(request.Items);
+        var result = await _mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
 }
+
+/// <summary>POST /vehicle-suggestions request body.</summary>
+public sealed record GetVehicleSuggestionsRequest(IReadOnlyList<SuggestionItemRequest> Items);
 
 /// <summary>
 /// PATCH /api/v1/loading-plans/{id} için request body.

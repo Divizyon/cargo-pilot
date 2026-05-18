@@ -27,7 +27,6 @@ import {
 import {
   useUpdateDraftItem,
   useBulkApproveDraftItems,
-  useBulkApproveItemsIndividual,
   type UpdateDraftItemPayload,
 } from '@/lib/api/useDraftItems';
 import { downloadItemImportTemplate } from '@/lib/utils/export-utils';
@@ -116,7 +115,7 @@ function rowToRequest(row: EditableRow): CreateItemRequest {
   const isStackable = row.isStackable;
   const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
   const maxStackCount = isStackable ? rawMax : 0;
-  const fragilityType = Number(row.fragility) || 0;
+  const fragilityType = row.constraintIds.length > 0 ? Math.max(...row.constraintIds) : 0;
   return {
     sku: row.sku.trim(),
     name: row.name.trim(),
@@ -143,7 +142,7 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
   const isStackable = row.isStackable;
   const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
   const maxStackCount = isStackable ? rawMax : 0;
-  const fragilityType = Number(row.fragility) || 0;
+  const fragilityType = row.constraintIds.length > 0 ? Math.max(...row.constraintIds) : 0;
   return {
     productType: row.tip,
     category: tipToCategory(row.tip),
@@ -410,7 +409,6 @@ export function BulkImportDialog({
   const bulkCreate = useBulkCreateItems();
   const updateDraftItem = useUpdateDraftItem();
   const bulkApproveDraft = useBulkApproveDraftItems();
-  const bulkApproveIndividual = useBulkApproveItemsIndividual();
 
   function patchRow(id: string, patch: Partial<EditableRow>) {
     setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...patch } : r)));
@@ -444,11 +442,7 @@ export function BulkImportDialog({
           }),
         );
         const ids = rows.map((row) => draftItemIds[row._id]).filter(Boolean);
-        if (mode === 'update') {
-          await bulkApproveDraft.mutateAsync(ids);
-        } else {
-          await bulkApproveIndividual.mutateAsync(ids);
-        }
+        await bulkApproveDraft.mutateAsync(ids);
         handleClose();
       } catch {
         // errors surfaced via toasts in mutation hooks
@@ -488,8 +482,7 @@ export function BulkImportDialog({
     },
   }));
   const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
-  const isDraftPending =
-    updateDraftItem.isPending || bulkApproveDraft.isPending || bulkApproveIndividual.isPending;
+  const isDraftPending = updateDraftItem.isPending || bulkApproveDraft.isPending;
   const canImport =
     rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending && !isDraftPending;
 

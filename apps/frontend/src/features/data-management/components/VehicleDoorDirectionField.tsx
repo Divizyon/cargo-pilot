@@ -2,7 +2,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { FormItem } from '@/components/ui/form';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { DoorDirection } from '@/lib/types/vehicle';
+import { DoorDirection, VehicleType } from '@/lib/types/vehicle';
 import type { VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
@@ -12,7 +12,8 @@ interface VehicleDoorDirectionFieldProps {
   hideHeading?: boolean;
 }
 
-const DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top] as const;
+const KONTEYNER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top] as const;
+const OTHER_DIRECTIONS = [DoorDirection.Rear, DoorDirection.Side, DoorDirection.Top] as const;
 
 function getDirectionLabel(dir: string): string {
   if (dir === DoorDirection.Rear) return 'Arka';
@@ -20,10 +21,10 @@ function getDirectionLabel(dir: string): string {
   return 'Üst';
 }
 
-export function VehicleDoorDirectionField({
-  form,
-  vehicleType: _vehicleType,
-}: VehicleDoorDirectionFieldProps) {
+export function VehicleDoorDirectionField({ form, vehicleType }: VehicleDoorDirectionFieldProps) {
+  const isKonteyner = vehicleType === VehicleType.Konteyner;
+  const directions = isKonteyner ? KONTEYNER_DIRECTIONS : OTHER_DIRECTIONS;
+
   return (
     <Controller
       control={form.control}
@@ -40,7 +41,7 @@ export function VehicleDoorDirectionField({
             }}
             className="flex gap-2"
           >
-            {DIRECTIONS.map((dir) => (
+            {directions.map((dir) => (
               <ToggleGroupItem
                 key={dir}
                 value={dir}

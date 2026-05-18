@@ -31,7 +31,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
             query = query.Where(v =>
                 v.VehicleName.Contains(term) ||
                 (v.PlateNumber != null && v.PlateNumber.Contains(term)));
-        }
+        } 
 
         if (vehicleType.HasValue) {
             query = query.Where(v => v.VehicleType == vehicleType.Value);
@@ -64,19 +64,35 @@ internal sealed class VehicleRepository : IVehicleRepository {
             .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Vehicle>> GetByIdsAsync(IReadOnlyList<Guid> ids, Guid? companyId, CancellationToken cancellationToken = default) {
+        return await _context.Vehicles
+            .AsNoTracking()
+            .Where(v => ids.Contains(v.Id) && v.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Vehicle>> GetAllActiveAsync(Guid? companyId, CancellationToken cancellationToken = default) {
+        return await _context.Vehicles
+            .AsNoTracking()
+            .Where(v => v.CompanyId == companyId && v.IsActive)
+            .OrderBy(v => v.VehicleName)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsByPlateNumberAsync(string? plateNumber, Guid? companyId, CancellationToken cancellationToken = default) {
         return await _context.Vehicles
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId, cancellationToken);
     }
 
-    public async Task<bool> ExistsByPlateNumberAsync(string? plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default) {
+    public async Task<bool> ExistsByPlateNumberAsync(string plateNumber, Guid? companyId, Guid excludeId, CancellationToken cancellationToken = default) {
         return await _context.Vehicles
             .AnyAsync(v => v.PlateNumber == plateNumber && v.CompanyId == companyId && v.Id != excludeId, cancellationToken);
     }
 
     public async Task<bool> IsUsedInActiveLoadingPlanAsync(Guid vehicleId, CancellationToken cancellationToken = default) {
-        return await _context.LoadingPlans
-            .AnyAsync(p => p.VehicleId == vehicleId && p.OptimizationStatus == LoadingPlanOptimizationStatus.Draft, cancellationToken);
+        return await _context.LoadingPlanVehicles
+            .AnyAsync(lpv => lpv.VehicleId == vehicleId &&
+                lpv.LoadingPlan.OptimizationStatus == LoadingPlanOptimizationStatus.Draft, cancellationToken);
     }
 
     public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)

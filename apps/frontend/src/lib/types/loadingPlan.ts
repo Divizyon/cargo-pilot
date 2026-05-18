@@ -33,6 +33,7 @@ export type Placement = z.infer<typeof placementSchema>;
 export type LoadingPlan = z.infer<typeof loadingPlanSchema>;
 
 export const placementWithDimensionsSchema = placementSchema.extend({
+  vehicleId: z.string().optional(),
   width: z.number().positive(),
   height: z.number().positive(),
   depth: z.number().positive(),
@@ -48,7 +49,6 @@ export const UnfitReason = {
   Volume: 'volume',
   Weight: 'weight',
   Stacking: 'stacking',
-  Contamination: 'contamination',
 } as const;
 
 export type UnfitReason = (typeof UnfitReason)[keyof typeof UnfitReason];

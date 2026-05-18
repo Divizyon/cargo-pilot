@@ -1,5 +1,4 @@
-import { type ElementType, useEffect, useRef, useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { type ElementType, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -20,7 +19,7 @@ import {
   Truck,
   X,
 } from 'lucide-react';
-import { CargoPilotLogoAnimated } from '@/components/shared/CargoPilotLogoAnimated';
+import { CargoPilotLogo } from '@/components/shared/CargoPilotLogo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/useAuthStore';
@@ -79,22 +78,7 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
   const { pathname } = useLocation();
   const isActive = item.end
     ? pathname === item.path
-    : pathname === item.path ||
-      (pathname.startsWith(item.path + '/') &&
-        !(item.path === '/planning' && pathname === '/planning/new'));
-
-  const controls = useAnimation();
-  const wasActive = useRef(isActive);
-
-  useEffect(() => {
-    if (isActive && !wasActive.current) {
-      controls.start({
-        rotate: [0, -12, 10, -7, 5, -2, 0],
-        transition: { duration: 0.35, times: [0, 0.15, 0.35, 0.55, 0.72, 0.88, 1] },
-      });
-    }
-    wasActive.current = isActive;
-  }, [isActive, controls]);
+    : pathname === item.path || pathname.startsWith(item.path + '/');
 
   return (
     <div className="relative">
@@ -111,12 +95,13 @@ function NavItem({ item, isCollapsed }: NavItemProps) {
             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
       >
-        <motion.div animate={controls} className="shrink-0">
-          <item.icon
-            className={cn('h-4 w-4', isActive ? 'text-accent-foreground' : 'text-muted-foreground')}
-            strokeWidth={isActive ? 2.5 : 2}
-          />
-        </motion.div>
+        <item.icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            isActive ? 'text-accent-foreground' : 'text-muted-foreground',
+          )}
+          strokeWidth={isActive ? 2.5 : 2}
+        />
         <span className={cn('flex-1', isCollapsed && 'lg:hidden')}>{item.label}</span>
         {item.badge !== undefined && (
           <span
@@ -153,7 +138,6 @@ function getInitials(name: string): string {
 
 function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const user = useAuthStore((s) => s.user);
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const { data: quota } = useUsageQuota();
@@ -199,7 +183,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
             isCollapsed ? 'lg:justify-center' : 'gap-3',
           )}
         >
-          <CargoPilotLogoAnimated className="h-[54px] w-[54px] shrink-0 text-foreground" />
+          <CargoPilotLogo className="h-[54px] w-[54px] shrink-0 text-foreground" />
           <div className={cn(isCollapsed && 'lg:hidden')}>
             <span className="block text-[15px] font-bold tracking-[0.15em] text-foreground">
               CARGOPILOT
@@ -241,9 +225,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
             isCollapsed ? 'lg:justify-center lg:px-0 px-3' : 'px-3',
             planLimitReached
               ? 'cursor-not-allowed bg-muted text-muted-foreground'
-              : pathname === '/planning/new'
-                ? 'bg-primary/20 text-primary ring-1 ring-primary/40'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90',
+              : 'bg-primary text-primary-foreground hover:bg-primary/90',
           )}
         >
           <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
@@ -433,7 +415,7 @@ export function DashboardLayout() {
       <div
         className={cn(
           'fixed inset-y-0 left-0 z-30 transition-transform duration-200',
-          'lg:relative lg:z-10 lg:translate-x-0',
+          'lg:static lg:z-auto lg:translate-x-0',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
@@ -461,7 +443,7 @@ export function DashboardLayout() {
               to="/dashboard"
               className="flex items-center gap-2 transition-opacity hover:opacity-80"
             >
-              <CargoPilotLogoAnimated className="h-[42px] w-[42px] text-foreground" />
+              <CargoPilotLogo className="h-[42px] w-[42px] text-foreground" />
               <span className="text-sm font-bold tracking-[0.15em] text-foreground">
                 CARGOPILOT
               </span>

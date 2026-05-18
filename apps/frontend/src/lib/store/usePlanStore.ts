@@ -323,14 +323,21 @@ interface PlanStore {
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
   clusterGroups: boolean;
-  allowContamination: boolean;
   placements: PlacementWithDimensions[];
   unfitItems: UnfitItem[];
+  /** Optimizasyon tamamlandığında artar — BalancePanel dismiss sıfırlamak için kullanır */
+  optimizationCount: number;
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
+<<<<<<< HEAD
+  /** Çoklu araç görünümünde aktif araç — null ise tüm araçlar gösterilir */
+  activeVehicleId: string | null;
+=======
   inlineGroups: InlineGroup[];
   setInlineGroups: (groups: InlineGroup[]) => void;
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
   setVehicle: (vehicle: Vehicle | null) => void;
+  setActiveVehicleId: (id: string | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
   peekVehicle: (vehicle: Vehicle) => void;
   addVehicle: (vehicle: Vehicle) => void;
@@ -361,7 +368,6 @@ interface PlanStore {
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
   setClusterGroups: (v: boolean) => void;
-  setAllowContamination: (v: boolean) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
   setUnplacedItems: (items: UnplacedEntry[]) => void;
   /**
@@ -377,6 +383,7 @@ interface PlanStore {
   mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
   reorderItems: (activeId: string, overId: string) => void;
+  reorderVehicles: (activeId: string, overId: string) => void;
   removeUnfitItem: (itemId: string) => void;
   retryUnfitItem: (itemId: string) => void;
   setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
@@ -420,13 +427,19 @@ export const usePlanStore = create<PlanStore>((set) => ({
   skuColorMap: {},
   criteria: 2,
   clusterGroups: true,
-  allowContamination: false,
   placements: [],
   unfitItems: [],
+  optimizationCount: 0,
   previewItemId: null,
   previewPlacements: [],
+<<<<<<< HEAD
+  activeVehicleId: null,
+
+  setActiveVehicleId: (id) => set({ activeVehicleId: id }),
+=======
   inlineGroups: [],
   setInlineGroups: (groups) => set({ inlineGroups: groups }),
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -476,11 +489,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const entry = s.selectedVehicles.find((e) => e.instanceId === instanceId);
       if (!entry) return {};
       const reordered = [entry, ...s.selectedVehicles.filter((e) => e.instanceId !== instanceId)];
-      if (entry.vehicle.id === s.selectedVehicle?.id) return { selectedVehicles: reordered };
-      const rebuild = rebuildForVehicle(entry.vehicle, s);
-      return rebuild
-        ? { selectedVehicle: entry.vehicle, selectedVehicles: reordered, ...rebuild }
-        : { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
+      return { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
     }),
 
   updateVehicle: (instanceId, vehicle) =>
@@ -595,8 +604,33 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
 
   setCriteria: (criteria) => set({ criteria }),
+<<<<<<< HEAD
+  setPlacements: (placements) =>
+    set((s) => ({
+      placements: computeViolations(placements),
+      unfitItems: [],
+      optimizationCount: s.optimizationCount + 1,
+    })),
+  setUnplacedItems: (items) =>
+    set((s) => {
+      const reasonMap: Record<number, UnfitReason> = {
+        2: UnfitReasonConst.Weight,
+        3: UnfitReasonConst.Stacking,
+      };
+      const newUnfitItems: UnfitItem[] = items
+        .map((u) => {
+          const found = s.selectedItems.find((si) => si.item.id === u.itemId);
+          if (!found) return null;
+          return {
+            item: found.item,
+            quantity: u.quantity,
+            reason: reasonMap[u.reason] ?? UnfitReasonConst.Volume,
+          } satisfies UnfitItem;
+        })
+        .filter((x): x is UnfitItem => x !== null);
+      return { unfitItems: newUnfitItems };
+=======
   setClusterGroups: (clusterGroups: boolean) => set({ clusterGroups }),
-  setAllowContamination: (allowContamination: boolean) => set({ allowContamination }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
   setUnplacedItems: (items) =>
     set((s) => {
@@ -616,6 +650,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
         stagingPlacements = [...stagingPlacements, ...staged];
       }
       return { placements: stagingPlacements };
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
     }),
 
   mockPlacements: (count) =>
@@ -694,6 +729,22 @@ export const usePlanStore = create<PlanStore>((set) => ({
       return { selectedItems: items };
     }),
 
+  reorderVehicles: (activeId, overId) =>
+    set((s) => {
+      const list = [...s.selectedVehicles];
+      const oldIdx = list.findIndex((e) => e.instanceId === activeId);
+      const newIdx = list.findIndex((e) => e.instanceId === overId);
+      if (oldIdx === -1 || newIdx === -1) return {};
+      const [removed] = list.splice(oldIdx, 1);
+      list.splice(newIdx, 0, removed);
+      const newPrimary = list[0]?.vehicle ?? null;
+      if (newPrimary?.id === s.selectedVehicle?.id) return { selectedVehicles: list };
+      const rebuild = newPrimary ? rebuildForVehicle(newPrimary, s) : null;
+      return rebuild
+        ? { selectedVehicles: list, selectedVehicle: newPrimary, ...rebuild }
+        : { selectedVehicles: list, selectedVehicle: newPrimary };
+    }),
+
   removeUnfitItem: (itemId) =>
     set((s) => ({
       unfitItems: s.unfitItems.filter((u) => u.item.id !== itemId),
@@ -770,11 +821,15 @@ export const usePlanStore = create<PlanStore>((set) => ({
       skuColorMap: {},
       criteria: 2,
       clusterGroups: true,
-      allowContamination: false,
       placements: [],
       unfitItems: [],
+      optimizationCount: 0,
       previewItemId: null,
       previewPlacements: [],
+<<<<<<< HEAD
+      activeVehicleId: null,
+=======
       inlineGroups: [],
+>>>>>>> a99963ff32e4b22c2604e0bfebf8b7ae5fa3a9a1
     }),
 }));
