@@ -43,10 +43,10 @@ internal sealed partial class MinioStorageService : IStorageService
 
         await _client.PutObjectAsync(putArgs, cancellationToken);
 
-        var baseUrl = _publicEndpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                      _publicEndpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-            ? _publicEndpoint
-            : $"{(_useSSL ? "https" : "http")}://{_publicEndpoint}";
+        var hasScheme = _publicEndpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                        _publicEndpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        var scheme = _useSSL ? "https" : "http";
+        var baseUrl = hasScheme ? _publicEndpoint : $"{scheme}://{_publicEndpoint}";
 
         // PublicEndpoint set edilmişse nginx zaten bucket'ı route eder, tekrar ekleme.
         return _hasCustomPublicEndpoint
