@@ -38,7 +38,9 @@ export function DebugStepPanel({ groups }: DebugStepPanelProps) {
   }
 
   return (
-    <div className="absolute top-3 right-3 z-20 w-64 rounded-lg border border-zinc-200 bg-background/95 shadow-md backdrop-blur-sm text-xs">
+    <div
+      className="absolute top-3 right-3 z-20 w-64 rounded-lg border border-zinc-200 bg-background/95 shadow-md backdrop-blur-sm text-xs"
+    >
       {/* Header */}
       <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100">
         <Bug className="h-3.5 w-3.5 text-amber-500" />
@@ -74,7 +76,7 @@ export function DebugStepPanel({ groups }: DebugStepPanelProps) {
                 ({fmt(current.positionX)}, {fmt(current.positionY)}, {fmt(current.positionZ)}) cm
               </div>
               <div className="font-mono text-[10px] text-zinc-500">
-                {fmt(current.width)} × {fmt(current.height)} × {fmt(current.depth)} cm &nbsp;·&nbsp;{' '}
+                {fmt(current.width)} × {fmt(current.height)} × {fmt(current.depth)} cm ·{' '}
                 {current.weight} kg
               </div>
               {itemGroupMap.has(current.itemId) && (
