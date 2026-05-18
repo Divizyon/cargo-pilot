@@ -221,11 +221,14 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
     const { selectedItems, placements } = usePlanStore.getState();
     const placedIds = new Set(placements.map((p) => p.itemId));
     const placedItems = selectedItems.filter((si) => placedIds.has(si.item.id));
-    const conflicts = detectContaminationConflicts(placedItems);
 
-    if (conflicts.length > 0) {
-      const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
-      const groupVolumes = computeGroupVolumes(placedItems, involvedGroups);
+    const allGroups = [
+      ...new Set(placedItems.map((si) => si.item.stackGroup).filter((g): g is string => !!g)),
+    ];
+
+    if (allGroups.length >= 2) {
+      const conflicts = detectContaminationConflicts(placedItems);
+      const groupVolumes = computeGroupVolumes(placedItems, allGroups);
       setContamination({ conflicts, groupVolumes, placedItems });
       return;
     }
@@ -361,21 +364,27 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
       >
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Uyumsuz Yük Grupları</AlertDialogTitle>
+            <AlertDialogTitle>
+              {contamination && contamination.conflicts.length > 0
+                ? 'Uyumsuz Yük Grupları'
+                : 'Yük Grubu Seçimi'}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="flex flex-col gap-4 pt-1">
-                {/* Conflict list */}
-                <div className="flex flex-col gap-1">
-                  {contamination?.conflicts.map((c, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
-                      <AlertCircle className="w-3 h-3 shrink-0" />
-                      <span className="font-medium">{c.groupA}</span>
-                      <span className="text-rose-400">ve</span>
-                      <span className="font-medium">{c.groupB}</span>
-                      <span className="text-muted-foreground">birlikte yüklenemez</span>
-                    </div>
-                  ))}
-                </div>
+                {/* Conflict list — only when known incompatible pairs exist */}
+                {contamination && contamination.conflicts.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    {contamination.conflicts.map((c, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <span className="font-medium">{c.groupA}</span>
+                        <span className="text-rose-400">ve</span>
+                        <span className="font-medium">{c.groupB}</span>
+                        <span className="text-muted-foreground">birlikte yüklenemez</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Volume cards */}
                 <div className="grid grid-cols-2 gap-2">
@@ -423,7 +432,7 @@ function ModalContent({ onConfirm, isOptimizing, disabled }: ModalContentProps) 
                 commitAndConfirm([]);
               }}
             >
-              Her ikisini de gönder (sistem karar verir)
+              Tümünü gönder
             </Button>
             <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
           </AlertDialogFooter>
