@@ -25,6 +25,7 @@ import {
   Search,
   SlidersHorizontal,
   Sun,
+  Trash2,
   Utensils,
   Wind,
   Wine,
@@ -43,9 +44,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
+import type { InlineGroup } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
+import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
 import { AddItemModal } from './AddItemModal';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
 import { useReadOnly } from '../ReadOnlyContext';
@@ -489,9 +492,14 @@ function StoreItemRow({
 
 // ─── PlanLeftPanel ────────────────────────────────────────────────────────────
 
-export function PlanLeftPanel() {
+interface PlanLeftPanelProps {
+  planId?: string;
+}
+
+export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const readOnly = useReadOnly();
   const navigate = useNavigate();
+  const { mutateAsync: deleteGroupApi } = useDeletePlanGroup();
   const [groups, setGroups] = useState<
     Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>
   >([]);
@@ -534,8 +542,38 @@ export function PlanLeftPanel() {
 
   const canPlace = !!selectedVehicle;
 
+  const inlineGroupsFromStore = usePlanStore((s) => s.inlineGroups);
+  const setInlineGroups = usePlanStore((s) => s.setInlineGroups);
+
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const setFocusedGroupItemIds = useSceneStore((s) => s.setFocusedGroupItemIds);
+
+  // Mevcut plan yüklendiğinde store'dan grupları geri yükle
+  useEffect(() => {
+    if (groups.length > 0) return;
+    if (inlineGroupsFromStore.length === 0) return;
+    setGroups(
+      inlineGroupsFromStore.map((g) => ({
+        id: g.id,
+        ad: g.name,
+        acik: false,
+        itemIdler: g.itemIds,
+        color: g.color,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineGroupsFromStore]);
+
+  // Lokal grup state'ini store ile senkronize et
+  useEffect(() => {
+    const mapped: InlineGroup[] = groups.map((g) => ({
+      id: g.id,
+      name: g.ad,
+      color: g.color,
+      itemIds: g.itemIdler,
+    }));
+    setInlineGroups(mapped);
+  }, [groups, setInlineGroups]);
 
   const placedIds = useMemo(() => new Set(placements.map((p) => p.itemId)), [placements]);
 
@@ -758,14 +796,41 @@ export function PlanLeftPanel() {
     setFocusedGroupItemIds(isSameFocus ? null : itemIds);
   }
 
+  function addItemToGroup(
+    prev: Array<{ id: string; ad: string; acik: boolean; itemIdler: string[]; color: string }>,
+    itemId: string,
+    targetGroupId: string,
+  ) {
+    return prev.map((g) => {
+      if (g.id === targetGroupId)
+        return { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] };
+      return { ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) };
+    });
+  }
+
   function handleAddGroup() {
-    const id = `g-${Date.now()}`;
+    const id = crypto.randomUUID();
     const num = groups.length + 1;
     const usedColors = groups.map((g) => g.color);
     const available = GROUP_ICON_COLORS.filter((c) => !usedColors.includes(c));
     const pool = available.length > 0 ? available : [...GROUP_ICON_COLORS];
     const color = pool[Math.floor(Math.random() * pool.length)];
     setGroups((prev) => [...prev, { id, ad: `Grup ${num}`, acik: true, itemIdler: [], color }]);
+  }
+
+  async function handleDeleteGroup(groupId: string) {
+    const group = groups.find((g) => g.id === groupId);
+    const dbId = inlineGroupsFromStore.find((g) => g.id === groupId)?.dbId;
+    if (planId && dbId) {
+      await deleteGroupApi({ planId, groupId: dbId });
+    }
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    if (group) {
+      setUngroupedIds((prev) => [...prev, ...group.itemIdler.filter((id) => !prev.includes(id))]);
+    }
+    if (focusedGroupItemIds?.some((id) => group?.itemIdler.includes(id))) {
+      setFocusedGroupItemIds(null);
+    }
   }
 
   function handleStartGroupSelection(groupId: string) {
@@ -798,11 +863,7 @@ export function PlanLeftPanel() {
     });
 
     setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupSelectionMode
-          ? { ...g, itemIdler: [...new Set([...g.itemIdler, ...newItemIds])] }
-          : g,
-      ),
+      newItemIds.reduce((acc, itemId) => addItemToGroup(acc, itemId, groupSelectionMode), prev),
     );
     setGroupSelectionMode(null);
     setSelectedForGroup(new Set());
@@ -840,11 +901,7 @@ export function PlanLeftPanel() {
       onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
       onAddToGroup: (groupId: string) => {
         if (!placedIds.has(id)) togglePlacement(id);
-        setGroups((prev) =>
-          prev.map((g) =>
-            g.id === groupId ? { ...g, itemIdler: [...new Set([...g.itemIdler, id])] } : g,
-          ),
-        );
+        setGroups((prev) => addItemToGroup(prev, id, groupId));
       },
     };
   };
@@ -1083,16 +1140,30 @@ export function PlanLeftPanel() {
 
                     {/* Add products to group */}
                     {!readOnly && (
-                      <button
-                        title="Gruba Ürün Ekle"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartGroupSelection(g.id);
-                        }}
-                        className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
-                      >
-                        <PackagePlus className="w-3.5 h-3.5" />
-                      </button>
+                      <>
+                        <button
+                          title="Gruba Ürün Ekle"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartGroupSelection(g.id);
+                          }}
+                          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
+                        >
+                          <PackagePlus className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete group */}
+                        <button
+                          title="Grubu Sil"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDeleteGroup(g.id);
+                          }}
+                          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/grp:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500 hover:bg-accent"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     )}
                   </div>
 
@@ -1218,13 +1289,7 @@ export function PlanLeftPanel() {
                     onAddToGroup={(groupId) => {
                       addManualItem(catalogItem, 1, color);
                       setUngroupedIds((prev) => [...prev, itemId]);
-                      setGroups((prev) =>
-                        prev.map((g) =>
-                          g.id === groupId
-                            ? { ...g, itemIdler: [...new Set([...g.itemIdler, itemId])] }
-                            : g,
-                        ),
-                      );
+                      setGroups((prev) => addItemToGroup(prev, itemId, groupId));
                     }}
                     onClearStackGroup={() =>
                       setClearedStackGroups((prev) => {
@@ -1339,13 +1404,7 @@ export function PlanLeftPanel() {
                       onAddToGroup={(groupId) => {
                         addManualItem(catalogItem, 1, color);
                         setUngroupedIds((prev) => [...prev, ref.id]);
-                        setGroups((prev) =>
-                          prev.map((g) =>
-                            g.id === groupId
-                              ? { ...g, itemIdler: [...new Set([...g.itemIdler, ref.id])] }
-                              : g,
-                          ),
-                        );
+                        setGroups((prev) => addItemToGroup(prev, ref.id, groupId));
                       }}
                     />
                   );

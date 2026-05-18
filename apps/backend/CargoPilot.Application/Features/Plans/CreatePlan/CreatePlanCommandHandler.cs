@@ -82,9 +82,13 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var itemMap = items.ToDictionary(i => i.Id);
 
-        // Load groups for any GroupId present in the request; filter out inactive ones
+        // Inline grup clientGroupId'leri DB'de henüz yok — sadece DB kayıtlı grup ID'lerini sorgula
+        var inlineClientIds = request.Groups?
+            .Select(g => g.ClientGroupId)
+            .ToHashSet() ?? [];
+
         var requestedGroupIds = request.Items
-            .Where(i => i.GroupId.HasValue)
+            .Where(i => i.GroupId.HasValue && !inlineClientIds.Contains(i.GroupId!.Value))
             .Select(i => i.GroupId!.Value)
             .Distinct()
             .ToList();
@@ -117,7 +121,26 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var inputTotalQuantity = activeItems.Sum(i => i.Quantity);
 
-        var optimizationInput = BuildInput(vehicle, activeItems, itemMap, groupMap, request.OptimizationCriteria);
+        var planId = Guid.NewGuid();
+
+        // Inline grup tanımları varsa entity'leri oluştur ve DB kayıt izleyicisine ekle
+        Dictionary<Guid, LoadingPlanItemGroup> inlineGroupMap = [];
+        if (request.Groups is { Count: > 0 })
+        {
+            foreach (var gd in request.Groups)
+            {
+                var entity = new LoadingPlanItemGroup(Guid.NewGuid(), planId, gd.Name, gd.Color, gd.UnloadingOrder);
+                _groupRepository.Add(entity);
+                inlineGroupMap[gd.ClientGroupId] = entity;
+            }
+        }
+
+        // Birleşik harita: inline önce, DB sonra (backward compat)
+        var combinedGroupMap = inlineGroupMap
+            .Concat(groupMap.Where(kv => !inlineGroupMap.ContainsKey(kv.Key)))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        var optimizationInput = BuildInput(vehicle, activeItems, itemMap, combinedGroupMap, request.OptimizationCriteria, request.ClusterGroups);
 
         var contamination = ContaminationFilter.Filter(optimizationInput.Items);
         var finalInput = contamination.Contaminated.Count > 0
@@ -129,14 +152,21 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
             : engineResult;
 
-        var planId = Guid.NewGuid();
         var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
         var inputItems = activeItems
             .Select(i =>
             {
                 var inputItem = new LoadingPlanInputItem(Guid.NewGuid(), planId, i.ItemId, i.Quantity);
-                if (i.GroupId.HasValue && groupMap.ContainsKey(i.GroupId.Value))
-                    inputItem.AssignGroup(i.GroupId);
+                if (i.GroupId.HasValue)
+                {
+                    // Inline map'te ClientGroupId olarak gelebilir; gerçek DB ID'ye çevir
+                    Guid? resolvedId;
+                    if (inlineGroupMap.TryGetValue(i.GroupId.Value, out var inlineGroup))
+                        resolvedId = inlineGroup.Id;
+                    else
+                        resolvedId = groupMap.ContainsKey(i.GroupId.Value) ? i.GroupId : null;
+                    inputItem.AssignGroup(resolvedId);
+                }
                 return inputItem;
             })
             .ToList();
@@ -151,7 +181,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         IReadOnlyList<CreatePlanItemRequest> requestItems,
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap,
-        LoadingPlanOptimizationCriteria criteria)
+        LoadingPlanOptimizationCriteria criteria,
+        bool clusterGroups)
     {
         var inputs = requestItems
             .Select(r =>
@@ -171,6 +202,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         return new OptimizationInput(
             vehicle.InternalWidth, vehicle.InternalHeight,
             vehicle.InternalLength, vehicle.MaxWeightCapacity,
-            inputs, criteria);
+            inputs, criteria, vehicle.LoadingType, clusterGroups);
     }
 }

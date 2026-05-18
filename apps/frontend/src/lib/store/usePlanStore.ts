@@ -216,16 +216,27 @@ export interface UnplacedEntry {
   name: string;
 }
 
+export interface InlineGroup {
+  id: string;
+  dbId?: string; // set when loaded from API (real DB uuid); undefined for locally-created groups
+  name: string;
+  color: string;
+  itemIds: string[];
+}
+
 interface PlanStore {
   selectedVehicle: Vehicle | null;
   selectedVehicles: Array<{ instanceId: string; vehicle: Vehicle }>;
   selectedItems: Array<{ item: Item; quantity: number }>;
   skuColorMap: Record<string, string>;
   criteria: OptimizationCriteria;
+  clusterGroups: boolean;
   placements: PlacementWithDimensions[];
   unfitItems: UnfitItem[];
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
+  inlineGroups: InlineGroup[];
+  setInlineGroups: (groups: InlineGroup[]) => void;
   setVehicle: (vehicle: Vehicle | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
   peekVehicle: (vehicle: Vehicle) => void;
@@ -256,6 +267,7 @@ interface PlanStore {
   togglePlacement: (itemId: string) => void;
   setSkuColor: (sku: string, color: string) => void;
   setCriteria: (c: OptimizationCriteria) => void;
+  setClusterGroups: (v: boolean) => void;
   setPlacements: (placements: PlacementWithDimensions[]) => void;
   setUnplacedItems: (items: UnplacedEntry[]) => void;
   /**
@@ -313,10 +325,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
   selectedItems: [],
   skuColorMap: {},
   criteria: 2,
+  clusterGroups: true,
   placements: [],
   unfitItems: [],
   previewItemId: null,
   previewPlacements: [],
+  inlineGroups: [],
+  setInlineGroups: (groups) => set({ inlineGroups: groups }),
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -495,6 +510,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setSkuColor: (sku, color) => set((s) => ({ skuColorMap: { ...s.skuColorMap, [sku]: color } })),
 
   setCriteria: (criteria) => set({ criteria }),
+  setClusterGroups: (clusterGroups: boolean) => set({ clusterGroups }),
   setPlacements: (placements) => set({ placements: computeViolations(placements) }),
   setUnplacedItems: (_items) => set({}),
 
@@ -649,9 +665,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
       selectedItems: [],
       skuColorMap: {},
       criteria: 2,
+      clusterGroups: true,
       placements: [],
       unfitItems: [],
       previewItemId: null,
       previewPlacements: [],
+      inlineGroups: [],
     }),
 }));
