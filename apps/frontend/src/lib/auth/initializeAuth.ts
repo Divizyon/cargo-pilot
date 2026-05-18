@@ -27,6 +27,11 @@ export async function initializeAuth(): Promise<void> {
     if (data.isSuccess && data.data?.accessToken) {
       const { user } = useAuthStore.getState();
       if (user) {
+        if (!user.role) {
+          // Eski session format'ında role eksik olabilir; yeniden login zorunlu.
+          useAuthStore.getState().clearAuth();
+          return;
+        }
         useAuthStore.getState().setAuth(user, data.data.accessToken);
       } else {
         useAuthStore.getState().setAccessToken(data.data.accessToken);

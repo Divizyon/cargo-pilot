@@ -149,6 +149,7 @@ export function useLogin() {
         email: res.data.email,
         fullName: res.data.fullName,
         role: (res.data.role?.toLowerCase() ?? 'operator') as UserRole,
+        companyId: res.data.companyId || undefined,
       };
       setAuth(user, res.data.accessToken);
       if (res.data.mustChangePassword) {
