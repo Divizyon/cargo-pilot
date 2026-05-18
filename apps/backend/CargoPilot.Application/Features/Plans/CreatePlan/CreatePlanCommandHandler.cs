@@ -146,7 +146,9 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
 
         var optimizationInput = BuildInput(vehicle, activeItems, itemMap, combinedGroupMap, request.OptimizationCriteria, request.ClusterGroups);
 
-        var contamination = ContaminationFilter.Filter(optimizationInput.Items);
+        var contamination = request.AllowContamination
+            ? new ContaminationFilter.Result(optimizationInput.Items, [])
+            : ContaminationFilter.Filter(optimizationInput.Items);
         var finalInput = contamination.Contaminated.Count > 0
             ? optimizationInput with { Items = contamination.Passed }
             : optimizationInput;
