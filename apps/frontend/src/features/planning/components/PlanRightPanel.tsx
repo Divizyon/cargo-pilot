@@ -42,9 +42,9 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { FilterTabs } from '@/components/shared/FilterTabs';
+import { SearchInput } from '@/components/shared/SearchInput';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -643,6 +643,7 @@ export function PlanRightPanel({
             <div className="px-2 pt-2 shrink-0">
               <FilterTabs
                 className="w-full"
+                fullWidth
                 tabs={[
                   { value: 'selected', label: 'Seçili Araç', count: selectedVehicles.length },
                   { value: 'list', label: 'Araç Listesi', count: vehicles.length },
@@ -683,38 +684,30 @@ export function PlanRightPanel({
           {!readOnly && activeVehicleTab === 'list' && (
             <>
               <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={vehicleSearch}
-                    onChange={(e) => setVehicleSearch(e.target.value)}
-                    placeholder="Araç adı ile ara…"
-                    className="h-7 pl-8 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-                  />
-                  {vehicleSearch && (
-                    <button
-                      onClick={() => setVehicleSearch('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
+                <SearchInput
+                  size="sm"
+                  placeholder="Araç adı ile ara…"
+                  onSearch={setVehicleSearch}
+                />
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       title="Araç tipine göre filtrele"
                       className={cn(
-                        'h-7 w-7 shrink-0 border-border',
-                        activeVehicleTypes.size > 0
-                          ? 'bg-foreground text-background border-foreground hover:bg-foreground/80 hover:border-foreground/80'
-                          : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted',
+                        'h-7 shrink-0 gap-1 px-2 text-xs',
+                        activeVehicleTypes.size > 0 && 'border-primary text-primary ring-1 ring-primary/30',
                       )}
                     >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <SlidersHorizontal className="w-3 h-3" />
+                      {activeVehicleTypes.size > 0 && (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                          {activeVehicleTypes.size}
+                        </span>
+                      )}
+                      <ChevronDown className="w-3 h-3" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">

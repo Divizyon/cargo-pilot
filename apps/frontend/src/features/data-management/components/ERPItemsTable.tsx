@@ -37,7 +37,7 @@ import {
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 
 const ROW_H = 48;
 const HEADER_ROW_H = 36;
@@ -327,6 +327,7 @@ export function ERPItemsTable() {
         />
 
         <SearchInput
+          size="sm"
           onSearch={handleSearch}
           placeholder="Ürün adı, SKU, ERP ID veya barkod ile ara..."
         />

@@ -38,8 +38,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { FilterTabs } from '@/components/shared/FilterTabs';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -998,6 +998,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         <div className="px-2 pt-2 shrink-0">
           <FilterTabs
             className="w-full"
+            fullWidth
             tabs={[
               { value: 'unloaded', label: 'Ürün Listesi', count: unloadedCount },
               { value: 'loaded', label: 'Yüklü Ürünler', count: placedIds.size },
@@ -1010,23 +1011,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
 
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="İsim veya SKU ile ara…"
-            className="h-7 pl-7 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          size="sm"
+          placeholder="İsim veya SKU ile ara…"
+          onSearch={setSearch}
+        />
 
         {/* Filter dropdown */}
         <div ref={filterRef} className="relative shrink-0">

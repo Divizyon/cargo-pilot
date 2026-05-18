@@ -36,7 +36,7 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
 import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleDeleteDialog } from './VehicleDeleteDialog';
 import { VehicleBulkImportDialog } from './VehicleBulkImportDialog';
 
@@ -543,7 +543,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
         />
 
         {/* Search */}
-        <SearchInput onSearch={handleSearch} placeholder="Araç ismine göre ara..." />
+        <SearchInput size="sm" onSearch={handleSearch} placeholder="Araç ismine göre ara..." />
 
         {/* Sırala */}
         <div ref={sortRef} className="relative shrink-0">

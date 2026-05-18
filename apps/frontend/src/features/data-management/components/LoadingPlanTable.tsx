@@ -55,7 +55,7 @@ import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { useLoadingPlanFilters } from '../hooks/useLoadingPlanFilters';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleCard } from './VehicleCard';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -506,6 +506,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
 
         {/* Search */}
         <SearchInput
+          size="sm"
           onSearch={handleSearch}
           placeholder="Plan adı veya araç adı ile ara..."
           initialValue={search}

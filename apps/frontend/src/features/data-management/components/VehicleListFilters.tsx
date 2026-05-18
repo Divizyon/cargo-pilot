@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import { VehicleExportButton } from './VehicleExportButton';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 import type { useVehicleFilters, VehicleSortKey } from '../hooks/useVehicleFilters';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFilters } from '@/lib/api/useVehicles';
@@ -104,7 +104,7 @@ export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreate
       <FilterTabs tabs={TYPE_TABS} value={currentTab} onChange={(v) => handleTabClick(v as Parameters<typeof handleTabClick>[0])} />
 
       {/* Search input */}
-      <SearchInput onSearch={setSearchQuery} placeholder="Araç adı veya plaka ile ara..." />
+      <SearchInput size="sm" onSearch={setSearchQuery} placeholder="Araç adı veya plaka ile ara..." />
 
       {/* Sırala dropdown */}
       <div ref={sortRef} className="relative shrink-0">

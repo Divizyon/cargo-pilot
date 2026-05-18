@@ -48,7 +48,7 @@ import {
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
 import { BulkImportDialog } from './BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 
 const PRODUCT_TYPE_ICON = {
   koli: { Icon: Box, label: 'Koli' },
@@ -537,7 +537,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
         />
 
         {/* Search input */}
-        <SearchInput onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
+        <SearchInput size="sm" onSearch={handleSearch} placeholder="SKU kodu veya ürün adı ile ara..." />
 
         {/* Sırala */}
         <div ref={sortRef} className="relative shrink-0">

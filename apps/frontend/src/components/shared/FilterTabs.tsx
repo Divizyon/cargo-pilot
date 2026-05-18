@@ -13,9 +13,10 @@ interface FilterTabsProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  fullWidth?: boolean;
 }
 
-export function FilterTabs({ tabs, value, onChange, className }: FilterTabsProps) {
+export function FilterTabs({ tabs, value, onChange, className, fullWidth }: FilterTabsProps) {
   const layoutId = useId();
 
   return (
@@ -32,6 +33,7 @@ export function FilterTabs({ tabs, value, onChange, className }: FilterTabsProps
           onClick={() => onChange(tab.value)}
           className={cn(
             'relative rounded-md px-3 py-1 text-xs font-medium',
+            fullWidth && 'flex-1 flex items-center justify-center',
             value === tab.value
               ? 'text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground',
