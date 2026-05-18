@@ -15,6 +15,7 @@ import {
   erpSyncSummarySchema,
   erpUnassignedDataItemSchema,
   erpUserMappingSchema,
+  syncLogDtoSchema,
   type ErpShipmentOrderFilters,
   type ErpSyncInterval,
 } from '@/lib/types/erp';
@@ -100,6 +101,16 @@ const erpSyncHistoryResponseSchema = z.object({
   data: z.array(erpSyncRunSchema),
 });
 
+const syncLogsPageResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: z.object({
+    items: z.array(syncLogDtoSchema),
+    totalCount: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  }),
+});
+
 const testConnectionResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: z.object({ success: z.boolean(), message: z.string().nullable().optional() }),
@@ -143,6 +154,7 @@ export function useSaveERPSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
+      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-settings'] });
       queryClient.refetchQueries({ queryKey: ['erp', 'connection'] });
       toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
     },
@@ -470,6 +482,30 @@ export function useERPSyncHistory() {
       const parsed = erpSyncHistoryResponseSchema.safeParse(data);
       return parsed.success ? parsed.data.data : [];
     },
+    retry: false,
+  });
+}
+
+export interface SyncLogsParams {
+  page: number;
+  pageSize: number;
+}
+
+export function useERPSyncLogs(integrationId: string | undefined, params: SyncLogsParams) {
+  return useQuery({
+    queryKey: ['erp', 'sync-logs', integrationId, params] as const,
+    queryFn: async () => {
+      const p = new URLSearchParams();
+      p.set('page', String(params.page));
+      p.set('pageSize', String(params.pageSize));
+      const { data } = await axiosInstance.get<unknown>(
+        `${ERP_BASE}/${integrationId}/sync-logs?${p.toString()}`,
+      );
+      const parsed = syncLogsPageResponseSchema.safeParse(data);
+      if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
+      return parsed.data.data;
+    },
+    enabled: Boolean(integrationId),
     retry: false,
   });
 }

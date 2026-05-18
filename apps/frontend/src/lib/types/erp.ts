@@ -178,6 +178,17 @@ export const erpSyncRunSchema = z.object({
 
 export type ErpSyncRun = z.infer<typeof erpSyncRunSchema>;
 
+export const syncLogDtoSchema = z.object({
+  id: z.string(),
+  startedAt: z.string().datetime({ offset: true }),
+  completedAt: z.string().datetime({ offset: true }).nullable(),
+  status: z.enum(['Running', 'Success', 'PartialFailure', 'Failed']),
+  syncedRecordCount: z.number().int().min(0),
+  errorMessage: z.string().nullable(),
+});
+
+export type SyncLogDto = z.infer<typeof syncLogDtoSchema>;
+
 // ─── User Mapping ──────────────────────────────────────────────────────────────
 
 export const erpRemoteUserSchema = z.object({

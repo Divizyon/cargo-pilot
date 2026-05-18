@@ -79,7 +79,11 @@ export function ERPConnectionForm() {
       setTestResult(null);
       testConnection(values, {
         onSuccess: (result) => setTestResult(result),
-        onError: () => setTestResult({ success: false, message: 'Bağlantı test edilemedi.' }),
+        onError: (error) =>
+          setTestResult({
+            success: false,
+            message: error.response?.data?.detail ?? 'Bağlantı test edilemedi.',
+          }),
       });
     });
   }
