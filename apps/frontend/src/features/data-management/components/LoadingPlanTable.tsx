@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
@@ -53,7 +55,7 @@ import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { useLoadingPlanFilters } from '../hooks/useLoadingPlanFilters';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleCard } from './VehicleCard';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -506,42 +508,21 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Status tabs */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => {
-                setStatusTab(tab.value);
-                setPage(1);
-              }}
-              className={cn(
-                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-                statusTab === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                {tab.label}
-                {tabCounts[tab.value as keyof typeof tabCounts] > 0 && (
-                  <span
-                    className={cn(
-                      'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none',
-                      statusTab === tab.value
-                        ? 'bg-primary-foreground/20 text-primary-foreground'
-                        : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {tabCounts[tab.value as keyof typeof tabCounts]}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          tabs={STATUS_TABS.map((tab) => ({
+            ...tab,
+            count: tabCounts[tab.value as keyof typeof tabCounts],
+          }))}
+          value={statusTab}
+          onChange={(v) => {
+            setStatusTab(v);
+            setPage(1);
+          }}
+        />
 
         {/* Search */}
         <SearchInput
+          size="sm"
           onSearch={handleSearch}
           placeholder="Plan adı veya araç adı ile ara..."
           initialValue={search}
@@ -617,36 +598,36 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
 
         {/* View mode toggle */}
         <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-          <button
-            onClick={() => {
-              setViewMode('card');
-              setPage(1);
-            }}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              viewMode === 'card'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="Kart görünümü"
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('table');
-              setPage(1);
-            }}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              viewMode === 'table'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="Liste görünümü"
-          >
-            <LayoutList className="h-3.5 w-3.5" />
-          </button>
+          {(
+            [
+              { value: 'card', icon: LayoutGrid, title: 'Kart görünümü' },
+              { value: 'table', icon: LayoutList, title: 'Liste görünümü' },
+            ] as const
+          ).map(({ value, icon: Icon, title }) => (
+            <button
+              key={value}
+              onClick={() => {
+                setViewMode(value);
+                setPage(1);
+              }}
+              className={cn(
+                'relative flex h-7 w-7 items-center justify-center rounded-md',
+                viewMode === value
+                  ? 'text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              title={title}
+            >
+              {viewMode === value && (
+                <motion.div
+                  layoutId="viewModePill"
+                  className="absolute inset-0 rounded-md bg-primary"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <Icon className="relative z-10 h-3.5 w-3.5" />
+            </button>
+          ))}
         </div>
 
         {/* Yeni Plan Oluştur */}

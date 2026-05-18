@@ -3,8 +3,9 @@ import { Plus, SlidersHorizontal, ChevronDown, Star, ArrowUpDown } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { FilterTabs } from '@/components/shared/FilterTabs';
 import { VehicleExportButton } from './VehicleExportButton';
-import { SearchInput } from './SearchInput';
+import { SearchInput } from '@/components/shared/SearchInput';
 import type { useVehicleFilters, VehicleSortKey } from '../hooks/useVehicleFilters';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFilters } from '@/lib/api/useVehicles';
@@ -100,25 +101,18 @@ export function VehicleListFilters({ filters, vehicles, vehicleFilters, onCreate
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Vehicle type tabs */}
-      <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-1">
-        {TYPE_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => handleTabClick(tab.value)}
-            className={cn(
-              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-              currentTab === tab.value
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs
+        tabs={TYPE_TABS}
+        value={currentTab}
+        onChange={(v) => handleTabClick(v as Parameters<typeof handleTabClick>[0])}
+      />
 
       {/* Search input */}
-      <SearchInput onSearch={setSearchQuery} placeholder="Araç adı veya plaka ile ara..." />
+      <SearchInput
+        size="sm"
+        onSearch={setSearchQuery}
+        placeholder="Araç adı veya plaka ile ara..."
+      />
 
       {/* Sırala dropdown */}
       <div ref={sortRef} className="relative shrink-0">
