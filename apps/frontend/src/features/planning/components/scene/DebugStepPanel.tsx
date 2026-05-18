@@ -29,18 +29,14 @@ export function DebugStepPanel({ groups }: DebugStepPanelProps) {
   // placements sıralı: stepIndex'e göre sort (API zaten sıralı göndermeli, garantilemek için)
   const sorted = [...placements].sort((a, b) => (a.stepIndex ?? 0) - (b.stepIndex ?? 0));
   const current = sorted.find((p) => (p.stepIndex ?? 0) === animationStep - 1);
-  const upcomingSlice = sorted
-    .filter((p) => (p.stepIndex ?? 0) >= animationStep)
-    .slice(0, 3);
+  const upcomingSlice = sorted.filter((p) => (p.stepIndex ?? 0) >= animationStep).slice(0, 3);
 
   function fmt(n: number) {
     return n.toFixed(1);
   }
 
   return (
-    <div
-      className="absolute top-3 right-3 z-20 w-64 rounded-lg border border-zinc-200 bg-background/95 shadow-md backdrop-blur-sm text-xs"
-    >
+    <div className="absolute top-3 right-3 z-20 w-64 rounded-lg border border-zinc-200 bg-background/95 shadow-md backdrop-blur-sm text-xs">
       {/* Header */}
       <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100">
         <Bug className="h-3.5 w-3.5 text-amber-500" />
