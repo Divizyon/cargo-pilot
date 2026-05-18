@@ -18,8 +18,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka + Yan',
+  top:  'Üst',
 };
 
 const TYPE_LABELS: Record<string, string> = {

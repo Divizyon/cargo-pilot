@@ -585,8 +585,8 @@ export function fromApiFullDetail(
             : VehicleType.Tir,
         doorDirection:
           v.loadingType != null
-            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Front)
-            : DoorDirection.Front,
+            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
+            : DoorDirection.Rear,
         doorSide:
           v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
         isFavorite: false,

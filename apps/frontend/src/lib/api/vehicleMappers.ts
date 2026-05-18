@@ -27,16 +27,15 @@ export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
 };
 
 // loadingType int → { direction, doorSide }
-// Backend: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
+// Backend: Rear=0, SideRight=1, SideLeft=2, Top=4
 export const LOADING_TYPE_FROM_INT: Record<
   number,
   { direction: DoorDirection; doorSide?: 'right' | 'left' }
 > = {
-  0: { direction: DoorDirection.Front },
-  1: { direction: DoorDirection.Front },
-  2: { direction: DoorDirection.Front },
-  3: { direction: DoorDirection.Front },
-  4: { direction: DoorDirection.Front },
+  0: { direction: DoorDirection.Rear },
+  1: { direction: DoorDirection.Side, doorSide: 'right' },
+  2: { direction: DoorDirection.Side, doorSide: 'left'  },
+  4: { direction: DoorDirection.Top  },
 };
 
 // ─── Backend response schema ──────────────────────────────────────────────────
@@ -169,7 +168,7 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
     height: api.internalHeight,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Front,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Rear,
     doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
     kingpin,
     axleB,
@@ -232,7 +231,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     grossWeight: api.grossWeight ?? undefined,
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Front,
+    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Rear,
     doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
     kingpin,
     axleB,
@@ -331,7 +330,7 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       if (values.doorDirection === 'side') {
         return values.doorSide === 'left' ? 2 : 1; // SideLeft=2, SideRight=1
       }
-      const map: Record<string, number> = { rear: 0, rearAndSide: 3, top: 4 };
+      const map: Record<string, number> = { rear: 0, top: 4 };
       return map[values.doorDirection] ?? 0;
     })(),
     isActive: values.isActive ?? true,

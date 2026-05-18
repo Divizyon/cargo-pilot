@@ -214,7 +214,7 @@ export function downloadVehicleImportTemplate(): void {
     'Genişlik (cm)',
     'Yükseklik (cm)',
     'Maks Yük (kg)',
-    'Kapı Yönü (rear/side/top/rearAndSide)',
+    'Kapı Yönü (rear/side/top)',
   ];
   const example = ['Tır', 'Ana Dorse', '34ABC123', '', '1360', '240', '270', '26000', 'rear'];
 

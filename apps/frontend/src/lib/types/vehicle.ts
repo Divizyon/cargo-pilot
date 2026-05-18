@@ -9,11 +9,9 @@ export const VehicleType = {
 export type VehicleType = (typeof VehicleType)[keyof typeof VehicleType];
 
 export const DoorDirection = {
-  Front: 'front',
   Rear: 'rear',
   Side: 'side',
-  Top: 'top',
-  RearAndSide: 'rearAndSide',
+  Top:  'top',
 } as const;
 export type DoorDirection = (typeof DoorDirection)[keyof typeof DoorDirection];
 

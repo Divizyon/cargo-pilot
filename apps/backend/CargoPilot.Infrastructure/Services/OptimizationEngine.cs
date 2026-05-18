@@ -35,7 +35,9 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
         }
 
-        var groupZones = ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, input.Criteria);
+        var groupZones = ComputeGroupZones(instances,
+            input.VehicleWidth, input.VehicleHeight, input.VehicleLength,
+            input.LoadingType, input.Criteria);
 
         foreach (var item in instances)
         {
@@ -67,11 +69,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
                     var score = ComputeScore(
                         input.Criteria,
-                        ex, ey, ez, w, d,
+                        input.LoadingType,
+                        input.VehicleWidth,
+                        ex, ey, ez, w, h, d,
                         item.Weight, totalWeight,
                         momentX, momentZ,
                         halfW, halfL,
-                        zone.ZStart, zone.ZEnd);
+                        zone);
 
                     if (score < bestScore)
                     {
@@ -142,17 +146,26 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     }
 
     // ── Grup zone hesaplama ───────────────────────────────────────────────────
-    // Gruplara ait distinct UnloadingOrder değerlerini DESC sıralar ve kamyon
-    // uzunluğunu eşit bölümlere ayırır. 0-1 grup varsa zone uygulanmaz.
-    private static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
+    // Gruplara ait distinct UnloadingOrder değerlerini DESC sıralar ve araç
+    // boyutunu kapı ekseninde eşit bölümlere ayırır. 0-1 grup varsa zone uygulanmaz.
+    private static Dictionary<int, GroupZone> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
+        decimal vehicleWidth,
+        decimal vehicleHeight,
         decimal vehicleLength,
         LoadingType loadingType,
         LoadingPlanOptimizationCriteria criteria)
     {
-        // Zone ayrımı yalnızca LIFO modunda ve arka kapı yüklemesinde geçerli.
-        if (criteria != LoadingPlanOptimizationCriteria.Lifo || loadingType != LoadingType.Rear)
+        if (criteria != LoadingPlanOptimizationCriteria.Lifo)
             return [];
+
+        var (axis, dimension, nearDoorAtHighEnd) = loadingType switch
+        {
+            LoadingType.SideRight => (ZoneAxis.X, vehicleWidth,  true),
+            LoadingType.SideLeft  => (ZoneAxis.X, vehicleWidth,  false),
+            LoadingType.Top       => (ZoneAxis.Y, vehicleHeight, true),
+            _                     => (ZoneAxis.Z, vehicleLength, false)  // Rear
+        };
 
         var orders = items
             .Where(i => i.GroupId.HasValue && i.UnloadingOrder.HasValue)
@@ -164,11 +177,17 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         if (orders.Count <= 1)
             return [];
 
-        var zoneSize = vehicleLength / orders.Count;
-        var zones = new Dictionary<int, (decimal ZStart, decimal ZEnd)>();
+        var zoneSize = dimension / orders.Count;
+        var zones = new Dictionary<int, GroupZone>();
 
         for (int i = 0; i < orders.Count; i++)
-            zones[orders[i]] = (i * zoneSize, (i + 1) * zoneSize);
+        {
+            var (start, end) = nearDoorAtHighEnd
+                ? (dimension - (i + 1) * zoneSize, dimension - i * zoneSize)
+                : (i * zoneSize, (i + 1) * zoneSize);
+
+            zones[orders[i]] = new GroupZone(start, end, axis);
+        }
 
         return zones;
     }
@@ -350,12 +369,14 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     // ── Maliyet fonksiyonu ────────────────────────────────────────────────────
     private static decimal ComputeScore(
         LoadingPlanOptimizationCriteria criteria,
+        LoadingType loadingType,
+        decimal vehicleWidth,
         decimal ex, decimal ey, decimal ez,
-        decimal w,  decimal d,
+        decimal w,  decimal h,  decimal d,
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL,
-        decimal? zoneStart, decimal? zoneEnd)
+        GroupZone? zone)
     {
         var newTotal = totalWeight + itemWeight;
 
@@ -371,10 +392,16 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var balancePenalty = normDevX + normDevZ;
 
         var zonePenalty = 0m;
-        if (zoneStart.HasValue && zoneEnd.HasValue)
+        if (zone is not null)
         {
-            var overLeft  = Math.Max(0m, zoneStart.Value - ez);
-            var overRight = Math.Max(0m, (ez + d) - zoneEnd.Value);
+            var (pos, size) = zone.Axis switch
+            {
+                ZoneAxis.X => (ex, w),
+                ZoneAxis.Y => (ey, h),
+                _          => (ez, d)
+            };
+            var overLeft  = Math.Max(0m, zone.Start - pos);
+            var overRight = Math.Max(0m, (pos + size) - zone.End);
             zonePenalty = (overLeft + overRight) * 2_000m;
         }
 
@@ -387,8 +414,12 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             LoadingPlanOptimizationCriteria.WeightBalance =>
                 ey * 1_000_000m + balancePenalty * 900_000m + zonePenalty,
 
-            _ => // Lifo
-                ey * 1_000_000m + ez * 1_000m + ex + zonePenalty,
+            _ => loadingType switch  // Lifo — kapıya doğru yönlendir
+            {
+                LoadingType.SideLeft  => ey * 1_000_000m + ex * 1_000m + ez + zonePenalty,
+                LoadingType.SideRight => ey * 1_000_000m + (vehicleWidth - ex) * 1_000m + ez + zonePenalty,
+                _                     => ey * 1_000_000m + ez * 1_000m + ex + zonePenalty,  // Rear ve Top
+            }
         };
     }
 
@@ -567,4 +598,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         int? UnloadingOrder);
 
     private sealed record UnplacedBox(Guid ItemId, UnplacedReason Reason);
+
+    private enum ZoneAxis { Z, X, Y }
+
+    private sealed record GroupZone(decimal Start, decimal End, ZoneAxis Axis);
 }

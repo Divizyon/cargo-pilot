@@ -20,8 +20,7 @@ const TYPE_ICONS: Record<VehicleType, ReactNode> = {
 const DOOR_LABELS: Record<string, string> = {
   rear: 'Arka',
   side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka+Yan',
+  top:  'Üst',
 };
 
 const cell = 'py-0 px-3';

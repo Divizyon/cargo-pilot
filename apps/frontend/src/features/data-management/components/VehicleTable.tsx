@@ -195,7 +195,6 @@ const DOOR_CONFIG: Record<string, { label: string }> = {
   rear: { label: 'Ön' },
   side: { label: 'Yan' },
   top: { label: 'Üst' },
-  rearAndSide: { label: 'Ön + Yan' },
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -212,13 +211,12 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 
 // ─── Door direction filter ────────────────────────────────────────────────────
 
-type DoorFilter = 'rear' | 'side' | 'top' | 'rearAndSide';
+type DoorFilter = 'rear' | 'side' | 'top';
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: 'rear', label: 'Ön Kapı' },
+  { value: 'rear', label: 'Arka Kapı' },
   { value: 'side', label: 'Yan Kapı' },
   { value: 'top', label: 'Üst Kapı' },
-  { value: 'rearAndSide', label: 'Ön + Yan' },
 ];
 
 // ─── Status filter ────────────────────────────────────────────────────────────
@@ -658,7 +656,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                       />
                       <span
                         className={cn('inline-block h-2 w-2 rounded-full', {
-                          'bg-zinc-400': value === 'rear' || value === 'rearAndSide',
+                          'bg-zinc-400': value === 'rear',
                           'bg-teal-500': value === 'side',
                           'bg-violet-500': value === 'top',
                         })}

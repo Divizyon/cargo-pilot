@@ -30,13 +30,12 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   Kamposet: 'Kamposet',
   Konteyner: 'Konteyner',
 };
-const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top', 'rearAndSide'] as const;
+const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top'] as const;
 
 const DOOR_DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Ön',
+  rear: 'Arka',
   side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Ön + Yan',
+  top:  'Üst',
 };
 
 const editableRowSchema = z.object({
@@ -88,7 +87,7 @@ function validateRow(row: EditableRow): RowErrors {
   if (
     !DOOR_DIRECTION_OPTIONS.includes(row.doorDirection as (typeof DOOR_DIRECTION_OPTIONS)[number])
   ) {
-    e.doorDirection = 'rear / side / top / rearAndSide';
+    e.doorDirection = 'rear / side / top';
   }
   return e;
 }
@@ -117,7 +116,6 @@ function normalizeDoor(raw: unknown): string {
   if (s === 'ön' || s === 'on' || s === 'arka' || s === 'rear') return 'rear';
   if (s === 'yan' || s === 'side') return 'side';
   if (s === 'üst' || s === 'ust' || s === 'top') return 'top';
-  if (s === 'rearandside' || s === 'arka+yan' || s === 'arka + yan') return 'rearAndSide';
   return String(raw ?? '');
 }
 
@@ -137,7 +135,7 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       height: String(r['Yükseklik (cm)'] ?? ''),
       maxCargoWeight: String(r['Maks Yük (kg)'] ?? ''),
       doorDirection: normalizeDoor(
-        r['Kapı Yönü (rear/side/top/rearAndSide)'] ?? r['Kapı Yönü'] ?? 'rear',
+        r['Kapı Yönü (rear/side/top)'] ?? r['Kapı Yönü'] ?? 'rear',
       ),
     }),
   );
@@ -230,7 +228,7 @@ export function VehicleBulkImportDialog({ open, onOpenChange }: VehicleBulkImpor
             width: Number(row.width),
             height: Number(row.height),
             maxCargoWeight: Number(row.maxCargoWeight),
-            doorDirection: row.doorDirection as 'rear' | 'side' | 'top' | 'rearAndSide',
+            doorDirection: row.doorDirection as 'rear' | 'side' | 'top',
           },
           {
             onSuccess: () => resolve(),

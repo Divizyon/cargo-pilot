@@ -140,11 +140,10 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
     private static string MapDoorDirection(LoadingType loadingType)
         => loadingType switch
         {
-            LoadingType.Rear     => "rear",
+            LoadingType.Rear                              => "rear",
             LoadingType.SideRight or LoadingType.SideLeft => "side",
-            LoadingType.SideBoth => "rearAndSide",
-            LoadingType.Top      => "top",
-            _                    => "rear",
+            LoadingType.Top                               => "top",
+            _                                             => "rear",
         };
 
     private static string? MapVehicleType(VehicleType vehicleType)
