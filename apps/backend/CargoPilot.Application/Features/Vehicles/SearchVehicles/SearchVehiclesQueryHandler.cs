@@ -72,7 +72,6 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
 
         var dtos = pagedVehicles.Items
             .Select(v => {
-                string status = ResolveStatus(v.IsDraft, v.IsActive);
                 return new VehicleSummaryDto(
                     v.Id,
                     v.VehicleName,
@@ -99,7 +98,7 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                     v.AdditionalAxleTareWeightKg,
                     v.AdditionalAxleMaxLoadKg,
                     ResolveAuditUser(v, userMap),
-                    status);
+                    v.Status);
             })
             .ToList();
 
@@ -122,9 +121,4 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
         return new AuditUserDto($"{user.FirstName} {user.LastName}".Trim(), user.Email);
     }
 
-    private static string ResolveStatus(bool isDraft, bool isActive) {
-        if (isDraft) return "taslak";
-        if (isActive) return "active";
-        return "pasif";
-    }
 }

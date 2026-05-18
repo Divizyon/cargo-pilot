@@ -40,7 +40,6 @@ public sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQ
 
         var userMap = await _userRepository.GetByIdsAsync(userIds, cancellationToken);
 
-        string status = ResolveStatus(vehicle.IsDraft, vehicle.IsActive);
         var dto = new VehicleDetailDto(
             vehicle.Id,
             vehicle.VehicleName,
@@ -69,7 +68,7 @@ public sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQ
             ResolveUser(vehicle.CreatedBy, userMap),
             vehicle.UpdatedAtUtc,
             ResolveUser(vehicle.UpdatedBy, userMap),
-            status);
+            vehicle.Status);
 
         return Result<VehicleDetailDto>.Success(dto);
     }
@@ -83,9 +82,4 @@ public sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQ
         return new AuditUserDto($"{user.FirstName} {user.LastName}".Trim(), user.Email);
     }
 
-    private static string ResolveStatus(bool isDraft, bool isActive) {
-        if (isDraft) return "taslak";
-        if (isActive) return "active";
-        return "pasif";
-    }
 }

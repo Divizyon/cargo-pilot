@@ -36,6 +36,12 @@ public sealed class Vehicle : BaseEntity {
 
     public bool IsDraft { get; private set; }
 
+    public string Status { get {
+        if (IsDraft) return "taslak";
+        if (IsActive) return "active";
+        return "pasif";
+    } }
+
     // Computed from millimeter dimensions as m^3.
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public decimal Volume { get; private set; }
