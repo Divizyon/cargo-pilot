@@ -4,7 +4,12 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import type { PlanProductGroup } from '@/lib/types/loadingPlan';
 import { axiosInstance } from './axiosInstance';
-import { planDetailApiResponseSchema, fromApiDetailPlacements, planFullDetailApiResponseSchema, fromApiFullDetail } from './loadingPlanMappers';
+import {
+  planDetailApiResponseSchema,
+  fromApiDetailPlacements,
+  planFullDetailApiResponseSchema,
+  fromApiFullDetail,
+} from './loadingPlanMappers';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 
 export const planReportSchema = z.object({
@@ -236,9 +241,9 @@ export function useDownloadPlanPdf() {
       if (!parsed.success) throw new Error('Plan verisi alınamadı');
       const detail = fromApiFullDetail(parsed.data.data);
       const rawData = parsed.data.data as Record<string, unknown>;
-      const remoteUrl = (
-        rawData.thumbnailUrl ?? rawData.snapshotUrl ?? rawData.snapshotImageUrl
-      ) as string | null | undefined;
+      const remoteUrl = (rawData.thumbnailUrl ??
+        rawData.snapshotUrl ??
+        rawData.snapshotImageUrl) as string | null | undefined;
 
       const snapshotDataUrl = remoteUrl ? await fetchSnapshotAsDataUrl(remoteUrl) : undefined;
 

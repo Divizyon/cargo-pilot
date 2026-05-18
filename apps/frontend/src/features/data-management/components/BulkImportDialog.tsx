@@ -8,12 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -814,7 +809,10 @@ export function BulkImportDialog({
                               />
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-64 whitespace-pre-wrap break-words">
+                          <TooltipContent
+                            side="top"
+                            className="max-w-64 whitespace-pre-wrap break-words"
+                          >
                             {row.notes}
                           </TooltipContent>
                         </Tooltip>

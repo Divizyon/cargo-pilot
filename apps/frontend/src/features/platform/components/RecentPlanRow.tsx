@@ -52,58 +52,61 @@ export function RecentPlanRow({ plan, isSelected }: Props) {
 
   return (
     <>
-    <li
-      onClick={handleSelect}
-      className={cn(
-        'grid items-center border-b last:border-b-0 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors text-sm',
-        'grid-cols-[minmax(0,1fr)_140px_48px_88px_72px_88px_96px]',
-        isSelected && 'bg-muted/40',
-      )}
-    >
-      <span className="truncate font-medium text-foreground pr-3">{plan.planName}</span>
-      <span className="truncate text-muted-foreground pr-2">{plan.vehicleName ?? '—'}</span>
-      <span className="text-right text-muted-foreground tabular-nums">{plan.productCount}</span>
-      <span className="text-right text-muted-foreground tabular-nums pr-2">{weightLabel}</span>
-      <span className="text-right text-muted-foreground tabular-nums">
-        {plan.volumeFillPercentage.toFixed(1)}%
-      </span>
-      <span className="text-muted-foreground text-xs pl-2">{dateLabel}</span>
-      <div className="flex items-center justify-end gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title="PDF Raporu İndir"
-          onClick={handleDownload}
-        >
-          <FileDown className="size-3.5 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title="Rapor Detayını Gör"
-          onClick={handleReportDetail}
-        >
-          <ExternalLink className="size-3.5 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title="Paylaş"
-          onClick={(e) => { e.stopPropagation(); setLinkDialogOpen(true); }}
-        >
-          <Share2 className="size-3.5 text-muted-foreground" />
-        </Button>
-      </div>
-    </li>
-    <ShareLinkDialog
-      open={linkDialogOpen}
-      onOpenChange={setLinkDialogOpen}
-      planId={plan.id}
-      planName={plan.planName}
-    />
-</>
+      <li
+        onClick={handleSelect}
+        className={cn(
+          'grid items-center border-b last:border-b-0 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors text-sm',
+          'grid-cols-[minmax(0,1fr)_140px_48px_88px_72px_88px_96px]',
+          isSelected && 'bg-muted/40',
+        )}
+      >
+        <span className="truncate font-medium text-foreground pr-3">{plan.planName}</span>
+        <span className="truncate text-muted-foreground pr-2">{plan.vehicleName ?? '—'}</span>
+        <span className="text-right text-muted-foreground tabular-nums">{plan.productCount}</span>
+        <span className="text-right text-muted-foreground tabular-nums pr-2">{weightLabel}</span>
+        <span className="text-right text-muted-foreground tabular-nums">
+          {plan.volumeFillPercentage.toFixed(1)}%
+        </span>
+        <span className="text-muted-foreground text-xs pl-2">{dateLabel}</span>
+        <div className="flex items-center justify-end gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="PDF Raporu İndir"
+            onClick={handleDownload}
+          >
+            <FileDown className="size-3.5 text-muted-foreground" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Rapor Detayını Gör"
+            onClick={handleReportDetail}
+          >
+            <ExternalLink className="size-3.5 text-muted-foreground" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Paylaş"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLinkDialogOpen(true);
+            }}
+          >
+            <Share2 className="size-3.5 text-muted-foreground" />
+          </Button>
+        </div>
+      </li>
+      <ShareLinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        planId={plan.id}
+        planName={plan.planName}
+      />
+    </>
   );
 }
