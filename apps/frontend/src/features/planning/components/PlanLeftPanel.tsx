@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, type ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
+  AlertCircle,
   Box,
   Check,
   ChevronDown,
@@ -38,8 +39,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterTabs } from '@/components/shared/FilterTabs';
+import { SearchInput } from '@/components/shared/SearchInput';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -52,6 +53,21 @@ import { UnfitItemsPanel } from './UnfitItemsPanel';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import {
+  detectContaminationConflicts,
+  computeGroupVolumes,
+  type GroupVolume,
+  type ContaminationConflict,
+} from '@/lib/utils/contamination';
 
 const VIRTUAL_THRESHOLD = 100;
 
@@ -524,6 +540,12 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
 
+  const [pendingPlaceContamination, setPendingPlaceContamination] = useState<{
+    pendingAction: () => void;
+    groupVolumes: GroupVolume[];
+    conflicts: ContaminationConflict[];
+  } | null>(null);
+
   const { data: itemsPage, isLoading: itemsLoading } = useItems({ pageSize: 100 });
   const apiItems = useMemo(() => itemsPage?.items ?? [], [itemsPage]);
 
@@ -698,6 +720,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       (item) => !planIds.has(item.id) && itemMatchesFilters(item, search, activeConstraints),
     );
   }, [apiItems, selectedItems, activeTab, search, activeConstraints]);
+
+  const unloadedCount = useMemo(() => {
+    const planIds = new Set(selectedItems.map((si) => si.item.id));
+    return selectedItems.length + apiItems.filter((i) => !planIds.has(i.id)).length;
+  }, [selectedItems, apiItems]);
 
   const flatDisplayItems = useMemo(() => {
     const seen = new Set<string>();
@@ -952,7 +979,25 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
           const color = skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
           updateItem(id, entry.item, qty, color);
         }
-        togglePlacement(id);
+        const doPlace = () => togglePlacement(id);
+        const newGroup = entry.item.stackGroup;
+        if (newGroup) {
+          const { placements: cur, selectedItems: si } = usePlanStore.getState();
+          const curPlacedIds = new Set(cur.map((p) => p.itemId));
+          const curPlaced = si.filter((s) => curPlacedIds.has(s.item.id));
+          const wouldBe = [...curPlaced, { item: entry.item, quantity: qty }];
+          const conflicts = detectContaminationConflicts(wouldBe);
+          const newGroupInConflict = conflicts.some(
+            (c) => c.groupA === newGroup || c.groupB === newGroup,
+          );
+          if (newGroupInConflict) {
+            const involvedGroups = [...new Set(conflicts.flatMap((c) => [c.groupA, c.groupB]))];
+            const groupVolumes = computeGroupVolumes(wouldBe, involvedGroups);
+            setPendingPlaceContamination({ pendingAction: doPlace, groupVolumes, conflicts });
+            return;
+          }
+        }
+        doPlace();
       },
       onRemove: () => togglePlacement(id),
       onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
@@ -989,50 +1034,24 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       </div>
 
       {/* Tabs — read-only modda gizle */}
-      <div className="px-2 pt-2 shrink-0">
-        {readOnly ? null : (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}>
-            <TabsList className="w-full h-7 bg-muted">
-              <TabsTrigger value="unloaded" className="flex-1 text-xs h-6">
-                Ürün Listesi
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  {(() => {
-                    const planIds = new Set(selectedItems.map((si) => si.item.id));
-                    const catalogOnly = apiItems.filter((i) => !planIds.has(i.id)).length;
-                    return `(${selectedItems.length + catalogOnly})`;
-                  })()}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="loaded" className="flex-1 text-xs h-6">
-                Yüklü Ürünler
-                <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">
-                  ({placedIds.size})
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-      </div>
+      {!readOnly && (
+        <div className="px-2 pt-2 shrink-0">
+          <FilterTabs
+            className="w-full"
+            fullWidth
+            tabs={[
+              { value: 'unloaded', label: 'Ürün Listesi', count: unloadedCount },
+              { value: 'loaded', label: 'Yüklü Ürünler', count: placedIds.size },
+            ]}
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}
+          />
+        </div>
+      )}
 
       {/* Search + Filter */}
       <div className="px-2 pt-1.5 pb-1 shrink-0 flex items-center gap-1.5">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="İsim veya SKU ile ara…"
-            className="h-7 pl-7 pr-7 text-xs bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-border"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <SearchInput size="sm" placeholder="İsim veya SKU ile ara…" onSearch={setSearch} />
 
         {/* Filter dropdown */}
         <div ref={filterRef} className="relative shrink-0">
@@ -1705,6 +1724,76 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             </Button>
           )}
         </div>
+      )}
+
+      {pendingPlaceContamination && (
+        <AlertDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPendingPlaceContamination(null);
+          }}
+        >
+          <AlertDialogContent className="sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {pendingPlaceContamination.conflicts.length > 0
+                  ? 'Uyumsuz Yük Grupları'
+                  : 'Yük Grubu Seçimi'}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="flex flex-col gap-4 pt-1">
+                  {pendingPlaceContamination.conflicts.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {pendingPlaceContamination.conflicts.map((c, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">{c.groupA}</span>
+                          <span className="text-rose-400">ve</span>
+                          <span className="font-medium">{c.groupB}</span>
+                          <span className="text-muted-foreground">birlikte yüklenemez</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {pendingPlaceContamination.groupVolumes.map((gv) => (
+                      <div
+                        key={gv.name}
+                        className="flex flex-col gap-1 p-3 rounded-lg border border-border bg-muted/40 text-left"
+                      >
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          {gv.name}
+                        </span>
+                        <span className="text-lg font-bold text-foreground tabular-nums">
+                          %{gv.pct}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {gv.volumeM3.toFixed(2)} m³
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Bu ürünü eklemek mevcut gruplarla çakışma yaratabilir.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                className="w-full bg-foreground text-background hover:bg-foreground/80 text-xs h-8"
+                onClick={() => {
+                  const action = pendingPlaceContamination.pendingAction;
+                  setPendingPlaceContamination(null);
+                  action();
+                }}
+              >
+                Yine de ekle
+              </Button>
+              <AlertDialogCancel className="w-full text-xs h-8 mt-0">İptal</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

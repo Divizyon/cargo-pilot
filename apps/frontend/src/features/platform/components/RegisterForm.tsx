@@ -10,7 +10,6 @@ import {
   Lock,
   User,
   ShieldCheck,
-  Building2,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -91,7 +90,6 @@ export function RegisterForm() {
       firstName: '',
       lastName: '',
       email: '',
-      companyName: undefined,
       password: '',
       confirmPassword: '',
     },
@@ -187,27 +185,6 @@ export function RegisterForm() {
                       )}
                       {...field}
                     />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Firma Adı */}
-          <FormField
-            control={form.control}
-            name="companyName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Firma Adı{' '}
-                  <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input placeholder="Firma adı" className="pl-10" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
