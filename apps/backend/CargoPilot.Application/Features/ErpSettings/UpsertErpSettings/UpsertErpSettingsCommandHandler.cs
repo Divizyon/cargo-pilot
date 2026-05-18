@@ -88,6 +88,11 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
             request.ServerAddress,
             newEncryptedPassword);
 
+        var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);
+        var integration = integrations.Count > 0 ? integrations[0] : null;
+        if (integration is not null)
+            integration.Update(request.ProviderType.ToString(), request.ServerAddress, integration.MappingTable, integration.SyncInterval);
+
         await _repository.SaveChangesAsync(cancellationToken);
 
         return Result<ErpSettingsResponse>.Success(new ErpSettingsResponse(

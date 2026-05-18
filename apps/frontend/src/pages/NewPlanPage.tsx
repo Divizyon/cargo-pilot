@@ -6,6 +6,7 @@ import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
+import { ReadOnlyContext } from '@/features/planning/ReadOnlyContext';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,6 @@ import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
-  useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -67,6 +67,7 @@ function PlanAutoLoader({
     initItems(data.inputItems, data.skuColorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
+    usePlanStore.getState().setInlineGroups(data.groups);
     onLoaded?.();
   }, [
     isSuccess,
@@ -82,9 +83,12 @@ function PlanAutoLoader({
   return null;
 }
 
-export function NewPlanPage() {
+interface NewPlanPageProps {
+  readOnly?: boolean;
+}
+
+export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const snapshotRef = useRef<(() => string) | null>(null);
-  const pendingSnapshotPlanId = useRef<string | null>(null);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
@@ -95,10 +99,9 @@ export function NewPlanPage() {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
-  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
 
   useEffect(() => {
-    if (!fromPlanId) {
+    if (!readOnly && !fromPlanId) {
       usePlanStore.getState().reset();
     }
     // fromPlanId is from URL params and stable per mount
@@ -142,36 +145,54 @@ export function NewPlanPage() {
       selectedItems: items,
       placements,
       criteria,
+      clusterGroups,
+      inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || !planNameInput.trim()) return;
 
     const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (itemsToSend.length === 0) return;
+    const rawItemsToSend = items.filter((si) => placedIds.has(si.item.id));
+    if (rawItemsToSend.length === 0) return;
+
+    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    const deduped = new Map<string, (typeof rawItemsToSend)[number]>();
+    for (const si of rawItemsToSend) {
+      if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
+    }
+    const itemsToSend = [...deduped.values()];
+
+    const itemGroupMap = new Map<string, string>();
+    for (const g of inlineGroups) {
+      for (const itemId of g.itemIds) {
+        itemGroupMap.set(itemId, g.id);
+      }
+    }
+
+    const groups =
+      inlineGroups.length > 0
+        ? inlineGroups.map((g, idx) => ({
+            clientGroupId: g.id,
+            name: g.name,
+            color: g.color,
+            unloadingOrder: idx + 1,
+          }))
+        : undefined;
 
     setNameDialogOpen(false);
     const id = await createPlan({
       planName: planNameInput.trim(),
       vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: itemsToSend.map((si) => ({
+        itemId: si.item.id,
+        quantity: si.quantity,
+        groupId: itemGroupMap.get(si.item.id),
+      })),
       optimizationCriteria: criteria,
+      clusterGroups,
+      groups,
     });
-    const dataUrl = snapshotRef.current?.();
-    if (dataUrl) uploadThumbnail({ id, dataUrl });
     navigate(planningDetailRoute(id), { replace: true });
-  }, [planNameInput, createPlan, navigate, uploadThumbnail]);
-
-  const handlePlanLoaded = useCallback(() => {
-    const planId = pendingSnapshotPlanId.current;
-    if (!planId) return;
-    pendingSnapshotPlanId.current = null;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const dataUrl = snapshotRef.current?.();
-        if (dataUrl) uploadThumbnail({ id: planId, dataUrl });
-      });
-    });
-  }, [uploadThumbnail]);
+  }, [planNameInput, createPlan, navigate]);
 
   const handleLoadAnimation = useCallback(() => {
     if (usePlanStore.getState().placements.length === 0) return;
@@ -185,132 +206,167 @@ export function NewPlanPage() {
       selectedItems: items,
       placements,
       criteria,
+      clusterGroups,
+      inlineGroups,
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
 
+    // Only send items that are currently placed — items removed via "Çıkar" must be excluded
     const placedIds = new Set(placements.map((p) => p.itemId));
-    const itemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (itemsToSend.length === 0) return;
+    const rawItems = items.filter((si) => placedIds.has(si.item.id));
+    if (rawItems.length === 0) return;
+
+    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    const dedupedMap = new Map<string, (typeof items)[number]>();
+    for (const si of rawItems) {
+      if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
+    }
+    const dedupedItems = [...dedupedMap.values()];
+
+    const itemGroupMap = new Map<string, string>();
+    for (const g of inlineGroups) {
+      for (const itemId of g.itemIds) {
+        itemGroupMap.set(itemId, g.id);
+      }
+    }
+
+    const groups =
+      inlineGroups.length > 0
+        ? inlineGroups.map((g, idx) => ({
+            clientGroupId: g.id,
+            name: g.name,
+            color: g.color,
+            unloadingOrder: idx + 1,
+          }))
+        : undefined;
 
     await reoptimizePlan({
       id: fromPlanId,
       vehicleId: vehicle.id,
-      items: itemsToSend.map((si) => ({ itemId: si.item.id, quantity: si.quantity })),
+      items: dedupedItems.map((si) => ({
+        itemId: si.item.id,
+        quantity: si.quantity,
+        groupId: itemGroupMap.get(si.item.id),
+      })),
       optimizationCriteria: criteria,
+      clusterGroups,
+      groups,
     });
-    pendingSnapshotPlanId.current = fromPlanId;
     setRefetchKey((k) => k + 1);
     setAnimationReady(true);
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
   return (
-    <div className="flex flex-col h-full bg-page-background overflow-hidden">
-      <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Plan Adı</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
-              Yükleme planına bir ad verin
-            </Label>
-            <Input
-              id="plan-name"
-              value={planNameInput}
-              onChange={(e) => setPlanNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleConfirmCreate();
-              }}
-              className="h-9 text-sm"
-              autoFocus
+    <ReadOnlyContext.Provider value={readOnly}>
+      <div className="flex flex-col h-full bg-page-background overflow-hidden">
+        {!readOnly && (
+          <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Plan Adı</DialogTitle>
+              </DialogHeader>
+              <div className="py-2">
+                <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
+                  Yükleme planına bir ad verin
+                </Label>
+                <Input
+                  id="plan-name"
+                  value={planNameInput}
+                  onChange={(e) => setPlanNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleConfirmCreate();
+                  }}
+                  className="h-9 text-sm"
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
+                  İptal
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!planNameInput.trim() || isCreating}
+                  onClick={() => void handleConfirmCreate()}
+                  className="bg-foreground text-background hover:bg-foreground/80"
+                >
+                  {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {!readOnly && fromPlanId && (
+          <PlanAutoLoader
+            planId={fromPlanId}
+            refetchKey={refetchKey}
+            onVehicleSelected={handleVehicleSelected}
+          />
+        )}
+        {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
+        <div className="relative flex flex-1 min-h-0 overflow-hidden">
+          {/* BalancePanel — sağ panelin solunda */}
+          <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
+            <BalancePanel />
+          </div>
+
+          {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
+          <button
+            onClick={() => setLeftOpen((v) => !v)}
+            title={leftOpen ? 'Ürünler panelini kapat' : 'Ürünler panelini aç'}
+            className={cn(
+              'absolute top-1/2 -translate-y-1/2 z-20',
+              'h-6 w-6 flex items-center justify-center rounded-full',
+              'border border-border bg-background text-muted-foreground shadow-sm',
+              'transition-[left] duration-[220ms] ease-out hover:text-foreground',
+              leftOpen ? 'left-[296px]' : 'left-3',
+            )}
+          >
+            {leftOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          </button>
+
+          {/* Sol kayan panel */}
+          <div
+            className={cn(
+              'absolute top-3 bottom-3 left-0 w-[320px] z-10 px-3',
+              'transition-transform duration-[220ms] ease-out',
+              leftOpen ? 'translate-x-0' : '-translate-x-full',
+            )}
+          >
+            <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
+              <PlanLeftPanel planId={fromPlanId} />
+            </div>
+          </div>
+
+          {/* Kamera presetleri — sağ üst */}
+          <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
+            <CameraPresetButtons />
+          </div>
+
+          {/* Merkez — 3D Viewport */}
+          <div className="flex-1 min-w-0 p-3 overflow-hidden">
+            <div className="relative h-full rounded-xl bg-background border border-border overflow-hidden">
+              <PlanCanvas snapshotRef={snapshotRef} />
+            </div>
+          </div>
+
+          {/* Sağ panel — her zaman görünür, araç listesi toggle ile açılır/kapanır */}
+          <div className="absolute top-[68px] bottom-3 right-0 w-[320px] z-10 px-3">
+            <PlanRightPanel
+              vehiclesOpen={rightOpen}
+              onToggleVehicles={() => setRightOpen((v) => !v)}
+              onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
+              onLoadAnimation={handleLoadAnimation}
+              isOptimizing={fromPlanId ? isReoptimizing : isCreating}
+              canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
+              getSnapshot={() => snapshotRef.current?.() ?? ''}
+              planId={fromPlanId}
+              planName={planDetail?.planName}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
-              İptal
-            </Button>
-            <Button
-              size="sm"
-              disabled={!planNameInput.trim() || isCreating}
-              onClick={() => void handleConfirmCreate()}
-              className="bg-foreground text-background hover:bg-foreground/80"
-            >
-              {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {fromPlanId && (
-        <PlanAutoLoader
-          planId={fromPlanId}
-          refetchKey={refetchKey}
-          onVehicleSelected={handleVehicleSelected}
-          onLoaded={handlePlanLoaded}
-        />
-      )}
-      {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
-      <div className="relative flex flex-1 min-h-0 overflow-hidden">
-        {/* BalancePanel — sağ panelin solunda */}
-        <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
-          <BalancePanel />
-        </div>
-
-        {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
-        <button
-          onClick={() => setLeftOpen((v) => !v)}
-          title={leftOpen ? 'Ürünler panelini kapat' : 'Ürünler panelini aç'}
-          className={cn(
-            'absolute top-1/2 -translate-y-1/2 z-20',
-            'h-6 w-6 flex items-center justify-center rounded-full',
-            'border border-border bg-background text-muted-foreground shadow-sm',
-            'transition-[left] duration-[220ms] ease-out hover:text-foreground',
-            leftOpen ? 'left-[296px]' : 'left-3',
-          )}
-        >
-          {leftOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        </button>
-
-        {/* Sol kayan panel */}
-        <div
-          className={cn(
-            'absolute top-3 bottom-3 left-0 w-[320px] z-10 px-3',
-            'transition-transform duration-[220ms] ease-out',
-            leftOpen ? 'translate-x-0' : '-translate-x-full',
-          )}
-        >
-          <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-            <PlanLeftPanel />
-          </div>
-        </div>
-
-        {/* Kamera presetleri — sağ üst */}
-        <div className="absolute top-3 right-0 w-[320px] z-20 px-3">
-          <CameraPresetButtons />
-        </div>
-
-        {/* Merkez — 3D Viewport */}
-        <div className="flex-1 min-w-0 p-3 overflow-hidden">
-          <div className="relative h-full rounded-xl bg-background border border-border overflow-hidden">
-            <PlanCanvas snapshotRef={snapshotRef} />
-          </div>
-        </div>
-
-        {/* Sağ panel — her zaman görünür, araç listesi toggle ile açılır/kapanır */}
-        <div className="absolute top-[68px] bottom-3 right-0 w-[320px] z-10 px-3">
-          <PlanRightPanel
-            vehiclesOpen={rightOpen}
-            onToggleVehicles={() => setRightOpen((v) => !v)}
-            onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
-            onLoadAnimation={handleLoadAnimation}
-            isOptimizing={fromPlanId ? isReoptimizing : isCreating}
-            canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
-            getSnapshot={() => snapshotRef.current?.() ?? ''}
-            planId={fromPlanId}
-            planName={planDetail?.planName}
-          />
         </div>
       </div>
-    </div>
+    </ReadOnlyContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -23,7 +24,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useERPConnection, useTriggerERPSync } from '@/lib/api/useERPIntegration';
-import { useDraftItems, type DraftItem } from '@/lib/api/useDraftItems';
+import {
+  useDraftItems,
+  useBulkRejectDraftItems,
+  DRAFT_PENDING,
+  DRAFT_APPROVED,
+  DRAFT_REJECTED,
+  DRAFT_UPDATE_PENDING,
+  type DraftItem,
+} from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
@@ -32,10 +41,6 @@ import { SearchInput } from './SearchInput';
 const ROW_H = 48;
 const HEADER_ROW_H = 36;
 const BELOW_TABLE_H = 80;
-
-const DRAFT_PENDING = 0;
-const DRAFT_APPROVED = 1;
-const DRAFT_REJECTED = 2;
 
 // ─── ERP → BulkImportDialog row dönüşümü (cm → mm) ──────────────────────────
 
@@ -104,7 +109,7 @@ function draftItemToImportRow(item: DraftItem): EditableRow {
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-const SKELETON_COLS = 9;
+const SKELETON_COLS = 10;
 
 function ERPItemsTableSkeleton() {
   return (
@@ -156,6 +161,7 @@ export function ERPItemsTable() {
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
   const [selectAllMode, setSelectAllMode] = useState(false);
+  const [importMode, setImportMode] = useState<'import' | 'update'>('import');
 
   useEffect(() => {
     let last = pageSize;
@@ -207,6 +213,7 @@ export function ERPItemsTable() {
     selectAllMode && allPendingPage ? new Set(allPendingPage.items.map((i) => i.id)) : selectedIds;
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
+  const bulkReject = useBulkRejectDraftItems();
 
   const allItems = draftPage?.items ?? [];
 
@@ -236,7 +243,11 @@ export function ERPItemsTable() {
   const isEmpty = !showSkeleton && displayedItems.length === 0 && !isSearching;
   const noResults = !showSkeleton && displayedItems.length === 0 && isSearching;
 
-  const selectableItems = filteredItems.filter((i) => i.status === DRAFT_PENDING);
+  const selectableItems = filteredItems.filter((i) =>
+    statusFilter === DRAFT_UPDATE_PENDING
+      ? i.status === DRAFT_UPDATE_PENDING
+      : i.status === DRAFT_PENDING,
+  );
   const allSelected =
     selectAllMode ||
     (selectableItems.length > 0 && selectableItems.every((i) => effectiveSelectedIds.has(i.id)));
@@ -286,7 +297,17 @@ export function ERPItemsTable() {
     });
     setImportRows(rows);
     setImportDraftIds(draftIds);
+    setImportMode(statusFilter === DRAFT_UPDATE_PENDING ? 'update' : 'import');
     setImportOpen(true);
+  }
+
+  function handleRejectSelected() {
+    bulkReject.mutate(Array.from(effectiveSelectedIds), {
+      onSuccess: () => {
+        setSelectedIds(new Set());
+        setSelectAllMode(false);
+      },
+    });
   }
 
   return (
@@ -299,6 +320,7 @@ export function ERPItemsTable() {
             [
               { value: DRAFT_PENDING, label: 'Bekleyenler' },
               { value: DRAFT_APPROVED, label: 'Aktarılanlar' },
+              { value: DRAFT_UPDATE_PENDING, label: 'Güncellemeler' },
             ] as const
           ).map((tab) => (
             <button
@@ -473,7 +495,11 @@ export function ERPItemsTable() {
                   >
                     {!integrationId
                       ? 'ERP bağlantısı yapılandırılmamış.'
-                      : 'Bekleyen ERP ürünü yok.'}
+                      : statusFilter === DRAFT_UPDATE_PENDING
+                        ? 'Güncellenmeyi bekleyen ERP ürünü yok.'
+                        : statusFilter === DRAFT_APPROVED
+                          ? 'Aktarılmış ERP ürünü yok.'
+                          : 'Bekleyen ERP ürünü yok.'}
                   </TableCell>
                 </TableRow>
               )}
@@ -483,6 +509,7 @@ export function ERPItemsTable() {
                   className={cn(
                     'h-12',
                     row.status === DRAFT_APPROVED && 'bg-emerald-50/40 dark:bg-emerald-950/20',
+                    row.status === DRAFT_UPDATE_PENDING && 'bg-amber-50/60 dark:bg-amber-950/20',
                     row.status === DRAFT_REJECTED && 'opacity-50',
                   )}
                 >
@@ -499,14 +526,33 @@ export function ERPItemsTable() {
                         aria-label="Aktarıldı"
                         className="pointer-events-none data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
                       />
+                    ) : row.status === DRAFT_UPDATE_PENDING ? (
+                      <Checkbox
+                        checked={effectiveSelectedIds.has(row.id)}
+                        onCheckedChange={(checked) => handleSelectRow(row.id, Boolean(checked))}
+                        aria-label={`${row.name} güncelleme seç`}
+                        className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                      />
                     ) : row.status === DRAFT_REJECTED ? (
                       <XCircle className="h-4 w-4 text-destructive/60" aria-label="Reddedildi" />
                     ) : null}
                   </TableCell>
                   <TableCell className="py-0 px-3 max-w-[176px]">
-                    <span className="block truncate text-xs text-muted-foreground" title={row.name}>
-                      {row.name}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {row.integrationSystemName?.toLowerCase().includes('logo') && (
+                        <img
+                          src="/icons/erp-logo.png"
+                          alt="Logo"
+                          className="h-6 w-auto shrink-0 object-contain"
+                        />
+                      )}
+                      <span
+                        className="block truncate text-xs text-muted-foreground"
+                        title={row.name}
+                      >
+                        {row.name}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
                     {row.productType ?? '—'}
@@ -599,13 +645,37 @@ export function ERPItemsTable() {
           >
             İptal Et
           </Button>
-          <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
-            <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
-            Ürünlere Aktar
-            <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
-              {effectiveSelectedIds.size}
-            </span>
-          </Button>
+          {statusFilter === DRAFT_UPDATE_PENDING ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                onClick={handleRejectSelected}
+                disabled={bulkReject.isPending}
+              >
+                Reddet
+                <span className="ml-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold">
+                  {effectiveSelectedIds.size}
+                </span>
+              </Button>
+              <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                Onayla
+                <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
+                  {effectiveSelectedIds.size}
+                </span>
+              </Button>
+            </>
+          ) : (
+            <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
+              <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Ürünlere Aktar
+              <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
+                {effectiveSelectedIds.size}
+              </span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -622,6 +692,7 @@ export function ERPItemsTable() {
         }}
         initialRows={importRows}
         draftItemIds={importDraftIds}
+        mode={importMode}
       />
     </div>
   );

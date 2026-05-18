@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { ProductForm } from '@/features/data-management/components/ProductForm';
 import { ProductDeleteDialog } from '@/features/data-management/components/ProductDeleteDialog';
+import { ErpSourceBadge } from '@/features/data-management/components/ErpSourceBadge';
 import { useItem, useUpdateItem } from '@/lib/api/useItems';
 import { itemToFormValues } from '@/lib/api/itemMappers';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,14 @@ export function ProductEditPage() {
     <div className="flex h-full flex-col gap-4">
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Ürün Detayı</h1>
+            {item.erpProviderName?.toLowerCase().includes('logo') ? (
+              <img src="/icons/erp-logo.png" alt="Logo" className="h-6 w-auto object-contain" />
+            ) : (
+              <ErpSourceBadge erpProviderName={item.erpProviderName} />
+            )}
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {item.name} — fiziksel özelliklerini ve kısıtlarını görüntüleyin veya güncelleyin.
           </p>

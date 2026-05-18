@@ -52,7 +52,7 @@ import { SearchInput } from './SearchInput';
 const PRODUCT_TYPE_ICON = {
   koli: { Icon: Box, label: 'Koli' },
   varil: { Icon: Cylinder, label: 'Varil' },
-  palet: { Icon: Package, label: 'Palet' },
+  palet: { Icon: Package, label: 'Paletli Ürün' },
 } as const;
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
@@ -147,6 +147,7 @@ function HighlightText({ text, query }: HighlightTextProps) {
 const SKELETON_COL_WIDTHS = [
   'w-44',
   'w-16',
+  'w-20',
   'w-24',
   'w-16',
   'w-16',
@@ -181,6 +182,9 @@ function ProductTableSkeleton() {
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-20" />
+            </TableCell>
+            <TableCell className="py-0 px-3">
+              <Skeleton className="h-4 w-14 rounded" />
             </TableCell>
             <TableCell className="py-0 px-3">
               <Skeleton className="h-3 w-14" />
@@ -237,9 +241,18 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
   return (
     <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
       <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <span className="block truncate text-xs text-muted-foreground" title={item.name}>
-          <HighlightText text={item.name} query={searchTerm} />
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {item.erpProviderName?.toLowerCase().includes('logo') && (
+            <img
+              src="/icons/erp-logo.png"
+              alt="Logo"
+              className="h-6 w-auto shrink-0 object-contain"
+            />
+          )}
+          <span className="block truncate text-xs text-muted-foreground" title={item.name}>
+            <HighlightText text={item.name} query={searchTerm} />
+          </span>
+        </div>
       </TableCell>
 
       <TableCell className={cell}>
@@ -285,8 +298,14 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
 
       <TableCell className={cell}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-foreground">{item.maxStackCount} kat</span>
-          {item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
+          {item.isStackable ? (
+            <span className="text-xs text-foreground">
+              {item.maxStackCount === 0 ? 'Sınırsız' : `${item.maxStackCount} kat`}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+          {item.isStackable && item.maxWeightOnTop != null && item.maxWeightOnTop > 0 && (
             <span className="text-[10px] text-muted-foreground">
               maks {formatWeightDisplay(item.maxWeightOnTop!, weightUnit)}
             </span>
@@ -729,7 +748,7 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={11}
+                    colSpan={12}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     Henüz ürün eklenmemiş.

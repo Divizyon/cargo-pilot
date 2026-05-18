@@ -1,13 +1,5 @@
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useRecentPlans } from '@/lib/api/useRecentPlans';
-import { useLoadingPlanListItem } from '@/lib/api/useLoadingPlans';
-
-function resolveStorageUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const publicBase = import.meta.env.VITE_MINIO_PUBLIC_URL;
-  if (!publicBase) return url;
-  return url.replace(/^https?:\/\/[^/]*minio[^/]*/i, publicBase);
-}
 
 function TruckPlaceholder() {
   return (
@@ -102,10 +94,8 @@ function TruckPlaceholder() {
 export function PlanSnapshotPanel() {
   const selectedId = useUIStore((s) => s.selectedSnapshotPlanId);
   const { data: plans } = useRecentPlans();
-  const { data: planDetail } = useLoadingPlanListItem(selectedId ?? '');
 
   const plan = plans?.find((p) => p.id === selectedId) ?? null;
-  const snapshotUrl = resolveStorageUrl(planDetail?.thumbnailUrl ?? plan?.thumbnailUrl);
 
   if (!plan) {
     return (
@@ -115,13 +105,9 @@ export function PlanSnapshotPanel() {
     );
   }
 
-  if (!snapshotUrl) {
-    return (
-      <div className="h-48 bg-muted/20">
-        <TruckPlaceholder />
-      </div>
-    );
-  }
-
-  return <img src={snapshotUrl} alt="Plan görünümü" className="w-full h-auto object-cover" />;
+  return (
+    <div className="h-48 bg-muted/20">
+      <TruckPlaceholder />
+    </div>
+  );
 }

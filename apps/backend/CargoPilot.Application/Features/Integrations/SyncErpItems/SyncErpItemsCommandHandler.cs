@@ -108,7 +108,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 {
                     if (existing.Status == DraftItemStatus.Approved)
                     {
-                        skipped++;
+                        existing.SetUpdatePending(product.Sku, product.Name, product.RawDataJson);
+                        _draftItemRepository.Update(existing);
+                        updated++;
                         continue;
                     }
 

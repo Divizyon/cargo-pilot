@@ -118,6 +118,7 @@ export const itemApiSchema = z.object({
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()).optional(),
   incompatibleGroups: z.array(z.string()).optional(),
+  erpProviderName: z.string().nullable().optional(),
 });
 
 export type ItemApi = z.infer<typeof itemApiSchema>;
@@ -191,6 +192,7 @@ export function fromApiItem(api: ItemApi): Item {
     stackGroup: api.stackGroup ?? null,
     constraintIds: api.constraintIds ?? [],
     incompatibleGroups: api.incompatibleGroups ?? [],
+    erpProviderName: api.erpProviderName ?? null,
   };
 }
 
