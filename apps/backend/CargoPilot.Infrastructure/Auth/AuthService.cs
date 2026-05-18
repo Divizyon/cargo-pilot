@@ -302,8 +302,13 @@ internal sealed class AuthService : IAuthService
         if (session.ExpiresAt <= DateTime.UtcNow)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
 
+        // Atomik revoke: eş zamanlı istek bu token'ı zaten revoke ettiyse 0 döner, tüm sessionlar silinmez.
+        var revokedCount = await _context.UserSessions
+            .Where(s => s.Id == session.Id && !s.IsRevoked)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsRevoked, true), cancellationToken);
 
-        session.Revoke();
+        if (revokedCount == 0)
+            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
 
         var now = DateTime.UtcNow;
         var newAccessToken = _jwtTokenService.GenerateAccessToken(session.User);
