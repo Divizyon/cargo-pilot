@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { OptimizationModal } from './OptimizationModal';
+import { AddVehicleModal } from './AddVehicleModal';
 import { toast } from 'sonner';
 import { SCENE } from '@/lib/config/scene-config';
 import { useDebounce } from '@/lib/utils/useDebounce';
@@ -463,6 +464,8 @@ export function PlanRightPanel({
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
+  const pendingSelectIdRef = useRef<string | null>(null);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [activeVehicleTab, setActiveVehicleTab] = useState<'list' | 'selected'>('list');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [activeVehicleTypes, setActiveVehicleTypes] = useState<Set<VehicleTypeValue>>(new Set());
@@ -556,6 +559,10 @@ export function PlanRightPanel({
     } finally {
       setIsPdfLoading(false);
     }
+  }
+
+  function handleVehicleCreated(id: string | null) {
+    if (id) pendingSelectIdRef.current = id;
   }
 
   function handleSelectVehicle(v: Vehicle) {
