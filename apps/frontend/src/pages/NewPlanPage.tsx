@@ -75,7 +75,12 @@ function PlanAutoLoader({
 
     setVehicle(data.vehicle);
     onVehicleSelected();
-    initItems(data.inputItems, data.skuColorMap);
+    const existingColorMap = usePlanStore.getState().skuColorMap;
+    const colorMap =
+      Object.keys(data.skuColorMap).length > 0
+        ? { ...existingColorMap, ...data.skuColorMap }
+        : existingColorMap;
+    initItems(data.inputItems, colorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
     usePlanStore.getState().setInlineGroups(data.groups);
