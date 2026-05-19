@@ -216,7 +216,9 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
                 )}
               />
               <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
-              <span className="text-xs text-foreground flex-1 truncate">{REASON_LABEL[reason]}</span>
+              <span className="text-xs text-foreground flex-1 truncate">
+                {REASON_LABEL[reason]}
+              </span>
               <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                 {totalQty} adet
               </span>

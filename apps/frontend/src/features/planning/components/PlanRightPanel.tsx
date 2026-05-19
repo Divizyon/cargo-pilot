@@ -228,7 +228,11 @@ interface SortableVehicleListItemProps extends Omit<
   showDragHandle?: boolean;
 }
 
-function SortableVehicleListItem({ id, showDragHandle = true, ...itemProps }: SortableVehicleListItemProps) {
+function SortableVehicleListItem({
+  id,
+  showDragHandle = true,
+  ...itemProps
+}: SortableVehicleListItemProps) {
   const {
     attributes,
     listeners,
@@ -249,7 +253,9 @@ function SortableVehicleListItem({ id, showDragHandle = true, ...itemProps }: So
         {...itemProps}
         dragHandleRef={showDragHandle ? setActivatorNodeRef : undefined}
         dragHandleListeners={showDragHandle ? (listeners as Record<string, unknown>) : undefined}
-        dragHandleAttributes={showDragHandle ? (attributes as unknown as Record<string, unknown>) : undefined}
+        dragHandleAttributes={
+          showDragHandle ? (attributes as unknown as Record<string, unknown>) : undefined
+        }
       />
     </div>
   );

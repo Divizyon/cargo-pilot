@@ -413,9 +413,9 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           >
             <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
               <PlanLeftPanel
-              planId={fromPlanId}
-              onAddSuggestedVehicle={fromPlanId ? handleAddSuggestedVehicle : undefined}
-            />
+                planId={fromPlanId}
+                onAddSuggestedVehicle={fromPlanId ? handleAddSuggestedVehicle : undefined}
+              />
             </div>
           </div>
 

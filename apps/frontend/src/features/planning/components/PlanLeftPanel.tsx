@@ -1208,7 +1208,10 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
       </div>
 
       {/* Scrollable area */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
         {itemsLoading && (
           <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1828,7 +1831,9 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
                           strokeWidth={1.5}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-foreground truncate">{suggestedVehicle.name}</p>
+                          <p className="text-xs text-foreground truncate">
+                            {suggestedVehicle.name}
+                          </p>
                           <p className="text-[10px] text-muted-foreground tabular-nums">
                             {suggestedVehicle.length}×{suggestedVehicle.width}×
                             {suggestedVehicle.height} cm ·{' '}
