@@ -8,14 +8,14 @@ import {
   WEEKLY_TREND_PLACEHOLDER,
 } from '@/lib/api/useDashboardStats';
 import { useVehicles } from '@/lib/api/useVehicles';
-import { PlanStatus } from '@/lib/types/loadingPlan';
+import { PlanStatus, type LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { StatSummaryCard } from './StatSummaryCard';
 import { WeeklyTrendChart } from './WeeklyTrendChart';
 
 const efficiencyFormat = (v: number) => `%${Number.isFinite(v) ? Math.round(v) : 0}`;
 const tonnageFormat = (v: number) => `${new Intl.NumberFormat('tr-TR').format(v)} ton`;
 
-function computeWeeklyTrend(items: { plannedAt?: string; createdAt: string }[]) {
+function computeWeeklyTrend(items: { createdAt: string }[]) {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -27,8 +27,7 @@ function computeWeeklyTrend(items: { plannedAt?: string; createdAt: string }[]) 
   const counts = [0, 0, 0, 0, 0, 0, 0];
 
   for (const plan of items) {
-    const dateStr = plan.plannedAt ?? plan.createdAt;
-    const date = new Date(dateStr);
+    const date = new Date(plan.createdAt);
     if (isNaN(date.getTime())) continue;
     const diff = Math.floor((date.getTime() - monday.getTime()) / 86400000);
     if (diff >= 0 && diff < 7) counts[diff]++;
@@ -48,6 +47,16 @@ export function DashboardStatsCards() {
     void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
   }
 
+  // Her iki API kaynağını (allPlans pageSize:10 + weeklyPlans pageSize:200) id bazlı birleştir.
+  // weeklyPlans yalnızca kısmi veri döndürebilir (startDate filtresi farklı çalışabilir);
+  // allPlans ise en güncel 10 planı garantili getirir. İkisini birleştirmek en doğru sonucu verir.
+  const effectivePlans = useMemo(() => {
+    const combined = new Map<string, LoadingPlanListItem>();
+    for (const p of allPlans ?? []) combined.set(p.id, p);
+    for (const p of weeklyPlans ?? []) combined.set(p.id, p);
+    return [...combined.values()];
+  }, [allPlans, weeklyPlans]);
+
   const weeklyFilteredItems = useMemo(() => {
     const now = new Date();
     const dayOfWeek = now.getDay();
@@ -55,11 +64,11 @@ export function DashboardStatsCards() {
     const monday = new Date(now);
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
-    return (weeklyPlans ?? []).filter((p) => {
-      const d = new Date(p.plannedAt ?? p.createdAt);
+    return effectivePlans.filter((p) => {
+      const d = new Date(p.createdAt);
       return !isNaN(d.getTime()) && d >= monday;
     });
-  }, [weeklyPlans]);
+  }, [effectivePlans]);
 
   const taslakCount = weeklyFilteredItems.filter((p) => p.status === PlanStatus.Taslak).length;
   const tamamlandiCount = weeklyFilteredItems.filter(
@@ -75,19 +84,21 @@ export function DashboardStatsCards() {
     const monday = new Date(now);
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
-    const thisWeekPlans = (weeklyPlans ?? allPlans ?? []).filter((p) => {
-      const d = new Date(p.plannedAt ?? p.createdAt);
+    const thisWeekPlans = effectivePlans.filter((p) => {
+      const d = new Date(p.createdAt);
+      if (isNaN(d.getTime())) return false;
       const diff = Math.floor((d.getTime() - monday.getTime()) / 86400000);
       return diff >= 0 && diff < 7;
     });
     const uniqueVehicleCount = new Set(thisWeekPlans.map((p) => p.vehicleId)).size;
     return Math.round((uniqueVehicleCount / totalVehicles) * 100);
-  }, [weeklyPlans, allPlans, vehiclesData]);
+  }, [effectivePlans, vehiclesData]);
 
   const trendData = useMemo(() => {
-    const source = weeklyPlans ?? allPlans ?? [];
-    return source.length > 0 ? computeWeeklyTrend(source) : WEEKLY_TREND_PLACEHOLDER;
-  }, [weeklyPlans, allPlans]);
+    return effectivePlans.length > 0
+      ? computeWeeklyTrend(effectivePlans)
+      : WEEKLY_TREND_PLACEHOLDER;
+  }, [effectivePlans]);
 
   const vehicleSubInfo =
     vehiclesData !== undefined
@@ -135,7 +146,7 @@ export function DashboardStatsCards() {
         <StatSummaryCard
           title="Bu Hafta Yükleme Sayısı"
           icon={ClipboardList}
-          value={data?.weeklyLoadingCount.value ?? 0}
+          value={weeklyFilteredItems.length}
           subInfo=""
           delta={0}
           isLoading={isLoading}

@@ -23,9 +23,9 @@ export function WeeklyTrendChart({ data }: Props) {
       <div className="flex items-start justify-between mb-1">
         <div>
           <p className="text-base font-semibold text-foreground">
-            Haftalık Yükleme Planları Trendi
+            Son 7 Günlük Yükleme Planları Trendi
           </p>
-          <p className="text-sm text-muted-foreground">Toplam yükleme planları trendi</p>
+          <p className="text-sm text-muted-foreground">Son 7 günlük yükleme planları trendi</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">

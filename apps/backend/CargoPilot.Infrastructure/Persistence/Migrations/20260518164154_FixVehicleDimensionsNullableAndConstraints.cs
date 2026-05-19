@@ -1,18 +1,17 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class MakeVehicleDimensionsNullable : Migration
+    public partial class FixVehicleDimensionsNullableAndConstraints : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Drop computed column before altering source columns
-            migrationBuilder.DropColumn(
-                name: "Volume",
+            migrationBuilder.DropIndex(
+                name: "IX_Vehicles_CompanyId_PlateNumber",
                 table: "Vehicles");
 
             migrationBuilder.DropCheckConstraint(
@@ -31,8 +30,15 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 name: "CK_Vehicles_MaxWeightCapacity_Positive",
                 table: "Vehicles");
 
+            // Volume is a persisted computed column that references InternalWidth/Height/Length.
+            // SQL Server does not allow ALTER COLUMN on columns referenced by a persisted computed
+            // column, so Volume must be dropped before the dimension columns are altered.
+            migrationBuilder.DropColumn(
+                name: "Volume",
+                table: "Vehicles");
+
             migrationBuilder.AlterColumn<decimal>(
-                name: "InternalWidth",
+                name: "MaxWeightCapacity",
                 table: "Vehicles",
                 type: "decimal(18,4)",
                 precision: 18,
@@ -44,7 +50,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 oldScale: 4);
 
             migrationBuilder.AlterColumn<decimal>(
-                name: "InternalHeight",
+                name: "InternalWidth",
                 table: "Vehicles",
                 type: "decimal(18,4)",
                 precision: 18,
@@ -68,7 +74,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 oldScale: 4);
 
             migrationBuilder.AlterColumn<decimal>(
-                name: "MaxWeightCapacity",
+                name: "InternalHeight",
                 table: "Vehicles",
                 type: "decimal(18,4)",
                 precision: 18,
@@ -79,7 +85,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 oldPrecision: 18,
                 oldScale: 4);
 
-            // Recreate computed column (now nullable)
             migrationBuilder.AddColumn<decimal>(
                 name: "Volume",
                 table: "Vehicles",
@@ -89,6 +94,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 nullable: true,
                 computedColumnSql: "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
                 stored: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vehicles_CompanyId_PlateNumber",
+                table: "Vehicles",
+                columns: new[] { "CompanyId", "PlateNumber" },
+                unique: true,
+                filter: "[IsDeleted] = 0 AND [PlateNumber] IS NOT NULL");
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_Vehicles_InternalHeight_Positive",
@@ -114,8 +126,8 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Volume",
+            migrationBuilder.DropIndex(
+                name: "IX_Vehicles_CompanyId_PlateNumber",
                 table: "Vehicles");
 
             migrationBuilder.DropCheckConstraint(
@@ -134,11 +146,30 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 name: "CK_Vehicles_MaxWeightCapacity_Positive",
                 table: "Vehicles");
 
-            // Clear NULLs before reverting to NOT NULL
+            // Volume must be dropped before reverting NOT NULL on its source columns.
+            migrationBuilder.DropColumn(
+                name: "Volume",
+                table: "Vehicles");
+
+            // Clear NULLs before reverting columns to NOT NULL.
             migrationBuilder.Sql("UPDATE [Vehicles] SET [InternalWidth] = 0 WHERE [InternalWidth] IS NULL");
             migrationBuilder.Sql("UPDATE [Vehicles] SET [InternalHeight] = 0 WHERE [InternalHeight] IS NULL");
             migrationBuilder.Sql("UPDATE [Vehicles] SET [InternalLength] = 0 WHERE [InternalLength] IS NULL");
             migrationBuilder.Sql("UPDATE [Vehicles] SET [MaxWeightCapacity] = 0 WHERE [MaxWeightCapacity] IS NULL");
+
+            migrationBuilder.AlterColumn<decimal>(
+                name: "MaxWeightCapacity",
+                table: "Vehicles",
+                type: "decimal(18,4)",
+                precision: 18,
+                scale: 4,
+                nullable: false,
+                defaultValue: 0m,
+                oldClrType: typeof(decimal),
+                oldType: "decimal(18,4)",
+                oldPrecision: 18,
+                oldScale: 4,
+                oldNullable: true);
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "InternalWidth",
@@ -147,19 +178,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 precision: 18,
                 scale: 4,
                 nullable: false,
-                oldClrType: typeof(decimal),
-                oldType: "decimal(18,4)",
-                oldPrecision: 18,
-                oldScale: 4,
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<decimal>(
-                name: "InternalHeight",
-                table: "Vehicles",
-                type: "decimal(18,4)",
-                precision: 18,
-                scale: 4,
-                nullable: false,
+                defaultValue: 0m,
                 oldClrType: typeof(decimal),
                 oldType: "decimal(18,4)",
                 oldPrecision: 18,
@@ -173,6 +192,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 precision: 18,
                 scale: 4,
                 nullable: false,
+                defaultValue: 0m,
                 oldClrType: typeof(decimal),
                 oldType: "decimal(18,4)",
                 oldPrecision: 18,
@@ -180,12 +200,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 oldNullable: true);
 
             migrationBuilder.AlterColumn<decimal>(
-                name: "MaxWeightCapacity",
+                name: "InternalHeight",
                 table: "Vehicles",
                 type: "decimal(18,4)",
                 precision: 18,
                 scale: 4,
                 nullable: false,
+                defaultValue: 0m,
                 oldClrType: typeof(decimal),
                 oldType: "decimal(18,4)",
                 oldPrecision: 18,
@@ -201,6 +222,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 nullable: false,
                 computedColumnSql: "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
                 stored: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vehicles_CompanyId_PlateNumber",
+                table: "Vehicles",
+                columns: new[] { "CompanyId", "PlateNumber" },
+                unique: true,
+                filter: "[IsDeleted] = 0");
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_Vehicles_InternalHeight_Positive",

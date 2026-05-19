@@ -15,62 +15,36 @@ export const companyMemberSchema = z.object({
 
 export type CompanyMember = z.infer<typeof companyMemberSchema>;
 
-const MOCK_MEMBERS: CompanyMember[] = [
-  {
-    id: 'a1b2c3d4-0001-4000-8000-000000000001',
-    fullName: 'Ahmet Kaya',
-    email: 'ahmet.kaya@firma.com',
-    role: 'admin',
-    isActive: true,
-    joinedAt: '2024-01-15',
-  },
-  {
-    id: 'a1b2c3d4-0002-4000-8000-000000000002',
-    fullName: 'Elif Şahin',
-    email: 'elif.sahin@firma.com',
-    role: 'operator',
-    isActive: true,
-    joinedAt: '2024-03-02',
-  },
-  {
-    id: 'a1b2c3d4-0003-4000-8000-000000000003',
-    fullName: 'Mert Demir',
-    email: 'mert.demir@firma.com',
-    role: 'operator',
-    isActive: true,
-    joinedAt: '2024-05-10',
-  },
-  {
-    id: 'a1b2c3d4-0004-4000-8000-000000000004',
-    fullName: 'Selin Arslan',
-    email: 'selin.arslan@firma.com',
-    role: 'operator',
-    isActive: false,
-    joinedAt: '2023-11-20',
-  },
-  {
-    id: 'a1b2c3d4-0005-4000-8000-000000000005',
-    fullName: 'Can Yıldız',
-    email: 'can.yildiz@firma.com',
-    role: 'operator',
-    isActive: true,
-    joinedAt: '2025-01-08',
-  },
-  {
-    id: 'a1b2c3d4-0006-4000-8000-000000000006',
-    fullName: 'Zeynep Çelik',
-    email: 'zeynep.celik@firma.com',
-    role: 'admin',
-    isActive: true,
-    joinedAt: '2025-03-17',
-  },
-];
+const apiResponseSchema = z
+  .object({
+    isSuccess: z.boolean().optional(),
+    data: z.unknown(),
+  })
+  .passthrough();
+
+async function fetchCompanyMembers(): Promise<CompanyMember[]> {
+  const { data: raw } = await axiosInstance.get<unknown>('/api/v1/company-members');
+  const parsed = apiResponseSchema.safeParse(raw);
+  const items: unknown[] = parsed.success
+    ? Array.isArray(parsed.data.data)
+      ? (parsed.data.data as unknown[])
+      : (((parsed.data.data as Record<string, unknown>)?.['items'] as unknown[] | undefined) ?? [])
+    : Array.isArray(raw)
+      ? (raw as unknown[])
+      : [];
+  return items
+    .map((item) => {
+      const r = companyMemberSchema.safeParse(item);
+      return r.success ? r.data : null;
+    })
+    .filter((x): x is CompanyMember => x !== null);
+}
 
 export function useCompanyMembers() {
   const companyId = useAuthStore((s) => s.user?.companyId ?? 'guest');
   return useQuery({
     queryKey: ['company-members', companyId] as const,
-    queryFn: (): CompanyMember[] => companyMemberSchema.array().parse(MOCK_MEMBERS),
+    queryFn: fetchCompanyMembers,
     staleTime: 5 * 60 * 1000,
   });
 }
