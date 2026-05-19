@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useReportDetail, useDownloadPlanPdf, useDownloadReportExcel } from '@/lib/api/useReports';
+import { useLoadingPlanListItem } from '@/lib/api/useLoadingPlans';
 import type { PlanProductGroup } from '@/lib/types/loadingPlan';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -223,8 +224,11 @@ export function ReportDetailPage() {
   const navigate = useNavigate();
 
   const { data: detail, isLoading, isError } = useReportDetail(id ?? '');
+  const { data: planListItem } = useLoadingPlanListItem(id ?? '');
   const { mutate: downloadPdf, isPending: pdfPending } = useDownloadPlanPdf();
   const { mutate: downloadExcel, isPending: excelPending } = useDownloadReportExcel();
+
+  const snapshotUrl = detail?.snapshotUrl ?? planListItem?.thumbnailUrl ?? null;
 
   const status = detail ? (STATUS_MAP[detail.status] ?? STATUS_MAP[0]) : null;
 
@@ -367,9 +371,9 @@ export function ReportDetailPage() {
                 3D Görünüm
               </p>
             </div>
-            {detail.snapshotUrl ? (
+            {snapshotUrl ? (
               <img
-                src={detail.snapshotUrl}
+                src={snapshotUrl}
                 alt={`${detail.planName} 3D görünüm`}
                 className="max-h-80 w-full object-contain"
               />
