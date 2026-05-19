@@ -142,7 +142,16 @@ export function useLoadingAnimation(
 
     scheduleRef.current = schedule;
     startTimeRef.current = null;
-  }, [animationMode, loadOrder, placements, vehicleDepth, vehicleWidth, vehicleHeight, doorDirection, doorSide]);
+  }, [
+    animationMode,
+    loadOrder,
+    placements,
+    vehicleDepth,
+    vehicleWidth,
+    vehicleHeight,
+    doorDirection,
+    doorSide,
+  ]);
 
   useFrame(() => {
     if (animationMode === 'stepped') {
