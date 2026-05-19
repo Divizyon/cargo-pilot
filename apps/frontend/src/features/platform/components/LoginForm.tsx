@@ -144,7 +144,7 @@ export function LoginForm() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Giriş Yap</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Gir</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           Hesabınıza erişmek için bilgilerinizi girin
         </p>

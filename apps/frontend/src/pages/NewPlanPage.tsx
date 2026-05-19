@@ -1,32 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Pencil } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
-import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 import { ReadOnlyContext } from '@/features/planning/ReadOnlyContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
+  useUploadPlanThumbnail,
+  useRenameLoadingPlan,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { planningDetailRoute } from '@/lib/config/routes';
+import type { Vehicle } from '@/lib/types/vehicle';
 
 // ─── PlanAutoLoader ───────────────────────────────────────────────────────────
 
@@ -46,6 +39,7 @@ function PlanAutoLoader({
   const { data, isSuccess } = useLoadingPlanDetail(planId);
 
   const setVehicle = usePlanStore((s) => s.setVehicle);
+  const addVehicle = usePlanStore((s) => s.addVehicle);
   const initItems = usePlanStore((s) => s.initItems);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const setUnplacedItems = usePlanStore((s) => s.setUnplacedItems);
@@ -72,9 +66,22 @@ function PlanAutoLoader({
 
     appliedDataRef.current = data;
 
-    setVehicle(data.vehicle);
+    // Multi-vehicle: set primary first, then add remaining vehicles in order
+    if (data.vehicles && data.vehicles.length > 1) {
+      setVehicle(data.vehicles[0]);
+      for (let i = 1; i < data.vehicles.length; i++) {
+        addVehicle(data.vehicles[i]);
+      }
+    } else {
+      setVehicle(data.vehicle);
+    }
     onVehicleSelected();
-    initItems(data.inputItems, data.skuColorMap);
+    const existingColorMap = usePlanStore.getState().skuColorMap;
+    const colorMap =
+      Object.keys(data.skuColorMap).length > 0
+        ? { ...existingColorMap, ...data.skuColorMap }
+        : existingColorMap;
+    initItems(data.inputItems, colorMap);
     setPlacements(data.placements);
     setUnplacedItems(data.unplacedItems);
     usePlanStore.getState().setInlineGroups(data.groups);
@@ -93,6 +100,7 @@ function PlanAutoLoader({
     data,
     setVehicle,
     initItems,
+    addVehicle,
     setPlacements,
     setUnplacedItems,
     onVehicleSelected,
@@ -108,16 +116,23 @@ interface NewPlanPageProps {
 
 export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const snapshotRef = useRef<(() => string) | null>(null);
+  const snapshotTakenRef = useRef(false);
+  const planNameInputRef = useRef<HTMLInputElement>(null);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
   const [refetchKey, setRefetchKey] = useState(0);
-  const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [planNameInput, setPlanNameInput] = useState('');
   const { id: fromPlanId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
+  const { mutate: renamePlan } = useRenameLoadingPlan();
+  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
+  const uploadThumbnailRef = useRef(uploadThumbnail);
+  useEffect(() => {
+    uploadThumbnailRef.current = uploadThumbnail;
+  }, [uploadThumbnail]);
 
   useEffect(() => {
     if (!readOnly && !fromPlanId) {
@@ -127,7 +142,41 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    snapshotTakenRef.current = false;
+  }, [refetchKey]);
+
   const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
+
+  useEffect(() => {
+    if (fromPlanId && planDetail?.planName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPlanNameInput(planDetail.planName);
+    }
+  }, [fromPlanId, planDetail?.planName]);
+
+  const handlePlanNameCommit = useCallback(() => {
+    if (!fromPlanId || !planNameInput.trim()) return;
+    if (planNameInput.trim() === planDetail?.planName) return;
+    renamePlan({ id: fromPlanId, planName: planNameInput.trim() });
+  }, [fromPlanId, planNameInput, planDetail?.planName, renamePlan]);
+
+  const handleLoaded = useCallback(() => {
+    if (!fromPlanId) return;
+    if (snapshotTakenRef.current) return;
+    snapshotTakenRef.current = true;
+    window.setTimeout(() => {
+      const dataUrl =
+        snapshotRef.current?.() ??
+        (document.querySelector('canvas') as HTMLCanvasElement | null)?.toDataURL(
+          'image/jpeg',
+          0.7,
+        );
+      if (dataUrl) {
+        uploadThumbnailRef.current({ id: fromPlanId, dataUrl });
+      }
+    }, 2500);
+  }, [fromPlanId]);
 
   useEffect(() => {
     function handleResize() {
@@ -141,42 +190,34 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   }, []);
 
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
-  const startAnimation = useSceneStore((s) => s.startAnimation);
 
-  const handleVehicleSelected = useCallback(() => {
-    setRightOpen(false);
-  }, []);
-
-  const handleOptimize = useCallback(() => {
-    const { selectedVehicle: vehicle, selectedItems: items, placements } = usePlanStore.getState();
-    if (!vehicle || items.length === 0) return;
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    if (items.filter((si) => placedIds.has(si.item.id)).length === 0) return;
-
-    const defaultName = `${vehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
-    setPlanNameInput(defaultName);
-    setNameDialogOpen(true);
-  }, []);
+  const handleVehicleSelected = useCallback(() => {}, []);
 
   const handleConfirmCreate = useCallback(async () => {
     const {
-      selectedVehicle: vehicle,
+      selectedVehicles,
       selectedItems: items,
       placements,
+      unfitItems,
       criteria,
       clusterGroups,
       allowContamination,
       inlineGroups,
     } = usePlanStore.getState();
-    if (!vehicle || !planNameInput.trim()) return;
+    if (selectedVehicles.length === 0 || !planNameInput.trim()) return;
 
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const rawItemsToSend = items.filter((si) => placedIds.has(si.item.id));
-    if (rawItemsToSend.length === 0) return;
+    // Only send items the user explicitly staged (placed in scene OR in unfitItems).
+    // Items browsed from catalog but not staged (addItem only, no placement) are excluded.
+    const activeIds = new Set([
+      ...placements.map((p) => p.itemId),
+      ...unfitItems.map((u) => u.item.id),
+    ]);
+    const activeItems = items.filter((si) => activeIds.has(si.item.id));
+    if (activeItems.length === 0) return;
 
-    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
-    const deduped = new Map<string, (typeof rawItemsToSend)[number]>();
-    for (const si of rawItemsToSend) {
+    // Deduplicate by itemId in case selectedItems accumulated duplicates.
+    const deduped = new Map<string, (typeof items)[number]>();
+    for (const si of activeItems) {
       if (!deduped.has(si.item.id)) deduped.set(si.item.id, si);
     }
     const itemsToSend = [...deduped.values()];
@@ -198,10 +239,12 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           }))
         : undefined;
 
-    setNameDialogOpen(false);
+    // All selected vehicles in their current order — waterfall processes them sequentially.
+    const vehicleIds = selectedVehicles.map((e) => e.vehicle.id);
+
     const id = await createPlan({
       planName: planNameInput.trim(),
-      vehicleId: vehicle.id,
+      vehicleIds,
       items: itemsToSend.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,
@@ -215,10 +258,19 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     navigate(planningDetailRoute(id), { replace: true });
   }, [planNameInput, createPlan, navigate]);
 
-  const handleLoadAnimation = useCallback(() => {
-    if (usePlanStore.getState().placements.length === 0) return;
-    startAnimation();
-  }, [startAnimation]);
+  const handleOptimize = useCallback(() => {
+    const { selectedVehicles, placements, unfitItems } = usePlanStore.getState();
+    if (selectedVehicles.length === 0) return;
+    if (placements.length === 0 && unfitItems.length === 0) return;
+
+    if (!planNameInput.trim()) {
+      toast.error('Lütfen bir plan adı girin.');
+      planNameInputRef.current?.focus();
+      return;
+    }
+
+    void handleConfirmCreate();
+  }, [planNameInput, handleConfirmCreate]);
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
@@ -226,6 +278,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
       selectedVehicle: vehicle,
       selectedItems: items,
       placements,
+      unfitItems,
       criteria,
       clusterGroups,
       allowContamination,
@@ -233,17 +286,21 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     } = usePlanStore.getState();
     if (!vehicle || items.length === 0) return;
 
-    // Only send items that are currently placed — items removed via "Çıkar" must be excluded
-    const placedIds = new Set(placements.map((p) => p.itemId));
-    const rawItems = items.filter((si) => placedIds.has(si.item.id));
-    if (rawItems.length === 0) return;
+    // Only send items the user explicitly staged (placed OR previously unfit) —
+    // prevents catalog-browsed-but-not-staged items from leaking into re-optimization.
+    const activeIds = new Set([
+      ...placements.map((p) => p.itemId),
+      ...unfitItems.map((u) => u.item.id),
+    ]);
+    const activeItems = items.filter((si) => activeIds.has(si.item.id));
 
-    // Deduplicate by itemId — same item may appear multiple times if selectedItems accumulated duplicates
+    // Deduplicate by itemId in case selectedItems has accumulated duplicates.
     const dedupedMap = new Map<string, (typeof items)[number]>();
-    for (const si of rawItems) {
+    for (const si of activeItems) {
       if (!dedupedMap.has(si.item.id)) dedupedMap.set(si.item.id, si);
     }
     const dedupedItems = [...dedupedMap.values()];
+    if (dedupedItems.length === 0) return;
 
     const itemGroupMap = new Map<string, string>();
     for (const g of inlineGroups) {
@@ -262,9 +319,14 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           }))
         : undefined;
 
+    // Send ALL selected vehicles in their current order — waterfall requires full list
+    const { selectedVehicles } = usePlanStore.getState();
+    const vehicleIds =
+      selectedVehicles.length > 0 ? selectedVehicles.map((e) => e.vehicle.id) : [vehicle.id];
+
     await reoptimizePlan({
       id: fromPlanId,
-      vehicleId: vehicle.id,
+      vehicleIds,
       items: dedupedItems.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,
@@ -279,61 +341,27 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     setAnimationReady(true);
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
+  const handleAddSuggestedVehicle = useCallback(
+    async (vehicle: Vehicle) => {
+      usePlanStore.getState().addVehicle(vehicle);
+      await handleReoptimize();
+    },
+    [handleReoptimize],
+  );
+
   return (
     <ReadOnlyContext.Provider value={readOnly}>
       <div className="flex flex-col h-full bg-page-background overflow-hidden">
-        {!readOnly && (
-          <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Plan Adı</DialogTitle>
-              </DialogHeader>
-              <div className="py-2">
-                <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
-                  Yükleme planına bir ad verin
-                </Label>
-                <Input
-                  id="plan-name"
-                  value={planNameInput}
-                  onChange={(e) => setPlanNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleConfirmCreate();
-                  }}
-                  className="h-9 text-sm"
-                  autoFocus
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={!planNameInput.trim() || isCreating}
-                  onClick={() => void handleConfirmCreate()}
-                  className="bg-foreground text-background hover:bg-foreground/80"
-                >
-                  {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
         {!readOnly && fromPlanId && (
           <PlanAutoLoader
             planId={fromPlanId}
             refetchKey={refetchKey}
             onVehicleSelected={handleVehicleSelected}
+            onLoaded={handleLoaded}
           />
         )}
         {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
         <div className="relative flex flex-1 min-h-0 overflow-hidden">
-          {/* BalancePanel — sağ panelin solunda */}
-          <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
-            <BalancePanel />
-          </div>
-
           {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
           <button
             onClick={() => setLeftOpen((v) => !v)}
@@ -349,16 +377,45 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
             {leftOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
 
+          {/* Plan adı kutusu — sol üst, kamera butonlarıyla simetrik */}
+          {!readOnly && (
+            <div className="absolute top-3 left-0 w-[320px] z-20 px-3">
+              <div className="w-full flex items-center gap-1.5 bg-background rounded-xl border border-border px-2 py-1.5 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-shadow">
+                <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <Input
+                  ref={planNameInputRef}
+                  value={planNameInput}
+                  onChange={(e) => setPlanNameInput(e.target.value)}
+                  onBlur={() => {
+                    if (fromPlanId) handlePlanNameCommit();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (fromPlanId) handlePlanNameCommit();
+                      else if (planNameInput.trim()) void handleConfirmCreate();
+                    }
+                  }}
+                  placeholder={fromPlanId ? 'Plan adı' : 'Plan adı girin…'}
+                  className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs px-0"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Sol kayan panel */}
           <div
             className={cn(
-              'absolute top-3 bottom-3 left-0 w-[320px] z-10 px-3',
+              'absolute bottom-3 left-0 w-[320px] z-10 px-3',
+              !readOnly ? 'top-[68px]' : 'top-3',
               'transition-transform duration-[220ms] ease-out',
               leftOpen ? 'translate-x-0' : '-translate-x-full',
             )}
           >
             <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-              <PlanLeftPanel planId={fromPlanId} />
+              <PlanLeftPanel
+                planId={fromPlanId}
+                onAddSuggestedVehicle={fromPlanId ? handleAddSuggestedVehicle : undefined}
+              />
             </div>
           </div>
 
@@ -380,7 +437,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
               vehiclesOpen={rightOpen}
               onToggleVehicles={() => setRightOpen((v) => !v)}
               onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
-              onLoadAnimation={handleLoadAnimation}
               isOptimizing={fromPlanId ? isReoptimizing : isCreating}
               canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
               getSnapshot={() => snapshotRef.current?.() ?? ''}

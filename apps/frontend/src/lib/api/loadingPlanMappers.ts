@@ -10,7 +10,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/boxOrientations';
-import { resolveProductColor } from '@/lib/config/productColors';
+import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -405,8 +405,7 @@ function normalizeUtcDatetime(s: string): string {
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
-  const raw = api as Record<string, unknown>;
-  const planName = api.planName ?? (raw['name'] as string | undefined) ?? '—';
+  const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
   const itemCount =
     api.itemCount ??
     api.inputTotalQuantity ??
@@ -426,18 +425,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
     planName,
     vehicleId: api.vehicleId ?? v?.id ?? '',
-    vehicleName:
-      v?.vehicleName ??
-      v?.name ??
-      api.vehicleName ??
-      (raw['vehicle_name'] as string | undefined) ??
-      '—',
-    vehiclePlate:
-      (v?.plateNumber ??
-        v?.plate ??
-        (raw['plateNumber'] as string | undefined) ??
-        (raw['plate'] as string | undefined)) ||
-      undefined,
+    vehicleName: v?.vehicleName ?? v?.name ?? api.vehicleName ?? '—',
+    vehiclePlate: (v?.plateNumber ?? v?.plate) || undefined,
     createdAt,
     plannedAt: api.plannedAt ?? undefined,
     status: mapStatus(api.status, api.optimizationStatus),
@@ -452,9 +441,16 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
     doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
     doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
-    thumbnailUrl: ((api as Record<string, unknown>)['thumbnailUrl'] ??
-      (api as Record<string, unknown>)['snapshotUrl'] ??
-      (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
+    thumbnailUrl: (() => {
+      const raw = ((api as Record<string, unknown>)['thumbnailUrl'] ??
+        (api as Record<string, unknown>)['snapshotUrl'] ??
+        (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined;
+      if (!raw) return raw;
+      // Fix double-protocol (e.g. "http://https://...") → strip outer
+      if (/^https?:\/\/https?:\/\//.test(raw)) return raw.replace(/^https?:\/\//, '');
+      // Normalize http → https to avoid mixed-content blocks
+      return raw.replace(/^http:\/\//, 'https://');
+    })(),
   };
 }
 
@@ -495,6 +491,7 @@ const planItemDimensionsSchema = z
 const placementFullSchema = z
   .object({
     itemId: z.string(),
+    vehicleId: z.string().optional(),
     positionX: z.number(),
     positionY: z.number(),
     positionZ: z.number(),
@@ -511,6 +508,24 @@ const inputItemFullSchema = z
   })
   .passthrough();
 
+const planVehicleInPlanSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    vehicleName: z.string().optional(),
+    name: z.string().optional(),
+    plateNumber: z.string().nullable().optional(),
+    plate: z.string().nullable().optional(),
+    internalWidth: z.number().optional(),
+    internalHeight: z.number().optional(),
+    internalLength: z.number().optional(),
+    maxWeightCapacity: z.number().optional(),
+    vehicleType: z.number().int().optional(),
+    loadingType: z.number().int().nullable().optional(),
+    vehicleId: z.string().uuid().optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .passthrough();
+
 export const planFullDetailApiResponseSchema = z.object({
   isSuccess: z.boolean().optional(),
   data: z
@@ -518,6 +533,7 @@ export const planFullDetailApiResponseSchema = z.object({
       id: z.string().uuid(),
       planName: z.string(),
       vehicle: planVehicleApiSchema,
+      vehicles: z.array(planVehicleInPlanSchema).optional().default([]),
       placements: z.array(placementFullSchema).optional().default([]),
       inputItems: z.array(inputItemFullSchema).optional().default([]),
       groups: z.array(planGroupFullSchema).optional().default([]),
@@ -542,6 +558,7 @@ export const planFullDetailApiResponseSchema = z.object({
 export type PlanFullDetail = {
   planName: string;
   vehicle: Vehicle | null;
+  vehicles: Vehicle[];
   inputItems: Array<{ item: Item; quantity: number }>;
   placements: PlacementWithDimensions[];
   skuColorMap: Record<string, string>;
@@ -581,55 +598,89 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
   } as Item;
 }
 
+function apiVehicleToVehicle(
+  v: z.infer<typeof planVehicleApiSchema> & { vehicleId?: string },
+): Vehicle {
+  const id = v.vehicleId ?? v.id ?? '';
+  return {
+    id,
+    name: v.vehicleName ?? v.name ?? '—',
+    plate: v.plateNumber ?? v.plate ?? '',
+    width: v.internalWidth ?? 0,
+    height: v.internalHeight ?? 0,
+    length: v.internalLength ?? 0,
+    maxCargoWeight: v.maxWeightCapacity ?? 0,
+    vehicleType:
+      v.vehicleType != null
+        ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
+        : VehicleType.Tir,
+    doorDirection:
+      v.loadingType != null
+        ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
+        : DoorDirection.Rear,
+    doorSide: v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    isFavorite: false,
+    isActive: true,
+    isDeleted: false,
+    createdAt: new Date(0).toISOString(),
+    createdBy: { id: '', fullName: '' },
+  };
+}
+
 export function fromApiFullDetail(
   data: z.infer<typeof planFullDetailApiResponseSchema>['data'],
 ): PlanFullDetail {
-  const v = data.vehicle;
+  // Multi-vehicle: prefer data.vehicles[], fall back to data.vehicle
+  const rawVehicles = data.vehicles ?? [];
+  const vehicles: Vehicle[] =
+    rawVehicles.length > 0
+      ? rawVehicles.map((v) =>
+          apiVehicleToVehicle(v as z.infer<typeof planVehicleApiSchema> & { vehicleId?: string }),
+        )
+      : data.vehicle?.id
+        ? [apiVehicleToVehicle(data.vehicle)]
+        : [];
 
-  const vehicle: Vehicle | null = v?.id
-    ? {
-        id: v.id,
-        name: v.vehicleName ?? v.name ?? '—',
-        plate: v.plateNumber ?? v.plate ?? '',
-        width: v.internalWidth ?? 0,
-        height: v.internalHeight ?? 0,
-        length: v.internalLength ?? 0,
-        maxCargoWeight: v.maxWeightCapacity ?? 0,
-        vehicleType:
-          v.vehicleType != null
-            ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
-            : VehicleType.Tir,
-        doorDirection:
-          v.loadingType != null
-            ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Front)
-            : DoorDirection.Front,
-        doorSide:
-          v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
-        isFavorite: false,
-        isActive: true,
-        isDeleted: false,
-        createdAt: new Date(0).toISOString(),
-        createdBy: { id: '', fullName: '' },
-      }
-    : null;
+  const vehicle: Vehicle | null = vehicles[0] ?? null;
 
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;
 
-  // Build color map from inputItems — renk (productType × yük grubu) kombinasyonuna göre belirlenir
+  // Build color map — inputItems öncelikli, eksik SKU'lar placements'tan tamamlanır
   const skuColorMap: Record<string, string> = {};
+
+  function resolveSkuColor(rawItem: Record<string, unknown>, productType: string): string {
+    const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
+      | string
+      | undefined;
+    return resolveProductColor(productType, groupName);
+  }
+
   const inputItems = (data.inputItems ?? []).map((ii: InputItemFull) => {
     const item = apiItemToItem(ii.item);
     if (!skuColorMap[item.sku]) {
       const rawItem = ii.item as Record<string, unknown>;
-      const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
-        | string
-        | undefined;
       const productType = (rawItem.productType as string | undefined) ?? item.productType;
-      skuColorMap[item.sku] = resolveProductColor(productType, groupName);
+      const color = resolveSkuColor(rawItem, productType);
+      if (color !== COLOR_FALLBACK) {
+        skuColorMap[item.sku] = color;
+      }
     }
     return { item, quantity: ii.quantity };
   });
+
+  // inputItems'da grubu olmayan SKU'ları placements'tan tamamla
+  for (const p of data.placements ?? []) {
+    const itemSku = p.item.sku || p.item.sKU || p.itemId;
+    if (skuColorMap[itemSku]) continue;
+    const rawItem = p.item as Record<string, unknown>;
+    const rawType = p.item.productType?.toLowerCase();
+    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+    const color = resolveSkuColor(rawItem, productType);
+    if (color !== COLOR_FALLBACK) {
+      skuColorMap[itemSku] = color;
+    }
+  }
 
   const placements: PlacementWithDimensions[] = (data.placements ?? []).map((p: PlacementFull) => {
     const {
@@ -641,12 +692,11 @@ export function fromApiFullDetail(
     const rawType = p.item.productType?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
     const rawItem = p.item as Record<string, unknown>;
-    const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
-      | string
-      | undefined;
-    const color = skuColorMap[itemSku] ?? resolveProductColor(productType, groupName);
+    // skuColorMap'te varsa kullan, yoksa placement'ın kendi item verisinden türet
+    const color = skuColorMap[itemSku] ?? resolveSkuColor(rawItem, productType);
     return {
       itemId: p.itemId,
+      vehicleId: p.vehicleId,
       positionX: p.positionX,
       positionY: p.positionY,
       positionZ: p.positionZ,
@@ -689,5 +739,14 @@ export function fromApiFullDetail(
       itemIds: (g.items ?? []).map((i: { itemId: string }) => i.itemId),
     }));
 
-  return { planName, vehicle, inputItems, placements, skuColorMap, unplacedItems, groups };
+  return {
+    planName,
+    vehicle,
+    vehicles,
+    inputItems,
+    placements,
+    skuColorMap,
+    unplacedItems,
+    groups,
+  };
 }
