@@ -172,7 +172,7 @@ interface PlanGroupDefinition {
 
 interface CreateLoadingPlanInput {
   planName: string;
-  vehicleIds: string[];
+  vehicleId: string;
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
@@ -312,7 +312,7 @@ export function useApprovePlan() {
 
 interface ReoptimizeLoadingPlanInput {
   id: string;
-  vehicleIds: string[];
+  vehicleId: string;
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
@@ -325,14 +325,14 @@ export function useReoptimizeLoadingPlan() {
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
     mutationFn: async ({
       id,
-      vehicleIds,
+      vehicleId,
       items,
       optimizationCriteria,
       groups,
       clusterGroups,
       allowContamination,
     }: ReoptimizeLoadingPlanInput) => {
-      const body: Record<string, unknown> = { vehicleIds, items, optimizationCriteria };
+      const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
       if (allowContamination) body['allowContamination'] = allowContamination;
