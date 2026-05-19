@@ -22,7 +22,6 @@ internal sealed class VehicleRepository : IVehicleRepository {
         int page,
         int pageSize,
         Guid? companyId,
-        bool? isDraft = null,
         CancellationToken cancellationToken = default) {
         var query = _context.Vehicles.AsNoTracking()
             .Where(v => v.CompanyId == companyId);
@@ -38,15 +37,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
             query = query.Where(v => v.VehicleType == vehicleType.Value);
         }
 
-        if (isDraft.HasValue) {
-            query = query.Where(v => v.IsDraft == isDraft.Value);
-            if (!isDraft.Value && isActive.HasValue)
-                query = query.Where(v => v.IsActive == isActive.Value);
-        } else if (isActive.HasValue) {
-            query = query.Where(v => v.IsActive == isActive.Value && !v.IsDraft);
-        } else {
-            query = query.Where(v => v.IsActive || v.IsDraft);
-        }
+        query = query.Where(v => v.IsActive == (isActive ?? true));
 
         if (onlyFavorites == true && favoriteIds is not null) {
             query = query.Where(v => favoriteIds.Contains(v.Id));

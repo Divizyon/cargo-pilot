@@ -654,12 +654,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("IncompatibleGroupsJson")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("[]");
-
                     b.Property<Guid?>("IntegrationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -714,6 +708,12 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<string>("StackGroup")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IncompatibleGroupsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("[]");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -1722,11 +1722,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsDraft")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<decimal?>("KingPinDistanceMm")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -1808,11 +1803,11 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Vehicles_AdditionalAxleTareWeightKg_Positive_WhenSet", "[AdditionalAxleTareWeightKg] IS NULL OR [AdditionalAxleTareWeightKg] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[IsDraft] = 1 OR [InternalHeight] > 0");
+                            t.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[InternalHeight] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[IsDraft] = 1 OR [InternalLength] > 0");
+                            t.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[InternalLength] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[IsDraft] = 1 OR [InternalWidth] > 0");
+                            t.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[InternalWidth] > 0");
 
                             t.HasCheckConstraint("CK_Vehicles_KingPinDistanceMm_Positive_WhenSet", "[KingPinDistanceMm] IS NULL OR [KingPinDistanceMm] > 0");
 
@@ -1820,7 +1815,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Vehicles_KingPinTareWeightKg_Positive_WhenSet", "[KingPinTareWeightKg] IS NULL OR [KingPinTareWeightKg] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_LayerCount_Min1", "[IsDraft] = 1 OR [LayerCount] >= 1");
+                            t.HasCheckConstraint("CK_Vehicles_LayerCount_Min1", "[LayerCount] >= 1");
 
                             t.HasCheckConstraint("CK_Vehicles_MainAxleDistanceMm_Positive_WhenSet", "[MainAxleDistanceMm] IS NULL OR [MainAxleDistanceMm] > 0");
 
@@ -1828,7 +1823,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Vehicles_MainAxleTareWeightKg_Positive_WhenSet", "[MainAxleTareWeightKg] IS NULL OR [MainAxleTareWeightKg] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_MaxWeightCapacity_Positive", "[IsDraft] = 1 OR [MaxWeightCapacity] > 0");
+                            t.HasCheckConstraint("CK_Vehicles_MaxWeightCapacity_Positive", "[MaxWeightCapacity] > 0");
                         });
                 });
 
