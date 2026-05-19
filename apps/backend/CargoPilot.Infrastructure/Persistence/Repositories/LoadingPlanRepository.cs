@@ -433,10 +433,10 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
         new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl, item.ProductType);
 
-    private static decimal? CalcBalanceOffset(decimal? cog, decimal dimension)
+    private static decimal? CalcBalanceOffset(decimal? cog, decimal? dimension)
     {
-        if (!cog.HasValue || dimension <= 0) return null;
-        var half = dimension / 2;
+        if (!cog.HasValue || !dimension.HasValue || dimension.Value <= 0) return null;
+        var half = dimension.Value / 2;
         return Math.Round(Math.Abs(cog.Value - half) / half * 100, 1);
     }
 }
