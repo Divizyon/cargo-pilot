@@ -2,22 +2,18 @@ import { useMemo, useState } from 'react';
 import {
   AlertCircle,
   Box,
+  ChevronDown,
   ChevronRight,
   Cylinder,
-  Lightbulb,
-  Loader2,
   Package,
+  PackageMinus,
   RotateCcw,
-  Trash2,
-  Truck,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { UnfitReason } from '@/lib/types/loadingPlan';
 import type { UnfitItem } from '@/lib/types/loadingPlan';
-import type { Vehicle } from '@/lib/types/vehicle';
-import { useVehicles } from '@/lib/api/useVehicles';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -55,12 +51,16 @@ const PRODUCT_TYPE_ICON: Record<string, ElementType> = {
   palet: Package,
 };
 
-function UnfitItemRow({
+function UnfitItemCard({
   unfitItem,
+  isExpanded,
+  onToggleExpand,
   onRetry,
   onRemove,
 }: {
   unfitItem: UnfitItem;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
   onRetry: () => void;
   onRemove: () => void;
 }) {
@@ -68,60 +68,86 @@ function UnfitItemRow({
   const TypeIcon = PRODUCT_TYPE_ICON[item.productType] ?? Box;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent group/unfit">
-      <TypeIcon className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+    <div className={cn('rounded-lg overflow-hidden', isExpanded && 'ring-1 ring-border')}>
+      <div
+        onClick={onToggleExpand}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors hover:bg-accent',
+          isExpanded && 'bg-muted/40',
+        )}
+      >
+        <TypeIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+        <span className="flex-1 min-w-0 text-xs text-foreground truncate">{item.name}</span>
+        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+          {quantity} adet
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand();
+          }}
+          className="shrink-0 flex items-center justify-center"
+        >
+          <ChevronDown
+            className={cn(
+              'w-3 h-3 text-muted-foreground/50 transition-transform duration-150',
+              isExpanded && 'rotate-180',
+            )}
+          />
+        </button>
+      </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm truncate text-foreground">{item.name}</span>
-          <span className="text-[10px] shrink-0 tabular-nums text-muted-foreground">
-            {quantity} adet
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+      {isExpanded && (
+        <div className="px-2.5 pt-2 pb-2.5 bg-muted/40 border-t border-border space-y-2">
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {item.width}×{item.length}×{item.height} cm · {item.weight} kg
+          </p>
           <span
-            className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded', REASON_CLASS[reason])}
+            className={cn(
+              'inline-block text-[9px] font-medium px-1.5 py-0.5 rounded',
+              REASON_CLASS[reason],
+            )}
           >
             {REASON_LABEL[reason]}
           </span>
-          <span className="text-[10px] text-muted-foreground tabular-nums">
-            {item.width}×{item.length}×{item.height} cm · {item.weight} kg
-          </span>
+          <div className="flex items-center gap-2 pt-1.5 border-t border-border">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry();
+                onToggleExpand();
+              }}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Tekrar Dene
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors ml-auto"
+            >
+              <PackageMinus className="w-3 h-3" />
+              Çıkar
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div
-        className="flex flex-col items-center gap-0.5 shrink-0 opacity-0 group-hover/unfit:opacity-100 transition-opacity"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          title="Tekrar Dene"
-          onClick={onRetry}
-          className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-        >
-          <RotateCcw className="w-3 h-3" />
-        </button>
-        <button
-          title="Listeden Çıkar"
-          onClick={onRemove}
-          className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition-colors"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
 interface UnfitItemsPanelProps {
   onFullRemove?: (itemId: string) => void;
-  onAddSuggestedVehicle?: (vehicle: Vehicle) => Promise<void>;
 }
 
-export function UnfitItemsPanel({ onFullRemove, onAddSuggestedVehicle }: UnfitItemsPanelProps) {
-  const [open, setOpen] = useState(true);
-  const [showSuggestion, setShowSuggestion] = useState(false);
-  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
+  const [openReasons, setOpenReasons] = useState<Set<UnfitReason>>(
+    new Set(Object.values(UnfitReason)),
+  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingRetryContamination, setPendingRetryContamination] = useState<{
     pendingAction: () => void;
     groupVolumes: GroupVolume[];
@@ -132,20 +158,23 @@ export function UnfitItemsPanel({ onFullRemove, onAddSuggestedVehicle }: UnfitIt
   const removeUnfitItem = usePlanStore((s) => s.removeUnfitItem);
   const retryUnfitItem = usePlanStore((s) => s.retryUnfitItem);
 
-  const { data: vehiclesData } = useVehicles();
+  const byReason = useMemo(() => {
+    const map = new Map<UnfitReason, UnfitItem[]>();
+    for (const u of unfitItems) {
+      if (!map.has(u.reason)) map.set(u.reason, []);
+      map.get(u.reason)!.push(u);
+    }
+    return map;
+  }, [unfitItems]);
 
-  const suggestedVehicle = useMemo(() => {
-    const vehicles = vehiclesData?.items ?? [];
-    if (unfitItems.length === 0 || vehicles.length === 0) return null;
-    const totalVolumeCm3 = unfitItems.reduce(
-      (s, u) => s + u.item.width * u.item.height * u.item.length * u.quantity,
-      0,
-    );
-    const candidates = vehicles
-      .filter((v) => v.width * v.height * v.length > totalVolumeCm3)
-      .sort((a, b) => a.width * a.height * a.length - b.width * b.height * b.length);
-    return candidates[0] ?? null;
-  }, [unfitItems, vehiclesData]);
+  function toggleReason(reason: UnfitReason) {
+    setOpenReasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(reason)) next.delete(reason);
+      else next.add(reason);
+      return next;
+    });
+  }
 
   function handleRetry(unfitItem: UnfitItem) {
     const doRetry = () => retryUnfitItem(unfitItem.item.id);
@@ -169,123 +198,52 @@ export function UnfitItemsPanel({ onFullRemove, onAddSuggestedVehicle }: UnfitIt
     doRetry();
   }
 
-  if (unfitItems.length === 0) return null;
-
-  const totalQty = unfitItems.reduce((s, u) => s + u.quantity, 0);
-  const totalWeight = unfitItems.reduce((s, u) => s + u.item.weight * u.quantity, 0);
-  const totalVolumeM3 =
-    unfitItems.reduce((s, u) => s + u.item.width * u.item.height * u.item.length * u.quantity, 0) /
-    1_000_000;
-
   return (
-    <div className="border-t border-border shrink-0">
-      <button
-        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ChevronRight
-          className={cn(
-            'w-3.5 h-3.5 text-rose-400 transition-transform duration-150',
-            open && 'rotate-90',
-          )}
-        />
-        <span className="text-sm text-foreground flex-1 text-left">Yüklenemeyen Ürünler</span>
-        <span className="text-[10px] bg-rose-100 text-rose-600 rounded-full px-1.5 py-0.5 tabular-nums font-medium">
-          {totalQty}
-        </span>
-      </button>
-
-      {open && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground tabular-nums border-b border-border">
-            <span>{unfitItems.length} ürün çeşidi</span>
-            <span>·</span>
-            <span>{totalVolumeM3.toFixed(3)} m³</span>
-            <span>·</span>
-            <span>{totalWeight.toFixed(1)} kg</span>
+    <div className="flex flex-col gap-0.5">
+      {[...byReason.entries()].map(([reason, items]) => {
+        const isOpen = openReasons.has(reason);
+        const totalQty = items.reduce((s, u) => s + u.quantity, 0);
+        return (
+          <div key={reason} className="flex flex-col gap-0.5">
             <button
-              onClick={() => setShowSuggestion((v) => !v)}
-              className={cn(
-                'ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors shrink-0',
-                showSuggestion
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-              )}
+              onClick={() => toggleReason(reason)}
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-accent transition-colors w-full text-left"
             >
-              <Lightbulb className="w-3 h-3" />
-              Araç Öner
-            </button>
-          </div>
-
-          {showSuggestion && (
-            <div className="mx-2 mt-1.5 mb-0.5 p-2.5 rounded-lg border border-border bg-muted/30 flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                Önerilen Araç
-              </p>
-              {suggestedVehicle ? (
-                <div className="flex items-center gap-2">
-                  <Truck
-                    className="w-3.5 h-3.5 shrink-0 text-muted-foreground"
-                    strokeWidth={1.5}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground truncate">{suggestedVehicle.name}</p>
-                    <p className="text-[10px] text-muted-foreground tabular-nums">
-                      {suggestedVehicle.length}×{suggestedVehicle.width}×{suggestedVehicle.height}{' '}
-                      cm ·{' '}
-                      {(
-                        (suggestedVehicle.width *
-                          suggestedVehicle.height *
-                          suggestedVehicle.length) /
-                        1_000_000
-                      ).toFixed(1)}{' '}
-                      m³
-                    </p>
-                  </div>
-                  {onAddSuggestedVehicle && (
-                    <Button
-                      size="sm"
-                      disabled={isAddingVehicle}
-                      onClick={async () => {
-                        setIsAddingVehicle(true);
-                        try {
-                          await onAddSuggestedVehicle(suggestedVehicle);
-                          setShowSuggestion(false);
-                        } finally {
-                          setIsAddingVehicle(false);
-                        }
-                      }}
-                      className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80 shrink-0"
-                    >
-                      {isAddingVehicle ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        'Ekle'
-                      )}
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Katalogda uygun araç bulunamadı.</p>
-              )}
-            </div>
-          )}
-
-          <div className="max-h-48 overflow-y-auto p-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {unfitItems.map((u) => (
-              <UnfitItemRow
-                key={u.item.id}
-                unfitItem={u}
-                onRetry={() => handleRetry(u)}
-                onRemove={() => {
-                  removeUnfitItem(u.item.id);
-                  onFullRemove?.(u.item.id);
-                }}
+              <ChevronRight
+                className={cn(
+                  'w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
+                  isOpen && 'rotate-90',
+                )}
               />
-            ))}
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+              <span className="text-xs text-foreground flex-1 truncate">{REASON_LABEL[reason]}</span>
+              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                {totalQty} adet
+              </span>
+            </button>
+
+            {isOpen && (
+              <div className="flex flex-col gap-px pl-2">
+                {items.map((u) => (
+                  <UnfitItemCard
+                    key={u.item.id}
+                    unfitItem={u}
+                    isExpanded={expandedId === u.item.id}
+                    onToggleExpand={() =>
+                      setExpandedId((prev) => (prev === u.item.id ? null : u.item.id))
+                    }
+                    onRetry={() => handleRetry(u)}
+                    onRemove={() => {
+                      removeUnfitItem(u.item.id);
+                      onFullRemove?.(u.item.id);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })}
 
       {pendingRetryContamination && (
         <AlertDialog
