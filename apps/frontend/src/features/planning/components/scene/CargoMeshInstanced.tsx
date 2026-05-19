@@ -216,13 +216,13 @@ function InstancedBoxes() {
     handleAllSettled,
   );
 
-  const placements = useMemo(
-    () =>
-      previewItemId
-        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
-        : rawPlacements,
-    [rawPlacements, previewItemId, previewPlacements],
-  );
+  const placements = useMemo(() => {
+    const vehicleId = vehicle?.id;
+    const base = previewItemId
+      ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
+      : rawPlacements;
+    return vehicleId ? base.filter((p) => !p.vehicleId || p.vehicleId === vehicleId) : base;
+  }, [rawPlacements, previewItemId, previewPlacements, vehicle]);
 
   // Varil / box / palet index mapping: globalIdx ↔ per-geometry instanceIdx
   // boxIndices[instanceIdx] = globalIdx, cylIndices[instanceIdx] = globalIdx
@@ -1052,13 +1052,13 @@ function BoxPathBoxes() {
   const vehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedItems = usePlanStore((s) => s.selectedItems);
 
-  const placements = useMemo(
-    () =>
-      previewItemId
-        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
-        : rawPlacements,
-    [rawPlacements, previewItemId, previewPlacements],
-  );
+  const placements = useMemo(() => {
+    const vehicleId = vehicle?.id;
+    const base = previewItemId
+      ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
+      : rawPlacements;
+    return vehicleId ? base.filter((p) => !p.vehicleId || p.vehicleId === vehicleId) : base;
+  }, [rawPlacements, previewItemId, previewPlacements, vehicle]);
 
   const selectedItemId = useSceneStore((s) => s.selectedItemId);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
@@ -1268,14 +1268,14 @@ export function CargoMeshInstanced({ planId: _planId }: CargoMeshInstancedProps)
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
   const previewPlacements = usePlanStore((s) => s.previewPlacements);
+  const vehicleId = usePlanStore((s) => s.selectedVehicle?.id);
 
-  const placements = useMemo(
-    () =>
-      previewItemId
-        ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
-        : rawPlacements,
-    [rawPlacements, previewItemId, previewPlacements],
-  );
+  const placements = useMemo(() => {
+    const base = previewItemId
+      ? [...rawPlacements.filter((p) => p.itemId !== previewItemId), ...previewPlacements]
+      : rawPlacements;
+    return vehicleId ? base.filter((p) => !p.vehicleId || p.vehicleId === vehicleId) : base;
+  }, [rawPlacements, previewItemId, previewPlacements, vehicleId]);
 
   if (placements.length === 0) return null;
   if (placements.length < INSTANCED_THRESHOLD) return <BoxPathBoxes />;
