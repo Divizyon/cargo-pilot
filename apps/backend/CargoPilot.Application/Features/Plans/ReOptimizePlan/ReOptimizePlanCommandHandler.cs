@@ -17,6 +17,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
     private readonly ILoadingPlanItemGroupRepository _groupRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<ReOptimizePlanCommand> _validator;
 
     public ReOptimizePlanCommandHandler(
@@ -26,6 +27,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
+        INotificationService notificationService,
         IValidator<ReOptimizePlanCommand> validator)
     {
         _planRepository = planRepository;
@@ -34,6 +36,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         _groupRepository = groupRepository;
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
+        _notificationService = notificationService;
         _validator = validator;
     }
 
@@ -99,10 +102,29 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             ? optimizationInput with { Items = contamination.Passed }
             : optimizationInput;
 
-        var engineResult = _optimizationEngine.Run(finalInput);
-        var result = contamination.Contaminated.Count > 0
-            ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
-            : engineResult;
+        OptimizationResult result;
+        try
+        {
+            var engineResult = _optimizationEngine.Run(finalInput);
+            result = contamination.Contaminated.Count > 0
+                ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
+                : engineResult;
+        }
+        catch (Exception ex)
+        {
+            if (_currentUserService.UserId is { } failedUserId)
+            {
+                await _notificationService.CreateAsync(
+                    userId: failedUserId,
+                    companyId: companyId,
+                    type: NotificationType.OptimizationFailed,
+                    title: "Plan Optimizasyonu Başarısız",
+                    description: $"Plan yeniden optimize edilirken bir hata oluştu: {ex.Message}",
+                    actionUrl: $"/loading-plans/{plan.Id}",
+                    cancellationToken: cancellationToken);
+            }
+            throw;
+        }
 
         var newInputItems = request.Items
             .Select(i =>
@@ -117,6 +139,18 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         plan.Reoptimize(request.VehicleId, request.OptimizationCriteria, inputTotalQuantity);
 
         await _planRepository.ReOptimizeWithResultAsync(plan, newInputItems, result, cancellationToken);
+
+        if (_currentUserService.UserId is { } userId)
+        {
+            await _notificationService.CreateAsync(
+                userId: userId,
+                companyId: companyId,
+                type: NotificationType.OptimizationComplete,
+                title: "Plan Yeniden Optimize Edildi",
+                description: $"Plan başarıyla yeniden optimize edildi.",
+                actionUrl: $"/loading-plans/{plan.Id}",
+                cancellationToken: cancellationToken);
+        }
 
         return Result<Guid>.Success(plan.Id);
     }

@@ -24,6 +24,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
     private readonly IDraftItemRepository _draftItemRepository;
     private readonly IErpProductFetcher _erpProductFetcher;
     private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<SyncErpItemsCommand> _validator;
     private readonly ILogger<SyncErpItemsCommandHandler> _logger;
 
@@ -34,6 +35,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         IDraftItemRepository draftItemRepository,
         IErpProductFetcher erpProductFetcher,
         ICurrentUserService currentUserService,
+        INotificationService notificationService,
         IValidator<SyncErpItemsCommand> validator,
         ILogger<SyncErpItemsCommandHandler> logger)
     {
@@ -43,6 +45,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         _draftItemRepository = draftItemRepository;
         _erpProductFetcher = erpProductFetcher;
         _currentUserService = currentUserService;
+        _notificationService = notificationService;
         _validator = validator;
         _logger = logger;
     }
@@ -163,6 +166,20 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             _logSyncFailed(_logger, integration.Id, ex);
             syncLog.Fail(ex.Message);
             await _integrationRepository.SaveChangesAsync(cancellationToken);
+
+            if (_currentUserService.UserId is { } userId)
+            {
+                await _notificationService.CreateAsync(
+                    userId: userId,
+                    companyId: companyId,
+                    type: NotificationType.ErpSyncError,
+                    title: "ERP Senkronizasyonu Başarısız",
+                    description: $"ERP senkronizasyonu sırasında bir hata oluştu: {ex.Message}",
+                    actionUrl: $"/settings/erp?highlight=erp-card-{integration.Id}",
+                    integrationId: integration.Id,
+                    cancellationToken: cancellationToken);
+            }
+
             return Result<SyncErpItemsResult>.Failure(
                 new Error(ErrorType.Unexpected, "Sync.Failed", "ERP senkronizasyonu sırasında bir hata oluştu."));
         }

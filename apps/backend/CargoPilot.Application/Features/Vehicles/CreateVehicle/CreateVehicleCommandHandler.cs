@@ -12,14 +12,17 @@ namespace CargoPilot.Application.Features.Vehicles.CreateVehicle;
 public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand, Result<Guid>> {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<CreateVehicleCommand> _validator;
 
     public CreateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
         ICurrentUserService currentUserService,
+        INotificationService notificationService,
         IValidator<CreateVehicleCommand> validator) {
         _vehicleRepository = vehicleRepository;
         _currentUserService = currentUserService;
+        _notificationService = notificationService;
         _validator = validator;
     }
 
@@ -44,9 +47,30 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             var currentCount = await _vehicleRepository.CountByUserAsync(userId, cancellationToken);
             var maxCount = SubscriptionLimits.GetMaxVehicleCount(SubscriptionType.Free);
             if (currentCount >= maxCount)
+            {
+                await _notificationService.CreateAsync(
+                    userId: userId,
+                    companyId: companyId,
+                    type: NotificationType.UsageLimitReached,
+                    title: "Araç Kotası Doldu",
+                    description: $"Maksimum araç sayısına ({maxCount}) ulaştınız. Daha fazla araç eklemek için planınızı yükseltin.",
+                    cancellationToken: cancellationToken);
                 return Result<Guid>.Failure(
                     new Error(ErrorType.BusinessRule, "Vehicle.LimitExceeded",
                         "Abonelik planı kapsamındaki maksimum araç sayısına ulaşıldı."));
+            }
+
+            var warningThreshold = (int)(maxCount * 0.8);
+            if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount)
+            {
+                await _notificationService.CreateAsync(
+                    userId: userId,
+                    companyId: companyId,
+                    type: NotificationType.UsageLimitWarning,
+                    title: "Araç Kotası Dolmak Üzere",
+                    description: $"Araç kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
+                    cancellationToken: cancellationToken);
+            }
         }
 
         if (request.PlateNumber is not null) {
