@@ -63,7 +63,7 @@ const initialState = {
   cameraPreset: null as CameraPreset | null,
   isDragging: false,
   dragLivePosition: null as { x: number; y: number; z: number } | null,
-  showCog: true,
+  showCog: false,
   xRayMode: false,
   stressTestMode: false,
   focusedGroupItemIds: null as string[] | null,
