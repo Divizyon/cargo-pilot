@@ -1,22 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Pencil } from 'lucide-react';
 import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { ReadOnlyContext } from '@/features/planning/ReadOnlyContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   useLoadingPlanDetail,
@@ -124,11 +114,11 @@ interface NewPlanPageProps {
 export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const snapshotRef = useRef<(() => string) | null>(null);
   const snapshotTakenRef = useRef(false);
+  const planNameInputRef = useRef<HTMLInputElement>(null);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
   const [refetchKey, setRefetchKey] = useState(0);
-  const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [planNameInput, setPlanNameInput] = useState('');
   const { id: fromPlanId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -184,22 +174,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
 
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
 
-  const handleVehicleSelected = useCallback(() => {
-    setRightOpen(false);
-  }, []);
-
-  const handleOptimize = useCallback(() => {
-    const { selectedVehicles, placements, unfitItems } = usePlanStore.getState();
-    if (selectedVehicles.length === 0) return;
-
-    // Only allow optimization if user has staged at least one item (placed or unfit)
-    if (placements.length === 0 && unfitItems.length === 0) return;
-
-    const primaryVehicle = selectedVehicles[0].vehicle;
-    const defaultName = `${primaryVehicle.name} — ${new Date().toLocaleDateString('tr-TR')}`;
-    setPlanNameInput(defaultName);
-    setNameDialogOpen(true);
-  }, []);
+  const handleVehicleSelected = useCallback(() => {}, []);
 
   const handleConfirmCreate = useCallback(async () => {
     const {
@@ -250,7 +225,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     // All selected vehicles in their current order — waterfall processes them sequentially.
     const vehicleIds = selectedVehicles.map((e) => e.vehicle.id);
 
-    setNameDialogOpen(false);
     const id = await createPlan({
       planName: planNameInput.trim(),
       vehicleIds,
@@ -266,6 +240,20 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     });
     navigate(planningDetailRoute(id), { replace: true });
   }, [planNameInput, createPlan, navigate]);
+
+  const handleOptimize = useCallback(() => {
+    const { selectedVehicles, placements, unfitItems } = usePlanStore.getState();
+    if (selectedVehicles.length === 0) return;
+    if (placements.length === 0 && unfitItems.length === 0) return;
+
+    if (!planNameInput.trim()) {
+      toast.error('Lütfen bir plan adı girin.');
+      planNameInputRef.current?.focus();
+      return;
+    }
+
+    void handleConfirmCreate();
+  }, [planNameInput, handleConfirmCreate]);
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
@@ -339,44 +327,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   return (
     <ReadOnlyContext.Provider value={readOnly}>
       <div className="flex flex-col h-full bg-page-background overflow-hidden">
-        {!readOnly && (
-          <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Plan Adı</DialogTitle>
-              </DialogHeader>
-              <div className="py-2">
-                <Label htmlFor="plan-name" className="text-xs text-muted-foreground mb-1.5 block">
-                  Yükleme planına bir ad verin
-                </Label>
-                <Input
-                  id="plan-name"
-                  value={planNameInput}
-                  onChange={(e) => setPlanNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleConfirmCreate();
-                  }}
-                  className="h-9 text-sm"
-                  autoFocus
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setNameDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={!planNameInput.trim() || isCreating}
-                  onClick={() => void handleConfirmCreate()}
-                  className="bg-foreground text-background hover:bg-foreground/80"
-                >
-                  {isCreating ? 'Oluşturuluyor…' : 'Optimizasyonu Başlat'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
         {!readOnly && fromPlanId && (
           <PlanAutoLoader
             planId={fromPlanId}
@@ -402,10 +352,36 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
             {leftOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
 
+          {/* Plan adı kutusu — sol üst, kamera butonlarıyla simetrik */}
+          {!readOnly && !fromPlanId && (
+            <div
+              className={cn(
+                'absolute top-3 left-0 w-[320px] z-20 px-3',
+                'transition-transform duration-[220ms] ease-out',
+                leftOpen ? 'translate-x-0' : '-translate-x-full',
+              )}
+            >
+              <div className="w-full flex items-center gap-2 bg-background rounded-xl border border-border px-3 py-2">
+                <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <input
+                  ref={planNameInputRef}
+                  value={planNameInput}
+                  onChange={(e) => setPlanNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && planNameInput.trim()) void handleConfirmCreate();
+                  }}
+                  placeholder="Plan adı girin…"
+                  className="flex-1 min-w-0 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground/50"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Sol kayan panel */}
           <div
             className={cn(
-              'absolute top-3 bottom-3 left-0 w-[320px] z-10 px-3',
+              'absolute bottom-3 left-0 w-[320px] z-10 px-3',
+              !readOnly && !fromPlanId ? 'top-[60px]' : 'top-3',
               'transition-transform duration-[220ms] ease-out',
               leftOpen ? 'translate-x-0' : '-translate-x-full',
             )}
