@@ -146,6 +146,7 @@ export function useLoadingPlanDetail(id: string | undefined) {
         return {
           planName: '—',
           vehicle: null,
+          vehicles: [],
           inputItems: [],
           placements: [],
           skuColorMap: {},
@@ -171,7 +172,7 @@ interface PlanGroupDefinition {
 
 interface CreateLoadingPlanInput {
   planName: string;
-  vehicleId: string;
+  vehicleIds: string[];
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
@@ -311,7 +312,7 @@ export function useApprovePlan() {
 
 interface ReoptimizeLoadingPlanInput {
   id: string;
-  vehicleId: string;
+  vehicleIds: string[];
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
   optimizationCriteria: OptimizationCriteria;
   groups?: PlanGroupDefinition[];
@@ -324,14 +325,14 @@ export function useReoptimizeLoadingPlan() {
   return useMutation<string, AxiosError<ProblemDetails>, ReoptimizeLoadingPlanInput>({
     mutationFn: async ({
       id,
-      vehicleId,
+      vehicleIds,
       items,
       optimizationCriteria,
       groups,
       clusterGroups,
       allowContamination,
     }: ReoptimizeLoadingPlanInput) => {
-      const body: Record<string, unknown> = { vehicleId, items, optimizationCriteria };
+      const body: Record<string, unknown> = { vehicleIds, items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
       if (allowContamination) body['allowContamination'] = allowContamination;
@@ -533,4 +534,22 @@ export function useExportPlanToERP() {
       toast.error(detail ?? 'ERP aktarımı başarısız', { position: 'bottom-right' });
     },
   });
+}
+
+// ─── Imperative fetch helper (araç zincirleme taşma) ─────────────────────────
+
+export async function fetchPlanUnplacedItems(
+  id: string,
+): Promise<Array<{ itemId: string; quantity: number }>> {
+  try {
+    const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${id}`);
+    const parsed = planFullDetailApiResponseSchema.safeParse(data);
+    if (!parsed.success) return [];
+    return fromApiFullDetail(parsed.data.data).unplacedItems.map((u) => ({
+      itemId: u.itemId,
+      quantity: u.quantity,
+    }));
+  } catch {
+    return [];
+  }
 }
