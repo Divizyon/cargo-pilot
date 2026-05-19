@@ -660,15 +660,6 @@ export const usePlanStore = create<PlanStore>((set) => ({
         placements: [...computeViolations(coloredPlacements), ...keptStaging],
         unfitItems: [],
         optimizationCount: s.optimizationCount + 1,
-      const itemIdToSku = new Map(s.selectedItems.map(({ item }) => [item.id, item.sku]));
-      return {
-        placements: computeViolations(
-          placements.map((p) => {
-            const sku = itemIdToSku.get(p.itemId);
-            const mappedColor = sku ? s.skuColorMap[sku] : undefined;
-            return { ...p, color: mappedColor ?? p.color };
-          }),
-        ),
       };
     }),
   setUnplacedItems: (items) =>
