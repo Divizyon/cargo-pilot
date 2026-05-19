@@ -336,6 +336,16 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
 
+    public async Task SaveDraftAsync(
+        LoadingPlan plan,
+        IReadOnlyList<LoadingPlanInputItem> inputItems,
+        CancellationToken cancellationToken = default)
+    {
+        _context.LoadingPlans.Add(plan);
+        _context.LoadingPlanInputItems.AddRange(inputItems);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task SaveWithResultAsync(
         LoadingPlan plan,
         IReadOnlyList<LoadingPlanInputItem> inputItems,
