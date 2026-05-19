@@ -92,36 +92,6 @@ export function useLoadingAnimation(
     const height = vehicleHeight ?? 0;
     const OFFSET = SCENE.ANIM_DOOR_OFFSET_CM;
 
-    let doorX: number;
-    let doorY: number;
-    let doorZ: number;
-
-    switch (doorDirection) {
-      case 'side':
-        // Yan kapı: kutular konteynerin sol veya sağ yanından girer
-        doorX = doorSide === 'right' ? width + OFFSET : -OFFSET;
-        doorY = height / 2;
-        doorZ = depth / 2;
-        break;
-      case 'top':
-        // Üst kapı: kutular tavandan aşağıya iner
-        doorX = width / 2;
-        doorY = height + OFFSET;
-        doorZ = depth / 2;
-        break;
-      case 'rear':
-        // Arka kapı: Z=0 yüzü önünden girer
-        doorX = width / 2;
-        doorY = height / 2;
-        doorZ = -OFFSET;
-        break;
-      default:
-        // 'front' veya undefined — ön yüz (Z=depth) önünden girer
-        doorX = width / 2;
-        doorY = 0;
-        doorZ = depth + OFFSET;
-    }
-
     const schedule = new Map<number, AnimEntry>();
     loadOrder.forEach((globalIdx, seqIdx) => {
       const p = placements[globalIdx];
@@ -131,12 +101,48 @@ export function useLoadingAnimation(
       const cy = p.positionY + p.height / 2;
       const cz = p.positionZ + p.depth / 2;
 
+      // Her kutu kapı ekseninde dışarıdan başlar, diğer eksenlerde hedef pozisyonunda.
+      // Böylece kutular kapı açıklığından düz çizgi halinde içeri kayar.
+      let fromX: number;
+      let fromY: number;
+      let fromZ: number;
+
+      switch (doorDirection) {
+        case 'side':
+          // Yan kapı: kapı X ekseninde, kutu Y/Z hedefinde başlar
+          fromX = doorSide === 'right' ? width + OFFSET : -OFFSET;
+          fromY = cy;
+          fromZ = cz;
+          break;
+        case 'top':
+          // Üst kapı: tavan Y + offset'ten iner, X/Z hedefinde
+          fromX = cx;
+          fromY = height + OFFSET;
+          fromZ = cz;
+          break;
+        case 'rear':
+          // Arka kapı: Z=0 önünden girer
+          fromX = cx;
+          fromY = cy;
+          fromZ = -OFFSET;
+          break;
+        case 'rearAndSide':
+          fromX = cx;
+          fromY = cy;
+          fromZ = -OFFSET;
+          break;
+        default:
+          // 'front' veya undefined — Z=depth önünden girer
+          fromX = cx;
+          fromY = cy;
+          fromZ = depth + OFFSET;
+      }
+
       schedule.set(globalIdx, {
         startAt: seqIdx * staggerMs,
         flightMs,
         target: new THREE.Vector3(cx, cy, cz),
-        // Tüm kutular kapı önünden (0,0,0 köşe referansıyla) hedeflerine gider
-        from: new THREE.Vector3(doorX, doorY, doorZ),
+        from: new THREE.Vector3(fromX, fromY, fromZ),
       });
     });
 
