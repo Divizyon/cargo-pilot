@@ -4,6 +4,7 @@ using CargoPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518094006_AddIsDraftToVehicles")]
+    partial class AddIsDraftToVehicles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1700,15 +1703,15 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("IntegrationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal?>("InternalHeight")
+                    b.Property<decimal>("InternalHeight")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<decimal?>("InternalLength")
+                    b.Property<decimal>("InternalLength")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<decimal?>("InternalWidth")
+                    b.Property<decimal>("InternalWidth")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -1757,7 +1760,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<decimal?>("MaxWeightCapacity")
+                    b.Property<decimal>("MaxWeightCapacity")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -1779,7 +1782,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<int>("VehicleType")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("Volume")
+                    b.Property<decimal>("Volume")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)")
@@ -1798,7 +1801,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "PlateNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_Vehicles_CompanyId_PlateNumber")
-                        .HasFilter("[IsDeleted] = 0 AND [PlateNumber] IS NOT NULL");
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Vehicles", null, t =>
                         {
@@ -1808,11 +1811,11 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Vehicles_AdditionalAxleTareWeightKg_Positive_WhenSet", "[AdditionalAxleTareWeightKg] IS NULL OR [AdditionalAxleTareWeightKg] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[IsDraft] = 1 OR ([InternalHeight] IS NOT NULL AND [InternalHeight] > 0)");
+                            t.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[IsDraft] = 1 OR [InternalHeight] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[IsDraft] = 1 OR ([InternalLength] IS NOT NULL AND [InternalLength] > 0)");
+                            t.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[IsDraft] = 1 OR [InternalLength] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[IsDraft] = 1 OR ([InternalWidth] IS NOT NULL AND [InternalWidth] > 0)");
+                            t.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[IsDraft] = 1 OR [InternalWidth] > 0");
 
                             t.HasCheckConstraint("CK_Vehicles_KingPinDistanceMm_Positive_WhenSet", "[KingPinDistanceMm] IS NULL OR [KingPinDistanceMm] > 0");
 
@@ -1828,7 +1831,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Vehicles_MainAxleTareWeightKg_Positive_WhenSet", "[MainAxleTareWeightKg] IS NULL OR [MainAxleTareWeightKg] > 0");
 
-                            t.HasCheckConstraint("CK_Vehicles_MaxWeightCapacity_Positive", "[IsDraft] = 1 OR ([MaxWeightCapacity] IS NOT NULL AND [MaxWeightCapacity] > 0)");
+                            t.HasCheckConstraint("CK_Vehicles_MaxWeightCapacity_Positive", "[IsDraft] = 1 OR [MaxWeightCapacity] > 0");
                         });
                 });
 
