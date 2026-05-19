@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
+import type { DoorDirection } from '@/lib/types/vehicle';
 
 interface AnimEntry {
   startAt: number;
@@ -63,6 +64,12 @@ export function useLoadingAnimation(
   vehicleDepth?: number,
   /** Araç X genişliği (cm) — kapı merkezi için */
   vehicleWidth?: number,
+  /** Araç Y yüksekliği (cm) — üst kapı için */
+  vehicleHeight?: number,
+  /** Kapı yönü — animasyon başlangıç noktasını belirler */
+  doorDirection?: DoorDirection,
+  /** Yan kapı tarafı */
+  doorSide?: 'right' | 'left',
 ) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const animationStep = useSceneStore((s) => s.animationStep);
@@ -80,11 +87,40 @@ export function useLoadingAnimation(
 
     const { staggerMs, flightMs } = computeScheduleParams(loadOrder.length);
 
-    // Kapı Z=length yüzünde (ContainerMesh ile aynı: position={[0,0,length]})
-    // Tüm kutular kapı merkezinden (width/2, 0, length+OFFSET) hedeflerine uçar
-    const doorZ = (vehicleDepth ?? 0) + SCENE.ANIM_DOOR_OFFSET_CM;
-    const doorX = (vehicleWidth ?? 0) / 2;
-    const doorY = 0;
+    const depth = vehicleDepth ?? 0;
+    const width = vehicleWidth ?? 0;
+    const height = vehicleHeight ?? 0;
+    const OFFSET = SCENE.ANIM_DOOR_OFFSET_CM;
+
+    let doorX: number;
+    let doorY: number;
+    let doorZ: number;
+
+    switch (doorDirection) {
+      case 'side':
+        // Yan kapı: kutular konteynerin sol veya sağ yanından girer
+        doorX = doorSide === 'right' ? width + OFFSET : -OFFSET;
+        doorY = height / 2;
+        doorZ = depth / 2;
+        break;
+      case 'top':
+        // Üst kapı: kutular tavandan aşağıya iner
+        doorX = width / 2;
+        doorY = height + OFFSET;
+        doorZ = depth / 2;
+        break;
+      case 'rear':
+        // Arka kapı: Z=0 yüzü önünden girer
+        doorX = width / 2;
+        doorY = height / 2;
+        doorZ = -OFFSET;
+        break;
+      default:
+        // 'front' veya undefined — ön yüz (Z=depth) önünden girer
+        doorX = width / 2;
+        doorY = 0;
+        doorZ = depth + OFFSET;
+    }
 
     const schedule = new Map<number, AnimEntry>();
     loadOrder.forEach((globalIdx, seqIdx) => {
@@ -106,7 +142,7 @@ export function useLoadingAnimation(
 
     scheduleRef.current = schedule;
     startTimeRef.current = null;
-  }, [animationMode, loadOrder, placements, vehicleDepth, vehicleWidth]);
+  }, [animationMode, loadOrder, placements, vehicleDepth, vehicleWidth, vehicleHeight, doorDirection, doorSide]);
 
   useFrame(() => {
     if (animationMode === 'stepped') {

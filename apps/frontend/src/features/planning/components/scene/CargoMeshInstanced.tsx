@@ -631,6 +631,9 @@ function InstancedBoxes() {
     onFrameUpdate,
     vehicle?.length,
     vehicle?.width,
+    vehicle?.height,
+    vehicle?.doorDirection,
+    vehicle?.doorSide,
   );
 
   // Animasyon idle'a döndüğünde pozisyon cache'ini temizle
@@ -1184,6 +1187,9 @@ function BoxPathBoxes() {
     onFrameUpdate,
     vehicle?.length,
     vehicle?.width,
+    vehicle?.height,
+    vehicle?.doorDirection,
+    vehicle?.doorSide,
   );
 
   return (
