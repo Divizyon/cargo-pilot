@@ -304,7 +304,9 @@ function InstancedBoxes() {
 
     let cancelled = false;
     buildAtlasTexture(entries).then((result) => {
-      if (!cancelled) setAtlas(entries.length === 0 ? null : result);
+      if (!cancelled) {
+        setAtlas(entries.length === 0 ? null : result);
+      }
     });
 
     return () => {

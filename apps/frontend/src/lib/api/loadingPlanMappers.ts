@@ -442,9 +442,16 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
     doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
     doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
-    thumbnailUrl: ((api as Record<string, unknown>)['thumbnailUrl'] ??
-      (api as Record<string, unknown>)['snapshotUrl'] ??
-      (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
+    thumbnailUrl: (() => {
+      const raw = ((api as Record<string, unknown>)['thumbnailUrl'] ??
+        (api as Record<string, unknown>)['snapshotUrl'] ??
+        (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined;
+      if (!raw) return raw;
+      // Fix double-protocol (e.g. "http://https://...") → strip outer
+      if (/^https?:\/\/https?:\/\//.test(raw)) return raw.replace(/^https?:\/\//, '');
+      // Normalize http → https to avoid mixed-content blocks
+      return raw.replace(/^http:\/\//, 'https://');
+    })(),
   };
 }
 

@@ -23,6 +23,7 @@ import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
+  useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -108,6 +109,7 @@ interface NewPlanPageProps {
 
 export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const snapshotRef = useRef<(() => string) | null>(null);
+  const snapshotTakenRef = useRef(false);
   const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 1024);
   const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
@@ -118,6 +120,11 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
+  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
+  const uploadThumbnailRef = useRef(uploadThumbnail);
+  useEffect(() => {
+    uploadThumbnailRef.current = uploadThumbnail;
+  }, [uploadThumbnail]);
 
   useEffect(() => {
     if (!readOnly && !fromPlanId) {
@@ -127,7 +134,28 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    snapshotTakenRef.current = false;
+  }, [refetchKey]);
+
   const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
+
+  const handleLoaded = useCallback(() => {
+    if (!fromPlanId) return;
+    if (snapshotTakenRef.current) return;
+    snapshotTakenRef.current = true;
+    window.setTimeout(() => {
+      const dataUrl =
+        snapshotRef.current?.() ??
+        (document.querySelector('canvas') as HTMLCanvasElement | null)?.toDataURL(
+          'image/jpeg',
+          0.7,
+        );
+      if (dataUrl) {
+        uploadThumbnailRef.current({ id: fromPlanId, dataUrl });
+      }
+    }, 2500);
+  }, [fromPlanId]);
 
   useEffect(() => {
     function handleResize() {
@@ -325,6 +353,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
             planId={fromPlanId}
             refetchKey={refetchKey}
             onVehicleSelected={handleVehicleSelected}
+            onLoaded={handleLoaded}
           />
         )}
         {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
