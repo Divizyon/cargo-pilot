@@ -221,7 +221,7 @@ export function LoginForm() {
                       className={cn(
                         'pl-10',
                         form.formState.errors.email &&
-                        'border-2 border-[#E24B4A] bg-[#E24B4A]/5 focus-visible:ring-0 focus-visible:border-[#E24B4A]',
+                          'border-2 border-[#E24B4A] bg-[#E24B4A]/5 focus-visible:ring-0 focus-visible:border-[#E24B4A]',
                       )}
                       {...field}
                     />
