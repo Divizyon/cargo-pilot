@@ -597,7 +597,19 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setCriteria: (criteria) => set({ criteria }),
   setClusterGroups: (clusterGroups: boolean) => set({ clusterGroups }),
   setAllowContamination: (allowContamination: boolean) => set({ allowContamination }),
-  setPlacements: (placements) => set({ placements: computeViolations(placements) }),
+  setPlacements: (placements) =>
+    set((s) => {
+      const itemIdToSku = new Map(s.selectedItems.map(({ item }) => [item.id, item.sku]));
+      return {
+        placements: computeViolations(
+          placements.map((p) => {
+            const sku = itemIdToSku.get(p.itemId);
+            const mappedColor = sku ? s.skuColorMap[sku] : undefined;
+            return { ...p, color: mappedColor ?? p.color };
+          }),
+        ),
+      };
+    }),
   setUnplacedItems: (items) =>
     set((s) => {
       if (!s.selectedVehicle || items.length === 0) return {};
