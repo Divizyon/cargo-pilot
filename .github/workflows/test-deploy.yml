@@ -29,7 +29,8 @@ jobs:
     if: |
       github.event_name == 'pull_request' &&
       github.base_ref == 'test' &&
-      !startsWith(github.head_ref, 'sync/')
+      !startsWith(github.head_ref, 'sync/') &&
+      !startsWith(github.head_ref, 'copilot/')
 
     steps:
       - name: Kodu al
