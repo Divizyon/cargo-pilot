@@ -27,6 +27,38 @@ export function isGhosted(
 }
 
 /**
+ * Seçim dim modu — seçim veya grup fokus aktifken seçili olmayan kutular için true döner.
+ *
+ * Koşullar:
+ * 1. selectedInstanceId dolu → sadece o index seçili, diğerleri dim
+ * 2. selectedItemId dolu → aynı itemId seçili, diğerleri dim
+ * 3. focusedGroupItemIds dolu → gruptaki itemId'ler aktif, dışındakiler dim
+ *    (bu durum isGhosted ile çakışır; dim öncelikli — wireframe yerine yarı saydam render)
+ */
+export function isSelectionDimmed(
+  p: PositionedBox,
+  index: number,
+  state: {
+    selectedInstanceId: number | null;
+    selectedItemId: string | null;
+    focusedGroupItemIds: string[] | null;
+  },
+): boolean {
+  const { selectedInstanceId, selectedItemId, focusedGroupItemIds } = state;
+
+  if (focusedGroupItemIds !== null) {
+    return !focusedGroupItemIds.includes(p.itemId);
+  }
+  if (selectedInstanceId !== null) {
+    return selectedInstanceId !== index;
+  }
+  if (selectedItemId !== null) {
+    return p.itemId !== selectedItemId;
+  }
+  return false;
+}
+
+/**
  * Bir placement'ın InstancedMesh'te scale=0 ile tamamen gizlenip gizlenmeyeceğini hesaplar.
  *
  * Gizleme nedenleri:

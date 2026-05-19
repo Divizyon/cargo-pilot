@@ -6,7 +6,7 @@ import { BoxWrapper } from '@/components/shared/BoxWrapper';
 import { LandingWireframe } from '@/components/shared/LandingWireframe';
 import { SCENE } from '@/lib/config/scene-config';
 import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOrientations';
-import { isGhosted, isPlacementVisible } from '@/lib/utils/sceneFilter';
+import { isGhosted, isPlacementVisible, isSelectionDimmed } from '@/lib/utils/sceneFilter';
 import { useLandingAnimation } from '@/features/planning/components/scene/useLandingAnimation';
 import { useLoadingAnimation } from '@/features/planning/components/scene/useLoadingAnimation';
 import { buildLoadOrder } from '@/lib/utils/loadOrder';
@@ -146,23 +146,39 @@ function buildEdgesGeometry(
     hiddenItemIds: string[];
     activeLayer: number;
     focusedGroupItemIds: string[] | null;
+    showCog: boolean;
   },
-): THREE.BufferGeometry {
-  const { selectedInstanceId, selectedItemId, hiddenItemIds, activeLayer, focusedGroupItemIds } =
-    opts;
+): { normal: THREE.BufferGeometry; dim: THREE.BufferGeometry } {
+  const {
+    selectedInstanceId,
+    selectedItemId,
+    hiddenItemIds,
+    activeLayer,
+    focusedGroupItemIds,
+    showCog,
+  } = opts;
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const position = new THREE.Vector3();
   const scale = new THREE.Vector3();
   const point = new THREE.Vector3();
-  const positions: number[] = [];
+  const normalPositions: number[] = [];
+  const dimPositions: number[] = [];
 
   placements.forEach((p, i) => {
-    // Palet kendi BoxWrapper'ı içinde kenar çizgileri çizer
     if (p.productType === 'palet') return;
     const visible = isPlacementVisible(p, i, { selectedInstanceId, selectedItemId, hiddenItemIds });
     const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
     if (!visible || ghosted) return;
+
+    const selDimmed = isSelectionDimmed(p, i, {
+      selectedInstanceId,
+      selectedItemId,
+      focusedGroupItemIds,
+    });
+    const hasSelection =
+      selectedInstanceId !== null || selectedItemId !== null || focusedGroupItemIds !== null;
+    const dimmed = selDimmed || (showCog && !hasSelection);
 
     const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
     applyOrientationQuaternion(quaternion, p.orientationIndex);
@@ -170,17 +186,20 @@ function buildEdgesGeometry(
     scale.set(base.width, base.height, base.depth);
     matrix.compose(position, quaternion, scale);
 
+    const target = dimmed ? dimPositions : normalPositions;
     for (const [x1, y1, z1, x2, y2, z2] of UNIT_EDGES) {
       point.set(x1, y1, z1).applyMatrix4(matrix);
-      positions.push(point.x, point.y, point.z);
+      target.push(point.x, point.y, point.z);
       point.set(x2, y2, z2).applyMatrix4(matrix);
-      positions.push(point.x, point.y, point.z);
+      target.push(point.x, point.y, point.z);
     }
   });
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  return geo;
+  const normal = new THREE.BufferGeometry();
+  normal.setAttribute('position', new THREE.Float32BufferAttribute(normalPositions, 3));
+  const dim = new THREE.BufferGeometry();
+  dim.setAttribute('position', new THREE.Float32BufferAttribute(dimPositions, 3));
+  return { normal, dim };
 }
 
 interface CargoMeshInstancedProps {
@@ -194,10 +213,12 @@ function InstancedBoxes() {
   const opaqueRef = useRef<THREE.InstancedMesh>(null);
   const ghostWireRef = useRef<THREE.InstancedMesh>(null);
   const violationRef = useRef<THREE.InstancedMesh>(null);
+  const dimRef = useRef<THREE.InstancedMesh>(null);
   // Cylinder (varil) refs
   const opaqueCylRef = useRef<THREE.InstancedMesh>(null);
   const ghostWireCylRef = useRef<THREE.InstancedMesh>(null);
   const violationCylRef = useRef<THREE.InstancedMesh>(null);
+  const dimCylRef = useRef<THREE.InstancedMesh>(null);
 
   const rawPlacements = usePlanStore((s) => s.placements);
   const previewItemId = usePlanStore((s) => s.previewItemId);
@@ -246,6 +267,7 @@ function InstancedBoxes() {
   const xRayMode = useSceneStore((s) => s.xRayMode);
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const animationMode = useSceneStore((s) => s.animationMode);
+  const showCog = useSceneStore((s) => s.showCog);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
   // Animasyon için: globalIdx → geçerli pozisyon (cm, merkez)
@@ -255,7 +277,10 @@ function InstancedBoxes() {
   const [, forceUpdatePalets] = useState(0);
 
   // Animasyon için yükleme sırası (arka→ön, alt→üst, sol→sağ)
-  const loadOrder = useMemo(() => buildLoadOrder(placements), [placements]);
+  const loadOrder = useMemo(
+    () => buildLoadOrder(placements, vehicle?.doorDirection, vehicle?.doorSide),
+    [placements, vehicle?.doorDirection, vehicle?.doorSide],
+  );
 
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
 
@@ -546,14 +571,15 @@ function InstancedBoxes() {
       }
 
       // stepped: sadece animationStep'e kadar olanlar görünür
+      // playing: sadece animPos geldiyse (useFrame ilk frame'i yazdıysa) göster — henüz başlamamış kutular gizli
       const seqIdx = loadOrder.indexOf(globalIdx);
-      const visibleInStep = isStepped ? seqIdx < currentAnimStep : true;
-      const visibleInPlay = isPlaying; // playing modda hook pozisyon set ettiğinde görünür
+      const animPos = animPositionsRef.current.get(globalIdx);
+      const visibleInStep = isStepped ? seqIdx < currentAnimStep : false;
+      const visibleInPlay = isPlaying && animPos !== undefined;
 
       const show = visibleInStep || visibleInPlay;
 
       if (show) {
-        const animPos = animPositionsRef.current.get(globalIdx);
         if (animPos) {
           position.copy(animPos);
         } else {
@@ -576,11 +602,13 @@ function InstancedBoxes() {
       matrix.compose(position, quaternion, scale);
       oRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      // Ghost ve violation her zaman gizli animasyon sırasında
+      // Ghost, dim ve violation her zaman gizli animasyon sırasında
       scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
       gRef.current!.setMatrixAt(instanceIdx, matrix);
       vRef.current!.setMatrixAt(instanceIdx, matrix);
+      const dRef = isVaril ? dimCylRef : dimRef;
+      dRef.current!.setMatrixAt(instanceIdx, matrix);
 
       if (p.isViolation) {
         color.copy(COLOR_VIOLATION);
@@ -603,9 +631,11 @@ function InstancedBoxes() {
       opaqueRef,
       ghostWireRef,
       violationRef,
+      dimRef,
       opaqueCylRef,
       ghostWireCylRef,
       violationCylRef,
+      dimCylRef,
     ]) {
       if (ref.current) ref.current.instanceMatrix.needsUpdate = true;
     }
@@ -648,9 +678,11 @@ function InstancedBoxes() {
       opaqueRef,
       ghostWireRef,
       violationRef,
+      dimRef,
       opaqueCylRef,
       ghostWireCylRef,
       violationCylRef,
+      dimCylRef,
       labelPlaneRef,
     ]) {
       if (ref.current) {
@@ -688,6 +720,15 @@ function InstancedBoxes() {
         hiddenItemIds,
       });
       const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+      const selectionDimmed = isSelectionDimmed(p, globalIdx, {
+        selectedInstanceId,
+        selectedItemId,
+        focusedGroupItemIds,
+      });
+      // CoG aktifken seçim yoksa tüm kutular dim; seçim varsa seçim dim öncelikli
+      const hasSelection =
+        selectedInstanceId !== null || selectedItemId !== null || focusedGroupItemIds !== null;
+      const dimmed = selectionDimmed || (showCog && !hasSelection);
 
       const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
       let sw: number, sh: number, sd: number;
@@ -708,13 +749,15 @@ function InstancedBoxes() {
       const oRef = isVaril ? opaqueCylRef : opaqueRef;
       const gRef = isVaril ? ghostWireCylRef : ghostWireRef;
       const vRef = isVaril ? violationCylRef : violationRef;
+      const dRef = isVaril ? dimCylRef : dimRef;
 
-      if (visible && !ghosted) scale.set(sw, sh, sd);
+      // Dim: seçim varken seçili olmayan kutular dimRef'e gider, opaqueRef'ten çıkar
+      if (visible && !ghosted && !dimmed) scale.set(sw, sh, sd);
       else scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
       oRef.current!.setMatrixAt(instanceIdx, matrix);
 
-      if (visible && ghosted) scale.set(sw, sh, sd);
+      if (visible && ghosted && !dimmed) scale.set(sw, sh, sd);
       else scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
       gRef.current!.setMatrixAt(instanceIdx, matrix);
@@ -723,6 +766,11 @@ function InstancedBoxes() {
       else scale.copy(SCALE_ZERO);
       matrix.compose(position, quaternion, scale);
       vRef.current!.setMatrixAt(instanceIdx, matrix);
+
+      if (visible && dimmed) scale.set(sw, sh, sd);
+      else scale.copy(SCALE_ZERO);
+      matrix.compose(position, quaternion, scale);
+      dRef.current!.setMatrixAt(instanceIdx, matrix);
 
       if (p.isViolation) {
         color.copy(COLOR_VIOLATION);
@@ -743,9 +791,11 @@ function InstancedBoxes() {
       opaqueRef,
       ghostWireRef,
       violationRef,
+      dimRef,
       opaqueCylRef,
       ghostWireCylRef,
       violationCylRef,
+      dimCylRef,
     ]) {
       if (ref.current) ref.current.instanceMatrix.needsUpdate = true;
     }
@@ -762,6 +812,7 @@ function InstancedBoxes() {
     activeLayer,
     xRayMode,
     focusedGroupItemIds,
+    showCog,
   ]);
 
   // Label plane matrislerini idle'da veya atlas/placements değişince güncelle
@@ -781,13 +832,14 @@ function InstancedBoxes() {
   // Build edge lineSegments geometry for all visible non-ghosted boxes.
   // InstancedMesh cannot render EdgesGeometry (line primitives), so we build
   // a single lineSegments with all box edges pre-transformed in world space.
-  const edgesLineGeo = useMemo(() => {
+  const edgesLineGeos = useMemo(() => {
     return buildEdgesGeometry(placements, {
       selectedInstanceId,
       selectedItemId,
       hiddenItemIds,
       activeLayer,
       focusedGroupItemIds,
+      showCog,
     });
   }, [
     placements,
@@ -796,9 +848,16 @@ function InstancedBoxes() {
     hiddenItemIds,
     activeLayer,
     focusedGroupItemIds,
+    showCog,
   ]);
 
-  useEffect(() => () => edgesLineGeo.dispose(), [edgesLineGeo]);
+  useEffect(
+    () => () => {
+      edgesLineGeos.normal.dispose();
+      edgesLineGeos.dim.dispose();
+    },
+    [edgesLineGeos],
+  );
 
   // Palet seçimini kendi BoxWrapper render döngüsü yönetir
   const selectedPlacements = useMemo(
@@ -853,6 +912,17 @@ function InstancedBoxes() {
       </instancedMesh>
 
       <instancedMesh
+        key={`dim-${placements.length}`}
+        ref={dimRef}
+        args={[undefined, undefined, Math.max(1, boxIndices.length)]}
+        frustumCulled={false}
+        matrixAutoUpdate={false}
+      >
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#888888" transparent opacity={0.15} depthWrite={false} />
+      </instancedMesh>
+
+      <instancedMesh
         key={`violation-${placements.length}`}
         ref={violationRef}
         args={[undefined, undefined, Math.max(1, boxIndices.length)]}
@@ -904,6 +974,17 @@ function InstancedBoxes() {
       </instancedMesh>
 
       <instancedMesh
+        key={`dim-cyl-${placements.length}`}
+        ref={dimCylRef}
+        args={[undefined, undefined, Math.max(1, cylIndices.length)]}
+        frustumCulled={false}
+        matrixAutoUpdate={false}
+      >
+        <cylinderGeometry args={[0.5, 0.5, 1, 16]} />
+        <meshStandardMaterial color="#888888" transparent opacity={0.15} depthWrite={false} />
+      </instancedMesh>
+
+      <instancedMesh
         key={`violation-cyl-${placements.length}`}
         ref={violationCylRef}
         args={[undefined, undefined, Math.max(1, cylIndices.length)]}
@@ -919,8 +1000,11 @@ function InstancedBoxes() {
       </instancedMesh>
 
       {/* Edge lines — animasyon sırasında gizle, kutular hareket ederken statik durmasın */}
-      <lineSegments geometry={edgesLineGeo} visible={!isAnimActive}>
+      <lineSegments geometry={edgesLineGeos.normal} visible={!isAnimActive}>
         <lineBasicMaterial color="#000000" />
+      </lineSegments>
+      <lineSegments geometry={edgesLineGeos.dim} visible={!isAnimActive}>
+        <lineBasicMaterial color="#000000" transparent opacity={0.08} depthWrite={false} />
       </lineSegments>
 
       {/* Landing wireframe — previewPlacements animasyon süresince */}
@@ -952,6 +1036,14 @@ function InstancedBoxes() {
         });
         if (!visible) return null;
         const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const selDimmedPalet = isSelectionDimmed(p, globalIdx, {
+          selectedInstanceId,
+          selectedItemId,
+          focusedGroupItemIds,
+        });
+        const hasSelectionPalet =
+          selectedInstanceId !== null || selectedItemId !== null || focusedGroupItemIds !== null;
+        const dimmed = selDimmedPalet || (showCog && !hasSelectionPalet);
         const isItemSelected =
           selectedInstanceId === globalIdx ||
           (selectedInstanceId === null && p.itemId === selectedItemId);
@@ -989,6 +1081,7 @@ function InstancedBoxes() {
             isSelected={isItemSelected}
             isHidden={hiddenByAnim}
             isGhosted={ghosted}
+            isDimmed={dimmed}
             productType={p.productType}
             labelTexture={ghosted ? null : (paletLabelTextures.get(globalIdx) ?? null)}
             onClick={() => {
@@ -1069,6 +1162,7 @@ function BoxPathBoxes() {
   const activeLayer = useSceneStore((s) => s.activeLayer);
   const focusedGroupItemIds = useSceneStore((s) => s.focusedGroupItemIds);
   const animationMode = useSceneStore((s) => s.animationMode);
+  const showCog = useSceneStore((s) => s.showCog);
   const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
   const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
 
@@ -1079,7 +1173,10 @@ function BoxPathBoxes() {
     handleAllSettled,
   );
 
-  const loadOrder = useMemo(() => buildLoadOrder(placements), [placements]);
+  const loadOrder = useMemo(
+    () => buildLoadOrder(placements, vehicle?.doorDirection, vehicle?.doorSide),
+    [placements, vehicle?.doorDirection, vehicle?.doorSide],
+  );
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
 
   // Her placement için yükleme sıra no (1-based) ve aynı itemId içindeki instance no
@@ -1198,16 +1295,24 @@ function BoxPathBoxes() {
         const isInstanceSelected = selectedInstanceId === i;
         const isItemSelected = p.itemId === selectedItemId;
         const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const selDimmed = isSelectionDimmed(p, i, {
+          selectedInstanceId,
+          selectedItemId,
+          focusedGroupItemIds,
+        });
+        const hasSelection =
+          selectedInstanceId !== null || selectedItemId !== null || focusedGroupItemIds !== null;
+        const dimmed = selDimmed || (showCog && !hasSelection);
 
         // Animasyon aktifken stepped modda henüz gelmemiş kutuları gizle
+        // Playing modda animPos gelmemişse (henüz başlamamış) da gizle
         const seqIdx = isAnimActive ? loadOrder.indexOf(i) : -1;
-        const hiddenByAnim =
-          animationMode === 'stepped' &&
-          seqIdx >= 0 &&
-          seqIdx >= useSceneStore.getState().animationStep;
-
-        // Animasyon pozisyonunu al (playing modunda hook tarafından set edilir)
         const animPos = isAnimActive ? animPositions.get(i) : undefined;
+        const hiddenByAnim =
+          (animationMode === 'stepped' &&
+            seqIdx >= 0 &&
+            seqIdx >= useSceneStore.getState().animationStep) ||
+          (animationMode === 'playing' && animPos === undefined);
 
         // AnimPos merkez koordinatı — BoxWrapper bottom-left-rear bekliyor, ters çevir
         let px: number, py: number, pz: number;
@@ -1241,6 +1346,7 @@ function BoxPathBoxes() {
             isSelected={isInstanceSelected || isItemSelected}
             isHidden={hiddenItemIds.includes(p.itemId) || hiddenByAnim}
             isGhosted={ghosted}
+            isDimmed={dimmed}
             productType={p.productType}
             labelTexture={labelTextures.get(i) ?? null}
             onClick={() => {
