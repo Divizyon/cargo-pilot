@@ -28,7 +28,7 @@ async function fetchCompanyMembers(): Promise<CompanyMember[]> {
   const items: unknown[] = parsed.success
     ? Array.isArray(parsed.data.data)
       ? (parsed.data.data as unknown[])
-      : ((parsed.data.data as Record<string, unknown>)?.['items'] as unknown[] | undefined) ?? []
+      : (((parsed.data.data as Record<string, unknown>)?.['items'] as unknown[] | undefined) ?? [])
     : Array.isArray(raw)
       ? (raw as unknown[])
       : [];
