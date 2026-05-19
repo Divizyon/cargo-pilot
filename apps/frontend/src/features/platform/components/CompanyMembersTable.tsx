@@ -39,7 +39,7 @@ import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useSubscriptionStore } from '@/lib/store/useSubscriptionStore';
 import { useSubscription } from '@/lib/api/useSubscription';
 import { PLAN_MAX_MEMBERS } from '@/lib/config/plan-features';
-import { AddMemberDialog } from '@/features/platform/components/AddMemberDialog';
+import { AddMemberForm } from '@/features/platform/components/AddMemberForm';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -118,7 +118,7 @@ function MembersTableSkeleton() {
 }
 
 export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTableProps) {
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [view, setView] = useState<'list' | 'add'>('list');
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
   const { data: members, isLoading } = useCompanyMembers();
@@ -132,7 +132,9 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
   const currentPlan = useSubscriptionStore((s) => s.plan);
 
   const isCurrentUserAdmin =
-    currentUserRole?.toLowerCase() === 'admin' || currentUserRole?.toLowerCase() === 'individual';
+    currentUserRole?.toLowerCase() === 'admin' ||
+    currentUserRole?.toLowerCase() === 'superadmin' ||
+    currentUserRole?.toLowerCase() === 'individual';
   const memberCount = members?.length ?? 0;
   const maxMembers = PLAN_MAX_MEMBERS[currentPlan];
   const isAtLimit = memberCount >= maxMembers;
@@ -187,6 +189,10 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
 
   const pendingRemoveMember = members?.find((m) => m.id === pendingRemoveId) ?? null;
 
+  if (view === 'add') {
+    return <AddMemberForm onCancel={() => setView('list')} onSuccess={() => setView('list')} />;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -203,7 +209,7 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
         </div>
         <Button
           size="sm"
-          onClick={() => setAddDialogOpen(true)}
+          onClick={() => setView('add')}
           disabled={isAtLimit || !isCurrentUserAdmin}
           className="gap-1.5"
         >
@@ -378,8 +384,6 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
           </Table>
         )}
       </div>
-
-      <AddMemberDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
 
       <AlertDialog
         open={pendingRemoveId !== null}
