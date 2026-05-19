@@ -39,9 +39,8 @@ const STATUS_MAP: Record<
   { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
 > = {
   0: { label: 'Taslak', variant: 'secondary' },
-  1: { label: 'Aktif', variant: 'default' },
-  2: { label: 'Tamamlandı', variant: 'outline' },
-  3: { label: 'İptal', variant: 'destructive' },
+  1: { label: 'Tamamlandı', variant: 'outline' },
+  2: { label: 'İptal', variant: 'destructive' },
 };
 
 const CONSTRAINT_LABELS: Record<string, string> = {

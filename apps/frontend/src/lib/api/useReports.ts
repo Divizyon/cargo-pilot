@@ -172,9 +172,8 @@ function mapStatusToInt(raw: string | number | null | undefined): number {
   if (raw == null) return 0;
   if (typeof raw === 'number') return raw;
   const s = raw.toLowerCase();
-  if (s === 'completed' || s === 'tamamlandi' || s === 'done') return 2;
-  if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing') return 1;
-  if (s === 'cancelled' || s === 'canceled' || s === 'iptal' || s === 'failed') return 3;
+  if (s === 'calculated' || s === 'completed' || s === 'tamamlandi' || s === 'done') return 1;
+  if (s === 'failed' || s === 'cancelled' || s === 'canceled' || s === 'iptal') return 2;
   return 0;
 }
 

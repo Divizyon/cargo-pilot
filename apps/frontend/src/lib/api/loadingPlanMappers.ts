@@ -224,17 +224,16 @@ function mapStatus(
   if (raw == null) return 'taslak';
   if (typeof raw === 'string') {
     const s = raw.toLowerCase();
-    if (s === 'completed' || s === 'tamamlandi' || s === 'done') return 'tamamlandi';
+    if (s === 'calculated' || s === 'completed' || s === 'tamamlandi' || s === 'done') return 'tamamlandi';
     if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing') return 'aktif';
-    if (s === 'cancelled' || s === 'canceled' || s === 'iptal' || s === 'failed') return 'iptal';
+    if (s === 'failed' || s === 'cancelled' || s === 'canceled' || s === 'iptal') return 'iptal';
     return 'taslak';
   }
+  // Backend LoadingPlanOptimizationStatus: Draft=0, Calculated=1, Failed=2
   switch (raw) {
     case 1:
-      return 'aktif';
-    case 2:
       return 'tamamlandi';
-    case 3:
+    case 2:
       return 'iptal';
     default:
       return 'taslak';
