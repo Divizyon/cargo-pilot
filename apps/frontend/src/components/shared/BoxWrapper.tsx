@@ -19,6 +19,7 @@ interface BoxWrapperProps {
   isSelected?: boolean;
   isHidden?: boolean;
   isGhosted?: boolean;
+  isDimmed?: boolean;
   productType?: ProductType;
   /** +Z yüzüne (kapıya bakan) uygulanacak etiket texture'ı */
   labelTexture?: THREE.Texture | null;
@@ -37,18 +38,20 @@ function PaletMat({
   color,
   opacity,
   isSelected,
+  isDimmed,
 }: {
   color: string;
   opacity: number;
   isSelected: boolean;
+  isDimmed: boolean;
 }) {
   return (
     <meshStandardMaterial
       color={color}
       transparent
-      opacity={isSelected ? 0.95 : opacity}
-      emissive={isSelected ? color : '#000000'}
-      emissiveIntensity={isSelected ? 0.25 : 0}
+      opacity={isDimmed ? 0.12 : isSelected ? 0.95 : opacity}
+      emissive={isSelected && !isDimmed ? color : '#000000'}
+      emissiveIntensity={isSelected && !isDimmed ? 0.25 : 0}
     />
   );
 }
@@ -61,6 +64,7 @@ function PaletContent({
   opacity,
   isSelected,
   isGhosted,
+  isDimmed,
   labelTexture,
 }: {
   width: number;
@@ -70,6 +74,7 @@ function PaletContent({
   opacity: number;
   isSelected: boolean;
   isGhosted: boolean;
+  isDimmed: boolean;
   labelTexture?: THREE.Texture | null;
 }) {
   // Backend toplam yüksekliği gönderir: paletH sabit, cargoH = kalan
@@ -133,14 +138,24 @@ function PaletContent({
       {slatCentersX.map((bx, i) => (
         <mesh key={`ts${i}`} position={[bx, topDeckY, 0]}>
           <boxGeometry args={[slatW, deckH, depth]} />
-          <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
+          <PaletMat
+            color={PALLET_WOOD_COLOR}
+            opacity={opacity}
+            isSelected={isSelected}
+            isDimmed={isDimmed}
+          />
         </mesh>
       ))}
       {/* Alt stringer: 3 tahta */}
       {crossCentersZ.map((bz, i) => (
         <mesh key={`bs${i}`} position={[0, btmDeckY, bz]}>
           <boxGeometry args={[width, deckH, crossD]} />
-          <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
+          <PaletMat
+            color={PALLET_WOOD_COLOR}
+            opacity={opacity}
+            isSelected={isSelected}
+            isDimmed={isDimmed}
+          />
         </mesh>
       ))}
       {/* Bağlantı blokları: 3×3 ızgara */}
@@ -148,7 +163,12 @@ function PaletContent({
         [slatCentersX[0], slatCentersX[2], slatCentersX[5]].map((bx, xi) => (
           <mesh key={`bl${zi}${xi}`} position={[bx, paletCenterY, bz]}>
             <boxGeometry args={[slatW, blockH, crossD]} />
-            <PaletMat color={PALLET_WOOD_COLOR} opacity={opacity} isSelected={isSelected} />
+            <PaletMat
+              color={PALLET_WOOD_COLOR}
+              opacity={opacity}
+              isSelected={isSelected}
+              isDimmed={isDimmed}
+            />
           </mesh>
         )),
       )}
@@ -167,9 +187,9 @@ function PaletContent({
                     attach={`material-${face}`}
                     color={color}
                     transparent
-                    opacity={isSelected ? 0.95 : opacity}
-                    emissive={isSelected ? color : '#000000'}
-                    emissiveIntensity={isSelected ? 0.25 : 0}
+                    opacity={isDimmed ? 0.12 : isSelected ? 0.95 : opacity}
+                    emissive={isSelected && !isDimmed ? color : '#000000'}
+                    emissiveIntensity={isSelected && !isDimmed ? 0.25 : 0}
                   />
                 ) : (
                   <meshStandardMaterial
@@ -182,7 +202,7 @@ function PaletContent({
               )}
             </>
           ) : (
-            <PaletMat color={color} opacity={opacity} isSelected={isSelected} />
+            <PaletMat color={color} opacity={opacity} isSelected={isSelected} isDimmed={isDimmed} />
           )}
         </mesh>
       )}
@@ -206,6 +226,7 @@ export function BoxWrapper({
   isSelected = false,
   isHidden = false,
   isGhosted = false,
+  isDimmed = false,
   productType,
   labelTexture = null,
 }: BoxWrapperProps) {
@@ -259,6 +280,12 @@ export function BoxWrapper({
   // Sadece koli + labelTexture varsa kullanılır; varil/palet/ghosted için gerekmez.
   const boxMaterials = useMemo(() => {
     if (isPalet || isVaril || !labelTexture) return null;
+    if (isDimmed) {
+      return Array.from({ length: 6 }, () => {
+        const mat = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.12 });
+        return mat;
+      });
+    }
     const base = {
       color,
       transparent: true,
@@ -276,7 +303,7 @@ export function BoxWrapper({
       mat.emissiveIntensity = 0;
       return mat;
     });
-  }, [isPalet, isVaril, labelTexture, color, opacity, isSelected]);
+  }, [isPalet, isVaril, labelTexture, color, opacity, isSelected, isDimmed]);
 
   // Dispose — boxMaterials manuel THREE nesnesi
   useEffect(
@@ -304,6 +331,7 @@ export function BoxWrapper({
           opacity={opacity}
           isSelected={isSelected}
           isGhosted={isGhosted}
+          isDimmed={isDimmed}
           labelTexture={labelTexture}
         />
       </group>
@@ -323,9 +351,9 @@ export function BoxWrapper({
             <meshStandardMaterial
               color={color}
               transparent
-              opacity={isSelected ? 0.95 : opacity}
-              emissive={isSelected ? color : '#000000'}
-              emissiveIntensity={isSelected ? 0.25 : 0}
+              opacity={isDimmed ? 0.12 : isSelected ? 0.95 : opacity}
+              emissive={isSelected && !isDimmed ? color : '#000000'}
+              emissiveIntensity={isSelected && !isDimmed ? 0.25 : 0}
             />
           )}
         </mesh>
