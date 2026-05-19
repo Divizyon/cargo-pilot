@@ -468,7 +468,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
     pageSize,
   );
 
-  const { data: allData } = useLoadingPlanList({ search, dateFrom, dateTo }, 1, 9999);
+  const { data: allData } = useLoadingPlanList({ search, dateFrom, dateTo }, 1, 100);
 
   const tabCounts = {
     all: allData?.totalCount ?? 0,

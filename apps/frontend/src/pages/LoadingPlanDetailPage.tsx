@@ -48,6 +48,7 @@ import {
   useApprovePlan,
   useDeleteLoadingPlan,
   useExportPlanToERP,
+  useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { usePlanStore } from '@/lib/store/usePlanStore';
@@ -339,11 +340,18 @@ function ThreeDPlannerContent({
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const startAnimation = useSceneStore((s) => s.startAnimation);
   const animationMode = useSceneStore((s) => s.animationMode);
+  const storePlacements = usePlanStore((s) => s.placements);
   const appliedRef = useRef(false);
+  const snapshotTakenRef = useRef(false);
+  const snapshotFnRef = useRef<(() => string) | null>(null);
+  const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
+  const uploadThumbnailRef = useRef(uploadThumbnail);
+  useEffect(() => {
+    uploadThumbnailRef.current = uploadThumbnail;
+  }, [uploadThumbnail]);
 
   useEffect(() => {
     return () => {
-      // Sayfa ayrılırken store'u temizle
       usePlanStore.getState().reset();
       useSceneStore.getState().reset();
     };
@@ -359,6 +367,29 @@ function ThreeDPlannerContent({
     useSceneStore.getState().setAnimationStep(0);
   }, [detail, setVehicle, initItems, setPlacements]);
 
+  // Snapshot: thumbnail yoksa placements yüklendikten 2.5s sonra canvas'tan yakala
+  useEffect(() => {
+    if (plan.thumbnailUrl) return;
+    if (storePlacements.length === 0) return;
+    if (snapshotTakenRef.current) return;
+
+    const timerId = window.setTimeout(() => {
+      if (snapshotTakenRef.current) return;
+      snapshotTakenRef.current = true;
+      const dataUrl =
+        snapshotFnRef.current?.() ??
+        (document.querySelector('canvas') as HTMLCanvasElement | null)?.toDataURL(
+          'image/jpeg',
+          0.7,
+        );
+      if (dataUrl) {
+        uploadThumbnailRef.current({ id: planId, dataUrl });
+      }
+    }, 2500);
+
+    return () => window.clearTimeout(timerId);
+  }, [planId, plan.thumbnailUrl, storePlacements.length]);
+
   function handlePlay() {
     startAnimation();
   }
@@ -367,7 +398,7 @@ function ThreeDPlannerContent({
   const remainingVolume = totalVolume - loadedVolume;
   const remainingWeight = plan.vehicleCapacityKg - plan.totalWeightKg;
 
-  const isLoaded = !!detail?.placements?.length;
+  const isLoaded = storePlacements.length > 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -378,7 +409,7 @@ function ThreeDPlannerContent({
       >
         {isLoaded ? (
           <>
-            <PlanCanvas planId={planId} />
+            <PlanCanvas planId={planId} snapshotRef={snapshotFnRef} />
             {animationMode !== 'playing' && animationMode !== 'stepped' && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
                 <Button
