@@ -34,8 +34,22 @@ export function BalancePanel() {
 
   if (!balance || !showCog || dismissed) return null;
 
-  const { frontAxleShare, rearAxleShare, isLateralWarning, isLongitudinalWarning } = balance;
+  const {
+    lateralBias,
+    longitudinalBias,
+    lateralLevel,
+    longitudinalLevel,
+    isLateralWarning,
+    isLongitudinalWarning,
+  } = balance;
   const hasViolation = isLateralWarning || isLongitudinalWarning;
+
+  const levelColor: Record<string, string> = {
+    ideal: 'text-emerald-400',
+    dikkat: 'text-yellow-400',
+    riskli: 'text-orange-400',
+    kritik: 'text-red-400',
+  };
 
   return (
     <div className="relative rounded-xl bg-black/65 backdrop-blur-sm text-white text-xs font-mono px-3 py-2.5 min-w-[200px] pointer-events-auto">
@@ -57,12 +71,16 @@ export function BalancePanel() {
 
       <div className="mt-2 border-t border-white/20 pt-2 flex flex-col gap-1">
         <div className="flex justify-between gap-4">
-          <span className="opacity-60">Ön aks</span>
-          <span className="tabular-nums">{(frontAxleShare * 100).toFixed(1)}%</span>
+          <span className="opacity-60">Sol-Sağ</span>
+          <span className={`tabular-nums ${levelColor[lateralLevel]}`}>
+            {(Math.abs(lateralBias) * 100).toFixed(1)}%
+          </span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="opacity-60">Arka aks</span>
-          <span className="tabular-nums">{(rearAxleShare * 100).toFixed(1)}%</span>
+          <span className="opacity-60">Ön-Arka</span>
+          <span className={`tabular-nums ${levelColor[longitudinalLevel]}`}>
+            {(Math.abs(longitudinalBias) * 100).toFixed(1)}%
+          </span>
         </div>
       </div>
     </div>
