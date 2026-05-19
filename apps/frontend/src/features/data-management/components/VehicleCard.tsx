@@ -118,6 +118,7 @@ export function VehicleCard({
 }: VehicleCardProps) {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [thumbError, setThumbError] = useState(false);
   const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
   const { data: productGroups = [] } = useLoadingPlanProducts(plan.id);
 
@@ -183,99 +184,108 @@ export function VehicleCard({
         style={{ height: previewHeight }}
         onClick={(e) => e.stopPropagation()}
       >
-        <>
-          <svg
-            viewBox="0 0 160 80"
-            className="w-36 opacity-20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect
-              x="10"
-              y="20"
-              width="120"
-              height="50"
-              rx="3"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <rect
-              x="10"
-              y="20"
-              width="22"
-              height="50"
-              rx="2"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <rect
-              x="36"
-              y="28"
-              width="22"
-              height="20"
-              rx="1"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <rect
-              x="62"
-              y="28"
-              width="22"
-              height="20"
-              rx="1"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <rect
-              x="88"
-              y="28"
-              width="22"
-              height="20"
-              rx="1"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <rect
-              x="36"
-              y="52"
-              width="22"
-              height="12"
-              rx="1"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <rect
-              x="62"
-              y="52"
-              width="22"
-              height="12"
-              rx="1"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <rect
-              x="88"
-              y="52"
-              width="22"
-              height="12"
-              rx="1"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-          <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground/60 font-medium tracking-wide">
-            3D görünüm — yakında
-          </span>
-        </>
+        {plan.thumbnailUrl && !thumbError ? (
+          <img
+            src={plan.thumbnailUrl}
+            alt="3D önizleme"
+            className="w-full h-full object-cover"
+            onError={() => setThumbError(true)}
+          />
+        ) : (
+          <>
+            <svg
+              viewBox="0 0 160 80"
+              className="w-36 opacity-20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="10"
+                y="20"
+                width="120"
+                height="50"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="10"
+                y="20"
+                width="22"
+                height="50"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="36"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="62"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="88"
+                y="28"
+                width="22"
+                height="20"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="36"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="62"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <rect
+                x="88"
+                y="52"
+                width="22"
+                height="12"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <circle cx="32" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="110" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="124" cy="74" r="6" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground/60 font-medium tracking-wide">
+              3D görünüm — yakında
+            </span>
+          </>
+        )}
       </div>
 
       {/* ── Scrollable product list ── */}

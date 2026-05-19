@@ -118,9 +118,14 @@ export function useLoadingPlanListItem(id: string) {
         plannedAt: d.plannedAt,
         planCode: d.planCode,
         status: d.status,
-        thumbnailUrl: ((d as Record<string, unknown>)['thumbnailUrl'] ??
-          (d as Record<string, unknown>)['snapshotUrl'] ??
-          (d as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined,
+        thumbnailUrl: (() => {
+          const raw = ((d as Record<string, unknown>)['thumbnailUrl'] ??
+            (d as Record<string, unknown>)['snapshotUrl'] ??
+            (d as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined;
+          if (!raw) return raw;
+          if (/^https?:\/\/https?:\/\//.test(raw)) return raw.replace(/^https?:\/\//, '');
+          return raw.replace(/^http:\/\//, 'https://');
+        })(),
       });
     },
     enabled: Boolean(id),

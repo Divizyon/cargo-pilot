@@ -10,7 +10,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/boxOrientations';
-import { resolveProductColor } from '@/lib/config/productColors';
+import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────
 
@@ -431,7 +431,16 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
     doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
     doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
-    thumbnailUrl: (api as Record<string, unknown>)['thumbnailUrl'] as string | null | undefined,
+    thumbnailUrl: (() => {
+      const raw = ((api as Record<string, unknown>)['thumbnailUrl'] ??
+        (api as Record<string, unknown>)['snapshotUrl'] ??
+        (api as Record<string, unknown>)['snapshotImageUrl']) as string | null | undefined;
+      if (!raw) return raw;
+      // Fix double-protocol (e.g. "http://https://...") → strip outer
+      if (/^https?:\/\/https?:\/\//.test(raw)) return raw.replace(/^https?:\/\//, '');
+      // Normalize http → https to avoid mixed-content blocks
+      return raw.replace(/^http:\/\//, 'https://');
+    })(),
   };
 }
 
@@ -625,20 +634,41 @@ export function fromApiFullDetail(
   type InputItemFull = z.infer<typeof inputItemFullSchema>;
   type PlacementFull = z.infer<typeof placementFullSchema>;
 
-  // Build color map from inputItems — renk (productType × yük grubu) kombinasyonuna göre belirlenir
+  // Build color map — inputItems öncelikli, eksik SKU'lar placements'tan tamamlanır
   const skuColorMap: Record<string, string> = {};
+
+  function resolveSkuColor(rawItem: Record<string, unknown>, productType: string): string {
+    const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
+      | string
+      | undefined;
+    return resolveProductColor(productType, groupName);
+  }
+
   const inputItems = (data.inputItems ?? []).map((ii: InputItemFull) => {
     const item = apiItemToItem(ii.item);
     if (!skuColorMap[item.sku]) {
       const rawItem = ii.item as Record<string, unknown>;
-      const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
-        | string
-        | undefined;
       const productType = (rawItem.productType as string | undefined) ?? item.productType;
-      skuColorMap[item.sku] = resolveProductColor(productType, groupName);
+      const color = resolveSkuColor(rawItem, productType);
+      if (color !== COLOR_FALLBACK) {
+        skuColorMap[item.sku] = color;
+      }
     }
     return { item, quantity: ii.quantity };
   });
+
+  // inputItems'da grubu olmayan SKU'ları placements'tan tamamla
+  for (const p of data.placements ?? []) {
+    const itemSku = p.item.sku || p.item.sKU || p.itemId;
+    if (skuColorMap[itemSku]) continue;
+    const rawItem = p.item as Record<string, unknown>;
+    const rawType = p.item.productType?.toLowerCase();
+    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
+    const color = resolveSkuColor(rawItem, productType);
+    if (color !== COLOR_FALLBACK) {
+      skuColorMap[itemSku] = color;
+    }
+  }
 
   const placements: PlacementWithDimensions[] = (data.placements ?? []).map((p: PlacementFull) => {
     const {
@@ -650,10 +680,8 @@ export function fromApiFullDetail(
     const rawType = p.item.productType?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
     const rawItem = p.item as Record<string, unknown>;
-    const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
-      | string
-      | undefined;
-    const color = skuColorMap[itemSku] ?? resolveProductColor(productType, groupName);
+    // skuColorMap'te varsa kullan, yoksa placement'ın kendi item verisinden türet
+    const color = skuColorMap[itemSku] ?? resolveSkuColor(rawItem, productType);
     return {
       itemId: p.itemId,
       vehicleId: p.vehicleId,

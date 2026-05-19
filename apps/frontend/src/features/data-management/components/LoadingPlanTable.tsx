@@ -399,7 +399,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
   const [pageSize, setPageSize] = useState(6);
   const [cardContainerMaxH, setCardContainerMaxH] = useState<number | null>(null);
   const [cardHeight, setCardHeight] = useState(400);
-  const [previewHeight, setPreviewHeight] = useState(120);
+  const [previewHeight, setPreviewHeight] = useState(160);
   const [productsMaxHeight, setProductsMaxHeight] = useState(260);
 
   useEffect(() => {
@@ -423,14 +423,14 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
         next = Math.max(5, Math.floor(available / ROW_H));
       } else {
         // Only use 2 rows when there is enough vertical space for 2 minimum-height cards
-        const twoRowMinAvailable = 2 * 260 + CARD_GAP + GRID_V_PAD + 16;
+        const twoRowMinAvailable = 2 * 380 + CARD_GAP + GRID_V_PAD + 16;
         const visibleRows = window.innerWidth >= 1536 && available >= twoRowMinAvailable ? 2 : 1;
         const gridAvailable = available - GRID_V_PAD;
         const cardH = Math.max(
-          260,
+          380,
           Math.floor((gridAvailable - (visibleRows - 1) * CARD_GAP) / visibleRows),
         );
-        const previewH = Math.max(60, Math.min(120, cardH - CARD_HEADER_H - 80));
+        const previewH = Math.max(100, Math.min(160, cardH - CARD_HEADER_H - 80));
         const productsH = Math.max(120, cardH - CARD_HEADER_H - previewH - 2);
         setCardHeight(cardH);
         setPreviewHeight(previewH);
@@ -468,7 +468,7 @@ export function LoadingPlanTable({ onPlanSelect }: LoadingPlanTableProps) {
     pageSize,
   );
 
-  const { data: allData } = useLoadingPlanList({ search, dateFrom, dateTo }, 1, 9999);
+  const { data: allData } = useLoadingPlanList({ search, dateFrom, dateTo }, 1, 100);
 
   const tabCounts = {
     all: allData?.totalCount ?? 0,
