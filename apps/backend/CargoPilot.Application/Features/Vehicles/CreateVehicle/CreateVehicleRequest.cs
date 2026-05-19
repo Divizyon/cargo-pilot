@@ -7,10 +7,10 @@ public sealed record CreateVehicleRequest(
     string? Description,
     VehicleType VehicleType,
     string? PlateNumber,
-    decimal? InternalWidth,
-    decimal? InternalHeight,
-    decimal? InternalLength,
-    decimal? MaxWeightCapacity,
+    decimal InternalWidth,
+    decimal InternalHeight,
+    decimal InternalLength,
+    decimal MaxWeightCapacity,
     int LayerCount,
     LoadingType LoadingType,
     decimal? KingPinDistanceMm,
@@ -21,5 +21,4 @@ public sealed record CreateVehicleRequest(
     decimal? MainAxleMaxLoadKg,
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
-    decimal? AdditionalAxleMaxLoadKg,
-    bool? IsDraft = null);
+    decimal? AdditionalAxleMaxLoadKg);

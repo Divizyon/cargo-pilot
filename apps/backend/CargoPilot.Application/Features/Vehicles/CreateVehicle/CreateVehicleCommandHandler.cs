@@ -102,8 +102,7 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             additionalAxleMaxLoadKg: request.AdditionalAxleMaxLoadKg,
             layerCount: request.LayerCount,
             loadingType: request.LoadingType,
-            companyId: companyId,
-            isDraft: request.IsDraft);
+            companyId: companyId);
 
         _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);

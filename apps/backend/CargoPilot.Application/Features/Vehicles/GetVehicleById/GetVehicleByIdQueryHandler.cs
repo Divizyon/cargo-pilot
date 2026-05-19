@@ -67,8 +67,7 @@ public sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQ
             vehicle.CreatedAtUtc,
             ResolveUser(vehicle.CreatedBy, userMap),
             vehicle.UpdatedAtUtc,
-            ResolveUser(vehicle.UpdatedBy, userMap),
-            vehicle.Status);
+            ResolveUser(vehicle.UpdatedBy, userMap));
 
         return Result<VehicleDetailDto>.Success(dto);
     }
@@ -81,5 +80,4 @@ public sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQ
 
         return new AuditUserDto($"{user.FirstName} {user.LastName}".Trim(), user.Email);
     }
-
 }

@@ -10,10 +10,10 @@ public sealed record UpdateVehicleCommand(
     string? Description,
     VehicleType VehicleType,
     string? PlateNumber,
-    decimal? InternalWidth,
-    decimal? InternalHeight,
-    decimal? InternalLength,
-    decimal? MaxWeightCapacity,
+    decimal InternalWidth,
+    decimal InternalHeight,
+    decimal InternalLength,
+    decimal MaxWeightCapacity,
     int LayerCount,
     LoadingType LoadingType,
     bool IsActive,
@@ -25,5 +25,4 @@ public sealed record UpdateVehicleCommand(
     decimal? MainAxleMaxLoadKg,
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
-    decimal? AdditionalAxleMaxLoadKg,
-    bool? IsDraft = null) : IRequest<Result<Guid>>;
+    decimal? AdditionalAxleMaxLoadKg) : IRequest<Result<Guid>>;

@@ -32,7 +32,6 @@ public sealed class VehiclesController : BaseController {
     /// <param name="searchTerm">Araç adı veya plaka arama terimi (opsiyonel).</param>
     /// <param name="vehicleType">Araç tipi filtresi (opsiyonel).</param>
     /// <param name="isActive">Aktif/arşivlenmiş filtresi (opsiyonel).</param>
-    /// <param name="status">Durum filtresi: "active", "pasif" veya "taslak" (opsiyonel).</param>
     /// <param name="onlyFavorites">Yalnızca favorileri döndürür (opsiyonel).</param>
     /// <param name="page">Sayfa numarası (varsayılan: 1).</param>
     /// <param name="pageSize">Sayfa boyutu, 1-100 arası (varsayılan: 20). isExport=true ise göz ardı edilir.</param>
@@ -47,31 +46,19 @@ public sealed class VehiclesController : BaseController {
         [FromQuery] string? searchTerm,
         [FromQuery] VehicleType? vehicleType,
         [FromQuery] bool? isActive,
-        [FromQuery] string? status,
         [FromQuery] bool? onlyFavorites,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] bool isExport = false,
         CancellationToken cancellationToken = default) {
-        bool? isDraft = status?.ToLowerInvariant() switch {
-            VehicleStatus.Draft => true,
-            VehicleStatus.Active => false,
-            _ => null
-        };
-        bool? effectiveIsActive = status?.ToLowerInvariant() switch {
-            VehicleStatus.Active => true,
-            VehicleStatus.Passive => false,
-            _ => isActive
-        };
         var query = new SearchVehiclesQuery(
             SearchTerm: searchTerm,
             VehicleType: vehicleType,
-            IsActive: effectiveIsActive,
+            IsActive: isActive,
             OnlyFavorites: onlyFavorites,
             Page: page,
             PageSize: pageSize,
-            IsExport: isExport,
-            IsDraft: isDraft);
+            IsExport: isExport);
         var result = await _mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }
@@ -128,8 +115,7 @@ public sealed class VehiclesController : BaseController {
             request.MainAxleMaxLoadKg,
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
-            request.AdditionalAxleMaxLoadKg,
-            IsDraft: request.IsDraft ?? false);
+            request.AdditionalAxleMaxLoadKg);
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
@@ -176,8 +162,7 @@ public sealed class VehiclesController : BaseController {
             request.MainAxleMaxLoadKg,
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
-            request.AdditionalAxleMaxLoadKg,
-            IsDraft: request.IsDraft);
+            request.AdditionalAxleMaxLoadKg);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
