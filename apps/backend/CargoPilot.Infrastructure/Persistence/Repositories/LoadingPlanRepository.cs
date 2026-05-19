@@ -233,6 +233,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.Vehicle.VehicleName,
             plan.Vehicle.PlateNumber,
             plan.Vehicle.VehicleType,
+            plan.Vehicle.LoadingType,
             plan.Vehicle.InternalWidth,
             plan.Vehicle.InternalHeight,
             plan.Vehicle.InternalLength,
