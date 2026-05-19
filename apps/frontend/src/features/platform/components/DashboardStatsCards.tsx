@@ -144,7 +144,7 @@ export function DashboardStatsCards() {
         <StatSummaryCard
           title="Bu Hafta Yükleme Sayısı"
           icon={ClipboardList}
-          value={data?.weeklyLoadingCount.value ?? 0}
+          value={weeklyFilteredItems.length}
           subInfo=""
           delta={0}
           isLoading={isLoading}
