@@ -7,12 +7,14 @@ import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
 import { ReadOnlyContext } from '@/features/planning/ReadOnlyContext';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
   useLoadingPlanDetail,
   useCreateLoadingPlan,
   useReoptimizeLoadingPlan,
   useUploadPlanThumbnail,
+  useRenameLoadingPlan,
 } from '@/lib/api/useLoadingPlans';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
@@ -124,6 +126,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   const navigate = useNavigate();
   const { mutateAsync: createPlan, isPending: isCreating } = useCreateLoadingPlan();
   const { mutateAsync: reoptimizePlan, isPending: isReoptimizing } = useReoptimizeLoadingPlan();
+  const { mutate: renamePlan } = useRenameLoadingPlan();
   const { mutate: uploadThumbnail } = useUploadPlanThumbnail();
   const uploadThumbnailRef = useRef(uploadThumbnail);
   useEffect(() => {
@@ -143,6 +146,19 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   }, [refetchKey]);
 
   const { data: planDetail } = useLoadingPlanDetail(fromPlanId ?? '');
+
+  useEffect(() => {
+    if (fromPlanId && planDetail?.planName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPlanNameInput(planDetail.planName);
+    }
+  }, [fromPlanId, planDetail?.planName]);
+
+  const handlePlanNameCommit = useCallback(() => {
+    if (!fromPlanId || !planNameInput.trim()) return;
+    if (planNameInput.trim() === planDetail?.planName) return;
+    renamePlan({ id: fromPlanId, planName: planNameInput.trim() });
+  }, [fromPlanId, planNameInput, planDetail?.planName, renamePlan]);
 
   const handleLoaded = useCallback(() => {
     if (!fromPlanId) return;
@@ -353,7 +369,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           </button>
 
           {/* Plan adı kutusu — sol üst, kamera butonlarıyla simetrik */}
-          {!readOnly && !fromPlanId && (
+          {!readOnly && (
             <div
               className={cn(
                 'absolute top-3 left-0 w-[320px] z-20 px-3',
@@ -361,17 +377,23 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
                 leftOpen ? 'translate-x-0' : '-translate-x-full',
               )}
             >
-              <div className="w-full flex items-center gap-2 bg-background rounded-xl border border-border px-3 py-2">
+              <div className="w-full flex items-center gap-1.5 bg-background rounded-xl border border-border px-2 py-1.5">
                 <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <input
+                <Input
                   ref={planNameInputRef}
                   value={planNameInput}
                   onChange={(e) => setPlanNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && planNameInput.trim()) void handleConfirmCreate();
+                  onBlur={() => {
+                    if (fromPlanId) handlePlanNameCommit();
                   }}
-                  placeholder="Plan adı girin…"
-                  className="flex-1 min-w-0 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground/50"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (fromPlanId) handlePlanNameCommit();
+                      else if (planNameInput.trim()) void handleConfirmCreate();
+                    }
+                  }}
+                  placeholder={fromPlanId ? 'Plan adı' : 'Plan adı girin…'}
+                  className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 text-xs px-0"
                 />
               </div>
             </div>
@@ -381,7 +403,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           <div
             className={cn(
               'absolute bottom-3 left-0 w-[320px] z-10 px-3',
-              !readOnly && !fromPlanId ? 'top-[60px]' : 'top-3',
+              !readOnly ? 'top-[60px]' : 'top-3',
               'transition-transform duration-[220ms] ease-out',
               leftOpen ? 'translate-x-0' : '-translate-x-full',
             )}
