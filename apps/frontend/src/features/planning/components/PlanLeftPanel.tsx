@@ -14,6 +14,7 @@ import {
   FolderPlus,
   Layers,
   Leaf,
+  Lightbulb,
   Loader2,
   Minus,
   Package,
@@ -26,6 +27,7 @@ import {
   SlidersHorizontal,
   Sun,
   Trash2,
+  Truck,
   Utensils,
   Wind,
   Wine,
@@ -49,11 +51,13 @@ import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
 import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
+import { useVehicles } from '@/lib/api/useVehicles';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
 import { StepAnimationControls } from './scene/StepAnimationControls';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
+import type { Vehicle } from '@/lib/types/vehicle';
 import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
 import {
   AlertDialog,
@@ -223,6 +227,8 @@ interface StoreItemRowProps {
   groups?: GroupOption[];
   onToggleExpand: () => void;
   onToggleVisibility?: () => void;
+  onSelect?: () => void;
+  isSelected?: boolean;
   isHidden?: boolean;
   onPlace: (qty: number) => void;
   onUpdateQty?: (qty: number) => void;
@@ -243,6 +249,8 @@ function StoreItemRow({
   groups,
   onToggleExpand,
   onToggleVisibility,
+  onSelect,
+  isSelected = false,
   isHidden = false,
   onPlace,
   onUpdateQty,
@@ -267,11 +275,12 @@ function StoreItemRow({
       )}
     >
       <div
-        onClick={onToggleVisibility ?? onToggleExpand}
+        onClick={onSelect ?? onToggleVisibility ?? onToggleExpand}
         className={cn(
           'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
           isPlaced ? 'bg-muted/40' : 'hover:bg-accent',
           isExpanded && 'bg-muted/40',
+          isSelected && 'ring-1 ring-inset ring-primary/40 bg-primary/5',
           isHidden && 'opacity-40',
         )}
       >
@@ -545,9 +554,10 @@ function StoreItemRow({
 
 interface PlanLeftPanelProps {
   planId?: string;
+  onAddSuggestedVehicle?: (vehicle: Vehicle) => Promise<void>;
 }
 
-export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
+export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelProps) {
   const readOnly = useReadOnly();
   const navigate = useNavigate();
   const { mutateAsync: deleteGroupApi } = useDeletePlanGroup();
@@ -558,7 +568,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeConstraints, setActiveConstraints] = useState<Set<ConstraintFilter>>(new Set());
-  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded'>(
+  const [activeTab, setActiveTab] = useState<'unloaded' | 'loaded' | 'unfit'>(
     readOnly ? 'loaded' : 'unloaded',
   );
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -599,8 +609,33 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
+  const unfitItems = usePlanStore((s) => s.unfitItems);
+  const totalUnfitQty = unfitItems.reduce((s, u) => s + u.quantity, 0);
+
+  const [showVehicleSuggestion, setShowVehicleSuggestion] = useState(false);
+  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+  const { data: vehiclesData } = useVehicles();
+  const suggestedVehicle = useMemo(() => {
+    const vehicles = vehiclesData?.items ?? [];
+    if (unfitItems.length === 0 || vehicles.length === 0) return null;
+    const totalVolumeCm3 = unfitItems.reduce(
+      (s, u) => s + u.item.width * u.item.height * u.item.length * u.quantity,
+      0,
+    );
+    const candidates = vehicles
+      .filter((v) => v.width * v.height * v.length > totalVolumeCm3)
+      .sort((a, b) => a.width * a.height * a.length - b.width * b.height * b.length);
+    return candidates[0] ?? null;
+  }, [unfitItems, vehiclesData]);
 
   const canPlace = !!selectedVehicle;
+
+  // Tab disappears when no more unfit items → fall back to loaded
+  useEffect(() => {
+    if (activeTab === 'unfit' && unfitItems.length === 0) {
+      setActiveTab('loaded');
+    }
+  }, [unfitItems.length, activeTab]);
 
   const inlineGroupsFromStore = usePlanStore((s) => s.inlineGroups);
   const setInlineGroups = usePlanStore((s) => s.setInlineGroups);
@@ -611,6 +646,9 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const setHiddenItemIds = useSceneStore((s) => s.setHiddenItemIds);
   const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+  const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
+  const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
 
   // Mevcut plan yüklendiğinde store'dan grupları geri yükle
   useEffect(() => {
@@ -651,14 +689,18 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     prevSelectedLenRef.current = selectedItems.length;
   }, [selectedItems.length, placements.length]);
 
-  // 3D sahnede kutu seçilince → Yüklü Ürünler tabına geç ve o kartı expand et
+  // 3D sahnede kutu seçilince → Yüklü Ürünler tabına geç, kartı expand et, sol panelde highlight yap
   useEffect(() => {
-    if (selectedInstanceId === null) return;
+    if (selectedInstanceId === null) {
+      setSelectedItemId(null);
+      return;
+    }
     const placement = usePlanStore.getState().placements[selectedInstanceId];
     if (!placement) return;
     setActiveTab('loaded');
     setExpandedId(placement.itemId);
-  }, [selectedInstanceId]);
+    setSelectedItemId(placement.itemId);
+  }, [selectedInstanceId, setSelectedItemId]);
 
   const prevPlanIdRef = useRef<string | undefined>(planId);
   useEffect(() => {
@@ -1093,11 +1135,22 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
             className="w-full"
             fullWidth
             tabs={[
-              { value: 'unloaded', label: 'Ürün Listesi', count: unloadedCount },
-              { value: 'loaded', label: 'Yüklü Ürünler', count: placedIds.size },
+              {
+                value: 'unloaded',
+                label: unfitItems.length > 0 ? 'Liste' : 'Ürün Listesi',
+                count: unloadedCount,
+              },
+              {
+                value: 'loaded',
+                label: unfitItems.length > 0 ? 'Yüklü' : 'Yüklü Ürünler',
+                count: placedIds.size,
+              },
+              ...(unfitItems.length > 0
+                ? [{ value: 'unfit', label: 'Başarısız', count: totalUnfitQty }]
+                : []),
             ]}
             value={activeTab}
-            onChange={(v) => setActiveTab(v as 'unloaded' | 'loaded')}
+            onChange={(v) => setActiveTab(v as 'unloaded' | 'loaded' | 'unfit')}
           />
         </div>
       )}
@@ -1167,7 +1220,10 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       </div>
 
       {/* Scrollable area */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
         {itemsLoading && (
           <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1483,6 +1539,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                         iconColor={itemIconColorMap[id]}
                         onToggleVisibility={() => toggleHiddenItem(id)}
                         isHidden={hiddenItemIds.includes(id)}
+                        onSelect={() => {
+                          setSelectedInstanceId(null);
+                          setSelectedItemId(selectedItemId === id ? null : id);
+                        }}
+                        isSelected={selectedItemId === id}
                       />
                     </div>
                   );
@@ -1500,6 +1561,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
                       iconColor={itemIconColorMap[id]}
                       onToggleVisibility={() => toggleHiddenItem(id)}
                       isHidden={hiddenItemIds.includes(id)}
+                      onSelect={() => {
+                        setSelectedInstanceId(null);
+                        setSelectedItemId(selectedItemId === id ? null : id);
+                      }}
+                      isSelected={selectedItemId === id}
                     />
                   );
                 })}
@@ -1678,6 +1744,18 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
               </p>
             </div>
           )}
+
+        {/* Yüklenemeyen ürünler sekmesi */}
+        {activeTab === 'unfit' && (
+          <UnfitItemsPanel
+            onFullRemove={(itemId) => {
+              removeItem(itemId);
+              setGroups((prev) =>
+                prev.map((g) => ({ ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) })),
+              );
+            }}
+          />
+        )}
       </div>
 
       {/* Sticky "Gruba Ekle" panel — shown when in group selection mode */}
@@ -1743,14 +1821,97 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
         </div>
       )}
 
-      <UnfitItemsPanel
-        onFullRemove={(itemId) => {
-          removeItem(itemId);
-          setGroups((prev) =>
-            prev.map((g) => ({ ...g, itemIdler: g.itemIdler.filter((id) => id !== itemId) })),
-          );
-        }}
-      />
+      {/* Araç Öner footer — sadece Başarısız tabında */}
+      <AnimatePresence>
+        {activeTab === 'unfit' && unfitItems.length > 0 && (
+          <motion.div
+            key="arac-oner-footer"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            className="shrink-0 overflow-hidden border-t border-border bg-background"
+          >
+            <AnimatePresence>
+              {showVehicleSuggestion && (
+                <motion.div
+                  key="suggestion-card"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-3 pt-2.5 pb-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                      Önerilen Araç
+                    </p>
+                    {suggestedVehicle ? (
+                      <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30">
+                        <Truck
+                          className="w-3.5 h-3.5 shrink-0 text-muted-foreground"
+                          strokeWidth={1.5}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-foreground truncate">
+                            {suggestedVehicle.name}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground tabular-nums">
+                            {suggestedVehicle.length}×{suggestedVehicle.width}×
+                            {suggestedVehicle.height} cm ·{' '}
+                            {(
+                              (suggestedVehicle.width *
+                                suggestedVehicle.height *
+                                suggestedVehicle.length) /
+                              1_000_000
+                            ).toFixed(1)}{' '}
+                            m³
+                          </p>
+                        </div>
+                        {onAddSuggestedVehicle && (
+                          <Button
+                            size="sm"
+                            disabled={isAddingVehicle}
+                            onClick={async () => {
+                              setIsAddingVehicle(true);
+                              try {
+                                await onAddSuggestedVehicle(suggestedVehicle);
+                                setShowVehicleSuggestion(false);
+                              } finally {
+                                setIsAddingVehicle(false);
+                              }
+                            }}
+                            className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80 shrink-0"
+                          >
+                            {isAddingVehicle ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              'Ekle'
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground pb-1">
+                        Katalogda uygun araç bulunamadı.
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <div className="px-3 py-3">
+              <Button
+                className="w-full bg-foreground text-background hover:bg-foreground/80 gap-1.5"
+                onClick={() => setShowVehicleSuggestion((v) => !v)}
+              >
+                <Lightbulb className="w-4 h-4" />
+                Araç Öner
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Animasyon kontrolü — sadece Yüklü Ürünler tabında */}
       <AnimatePresence>
