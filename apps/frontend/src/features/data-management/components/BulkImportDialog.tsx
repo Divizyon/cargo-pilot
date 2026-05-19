@@ -1,6 +1,7 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
 import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useBulkCreateItems, type BackendError } from '@/lib/api/useItems';
+import { useBulkCreateItems, fetchAllItems, type BackendError } from '@/lib/api/useItems';
 import {
   ITEM_CATEGORY,
   toAllowedRotations,
@@ -412,6 +413,18 @@ export function BulkImportDialog({
   const bulkApproveDraft = useBulkApproveDraftItems();
   const bulkApproveIndividual = useBulkApproveItemsIndividual();
 
+  const { data: existingItems } = useQuery({
+    queryKey: ['items-all-skus'] as const,
+    queryFn: () => fetchAllItems(),
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+
+  const existingSkus = useMemo(
+    () => new Set((existingItems ?? []).map((item) => item.sku.toLowerCase())),
+    [existingItems],
+  );
+
   function patchRow(id: string, patch: Partial<EditableRow>) {
     setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...patch } : r)));
   }
@@ -461,12 +474,15 @@ export function BulkImportDialog({
       {
         onSuccess: () => handleClose(),
         onError: (err) => {
-          const failures = (err as AxiosError<BackendError>).response?.data?.error
-            ?.validationFailures;
+          const errData = (err as AxiosError<BackendError>).response?.data?.error;
+          const failures = errData?.validationFailures;
+          const message = errData?.message;
           if (failures?.length) {
             setApiErrors(
               failures.map((f) => [f.propertyName, f.errorMessage].filter(Boolean).join(': ')),
             );
+          } else if (message) {
+            setApiErrors([message]);
           }
         },
       },
@@ -480,13 +496,19 @@ export function BulkImportDialog({
   }
 
   const duplicateSkuIds = findDuplicateSkuIds(rows);
-  const validations = rows.map((r) => ({
-    id: r._id,
-    errors: {
-      ...validateRow(r),
-      ...(duplicateSkuIds.has(r._id) ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' } : {}),
-    },
-  }));
+  const validations = rows.map((r) => {
+    const skuKey = r.sku.trim().toLowerCase();
+    return {
+      id: r._id,
+      errors: {
+        ...validateRow(r),
+        ...(duplicateSkuIds.has(r._id)
+          ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' }
+          : {}),
+        ...(skuKey && existingSkus.has(skuKey) ? { sku: 'Bu SKU kullanılıyor' } : {}),
+      },
+    };
+  });
   const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
   const isDraftPending =
     updateDraftItem.isPending || bulkApproveDraft.isPending || bulkApproveIndividual.isPending;

@@ -9,6 +9,7 @@ import {
   FileText,
   Loader2,
   Search,
+  Share2,
   SlidersHorizontal,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ import {
   type PlanReport,
   type ReportsFilters,
 } from '@/lib/api/useReports';
+import { ShareLinkDialog } from '@/features/planning/components/ShareLinkDialog';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useLoadingPlanList } from '@/lib/api/useLoadingPlans';
 
@@ -89,9 +91,8 @@ const STATUS_MAP: Record<
   { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
 > = {
   0: { label: 'Taslak', variant: 'secondary' },
-  1: { label: 'Aktif', variant: 'default' },
-  2: { label: 'Tamamlandı', variant: 'outline' },
-  3: { label: 'İptal', variant: 'destructive' },
+  1: { label: 'Tamamlandı', variant: 'outline' },
+  2: { label: 'İptal', variant: 'destructive' },
 };
 
 function StatusBadge({ status }: { status: number }) {
@@ -110,7 +111,7 @@ function ReportsTableSkeleton() {
     <Table className="min-w-[700px] table-fixed">
       <TableHeader>
         <TableRow className="bg-muted/40 hover:bg-muted/40">
-          {['w-44', 'w-24', 'w-32', 'w-20', 'w-36', 'w-14'].map((w, i) => (
+          {['w-44', 'w-24', 'w-32', 'w-20', 'w-36', 'w-20'].map((w, i) => (
             <TableHead key={i}>
               <Skeleton className={cn('h-3', w)} />
             </TableHead>
@@ -155,6 +156,7 @@ interface ReportRowProps {
 function ReportRow({ report, thumbnailUrl }: ReportRowProps) {
   const navigate = useNavigate();
   const { mutate: downloadPdf, isPending } = useDownloadPlanPdf();
+  const [shareOpen, setShareOpen] = useState(false);
   const cell = 'px-3 py-0';
 
   function handleDownload(e: { stopPropagation(): void }) {
@@ -163,80 +165,105 @@ function ReportRow({ report, thumbnailUrl }: ReportRowProps) {
   }
 
   return (
-    <TableRow
-      className="h-14 cursor-pointer"
-      onClick={() => void navigate(`/reports/${report.id}`)}
-    >
-      <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <div className="flex items-center gap-2">
-          {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt=""
-              className="h-9 w-14 shrink-0 rounded object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="h-9 w-14 shrink-0 rounded bg-muted/40" />
-          )}
-          <span
-            className="block truncate text-xs font-medium text-foreground"
-            title={report.planName}
-          >
-            {report.planName}
-          </span>
-        </div>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <span className="text-xs text-muted-foreground">
-          {dateFormatter.format(new Date(report.date))}
-        </span>
-      </TableCell>
-
-      <TableCell className={cn(cell, 'max-w-[128px]')}>
-        <span className="block truncate text-xs text-muted-foreground" title={report.vehiclePlate}>
-          {report.vehiclePlate}
-        </span>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <StatusBadge status={report.status} />
-      </TableCell>
-
-      <TableCell className={cell}>
-        <div className="flex items-center gap-2">
-          <Progress value={report.fillRate} className="h-1.5 flex-1" />
-          <span
-            className={cn(
-              'w-9 shrink-0 text-right font-mono text-xs font-medium',
-              fillRateColor(report.fillRate),
+    <>
+      <TableRow
+        className="h-14 cursor-pointer"
+        onClick={() => void navigate(`/reports/${report.id}`)}
+      >
+        <TableCell className={cn(cell, 'max-w-[176px]')}>
+          <div className="flex items-center gap-2">
+            {thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt=""
+                className="h-9 w-14 shrink-0 rounded object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="h-9 w-14 shrink-0 rounded bg-muted/40" />
             )}
-          >
-            %{report.fillRate}
-          </span>
-        </div>
-      </TableCell>
+            <span
+              className="block truncate text-xs font-medium text-foreground"
+              title={report.planName}
+            >
+              {report.planName}
+            </span>
+          </div>
+        </TableCell>
 
-      <TableCell className={cell}>
-        <Button
-          variant="ghost"
-          size="icon"
-          title="PDF İndir"
-          disabled={isPending}
-          className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
-          onClick={handleDownload}
-        >
-          {isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <FileDown className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      </TableCell>
-    </TableRow>
+        <TableCell className={cell}>
+          <span className="text-xs text-muted-foreground">
+            {dateFormatter.format(new Date(report.date))}
+          </span>
+        </TableCell>
+
+        <TableCell className={cn(cell, 'max-w-[128px]')}>
+          <span
+            className="block truncate text-xs text-muted-foreground"
+            title={report.vehiclePlate}
+          >
+            {report.vehiclePlate}
+          </span>
+        </TableCell>
+
+        <TableCell className={cell}>
+          <StatusBadge status={report.status} />
+        </TableCell>
+
+        <TableCell className={cell}>
+          <div className="flex items-center gap-2">
+            <Progress value={report.fillRate} className="h-1.5 flex-1" />
+            <span
+              className={cn(
+                'w-9 shrink-0 text-right font-mono text-xs font-medium',
+                fillRateColor(report.fillRate),
+              )}
+            >
+              %{report.fillRate}
+            </span>
+          </div>
+        </TableCell>
+
+        <TableCell className={cell}>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="PDF İndir"
+              disabled={isPending}
+              className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
+              onClick={handleDownload}
+            >
+              {isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileDown className="h-3.5 w-3.5" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Paylaş"
+              className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShareOpen(true);
+              }}
+            >
+              <Share2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+      <ShareLinkDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        planId={report.id}
+        planName={report.planName}
+      />
+    </>
   );
 }
 
@@ -546,7 +573,7 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                 <TableHead className="w-36 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   Doluluk
                 </TableHead>
-                <TableHead className="w-14 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-20 whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-widest">
                   İşlem
                 </TableHead>
               </TableRow>

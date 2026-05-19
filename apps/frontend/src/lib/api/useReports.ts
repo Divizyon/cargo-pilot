@@ -62,13 +62,19 @@ const reportsApiResponseSchema = z
   })
   .passthrough();
 
+function toFillPct(value: number | null | undefined): number {
+  const v = value ?? 0;
+  const pct = v <= 1 ? v * 100 : v;
+  return Math.min(100, Math.max(0, Math.round(pct)));
+}
+
 function mapReportItem(raw: z.infer<typeof reportApiItemSchema>): PlanReport {
   return {
     id: raw.id,
     planName: raw.planName ?? '—',
     date: (raw.createdAtUtc ?? new Date(0).toISOString()).slice(0, 10),
     vehiclePlate: raw.vehiclePlate ?? '—',
-    fillRate: Math.min(100, Math.max(0, Math.round(raw.fillRate ?? 0))),
+    fillRate: toFillPct(raw.fillRate),
     status: raw.status ?? 0,
     downloadUrl: raw.downloadUrl ?? null,
   };
@@ -137,6 +143,7 @@ const reportDetailApiSchema = z
         id: z.string().uuid(),
         planName: z.string().optional(),
         createdAt: z.string().optional(),
+        createdAtUtc: z.string().optional(),
         fillRate: z.number().nullable().optional(),
         volumeFillRate: z.number().nullable().optional(),
         totalWeight: z.number().nullable().optional(),
@@ -165,9 +172,8 @@ function mapStatusToInt(raw: string | number | null | undefined): number {
   if (raw == null) return 0;
   if (typeof raw === 'number') return raw;
   const s = raw.toLowerCase();
-  if (s === 'completed' || s === 'tamamlandi' || s === 'done') return 2;
-  if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing') return 1;
-  if (s === 'cancelled' || s === 'canceled' || s === 'iptal' || s === 'failed') return 3;
+  if (s === 'calculated' || s === 'completed' || s === 'tamamlandi' || s === 'done') return 1;
+  if (s === 'failed' || s === 'cancelled' || s === 'canceled' || s === 'iptal') return 2;
   return 0;
 }
 
@@ -197,17 +203,24 @@ export function useReportDetail(id: string) {
         ? fromApiDetailPlacements(rawPlacementsArr)
         : [];
 
+      const totalWeightKg = d.totalWeight ?? d.totalWeightKg ?? 0;
+      const vehicleCapacityKg = v?.maxWeightCapacity ?? 1;
+      const weightFillRate =
+        vehicleCapacityKg > 0
+          ? Math.min(100, Math.round((totalWeightKg / vehicleCapacityKg) * 100))
+          : 0;
+
       return {
         id: d.id,
         planName: d.planName ?? '—',
         vehiclePlate: v?.plateNumber ?? v?.plate ?? '—',
         vehicleName: v?.vehicleName ?? v?.name ?? '—',
-        date: (d.createdAt ?? new Date(0).toISOString()).slice(0, 10),
+        date: (d.createdAt ?? d.createdAtUtc ?? new Date(0).toISOString()).slice(0, 10),
         status: mapStatusToInt(d.status ?? d.optimizationStatus),
-        totalWeightKg: d.totalWeight ?? d.totalWeightKg ?? 0,
-        vehicleCapacityKg: v?.maxWeightCapacity ?? 1,
-        fillRate: Math.min(100, Math.max(0, Math.round(d.fillRate ?? 0))),
-        volumeFillRate: Math.min(100, Math.max(0, Math.round(d.volumeFillRate ?? d.fillRate ?? 0))),
+        totalWeightKg,
+        vehicleCapacityKg,
+        fillRate: weightFillRate,
+        volumeFillRate: toFillPct(d.volumeFillRate ?? d.fillRate),
         snapshotUrl: d.snapshotUrl ?? d.snapshotImageUrl ?? null,
         productGroups,
       };
