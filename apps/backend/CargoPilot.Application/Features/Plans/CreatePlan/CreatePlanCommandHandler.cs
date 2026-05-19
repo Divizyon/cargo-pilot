@@ -18,6 +18,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly ILoadingPlanItemGroupRepository _groupRepository;
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationService _notificationService;
     private readonly IValidator<CreatePlanCommand> _validator;
 
     public CreatePlanCommandHandler(
@@ -27,6 +28,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
+        INotificationService notificationService,
         IValidator<CreatePlanCommand> validator)
     {
         _planRepository = planRepository;
@@ -35,6 +37,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         _groupRepository = groupRepository;
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
+        _notificationService = notificationService;
         _validator = validator;
     }
 
@@ -57,9 +60,30 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             var currentCount = await _planRepository.CountByUserAsync(planUserId, cancellationToken);
             var maxCount = SubscriptionLimits.GetMaxLoadingPlanCount(SubscriptionType.Free);
             if (currentCount >= maxCount)
+            {
+                await _notificationService.CreateAsync(
+                    userId: planUserId,
+                    companyId: companyId,
+                    type: NotificationType.UsageLimitReached,
+                    title: "Plan Kotası Doldu",
+                    description: $"Maksimum yükleme planı sayısına ({maxCount}) ulaştınız. Daha fazla plan oluşturmak için planınızı yükseltin.",
+                    cancellationToken: cancellationToken);
                 return Result<Guid>.Failure(
                     new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
                         "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
+            }
+
+            var warningThreshold = (int)(maxCount * 0.8);
+            if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount)
+            {
+                await _notificationService.CreateAsync(
+                    userId: planUserId,
+                    companyId: companyId,
+                    type: NotificationType.UsageLimitWarning,
+                    title: "Plan Kotası Dolmak Üzere",
+                    description: $"Yükleme planı kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
+                    cancellationToken: cancellationToken);
+            }
         }
 
         var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
@@ -151,10 +175,28 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             ? optimizationInput with { Items = contamination.Passed }
             : optimizationInput;
 
-        var engineResult = _optimizationEngine.Run(finalInput);
-        var result = contamination.Contaminated.Count > 0
-            ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
-            : engineResult;
+        OptimizationResult result;
+        try
+        {
+            var engineResult = _optimizationEngine.Run(finalInput);
+            result = contamination.Contaminated.Count > 0
+                ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
+                : engineResult;
+        }
+        catch (Exception ex)
+        {
+            if (_currentUserService.UserId is { } failedUserId)
+            {
+                await _notificationService.CreateAsync(
+                    userId: failedUserId,
+                    companyId: companyId,
+                    type: NotificationType.OptimizationFailed,
+                    title: "Plan Optimizasyonu Başarısız",
+                    description: $"\"{request.PlanName}\" planı oluşturulurken bir hata oluştu: {ex.Message}",
+                    cancellationToken: cancellationToken);
+            }
+            throw;
+        }
 
         var plan = new LoadingPlan(planId, request.PlanName, vehicle.Id, request.OptimizationCriteria, inputTotalQuantity, companyId);
         var inputItems = activeItems
@@ -176,6 +218,18 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             .ToList();
 
         await _planRepository.SaveWithResultAsync(plan, inputItems, result, cancellationToken);
+
+        if (_currentUserService.UserId is { } userId)
+        {
+            await _notificationService.CreateAsync(
+                userId: userId,
+                companyId: companyId,
+                type: NotificationType.OptimizationComplete,
+                title: "Plan Optimizasyonu Tamamlandı",
+                description: $"\"{request.PlanName}\" planı başarıyla oluşturuldu.",
+                actionUrl: $"/loading-plans/{planId}",
+                cancellationToken: cancellationToken);
+        }
 
         return Result<Guid>.Success(planId);
     }
