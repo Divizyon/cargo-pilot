@@ -7,10 +7,10 @@ public sealed record UpdateVehicleRequest(
     string? Description,
     VehicleType VehicleType,
     string? PlateNumber,
-    decimal InternalWidth,
-    decimal InternalHeight,
-    decimal InternalLength,
-    decimal MaxWeightCapacity,
+    decimal? InternalWidth,
+    decimal? InternalHeight,
+    decimal? InternalLength,
+    decimal? MaxWeightCapacity,
     int LayerCount,
     LoadingType LoadingType,
     bool IsActive,
@@ -22,4 +22,5 @@ public sealed record UpdateVehicleRequest(
     decimal? MainAxleMaxLoadKg,
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
-    decimal? AdditionalAxleMaxLoadKg);
+    decimal? AdditionalAxleMaxLoadKg,
+    bool? IsDraft = null);

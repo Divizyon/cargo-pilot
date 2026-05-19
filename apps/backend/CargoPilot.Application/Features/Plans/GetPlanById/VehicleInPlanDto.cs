@@ -7,7 +7,8 @@ public sealed record VehicleInPlanDto(
     string VehicleName,
     string? PlateNumber,
     VehicleType VehicleType,
-    decimal InternalWidth,
-    decimal InternalHeight,
-    decimal InternalLength,
-    decimal MaxWeightCapacity);
+    LoadingType LoadingType,
+    decimal? InternalWidth,
+    decimal? InternalHeight,
+    decimal? InternalLength,
+    decimal? MaxWeightCapacity);

@@ -9,13 +9,13 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
         builder.ToTable(
             "Vehicles",
             tableBuilder => {
-                tableBuilder.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[InternalWidth] > 0");
-                tableBuilder.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[InternalHeight] > 0");
-                tableBuilder.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[InternalLength] > 0");
+                tableBuilder.HasCheckConstraint("CK_Vehicles_InternalWidth_Positive", "[IsDraft] = 1 OR ([InternalWidth] IS NOT NULL AND [InternalWidth] > 0)");
+                tableBuilder.HasCheckConstraint("CK_Vehicles_InternalHeight_Positive", "[IsDraft] = 1 OR ([InternalHeight] IS NOT NULL AND [InternalHeight] > 0)");
+                tableBuilder.HasCheckConstraint("CK_Vehicles_InternalLength_Positive", "[IsDraft] = 1 OR ([InternalLength] IS NOT NULL AND [InternalLength] > 0)");
                 tableBuilder.HasCheckConstraint(
                     "CK_Vehicles_MaxWeightCapacity_Positive",
-                    "[MaxWeightCapacity] > 0");
-                tableBuilder.HasCheckConstraint("CK_Vehicles_LayerCount_Min1", "[LayerCount] >= 1");
+                    "[IsDraft] = 1 OR ([MaxWeightCapacity] IS NOT NULL AND [MaxWeightCapacity] > 0)");
+                tableBuilder.HasCheckConstraint("CK_Vehicles_LayerCount_Min1", "[IsDraft] = 1 OR [LayerCount] >= 1");
                 tableBuilder.HasCheckConstraint(
                     "CK_Vehicles_KingPinDistanceMm_Positive_WhenSet",
                     "[KingPinDistanceMm] IS NULL OR [KingPinDistanceMm] > 0");
@@ -63,6 +63,10 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(vehicle => vehicle.IsDraft)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(vehicle => vehicle.VehicleName)
             .HasMaxLength(200)
             .IsRequired();
@@ -78,19 +82,15 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
             .IsRequired(false);
 
         builder.Property(vehicle => vehicle.InternalWidth)
-            .IsRequired()
             .HasPrecision(18, 4);
 
         builder.Property(vehicle => vehicle.InternalHeight)
-            .IsRequired()
             .HasPrecision(18, 4);
 
         builder.Property(vehicle => vehicle.InternalLength)
-            .IsRequired()
             .HasPrecision(18, 4);
 
         builder.Property(vehicle => vehicle.MaxWeightCapacity)
-            .IsRequired()
             .HasPrecision(18, 4);
 
         builder.Property(vehicle => vehicle.KingPinDistanceMm)
@@ -160,7 +160,7 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
 
         builder.HasIndex(vehicle => new { vehicle.CompanyId, vehicle.PlateNumber })
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0")
+            .HasFilter("[IsDeleted] = 0 AND [PlateNumber] IS NOT NULL")
             .HasDatabaseName("IX_Vehicles_CompanyId_PlateNumber");
 
         builder.HasQueryFilter(vehicle => !vehicle.IsDeleted);

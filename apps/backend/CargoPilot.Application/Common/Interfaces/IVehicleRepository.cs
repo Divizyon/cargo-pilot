@@ -14,6 +14,7 @@ public interface IVehicleRepository {
         int page,
         int pageSize,
         Guid? companyId,
+        bool? isDraft = null,
         CancellationToken cancellationToken = default);
 
     Task<Vehicle?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);

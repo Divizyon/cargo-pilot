@@ -91,6 +91,10 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
+        if (vehicle.IsDraft)
+            return Result<Guid>.Failure(
+                new Error(ErrorType.BusinessRule, "Vehicle.IsDraft", "Taslak araç ile plan oluşturulamaz."));
+
         var requestedItemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
         var items = await _itemRepository.GetByIdsAsync(requestedItemIds, companyId, cancellationToken);
 
@@ -254,8 +258,10 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             .ToList();
 
         return new OptimizationInput(
-            vehicle.InternalWidth, vehicle.InternalHeight,
-            vehicle.InternalLength, vehicle.MaxWeightCapacity,
+            vehicle.InternalWidth.GetValueOrDefault(),
+            vehicle.InternalHeight.GetValueOrDefault(),
+            vehicle.InternalLength.GetValueOrDefault(),
+            vehicle.MaxWeightCapacity.GetValueOrDefault(),
             inputs, criteria, vehicle.LoadingType, clusterGroups);
     }
 }
