@@ -227,6 +227,8 @@ interface StoreItemRowProps {
   groups?: GroupOption[];
   onToggleExpand: () => void;
   onToggleVisibility?: () => void;
+  onSelect?: () => void;
+  isSelected?: boolean;
   isHidden?: boolean;
   onPlace: (qty: number) => void;
   onUpdateQty?: (qty: number) => void;
@@ -247,6 +249,8 @@ function StoreItemRow({
   groups,
   onToggleExpand,
   onToggleVisibility,
+  onSelect,
+  isSelected = false,
   isHidden = false,
   onPlace,
   onUpdateQty,
@@ -271,11 +275,12 @@ function StoreItemRow({
       )}
     >
       <div
-        onClick={onToggleVisibility ?? onToggleExpand}
+        onClick={onSelect ?? onToggleVisibility ?? onToggleExpand}
         className={cn(
           'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors',
           isPlaced ? 'bg-muted/40' : 'hover:bg-accent',
           isExpanded && 'bg-muted/40',
+          isSelected && 'ring-1 ring-inset ring-primary/40 bg-primary/5',
           isHidden && 'opacity-40',
         )}
       >
@@ -641,6 +646,9 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
   const setHiddenItemIds = useSceneStore((s) => s.setHiddenItemIds);
   const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
   const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
+  const selectedItemId = useSceneStore((s) => s.selectedItemId);
+  const setSelectedItemId = useSceneStore((s) => s.setSelectedItemId);
+  const setSelectedInstanceId = useSceneStore((s) => s.setSelectedInstanceId);
 
   // Mevcut plan yüklendiğinde store'dan grupları geri yükle
   useEffect(() => {
@@ -681,14 +689,18 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
     prevSelectedLenRef.current = selectedItems.length;
   }, [selectedItems.length, placements.length]);
 
-  // 3D sahnede kutu seçilince → Yüklü Ürünler tabına geç ve o kartı expand et
+  // 3D sahnede kutu seçilince → Yüklü Ürünler tabına geç, kartı expand et, sol panelde highlight yap
   useEffect(() => {
-    if (selectedInstanceId === null) return;
+    if (selectedInstanceId === null) {
+      setSelectedItemId(null);
+      return;
+    }
     const placement = usePlanStore.getState().placements[selectedInstanceId];
     if (!placement) return;
     setActiveTab('loaded');
     setExpandedId(placement.itemId);
-  }, [selectedInstanceId]);
+    setSelectedItemId(placement.itemId);
+  }, [selectedInstanceId, setSelectedItemId]);
 
   const prevPlanIdRef = useRef<string | undefined>(planId);
   useEffect(() => {
@@ -1527,6 +1539,11 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
                         iconColor={itemIconColorMap[id]}
                         onToggleVisibility={() => toggleHiddenItem(id)}
                         isHidden={hiddenItemIds.includes(id)}
+                        onSelect={() => {
+                          setSelectedInstanceId(null);
+                          setSelectedItemId(selectedItemId === id ? null : id);
+                        }}
+                        isSelected={selectedItemId === id}
                       />
                     </div>
                   );
@@ -1544,6 +1561,11 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
                       iconColor={itemIconColorMap[id]}
                       onToggleVisibility={() => toggleHiddenItem(id)}
                       isHidden={hiddenItemIds.includes(id)}
+                      onSelect={() => {
+                        setSelectedInstanceId(null);
+                        setSelectedItemId(selectedItemId === id ? null : id);
+                      }}
+                      isSelected={selectedItemId === id}
                     />
                   );
                 })}
