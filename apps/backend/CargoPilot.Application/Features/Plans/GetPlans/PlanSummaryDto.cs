@@ -12,6 +12,7 @@ public sealed record PlanSummaryDto(
     int InputTotalQuantity,
     int PlacedQuantity,
     int UnplacedQuantity,
-    IReadOnlyList<VehicleSummaryInPlanDto> Vehicles,
+    Guid VehicleId,
+    string VehicleName,
     DateTime CreatedAtUtc,
     string? ThumbnailUrl);

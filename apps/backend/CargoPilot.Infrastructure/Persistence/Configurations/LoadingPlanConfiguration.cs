@@ -31,6 +31,9 @@ internal sealed class LoadingPlanConfiguration : IEntityTypeConfiguration<Loadin
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(plan => plan.VehicleId)
+            .IsRequired();
+
         builder.Property(plan => plan.OptimizationCriteria)
             .IsRequired();
 
@@ -78,6 +81,11 @@ internal sealed class LoadingPlanConfiguration : IEntityTypeConfiguration<Loadin
             .HasMaxLength(50);
 
         builder.Property(plan => plan.CompanyId);
+
+        builder.HasOne(plan => plan.Vehicle)
+            .WithMany()
+            .HasForeignKey(plan => plan.VehicleId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(plan => plan.Company)
             .WithMany()

@@ -10,5 +10,4 @@ public sealed record VehicleInPlanDto(
     decimal InternalWidth,
     decimal InternalHeight,
     decimal InternalLength,
-    decimal MaxWeightCapacity,
-    int SortOrder);
+    decimal MaxWeightCapacity);

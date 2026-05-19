@@ -846,34 +846,17 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId")
                         .HasDatabaseName("IX_LoadingPlans_CompanyId");
 
+                    b.HasIndex("VehicleId");
+
                     b.ToTable("LoadingPlans", (string)null);
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanVehicle", b =>
-                {
-                    b.Property<Guid>("LoadingPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("VehicleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("LoadingPlanId", "VehicleId");
-
-                    b.HasIndex("LoadingPlanId", "SortOrder")
-                        .HasDatabaseName("IX_LoadingPlanVehicles_LoadingPlanId_SortOrder");
-
-                    b.HasIndex("VehicleId")
-                        .HasDatabaseName("IX_LoadingPlanVehicles_VehicleId");
-
-                    b.ToTable("LoadingPlanVehicles", (string)null);
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanInputItem", b =>
@@ -1031,9 +1014,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("LoadingPlanId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("VehicleId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<decimal>("PositionX")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -1067,9 +1047,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("LoadingPlanId")
                         .HasDatabaseName("IX_LoadingPlanPlacements_LoadingPlanId");
-
-                    b.HasIndex("VehicleId")
-                        .HasDatabaseName("IX_LoadingPlanPlacements_VehicleId");
 
                     b.ToTable("LoadingPlanPlacements", (string)null);
                 });
@@ -1974,26 +1951,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Company");
-
-                    b.Navigation("Vehicles");
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanVehicle", b =>
-                {
-                    b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", "LoadingPlan")
-                        .WithMany("Vehicles")
-                        .HasForeignKey("LoadingPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("CargoPilot.Domain.Entities.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("LoadingPlan");
+                    b.Navigation("Company");
 
                     b.Navigation("Vehicle");
                 });
@@ -2049,16 +2013,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CargoPilot.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Item");
 
                     b.Navigation("LoadingPlan");
-
-                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.LoadingPlanUnplacedItem", b =>
