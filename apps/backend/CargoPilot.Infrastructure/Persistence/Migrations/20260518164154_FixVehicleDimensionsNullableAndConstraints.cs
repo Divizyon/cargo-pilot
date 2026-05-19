@@ -30,6 +30,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 name: "CK_Vehicles_MaxWeightCapacity_Positive",
                 table: "Vehicles");
 
+            // Volume is a persisted computed column that references InternalWidth/Height/Length.
+            // SQL Server does not allow ALTER COLUMN on columns referenced by a persisted computed
+            // column, so Volume must be dropped before the dimension columns are altered.
+            migrationBuilder.DropColumn(
+                name: "Volume",
+                table: "Vehicles");
+
             migrationBuilder.AlterColumn<decimal>(
                 name: "MaxWeightCapacity",
                 table: "Vehicles",
@@ -78,7 +85,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 oldPrecision: 18,
                 oldScale: 4);
 
-            migrationBuilder.AlterColumn<decimal>(
+            migrationBuilder.AddColumn<decimal>(
                 name: "Volume",
                 table: "Vehicles",
                 type: "decimal(18,4)",
@@ -86,13 +93,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 scale: 4,
                 nullable: true,
                 computedColumnSql: "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
-                stored: true,
-                oldClrType: typeof(decimal),
-                oldType: "decimal(18,4)",
-                oldPrecision: 18,
-                oldScale: 4,
-                oldComputedColumnSql: "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
-                oldStored: true);
+                stored: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vehicles_CompanyId_PlateNumber",
@@ -145,6 +146,17 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 name: "CK_Vehicles_MaxWeightCapacity_Positive",
                 table: "Vehicles");
 
+            // Volume must be dropped before reverting NOT NULL on its source columns.
+            migrationBuilder.DropColumn(
+                name: "Volume",
+                table: "Vehicles");
+
+            // Clear NULLs before reverting columns to NOT NULL.
+            migrationBuilder.Sql("UPDATE [Vehicles] SET [InternalWidth] = 0 WHERE [InternalWidth] IS NULL");
+            migrationBuilder.Sql("UPDATE [Vehicles] SET [InternalHeight] = 0 WHERE [InternalHeight] IS NULL");
+            migrationBuilder.Sql("UPDATE [Vehicles] SET [InternalLength] = 0 WHERE [InternalLength] IS NULL");
+            migrationBuilder.Sql("UPDATE [Vehicles] SET [MaxWeightCapacity] = 0 WHERE [MaxWeightCapacity] IS NULL");
+
             migrationBuilder.AlterColumn<decimal>(
                 name: "MaxWeightCapacity",
                 table: "Vehicles",
@@ -201,7 +213,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 oldScale: 4,
                 oldNullable: true);
 
-            migrationBuilder.AlterColumn<decimal>(
+            migrationBuilder.AddColumn<decimal>(
                 name: "Volume",
                 table: "Vehicles",
                 type: "decimal(18,4)",
@@ -209,14 +221,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 scale: 4,
                 nullable: false,
                 computedColumnSql: "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
-                stored: true,
-                oldClrType: typeof(decimal),
-                oldType: "decimal(18,4)",
-                oldPrecision: 18,
-                oldScale: 4,
-                oldNullable: true,
-                oldComputedColumnSql: "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
-                oldStored: true);
+                stored: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vehicles_CompanyId_PlateNumber",
