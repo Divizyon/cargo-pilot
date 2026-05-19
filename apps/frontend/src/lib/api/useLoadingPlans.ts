@@ -189,7 +189,7 @@ export function useCreateLoadingPlan() {
       allowContamination,
       ...rest
     }: CreateLoadingPlanInput) => {
-      const body: Record<string, unknown> = { ...rest };
+      const body: Record<string, unknown> = { ...rest, vehicleId: rest.vehicleIds?.[0] };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
       if (allowContamination) body['allowContamination'] = allowContamination;
@@ -332,7 +332,7 @@ export function useReoptimizeLoadingPlan() {
       clusterGroups,
       allowContamination,
     }: ReoptimizeLoadingPlanInput) => {
-      const body: Record<string, unknown> = { vehicleIds, items, optimizationCriteria };
+      const body: Record<string, unknown> = { vehicleIds, vehicleId: vehicleIds?.[0], items, optimizationCriteria };
       if (groups && groups.length > 0) body['groups'] = groups;
       if (clusterGroups !== undefined) body['clusterGroups'] = clusterGroups;
       if (allowContamination) body['allowContamination'] = allowContamination;
