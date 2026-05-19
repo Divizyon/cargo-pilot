@@ -1,10 +1,23 @@
-import { useState } from 'react';
-import { AlertCircle, Box, ChevronRight, Cylinder, Package, RotateCcw, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  Box,
+  ChevronRight,
+  Cylinder,
+  Lightbulb,
+  Loader2,
+  Package,
+  RotateCcw,
+  Trash2,
+  Truck,
+} from 'lucide-react';
 import type { ElementType } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { UnfitReason } from '@/lib/types/loadingPlan';
 import type { UnfitItem } from '@/lib/types/loadingPlan';
+import type { Vehicle } from '@/lib/types/vehicle';
+import { useVehicles } from '@/lib/api/useVehicles';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -102,10 +115,13 @@ function UnfitItemRow({
 
 interface UnfitItemsPanelProps {
   onFullRemove?: (itemId: string) => void;
+  onAddSuggestedVehicle?: (vehicle: Vehicle) => Promise<void>;
 }
 
-export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
+export function UnfitItemsPanel({ onFullRemove, onAddSuggestedVehicle }: UnfitItemsPanelProps) {
   const [open, setOpen] = useState(true);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [pendingRetryContamination, setPendingRetryContamination] = useState<{
     pendingAction: () => void;
     groupVolumes: GroupVolume[];
@@ -115,6 +131,21 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
   const unfitItems = usePlanStore((s) => s.unfitItems);
   const removeUnfitItem = usePlanStore((s) => s.removeUnfitItem);
   const retryUnfitItem = usePlanStore((s) => s.retryUnfitItem);
+
+  const { data: vehiclesData } = useVehicles();
+
+  const suggestedVehicle = useMemo(() => {
+    const vehicles = vehiclesData?.items ?? [];
+    if (unfitItems.length === 0 || vehicles.length === 0) return null;
+    const totalVolumeCm3 = unfitItems.reduce(
+      (s, u) => s + u.item.width * u.item.height * u.item.length * u.quantity,
+      0,
+    );
+    const candidates = vehicles
+      .filter((v) => v.width * v.height * v.length > totalVolumeCm3)
+      .sort((a, b) => a.width * a.height * a.length - b.width * b.height * b.length);
+    return candidates[0] ?? null;
+  }, [unfitItems, vehiclesData]);
 
   function handleRetry(unfitItem: UnfitItem) {
     const doRetry = () => retryUnfitItem(unfitItem.item.id);
@@ -158,7 +189,7 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
             open && 'rotate-90',
           )}
         />
-        <span className="text-sm text-foreground flex-1 text-left">Sığmayan Ürünler</span>
+        <span className="text-sm text-foreground flex-1 text-left">Yüklenemeyen Ürünler</span>
         <span className="text-[10px] bg-rose-100 text-rose-600 rounded-full px-1.5 py-0.5 tabular-nums font-medium">
           {totalQty}
         </span>
@@ -172,8 +203,75 @@ export function UnfitItemsPanel({ onFullRemove }: UnfitItemsPanelProps) {
             <span>{totalVolumeM3.toFixed(3)} m³</span>
             <span>·</span>
             <span>{totalWeight.toFixed(1)} kg</span>
+            <button
+              onClick={() => setShowSuggestion((v) => !v)}
+              className={cn(
+                'ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors shrink-0',
+                showSuggestion
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+              )}
+            >
+              <Lightbulb className="w-3 h-3" />
+              Araç Öner
+            </button>
           </div>
-          <div className="max-h-48 overflow-y-auto p-1 flex flex-col gap-0.5">
+
+          {showSuggestion && (
+            <div className="mx-2 mt-1.5 mb-0.5 p-2.5 rounded-lg border border-border bg-muted/30 flex flex-col gap-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                Önerilen Araç
+              </p>
+              {suggestedVehicle ? (
+                <div className="flex items-center gap-2">
+                  <Truck
+                    className="w-3.5 h-3.5 shrink-0 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground truncate">{suggestedVehicle.name}</p>
+                    <p className="text-[10px] text-muted-foreground tabular-nums">
+                      {suggestedVehicle.length}×{suggestedVehicle.width}×{suggestedVehicle.height}{' '}
+                      cm ·{' '}
+                      {(
+                        (suggestedVehicle.width *
+                          suggestedVehicle.height *
+                          suggestedVehicle.length) /
+                        1_000_000
+                      ).toFixed(1)}{' '}
+                      m³
+                    </p>
+                  </div>
+                  {onAddSuggestedVehicle && (
+                    <Button
+                      size="sm"
+                      disabled={isAddingVehicle}
+                      onClick={async () => {
+                        setIsAddingVehicle(true);
+                        try {
+                          await onAddSuggestedVehicle(suggestedVehicle);
+                          setShowSuggestion(false);
+                        } finally {
+                          setIsAddingVehicle(false);
+                        }
+                      }}
+                      className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80 shrink-0"
+                    >
+                      {isAddingVehicle ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        'Ekle'
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Katalogda uygun araç bulunamadı.</p>
+              )}
+            </div>
+          )}
+
+          <div className="max-h-48 overflow-y-auto p-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {unfitItems.map((u) => (
               <UnfitItemRow
                 key={u.item.id}

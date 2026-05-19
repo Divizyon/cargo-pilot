@@ -225,9 +225,10 @@ interface SortableVehicleListItemProps extends Omit<
   'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'
 > {
   id: string;
+  showDragHandle?: boolean;
 }
 
-function SortableVehicleListItem({ id, ...itemProps }: SortableVehicleListItemProps) {
+function SortableVehicleListItem({ id, showDragHandle = true, ...itemProps }: SortableVehicleListItemProps) {
   const {
     attributes,
     listeners,
@@ -246,9 +247,9 @@ function SortableVehicleListItem({ id, ...itemProps }: SortableVehicleListItemPr
     >
       <VehicleListItem
         {...itemProps}
-        dragHandleRef={setActivatorNodeRef}
-        dragHandleListeners={listeners as Record<string, unknown>}
-        dragHandleAttributes={attributes as unknown as Record<string, unknown>}
+        dragHandleRef={showDragHandle ? setActivatorNodeRef : undefined}
+        dragHandleListeners={showDragHandle ? (listeners as Record<string, unknown>) : undefined}
+        dragHandleAttributes={showDragHandle ? (attributes as unknown as Record<string, unknown>) : undefined}
       />
     </div>
   );
@@ -802,7 +803,7 @@ export function PlanRightPanel({
 
           {/* Tab: Seçili Araç içeriği */}
           {(readOnly || activeVehicleTab === 'selected') && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {selectedVehicles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
                   <Truck className="w-8 h-8 text-muted-foreground/30" />
@@ -860,7 +861,7 @@ export function PlanRightPanel({
 
           {/* Tab: Araç Listesi içeriği */}
           {!readOnly && activeVehicleTab === 'list' && (
-            <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {vehiclesLoading ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -894,6 +895,7 @@ export function PlanRightPanel({
                         vehicle={v}
                         isSelected={selectedVehicleIds.has(v.id)}
                         onAddToSelected={handleSelectVehicle}
+                        showDragHandle={false}
                       />
                     ))}
                   </SortableContext>

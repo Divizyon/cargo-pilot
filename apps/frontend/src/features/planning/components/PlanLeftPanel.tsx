@@ -54,6 +54,7 @@ import { StepAnimationControls } from './scene/StepAnimationControls';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
+import type { Vehicle } from '@/lib/types/vehicle';
 import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
 import {
   AlertDialog,
@@ -545,9 +546,10 @@ function StoreItemRow({
 
 interface PlanLeftPanelProps {
   planId?: string;
+  onAddSuggestedVehicle?: (vehicle: Vehicle) => Promise<void>;
 }
 
-export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
+export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelProps) {
   const readOnly = useReadOnly();
   const navigate = useNavigate();
   const { mutateAsync: deleteGroupApi } = useDeletePlanGroup();
@@ -1167,7 +1169,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       </div>
 
       {/* Scrollable area */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {itemsLoading && (
           <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1744,6 +1746,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
       )}
 
       <UnfitItemsPanel
+        onAddSuggestedVehicle={onAddSuggestedVehicle}
         onFullRemove={(itemId) => {
           removeItem(itemId);
           setGroups((prev) =>

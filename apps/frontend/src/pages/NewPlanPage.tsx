@@ -19,6 +19,7 @@ import {
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { planningDetailRoute } from '@/lib/config/routes';
+import type { Vehicle } from '@/lib/types/vehicle';
 
 // ─── PlanAutoLoader ───────────────────────────────────────────────────────────
 
@@ -340,6 +341,14 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     setAnimationReady(true);
   }, [fromPlanId, reoptimizePlan, setAnimationReady]);
 
+  const handleAddSuggestedVehicle = useCallback(
+    async (vehicle: Vehicle) => {
+      usePlanStore.getState().addVehicle(vehicle);
+      await handleReoptimize();
+    },
+    [handleReoptimize],
+  );
+
   return (
     <ReadOnlyContext.Provider value={readOnly}>
       <div className="flex flex-col h-full bg-page-background overflow-hidden">
@@ -370,14 +379,8 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
 
           {/* Plan adı kutusu — sol üst, kamera butonlarıyla simetrik */}
           {!readOnly && (
-            <div
-              className={cn(
-                'absolute top-3 left-0 w-[320px] z-20 px-3',
-                'transition-transform duration-[220ms] ease-out',
-                leftOpen ? 'translate-x-0' : '-translate-x-full',
-              )}
-            >
-              <div className="w-full flex items-center gap-1.5 bg-background rounded-xl border border-border px-2 py-1.5">
+            <div className="absolute top-3 left-0 w-[320px] z-20 px-3">
+              <div className="w-full flex items-center gap-1.5 bg-background rounded-xl border border-border px-2 py-1.5 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-shadow">
                 <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <Input
                   ref={planNameInputRef}
@@ -393,7 +396,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
                     }
                   }}
                   placeholder={fromPlanId ? 'Plan adı' : 'Plan adı girin…'}
-                  className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 text-xs px-0"
+                  className="h-8 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs px-0"
                 />
               </div>
             </div>
@@ -403,13 +406,16 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           <div
             className={cn(
               'absolute bottom-3 left-0 w-[320px] z-10 px-3',
-              !readOnly ? 'top-[60px]' : 'top-3',
+              !readOnly ? 'top-[68px]' : 'top-3',
               'transition-transform duration-[220ms] ease-out',
               leftOpen ? 'translate-x-0' : '-translate-x-full',
             )}
           >
             <div className="h-full bg-background rounded-xl border border-border overflow-hidden">
-              <PlanLeftPanel planId={fromPlanId} />
+              <PlanLeftPanel
+              planId={fromPlanId}
+              onAddSuggestedVehicle={fromPlanId ? handleAddSuggestedVehicle : undefined}
+            />
             </div>
           </div>
 
