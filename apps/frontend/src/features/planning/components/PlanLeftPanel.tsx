@@ -485,7 +485,11 @@ function StoreItemRow({
                               Çıkar
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent side="top" align="end" className="min-w-0 w-auto p-0">
+                          <DropdownMenuContent
+                            side="top"
+                            align="end"
+                            className="min-w-0 w-auto p-0"
+                          >
                             <DropdownMenuItem
                               className="text-[10px] px-2 py-0.5 cursor-pointer"
                               onClick={(e) => {

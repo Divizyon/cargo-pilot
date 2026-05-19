@@ -101,6 +101,7 @@ function PlanAutoLoader({
     data,
     setVehicle,
     initItems,
+    addVehicle,
     setPlacements,
     setUnplacedItems,
     onVehicleSelected,
@@ -233,7 +234,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     navigate(planningDetailRoute(id), { replace: true });
   }, [planNameInput, createPlan, navigate]);
 
-
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
     const {
@@ -284,9 +284,7 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     // Send ALL selected vehicles in their current order — waterfall requires full list
     const { selectedVehicles } = usePlanStore.getState();
     const vehicleIds =
-      selectedVehicles.length > 0
-        ? selectedVehicles.map((e) => e.vehicle.id)
-        : [vehicle.id];
+      selectedVehicles.length > 0 ? selectedVehicles.map((e) => e.vehicle.id) : [vehicle.id];
 
     await reoptimizePlan({
       id: fromPlanId,

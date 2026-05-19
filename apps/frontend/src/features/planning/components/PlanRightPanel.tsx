@@ -614,7 +614,6 @@ export function PlanRightPanel({
     });
   }
 
-
   async function handlePdfExport() {
     if (isPdfLoading) return;
     try {
@@ -845,7 +844,7 @@ export function PlanRightPanel({
                             vehicle={entry.vehicle}
                             label={label}
                             index={idx}
-                            isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
+                            isPrimary={selectedVehicle?.id === entry.vehicle.id}
                             onMakeActive={() => setActiveVehicle(entry.instanceId)}
                             onDeselect={handleDeselectVehicle}
                             onAddInstance={() => handleAddInstance(entry.vehicle)}
@@ -910,35 +909,35 @@ export function PlanRightPanel({
         <div className="px-3 py-2.5 border-b border-border shrink-0 flex items-center justify-between">
           <span className="text-sm text-foreground">Plan Özeti</span>
           <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  if (!planId) {
-                    toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
-                      position: 'bottom-right',
-                    });
-                    return;
-                  }
-                  setShareDialogOpen(true);
-                }}
-                disabled={placements.length === 0}
-                title="Paylaş"
-                className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={handlePdfExport}
-                disabled={isPdfLoading || placements.length === 0}
-                title="PDF Al"
-                className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isPdfLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Printer className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                if (!planId) {
+                  toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
+                    position: 'bottom-right',
+                  });
+                  return;
+                }
+                setShareDialogOpen(true);
+              }}
+              disabled={placements.length === 0}
+              title="Paylaş"
+              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handlePdfExport}
+              disabled={isPdfLoading || placements.length === 0}
+              title="PDF Al"
+              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isPdfLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Printer className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </div>
 
         <PlanSummaryPanel />
@@ -967,7 +966,6 @@ export function PlanRightPanel({
           )}
         </div>
       </div>
-
 
       <OptimizationModal
         open={optimizationModalOpen}

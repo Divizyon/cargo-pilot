@@ -60,6 +60,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
 
   // Reset slider when vehicle changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSliderValue(0);
   }, [vehicle?.id]);
 
@@ -104,7 +105,10 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
       )}
     >
       {/* X-Ray popover */}
-      <Popover open={openPanel === 'xray'} onOpenChange={(o: boolean) => setOpenPanel(o ? 'xray' : null)}>
+      <Popover
+        open={openPanel === 'xray'}
+        onOpenChange={(o: boolean) => setOpenPanel(o ? 'xray' : null)}
+      >
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -147,7 +151,12 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
       </Popover>
 
       {/* Ağırlık Merkezi popover */}
-      <Popover open={openPanel === 'cog'} onOpenChange={(o: boolean) => { if (!o) closePopover(); }}>
+      <Popover
+        open={openPanel === 'cog'}
+        onOpenChange={(o: boolean) => {
+          if (!o) closePopover();
+        }}
+      >
         <PopoverTrigger asChild>
           <button
             type="button"

@@ -484,11 +484,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setActiveVehicle: (instanceId) =>
     set((s) => {
-      if (s.selectedVehicles[0]?.instanceId === instanceId) return {};
       const entry = s.selectedVehicles.find((e) => e.instanceId === instanceId);
       if (!entry) return {};
-      const reordered = [entry, ...s.selectedVehicles.filter((e) => e.instanceId !== instanceId)];
-      return { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
+      if (entry.vehicle.id === s.selectedVehicle?.id) return {};
+      return { selectedVehicle: entry.vehicle };
     }),
 
   updateVehicle: (instanceId, vehicle) =>
