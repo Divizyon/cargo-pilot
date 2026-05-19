@@ -221,7 +221,7 @@ export function SharePage() {
             <span className="text-xs text-muted-foreground">{plan.planName}</span>
           </header>
           <div className="flex-1 min-h-0">
-            <NewPlanPage readOnly={true} />
+            <NewPlanPage />
           </div>
         </div>
       ) : has3DData ? (

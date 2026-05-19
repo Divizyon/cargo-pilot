@@ -24,11 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Container,
-  Crosshair,
-  Eye,
-  EyeOff,
   GripVertical,
-  Layers,
   Loader2,
   Package2,
   Plus,
@@ -41,7 +37,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import { SearchInput } from '@/components/shared/SearchInput';
 import {
@@ -54,11 +49,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils/cn';
 import { usePlanStore } from '@/lib/store/usePlanStore';
-import { useSceneStore } from '@/lib/store/useSceneStore';
 import { OptimizationModal } from './OptimizationModal';
 import { AddVehicleModal } from './AddVehicleModal';
 import { toast } from 'sonner';
-import { SCENE } from '@/lib/config/scene-config';
 import { useDebounce } from '@/lib/utils/useDebounce';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 import {
@@ -70,7 +63,6 @@ import {
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
-import { SelectedBoxPanel } from './SelectedBoxPanel';
 import { ShareLinkDialog } from './ShareLinkDialog';
 import { useReadOnly } from '../ReadOnlyContext';
 
@@ -99,7 +91,6 @@ interface VehicleListItemProps {
   dragHandleListeners?: Record<string, unknown>;
   dragHandleAttributes?: Record<string, unknown>;
   onAddToSelected: (v: Vehicle) => void;
-  onPreview: (v: Vehicle) => void;
   isSelected?: boolean;
 }
 
@@ -109,26 +100,30 @@ function VehicleListItem({
   dragHandleListeners,
   dragHandleAttributes,
   onAddToSelected,
-  onPreview,
   isSelected = false,
 }: VehicleListItemProps) {
   const [expanded, setExpanded] = useState(false);
   const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
   const weightUnit = useUnitStore((s) => s.weightUnit);
   const volumeM3 = ((vehicle.width * vehicle.height * vehicle.length) / 1_000_000).toFixed(1);
+  const VehicleIcon = isContainer ? Package2 : Truck;
 
   return (
     <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-border')}>
+      {/* Header — StoreItemRow ile aynı yapı */}
       <div
-        onClick={() => onPreview(vehicle)}
-        className="group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors hover:bg-accent text-foreground cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors hover:bg-accent',
+          expanded && 'bg-muted/40',
+        )}
       >
         {dragHandleRef && (
           <button
             ref={dragHandleRef}
             {...(dragHandleListeners as HTMLAttributes<HTMLButtonElement>)}
             {...(dragHandleAttributes as HTMLAttributes<HTMLButtonElement>)}
-            className="shrink-0 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none text-muted-foreground/30 hover:text-muted-foreground"
+            className="shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none text-muted-foreground/30 hover:text-muted-foreground"
             title="Sırasını değiştir"
             onClick={(e) => e.stopPropagation()}
           >
@@ -136,80 +131,86 @@ function VehicleListItem({
           </button>
         )}
 
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="relative shrink-0">
-            {isContainer ? (
-              <Package2 className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-            ) : (
-              <Truck className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-            )}
-            {isSelected && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 flex items-center justify-center">
-                <Check className="w-1.5 h-1.5 text-white" strokeWidth={3} />
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm truncate text-foreground">{vehicle.name}</p>
-            <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
-              {vehicle.length}×{vehicle.width}×{vehicle.height} cm
-              {' · '}
-              {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
-            </p>
-          </div>
+        <div className="relative shrink-0">
+          <VehicleIcon className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.5} />
+          {isSelected && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 flex items-center justify-center">
+              <Check className="w-1 h-1 text-white" strokeWidth={3} />
+            </span>
+          )}
         </div>
 
-        <button
-          title="Araç Seç"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddToSelected(vehicle);
-          }}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          <span className="relative">
-            <Truck className="w-3.5 h-3.5" />
-            <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
-          </span>
-        </button>
+        <span className="flex-1 min-w-0 text-xs text-foreground truncate">{vehicle.name}</span>
 
-        <ChevronDown
+        {vehicle.plate?.trim() && (
+          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 font-mono uppercase">
+            {vehicle.plate}
+          </span>
+        )}
+
+        <button
           onClick={(e) => {
             e.stopPropagation();
             setExpanded((v) => !v);
           }}
-          className={cn(
-            'w-3.5 h-3.5 shrink-0 cursor-pointer transition-transform duration-150 text-muted-foreground/50',
-            expanded && 'rotate-180',
-          )}
-        />
+          className="shrink-0 flex items-center justify-center"
+        >
+          <ChevronDown
+            className={cn(
+              'w-3 h-3 text-muted-foreground/50 transition-transform duration-150',
+              expanded && 'rotate-180',
+            )}
+          />
+        </button>
       </div>
 
+      {/* Expanded panel — StoreItemRow ile aynı yapı */}
       {expanded && (
-        <div className="px-3 pt-1.5 pb-2.5 bg-muted/40 border-t border-border">
+        <div className="px-2.5 pt-2 pb-2.5 bg-muted/40 border-t border-border space-y-2">
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {vehicle.length}×{vehicle.width}×{vehicle.height} cm
+            {' · '}
+            {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
+          </p>
+
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-muted-foreground">İç Hacim</span>
-              <span className="text-xs text-muted-foreground">{volumeM3} m³</span>
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[11px] text-muted-foreground">İç Hacim</span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">{volumeM3} m³</span>
             </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-muted-foreground">Araç Tipi</span>
-              <span className="text-xs text-muted-foreground">{vehicle.vehicleType}</span>
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[11px] text-muted-foreground">Araç Tipi</span>
+              <span className="text-[11px] text-muted-foreground">{vehicle.vehicleType}</span>
             </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-muted-foreground">Kapı Yönü</span>
-              <span className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[11px] text-muted-foreground">Kapı Yönü</span>
+              <span className="text-[11px] text-muted-foreground">
                 {DOOR_LABEL[vehicle.doorDirection] ?? vehicle.doorDirection}
               </span>
             </div>
-            {vehicle.plate?.trim() && (
-              <div className="flex items-center justify-between py-1">
-                <span className="text-[10px] text-muted-foreground">Plaka</span>
-                <span className="text-xs text-muted-foreground font-mono uppercase">
-                  {vehicle.plate}
-                </span>
-              </div>
-            )}
+          </div>
+
+          <div className="pt-1 border-t border-border">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToSelected(vehicle);
+              }}
+              title="Plana ekle"
+              className={cn(
+                'flex items-center gap-1.5 text-[11px] transition-colors',
+                isSelected
+                  ? 'text-muted-foreground/40 cursor-not-allowed'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              disabled={isSelected}
+            >
+              <span className="relative inline-flex">
+                <VehicleIcon className="w-3 h-3" strokeWidth={1.5} />
+                <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
+              </span>
+              <span>{isSelected ? 'Eklendi' : 'Ekle'}</span>
+            </button>
           </div>
         </div>
       )}
@@ -253,10 +254,47 @@ function SortableVehicleListItem({ id, ...itemProps }: SortableVehicleListItemPr
   );
 }
 
+// ─── SortableSelectedVehicleCard ─────────────────────────────────────────────
+
+interface SortableSelectedVehicleCardProps extends Omit<
+  SelectedVehicleCardProps,
+  'dragHandleRef' | 'dragHandleListeners' | 'dragHandleAttributes'
+> {
+  id: string;
+}
+
+function SortableSelectedVehicleCard({ id, ...props }: SortableSelectedVehicleCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(isDragging && 'opacity-40 z-50 relative')}
+    >
+      <SelectedVehicleCard
+        {...props}
+        dragHandleRef={setActivatorNodeRef}
+        dragHandleListeners={listeners as Record<string, unknown>}
+        dragHandleAttributes={attributes as unknown as Record<string, unknown>}
+      />
+    </div>
+  );
+}
+
 // ─── PlanSummaryPanel ─────────────────────────────────────────────────────────
 
 function PlanSummaryPanel() {
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
+  const selectedVehicles = usePlanStore((s) => s.selectedVehicles);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
   const weightUnit = useUnitStore((s) => s.weightUnit);
@@ -265,15 +303,40 @@ function PlanSummaryPanel() {
 
   const stats = useMemo(() => {
     if (!selectedVehicle) return null;
+
     const vehicleVol = selectedVehicle.width * selectedVehicle.height * selectedVehicle.length;
+    const vehicleVolM3 = parseFloat((vehicleVol / 1_000_000).toFixed(2));
+    const maxWeight = selectedVehicle.payload ?? selectedVehicle.maxCargoWeight ?? 0;
+
+    const insidePlacements = debouncedPlacements.filter((p) => !p.isStagingArea);
     const weightMap = new Map(selectedItems.map(({ item }) => [item.id, item.weight]));
-    const cargoVolCm3 = debouncedPlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
-    const totalWeight = debouncedPlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
+
+    const cargoVolCm3 = insidePlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
+    const totalWeight = insidePlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
+
     const volumePct =
       vehicleVol > 0 ? Math.min(100, Math.round((cargoVolCm3 / vehicleVol) * 100)) : 0;
-    const remainingM3 = parseFloat(Math.max(0, (vehicleVol - cargoVolCm3) / 1_000_000).toFixed(2));
-    return { volumePct, totalWeight, remainingM3, placedCount: debouncedPlacements.length };
-  }, [debouncedPlacements, selectedVehicle, selectedItems]);
+    const weightPct =
+      maxWeight > 0 ? Math.min(100, Math.round((totalWeight / maxWeight) * 100)) : 0;
+
+    const placedCount = insidePlacements.length;
+    const totalCount = selectedItems.reduce((s, i) => s + i.quantity, 0);
+
+    const usedVehicleCount = insidePlacements.length > 0 ? 1 : 0;
+    const totalVehicleCount = selectedVehicles.length;
+
+    return {
+      vehicleVolM3,
+      maxWeight,
+      volumePct,
+      weightPct,
+      totalWeight,
+      placedCount,
+      totalCount,
+      usedVehicleCount,
+      totalVehicleCount,
+    };
+  }, [debouncedPlacements, selectedVehicle, selectedVehicles, selectedItems]);
 
   if (!stats) {
     return (
@@ -284,18 +347,26 @@ function PlanSummaryPanel() {
   }
 
   const rows = [
-    { label: 'Hacim doluluk', value: `%${stats.volumePct}` },
-    { label: 'Ağırlık', value: formatWeightDisplay(stats.totalWeight, weightUnit) },
-    { label: 'Yerleştirilen kutu', value: `${stats.placedCount} adet` },
-    { label: 'Kalan boş hacim', value: `${stats.remainingM3} m³` },
+    { label: 'Kullanılabilir hacim', value: `${stats.vehicleVolM3} m³` },
+    { label: 'Yüklenebilir ağırlık', value: formatWeightDisplay(stats.maxWeight, weightUnit) },
+    { label: 'Hacim oranı', value: `%${stats.volumePct}` },
+    { label: 'Ağırlık oranı', value: `%${stats.weightPct}` },
+    {
+      label: 'Yerleştirilen ürün',
+      value: `${stats.placedCount} / ${stats.totalCount} adet`,
+    },
+    {
+      label: 'Kullanılan araç',
+      value: `${stats.usedVehicleCount} / ${stats.totalVehicleCount}`,
+    },
   ];
 
   return (
     <div className="px-3 py-2 flex flex-col gap-0.5">
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between py-1">
-          <span className="text-[10px] text-muted-foreground">{r.label}</span>
-          <span className="text-xs text-muted-foreground">{r.value}</span>
+          <span className="text-xs text-muted-foreground">{r.label}</span>
+          <span className="text-xs tabular-nums text-muted-foreground">{r.value}</span>
         </div>
       ))}
     </div>
@@ -307,7 +378,12 @@ function PlanSummaryPanel() {
 interface SelectedVehicleCardProps {
   instanceId: string;
   vehicle: Vehicle;
+  label: string;
+  index: number;
   isPrimary: boolean;
+  dragHandleRef?: (el: HTMLElement | null) => void;
+  dragHandleListeners?: Record<string, unknown>;
+  dragHandleAttributes?: Record<string, unknown>;
   onMakeActive: () => void;
   onDeselect: (instanceId: string) => void;
   onAddInstance: () => void;
@@ -316,7 +392,12 @@ interface SelectedVehicleCardProps {
 function SelectedVehicleCard({
   instanceId,
   vehicle,
+  label,
+  index,
   isPrimary,
+  dragHandleRef,
+  dragHandleListeners,
+  dragHandleAttributes,
   onMakeActive,
   onDeselect,
   onAddInstance,
@@ -328,92 +409,115 @@ function SelectedVehicleCard({
 
   return (
     <div className={cn('rounded-lg overflow-hidden', expanded && 'ring-1 ring-border')}>
+      {/* Header */}
       <div
         onClick={() => {
-          if (!isPrimary) onMakeActive();
+          if (!isPrimary) {
+            onMakeActive();
+          } else {
+            setExpanded((v) => !v);
+          }
         }}
         className={cn(
-          'group/item flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors text-foreground',
-          isPrimary ? 'bg-muted ring-1 ring-border' : 'hover:bg-accent cursor-pointer',
+          'flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none transition-colors hover:bg-accent',
+          isPrimary && 'bg-muted/40',
           expanded && 'bg-muted/40',
         )}
       >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <Truck className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={2} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm truncate text-foreground">{vehicle.name}</p>
-            <p className="text-[10px] tabular-nums mt-0.5 text-muted-foreground">
-              {vehicle.length}×{vehicle.width}×{vehicle.height} cm
-              {' · '}
-              {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
-            </p>
-          </div>
-        </div>
-        {!readOnly && (
-          <>
-            <button
-              title="Bir tane daha ekle"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddInstance();
-              }}
-              className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
-            >
-              <span className="relative">
-                <Truck className="w-3.5 h-3.5" />
-                <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
-              </span>
-            </button>
-            <button
-              title="Listeden çıkar"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeselect(instanceId);
-              }}
-              className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity text-muted-foreground hover:text-rose-600 hover:bg-rose-50"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </>
+        {/* Drag handle */}
+        {dragHandleRef && (
+          <button
+            ref={dragHandleRef}
+            {...(dragHandleListeners as HTMLAttributes<HTMLButtonElement>)}
+            {...(dragHandleAttributes as HTMLAttributes<HTMLButtonElement>)}
+            className="shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none text-muted-foreground/30 hover:text-muted-foreground"
+            title="Sırayı değiştir"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
         )}
-        <ChevronDown
+        <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 w-4 text-right">
+          {index + 1}.
+        </span>
+        <Truck className="w-3.5 h-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+        <span className="flex-1 min-w-0 text-xs text-foreground truncate">{label}</span>
+        {vehicle.plate?.trim() && (
+          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 font-mono uppercase">
+            {vehicle.plate}
+          </span>
+        )}
+        <button
           onClick={(e) => {
             e.stopPropagation();
             setExpanded((v) => !v);
           }}
-          className={cn(
-            'w-3.5 h-3.5 shrink-0 cursor-pointer transition-transform duration-150 text-muted-foreground/50',
-            expanded && 'rotate-180',
-          )}
-        />
+          className="shrink-0 flex items-center justify-center"
+        >
+          <ChevronDown
+            className={cn(
+              'w-3 h-3 text-muted-foreground/50 transition-transform duration-150',
+              expanded && 'rotate-180',
+            )}
+          />
+        </button>
       </div>
 
+      {/* Expanded panel — StoreItemRow ile aynı yapı */}
       {expanded && (
-        <div className="px-2.5 pt-2 pb-2.5 bg-muted/40 border-t border-border">
+        <div className="px-2.5 pt-2 pb-2.5 bg-muted/40 border-t border-border space-y-2">
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {vehicle.length}×{vehicle.width}×{vehicle.height} cm
+            {' · '}
+            {formatWeightDisplay(vehicle.payload ?? vehicle.maxCargoWeight, weightUnit)}
+          </p>
+
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-muted-foreground">İç Hacim</span>
-              <span className="text-xs text-muted-foreground">{volumeM3} m³</span>
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[11px] text-muted-foreground">İç Hacim</span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">{volumeM3} m³</span>
             </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-muted-foreground">Araç Tipi</span>
-              <span className="text-xs text-muted-foreground">{vehicle.vehicleType}</span>
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[11px] text-muted-foreground">Araç Tipi</span>
+              <span className="text-[11px] text-muted-foreground">{vehicle.vehicleType}</span>
             </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-muted-foreground">Kapı Yönü</span>
-              <span className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[11px] text-muted-foreground">Kapı Yönü</span>
+              <span className="text-[11px] text-muted-foreground">
                 {DOOR_LABEL[vehicle.doorDirection] ?? vehicle.doorDirection}
               </span>
             </div>
-            {vehicle.plate?.trim() && (
-              <div className="flex items-center justify-between py-1">
-                <span className="text-[10px] text-muted-foreground">Plaka</span>
-                <span className="text-xs text-muted-foreground font-mono uppercase">
-                  {vehicle.plate}
-                </span>
-              </div>
-            )}
           </div>
+
+          {!readOnly && (
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddInstance();
+                }}
+                title="Bir tane daha ekle"
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="relative inline-flex">
+                  <Truck className="w-3 h-3" />
+                  <Plus className="absolute -top-1 -right-1 w-2 h-2" strokeWidth={3} />
+                </span>
+                <span>Ekle</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeselect(instanceId);
+                }}
+                title="Listeden çıkar"
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                <span>Çıkar</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -426,7 +530,6 @@ interface PlanRightPanelProps {
   vehiclesOpen?: boolean;
   onToggleVehicles?: () => void;
   onOptimize?: () => void;
-  onLoadAnimation?: () => void;
   isOptimizing?: boolean;
   canOptimize?: boolean;
   getSnapshot?: () => string;
@@ -438,7 +541,6 @@ export function PlanRightPanel({
   vehiclesOpen = true,
   onToggleVehicles,
   onOptimize,
-  onLoadAnimation,
   isOptimizing = false,
   canOptimize = true,
   planId,
@@ -448,20 +550,13 @@ export function PlanRightPanel({
   const readOnly = useReadOnly();
   const navigate = useNavigate();
   const addVehicle = usePlanStore((s) => s.addVehicle);
-  const peekVehicle = usePlanStore((s) => s.peekVehicle);
   const removeVehicle = usePlanStore((s) => s.removeVehicle);
   const setActiveVehicle = usePlanStore((s) => s.setActiveVehicle);
+  const reorderVehicles = usePlanStore((s) => s.reorderVehicles);
   const selectedVehicle = usePlanStore((s) => s.selectedVehicle);
   const selectedVehicles = usePlanStore((s) => s.selectedVehicles);
   const placements = usePlanStore((s) => s.placements);
   const selectedItems = usePlanStore((s) => s.selectedItems);
-  const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
-  const showCog = useSceneStore((s) => s.showCog);
-  const toggleShowCog = useSceneStore((s) => s.toggleShowCog);
-  const xRayMode = useSceneStore((s) => s.xRayMode);
-  const toggleXRayMode = useSceneStore((s) => s.toggleXRayMode);
-  const setActiveLayer = useSceneStore((s) => s.setActiveLayer);
-
   const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles();
   const vehicles = useMemo(() => vehiclesData?.items ?? [], [vehiclesData]);
   const pendingSelectIdRef = useRef<string | null>(null);
@@ -475,12 +570,6 @@ export function PlanRightPanel({
   const [optimizationModalOpen, setOptimizationModalOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [xrayPanelOpen, setXrayPanelOpen] = useState(false);
-  const [sliderValue, setSliderValue] = useState(0);
-  const xrayPanelRef = useRef<HTMLDivElement>(null);
-  const debouncedSlider = useDebounce(sliderValue, 80);
-  const sliderMax = selectedVehicle?.length ?? 100;
-  const sliderPct = sliderMax > 0 ? Math.round((sliderValue / sliderMax) * 100) : 0;
 
   useEffect(() => {
     if (vehicles.length === 0) return;
@@ -524,26 +613,6 @@ export function PlanRightPanel({
       return arrayMove(ids, oldIndex, newIndex);
     });
   }
-
-  useEffect(() => {
-    setActiveLayer(debouncedSlider);
-  }, [debouncedSlider, setActiveLayer]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSliderValue(0);
-  }, [selectedVehicle?.id]);
-
-  useEffect(() => {
-    if (!xrayPanelOpen) return;
-    function handleOutside(e: MouseEvent) {
-      if (xrayPanelRef.current && !xrayPanelRef.current.contains(e.target as Node)) {
-        setXrayPanelOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [xrayPanelOpen]);
 
   async function handlePdfExport() {
     if (isPdfLoading) return;
@@ -740,19 +809,51 @@ export function PlanRightPanel({
                   <p className="text-xs text-muted-foreground">Henüz araç seçilmedi</p>
                 </div>
               ) : (
-                <div className="p-2 flex flex-col gap-0.5">
-                  {selectedVehicles.map((entry) => (
-                    <SelectedVehicleCard
-                      key={entry.instanceId}
-                      instanceId={entry.instanceId}
-                      vehicle={entry.vehicle}
-                      isPrimary={selectedVehicles[0]?.instanceId === entry.instanceId}
-                      onMakeActive={() => setActiveVehicle(entry.instanceId)}
-                      onDeselect={handleDeselectVehicle}
-                      onAddInstance={() => handleAddInstance(entry.vehicle)}
-                    />
-                  ))}
-                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event: DragEndEvent) => {
+                    const { active, over } = event;
+                    if (!over || active.id === over.id) return;
+                    reorderVehicles(active.id as string, over.id as string);
+                  }}
+                >
+                  <SortableContext
+                    items={selectedVehicles.map((e) => e.instanceId)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="p-2 flex flex-col gap-0.5">
+                      {selectedVehicles.map((entry, idx) => {
+                        const sameVehicles = selectedVehicles.filter(
+                          (e) => e.vehicle.id === entry.vehicle.id,
+                        );
+                        const instanceNum =
+                          sameVehicles.length > 1
+                            ? sameVehicles.findIndex((e) => e.instanceId === entry.instanceId) + 1
+                            : 0;
+                        const label =
+                          instanceNum > 0
+                            ? `${entry.vehicle.name} #${instanceNum}`
+                            : entry.vehicle.name;
+
+                        return (
+                          <SortableSelectedVehicleCard
+                            key={entry.instanceId}
+                            id={entry.instanceId}
+                            instanceId={entry.instanceId}
+                            vehicle={entry.vehicle}
+                            label={label}
+                            index={idx}
+                            isPrimary={selectedVehicle?.id === entry.vehicle.id}
+                            onMakeActive={() => setActiveVehicle(entry.instanceId)}
+                            onDeselect={handleDeselectVehicle}
+                            onAddInstance={() => handleAddInstance(entry.vehicle)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           )}
@@ -793,7 +894,6 @@ export function PlanRightPanel({
                         vehicle={v}
                         isSelected={selectedVehicleIds.has(v.id)}
                         onAddToSelected={handleSelectVehicle}
-                        onPreview={peekVehicle}
                       />
                     ))}
                   </SortableContext>
@@ -806,13 +906,43 @@ export function PlanRightPanel({
 
       {/* ── Kutu 2: Plan Özeti + aksiyonlar */}
       <div className="bg-background rounded-xl border border-border overflow-hidden shrink-0 flex flex-col">
-        <div className="px-3 py-2.5 border-b border-border shrink-0">
+        <div className="px-3 py-2.5 border-b border-border shrink-0 flex items-center justify-between">
           <span className="text-sm text-foreground">Plan Özeti</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                if (!planId) {
+                  toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
+                    position: 'bottom-right',
+                  });
+                  return;
+                }
+                setShareDialogOpen(true);
+              }}
+              disabled={placements.length === 0}
+              title="Paylaş"
+              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handlePdfExport}
+              disabled={isPdfLoading || placements.length === 0}
+              title="PDF Al"
+              className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isPdfLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Printer className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </div>
 
         <PlanSummaryPanel />
 
-        {!selectedVehicle && selectedInstanceId === null && (
+        {!selectedVehicle && (
           <div className="flex flex-col items-center justify-center gap-2 text-center py-4 border-t border-border">
             <Box className="w-8 h-8 text-muted-foreground/30" />
             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -823,130 +953,7 @@ export function PlanRightPanel({
           </div>
         )}
 
-        {selectedInstanceId !== null && (
-          <div className="border-t border-border overflow-y-auto shrink-0 max-h-[220px]">
-            <SelectedBoxPanel />
-          </div>
-        )}
-
         <div className="px-3 pt-3 pb-3 border-t border-border shrink-0 flex flex-col gap-2">
-          {/* Analysis & export row */}
-          <div className="relative" ref={xrayPanelRef}>
-            <div className="grid grid-cols-4 gap-1">
-              <button
-                onClick={toggleShowCog}
-                title="Ağırlık Merkezi"
-                className={cn(
-                  'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                  showCog
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                )}
-              >
-                <Crosshair className="w-3.5 h-3.5" />
-                <span className="leading-tight text-center">
-                  Ağırlık
-                  <br />
-                  Merkezi
-                </span>
-              </button>
-
-              <button
-                onClick={() => setXrayPanelOpen((v) => !v)}
-                title="X-Ray Modu"
-                className={cn(
-                  'flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors',
-                  xRayMode || xrayPanelOpen
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                )}
-              >
-                {xRayMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                <span>X-Ray</span>
-              </button>
-
-              {!readOnly && (
-                <button
-                  onClick={() => {
-                    if (!planId) {
-                      toast.info('Planı paylaşmak için önce "Optimizasyonu Başlat" ile kaydedin.', {
-                        position: 'bottom-right',
-                      });
-                      return;
-                    }
-                    setShareDialogOpen(true);
-                  }}
-                  disabled={placements.length === 0}
-                  title="Paylaş"
-                  className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Paylaş</span>
-                </button>
-              )}
-
-              <button
-                onClick={handlePdfExport}
-                disabled={isPdfLoading || placements.length === 0}
-                title="PDF Al"
-                className="flex flex-col items-center gap-0.5 py-1.5 rounded-md text-[10px] border transition-colors bg-background text-muted-foreground border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isPdfLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Printer className="w-3.5 h-3.5" />
-                )}
-                <span>PDF Al</span>
-              </button>
-            </div>
-
-            {/* X-Ray floating panel */}
-            {xrayPanelOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-1.5 z-50 rounded-xl border border-border bg-background shadow-lg p-3 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground">X-Ray Modu</span>
-                  <button
-                    type="button"
-                    onClick={toggleXRayMode}
-                    className={cn(
-                      'flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-medium transition-colors',
-                      xRayMode
-                        ? 'bg-foreground text-background border-foreground hover:bg-foreground/80'
-                        : 'bg-background text-muted-foreground border-border hover:bg-accent',
-                    )}
-                  >
-                    {xRayMode ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                    {xRayMode ? 'Kapat' : 'Aç'}
-                  </button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Layers className="h-3.5 w-3.5" />
-                      <span>Derinlik Filtresi</span>
-                    </div>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {sliderPct > 0 ? `${sliderPct}%` : 'Hepsi'}
-                    </span>
-                  </div>
-                  <Slider
-                    min={0}
-                    max={sliderMax}
-                    step={SCENE.LEVEL_FILTER_STEP_CM}
-                    value={[sliderValue]}
-                    onValueChange={(values: number[]) => setSliderValue(values[0])}
-                    disabled={!selectedVehicle}
-                  />
-                  {!selectedVehicle && (
-                    <p className="text-[10px] text-muted-foreground">
-                      Araç seçilmeden kullanılamaz
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
           {!readOnly && (
             <Button
               className="w-full bg-foreground text-background hover:bg-foreground/80 disabled:opacity-40"
@@ -955,11 +962,6 @@ export function PlanRightPanel({
             >
               <Zap className="mr-2 h-3.5 w-3.5" />
               Yükle
-            </Button>
-          )}
-          {placements.length > 0 && (
-            <Button variant="outline" className="w-full" onClick={onLoadAnimation}>
-              Yükleme Animasyonunu Başlat
             </Button>
           )}
         </div>

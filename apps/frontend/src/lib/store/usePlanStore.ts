@@ -326,11 +326,16 @@ interface PlanStore {
   allowContamination: boolean;
   placements: PlacementWithDimensions[];
   unfitItems: UnfitItem[];
+  /** Optimizasyon tamamlandığında artar — BalancePanel dismiss sıfırlamak için kullanır */
+  optimizationCount: number;
   previewItemId: string | null;
   previewPlacements: PlacementWithDimensions[];
+  /** Çoklu araç görünümünde aktif araç — null ise tüm araçlar gösterilir */
+  activeVehicleId: string | null;
   inlineGroups: InlineGroup[];
   setInlineGroups: (groups: InlineGroup[]) => void;
   setVehicle: (vehicle: Vehicle | null) => void;
+  setActiveVehicleId: (id: string | null) => void;
   /** Show vehicle in 3D without adding to selectedVehicles list. */
   peekVehicle: (vehicle: Vehicle) => void;
   addVehicle: (vehicle: Vehicle) => void;
@@ -351,6 +356,8 @@ interface PlanStore {
    * - If not (catalog-only item) → update info only.
    */
   updateItem: (itemId: string, item: Item, qty: number, color: string) => void;
+  /** Update only the quantity in selectedItems without touching placements. */
+  updateItemQtyOnly: (itemId: string, qty: number) => void;
   removeItem: (itemId: string) => void;
   /**
    * Toggle placement for a catalog item.
@@ -377,6 +384,7 @@ interface PlanStore {
   mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
   reorderItems: (activeId: string, overId: string) => void;
+  reorderVehicles: (activeId: string, overId: string) => void;
   removeUnfitItem: (itemId: string) => void;
   retryUnfitItem: (itemId: string) => void;
   setPreview: (itemId: string, item: Item, qty: number, color: string) => void;
@@ -423,10 +431,14 @@ export const usePlanStore = create<PlanStore>((set) => ({
   allowContamination: false,
   placements: [],
   unfitItems: [],
+  optimizationCount: 0,
   previewItemId: null,
   previewPlacements: [],
+  activeVehicleId: null,
   inlineGroups: [],
   setInlineGroups: (groups) => set({ inlineGroups: groups }),
+
+  setActiveVehicleId: (id) => set({ activeVehicleId: id }),
 
   setVehicle: (vehicle) =>
     set((s) => {
@@ -472,15 +484,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setActiveVehicle: (instanceId) =>
     set((s) => {
-      if (s.selectedVehicles[0]?.instanceId === instanceId) return {};
       const entry = s.selectedVehicles.find((e) => e.instanceId === instanceId);
       if (!entry) return {};
-      const reordered = [entry, ...s.selectedVehicles.filter((e) => e.instanceId !== instanceId)];
-      if (entry.vehicle.id === s.selectedVehicle?.id) return { selectedVehicles: reordered };
-      const rebuild = rebuildForVehicle(entry.vehicle, s);
-      return rebuild
-        ? { selectedVehicle: entry.vehicle, selectedVehicles: reordered, ...rebuild }
-        : { selectedVehicle: entry.vehicle, selectedVehicles: reordered };
+      if (entry.vehicle.id === s.selectedVehicle?.id) return {};
+      return { selectedVehicle: entry.vehicle };
     }),
 
   updateVehicle: (instanceId, vehicle) =>
@@ -565,6 +572,44 @@ export const usePlanStore = create<PlanStore>((set) => ({
       };
     }),
 
+  updateItemQtyOnly: (itemId, qty) =>
+    set((s) => {
+      const updatedItems = s.selectedItems.map((si) =>
+        si.item.id === itemId ? { ...si, quantity: qty } : si,
+      );
+      const itemPlacements = s.placements.filter((p) => p.itemId === itemId);
+      const currentCount = itemPlacements.length;
+
+      if (currentCount === 0 || !s.selectedVehicle) {
+        return { selectedItems: updatedItems };
+      }
+
+      if (qty > currentCount) {
+        const entry = s.selectedItems.find((si) => si.item.id === itemId);
+        if (!entry) return { selectedItems: updatedItems };
+        const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+        const extras = buildStagingPlacements(
+          entry.item,
+          qty - currentCount,
+          color,
+          s.selectedVehicle.width,
+          s.placements,
+        );
+        return { selectedItems: updatedItems, placements: [...s.placements, ...extras] };
+      }
+
+      if (qty < currentCount) {
+        let itemIdx = 0;
+        const nextPlacements = s.placements.filter((p) => {
+          if (p.itemId !== itemId) return true;
+          return itemIdx++ < qty;
+        });
+        return { selectedItems: updatedItems, placements: nextPlacements };
+      }
+
+      return { selectedItems: updatedItems };
+    }),
+
   removeItem: (itemId) =>
     set((s) => ({
       selectedItems: s.selectedItems.filter((si) => si.item.id !== itemId),
@@ -600,34 +645,70 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setPlacements: (placements) =>
     set((s) => {
       const itemIdToSku = new Map(s.selectedItems.map(({ item }) => [item.id, item.sku]));
+      const coloredPlacements = placements.map((p) => {
+        const sku = itemIdToSku.get(p.itemId);
+        const mappedColor = sku ? s.skuColorMap[sku] : undefined;
+        return { ...p, color: mappedColor ?? p.color };
+      });
+
+      const placedItemIds = new Set(placements.map((p) => p.itemId));
+      const keptStaging = s.placements.filter(
+        (p) => p.isStagingArea && !placedItemIds.has(p.itemId),
+      );
+
       return {
-        placements: computeViolations(
-          placements.map((p) => {
-            const sku = itemIdToSku.get(p.itemId);
-            const mappedColor = sku ? s.skuColorMap[sku] : undefined;
-            return { ...p, color: mappedColor ?? p.color };
-          }),
-        ),
+        placements: [...computeViolations(coloredPlacements), ...keptStaging],
+        unfitItems: [],
+        optimizationCount: s.optimizationCount + 1,
       };
     }),
   setUnplacedItems: (items) =>
     set((s) => {
-      if (!s.selectedVehicle || items.length === 0) return {};
-      let stagingPlacements = [...s.placements];
-      for (const u of items) {
-        const entry = s.selectedItems.find((si) => si.item.id === u.itemId);
-        if (!entry) continue;
-        const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
-        const staged = buildStagingPlacements(
-          entry.item,
-          u.quantity,
-          color,
-          s.selectedVehicle.width,
-          stagingPlacements,
-        );
-        stagingPlacements = [...stagingPlacements, ...staged];
+      const reasonMap: Record<number, UnfitReason> = {
+        2: UnfitReasonConst.Weight,
+        3: UnfitReasonConst.Stacking,
+      };
+      const newUnfitItems: UnfitItem[] = items
+        .map((u) => {
+          const found = s.selectedItems.find((si) => si.item.id === u.itemId);
+          if (!found) return null;
+          return {
+            item: found.item,
+            quantity: u.quantity,
+            reason: reasonMap[u.reason] ?? UnfitReasonConst.Volume,
+          } satisfies UnfitItem;
+        })
+        .filter((x): x is UnfitItem => x !== null);
+
+      // Build staging placements for unfit items that have no placement at all
+      // (e.g. items that were inside the container in the previous run but now don't fit)
+      const missingStaging = newUnfitItems.filter(
+        (u) => !s.placements.some((p) => p.itemId === u.item.id),
+      );
+      let extraStagingPlacements: PlacementWithDimensions[] = [];
+      if (missingStaging.length > 0 && s.selectedVehicle) {
+        let accumulated = s.placements;
+        for (const u of missingStaging) {
+          const color = s.skuColorMap[u.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+          const staged = buildStagingPlacements(
+            u.item,
+            u.quantity,
+            color,
+            s.selectedVehicle.width,
+            accumulated,
+          );
+          accumulated = [...accumulated, ...staged];
+          extraStagingPlacements = [...extraStagingPlacements, ...staged];
+        }
       }
-      return { placements: stagingPlacements };
+
+      return {
+        unfitItems: newUnfitItems,
+        placements:
+          extraStagingPlacements.length > 0
+            ? [...s.placements, ...extraStagingPlacements]
+            : s.placements,
+      };
     }),
 
   mockPlacements: (count) =>
@@ -704,6 +785,22 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const insertIdx = oldIdx < newIdx ? newIdx - 1 : newIdx;
       items.splice(insertIdx, 0, removed);
       return { selectedItems: items };
+    }),
+
+  reorderVehicles: (activeId, overId) =>
+    set((s) => {
+      const list = [...s.selectedVehicles];
+      const oldIdx = list.findIndex((e) => e.instanceId === activeId);
+      const newIdx = list.findIndex((e) => e.instanceId === overId);
+      if (oldIdx === -1 || newIdx === -1) return {};
+      const [removed] = list.splice(oldIdx, 1);
+      list.splice(newIdx, 0, removed);
+      const newPrimary = list[0]?.vehicle ?? null;
+      if (newPrimary?.id === s.selectedVehicle?.id) return { selectedVehicles: list };
+      const rebuild = newPrimary ? rebuildForVehicle(newPrimary, s) : null;
+      return rebuild
+        ? { selectedVehicles: list, selectedVehicle: newPrimary, ...rebuild }
+        : { selectedVehicles: list, selectedVehicle: newPrimary };
     }),
 
   removeUnfitItem: (itemId) =>
@@ -785,8 +882,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
       allowContamination: false,
       placements: [],
       unfitItems: [],
+      optimizationCount: 0,
       previewItemId: null,
       previewPlacements: [],
+      activeVehicleId: null,
       inlineGroups: [],
     }),
 }));
