@@ -11,9 +11,12 @@ import { formatDate, formatTimestamp } from '@/lib/utils/pdfDateUtils';
 // Latin-1 and render as garbage. Replace with nearest ASCII equivalents.
 function s(text: string): string {
   return text
-    .replace(/ı/g, 'i').replace(/İ/g, 'I')
-    .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
-    .replace(/ş/g, 's').replace(/Ş/g, 'S');
+    .replace(/ı/g, 'i')
+    .replace(/İ/g, 'I')
+    .replace(/ğ/g, 'g')
+    .replace(/Ğ/g, 'G')
+    .replace(/ş/g, 's')
+    .replace(/Ş/g, 'S');
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────

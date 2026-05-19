@@ -95,7 +95,9 @@ export function DashboardStatsCards() {
   }, [effectivePlans, vehiclesData]);
 
   const trendData = useMemo(() => {
-    return effectivePlans.length > 0 ? computeWeeklyTrend(effectivePlans) : WEEKLY_TREND_PLACEHOLDER;
+    return effectivePlans.length > 0
+      ? computeWeeklyTrend(effectivePlans)
+      : WEEKLY_TREND_PLACEHOLDER;
   }, [effectivePlans]);
 
   const vehicleSubInfo =

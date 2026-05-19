@@ -224,7 +224,8 @@ function mapStatus(
   if (raw == null) return 'taslak';
   if (typeof raw === 'string') {
     const s = raw.toLowerCase();
-    if (s === 'calculated' || s === 'completed' || s === 'tamamlandi' || s === 'done') return 'tamamlandi';
+    if (s === 'calculated' || s === 'completed' || s === 'tamamlandi' || s === 'done')
+      return 'tamamlandi';
     if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing') return 'aktif';
     if (s === 'failed' || s === 'cancelled' || s === 'canceled' || s === 'iptal') return 'iptal';
     return 'taslak';

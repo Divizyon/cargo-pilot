@@ -166,100 +166,103 @@ function ReportRow({ report, thumbnailUrl }: ReportRowProps) {
 
   return (
     <>
-    <TableRow
-      className="h-14 cursor-pointer"
-      onClick={() => void navigate(`/reports/${report.id}`)}
-    >
-      <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <div className="flex items-center gap-2">
-          {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt=""
-              className="h-9 w-14 shrink-0 rounded object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="h-9 w-14 shrink-0 rounded bg-muted/40" />
-          )}
-          <span
-            className="block truncate text-xs font-medium text-foreground"
-            title={report.planName}
-          >
-            {report.planName}
-          </span>
-        </div>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <span className="text-xs text-muted-foreground">
-          {dateFormatter.format(new Date(report.date))}
-        </span>
-      </TableCell>
-
-      <TableCell className={cn(cell, 'max-w-[128px]')}>
-        <span className="block truncate text-xs text-muted-foreground" title={report.vehiclePlate}>
-          {report.vehiclePlate}
-        </span>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <StatusBadge status={report.status} />
-      </TableCell>
-
-      <TableCell className={cell}>
-        <div className="flex items-center gap-2">
-          <Progress value={report.fillRate} className="h-1.5 flex-1" />
-          <span
-            className={cn(
-              'w-9 shrink-0 text-right font-mono text-xs font-medium',
-              fillRateColor(report.fillRate),
-            )}
-          >
-            %{report.fillRate}
-          </span>
-        </div>
-      </TableCell>
-
-      <TableCell className={cell}>
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="PDF İndir"
-            disabled={isPending}
-            className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
-            onClick={handleDownload}
-          >
-            {isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      <TableRow
+        className="h-14 cursor-pointer"
+        onClick={() => void navigate(`/reports/${report.id}`)}
+      >
+        <TableCell className={cn(cell, 'max-w-[176px]')}>
+          <div className="flex items-center gap-2">
+            {thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt=""
+                className="h-9 w-14 shrink-0 rounded object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
             ) : (
-              <FileDown className="h-3.5 w-3.5" />
+              <div className="h-9 w-14 shrink-0 rounded bg-muted/40" />
             )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Paylaş"
-            className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShareOpen(true);
-            }}
+            <span
+              className="block truncate text-xs font-medium text-foreground"
+              title={report.planName}
+            >
+              {report.planName}
+            </span>
+          </div>
+        </TableCell>
+
+        <TableCell className={cell}>
+          <span className="text-xs text-muted-foreground">
+            {dateFormatter.format(new Date(report.date))}
+          </span>
+        </TableCell>
+
+        <TableCell className={cn(cell, 'max-w-[128px]')}>
+          <span
+            className="block truncate text-xs text-muted-foreground"
+            title={report.vehiclePlate}
           >
-            <Share2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-    <ShareLinkDialog
-      open={shareOpen}
-      onOpenChange={setShareOpen}
-      planId={report.id}
-      planName={report.planName}
-    />
+            {report.vehiclePlate}
+          </span>
+        </TableCell>
+
+        <TableCell className={cell}>
+          <StatusBadge status={report.status} />
+        </TableCell>
+
+        <TableCell className={cell}>
+          <div className="flex items-center gap-2">
+            <Progress value={report.fillRate} className="h-1.5 flex-1" />
+            <span
+              className={cn(
+                'w-9 shrink-0 text-right font-mono text-xs font-medium',
+                fillRateColor(report.fillRate),
+              )}
+            >
+              %{report.fillRate}
+            </span>
+          </div>
+        </TableCell>
+
+        <TableCell className={cell}>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="PDF İndir"
+              disabled={isPending}
+              className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
+              onClick={handleDownload}
+            >
+              {isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileDown className="h-3.5 w-3.5" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Paylaş"
+              className="h-7 w-7 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShareOpen(true);
+              }}
+            >
+              <Share2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+      <ShareLinkDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        planId={report.id}
+        planName={report.planName}
+      />
     </>
   );
 }

@@ -502,7 +502,9 @@ export function BulkImportDialog({
       id: r._id,
       errors: {
         ...validateRow(r),
-        ...(duplicateSkuIds.has(r._id) ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' } : {}),
+        ...(duplicateSkuIds.has(r._id)
+          ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' }
+          : {}),
         ...(skuKey && existingSkus.has(skuKey) ? { sku: 'Bu SKU kullanılıyor' } : {}),
       },
     };

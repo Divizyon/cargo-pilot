@@ -206,7 +206,9 @@ export function useReportDetail(id: string) {
       const totalWeightKg = d.totalWeight ?? d.totalWeightKg ?? 0;
       const vehicleCapacityKg = v?.maxWeightCapacity ?? 1;
       const weightFillRate =
-        vehicleCapacityKg > 0 ? Math.min(100, Math.round((totalWeightKg / vehicleCapacityKg) * 100)) : 0;
+        vehicleCapacityKg > 0
+          ? Math.min(100, Math.round((totalWeightKg / vehicleCapacityKg) * 100))
+          : 0;
 
       return {
         id: d.id,
