@@ -190,12 +190,7 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
   const pendingRemoveMember = members?.find((m) => m.id === pendingRemoveId) ?? null;
 
   if (view === 'add') {
-    return (
-      <AddMemberForm
-        onCancel={() => setView('list')}
-        onSuccess={() => setView('list')}
-      />
-    );
+    return <AddMemberForm onCancel={() => setView('list')} onSuccess={() => setView('list')} />;
   }
 
   return (

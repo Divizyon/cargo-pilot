@@ -208,9 +208,7 @@ export function useReportDetail(id: string) {
       const rawWeightPct =
         vehicleCapacityKg > 0 ? Math.min(100, (totalWeightKg / vehicleCapacityKg) * 100) : 0;
       const weightFillRate =
-        totalWeightKg > 0 && rawWeightPct < 0.1
-          ? 0.1
-          : Math.round(rawWeightPct * 10) / 10;
+        totalWeightKg > 0 && rawWeightPct < 0.1 ? 0.1 : Math.round(rawWeightPct * 10) / 10;
 
       return {
         id: d.id,
