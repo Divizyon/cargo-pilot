@@ -5,6 +5,17 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
 import { formatDate, formatTimestamp } from '@/lib/utils/pdfDateUtils';
 
+// ─── Font sanitizer ───────────────────────────────────────────────────────────
+// Helvetica (built-in PDF font) uses Latin-1 encoding. Turkish chars ı (U+0131),
+// İ (U+0130), ğ (U+011F), Ğ (U+011E), ş (U+015F), Ş (U+015E) are outside
+// Latin-1 and render as garbage. Replace with nearest ASCII equivalents.
+function s(text: string): string {
+  return text
+    .replace(/ı/g, 'i').replace(/İ/g, 'I')
+    .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+    .replace(/ş/g, 's').replace(/Ş/g, 'S');
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const FOOTER_COLOR = '#9ca3af'; // tertiary text
@@ -178,31 +189,26 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  // Signature area ─ last section, right-aligned
-  signatureWrapper: {
+  // Signature area ─ two columns: Hazirlayan + Onaylayan
+  signatureRow: {
     marginTop: 32,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: 24,
   },
   signatureBox: {
-    width: 220,
-    borderTopWidth: 1,
-    borderTopColor: BORDER_COLOR,
+    flex: 1,
     paddingTop: 8,
-  },
-  signatureLabel: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: PRIMARY_COLOR,
-    marginBottom: 32,
   },
   signatureLine: {
     borderBottomWidth: 1,
     borderBottomColor: '#d1d5db',
-    marginBottom: 6,
+    marginBottom: 8,
+    height: 28,
   },
-  signatureHelper: {
-    fontSize: 8,
+  signatureLabel: {
+    fontSize: 9,
     color: MUTED_COLOR,
+    textAlign: 'center',
   },
 });
 
@@ -256,7 +262,7 @@ function PdfHeader({
           {hasContact && (
             <View style={styles.headerCompanyBlock}>
               {settings.companyName ? (
-                <Text style={styles.headerCompanyName}>{settings.companyName}</Text>
+                <Text style={styles.headerCompanyName}>{s(settings.companyName)}</Text>
               ) : null}
               {settings.phone ? (
                 <Text style={styles.headerCompanyDetail}>{settings.phone}</Text>
@@ -265,7 +271,7 @@ function PdfHeader({
                 <Text style={styles.headerCompanyDetail}>{settings.email}</Text>
               ) : null}
               {settings.address ? (
-                <Text style={styles.headerCompanyDetail}>{settings.address}</Text>
+                <Text style={styles.headerCompanyDetail}>{s(settings.address)}</Text>
               ) : null}
             </View>
           )}
@@ -298,11 +304,14 @@ function PdfFooter({ generatedAt, dateFormat }: { generatedAt: Date; dateFormat:
 
 function SignatureSection() {
   return (
-    <View style={styles.signatureWrapper}>
+    <View style={styles.signatureRow}>
       <View style={styles.signatureBox}>
-        <Text style={styles.signatureLabel}>Onaylayan / İmza</Text>
         <View style={styles.signatureLine} />
-        <Text style={styles.signatureHelper}>Ad Soyad / Unvan / Tarih</Text>
+        <Text style={styles.signatureLabel}>Hazirlayan</Text>
+      </View>
+      <View style={styles.signatureBox}>
+        <View style={styles.signatureLine} />
+        <Text style={styles.signatureLabel}>Onaylayan</Text>
       </View>
     </View>
   );
@@ -369,41 +378,41 @@ export function PlanPdfDocument({
         <PdfFooter generatedAt={generatedAt} dateFormat={reportingSettings.dateFormat} />
 
         {/* ── Content ── */}
-        <Text style={styles.title}>Yükleme Planı Raporu</Text>
+        <Text style={styles.title}>Yukleme Plani Raporu</Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Plan Özeti</Text>
+          <Text style={styles.sectionTitle}>Plan Ozeti</Text>
           <Text style={{ marginBottom: 8, fontSize: 8, color: MUTED_COLOR }}>
             Plan ID: {planId}
           </Text>
 
           <View style={styles.summaryGrid}>
             <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>Doluluk Oranı</Text>
+              <Text style={styles.summaryLabel}>Doluluk Orani</Text>
               <Text style={styles.summaryValue}>{fillRate.toFixed(1)}%</Text>
             </View>
             <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>Toplam Ağırlık</Text>
+              <Text style={styles.summaryLabel}>Toplam Agirlik</Text>
               <Text style={styles.summaryValue}>{totalWeight.toFixed(1)} kg</Text>
             </View>
             <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>Yüklenen Ürün Sayısı</Text>
+              <Text style={styles.summaryLabel}>Yuklenen Urun Sayisi</Text>
               <Text style={styles.summaryValue}>{placements.length}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Yükleme Listesi</Text>
+          <Text style={styles.sectionTitle}>Yukleme Listesi</Text>
           <View style={styles.table}>
             <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.tableCell, { width: '34%' }]}>Ürün Adı</Text>
+              <Text style={[styles.tableCell, { width: '34%' }]}>Urun Adi</Text>
               <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>Adet</Text>
               <Text style={[styles.tableCell, { width: '24%' }]}>Boyutlar (cm)</Text>
               <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
-                Ağırlık (kg)
+                Agirlik (kg)
               </Text>
-              <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>İhlal</Text>
+              <Text style={[styles.tableCell, { width: '12%', textAlign: 'center' }]}>Ihlal</Text>
             </View>
             {groupedRows.map((row, idx) => (
               <View
@@ -413,7 +422,7 @@ export function PlanPdfDocument({
                   { backgroundColor: idx % 2 === 1 ? '#f9fafb' : '#ffffff' },
                 ]}
               >
-                <Text style={[styles.tableCell, { width: '34%' }]}>{row.name}</Text>
+                <Text style={[styles.tableCell, { width: '34%' }]}>{s(row.name)}</Text>
                 <Text
                   style={[
                     styles.tableCell,
