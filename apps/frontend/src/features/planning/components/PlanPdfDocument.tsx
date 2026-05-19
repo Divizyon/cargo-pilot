@@ -370,7 +370,9 @@ export function PlanPdfDocument({
     <Document>
       <Page
         size="A4"
-        style={[styles.page, reportingSettings.showSignatureArea && { paddingBottom: 100 }]}
+        style={
+          reportingSettings.showSignatureArea ? [styles.page, { paddingBottom: 100 }] : styles.page
+        }
       >
         {/* Fixed header — every page */}
         <PdfHeader
@@ -478,8 +480,10 @@ export function PlanPdfDocument({
               left: PAGE_PADDING_H,
               right: PAGE_PADDING_H,
             }}
-            render={({ pageNumber, totalPages }) =>
-              pageNumber === totalPages ? <SignatureSection /> : null
+            render={({ pageNumber, ...rest }) =>
+              pageNumber === (rest as unknown as { totalPages: number }).totalPages ? (
+                <SignatureSection />
+              ) : null
             }
           />
         )}
