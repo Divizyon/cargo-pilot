@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
+import type { DoorDirection } from '@/lib/types/vehicle';
 
 interface AnimEntry {
   startAt: number;
@@ -63,6 +64,12 @@ export function useLoadingAnimation(
   vehicleDepth?: number,
   /** Araç X genişliği (cm) — kapı merkezi için */
   vehicleWidth?: number,
+  /** Araç Y yüksekliği (cm) — üst kapı için */
+  vehicleHeight?: number,
+  /** Kapı yönü — animasyon başlangıç noktasını belirler */
+  doorDirection?: DoorDirection,
+  /** Yan kapı tarafı */
+  doorSide?: 'right' | 'left',
 ) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const animationStep = useSceneStore((s) => s.animationStep);
@@ -80,11 +87,10 @@ export function useLoadingAnimation(
 
     const { staggerMs, flightMs } = computeScheduleParams(loadOrder.length);
 
-    // Kapı Z=length yüzünde (ContainerMesh ile aynı: position={[0,0,length]})
-    // Tüm kutular kapı merkezinden (width/2, 0, length+OFFSET) hedeflerine uçar
-    const doorZ = (vehicleDepth ?? 0) + SCENE.ANIM_DOOR_OFFSET_CM;
-    const doorX = (vehicleWidth ?? 0) / 2;
-    const doorY = 0;
+    const depth = vehicleDepth ?? 0;
+    const width = vehicleWidth ?? 0;
+    const height = vehicleHeight ?? 0;
+    const OFFSET = SCENE.ANIM_DOOR_OFFSET_CM;
 
     const schedule = new Map<number, AnimEntry>();
     loadOrder.forEach((globalIdx, seqIdx) => {
@@ -95,18 +101,63 @@ export function useLoadingAnimation(
       const cy = p.positionY + p.height / 2;
       const cz = p.positionZ + p.depth / 2;
 
+      // Her kutu kapı ekseninde dışarıdan başlar, diğer eksenlerde hedef pozisyonunda.
+      // Böylece kutular kapı açıklığından düz çizgi halinde içeri kayar.
+      let fromX: number;
+      let fromY: number;
+      let fromZ: number;
+
+      switch (doorDirection) {
+        case 'side':
+          // Yan kapı: kapı X ekseninde, kutu Y/Z hedefinde başlar
+          fromX = doorSide === 'right' ? width + OFFSET : -OFFSET;
+          fromY = cy;
+          fromZ = cz;
+          break;
+        case 'top':
+          // Üst kapı: tavan Y + offset'ten iner, X/Z hedefinde
+          fromX = cx;
+          fromY = height + OFFSET;
+          fromZ = cz;
+          break;
+        case 'rear':
+          // Arka kapı: Z=0 önünden girer
+          fromX = cx;
+          fromY = cy;
+          fromZ = -OFFSET;
+          break;
+        case 'rearAndSide':
+          fromX = cx;
+          fromY = cy;
+          fromZ = -OFFSET;
+          break;
+        default:
+          // 'front' veya undefined — Z=depth önünden girer
+          fromX = cx;
+          fromY = cy;
+          fromZ = depth + OFFSET;
+      }
+
       schedule.set(globalIdx, {
         startAt: seqIdx * staggerMs,
         flightMs,
         target: new THREE.Vector3(cx, cy, cz),
-        // Tüm kutular kapı önünden (0,0,0 köşe referansıyla) hedeflerine gider
-        from: new THREE.Vector3(doorX, doorY, doorZ),
+        from: new THREE.Vector3(fromX, fromY, fromZ),
       });
     });
 
     scheduleRef.current = schedule;
     startTimeRef.current = null;
-  }, [animationMode, loadOrder, placements, vehicleDepth, vehicleWidth]);
+  }, [
+    animationMode,
+    loadOrder,
+    placements,
+    vehicleDepth,
+    vehicleWidth,
+    vehicleHeight,
+    doorDirection,
+    doorSide,
+  ]);
 
   useFrame(() => {
     if (animationMode === 'stepped') {
@@ -132,6 +183,7 @@ export function useLoadingAnimation(
 
     const elapsed = performance.now() - startTimeRef.current;
     let allDone = true;
+    let completedCount = 0;
 
     for (const [globalIdx, entry] of scheduleRef.current) {
       const localT = elapsed - entry.startAt;
@@ -141,6 +193,7 @@ export function useLoadingAnimation(
         allDone = false;
       } else if (localT >= entry.flightMs) {
         _pos.copy(entry.target);
+        completedCount++;
       } else {
         const eased = easeOutCubic(localT / entry.flightMs);
         _pos.lerpVectors(entry.from, entry.target, eased);
@@ -148,6 +201,11 @@ export function useLoadingAnimation(
       }
 
       setPosition(globalIdx, _pos.x, _pos.y, _pos.z);
+    }
+
+    // Slider'ı canlı güncelle — sadece değer değişince yaz
+    if (completedCount !== useSceneStore.getState().animationStep) {
+      setAnimationStep(completedCount);
     }
 
     onFrameUpdate();

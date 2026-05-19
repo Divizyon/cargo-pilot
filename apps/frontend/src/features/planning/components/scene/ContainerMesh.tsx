@@ -6,6 +6,7 @@ import { ContactShadows, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
+import type { DoorDirection } from '@/lib/types/vehicle';
 import { ContainerBody } from './ContainerBody';
 
 import normalUrl from '@/assets/textures/container-steel/normal.jpg';
@@ -84,6 +85,7 @@ function ContainerEdges({
 
 const DOOR_THICKNESS = SCENE.DOOR_THICKNESS_CM;
 const DOOR_OPEN_ANGLE = SCENE.DOOR_REAR_OPEN_ANGLE;
+const DOOR_SIDE_OPEN_ANGLE = SCENE.DOOR_SIDE_OPEN_ANGLE;
 const DOOR_EASING = SCENE.DOOR_EASING;
 
 // ─── Rear door helpers (X-axis panel on Z=0 face) ─────────────────────────────
@@ -195,23 +197,174 @@ function RearDoors({ width, height }: { width: number; height: number }) {
   );
 }
 
+// ─── SideDoor ─────────────────────────────────────────────────────────────────
+// X yüzünde iki kanat: ön kanat (Z=length/2..length) öne, arka kanat (Z=0..length/2) arkaya açılır.
+// Her kanadın menteşesi kendi dış Z kenarında; kanatlar rotation.y etrafında dışa döner.
+// Pivot grubu: X=width (sağ) veya X=0 (sol) yüzünün arka-zemin köşesi (Z=0, Y=0).
+// "Dışa" yön: sağ yüzde +X, sol yüzde -X — RearDoors mantığının 90° döndürülmüşü.
+
+function SideDoor({
+  length,
+  height,
+  side,
+}: {
+  length: number;
+  height: number;
+  side: 'right' | 'left';
+}) {
+  const frontRef = useRef<THREE.Group>(null);
+  const rearRef = useRef<THREE.Group>(null);
+  const angleRef = useRef(0);
+
+  // Sağ yüzde dışarı = +X yönü → rotation.y pozitif = öne döner (ön kanat), negatif = arkaya (arka kanat)
+  // Sol yüzde dışarı = -X yönü → işaretler ters
+  const dirSign = side === 'right' ? 1 : -1;
+
+  useFrame(() => {
+    const diff = DOOR_SIDE_OPEN_ANGLE - angleRef.current;
+    if (Math.abs(diff) > 0.0005) {
+      angleRef.current += diff * DOOR_EASING;
+      if (frontRef.current) frontRef.current.rotation.y = dirSign * angleRef.current;
+      if (rearRef.current) rearRef.current.rotation.y = -dirSign * angleRef.current;
+    }
+  });
+
+  const panelZ = length / 2;
+
+  return (
+    <group>
+      {/* Ön kanat: menteşe Z=length kenarında, panel içe (-Z) doğru uzanır */}
+      <group ref={frontRef} position={[0, 0, length]}>
+        <mesh position={[0, height / 2, -panelZ / 2]}>
+          <boxGeometry args={[DOOR_THICKNESS, height, panelZ]} />
+          <meshStandardMaterial metalness={0.45} roughness={0.7} />
+        </mesh>
+      </group>
+      {/* Arka kanat: menteşe Z=0 kenarında, panel öne (+Z) doğru uzanır */}
+      <group ref={rearRef} position={[0, 0, 0]}>
+        <mesh position={[0, height / 2, panelZ / 2]}>
+          <boxGeometry args={[DOOR_THICKNESS, height, panelZ]} />
+          <meshStandardMaterial metalness={0.45} roughness={0.7} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+// ─── TopDoor ──────────────────────────────────────────────────────────────────
+// İki kanat, ortadan (Z=length/2) bölünür.
+// Arka kanat: menteşe Z=0 kenarında, rotation.x negatif → arkaya açılır.
+// Ön kanat:   menteşe Z=length kenarında, rotation.x pozitif → öne açılır.
+
+function TopDoor({ width, length }: { width: number; length: number }) {
+  const rearRef = useRef<THREE.Group>(null);
+  const frontRef = useRef<THREE.Group>(null);
+  const angleRef = useRef(0);
+  const targetAngle = SCENE.DOOR_SIDE_OPEN_ANGLE;
+
+  useFrame(() => {
+    const diff = targetAngle - angleRef.current;
+    if (Math.abs(diff) > 0.0005) {
+      angleRef.current += diff * DOOR_EASING;
+      if (rearRef.current) rearRef.current.rotation.x = -angleRef.current;
+      if (frontRef.current) frontRef.current.rotation.x = angleRef.current;
+    }
+  });
+
+  const panelZ = length / 2;
+
+  return (
+    <>
+      {/* Arka kanat — menteşe Z=0, panel öne (+Z) uzanır */}
+      <group ref={rearRef} position={[0, 0, 0]}>
+        <mesh position={[width / 2, 0, panelZ / 2]}>
+          <boxGeometry args={[width, DOOR_THICKNESS, panelZ]} />
+          <meshStandardMaterial metalness={0.45} roughness={0.7} />
+        </mesh>
+      </group>
+      {/* Ön kanat — menteşe Z=length, panel arkaya (-Z) uzanır */}
+      <group ref={frontRef} position={[0, 0, length]}>
+        <mesh position={[width / 2, 0, -panelZ / 2]}>
+          <boxGeometry args={[width, DOOR_THICKNESS, panelZ]} />
+          <meshStandardMaterial metalness={0.45} roughness={0.7} />
+        </mesh>
+      </group>
+    </>
+  );
+}
+
 // ─── ContainerMesh ─────────────────────────────────────────────────────────────
+
+function renderDoor(
+  doorDirection: DoorDirection | undefined,
+  doorSide: 'right' | 'left' | undefined,
+  width: number,
+  height: number,
+  length: number,
+) {
+  switch (doorDirection) {
+    case 'side': {
+      const side = doorSide ?? 'right';
+      // Pivot: X=width (sağ) veya X=0 (sol) yüzünün arka-zemin köşesi
+      const posX = side === 'right' ? width : 0;
+      return (
+        <group position={[posX, 0, 0]}>
+          <SideDoor length={length} height={height} side={side} />
+        </group>
+      );
+    }
+    case 'top':
+      // Pivot: tavan arka kenarı — Y=height, Z=0
+      return (
+        <group position={[0, height, 0]}>
+          <TopDoor width={width} length={length} />
+        </group>
+      );
+    case 'rear':
+      // Arka kapı: Z=0 yüzü
+      return (
+        <group position={[0, 0, 0]}>
+          <RearDoors width={width} height={height} />
+        </group>
+      );
+    case 'rearAndSide': {
+      const side = doorSide ?? 'right';
+      const posX = side === 'right' ? width : 0;
+      return (
+        <>
+          <group position={[0, 0, 0]}>
+            <RearDoors width={width} height={height} />
+          </group>
+          <group position={[posX, 0, 0]}>
+            <SideDoor length={length} height={height} side={side} />
+          </group>
+        </>
+      );
+    }
+    default:
+      // 'front' veya undefined — ön yüz (Z=length)
+      return (
+        <group position={[0, 0, length]}>
+          <RearDoors width={width} height={height} />
+        </group>
+      );
+  }
+}
 
 export function ContainerMesh() {
   const vehicle = usePlanStore((s) => s.selectedVehicle);
 
   if (!vehicle) return null;
 
-  const { width, height, length } = vehicle;
+  const { width, height, length, doorDirection, doorSide } = vehicle;
 
   return (
     <group>
       <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
 
-      {/* Ön kapı — Z=length yüzü */}
-      <group key={`front-${vehicle.id}`} position={[0, 0, length]}>
-        <RearDoors width={width} height={height} />
+      <group key={`door-${vehicle.id}`}>
+        {renderDoor(doorDirection, doorSide, width, height, length)}
       </group>
 
       <ContactShadows
