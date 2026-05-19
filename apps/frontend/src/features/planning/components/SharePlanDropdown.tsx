@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Share2, Link, Download, Mail } from 'lucide-react';
+import { Share2, Link, Download, Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { downloadPlanPdf } from '@/lib/utils/downloadPlanPdf';
+import { useDownloadPlanPdf } from '@/lib/api/useReports';
 import { ShareLinkDialog } from './ShareLinkDialog';
 import { EmailShareDialog } from './EmailShareDialog';
 
@@ -19,6 +19,7 @@ interface SharePlanDropdownProps {
 export function SharePlanDropdown({ planId, planName }: SharePlanDropdownProps) {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const { mutate: downloadPdf, isPending } = useDownloadPlanPdf();
 
   return (
     <>
@@ -34,8 +35,15 @@ export function SharePlanDropdown({ planId, planName }: SharePlanDropdownProps) 
             <Link className="w-4 h-4 mr-2" />
             Link Kopyala
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => downloadPlanPdf(planId)}>
-            <Download className="w-4 h-4 mr-2" />
+          <DropdownMenuItem
+            disabled={isPending}
+            onClick={() => downloadPdf({ id: planId, planName })}
+          >
+            {isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
             PDF İndir
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>

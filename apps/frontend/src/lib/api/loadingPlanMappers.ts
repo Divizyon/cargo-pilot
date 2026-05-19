@@ -224,17 +224,17 @@ function mapStatus(
   if (raw == null) return 'taslak';
   if (typeof raw === 'string') {
     const s = raw.toLowerCase();
-    if (s === 'completed' || s === 'tamamlandi' || s === 'done') return 'tamamlandi';
+    if (s === 'calculated' || s === 'completed' || s === 'tamamlandi' || s === 'done')
+      return 'tamamlandi';
     if (s === 'active' || s === 'aktif' || s === 'processing' || s === 'optimizing') return 'aktif';
-    if (s === 'cancelled' || s === 'canceled' || s === 'iptal' || s === 'failed') return 'iptal';
+    if (s === 'failed' || s === 'cancelled' || s === 'canceled' || s === 'iptal') return 'iptal';
     return 'taslak';
   }
+  // Backend LoadingPlanOptimizationStatus: Draft=0, Calculated=1, Failed=2
   switch (raw) {
     case 1:
-      return 'aktif';
-    case 2:
       return 'tamamlandi';
-    case 3:
+    case 2:
       return 'iptal';
     default:
       return 'taslak';
@@ -392,6 +392,15 @@ export function fromApiPlacementsToScene(
   });
 }
 
+// Backend bazen timezone bilgisi olmadan UTC datetime döndürür (örn: "2026-05-18T21:41:00").
+// JavaScript bunu yerel saat olarak parse eder ve hatalı görüntüler. 'Z' ekleyerek UTC garantiliyoruz.
+function normalizeUtcDatetime(s: string): string {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !s.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(s)) {
+    return s + 'Z';
+  }
+  return s;
+}
+
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
@@ -408,7 +417,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     api.totalWeightKg ??
     ((api as Record<string, unknown>)['weight'] as number | undefined) ??
     0;
-  const createdAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
+  const createdAt = normalizeUtcDatetime(rawCreatedAt);
   const loadingType = v?.loadingType ?? null;
   return {
     id: api.id,

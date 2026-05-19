@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -104,13 +105,18 @@ export function SubscriptionTab() {
     usage,
   } = useSubscriptionStore();
 
+  const navigate = useNavigate();
   const [view, setView] = useState<ViewState>({ type: 'default' });
 
   const expired = isExpired(expiresAt);
   const isPaid = currentPlan !== 'free';
 
   function handlePlanAction(plan: PlanDef) {
-    if (plan.key === 'enterprise' || plan.key === currentPlan) return;
+    if (plan.key === 'enterprise') {
+      navigate('/iletisim');
+      return;
+    }
+    if (plan.key === currentPlan) return;
     if (currentPlan === 'free' || expired) {
       setView({ type: 'checkout', plan: plan.key });
     } else {
@@ -267,7 +273,7 @@ export function SubscriptionTab() {
                 size="sm"
                 variant={isActive ? 'outline' : plan.highlighted ? 'default' : 'outline'}
                 className="mt-4 w-full"
-                disabled={isActive || plan.key === 'enterprise'}
+                disabled={isActive}
                 onClick={() => handlePlanAction(plan)}
               >
                 {getPlanActionLabel(plan)}
