@@ -7,6 +7,7 @@ public sealed record VehicleInPlanDto(
     string VehicleName,
     string? PlateNumber,
     VehicleType VehicleType,
+    LoadingType LoadingType,
     decimal InternalWidth,
     decimal InternalHeight,
     decimal InternalLength,
