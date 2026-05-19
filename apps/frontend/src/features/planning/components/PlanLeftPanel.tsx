@@ -50,6 +50,8 @@ import { SCENE } from '@/lib/config/scene-config';
 import { useItems } from '@/lib/api/useItems';
 import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
+import { StepAnimationControls } from './scene/StepAnimationControls';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
@@ -223,6 +225,7 @@ interface StoreItemRowProps {
   onToggleVisibility?: () => void;
   isHidden?: boolean;
   onPlace: (qty: number) => void;
+  onUpdateQty?: (qty: number) => void;
   onRemove?: () => void;
   onRemoveFromGroup?: () => void;
   onEdit?: () => void;
@@ -242,6 +245,7 @@ function StoreItemRow({
   onToggleVisibility,
   isHidden = false,
   onPlace,
+  onUpdateQty,
   onRemove,
   onRemoveFromGroup,
   onEdit,
@@ -360,6 +364,18 @@ function StoreItemRow({
                         if (!isNaN(parsed) && parsed >= 1) setLocalQty(parsed);
                       }}
                       onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (inputValue === '') return;
+                        if (isPlaced) {
+                          onUpdateQty?.(localQty);
+                        } else {
+                          onPlace(localQty);
+                          onToggleExpand();
+                        }
+                      }}
                       className="w-8 text-center text-[11px] tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                     <button
@@ -444,52 +460,68 @@ function StoreItemRow({
                         Ekle
                       </Button>
                     </>
-                  ) : onRemoveFromGroup ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
-                        >
-                          <PackageMinus className="w-3 h-3" />
-                          Çıkar
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="top" align="end" className="min-w-0 w-auto p-0">
-                        <DropdownMenuItem
-                          className="text-[10px] px-2 py-0.5 cursor-pointer"
+                  ) : (
+                    <>
+                      {localQty !== storeEntry.quantity && (
+                        <Button
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onRemoveFromGroup();
-                            onToggleExpand();
+                            onUpdateQty?.(localQty);
                           }}
+                          className="h-6 text-[11px] px-2.5 bg-foreground text-background hover:bg-foreground/80"
                         >
-                          Gruptan Çıkar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-[10px] px-2 py-0.5 cursor-pointer text-rose-600 focus:text-rose-600"
+                          Güncelle
+                        </Button>
+                      )}
+                      {onRemoveFromGroup ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
+                            >
+                              <PackageMinus className="w-3 h-3" />
+                              Çıkar
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="top" align="end" className="min-w-0 w-auto p-0">
+                            <DropdownMenuItem
+                              className="text-[10px] px-2 py-0.5 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRemoveFromGroup();
+                                onToggleExpand();
+                              }}
+                            >
+                              Gruptan Çıkar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-[10px] px-2 py-0.5 cursor-pointer text-rose-600 focus:text-rose-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRemove?.();
+                                onToggleExpand();
+                              }}
+                            >
+                              Yüklüden Çıkar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onRemove?.();
                             onToggleExpand();
                           }}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
                         >
-                          Yüklüden Çıkar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove?.();
-                        onToggleExpand();
-                      }}
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-rose-600 transition-colors"
-                    >
-                      <PackageMinus className="w-3 h-3" />
-                      Çıkar
-                    </button>
+                          <PackageMinus className="w-3 h-3" />
+                          Çıkar
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -558,6 +590,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const togglePlacement = usePlanStore((s) => s.togglePlacement);
   const addManualItem = usePlanStore((s) => s.addManualItem);
   const updateItem = usePlanStore((s) => s.updateItem);
+  const updateItemQtyOnly = usePlanStore((s) => s.updateItemQtyOnly);
   const initItems = usePlanStore((s) => s.initItems);
   const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
@@ -573,6 +606,7 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
   const hiddenItemIds = useSceneStore((s) => s.hiddenItemIds);
   const setHiddenItemIds = useSceneStore((s) => s.setHiddenItemIds);
   const toggleHiddenItem = useSceneStore((s) => s.toggleHiddenItem);
+  const selectedInstanceId = useSceneStore((s) => s.selectedInstanceId);
 
   // Mevcut plan yüklendiğinde store'dan grupları geri yükle
   useEffect(() => {
@@ -612,6 +646,15 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
     }
     prevSelectedLenRef.current = selectedItems.length;
   }, [selectedItems.length, placements.length]);
+
+  // 3D sahnede kutu seçilince → Yüklü Ürünler tabına geç ve o kartı expand et
+  useEffect(() => {
+    if (selectedInstanceId === null) return;
+    const placement = usePlanStore.getState().placements[selectedInstanceId];
+    if (!placement) return;
+    setActiveTab('loaded');
+    setExpandedId(placement.itemId);
+  }, [selectedInstanceId]);
 
   const prevPlanIdRef = useRef<string | undefined>(planId);
   useEffect(() => {
@@ -999,6 +1042,11 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
           }
         }
         doPlace();
+      },
+      onUpdateQty: (qty: number) => {
+        if (qty !== entry.quantity) {
+          updateItemQtyOnly(id, qty);
+        }
       },
       onRemove: () => removeItem(id),
       onEdit: readOnly ? undefined : () => navigate(`/products/${id}/edit`),
@@ -1699,6 +1747,25 @@ export function PlanLeftPanel({ planId }: PlanLeftPanelProps) {
           );
         }}
       />
+
+      {/* Animasyon kontrolü — sadece Yüklü Ürünler tabında */}
+      <AnimatePresence>
+        {placements.length > 0 && activeTab === 'loaded' && (
+          <motion.div
+            key="anim-controls"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            className="shrink-0 overflow-hidden border-t border-border bg-background rounded-b-xl"
+          >
+            <StepAnimationControls
+              totalSteps={placements.length}
+              onPlay={() => useSceneStore.getState().startAnimation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-border px-3 py-2 flex items-center gap-2">

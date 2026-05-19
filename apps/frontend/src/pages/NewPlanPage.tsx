@@ -6,7 +6,6 @@ import { PlanLeftPanel } from '@/features/planning/components/PlanLeftPanel';
 import { PlanRightPanel } from '@/features/planning/components/PlanRightPanel';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
 import { CameraPresetButtons } from '@/features/planning/components/scene/CameraPresetButtons';
-import { BalancePanel } from '@/features/planning/components/scene/BalancePanel';
 import { ReadOnlyContext } from '@/features/planning/ReadOnlyContext';
 import {
   Dialog,
@@ -150,7 +149,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
   }, []);
 
   const setAnimationReady = useSceneStore((s) => s.setAnimationReady);
-  const startAnimation = useSceneStore((s) => s.startAnimation);
 
   const handleVehicleSelected = useCallback(() => {
     setRightOpen(false);
@@ -235,10 +233,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
     navigate(planningDetailRoute(id), { replace: true });
   }, [planNameInput, createPlan, navigate]);
 
-  const handleLoadAnimation = useCallback(() => {
-    if (usePlanStore.getState().placements.length === 0) return;
-    startAnimation();
-  }, [startAnimation]);
 
   const handleReoptimize = useCallback(async () => {
     if (!fromPlanId) return;
@@ -361,11 +355,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
         )}
         {/* ── Üst satır: şeritler + viewport + kayan paneller ─────────────── */}
         <div className="relative flex flex-1 min-h-0 overflow-hidden">
-          {/* BalancePanel — sağ panelin solunda */}
-          <div className="absolute top-[68px] right-[320px] z-20 pointer-events-none">
-            <BalancePanel />
-          </div>
-
           {/* Sol panel toggle butonu — beyaz kart sağ sınırı (308px) üzerinde */}
           <button
             onClick={() => setLeftOpen((v) => !v)}
@@ -412,7 +401,6 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
               vehiclesOpen={rightOpen}
               onToggleVehicles={() => setRightOpen((v) => !v)}
               onOptimize={fromPlanId ? handleReoptimize : handleOptimize}
-              onLoadAnimation={handleLoadAnimation}
               isOptimizing={fromPlanId ? isReoptimizing : isCreating}
               canOptimize={fromPlanId ? !isReoptimizing : !isCreating}
               getSnapshot={() => snapshotRef.current?.() ?? ''}

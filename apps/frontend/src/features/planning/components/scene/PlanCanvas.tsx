@@ -9,9 +9,7 @@ import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMe
 import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
 import { CogMarker } from '@/features/planning/components/scene/CogMarker';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
-import { StepAnimationControls } from '@/features/planning/components/scene/StepAnimationControls';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
 import { SceneFloor } from '@/features/planning/components/scene/SceneFloor';
 
@@ -63,9 +61,6 @@ function SnapshotBridge({
 }
 
 export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasProps) {
-  const totalSteps = usePlanStore((s) => s.placements.length);
-  const showControls = totalSteps > 0;
-
   return (
     <div className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
@@ -94,14 +89,6 @@ export function PlanCanvas({ className, planId = '', snapshotRef }: PlanCanvasPr
       </Canvas>
       <SceneLoadingOverlay />
       <SelectedBoxCoords />
-      {showControls && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[520px] max-w-[calc(100%-2rem)]">
-          <StepAnimationControls
-            totalSteps={totalSteps}
-            onPlay={() => useSceneStore.getState().startAnimation()}
-          />
-        </div>
-      )}
     </div>
   );
 }

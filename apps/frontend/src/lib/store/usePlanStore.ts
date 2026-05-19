@@ -356,6 +356,8 @@ interface PlanStore {
    * - If not (catalog-only item) → update info only.
    */
   updateItem: (itemId: string, item: Item, qty: number, color: string) => void;
+  /** Update only the quantity in selectedItems without touching placements. */
+  updateItemQtyOnly: (itemId: string, qty: number) => void;
   removeItem: (itemId: string) => void;
   /**
    * Toggle placement for a catalog item.
@@ -571,6 +573,44 @@ export const usePlanStore = create<PlanStore>((set) => ({
       };
     }),
 
+  updateItemQtyOnly: (itemId, qty) =>
+    set((s) => {
+      const updatedItems = s.selectedItems.map((si) =>
+        si.item.id === itemId ? { ...si, quantity: qty } : si,
+      );
+      const itemPlacements = s.placements.filter((p) => p.itemId === itemId);
+      const currentCount = itemPlacements.length;
+
+      if (currentCount === 0 || !s.selectedVehicle) {
+        return { selectedItems: updatedItems };
+      }
+
+      if (qty > currentCount) {
+        const entry = s.selectedItems.find((si) => si.item.id === itemId);
+        if (!entry) return { selectedItems: updatedItems };
+        const color = s.skuColorMap[entry.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+        const extras = buildStagingPlacements(
+          entry.item,
+          qty - currentCount,
+          color,
+          s.selectedVehicle.width,
+          s.placements,
+        );
+        return { selectedItems: updatedItems, placements: [...s.placements, ...extras] };
+      }
+
+      if (qty < currentCount) {
+        let itemIdx = 0;
+        const nextPlacements = s.placements.filter((p) => {
+          if (p.itemId !== itemId) return true;
+          return itemIdx++ < qty;
+        });
+        return { selectedItems: updatedItems, placements: nextPlacements };
+      }
+
+      return { selectedItems: updatedItems };
+    }),
+
   removeItem: (itemId) =>
     set((s) => ({
       selectedItems: s.selectedItems.filter((si) => si.item.id !== itemId),
@@ -604,11 +644,18 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setClusterGroups: (clusterGroups: boolean) => set({ clusterGroups }),
   setAllowContamination: (allowContamination: boolean) => set({ allowContamination }),
   setPlacements: (placements) =>
-    set((s) => ({
-      placements: computeViolations(placements),
-      unfitItems: [],
-      optimizationCount: s.optimizationCount + 1,
-    })),
+    set((s) => {
+      const placedItemIds = new Set(placements.map((p) => p.itemId));
+      // Preserve staging placements for items not covered by the optimization result
+      const keptStaging = s.placements.filter(
+        (p) => p.isStagingArea && !placedItemIds.has(p.itemId),
+      );
+      return {
+        placements: [...computeViolations(placements), ...keptStaging],
+        unfitItems: [],
+        optimizationCount: s.optimizationCount + 1,
+      };
+    }),
   setUnplacedItems: (items) =>
     set((s) => {
       const reasonMap: Record<number, UnfitReason> = {
@@ -626,7 +673,36 @@ export const usePlanStore = create<PlanStore>((set) => ({
           } satisfies UnfitItem;
         })
         .filter((x): x is UnfitItem => x !== null);
-      return { unfitItems: newUnfitItems };
+
+      // Build staging placements for unfit items that have no placement at all
+      // (e.g. items that were inside the container in the previous run but now don't fit)
+      const missingStaging = newUnfitItems.filter(
+        (u) => !s.placements.some((p) => p.itemId === u.item.id),
+      );
+      let extraStagingPlacements: PlacementWithDimensions[] = [];
+      if (missingStaging.length > 0 && s.selectedVehicle) {
+        let accumulated = s.placements;
+        for (const u of missingStaging) {
+          const color = s.skuColorMap[u.item.sku] ?? SCENE.COLORS.NORMAL_STR;
+          const staged = buildStagingPlacements(
+            u.item,
+            u.quantity,
+            color,
+            s.selectedVehicle.width,
+            accumulated,
+          );
+          accumulated = [...accumulated, ...staged];
+          extraStagingPlacements = [...extraStagingPlacements, ...staged];
+        }
+      }
+
+      return {
+        unfitItems: newUnfitItems,
+        placements:
+          extraStagingPlacements.length > 0
+            ? [...s.placements, ...extraStagingPlacements]
+            : s.placements,
+      };
     }),
 
   mockPlacements: (count) =>

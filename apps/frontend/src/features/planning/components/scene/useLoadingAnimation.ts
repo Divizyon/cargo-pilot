@@ -132,6 +132,7 @@ export function useLoadingAnimation(
 
     const elapsed = performance.now() - startTimeRef.current;
     let allDone = true;
+    let completedCount = 0;
 
     for (const [globalIdx, entry] of scheduleRef.current) {
       const localT = elapsed - entry.startAt;
@@ -141,6 +142,7 @@ export function useLoadingAnimation(
         allDone = false;
       } else if (localT >= entry.flightMs) {
         _pos.copy(entry.target);
+        completedCount++;
       } else {
         const eased = easeOutCubic(localT / entry.flightMs);
         _pos.lerpVectors(entry.from, entry.target, eased);
@@ -148,6 +150,11 @@ export function useLoadingAnimation(
       }
 
       setPosition(globalIdx, _pos.x, _pos.y, _pos.z);
+    }
+
+    // Slider'ı canlı güncelle — sadece değer değişince yaz
+    if (completedCount !== useSceneStore.getState().animationStep) {
+      setAnimationStep(completedCount);
     }
 
     onFrameUpdate();
