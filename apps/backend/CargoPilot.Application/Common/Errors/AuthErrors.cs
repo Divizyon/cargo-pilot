@@ -19,6 +19,16 @@ public static class AuthErrors
         "AUTH_INVALID_TOKEN",
         "Refresh token geçersiz, süresi dolmuş veya iptal edilmiş.");
 
+    public static readonly Error RefreshTokenExpired = new(
+        ErrorType.Unauthorized,
+        "REFRESH_TOKEN_EXPIRED",
+        "Refresh token süresi dolmuş. Lütfen tekrar giriş yapın.");
+
+    public static readonly Error RefreshTokenRevoked = new(
+        ErrorType.Unauthorized,
+        "REFRESH_TOKEN_REVOKED",
+        "Refresh token iptal edilmiş. Güvenlik nedeniyle tüm oturumlar kapatıldı.");
+
     public static readonly Error InvalidResetToken = new(
         ErrorType.Unauthorized,
         "AUTH_INVALID_RESET_TOKEN",
