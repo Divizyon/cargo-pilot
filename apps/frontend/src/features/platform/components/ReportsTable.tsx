@@ -41,6 +41,7 @@ import {
   type ReportsFilters,
 } from '@/lib/api/useReports';
 import { useVehicles } from '@/lib/api/useVehicles';
+import { useLoadingPlanList } from '@/lib/api/useLoadingPlans';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -148,9 +149,10 @@ function ReportsTableSkeleton() {
 
 interface ReportRowProps {
   report: PlanReport;
+  thumbnailUrl?: string | null;
 }
 
-function ReportRow({ report }: ReportRowProps) {
+function ReportRow({ report, thumbnailUrl }: ReportRowProps) {
   const navigate = useNavigate();
   const { mutate: downloadPdf, isPending } = useDownloadPlanPdf();
   const cell = 'px-3 py-0';
@@ -162,16 +164,30 @@ function ReportRow({ report }: ReportRowProps) {
 
   return (
     <TableRow
-      className="h-12 cursor-pointer"
+      className="h-14 cursor-pointer"
       onClick={() => void navigate(`/reports/${report.id}`)}
     >
       <TableCell className={cn(cell, 'max-w-[176px]')}>
-        <span
-          className="block truncate text-xs font-medium text-foreground"
-          title={report.planName}
-        >
-          {report.planName}
-        </span>
+        <div className="flex items-center gap-2">
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt=""
+              className="h-9 w-14 shrink-0 rounded object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="h-9 w-14 shrink-0 rounded bg-muted/40" />
+          )}
+          <span
+            className="block truncate text-xs font-medium text-foreground"
+            title={report.planName}
+          >
+            {report.planName}
+          </span>
+        </div>
       </TableCell>
 
       <TableCell className={cell}>
@@ -270,6 +286,14 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
   }, [periodDates, dateFrom, dateTo, vehicleId, minFillRateStr, maxFillRateStr]);
 
   const { data, isLoading } = useReports(serverFilters, page, PAGE_SIZE);
+  const { data: planListData } = useLoadingPlanList(undefined, 1, 100);
+  const thumbnailMap = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const plan of planListData?.items ?? []) {
+      map.set(plan.id, plan.thumbnailUrl ?? null);
+    }
+    return map;
+  }, [planListData]);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
@@ -574,7 +598,13 @@ export function ReportsTable({ onBulkDownload }: ReportsTableProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((report) => <ReportRow key={report.id} report={report} />)
+                filtered.map((report) => (
+                  <ReportRow
+                    key={report.id}
+                    report={report}
+                    thumbnailUrl={thumbnailMap.get(report.id)}
+                  />
+                ))
               )}
             </TableBody>
           </Table>
