@@ -10,6 +10,7 @@ using CargoPilot.Application.Features.Plans.Groups.CreateGroup;
 using CargoPilot.Application.Features.Plans.Groups.DeleteGroup;
 using CargoPilot.Application.Features.Plans.Groups.UpdateGroup;
 using CargoPilot.Application.Features.Plans.ReOptimizePlan;
+using CargoPilot.Application.Features.Plans.SaveDraftPlan;
 using CargoPilot.Application.Features.Plans.UpdatePlanName;
 using CargoPilot.Application.Features.Plans.UploadPlanThumbnail;
 using MediatR;
@@ -86,6 +87,28 @@ public sealed class PlansController : BaseController
     {
         var result = await _mediator.Send(new GetPlanByIdQuery(id), cancellationToken);
         return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Optimizasyon çalıştırmadan planı taslak olarak kaydeder.
+    /// En az bir araç ve bir ürün gereklidir. PlanName gönderilmezse "Taslak Plan" kullanılır.
+    /// </summary>
+    /// <param name="command">Araç ID'si, ürün listesi ve opsiyonel plan adı.</param>
+    /// <param name="cancellationToken">İptal token'ı.</param>
+    /// <response code="201">Taslak kaydedildi; plan ID'si döner.</response>
+    /// <response code="400">Doğrulama hatası.</response>
+    /// <response code="404">Araç veya ürün bulunamadı.</response>
+    [HttpPost("draft")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SaveDraft(
+        [FromBody] SaveDraftPlanCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess) return HandleResult(result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result.Data);
     }
 
     /// <summary>
