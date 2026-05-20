@@ -32,6 +32,18 @@ internal sealed class AuthService : IAuthService
             new EventId(2001, nameof(LogNewDeviceEmailFailed)),
             "Yeni cihaz uyarı e-postası gönderilemedi. UserId={UserId}");
 
+    private static readonly Action<ILogger, Guid, Guid, Exception?> LogRefreshTokenReused =
+        LoggerMessage.Define<Guid, Guid>(
+            LogLevel.Warning,
+            new EventId(2002, nameof(LogRefreshTokenReused)),
+            "Revoke edilmiş refresh token yeniden kullanıldı. UserId={UserId}, SessionId={SessionId}. Olası token hırsızlığı — tüm oturumlar kapatılıyor.");
+
+    private static readonly Action<ILogger, Guid, Guid, DateTime, Exception?> LogRefreshTokenExpired =
+        LoggerMessage.Define<Guid, Guid, DateTime>(
+            LogLevel.Information,
+            new EventId(2003, nameof(LogRefreshTokenExpired)),
+            "Refresh token süresi dolmuş. UserId={UserId}, SessionId={SessionId}, ExpiredAt={ExpiresAt}");
+
     private readonly AppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
@@ -290,20 +302,31 @@ internal sealed class AuthService : IAuthService
         // Revoke edilmiş token tekrar sunuluyorsa token çalınmış olabilir — tüm sessionları kapat.
         if (session.IsRevoked)
         {
+            LogRefreshTokenReused(_logger, session.UserId, session.Id, null);
+
             var activeSessions = await _context.UserSessions
                 .Where(s => s.UserId == session.UserId && !s.IsRevoked)
                 .ToListAsync(cancellationToken);
             foreach (var s in activeSessions)
                 s.Revoke();
             await _context.SaveChangesAsync(cancellationToken);
-            return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+            return Result<RefreshResponse>.Failure(AuthErrors.RefreshTokenRevoked);
         }
 
         if (session.ExpiresAt <= DateTime.UtcNow)
+        {
+            LogRefreshTokenExpired(_logger, session.UserId, session.Id, session.ExpiresAt, null);
+            return Result<RefreshResponse>.Failure(AuthErrors.RefreshTokenExpired);
+        }
+
+
+        // Atomik revoke: eş zamanlı istek bu token'ı zaten revoke ettiyse 0 döner, tüm sessionlar silinmez.
+        var revokedCount = await _context.UserSessions
+            .Where(s => s.Id == session.Id && !s.IsRevoked)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsRevoked, true), cancellationToken);
+
+        if (revokedCount == 0)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
-
-
-        session.Revoke();
 
         var now = DateTime.UtcNow;
         var newAccessToken = _jwtTokenService.GenerateAccessToken(session.User);
