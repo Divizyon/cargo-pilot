@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
 
   // Signature area ─ two columns: Hazirlayan + Onaylayan
   signatureRow: {
-    marginTop: 32,
     flexDirection: 'row',
     gap: 24,
   },
@@ -307,7 +306,7 @@ function PdfFooter({ generatedAt, dateFormat }: { generatedAt: Date; dateFormat:
 
 function SignatureSection() {
   return (
-    <View style={styles.signatureRow}>
+    <View style={styles.signatureRow} wrap={false}>
       <View style={styles.signatureBox}>
         <View style={styles.signatureLine} />
         <Text style={styles.signatureLabel}>Hazirlayan</Text>
@@ -369,7 +368,12 @@ export function PlanPdfDocument({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page
+        size="A4"
+        style={
+          reportingSettings.showSignatureArea ? [styles.page, { paddingBottom: 100 }] : styles.page
+        }
+      >
         {/* Fixed header — every page */}
         <PdfHeader
           documentNumber={documentNumber}
@@ -456,7 +460,7 @@ export function PlanPdfDocument({
 
         {snapshotDataUrl && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>3D Sahne Görünümü</Text>
+            <Text style={styles.sectionTitle}>3D Sahne Gorunumu</Text>
             <View style={styles.snapshotContainer}>
               <Image
                 src={snapshotDataUrl}
@@ -466,8 +470,23 @@ export function PlanPdfDocument({
           </View>
         )}
 
-        {/* Signature — last page only, conditional */}
-        {reportingSettings.showSignatureArea && <SignatureSection />}
+        {/* Signature — sadece son sayfanın altına sabitli */}
+        {reportingSettings.showSignatureArea && (
+          <View
+            fixed
+            style={{
+              position: 'absolute',
+              bottom: 32,
+              left: PAGE_PADDING_H,
+              right: PAGE_PADDING_H,
+            }}
+            render={({ pageNumber, ...rest }) =>
+              pageNumber === (rest as unknown as { totalPages: number }).totalPages ? (
+                <SignatureSection />
+              ) : null
+            }
+          />
+        )}
       </Page>
     </Document>
   );

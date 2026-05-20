@@ -208,11 +208,11 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
               </p>
               <div className="border-t border-border pt-2 flex flex-col gap-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Ön aks</span>
+                  <span className="text-muted-foreground">Sağ-Sol Yük Dağılımı</span>
                   <span className="tabular-nums">{(balance.frontAxleShare * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Arka aks</span>
+                  <span className="text-muted-foreground">Ön-Arka Yük Dağılımı</span>
                   <span className="tabular-nums">{(balance.rearAxleShare * 100).toFixed(1)}%</span>
                 </div>
               </div>

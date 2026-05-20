@@ -1146,7 +1146,13 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
                 count: placedIds.size,
               },
               ...(unfitItems.length > 0
-                ? [{ value: 'unfit', label: 'Başarısız', count: totalUnfitQty }]
+                ? [
+                    {
+                      value: 'unfit',
+                      label: unfitItems.length > 0 ? 'Yüklenemeyen' : 'Yüklenemeyen ürünler',
+                      count: totalUnfitQty,
+                    },
+                  ]
                 : []),
             ]}
             value={activeTab}
@@ -1871,7 +1877,7 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
                         {onAddSuggestedVehicle && (
                           <Button
                             size="sm"
-                            disabled={isAddingVehicle}
+                            disabled
                             onClick={async () => {
                               setIsAddingVehicle(true);
                               try {

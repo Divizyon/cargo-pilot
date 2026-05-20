@@ -239,12 +239,13 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           }))
         : undefined;
 
-    // All selected vehicles in their current order — waterfall processes them sequentially.
-    const vehicleIds = selectedVehicles.map((e) => e.vehicle.id);
+    // Backend create endpoint accepts a single vehicleId.
+    const vehicleId = selectedVehicles[0]?.vehicle.id;
+    if (!vehicleId) return;
 
     const id = await createPlan({
       planName: planNameInput.trim(),
-      vehicleIds,
+      vehicleId,
       items: itemsToSend.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,
@@ -319,14 +320,9 @@ export function NewPlanPage({ readOnly = false }: NewPlanPageProps) {
           }))
         : undefined;
 
-    // Send ALL selected vehicles in their current order — waterfall requires full list
-    const { selectedVehicles } = usePlanStore.getState();
-    const vehicleIds =
-      selectedVehicles.length > 0 ? selectedVehicles.map((e) => e.vehicle.id) : [vehicle.id];
-
     await reoptimizePlan({
       id: fromPlanId,
-      vehicleIds,
+      vehicleId: vehicle.id,
       items: dedupedItems.map((si) => ({
         itemId: si.item.id,
         quantity: si.quantity,
