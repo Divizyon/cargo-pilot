@@ -103,7 +103,7 @@ geri-merge zorunlu olurdu.
 |---|------|--------|
 | 1 | Production stack hiç deploy edilmedi (`.env.prod` yok, compose çalışmadı) | 🔴 Kritik |
 | 2 | Production CI/CD ve prod GHCR image pipeline'ı yok | 🔴 Kritik |
-| 3 | `docker-compose.prod.yml` eksik: backend healthcheck yok, OAuth/CORS/Resend env yok, `SA_PASSWORD` vs `MSSQL_SA_PASSWORD` uyumsuz | 🔴 Kritik |
+| 3 | ~~`docker-compose.prod.yml` eksik~~ → 2026-08-03'te giderildi (`Minio__*`, `OAuth__Google__*`, `Cors__*`, `Resend__*`, backend healthcheck). **Sahada hiç çalıştırılmadı.** | 🟠 Yüksek |
 | 4 | MSSQL SA parolası git geçmişinde — **rotate edilmedi** | 🔴 Güvenlik |
 | 5 | Docker image CVE: backend 4 CRITICAL/18 HIGH, frontend 6 CRITICAL/29 HIGH (Trivy, 2026-05-16) | 🟠 Yüksek |
 | 6 | Grafana alert var ama contact point yok → bildirim gitmiyor | 🟠 Yüksek |
