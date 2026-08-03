@@ -19,7 +19,7 @@
 | Silinebilir ama işi backlog'a taşınmalı | 4 |
 | **Kurtarılması gereken gerçek iş** | **4** |
 
-**Kritik bulgu:** `dev` branch'inde `test`'te olmayan bir refresh-token güvenlik düzeltmesi var (§3).
+**Ana bulgu:** `dev` ile `test` **içerik olarak birebir aynı** — `dev` risksiz kapatılabilir (§3.1).
 
 ---
 
@@ -46,30 +46,28 @@ geri alınmış durumda. Bu haliyle merge edilemez.
 | Branch | test'e göre | Durum |
 |--------|-------------|-------|
 | `test` | — | Default branch. Korumalı (1 review + 3 required check). Aktif, güncel. |
-| `dev` | 3 geride / **9 önde** | Aşağıya bak. Korumasız. |
+| `dev` | 3 geride / 9 önde (hepsi merge commit) | **İçerik `test` ile birebir aynı.** Korumasız. |
 | `main` | 2051 geride / 0 önde | 2026-04-11'den beri dokunulmamış. **Korumasız.** Production hiç deploy edilmedi. |
 
-### 3.1 `dev`'de kalan, `test`'e hiç geçmemiş iş 🔴
-
-İçerik farkı sadece 2 dosya (36 satır) ama işlevsel olarak önemli:
+### 3.1 `dev` — `test` ile içerik farkı yok ✅
 
 ```
-CargoPilot.Application/Common/Errors/AuthErrors.cs   +10
-CargoPilot.Infrastructure/Auth/AuthService.cs        +29/−3
+$ git diff origin/test origin/dev --stat
+(çıktı boş)
 ```
 
-İki commit — `MusabDINC`, 2026-05-19, PR #878 ile `dev`'e girmiş:
+İki branch'in **çalışma ağaçları birebir aynı**. `dev`'de görünen 9 fazla commit'in tamamı merge
+commit'i veya içeriği `test`'e başka bir branch üzerinden ulaşmış commit
+(ör. `loadingType` düzeltmeleri `test`'e #874 ile girdi).
 
-1. `fix: refresh token 401 - spesifik hata kodları eklendi (REFRESH_TOKEN_EXPIRED, REFRESH_TOKEN_REVOKED)`
-2. `fix: refresh token race condition - atomik revoke ile es zamanli istek korumasi`
+**Aksiyon:** `dev`'de kurtarılacak iş yok. Branch kapatıldığında kod kaybı olmaz.
 
-İkincisi `session.Revoke()` yerine `ExecuteUpdateAsync` ile **atomik revoke** yapıyor; eş zamanlı iki
-refresh isteğinde kullanıcının tüm oturumlarının hatalı şekilde kapanmasını engelliyor.
-Aynı branch'in `test` PR'ı (#879) bu iki commit'ten **önceki** halden merge edilmiş.
-
-**Aksiyon:** `dev` kapatılmadan önce bu iki commit `test`'e taşınmalı. Aksi hâlde kullanıcılar
-sekme/istek yarışında oturum kaybetmeye devam eder. `known-issues.md` #6'da tarif edilen
-"dev–test ayrışması" riskinin gerçekleşmiş hâli.
+> ⚠️ **Metodoloji notu — ilk analizde yapılan hata.** `test` ile `dev` arasında **iki merge-base**
+> var. Bu durumda `git diff A...B` (üç nokta) merge-base'lerden birini keyfî seçer ve gerçekte var
+> olmayan bir fark üretir. İlk taramada bu yolla "dev'de kalan refresh-token düzeltmesi" tespit
+> edilmişti; `git diff A B` (iki nokta) ile doğrulandığında farkın olmadığı görüldü.
+> **Kural: branch karşılaştırmasında iki nokta kullan, ya da dosya varlığını `git cat-file -e` ile doğrula.**
+> Bu dokümandaki diğer "test'te var/yok" tespitleri `cat-file` ile yapıldığından bu hatadan etkilenmez.
 
 ### 3.2 `main`
 
@@ -140,7 +138,7 @@ Bunlar silinmeden önce sahipleriyle konuşulmalı.
 | `feature/lifo-kapi-zekasi-eklendi` | İbrahim Nuryağınlı | LIFO algoritmasının kapı yönüne göre zone + skor hesabı, `SideBoth` kapı tipinin kaldırılması, `DebugStepPanel` (yerleştirme adım debug paneli). 12 commit, sadece 206 geride — **en taze iş** | `test`'ten yeni branch, 12 commit'i **tek commit'e squash** (10'u prettier/TS düzeltmesi), PR aç |
 | `feature/US-XXX-coklu-arac` | Çağrı Tekin / İbrahim N. | Çoklu araç desteği: `LoadingPlanVehicle` entity + migration + plan UI. Açık PR #834/#835 | PR'ları kapat, işi `test` üzerine yeniden uygula, tek PR aç |
 | `feature/US-XXX-container-collision-rear-door` | şeyma | PR #522/#523 merge edildikten **sonra** eklenen 5 commit: `/share` sayfasına salt-okunur 3D viewer (`test`'teki `SharePage.tsx`'te Canvas yok), kamera preset sadeleştirmesi | 3D viewer parçası değerli — ayrı branch'e taşınıp PR açılmalı |
-| `bugfix/Responsive` | akgunege1 | PR #698/#701 merge edildikten sonra 1 commit: `LandingPage` `CraneAnimation` z-index düzeltmesi (2 satır) | 2 satır — yeni bugfix branch'ine taşı, sonra sil |
+| `bugfix/Responsive` | akgunege1 | PR #698/#701 merge edildikten sonra 1 commit: `LandingPage`'de `CraneAnimation` sarmalayıcılarına `z-10` (2 satır) | ⚠️ Mekanik cherry-pick değil: `test`'te bu blok yeniden yazılmış (konum `top-1/2`→`top-0`, boyut `288×480`→`500×780`). Frontend geliştirici güncel `test`'te hatanın hâlâ olup olmadığına bakmalı; varsa tek satırlık yeni fix |
 
 ---
 
@@ -148,17 +146,18 @@ Bunlar silinmeden önce sahipleriyle konuşulmalı.
 
 Her adım ayrı ve geri alınabilir tutulmalı.
 
-| # | Adım | Risk |
-|---|------|------|
-| 1 | `dev`'deki 2 refresh-token commit'ini `test`'e taşı (§3.1) | Düşük — 36 satır |
-| 2 | `feature/3D_Packing_Algorithm`'daki 3 algoritma dokümanını `test`'e al | Yok — sadece doküman |
-| 3 | §5'teki 4 branch için sahipleriyle 15 dk'lık karar toplantısı | Yok |
-| 4 | Açık PR #834/#835'i gerekçeli kapat | Düşük |
-| 5 | §4.1'deki 7 branch'i sil | Yok |
-| 6 | §4.2'deki 11 branch'i sil (2. adımdan sonra) | Düşük |
-| 7 | §4.3'teki 4 story'yi backlog'a yaz, sonra branch'leri sil | Düşük |
-| 8 | `delete_branch_on_merge` ayarını **açık** hale getir | Yok — birikmeyi kökten keser |
-| 9 | Branch stratejisi kararı → [branching-proposal.md](branching-proposal.md) | — |
+| # | Adım | Risk | Durum |
+|---|------|------|-------|
+| 1 | `feature/3D_Packing_Algorithm`'daki 3 algoritma dokümanını `test`'e al | Yok — sadece doküman | ✅ PR açıldı |
+| 2 | §5'teki 4 branch için sahipleriyle 15 dk'lık karar toplantısı | Yok | ⏳ Ekipte |
+| 3 | Açık PR #834/#835'i gerekçeli kapat | Düşük | ⏳ |
+| 4 | §4.1'deki 7 branch'i sil | Yok | ⏳ |
+| 5 | §4.2'deki 11 branch'i sil (1. adımdan sonra) | Düşük | ⏳ |
+| 6 | §4.3'teki 4 story'yi backlog'a yaz, sonra branch'leri sil | Düşük | ⏳ |
+| 7 | `delete_branch_on_merge` ayarını **açık** hale getir | Yok — birikmeyi kökten keser | ⏳ |
+| 8 | Branch stratejisi kararı → [branching-proposal.md](branching-proposal.md) | — | ⏳ |
+
+> `dev`'de kurtarılacak iş bulunmadığı için (§3.1) ayrı bir taşıma adımı gerekmiyor.
 
 > Silmeden önce güvenlik ağı: `git tag archive/<branch-adı> origin/<branch-adı> && git push origin --tags`.
 > Tag'ler commit'leri kalıcı tutar, branch listesini kirletmez, gerektiğinde geri alınır.
@@ -170,8 +169,11 @@ Her adım ayrı ve geri alınabilir tutulmalı.
 Bu tablonun 26 iş branch'iyle oluşmasının üç nedeni var; hiçbiri kişi kaynaklı değil:
 
 1. **`delete_branch_on_merge` kapalı** → merge edilmiş 7 branch hâlâ listede duruyor.
-2. **Her iş için 2 PR** (`dev` + `test`) → biri merge edilip diğeri unutulduğunda iş yarım kalıyor;
-   `dev`'deki refresh-token fix'i tam olarak bu şekilde kayboldu.
+2. **Her iş için 2 PR** (`dev` + `test`) → PR sayısı ve gürültü ikiye katlanıyor. Son 40 PR ölçüldüğünde:
+   **13 branch birden fazla PR açmış**, son 30 PR'ın **10'u merge edilmeden kapatılmış**.
+   Uç örnekler: `bugfix/refresh-yeni` → #876/#877 kapatıldı, #878/#879 merge edildi (4 PR, tek iş);
+   `feature/US-XXX-planning-3d-ui-revize-coklu-arac` → 5 PR.
+   Review kapasitesinin önemli bir kısmı aynı diff'i ikinci kez okumaya gidiyor.
 3. **Uzun ömürlü branch'ler** → 1000+ commit geride kalan branch rebase edilemiyor, kimse silmeye de
    cesaret edemiyor, süresiz duruyor.
 

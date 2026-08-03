@@ -16,9 +16,9 @@ Bu modelin 5 kişide taşıdığı maliyet, ölçülebilir hâliyle:
 
 | Sorun | Kanıt |
 |-------|-------|
-| Her iş **2 PR** üretiyor | PR numarası 887'ye ulaşmış; #834/#835, #878/#879, #886/#887 aynı işin çiftleri |
-| Çift PR'ın biri unutulunca iş yarım kalıyor | `dev`'de kalan refresh-token race-condition düzeltmesi `test`'e hiç geçmedi |
-| İki dal ayrışıyor | `known-issues.md` #6 bu riski zaten kayıt altına almış, `sync/test-to-dev` diye bir yama akışı doğmuş |
+| Her iş **2 PR** üretiyor | Son 40 PR'da **13 branch birden fazla PR** açmış; #834/#835, #878/#879, #886/#887 aynı işin çiftleri |
+| Çift PR akışı gürültü üretiyor | Son 30 PR'ın **10'u merge edilmeden kapatıldı**. `bugfix/refresh-yeni` tek iş için 4 PR (#876/#877 kapatıldı, #878/#879 merge), `US-XXX-planning-3d-ui-revize-coklu-arac` 5 PR |
+| İki dal ayrışma riski taşıyor | `known-issues.md` #6 bu riski kayıt altına almış, `sync/test-to-dev` diye bir yama akışı doğmuş. (Bugün fiilî ayrışma yok — ama riski taşımanın karşılığı yukarıdaki PR maliyeti) |
 | `enforce-test-base` CI job'u ek karmaşıklık | "head `dev` olamaz + commit `origin/dev`'de bulunmalı" kuralı, `sync/*` muafiyeti, `copilot/*` muafiyet denemesi |
 | `main` ölü | 2026-04-11'den beri dokunulmamış, korumasız, production pipeline'ı yok |
 | Branch'ler birikiyor | `delete_branch_on_merge` kapalı → 29 branch, 7'si zaten merge edilmiş |
@@ -114,19 +114,21 @@ Böylece PR açıldığında doğru kişi otomatik reviewer olur — kimin bakac
 
 | # | Adım | Komut / yer |
 |---|------|-------------|
-| 1 | `dev`'de kalan 2 refresh-token commit'ini `test`'e taşı | `branch-audit.md` §3.1 |
-| 2 | `main`'i `test`'e fast-forward'la | `git push origin origin/test:main` |
-| 3 | Default branch'i `main` yap | GitHub → Settings → Branches |
-| 4 | `main`'e branch protection uygula (§4) | GitHub API / UI |
-| 5 | Workflow tetikleyicilerini güncelle | `ci.yml`, `test-deploy.yml`: `test`/`dev` → `main`; `enforce-test-base` job'unu **sil** |
-| 6 | Production pipeline'ı ekle | `v*` tag → prod image build + `production` environment ile deploy |
-| 7 | Branch temizliğini uygula | `branch-audit.md` §6 |
-| 8 | `test` ve `dev` branch'lerini arşivle | `git tag archive/test origin/test`, sonra branch'leri sil |
-| 9 | `BRANCHING.md`'yi yeni modelle yeniden yaz | `docs/conventions/BRANCHING.md` |
-| 10 | Ekibe 15 dk'lık aktarım | — |
+| 1 | `main`'i `test`'e fast-forward'la | `git push origin origin/test:main` |
+| 2 | Default branch'i `main` yap | GitHub → Settings → Branches |
+| 3 | `main`'e branch protection uygula (§4) | GitHub API / UI |
+| 4 | Workflow tetikleyicilerini güncelle | `ci.yml`, `test-deploy.yml`: `test`/`dev` → `main`; `enforce-test-base` job'unu **sil** |
+| 5 | Production pipeline'ı ekle | `v*` tag → prod image build + `production` environment ile deploy |
+| 6 | Branch temizliğini uygula | `branch-audit.md` §6 |
+| 7 | `test` ve `dev` branch'lerini arşivle | `git tag archive/test origin/test`, sonra branch'leri sil |
+| 8 | `BRANCHING.md`'yi yeni modelle yeniden yaz | `docs/conventions/BRANCHING.md` |
+| 9 | Ekibe 15 dk'lık aktarım | — |
 
-**Sıra önemli:** 5. adım (workflow'lar) 3. adımdan (default branch) önce yapılırsa deploy kırılır.
-6. adım tamamlanana kadar production deploy'u zaten manuel; yeni model bunu kötüleştirmiyor.
+**Sıra önemli:** 4. adım (workflow'lar) 2. adımdan (default branch) önce yapılırsa deploy kırılır.
+5. adım tamamlanana kadar production deploy'u zaten manuel; yeni model bunu kötüleştirmiyor.
+
+`dev`'in kapatılması kod kaybı doğurmaz: `dev` ile `test` ağaçları bugün birebir aynı
+(`branch-audit.md` §3.1).
 
 ---
 

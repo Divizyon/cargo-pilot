@@ -94,9 +94,10 @@ Workflow'lar: `ci.yml`, `test-deploy.yml`, `cache-cleanup.yml`, `sync-base-image
 ## 6. Süreç Gözlemi
 
 - Mevcut model: `test`'ten branch aç → PR `dev` → **aynı branch'ten** PR `test` → PR `test→main`.
-- Bu model her iş için **2 PR** üretiyor. PR numaraları 880'i geçmiş durumda.
-- Bilinen yan etki (known-issues #6): biri merge edilip diğeri unutulunca `dev` ile `test` ayrışıyor.
-  Bu ayrışma **şu an da mevcut** — bkz. [branch-audit.md](branch-audit.md) §3.
+- Bu model her iş için **2 PR** üretiyor. PR numaraları 887'yi geçmiş; son 40 PR'da 13 branch
+  birden fazla PR açmış, son 30 PR'ın 10'u merge edilmeden kapatılmış.
+- Bilinen yan etki (known-issues #6): `dev` ile `test` ayrışabiliyor. **Şu an ayrışma yok** —
+  iki branch'in ağacı birebir aynı (bkz. [branch-audit.md](branch-audit.md) §3.1).
 - Öneri ve gerekçe: [branching-proposal.md](branching-proposal.md).
 
 ---
