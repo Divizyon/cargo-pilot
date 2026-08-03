@@ -214,6 +214,11 @@ internal sealed class AuthService : IAuthService
         string? userAgent,
         CancellationToken cancellationToken)
     {
+        // Erişimi kapatılan kullanıcı, oturumları iptal edilse bile şifresiyle
+        // veya OAuth ile geri giremez. Kontrol tüm token üretim yollarını kapsar.
+        if (!user.IsActive)
+            return Result<LoginResponse>.Failure(AuthErrors.AccountDeactivated);
+
         var deviceSummary = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Trim();
 
         var isNewDevice = deviceSummary is not null &&
@@ -298,6 +303,10 @@ internal sealed class AuthService : IAuthService
 
         if (session is null || session.User is null)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
+
+        // Erişimi kapatılan kullanıcı elindeki refresh token ile oturumunu uzatamaz.
+        if (!session.User.IsActive)
+            return Result<RefreshResponse>.Failure(AuthErrors.AccountDeactivated);
 
         // Revoke edilmiş token tekrar sunuluyorsa token çalınmış olabilir — tüm sessionları kapat.
         if (session.IsRevoked)
