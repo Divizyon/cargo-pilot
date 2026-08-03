@@ -8,6 +8,31 @@
 
 ## Açık Sorunlar
 
+### 0 — Sunucuda Bayat GHCR Kimlik Bilgisi (INC-003)
+
+{% hint style="warning" %}
+**Durum:** 🔧 Düzeltme uygulandı — doğrulama bekliyor
+{% endhint %}
+
+2026-08-03'te test sunucusuna deploy `error from registry: denied` ile kırıldı. Son başarılı
+deploy 2026-05-20'ydi.
+
+**Kök neden:** GHCR paketleri 2026-05-10'da public yapıldı ve `TEST_GHCR_PAT` login'i
+`test-deploy.yml`'den kaldırıldı (#483). Ancak sunucudaki `~/.docker/config.json` içinde eski
+PAT kimlik bilgisi kaldı. PAT'in süresi dolunca docker anonim pull'a **düşmedi**; geçersiz
+kimlik bilgisiyle deneyip `denied` aldı.
+
+**Etkisi:** Test ortamı 2026-05-20'den beri yeni image almıyordu.
+
+**Not:** Bu sorun trunk branch geçişinden **önce** de mevcuttu — aynı hata `test` branch'inde de
+alınmıştı (run 30809546247). Geçişten kaynaklanmadı.
+
+**Uygulanan çözüm:** Deploy script'ine pull öncesi `docker logout ghcr.io || true` eklendi.
+
+**Manuel alternatif:** Sunucuda bir kez `docker logout ghcr.io`.
+
+---
+
 ### 1 — Resend Domain Doğrulaması Tamamlanmadı
 
 {% hint style="warning" %}

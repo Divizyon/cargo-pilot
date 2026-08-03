@@ -321,6 +321,12 @@ jobs:
             git checkout main
             git reset --hard origin/main
 
+            # GHCR paketleri public; login GEREKMEZ. Sunucuda kalmış eski/süresi dolmuş
+            # bir ghcr.io kimlik bilgisi varsa docker anonim pull'a düşmez ve
+            # "error from registry: denied" alır. Kalıntı kimlik bilgisini temizle.
+            echo "==> Bayat GHCR kimlik bilgisi temizleniyor..."
+            docker logout ghcr.io >/dev/null 2>&1 || true
+
             echo "==> Image'lar GHCR'dan çekiliyor (tag: ${IMAGE_TAG})..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
