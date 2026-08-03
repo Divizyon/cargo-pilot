@@ -59,29 +59,41 @@ Ek: `DIVIZYON` ERP veritabanı (müşteri `.bak` restore'u) test MSSQL container
 
 Workflow'lar: `ci.yml`, `test-deploy.yml`, `cache-cleanup.yml`, `sync-base-images.yml`, `rollback.yml`.
 
+Workflow'lar ayrıca: `release-tag.yml` (2026-08-03'te eklendi).
+
 | Tetikleyici | Sonuç |
 |-------------|-------|
-| push `feat/**`, `fix/**`, `hotfix/**`, `chore/**`, `infra/**` (+ eski `feature/**`, `bugfix/**`) | CI + Deploy (Test) — inline build |
-| PR → `main` | CI + Pending Migration Kontrolü + Image Build + Deploy (Test) |
-| push `main` | Image Build → GHCR → test sunucusuna deploy |
+| push `feat/**`, `fix/**`, `hotfix/**`, `chore/**`, `infra/**` (+ eski `feature/**`, `bugfix/**`) | CI + geçici stack doğrulaması (inline build) |
+| PR → `dev` | CI + Docker Image Build |
+| PR → `test` | CI + Terfi Zinciri + Migration + Image Build + Deploy (Test) |
+| push `test` | Image Build → GHCR → **test sunucusuna deploy** |
+| PR → `main` | CI + Terfi Zinciri + Migration |
+| push `main` | `v0.<n>.0` sürüm etiketi (deploy yok) |
 | `v*` tag | **hiçbir şey — production pipeline yok** (devops-backlog 2.2) |
 
-- `enforce-test-base` job'u **kaldırıldı** (2026-08-03 trunk geçişi) — iki dallı model bittiği için gereksizdi.
+- `enforce-test-base` job'u kaldırıldı; yerine **`Terfi Zinciri Kontrolü`** (`ci.yml`) geldi:
+  `test`'e yalnızca `dev`'den, `main`'e yalnızca `test` veya `hotfix/*` üzerinden PR açılabilir.
+  2026-08-03'te boş bir PR ile fiilen doğrulandı (PR #904 engellendi).
 - GHCR image'ları **public**; geliştirici login'i gerekmiyor. Immutable tag: `test-{sha}`.
 - Koruma **repository ruleset** ile yapılıyor (klasik branch protection API'si 404 döner — yanıltıcıdır):
   `main-protection`, `test-protection`, `dev-protection` aktif; `freeze` kapalı.
 
-| Ruleset | PR zorunlu | Onay | Required check | Bypass |
-|---------|-----------|------|----------------|--------|
-| `main-protection` | ✅ | 1 + son push onayı | **yok** | Team / sadece PR ile |
-| `test-protection` | ✅ | 1 + son push onayı | `Deploy (Test)`, `Image Build`, `Test PR Dev Kontrolü` (strict) | Team / **her zaman** |
-| `dev-protection` | ✅ | 1 + son push onayı | `Deploy (Test)` | Team / **her zaman** |
+| Ruleset | Merge yöntemi | Required check |
+|---------|---------------|----------------|
+| `dev-protection` | sadece **squash** | `Frontend CI`, `Backend CI` |
+| `test-protection` | sadece **merge commit** | `Terfi Zinciri`, `Frontend CI`, `Backend CI`, `Migration`, `Image Build`, `Deploy (Test)` |
+| `main-protection` | sadece **merge commit** | `Terfi Zinciri`, `Frontend CI`, `Backend CI`, `Migration` |
 
-Üçünde de: sadece merge commit, push'ta eski onaylar düşer, review thread'leri çözülmüş olmalı,
-branch silme ve force-push kapalı. `main`'de ayrıca `update` kuralı → doğrudan push engelli.
+Merge yöntemi kısıtı kritik: terfi PR'ında squash yapılırsa hedef dal, kaynakta olmayan yeni bir
+commit alır ve dallar kalıcı ayrışır. Ruleset yanlış seçimi mümkün kılmıyor.
 
-- Boşluk: `main`'de hiç required status check yok — CI geçmeden merge edilebilir.
-- `delete_branch_on_merge` = **false** → merge sonrası branch'ler birikiyor.
+Üçünde de: PR zorunlu, 1 onay + son push onayı, push'ta eski onaylar düşer, review thread'leri
+çözülmüş olmalı, branch silme ve force-push kapalı, bypass **sadece PR ile** (eski `always` kaldırıldı).
+`main`'de ayrıca `update` kuralı → doğrudan push engelli.
+`strict_required_status_checks_policy` üçünde de **false** — aksi hâlde her terfiden sonra
+geri-merge zorunlu olurdu.
+
+- `delete_branch_on_merge` = **true**.
 
 ---
 
@@ -102,18 +114,33 @@ branch silme ve force-push kapalı. `main`'de ayrıca `update` kuralı → doğr
 
 ---
 
-## 6. Branch Modeli — Trunk (2026-08-03'ten itibaren)
+## 6. Branch Modeli — Üç Dallı Terfi (2026-08-03'ten itibaren)
 
 ```
-main ──► feat|fix|chore|infra/* ──► PR → main ──► test ortamına otomatik deploy
+feat/* ──PR(squash)──► dev ──PR(merge)──► test ──PR(merge)──► main
+                        │                  │                    │
+                       CI          TEST SUNUCUSU         ileride PRODUCTION
+                                (gösterim + QA testi)    (şimdilik sadece tag)
 ```
 
-- Tek uzun ömürlü branch: **`main`** (default). İş branch'leri kısa ömürlü, merge sonrası otomatik silinir.
-- İş başına **1 PR**. Eski `feature → dev → test → main` modeli kaldırıldı.
-- `dev` ve `test` branch'leri `main` ile aynı içeriği taşıyan **dondurulmuş kopyalar**; CI tetiklemezler,
-  ekip onayıyla silinecekler.
-- Silinen tüm eski branch'ler `archive/<branch-adı>` tag'i olarak korunuyor (26 tag).
-- Kurallar: [BRANCHING.md](../conventions/BRANCHING.md) · Gerekçe ve ölçümler: [branching-proposal.md](branching-proposal.md)
+| Dal | Rol | Deploy hedefi | Terfi ritmi |
+|-----|-----|---------------|-------------|
+| `dev` | Günlük entegrasyon | Yok, sadece CI | — |
+| `test` | QA / gösterim ortamı | Test sunucusu | İş onaylandıkça |
+| `main` | Production'a hazır sürüm | *(prod sunucusu yok)* | Haftalık |
+
+- `main` **default** branch ve production'a ayrılmış. Prod sunucusu kurulana kadar deploy tetiklemez;
+  her terfide `release-tag.yml` otomatik `v0.<n>.0` etiketi atar (ilk etiket: `v0.1.0`).
+- `test` ve `main` üzerinde **commit üretilmez** — içerikleri yalnızca terfi ile değişir.
+  Test ortamında bulunan bug `dev`'den açılan `fix/*` ile düzeltilip yeniden terfi edilir.
+- `hotfix/*` → `main` tek istisna; ardından `main → test → dev` geri-merge **zorunlu**.
+- `dev` her an çıkılabilir olmalı: erken terfide `dev`'deki her şey birlikte gider.
+- Silinen tüm eski branch'ler `archive/<branch-adı>` tag'i olarak korunuyor (28 tag).
+- Kurallar: [BRANCHING.md](../conventions/BRANCHING.md) · Karar geçmişi: [branching-proposal.md](branching-proposal.md)
+
+**Not:** 2026-08-03 sabahı kısa süreliğine trunk modeline (`main` tek dal) geçildi, aynı gün
+üç dallı modele dönüldü. Gerekçe: test ortamı fiilen müşteriye gösterilen yüzey ve ayrı bir
+QA adımı var — dondurulabilir bir dal gerekiyor. Detay: [branch-audit.md](branch-audit.md) §8–§9.
 
 ---
 
