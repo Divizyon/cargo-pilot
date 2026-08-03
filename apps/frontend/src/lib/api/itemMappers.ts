@@ -199,12 +199,15 @@ export function fromApiItem(api: ItemApi): Item {
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
   const { dimensionUnit, weightUnit } = useUnitStore.getState();
   const unit = dimensionUnit as DimensionUnitKey;
+  // Kayıtta palet tabanı yüksekliğe eklenir; formda yalnızca ürün yüksekliği gösterilir.
+  const heightCm =
+    item.productType === 'palet' ? Math.max(item.height - PALLET_HEIGHT_CM, 0) : item.height;
   return {
     name: item.name,
     sku: item.sku,
     productType: item.productType,
     width: fromCentimeters(item.width, unit),
-    height: fromCentimeters(item.height, unit),
+    height: fromCentimeters(heightCm, unit),
     length: fromCentimeters(item.length, unit),
     weight: fromKilograms(item.weight, weightUnit as WeightUnitKey),
     fragility: item.fragility,
