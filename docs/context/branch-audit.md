@@ -2,7 +2,8 @@
 
 **Tarih:** 2026-08-03 · **Referans:** `origin/test` @ `3c42f65a` (denetim anı)
 **Durum:** ✅ **Tamamlandı ve uygulandı.** Sonuç: **29 branch → 3** (`main`, `test`, `dev`),
-26 `archive/*` tag'i, açık PR yok. Ardından trunk geçişi yapıldı — bkz. §8.
+26 `archive/*` tag'i, açık PR yok. Ardından trunk geçişi yapıldı (§8), aynı gün üç dallı
+terfi modeline dönüldü (§9) — **yürürlükteki model §9'dur.**
 
 ---
 
@@ -234,12 +235,54 @@ Bu üçü çözülmeden yazılacak pipeline ilk çalıştırmada patlar. Sıra:
 
 ### `dev` ve `test` branch'leri
 
-Silinmediler — kullanıcı üçünün de eşitlenmesini istedi. Artık `main` ile aynı içeriği taşıyan,
-CI tetiklemeyen **dondurulmuş kopyalar**. Ekip onayıyla silinebilirler;
-`archive/main-2026-08-03` ve `archive/dev-2026-08-03` tag'leri geçiş öncesi durumu tutuyor.
+Silinmediler. Aynı gün üç dallı modele dönüldüğü için tekrar aktif kullanımdalar — bkz. §9.
 
-> Silmeden önce güvenlik ağı: `git tag archive/<branch-adı> origin/<branch-adı> && git push origin --tags`.
-> Tag'ler commit'leri kalıcı tutar, branch listesini kirletmez, gerektiğinde geri alınır.
+---
+
+## 9. Üç Dallı Terfi Modeline Dönüş — 2026-08-03 (aynı gün)
+
+Trunk geçişinden birkaç saat sonra model tekrar değiştirildi. **Gerekçe teknik değil, bağlamsal:**
+
+1. Test ortamı fiilen **müşteriye/paydaşa gösterilen yüzey** (`known-issues.md` #2:
+   `cargopilot.divizyon.org` yalnızca test ortamını sunuyor). Hafta ortasında değişmemesi isteniyor.
+2. Ayrı bir **QA/test adımı var** — geliştiriciler *ve* DevOps/QA aynı sürümü test ediyor.
+3. `main` ileride **ayrı bir prod sunucusunda** çalışacak.
+
+Bu üçü birlikte, dondurulabilir bir dalı gerekçelendiriyor. Trunk modeli bunu ancak
+feature flag'lerle taklit edebilirdi.
+
+### Eski üç dallı modelden farkı
+
+Eskiden iş branch'i **hem `dev`'e hem `test`'e** ayrı PR açıyordu — iş başına 2 PR (§7 madde 2).
+Yeni modelde iş branch'i **yalnızca `dev`'e** PR açar; `dev → test` ve `test → main` ayrı
+**terfi PR'larıdır** ve biriken işi toplu taşır.
+
+| Uygulanan | Durum |
+|-----------|-------|
+| `main → test` ve `main → dev` hizalama (PR #896, #897) | ✅ Üç ağaç birebir aynı |
+| `test-deploy.yml` deploy kaynağı `main` → `test` | ✅ |
+| Sunucu deploy script'i `git checkout test` | ✅ `Switched to branch 'test'` |
+| `ci.yml` PR hedefleri: `dev`, `test`, `main` | ✅ |
+| **`Terfi Zinciri Kontrolü`** job'u (`ci.yml`) | ✅ PR #904 ile fiilen doğrulandı |
+| `release-tag.yml` — `main`'e terfide `v0.<n>.0` | ✅ `v0.1.0` oluştu |
+| Ruleset'ler: dal bazında merge yöntemi + required check | ✅ |
+| Bypass modu `always` → `pull_request` (dev/test) | ✅ |
+| `BRANCHING.md` üç dallı modelle yeniden yazıldı | ✅ |
+| Production pipeline | ⛔ Hâlâ yok — §8'deki gerekçeler geçerli |
+
+PR zinciri: #898 (→dev) → #899 (→test) → #900 (→main) → #901/#902/#903 (etiket düzeltmesi).
+
+### Ayrışmayı önleyen kontroller
+
+Bu modelin bilinen kırılma noktası dalların ayrışmasıdır — bu repoda bir kez yaşandı
+(`known-issues.md` #6: #482 `dev`'i atladı, `sync/test-to-dev` yaması gerekti). İki kontrol var:
+
+1. **`Terfi Zinciri Kontrolü`** — `test`'e yalnızca `dev`'den, `main`'e yalnızca `test`/`hotfix/*`.
+2. **Ruleset merge yöntemi kısıtı** — terfi PR'ında squash yapılamaz. Squash yapılsaydı hedef dal,
+   kaynakta bulunmayan yeni bir commit alır ve fark haftalar sonra ortaya çıkardı.
+
+Kalan risk **insan disiplinine bağlı** ve otomatikleştirilmedi:
+`hotfix/* → main` sonrası `main → test → dev` geri-merge'ünün unutulması.
 
 ---
 
