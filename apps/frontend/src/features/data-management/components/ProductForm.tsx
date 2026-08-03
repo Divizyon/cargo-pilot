@@ -49,6 +49,7 @@ import {
 } from '@/features/data-management/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
+import { parseDecimalInput } from '@/lib/utils/parseDecimalInput';
 import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
@@ -824,21 +825,17 @@ export function ProductForm({
                   <FormControl>
                     <Input
                       type="text"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       step="0.1"
                       min={0}
-                      placeholder="15.5"
+                      placeholder="15,5"
                       className={COMPACT_INPUT_WITH_UNIT}
                       {...field}
                       value={weightDisplay}
                       onChange={(e) => {
                         const raw = e.target.value;
                         setWeightDisplay(raw);
-                        field.onChange(
-                          raw === '' || !Number.isFinite(parseFloat(raw))
-                            ? undefined
-                            : parseFloat(raw),
-                        );
+                        field.onChange(parseDecimalInput(raw));
                       }}
                     />
                   </FormControl>
@@ -1417,7 +1414,7 @@ function DimensionField({
             <FormControl>
               <Input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 placeholder={placeholder}
                 className={COMPACT_INPUT_WITH_UNIT}
                 {...field}
@@ -1425,8 +1422,7 @@ function DimensionField({
                 onChange={(e) => {
                   const raw = e.target.value;
                   setDisplay(raw);
-                  const num =
-                    raw === '' || !Number.isFinite(parseFloat(raw)) ? undefined : parseFloat(raw);
+                  const num = parseDecimalInput(raw);
                   field.onChange(num);
                   onAfterChange?.(num);
                 }}
