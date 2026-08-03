@@ -30,6 +30,7 @@ export const ITEM_CATEGORY = {
 } as const;
 export type ItemCategoryValue = (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY];
 
+/** Backend `AllowedRotations` enum'u 0-5 aralığındadır; başka bir değer 400 döner. */
 export const ALLOWED_ROTATIONS = {
   All: 0,
   NoVertical: 1,
@@ -37,7 +38,6 @@ export const ALLOWED_ROTATIONS = {
   NoYaw: 3,
   PitchOnly: 4,
   RollOnly: 5,
-  YawOnly: 6,
 } as const;
 export type AllowedRotationsValue = (typeof ALLOWED_ROTATIONS)[keyof typeof ALLOWED_ROTATIONS];
 
@@ -70,6 +70,14 @@ export function toCategory(productType: ProductType): ItemCategoryValue {
   return ITEM_CATEGORY.Package;
 }
 
+/**
+ * Eksen izinlerini backend enum'una çevirir. X=Pitch, Y=Yaw, Z=Roll.
+ *
+ * Sekiz kombinasyonun altısının birebir karşılığı vardır. Karşılığı olmayan iki
+ * durumda (Yaw+Roll ve Yaw+Pitch) yalnızca Yaw'a izin veren alt küme seçilir:
+ * fazladan dönüş vermek kırılgan ürünü yasak bir yüzeye yatırabilir, eksik dönüş
+ * ise yalnızca yerleşim seçeneğini daraltır.
+ */
 export function toAllowedRotations(
   allowRotateX: boolean,
   allowRotateY: boolean,
@@ -81,8 +89,7 @@ export function toAllowedRotations(
   if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // T F T
   if (allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.PitchOnly; // T F F
   if (!allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.RollOnly; // F F T
-  if (!allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // F T T → en yakın
-  return ALLOWED_ROTATIONS.AllLocked; // T T F → fallback
+  return ALLOWED_ROTATIONS.NoVertical; // F T T ve T T F → yalnızca Yaw
 }
 
 export function toMaxWeightOnTop(
@@ -160,8 +167,6 @@ function fromAllowedRotations(v: number): {
       return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
     case ALLOWED_ROTATIONS.RollOnly:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
-    case ALLOWED_ROTATIONS.YawOnly:
-      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
     default:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
   }
