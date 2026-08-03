@@ -1,7 +1,8 @@
 # Branch & PR Denetimi
 
-**Tarih:** 2026-08-03 · **Referans:** `origin/test` @ `3c42f65a`
-**Durum:** 🔍 Analiz — **hiçbir branch silinmedi, hiçbir PR kapatılmadı.** Bu doküman karar önerisidir.
+**Tarih:** 2026-08-03 · **Referans:** `origin/test` @ `3c42f65a` (denetim anı)
+**Durum:** ✅ **Tamamlandı ve uygulandı.** Sonuç: **29 branch → 3** (`main`, `test`, `dev`),
+26 `archive/*` tag'i, açık PR yok. Ardından trunk geçişi yapıldı — bkz. §8.
 
 ---
 
@@ -171,17 +172,71 @@ Her adım ayrı ve geri alınabilir tutulmalı.
 
 ### 6.1 Uygulama Kaydı — 2026-08-03
 
-**18 branch silindi** (§4.1'den 7, §4.2'den 11). Remote branch sayısı **29 → 13**.
+**Sonuç: 29 branch → 3.** Kalan: `main`, `test`, `dev`.
 
-Silinen her branch için `archive/<branch-adı>` tag'i oluşturulup push edildi (18 tag).
-Commit'ler kalıcı olarak erişilebilir; branch listesi kirlenmiyor. Geri alma:
+| Aşama | Ne yapıldı |
+|-------|-----------|
+| 1 | §4.1'den 7 + §4.2'den 11 = **18 branch** arşivlenip silindi |
+| 2 | Kullanıcı `bugfix/Responsive`, `US-XXX-coklu-arac`, `US-XXX-container-collision-rear-door`'u UI'dan sildi — objeler lokalde yakalanıp sonradan tag'lendi |
+| 3 | Kalan **5 branch** (§4.3'ün 4'ü + `lifo-kapi-zekasi-eklendi`) arşivlenip silindi |
+| 4 | PR #888/#889 → `dev`, #890/#891 → `test` merge edildi |
+| 5 | `delete_branch_on_merge` **açıldı** |
+
+**26 `archive/*` tag'i** push edildi. Hiçbir commit kaybolmadı. Geri alma:
 
 ```bash
-git checkout -b <branch-adı> archive/<branch-adı>
+git fetch --tags
+git checkout -b <yeni-branch-adi> archive/<eski-branch-adi>
 ```
 
-Kalan 13 branch: `main`, `test`, `dev`, iki doküman PR branch'i, §5'teki 4 kurtarma adayı,
-§4.3'teki 4 backlog adayı.
+{% hint style="warning" %}
+Kurtarma kararı verilmeden silinen, `test`'te karşılığı olmayan işler — ihtiyaç olursa tag'lerden alınır:
+
+- `archive/feature/lifo-kapi-zekasi-eklendi` — LIFO kapı zekası + `DebugStepPanel` (sadece 206 commit gerideydi)
+- `archive/feature/US-XXX-coklu-arac` — `LoadingPlanVehicle` entity + çoklu araç migration'ı
+- `archive/feature/US-XXX-container-collision-rear-door` — `/share` sayfası salt-okunur 3D viewer
+- `archive/feature/US-SUB-02-paytr-subscription-backend` — PayTR ödeme entegrasyonu
+- `archive/feature/US-VY-36-erp-vehicle-upsert-clean` — ERP araç upsert + `PendingVehicleMapping`
+- `archive/feature/US-VY-DAT-01-item-list-api` — ürün birim normalizasyonu + stok durumu
+- `archive/feature/US-AUTH-05-hesap-kitleme-mekanizması` — IP bazlı lockout
+{% endhint %}
+
+---
+
+## 8. Trunk Geçişi — 2026-08-03
+
+Temizlikten sonra [branching-proposal.md](branching-proposal.md) uygulandı.
+
+| Adım | Durum |
+|------|-------|
+| `main`'i `test` seviyesine hizala (PR #892) | ✅ |
+| `dev`'i `test` seviyesine hizala (PR #893) | ✅ |
+| Üç branch içerik olarak birebir aynı | ✅ Doğrulandı |
+| Workflow tetikleyicileri `test`/`dev` → `main` | ✅ |
+| `enforce-test-base` job'u kaldırıldı | ✅ |
+| Sunucu deploy script'i `git checkout main` | ✅ |
+| `BRANCHING.md` trunk modeliyle yeniden yazıldı | ✅ |
+| Default branch → `main` | ✅ |
+| `main-protection`'a required status check eklendi | ✅ |
+| Production pipeline (`v*` tag) | ⛔ Yapılmadı — gerekçe aşağıda |
+
+### Production pipeline neden yapılmadı
+
+`branching-proposal.md` §5 adım 5'te yer alıyor ama şu an inşa edilemez:
+
+1. `PROD_SSH_HOST` / `PROD_SSH_PRIVATE_KEY` secret'ları tanımlı değil.
+2. Production stack sunucuda **hiç kurulmadı** — `.env.prod` yok (`known-issues.md` #2).
+3. `docker-compose.prod.yml` eksik: backend healthcheck yok, OAuth/CORS/Resend env yok,
+   `SA_PASSWORD` ↔ `MSSQL_SA_PASSWORD` uyumsuz (`known-issues.md` #5).
+
+Bu üçü çözülmeden yazılacak pipeline ilk çalıştırmada patlar. Sıra:
+`devops-backlog.md` 1.2–1.4 → 2.1 → 2.2/2.3.
+
+### `dev` ve `test` branch'leri
+
+Silinmediler — kullanıcı üçünün de eşitlenmesini istedi. Artık `main` ile aynı içeriği taşıyan,
+CI tetiklemeyen **dondurulmuş kopyalar**. Ekip onayıyla silinebilirler;
+`archive/main-2026-08-03` ve `archive/dev-2026-08-03` tag'leri geçiş öncesi durumu tutuyor.
 
 > Silmeden önce güvenlik ağı: `git tag archive/<branch-adı> origin/<branch-adı> && git push origin --tags`.
 > Tag'ler commit'leri kalıcı tutar, branch listesini kirletmez, gerektiğinde geri alınır.

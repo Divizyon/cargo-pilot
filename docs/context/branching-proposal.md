@@ -1,9 +1,11 @@
 # Branch Stratejisi Önerisi — 5 Kişilik Ekip
 
-**Tarih:** 2026-08-03 · **Durum:** 📋 Öneri, karar bekliyor
+**Tarih:** 2026-08-03 · **Durum:** ✅ **Kabul edildi ve uygulandı** (production pipeline hariç)
 **Ekip:** DevOps · Backend · Algoritma · Frontend (4 rol / 5 kişi)
 
-Karar verildiğinde `docs/conventions/BRANCHING.md` bu içerikle güncellenir.
+Yürürlükteki kurallar artık [`docs/conventions/BRANCHING.md`](../conventions/BRANCHING.md)'de.
+Bu doküman **gerekçe ve ölçüm kaydı** olarak duruyor.
+Uygulama detayı: [branch-audit.md](branch-audit.md) §8.
 
 ---
 
