@@ -43,23 +43,17 @@ import { AddMemberForm } from '@/features/platform/components/AddMemberForm';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
-  manager: 'Yönetici',
-  viewer: 'Görüntüleyici',
   operator: 'Operatör',
 };
 
 const ROLE_STYLES: Record<string, string> = {
   admin: 'bg-primary/10 text-primary',
-  manager: 'bg-amber-500/10 text-amber-600',
-  viewer: 'bg-muted text-muted-foreground',
   operator: 'bg-emerald-500/10 text-emerald-700',
 };
 
 const ROLE_OPTIONS: { value: CompanyMember['role']; label: string }[] = [
   { value: 'admin', label: 'Admin' },
   { value: 'operator', label: 'Operatör' },
-  { value: 'manager', label: 'Yönetici' },
-  { value: 'viewer', label: 'Görüntüleyici' },
 ];
 
 interface CompanyMembersTableProps {
