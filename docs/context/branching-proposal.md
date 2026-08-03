@@ -1,11 +1,19 @@
 # Branch Stratejisi Önerisi — 5 Kişilik Ekip
 
-**Tarih:** 2026-08-03 · **Durum:** ✅ **Kabul edildi ve uygulandı** (production pipeline hariç)
+**Tarih:** 2026-08-03 · **Durum:** ⛔ **Yürürlükte değil — aynı gün geri alındı**
 **Ekip:** DevOps · Backend · Algoritma · Frontend (4 rol / 5 kişi)
 
-Yürürlükteki kurallar artık [`docs/conventions/BRANCHING.md`](../conventions/BRANCHING.md)'de.
-Bu doküman **gerekçe ve ölçüm kaydı** olarak duruyor.
-Uygulama detayı: [branch-audit.md](branch-audit.md) §8.
+> **Bu doküman tarihsel bir kayıttır.** Önerilen trunk modeli uygulandı, ardından aynı gün
+> **üç dallı terfi modeline** (`dev → test → main`) dönüldü.
+>
+> **Neden:** §7'de "bu öneriyi reddetmenin makul nedeni" olarak yazılan koşul gerçekte mevcuttu —
+> test ortamı müşteriye gösterilen yüzey ve ayrı bir QA adımı var. Dondurulabilir bir dal gerekiyor.
+>
+> Yürürlükteki kurallar: [`docs/conventions/BRANCHING.md`](../conventions/BRANCHING.md)
+> Karar geçmişi: [branch-audit.md](branch-audit.md) §8–§9
+>
+> §1'deki ölçümler (2 PR/iş, 10/30 kapatılmış PR) hâlâ geçerli ve yeni modelde
+> **terfi PR'ı** düzeniyle giderildi: iş branch'i yalnızca `dev`'e PR açar.
 
 ---
 

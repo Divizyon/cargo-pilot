@@ -10,8 +10,8 @@
 
 ### 0 — Sunucuda Bayat GHCR Kimlik Bilgisi (INC-003)
 
-{% hint style="warning" %}
-**Durum:** 🔧 Düzeltme uygulandı — doğrulama bekliyor
+{% hint style="success" %}
+**Durum:** ✅ Çözüldü — doğrulandı (2026-08-03)
 {% endhint %}
 
 2026-08-03'te test sunucusuna deploy `error from registry: denied` ile kırıldı. Son başarılı
@@ -109,15 +109,17 @@ CI pipeline'da Node.js 20 kullanılıyor; deprecation uyarısı alınmaktadır.
 
 ### 6 — `dev` Branch'inin Test'in Gerisine Düşme Riski
 
-{% hint style="info" %}
-**Durum:** ℹ️ Süreç Uyarısı
+{% hint style="success" %}
+**Durum:** ✅ Yapısal olarak engellendi (2026-08-03)
 {% endhint %}
 
 `US-REP-04` (#482) dev'i atlayarak doğrudan test'e merge edildi. Bu, dev'in test'in gerisinde kalmasına neden oldu. PR #493 ile giderildi.
 
-**Süreç kuralı:** Feature branch'ler **her zaman** önce `dev`'e, ardından aynı branch'ten `test`'e PR açılmalı. Hiçbir değişiklik dev'i atlayarak test'e gitmemelidir.
+**Uygulanan çözüm:** `ci.yml`'deki **`Terfi Zinciri Kontrolü`** job'u bunu artık CI seviyesinde engelliyor: `test`'e yalnızca `dev`'den, `main`'e yalnızca `test` veya `hotfix/*` üzerinden PR açılabilir. Ayrıca ruleset terfi PR'larında squash'ı kapatıyor — squash, kaynakta bulunmayan yeni bir commit üreterek aynı ayrışmayı yaratırdı.
 
-**Geçici çözüm:** Uyumsuzluk tespit edildiğinde `sync/test-to-dev` branch'i açılarak test → dev sync yapılır.
+**Süreç kuralı:** İş branch'leri yalnızca `dev`'e PR açar. `dev → test` ve `test → main` ayrı terfi PR'larıdır. Test ortamında bulunan bug `test`'te değil, `dev`'den açılan `fix/*` ile düzeltilir.
+
+**Kalan risk:** `hotfix/* → main` sonrası `main → test → dev` geri-merge'ünün unutulması. Bu adım otomatikleştirilmedi — bkz. [BRANCHING.md](../conventions/BRANCHING.md) "Hotfix".
 
 ---
 
