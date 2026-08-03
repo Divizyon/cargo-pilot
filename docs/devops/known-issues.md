@@ -93,17 +93,29 @@ CI pipeline'da Node.js 20 kullanılıyor; deprecation uyarısı alınmaktadır.
 
 ### 5 — `docker-compose.prod.yml` Eksiklikleri
 
-{% hint style="warning" %}
-**Durum:** ⚠️ Açık
+{% hint style="success" %}
+**Durum:** ✅ Giderildi (2026-08-03) — sahada doğrulanmadı, prod stack hâlâ kurulmadı
 {% endhint %}
 
-- Backend için `healthcheck:` bloğu yok
-- OAuth, CORS, Resend ve MSSQL env var'ları eksik
-- MSSQL healthcheck'te `SA_PASSWORD` ile `MSSQL_SA_PASSWORD` uyumsuzluğu
+Prod compose, test compose ile karşılaştırıldığında şunlar eksikti:
 
-**Etkisi:** Prod deploy edildiğinde Google OAuth, e-posta gönderimi ve CORS ayarları çalışmaz. MSSQL healthcheck fail ederse bağımlı servisler başlamaz.
+| Eksik | Etkisi |
+|-------|--------|
+| `Minio__Endpoint/AccessKey/SecretKey/BucketName` | **Dosya yükleme ve PDF hiç çalışmazdı** — backend `MINIO_*` değil `Minio__*` okuyor |
+| `OAuth__Google__*` (4 değişken) | Google ile giriş çalışmazdı |
+| `Cors__AllowedOrigins__0` | Ayrı origin kullanılırsa frontend API'ye ulaşamazdı |
+| `Resend__*`, `PasswordReset__*`, `EmailChange__*` | Şifre sıfırlama ve e-posta değiştirme kırıktı |
+| Backend `healthcheck:` | Deploy "hazır mı" bilemezdi; `depends_on` sağlık koşulu kurulamazdı |
+| `platform: linux/amd64` | Mimari uyuşmazlığı riski |
 
-**Kalıcı çözüm:** Bkz. [devops-backlog.md](devops-backlog.md) madde 1.2, 1.3, 1.4.
+**Uygulanan çözüm:** Prod compose'un backend servisi test compose ile birebir aynı anahtar
+kümesine getirildi; healthcheck eklendi; frontend `backend`'in sağlıklı olmasını bekliyor.
+MSSQL'de hem `MSSQL_SA_PASSWORD` hem `SA_PASSWORD` set ediliyor (2022 image'ı ilkini bekler),
+healthcheck `MSSQL_SA_PASSWORD` kullanıyor. Bağlantı dizesi artık compose içinde kuruluyor —
+parola `.env.prod`'da tek yerde duruyor. `.env.prod.example` yeni değişkenlerle tamamlandı.
+
+**Kalan iş:** Prod stack hiç ayağa kaldırılmadığı için bu yapılandırma **çalışır hâlde
+görülmedi**. İlk deploy'da doğrulanmalı. Bkz. madde 2 ve [devops-backlog.md](devops-backlog.md) 2.1.
 
 ---
 

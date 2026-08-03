@@ -2,7 +2,9 @@ name: cargo-pilot-prod
 
 services:
   backend:
+    # Image GHCR'dan çekilir; build yalnızca local doğrulama için.
     image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-backend:${IMAGE_TAG:-prod}
+    platform: linux/amd64
     build:
       context: ../../apps/backend
       dockerfile: Dockerfile
@@ -10,13 +12,37 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: ${DATABASE_CONNECTION_STRING}
+      MSSQL_HOST: mssql
+      MSSQL_PORT: 1433
+      MSSQL_DATABASE: ${MSSQL_DATABASE}
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: ${MSSQL_SA_PASSWORD}
+      # Bağlantı dizesi buradan kurulur; parola .env'de tek yerde tutulur.
+      # Harici/managed veritabanı için bir compose override dosyası kullanın.
+      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=${MSSQL_DATABASE};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
       MINIO_ENDPOINT: minio:9000
       MINIO_BUCKET: ${MINIO_BUCKET}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      Jwt__Secret: ${JWT_SECRET}
+      # Backend Minio__* anahtarlarını okur; MINIO_* tek başına YETERLİ DEĞİLDİR.
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__BucketName: ${MINIO_BUCKET}
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-}
       Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
+      Jwt__Secret: ${JWT_SECRET}
+      OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      OAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      OAuth__Google__CallbackUrl: ${GOOGLE_OAUTH_CALLBACK_URL:-}
+      OAuth__Google__FrontendCallbackUrl: ${GOOGLE_OAUTH_FRONTEND_CALLBACK_URL:-}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0:-}
+      Resend__ApiKey: ${RESEND_API_KEY:-}
+      Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
+      Resend__FromName: ${RESEND_FROM_NAME:-}
+      PasswordReset__FrontendResetUrl: ${PASSWORD_RESET_FRONTEND_URL:-}
+      EmailChange__FrontendConfirmUrl: ${EMAIL_CHANGE_FRONTEND_CONFIRM_URL:-}
+      EmailChange__TokenExpiryMinutes: ${EMAIL_CHANGE_TOKEN_EXPIRY_MINUTES:-60}
     ports:
       - "${BACKEND_PORT}:8080"
     depends_on:
@@ -24,17 +50,25 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
     networks:
       - cargo-pilot-prod
 
   frontend:
     image: ghcr.io/${GHCR_OWNER:-divizyon}/cargo-pilot-frontend:${IMAGE_TAG:-prod}
+    platform: linux/amd64
     build:
       context: ../../apps/frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        # Boş bırakılırsa nginx /api proxy devreye girer (CORS gerekmez).
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL-}
         VITE_APP_VERSION: ${APP_VERSION:-latest}
         VITE_APP_ENV: production
         VITE_OAUTH_GOOGLE_URL: ${VITE_OAUTH_GOOGLE_URL:-}
@@ -45,7 +79,8 @@ services:
     ports:
       - "${FRONTEND_PORT}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - cargo-pilot-prod
@@ -58,23 +93,26 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Standard
+      # MSSQL_SA_PASSWORD 2022 image'ının beklediği ad; SA_PASSWORD geriye dönük uyumluluk için.
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     ports:
       - "${MSSQL_PORT}:1433"
     volumes:
       - mssql_data_prod:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-      start_period: 40s
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 12
+      start_period: 90s
     restart: unless-stopped
     networks:
       - cargo-pilot-prod
 
   minio:
     image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
+    platform: linux/amd64
     container_name: cargo-pilot-minio-prod
     command: server /data --console-address ":9001"
     environment:
