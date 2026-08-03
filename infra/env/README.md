@@ -6,40 +6,42 @@ Bu klasör, Docker Compose ve altyapı servisleri için ortam değişkenlerini i
 
 ```
 infra/env/
-├── .env.dev.example      # Development ortamı örneği
-├── .env.test.example     # Test ortamı örneği
-├── .env.prod.example     # Production ortamı örneği
-└── README.md             # Bu dosya
+├── .env.test.example         # Test ortamı şablonu (repoda takip edilir)
+├── .env.prod.example         # Production ortamı şablonu (repoda takip edilir)
+├── .env.monitoring.test.example  # Grafana/monitoring şablonu - test
+├── .env.monitoring.prod.example  # Grafana/monitoring şablonu - prod
+└── README.md                 # Bu dosya
+
+# Aşağıdaki dosyalar .gitignore tarafından dışlanır — repoya EKLENMEZi:
+# .env.test
+# .env.prod
+# .env.monitoring.test
+# .env.monitoring.prod
 ```
 
-## Kullanım
+## Kurulum
 
 ### 1. Örnek Dosyayı Kopyala
 
 ```bash
-# Development için
-cp infra/env/.env.dev.example infra/env/.env.dev
-
 # Test için
 cp infra/env/.env.test.example infra/env/.env.test
 
 # Production için
 cp infra/env/.env.prod.example infra/env/.env.prod
+
+# Monitoring için (opsiyonel)
+cp infra/env/.env.monitoring.test.example infra/env/.env.monitoring.test
 ```
 
 ### 2. Değerleri Düzenle
 
-- **Development:** Hazır default değerler local için çalışır, gerekirse düzenle
-- **Test/Production:** Placeholder değerleri gerçek değerlerle değiştir
+- **Test:** `<CHANGE_ME_*>` ile işaretli tüm placeholder'ları gerçek değerlerle değiştir
+- **Production:** `<GENERATE_*>` ile işaretli tüm değerleri güçlü, unique değerlerle doldur
 
 ### 3. Docker Compose ile Kullan
 
-> **Not:** Compose dosyaları US-D03e story'sinde tamamlanacaktır.
-
 ```bash
-# Development
-docker compose -f infra/compose/docker-compose.dev.yml --env-file infra/env/.env.dev up -d
-
 # Test
 docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
 
@@ -49,33 +51,94 @@ docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.en
 
 ## Değişken Referansı
 
+### Genel
+
+| Değişken | Açıklama | Secret? | Test | Production |
+|----------|----------|---------|------|------------|
+| `ENVIRONMENT` | Ortam tanımlayıcı | Hayır | `test` | `production` |
+| `BACKEND_PORT` | Backend dış port | Hayır | `8081` | `8080` |
+| `FRONTEND_PORT` | Frontend dış port | Hayır | `3001` | `80` |
+| `SERVER_HOST` | Sunucu IP/domain (nginx için) | Hayır | boş (localhost fallback) | sunucu IP veya domain |
+| `APP_VERSION` | Uygulama sürümü (CI tarafından doldurulur) | Hayır | `dev` | release tag |
+
+### Veritabanı (MSSQL)
+
 | Değişken | Açıklama | Secret? |
 |----------|----------|---------|
-| `ENVIRONMENT` | Ortam tanımlayıcı (development/test/production) | Hayır |
-| `MSSQL_PORT` | SQL Server dış port numarası | Hayır |
+| `MSSQL_PORT` | SQL Server dış port | Hayır |
 | `MSSQL_DATABASE` | Veritabanı adı | Hayır |
-| `MSSQL_SA_PASSWORD` | SQL Server SA kullanıcı parolası | **Evet** |
-| `MINIO_API_PORT` | MinIO API dış port numarası | Hayır |
-| `MINIO_CONSOLE_PORT` | MinIO Console dış port numarası | Hayır |
+| `MSSQL_SA_PASSWORD` | SQL Server SA parolası | **Evet** |
+| `DATABASE_CONNECTION_STRING` | Tam bağlantı dizesi (yalnızca prod) | **Evet** |
+
+### Object Storage (MinIO)
+
+| Değişken | Açıklama | Secret? |
+|----------|----------|---------|
+| `MINIO_API_PORT` | MinIO API dış port | Hayır |
+| `MINIO_CONSOLE_PORT` | MinIO Console dış port | Hayır |
 | `MINIO_ROOT_USER` | MinIO root kullanıcı adı | **Evet** |
 | `MINIO_ROOT_PASSWORD` | MinIO root parolası | **Evet** |
-| `MINIO_BUCKET` | Varsayılan bucket adı (oluşturma davranışı US-D03d'de tanımlanır) | Hayır |
+| `MINIO_BUCKET` | Varsayılan bucket adı | Hayır |
 
-## Güvenlik Notları
+### Güvenlik
 
-1. **Gerçek `.env` dosyaları repoya eklenmez** - `.gitignore` tarafından dışlanır
-2. **Sadece `.example` dosyaları repoda tutulur** - placeholder değerler içerir
-3. **Production parolaları güçlü olmalıdır** - minimum 16 karakter, karışık karakterler
-4. **Secret'ları paylaşma** - güvenli kanallar kullan (secret manager, encrypted chat vb.)
+| Değişken | Açıklama | Secret? |
+|----------|----------|---------|
+| `JWT_SECRET` | JWT imzalama anahtarı (min 32 karakter) | **Evet** |
+| `Seed__DefaultAdminPassword` | İlk admin hesabı parolası | **Evet** |
+
+### Frontend / OAuth (opsiyonel)
+
+| Değişken | Açıklama | Secret? |
+|----------|----------|---------|
+| `VITE_API_BASE_URL` | Frontend'in backend'e erişim URL'i | Hayır |
+| `VITE_OAUTH_GOOGLE_URL` | Google OAuth başlatma URL'i | Hayır |
+| `VITE_OAUTH_MICROSOFT_URL` | Microsoft OAuth başlatma URL'i | Hayır |
+
+> OAuth değişkenleri tanımlanmazsa login ekranındaki Google/Microsoft butonları otomatik olarak pasif (disabled) kalır.
+
+### Monitoring (Grafana)
+
+| Değişken | Açıklama | Secret? |
+|----------|----------|---------|
+| `GRAFANA_ADMIN_USER` | Grafana admin kullanıcı adı | Hayır |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin parolası | **Evet** |
+
+## Güvenlik Kuralları
+
+1. **Gerçek `.env` dosyaları repoya eklenmez** — `.gitignore` tarafından dışlanır
+2. **Sadece `.example` dosyaları repoda tutulur** — placeholder değerler içerir
+3. **Secret'lar güvenli kanal üzerinden paylaşılır** — ekip içi iletişimde şifreli kanal kullan
+4. **Production parolaları güçlü olmalıdır** — minimum 16 karakter, karışık (büyük/küçük harf, rakam, sembol)
+5. **JWT_SECRET minimum 32 karakter** olmalıdır; `openssl rand -base64 48` ile üretilebilir
 
 ## Ortam Farkları
 
-| Özellik | Development | Test | Production |
-|---------|-------------|------|------------|
-| MSSQL Port | 1433 | 1434 | 1433 |
-| MinIO API Port | 9000 | 9002 | 9000 |
-| MinIO Console Port | 9001 | 9003 | 9001 |
-| Parola Gücü | Basit (geliştirme kolaylığı) | Orta | **Güçlü** |
-| Database Adı | CargoPilotDev | CargoPilotTest | CargoPilot |
+| Özellik | Test | Production |
+|---------|------|------------|
+| MSSQL Port | 1434 | 1433 |
+| MinIO API Port | 9002 | 9000 |
+| MinIO Console Port | 9003 | 9001 |
+| Database Adı | CargoPilotTest | CargoPilot |
+| VITE_APP_ENV | test | production |
 
-> **Not:** Test ortamında farklı portlar kullanılır, böylece development ve test ortamları aynı makinede çakışmadan çalışabilir.
+## Sunucuda Kurulum
+
+Sunucuda `.env` dosyaları el ile oluşturulur ve sadece sunucuda saklanır:
+
+```bash
+# Sunucuya SSH ile bağlan
+ssh user@sunucu-ip
+
+# Proje dizinine geç
+cd /opt/cargo-pilot
+
+# .example'dan kopyala
+cp infra/env/.env.test.example infra/env/.env.test
+
+# Değerleri düzenle
+nano infra/env/.env.test
+
+# Docker Compose'u başlat
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
+```

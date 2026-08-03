@@ -1,22 +1,27 @@
-# Cargo Pilot
+# 🚢 Cargo Pilot
 
-Cargo Pilot, yük planlama süreçlerini dijitalleştirmek ve daha verimli hale getirmek için geliştirilen bir web platformudur.
+Yük planlama süreçlerini dijitalleştiren ve optimize eden web platformu.
 
-Bu repository; uygulama kodunu, altyapı yapılandırmalarını, veritabanı bileşenlerini, testleri ve proje dokümantasyonlarını bir arada barındırır.
+{% hint style="success" %}
+**Test ortamı aktif** — [http://cargopilot.divizyon.org](http://cargopilot.divizyon.org) üzerinden erişilebilir.
+{% endhint %}
 
 ---
 
-## Proje Amacı
+## Hızlı Başlangıç
 
-Cargo Pilot'un amacı; ürün, koli ve araç bilgilerini kullanarak yükleme süreçlerini daha yönetilebilir, izlenebilir ve geliştirilebilir hale getiren bir platform sunmaktır.
+```bash
+# 1. Repo'yu klonla
+git clone <repo-url> && cd cargo-pilot
 
-Proje kapsamında genel olarak şu alanlar hedeflenir:
+# 2. Ortam dosyasını hazırla
+cp infra/env/.env.test.example infra/env/.env.test
 
-- yük ve araç verilerinin yönetimi
-- yük planlama süreçlerinin desteklenmesi
-- raporlama ve çıktı üretimi
-- yerel geliştirme ortamının standardize edilmesi
-- CI/CD ve deployment süreçlerinin kurgulanması
+# 3. Stack'i başlat
+docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
+```
+
+**Default login:** `admin@cargopilot.com` / `Admin@CargoPilot1!`
 
 ---
 
@@ -24,120 +29,65 @@ Proje kapsamında genel olarak şu alanlar hedeflenir:
 
 | Katman | Teknoloji |
 |--------|-----------|
-| **Backend** | .NET 8 |
-| **Database** | SQL Server (MSSQL) |
-| **Object Storage** | MinIO |
-| **3D Görselleştirme** | Three.js |
-| **Containerization** | Docker |
+| Frontend | React 18 + Vite + TypeScript |
+| Backend | .NET 8 |
+| Database | SQL Server 2022 (MSSQL) |
+| Object Storage | MinIO |
+| 3D Görselleştirme | Three.js |
+| Containerization | Docker + Docker Compose |
+| CI/CD | GitHub Actions + GHCR |
+| Monitoring | Prometheus + Grafana + Loki |
 
 ---
 
 ## Repository Yapısı
 
-```text
-.
-├── .github/        # GitHub workflow ve PR şablonları
-├── apps/           # Uygulama katmanları (frontend / backend)
-├── database/       # Veritabanı migration, seed ve script yapıları
-├── docs/           # Proje dokümantasyonları
-├── infra/          # Docker, compose ve environment örnekleri
-├── scripts/        # Build, deploy ve local geliştirme yardımcı scriptleri
-├── tests/          # Test yapıları
-└── README.md
+```
+cargo-pilot/
+├── .github/          # GitHub Actions workflow'ları ve PR şablonu
+├── apps/
+│   ├── frontend/     # React + Vite + TypeScript
+│   └── backend/      # .NET 8 Web API
+├── database/         # Migration, seed ve DB scriptleri
+├── docs/             # Proje dokümantasyonu
+│   ├── conventions/  # Branching ve commit kuralları
+│   ├── devops/       # Sunucu, monitoring, secret yönetimi
+│   └── setup/        # Local kurulum
+├── infra/
+│   ├── compose/      # Docker Compose dosyaları
+│   ├── env/          # Ortam değişkeni örnekleri (.example)
+│   ├── docker/       # Servis config dosyaları (Grafana, Loki, Prometheus…)
+│   ├── nginx/        # Reverse proxy config
+│   └── scripts/      # Backup, rollback scriptleri
+└── tests/            # E2E ve entegrasyon testleri
 ```
 
-### Temel Klasörler
+---
 
-**`apps/`** — Frontend ve backend uygulama kodlarını içerir.
+## Ortam Durumu
 
-**`database/`** — Veritabanı ile ilgili migration, seed ve diğer veritabanı bileşenlerini içerir.
-
-**`docs/`** — Projede kullanılan kurallar ve yardımcı dokümanları içerir.
-
-**`infra/`** — Docker, Docker Compose ve environment örnek dosyalarını içerir.
-
-**`scripts/`** — Sık kullanılan build, deploy ve geliştirme yardımcı scriptlerini içerir.
-
-**`tests/`** — Test dosyalarını ve test senaryolarını içerir.
+| Ortam | URL | Durum |
+|-------|-----|-------|
+| Test | `http://cargopilot.divizyon.org` | ✅ Aktif |
+| Production | `http://104.247.163.42:80` | ⚠️ Henüz deploy edilmedi |
+| Grafana (Test) | `http://104.247.163.42:3002` | ✅ Aktif |
 
 ---
 
-## Başlangıç
+## Dokümanlar
 
-Projeyi local ortamda ayağa kaldırmak için:
+{% content-ref url="docs/setup/local-setup.md" %}
+[Local Setup](docs/setup/local-setup.md)
+{% endcontent-ref %}
 
-1. **Repository'yi klonlayın:**
+{% content-ref url="docs/conventions/BRANCHING.md" %}
+[Branching Strategy](docs/conventions/BRANCHING.md)
+{% endcontent-ref %}
 
-```bash
-git clone <repo-url>
-cd cargo-pilot
-```
+{% content-ref url="docs/devops/server-access.md" %}
+[Sunucu Erişim & Ağ](docs/devops/server-access.md)
+{% endcontent-ref %}
 
-2. **Ortam dosyasını hazırlayın:**
-
-```bash
-cp infra/env/.env.dev.example infra/env/.env.dev
-```
-
-3. **Docker ile başlatın:**
-
-```bash
-docker compose -f infra/compose/docker-compose.dev.yml up -d
-```
-
-Detaylı kurulum adımları için: [Local Setup](docs/setup/local-setup.md)
-
----
-
-## Geliştirme Kuralları
-
-Repository üzerinde çalışırken aşağıdaki dokümanlara uyulmalıdır:
-
-* [BRANCHING.md](docs/conventions/BRANCHING.md) — Branch yapısı, PR yaklaşımı ve merge kuralları
-* [COMMITS.md](docs/conventions/COMMITS.md) — Commit mesajı ve atomic commit yaklaşımı
-* [PR Template](.github/pull_request_template.md) — Pull Request açarken kullanılacak şablon
-
----
-
-## Geliştirme Akışı
-
-Önerilen temel geliştirme akışı:
-
-1. `git fetch origin` ile remote güncellenir
-2. `git checkout -b feature/US-XXX-description origin/main` ile yeni branch açılır
-3. Geliştirme yapılır
-4. Local ortamda test edilir
-5. Commit atılır
-6. `git pull origin main` ile son değişiklikler alınır
-7. `git push origin feature/US-XXX-description` ile push yapılır
-8. Pull Request açılır
-9. Review ve kontroller tamamlandıktan sonra merge edilir
-
-Detaylı branch ve commit kuralları ilgili dokümanlarda yer alır.
-
----
-
-## Ortam Yönetimi
-
-Projede branch yapısı ile ortam yönetimi birbirinden ayrıdır.
-
-* Branch'ler geliştirme akışını yönetir
-* Ortamlar ise deployment ve configuration seviyesinde yönetilir
-
-Dev, test ve prod ortamlarına ilişkin detaylar CI/CD ve infra yapıları üzerinden ele alınır.
-
----
-
-## Notlar
-
-* Gerçek secret bilgileri repository içine eklenmemelidir
-* Environment dosyalarında örnek değerler kullanılmalıdır
-* Local geliştirme için mümkün olduğunca container tabanlı akış tercih edilmelidir
-
----
-
-## İlgili Dokümanlar
-
-* [Local Setup](docs/setup/local-setup.md) — Yerel ortam kurulumu
-* [Branching Strategy](docs/conventions/BRANCHING.md) — Branch yönetimi ve PR kuralları
-* [Commit Kuralları](docs/conventions/COMMITS.md) — Commit yazım kuralları
+{% content-ref url="docs/devops/known-issues.md" %}
+[Bilinen Sorunlar](docs/devops/known-issues.md)
+{% endcontent-ref %}

@@ -1,0 +1,168 @@
+{
+  "validations": {
+    "product": {
+      "nameRequired": "Ürün adı zorunludur",
+      "skuRequired": "SKU zorunludur",
+      "widthPositive": "Uzunluk sıfırdan büyük olmalıdır",
+      "heightPositive": "Yükseklik sıfırdan büyük olmalıdır",
+      "lengthPositive": "Derinlik sıfırdan büyük olmalıdır",
+      "weightPositive": "Ağırlık sıfırdan büyük olmalıdır",
+      "maxStackRequired": "İstifleme izni verildiğinde maksimum istif sayısı zorunludur",
+      "maxStackMin": "Maksimum istif sayısı en az 1 olmalıdır",
+      "fragilityRange": "Kırılganlık değeri 0-2 arasında olmalıdır",
+      "typeRequired": "Ürün tipi seçilmelidir",
+      "notesTooLong": "Not en fazla 1000 karakter olabilir",
+      "paletMaxHeight": "Palet yüksekliği en fazla 20 cm olabilir"
+    },
+    "vehicle": {
+      "nameRequired": "Araç adı zorunludur",
+      "widthPositive": "Derinlik sıfırdan büyük olmalıdır",
+      "heightPositive": "Yükseklik sıfırdan büyük olmalıdır",
+      "lengthPositive": "Uzunluk sıfırdan büyük olmalıdır",
+      "payloadPositive": "Yük kapasitesi sıfırdan büyük olmalıdır"
+    }
+  },
+  "forms": {
+    "product": {
+      "title": "Ürün Tanımlama",
+      "name": "Ürün Adı",
+      "namePlaceholder": "Kırılgan Kutu",
+      "sku": "SKU",
+      "skuPlaceholder": "BOX-001",
+      "dimensions": "Boyutlar (cm)",
+      "width": "Uzunluk",
+      "height": "Yükseklik",
+      "length": "Derinlik",
+      "depth": "Derinlik",
+      "diameter": "Çap",
+      "weight": "Ağırlık",
+      "fragility": "Kısıtlar",
+      "fragilityNonFragile": "İstiflenemez",
+      "fragilityFragile": "Kırılgan",
+      "fragilityLiquid": "Sıvı",
+      "isStackable": "İstifleme İzni",
+      "isStackableHint": "Bu ürün diğer ürünlerin üstüne konulabilir",
+      "maxStackCount": "Maksimum İstif Sayısı",
+      "maxStackCountPlaceholder": "Örn: 3",
+      "rotation": "Döndürme İzinleri",
+      "allowRotateX": "X Ekseni",
+      "allowRotateY": "Y Ekseni",
+      "allowRotateZ": "Z Ekseni",
+      "rotateZLockedWarning": "Hassas ürünlerde Z ekseni kilitlidir",
+      "sectionIdentity": "Kimlik",
+      "sectionType": "Ürün Tipi",
+      "sectionPhysical": "Fiziksel Özellikler",
+      "sectionConstraints": "Kısıtlar",
+      "layerCount": "Katman Sayısı",
+      "nonStackable": "İstiflenemez",
+      "nonStackableActive": "Bu ürünün üstüne başka ürün konulamaz",
+      "nonStackableInactive": "Üst üste istiflenebilir",
+      "enableStacking": "İstiflemeyi aç",
+      "disableStacking": "İstiflemeyi kapat",
+      "summaryStackable": "Üst üste istiflenir",
+      "summaryNonStackable": "Üst üste istiflenmez",
+      "summaryRotationFree": "Yön kısıtlaması yok",
+      "summaryRotationLocked": "Kilitli eksenler: {{axes}}",
+      "typeBox": "Koli",
+      "typeBarrel": "Varil",
+      "typePallet": "Paletli Ürün",
+      "volume": "Hacim",
+      "axisGuideAria": "Eksen rehberi",
+      "axisGuideTitle": "Eksen yönleri",
+      "axisXTooltip": "X — Uzunluk (sol-sağ)",
+      "axisYTooltip": "Y — Yükseklik (yukarı-aşağı)",
+      "axisZTooltip": "Z — Derinlik (öne-arkaya)",
+      "submit": "Kaydet",
+      "submitting": "Kaydediliyor...",
+      "cancel": "İptal",
+      "sectionNotes": "Özel Taşıma Notları",
+      "notesLabel": "Taşıma notu",
+      "notesPlaceholder": "Sadece forklift ile taşınabilir, güneş ışığından uzak tutun…",
+      "notesHelper": "Standart kısıtların dışında kalan spesifik uyarıları taşıma ekiplerine iletmek için kullanın.",
+      "notesCounter": "{{count}} / {{max}}",
+      "notesSummaryLabel": "Not",
+      "previewPlaceholder": "Ürün boyutlarını girerek 3D önizlemeyi etkinleştirin"
+    },
+    "vehicle": {
+      "title": "Araç Tanımlama",
+      "name": "Araç Adı",
+      "namePlaceholder": "Örn: Tır 40 Ton",
+      "dimensions": "İç Boyutlar (cm)",
+      "width": "Derinlik",
+      "height": "Yükseklik",
+      "length": "Uzunluk",
+      "payload": "Yük Kapasitesi (kg)",
+      "submit": "Kaydet",
+      "cancel": "İptal"
+    }
+  },
+  "plans": {
+    "free": "Ücretsiz",
+    "starter": "Başlangıç",
+    "pro": "Profesyonel",
+    "enterprise": "Kurumsal"
+  },
+  "features": {
+    "bulkImport": "Excel ile toplu ürün içe aktarma",
+    "pdfExport": "PDF rapor çıktısı",
+    "excelExport": "Excel rapor çıktısı",
+    "manualPlacement": "Manuel yerleşim düzenleme",
+    "advanced3D": "Gelişmiş 3D görselleştirme",
+    "multiUser": "Çoklu kullanıcı yönetimi",
+    "erpIntegration": "ERP entegrasyonu",
+    "apiAccess": "API erişimi"
+  },
+  "erp": {
+    "page": {
+      "title": "ERP Entegrasyonu",
+      "description": "ERP sisteminizi bağlayın, ürün verilerini senkronize edin ve eşleştirmeleri yönetin."
+    },
+    "tabs": {
+      "connection": "Bağlantı",
+      "matches": "Eşleştirmeler",
+      "sync": "Senkronizasyon"
+    },
+    "connection": {
+      "title": "ERP Bağlantı Ayarları",
+      "description": "Şirket kodunuzu, kullanıcı bilgilerinizi ve sunucu adresini girerek ERP sisteminize bağlanın.",
+      "systemType": "ERP Sistemi",
+      "companyCode": "Şirket Kodu",
+      "username": "Kullanıcı Adı",
+      "password": "Şifre",
+      "serverAddress": "Sunucu Adresi",
+      "testButton": "Bağlantıyı Test Et",
+      "saveButton": "Kaydet",
+      "testSuccess": "Bağlantı başarılı. ERP sistemine ulaşıldı.",
+      "testFailDefault": "Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin."
+    },
+    "matches": {
+      "pendingTab": "Bekleyenler",
+      "savedTab": "Kaydedilmiş Eşleştirmeler",
+      "noPending": "Bekleyen eşleştirme yok.",
+      "noSaved": "Kaydedilmiş eşleştirme yok.",
+      "matchButton": "Eşleştir",
+      "confirmTitle": "Ürün Eşleştir",
+      "searchPlaceholder": "Ürün adı veya SKU ara…",
+      "confirmButton": "Onayla",
+      "deleteTitle": "Eşleştirmeyi sil",
+      "deleteDescription": "Bu eşleştirme kalıcı olarak silinecek. Silmek istediğinizden emin misiniz?"
+    },
+    "sync": {
+      "title": "ERP Senkronizasyonu",
+      "description": "ERP'deki ürün verilerini Cargo Pilot'a aktarın. Senkronizasyon sonrasında özet bildirim gösterilir.",
+      "categoryFilter": "Kategori Filtresi",
+      "warehouseFilter": "Depo Filtresi",
+      "allCategories": "Tüm kategoriler",
+      "allWarehouses": "Tüm depolar",
+      "syncButton": "Şimdi Senkronize Et",
+      "syncing": "Senkronize ediliyor…",
+      "summaryToast": "Senkronizasyon tamamlandı — {{added}} eklendi, {{updated}} güncellendi, {{skipped}} atlandı"
+    }
+  },
+  "upgrade": {
+    "title": "Bu özellik paketinizde bulunmuyor",
+    "description": "{{feature}} özelliğini kullanmak için en az {{plan}} paketine geçmeniz gerekiyor.",
+    "viewPlans": "Paketleri Gör",
+    "dismiss": "Vazgeç"
+  }
+}

@@ -1,0 +1,46 @@
+name: Base Image Sync
+
+# .NET base imagellarını MCR'dan çekip GHCR'a yansıtır.
+# Böylece MCR rate limit veya erişim sorunları build pipeline'ını etkilemez.
+# Tetikleyiciler:
+#   schedule → Her Pazar 02:00 UTC (haftalık yenileme)
+#   workflow_dispatch → Manuel tetikleme (ilk kurulum veya acil güncelleme için)
+on:
+  schedule:
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: .NET Image Sync (MCR → GHCR)
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: GHCR'a giriş yap
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tarih etiketi belirle
+        id: date
+        run: echo "tag=$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: .NET SDK 8.0 imajını senkronize et
+        run: |
+          docker pull mcr.microsoft.com/dotnet/sdk:8.0
+          docker tag mcr.microsoft.com/dotnet/sdk:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
+          docker tag mcr.microsoft.com/dotnet/sdk:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }}
+          docker push ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
+          docker push ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }}
+
+      - name: .NET ASP.NET 8.0 imajını senkronize et
+        run: |
+          docker pull mcr.microsoft.com/dotnet/aspnet:8.0
+          docker tag mcr.microsoft.com/dotnet/aspnet:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
+          docker tag mcr.microsoft.com/dotnet/aspnet:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }}
+          docker push ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
+          docker push ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }}

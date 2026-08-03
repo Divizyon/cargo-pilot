@@ -1,0 +1,168 @@
+{
+  "validations": {
+    "product": {
+      "nameRequired": "Product name is required",
+      "skuRequired": "SKU is required",
+      "widthPositive": "Width must be greater than zero",
+      "heightPositive": "Height must be greater than zero",
+      "lengthPositive": "Length must be greater than zero",
+      "weightPositive": "Weight must be greater than zero",
+      "maxStackRequired": "Max stack count is required when stacking is enabled",
+      "maxStackMin": "Max stack count must be at least 1",
+      "fragilityRange": "Fragility must be between 0 and 2",
+      "typeRequired": "Product type is required",
+      "notesTooLong": "Note must be at most 1000 characters",
+      "paletMaxHeight": "Pallet height must be at most 20 cm"
+    },
+    "vehicle": {
+      "nameRequired": "Vehicle name is required",
+      "widthPositive": "Width must be greater than zero",
+      "heightPositive": "Height must be greater than zero",
+      "lengthPositive": "Length must be greater than zero",
+      "payloadPositive": "Payload capacity must be greater than zero"
+    }
+  },
+  "forms": {
+    "product": {
+      "title": "Product Definition",
+      "name": "Product Name",
+      "namePlaceholder": "e.g. Fragile Box",
+      "sku": "SKU",
+      "skuPlaceholder": "e.g. BOX-001",
+      "dimensions": "Dimensions (cm)",
+      "width": "Width",
+      "height": "Height",
+      "length": "Length",
+      "depth": "Depth",
+      "diameter": "Diameter",
+      "weight": "Weight",
+      "fragility": "Fragility Level",
+      "fragilityNonFragile": "Non-Fragile",
+      "fragilityFragile": "Fragile",
+      "fragilityLiquid": "Liquid",
+      "isStackable": "Stackable",
+      "isStackableHint": "This product can be placed on top of other products",
+      "maxStackCount": "Max Stack Count",
+      "maxStackCountPlaceholder": "e.g. 3",
+      "rotation": "Rotation Permissions",
+      "allowRotateX": "X Axis",
+      "allowRotateY": "Y Axis",
+      "allowRotateZ": "Z Axis",
+      "rotateZLockedWarning": "Z axis is locked for fragile products",
+      "sectionIdentity": "Identity",
+      "sectionType": "Product Type",
+      "sectionPhysical": "Physical Properties",
+      "sectionConstraints": "Constraints",
+      "layerCount": "Layer Count",
+      "nonStackable": "Non-Stackable",
+      "nonStackableActive": "Nothing can be stacked on top of this product",
+      "nonStackableInactive": "Can be stacked on top of each other",
+      "enableStacking": "Enable stacking",
+      "disableStacking": "Disable stacking",
+      "summaryStackable": "Stackable on top",
+      "summaryNonStackable": "Not stackable on top",
+      "summaryRotationFree": "No rotation restriction",
+      "summaryRotationLocked": "Locked axes: {{axes}}",
+      "typeBox": "Box",
+      "typeBarrel": "Barrel",
+      "typePallet": "Palletized",
+      "volume": "Volume",
+      "axisGuideAria": "Axis guide",
+      "axisGuideTitle": "Axis directions",
+      "axisXTooltip": "X — Width (left-right)",
+      "axisYTooltip": "Y — Height (up-down)",
+      "axisZTooltip": "Z — Depth (front-back)",
+      "submit": "Save",
+      "submitting": "Saving...",
+      "cancel": "Cancel",
+      "sectionNotes": "Special Handling Notes",
+      "notesLabel": "Handling note",
+      "notesPlaceholder": "e.g. Forklift only, keep away from sunlight.",
+      "notesHelper": "Use this to communicate constraints beyond the standard ones to handling teams.",
+      "notesCounter": "{{count}} / {{max}}",
+      "notesSummaryLabel": "Note",
+      "previewPlaceholder": "Enter dimensions to enable 3D preview"
+    },
+    "vehicle": {
+      "title": "Vehicle Definition",
+      "name": "Vehicle Name",
+      "namePlaceholder": "e.g. 40-Ton Truck",
+      "dimensions": "Interior Dimensions (cm)",
+      "width": "Width",
+      "height": "Height",
+      "length": "Length",
+      "payload": "Payload Capacity (kg)",
+      "submit": "Save",
+      "cancel": "Cancel"
+    }
+  },
+  "plans": {
+    "free": "Free",
+    "starter": "Starter",
+    "pro": "Pro",
+    "enterprise": "Enterprise"
+  },
+  "features": {
+    "bulkImport": "Bulk product import via Excel",
+    "pdfExport": "PDF report export",
+    "excelExport": "Excel report export",
+    "manualPlacement": "Manual placement editing",
+    "advanced3D": "Advanced 3D visualization",
+    "multiUser": "Multi-user management",
+    "erpIntegration": "ERP integration",
+    "apiAccess": "API access"
+  },
+  "erp": {
+    "page": {
+      "title": "ERP Integration",
+      "description": "Connect your ERP system, sync product data, and manage product matches."
+    },
+    "tabs": {
+      "connection": "Connection",
+      "matches": "Matches",
+      "sync": "Sync"
+    },
+    "connection": {
+      "title": "ERP Connection Settings",
+      "description": "Enter your company code, credentials, and server address to connect to your ERP system.",
+      "systemType": "ERP System",
+      "companyCode": "Company Code",
+      "username": "Username",
+      "password": "Password",
+      "serverAddress": "Server Address",
+      "testButton": "Test Connection",
+      "saveButton": "Save",
+      "testSuccess": "Connection successful. ERP system is reachable.",
+      "testFailDefault": "Server unreachable. Check the server address and credentials."
+    },
+    "matches": {
+      "pendingTab": "Pending",
+      "savedTab": "Saved Matches",
+      "noPending": "No pending matches.",
+      "noSaved": "No saved matches.",
+      "matchButton": "Match",
+      "confirmTitle": "Match Product",
+      "searchPlaceholder": "Search by product name or SKU…",
+      "confirmButton": "Confirm",
+      "deleteTitle": "Delete match",
+      "deleteDescription": "This match will be permanently deleted. Are you sure?"
+    },
+    "sync": {
+      "title": "ERP Sync",
+      "description": "Import product data from ERP into Cargo Pilot. A summary notification is shown after sync.",
+      "categoryFilter": "Category Filter",
+      "warehouseFilter": "Warehouse Filter",
+      "allCategories": "All categories",
+      "allWarehouses": "All warehouses",
+      "syncButton": "Sync Now",
+      "syncing": "Syncing…",
+      "summaryToast": "Sync complete — {{added}} added, {{updated}} updated, {{skipped}} skipped"
+    }
+  },
+  "upgrade": {
+    "title": "This feature is not included in your plan",
+    "description": "To use {{feature}}, you need to upgrade to at least the {{plan}} plan.",
+    "viewPlans": "View Plans",
+    "dismiss": "Dismiss"
+  }
+}

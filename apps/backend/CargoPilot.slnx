@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/Application/">
+    <Project Path="CargoPilot.Application/CargoPilot.Application.csproj" Id="fb957909-43de-43a9-b5db-2077eac3985d" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="CargoPilot.Domain/CargoPilot.Domain.csproj" Id="73eb873f-3faa-4b19-b353-0ea336175d2c" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj" Id="84e3f1c2-5401-4196-8309-a9815dd1c50d" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Folder Name="/WebAPI/">
+    <Project Path="CargoPilot.WebAPI/CargoPilot.WebAPI.csproj" Id="cc354531-26a3-4da4-9abb-db9308e283e2" />
+  </Folder>
+</Solution>
