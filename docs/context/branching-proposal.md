@@ -92,15 +92,19 @@ Böylece PR açıldığında doğru kişi otomatik reviewer olur — kimin bakac
 
 ## 4. Koruma ve Otomasyon Ayarları
 
+Koruma zaten **repository ruleset** ile yapılıyor (`main-protection`, `test-protection`,
+`dev-protection`). Değişmesi gerekenler:
+
 | Ayar | Şu an | Olması gereken |
 |------|-------|----------------|
 | Default branch | `test` | `main` |
-| `main` protection | ❌ yok | ✅ 1 approving review + required checks + force-push kapalı |
-| `enforce_admins` | ❌ kapalı | ✅ açık (kural herkese işlesin) |
-| Required checks | `test`'te 3 adet | `Frontend CI`, `Backend CI`, `Image Build`, `Deploy (Test)` |
+| `main` required checks | ❌ **hiç yok** | ✅ `Frontend CI`, `Backend CI`, `Image Build`, `Deploy (Test)` |
+| `dev-protection` ruleset | Aktif | Sil (`dev` kalkıyor) |
+| `test-protection` ruleset | Aktif | Sil, kuralları `main-protection`'a taşı |
+| Bypass aktörleri | `dev`/`test`'te Team → **her zaman** bypass | `always` yerine `pull_request` (kural fiilen işlesin) |
 | `delete_branch_on_merge` | ❌ kapalı | ✅ açık |
-| Merge yöntemi | 3'ü de açık | **Squash** varsayılan (merge commit sadece release için) |
-| Stale review dismissal | — | ✅ açık — yeni push onayı düşürsün |
+| Merge yöntemi | Ruleset sadece merge commit'e izin veriyor | **Squash**'a izin ver ve varsayılan yap |
+| Stale review dismissal | ✅ zaten açık | Değişiklik yok |
 
 **Squash neden:** `feature/lifo-kapi-zekasi-eklendi` branch'inde 12 commit'in 10'u prettier/TS düzeltmesi.
 `COMMITS.md`'nin "atomic commit + PR öncesi temizlik" hedefini squash otomatik olarak sağlıyor.
@@ -114,7 +118,7 @@ Böylece PR açıldığında doğru kişi otomatik reviewer olur — kimin bakac
 
 | # | Adım | Komut / yer |
 |---|------|-------------|
-| 1 | `main`'i `test`'e fast-forward'la | `git push origin origin/test:main` |
+| 1 | `main`'i `test` seviyesine getir | `main-protection`'daki `update` kuralı doğrudan push'u engeller → `test` → `main` PR'ı aç (fast-forward, çakışma yok) veya kuralı geçici kaldır |
 | 2 | Default branch'i `main` yap | GitHub → Settings → Branches |
 | 3 | `main`'e branch protection uygula (§4) | GitHub API / UI |
 | 4 | Workflow tetikleyicilerini güncelle | `ci.yml`, `test-deploy.yml`: `test`/`dev` → `main`; `enforce-test-base` job'unu **sil** |

@@ -69,7 +69,19 @@ Workflow'lar: `ci.yml`, `test-deploy.yml`, `cache-cleanup.yml`, `sync-base-image
 
 - `enforce-test-base`: head `dev` olamaz + PR commit'i `origin/dev`'de bulunmalı. `sync/*` muaf.
 - GHCR image'ları **public**; geliştirici login'i gerekmiyor. Immutable tag: `test-{sha}`.
-- Branch protection: sadece `test` korumalı (1 review, 3 required check, force-push kapalı, **enforce_admins kapalı**). `main` ve `dev` **korumasız**.
+- Koruma **repository ruleset** ile yapılıyor (klasik branch protection API'si 404 döner — yanıltıcıdır):
+  `main-protection`, `test-protection`, `dev-protection` aktif; `freeze` kapalı.
+
+| Ruleset | PR zorunlu | Onay | Required check | Bypass |
+|---------|-----------|------|----------------|--------|
+| `main-protection` | ✅ | 1 + son push onayı | **yok** | Team / sadece PR ile |
+| `test-protection` | ✅ | 1 + son push onayı | `Deploy (Test)`, `Image Build`, `Test PR Dev Kontrolü` (strict) | Team / **her zaman** |
+| `dev-protection` | ✅ | 1 + son push onayı | `Deploy (Test)` | Team / **her zaman** |
+
+Üçünde de: sadece merge commit, push'ta eski onaylar düşer, review thread'leri çözülmüş olmalı,
+branch silme ve force-push kapalı. `main`'de ayrıca `update` kuralı → doğrudan push engelli.
+
+- Boşluk: `main`'de hiç required status check yok — CI geçmeden merge edilebilir.
 - `delete_branch_on_merge` = **false** → merge sonrası branch'ler birikiyor.
 
 ---

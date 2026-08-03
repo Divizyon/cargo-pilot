@@ -25,10 +25,12 @@
 
 ## 2. Açık PR'lar
 
-| PR | Branch | Hedef | Durum | Öneri |
+| PR | Branch | Hedef | Durum | Sonuç |
 |----|--------|-------|-------|-------|
-| #835 | `feature/US-XXX-coklu-arac` | `test` | CONFLICTING · 49 dosya · +4184/−671 | **Kapat** |
-| #834 | `feature/US-XXX-coklu-arac` | `dev` | CONFLICTING · aynı diff | **Kapat** |
+| #835 | `feature/US-XXX-coklu-arac` | `test` | CONFLICTING · 49 dosya · +4184/−671 | ✅ Yazarı kapattı (2026-08-03) |
+| #834 | `feature/US-XXX-coklu-arac` | `dev` | CONFLICTING · aynı diff | ✅ Yazarı kapattı (2026-08-03) |
+
+Branch **silinmedi** — içeriği kurtarılacak (§5).
 
 **Gerekçe:** Branch `test`'in 161 commit gerisinde, iki PR da conflict veriyor ve branch'in son commit'i
 `Revert "branch içerigi test ile hizalandi ve ci derleme hatalari giderildi"` — yani hizalama denemesi
@@ -45,9 +47,14 @@ geri alınmış durumda. Bu haliyle merge edilemez.
 
 | Branch | test'e göre | Durum |
 |--------|-------------|-------|
-| `test` | — | Default branch. Korumalı (1 review + 3 required check). Aktif, güncel. |
-| `dev` | 3 geride / 9 önde (hepsi merge commit) | **İçerik `test` ile birebir aynı.** Korumasız. |
-| `main` | 2051 geride / 0 önde | 2026-04-11'den beri dokunulmamış. **Korumasız.** Production hiç deploy edilmedi. |
+| `test` | — | Default branch. `test-protection` ruleset'i (1 review + 3 required check). Aktif, güncel. |
+| `dev` | 3 geride / 9 önde (hepsi merge commit) | **İçerik `test` ile birebir aynı.** `dev-protection` ruleset'i (1 review + 1 check). |
+| `main` | 2051 geride / 0 önde | 2026-04-11'den beri dokunulmamış. `main-protection` ruleset'i var ama **required status check yok**. Production hiç deploy edilmedi. |
+
+> ⚠️ İlk taramada `main` ve `dev` "korumasız" diye kaydedilmişti. Yanlıştı: koruma klasik branch
+> protection ile değil **repository ruleset** ile tanımlı ve
+> `GET /repos/.../branches/<b>/protection` bu durumda 404 döner. Doğru sorgu:
+> `GET /repos/.../rules/branches/<b>`.
 
 ### 3.1 `dev` — `test` ile içerik farkı yok ✅
 
@@ -71,9 +78,11 @@ commit'i veya içeriği `test`'e başka bir branch üzerinden ulaşmış commit
 
 ### 3.2 `main`
 
-`main`, `test`'in tam atası — yani `git push origin test:main` **fast-forward** olarak çalışır,
-çakışma riski yok. Şu an korumasız ve boş bir kabuk. Karar: ya trunk yapılacak (§6 önerisi)
-ya da en azından branch protection eklenecek.
+`main`, `test`'in tam atası — yani içerik olarak `git push origin test:main` **fast-forward**'dır,
+birleştirme çakışması yok. Ancak `main-protection` ruleset'indeki `update` kuralı doğrudan push'u
+engeller; güncelleme ya PR ile ya da bypass yetkisiyle yapılmalı.
+
+Eksik: `main`'de required status check tanımlı değil — CI geçmeden merge edilebilir durumda.
 
 ---
 
@@ -149,16 +158,30 @@ Her adım ayrı ve geri alınabilir tutulmalı.
 
 | # | Adım | Risk | Durum |
 |---|------|------|-------|
-| 1 | `feature/3D_Packing_Algorithm`'daki 3 algoritma dokümanını `test`'e al | Yok — sadece doküman | ✅ PR açıldı |
-| 2 | §5'teki 4 branch için sahipleriyle 15 dk'lık karar toplantısı | Yok | ⏳ Ekipte |
-| 3 | Açık PR #834/#835'i gerekçeli kapat | Düşük | ⏳ |
-| 4 | §4.1'deki 7 branch'i sil | Yok | ⏳ |
-| 5 | §4.2'deki 11 branch'i sil (1. adımdan sonra) | Düşük | ⏳ |
+| 1 | `feature/3D_Packing_Algorithm`'daki 3 algoritma dokümanını `test`'e al | Yok — sadece doküman | ✅ PR #888 açıldı, CI yeşil, review bekliyor |
+| 2 | §4.1'deki 7 branch'i sil | Yok | ✅ Silindi (2026-08-03) |
+| 3 | §4.2'deki 11 branch'i sil | Düşük | ✅ Silindi (2026-08-03) |
+| 4 | Açık PR #834/#835'i kapat | Düşük | ✅ Yazarı (cagr1tekin) kapattı |
+| 5 | §5'teki 4 branch için sahipleriyle karar | Yok | ⏳ Ekipte |
 | 6 | §4.3'teki 4 story'yi backlog'a yaz, sonra branch'leri sil | Düşük | ⏳ |
 | 7 | `delete_branch_on_merge` ayarını **açık** hale getir | Yok — birikmeyi kökten keser | ⏳ |
 | 8 | Branch stratejisi kararı → [branching-proposal.md](branching-proposal.md) | — | ⏳ |
 
 > `dev`'de kurtarılacak iş bulunmadığı için (§3.1) ayrı bir taşıma adımı gerekmiyor.
+
+### 6.1 Uygulama Kaydı — 2026-08-03
+
+**18 branch silindi** (§4.1'den 7, §4.2'den 11). Remote branch sayısı **29 → 13**.
+
+Silinen her branch için `archive/<branch-adı>` tag'i oluşturulup push edildi (18 tag).
+Commit'ler kalıcı olarak erişilebilir; branch listesi kirlenmiyor. Geri alma:
+
+```bash
+git checkout -b <branch-adı> archive/<branch-adı>
+```
+
+Kalan 13 branch: `main`, `test`, `dev`, iki doküman PR branch'i, §5'teki 4 kurtarma adayı,
+§4.3'teki 4 backlog adayı.
 
 > Silmeden önce güvenlik ağı: `git tag archive/<branch-adı> origin/<branch-adı> && git push origin --tags`.
 > Tag'ler commit'leri kalıcı tutar, branch listesini kirletmez, gerektiğinde geri alınır.
