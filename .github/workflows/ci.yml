@@ -1,7 +1,7 @@
 name: CI — Kod Kalite ve Build Kontrolü
 
-# Tüm iş branch'i push'larında ve main PR'larında çalışır.
-# Amaç: hataları main'e ulaşmadan yakalamak.
+# Tüm iş branch'i push'larında ve dev/test/main PR'larında çalışır.
+# Amaç: hataları bir sonraki dala terfi etmeden yakalamak.
 on:
   push:
     branches:
@@ -15,9 +15,44 @@ on:
       - bugfix/**
   pull_request:
     branches:
+      - dev
+      - test
       - main
 
 jobs:
+  # ─── Terfi zinciri denetimi ──────────────────────────────────────────────────
+  # Akış: feat/* → dev → test → main. Sıra atlanırsa dallar ayrışır.
+  # Bu repoda bir kez yaşandı (#482 dev'i atladı → sync/test-to-dev yaması gerekti).
+  enforce-promotion:
+    name: Terfi Zinciri Kontrolü
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' &&
+      (github.base_ref == 'test' || github.base_ref == 'main')
+
+    steps:
+      - name: Kaynak branch'i doğrula
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          if [ "$BASE" = "test" ] && [ "$HEAD" != "dev" ]; then
+            echo "::error::'test' dalına yalnızca 'dev' üzerinden PR açılabilir. Gelen: '$HEAD'"
+            exit 1
+          fi
+
+          if [ "$BASE" = "main" ]; then
+            case "$HEAD" in
+              test|hotfix/*) ;;
+              *)
+                echo "::error::'main' dalına yalnızca 'test' veya 'hotfix/*' üzerinden PR açılabilir. Gelen: '$HEAD'"
+                exit 1
+                ;;
+            esac
+          fi
+
+          echo "Terfi zinciri geçerli: $HEAD → $BASE"
+
   # ─── Frontend CI ─────────────────────────────────────────────────────────────
   frontend-ci:
     name: Frontend CI
@@ -99,9 +134,11 @@ jobs:
     permissions:
       contents: read
       packages: read
+    # PR → test/main'de image build test-deploy.yml'deki "Image Build" job'u ile yapılır;
+    # burada yalnızca ilk kapıda (dev) ve iş branch'i push'larında koşar.
     if: |
-      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref != 'refs/heads/main')
+      (github.event_name == 'pull_request' && github.base_ref == 'dev') ||
+      (github.event_name == 'push')
 
     steps:
       - name: Kodu al
