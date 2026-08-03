@@ -294,9 +294,7 @@ export function useApprovePlan() {
   const queryClient = useQueryClient();
   return useMutation<void, AxiosError<ProblemDetails>, string>({
     mutationFn: (id) =>
-      axiosInstance
-        .patch(`/api/v1/loading-plans/${id}/status`, { status: 'tamamlandi' })
-        .then(() => undefined),
+      axiosInstance.post(`/api/v1/loading-plans/${id}/approve`).then(() => undefined),
     onSuccess: (_data, id) => {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
@@ -505,34 +503,6 @@ export function useDeletePlanGroup() {
           data: { moveItemsToNull: true },
         })
         .then(() => undefined),
-  });
-}
-
-// ─── ERP export mutation ───────────────────────────────────────────────────────
-
-export function useExportPlanToERP() {
-  return useMutation<void, AxiosError<ProblemDetails>, string>({
-    mutationFn: (planId) =>
-      axiosInstance.post(`/api/v1/plans/${planId}/export-erp`).then(() => undefined),
-    onSuccess: () => {
-      toast.success("Plan ERP'ye başarıyla aktarıldı", { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const status = error.response?.status;
-      const detail = error.response?.data?.detail;
-      if (status === 409) {
-        toast.error("Bu plan daha önce ERP'ye aktarılmış.", { position: 'bottom-right' });
-        return;
-      }
-      if (status === 422) {
-        toast.error(
-          detail ?? 'Plan ERP aktarımı için uygun değil. Planın tamamlanmış olduğundan emin olun.',
-          { position: 'bottom-right' },
-        );
-        return;
-      }
-      toast.error(detail ?? 'ERP aktarımı başarısız', { position: 'bottom-right' });
-    },
   });
 }
 
