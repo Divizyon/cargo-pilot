@@ -27,6 +27,7 @@ export const ITEM_CATEGORY = {
   Package: 0,
   Pallet: 1,
   Box: 2,
+  Drum: 3,
 } as const;
 export type ItemCategoryValue = (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY];
 
@@ -67,7 +68,7 @@ export interface CreateItemRequest {
 export function toCategory(productType: ProductType): ItemCategoryValue {
   if (productType === 'palet') return ITEM_CATEGORY.Pallet;
   if (productType === 'koli') return ITEM_CATEGORY.Box;
-  return ITEM_CATEGORY.Package;
+  return ITEM_CATEGORY.Drum;
 }
 
 /**
@@ -145,6 +146,7 @@ export const itemApiResponseSchema = z.object({
 
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
+/** Varil daha önce `Package` olarak kaydedildiğinden eski kayıtlarda 0 da varil demektir. */
 function fromCategory(category: number): 'koli' | 'varil' | 'palet' {
   if (category === ITEM_CATEGORY.Pallet) return 'palet';
   if (category === ITEM_CATEGORY.Box) return 'koli';
@@ -253,6 +255,8 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
       toCentimeters(values.height, dimensionUnit) +
       (values.productType === 'palet' ? PALLET_HEIGHT_CM : 0),
     length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
+    // Varilde form genişlik alanı çapı taşır.
+    diameter: isVaril ? widthCm : null,
     weight: weightKg,
     fragilityType: values.fragility,
     isStackable,
