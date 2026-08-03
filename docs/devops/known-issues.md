@@ -3,6 +3,10 @@
 **Son güncelleme:** 2026-05-16
 
 > Geliştirme backlog'u ve iyileştirme maddeleri için bkz. [DevOps Backlog](devops-backlog.md).
+>
+> 2026-08-03 tarihli kapsamlı DevOps taraması ve 51 maddelik bulgu listesi için bkz.
+> [İyileştirme Analizi](iyilestirme-analizi-2026-08.md). O doküman bu dosyadaki bazı
+> maddelerin kapsamını düzeltiyor (özellikle madde 7 — log rotation).
 
 ---
 
