@@ -79,5 +79,5 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 | `SUMMARY.md` (GitBook ToC) backend ve ERP dokümanlarını hiç listelemiyor | Backend dokümanları GitBook'ta görünmüyor |
 | `main` ve production akışını anlatan doküman yok; `BRANCHING.md` "Production pipeline henüz yok" diyor | Prod release süreci yazılı değil |
 | `docs/conventions/BRANCHING.md` iki entegrasyon dalı tarif ediyor, `known-issues.md` #6 bu modelin ayrışma ürettiğini kayıt altına almış | Doküman kendi içinde çelişkiyi kabul ediyor, çözüm yazılı değil |
-| Algoritma tarafı (`matematiksel_model.md`, `sistem_mimarisi.md`, `bin_packing_implementation_plan.md`) sadece `feature/3D_Packing_Algorithm` branch'inde, `test`'te yok | Branch silinirse 1.160 satır tasarım dokümanı kaybolur — bkz. `branch-audit.md` |
+| ~~Algoritma tasarım dokümanları sadece `feature/3D_Packing_Algorithm` branch'inde~~ | ✅ Çözüldü — 1.160 satır PR #888 ile `test`'e taşınıyor, her dosyaya "tasarım arşivi" durum notu eklendi |
 | PR şablonunda ekran görüntüsü alanı yok | UI PR'larında görsel kanıt atlanıyor |

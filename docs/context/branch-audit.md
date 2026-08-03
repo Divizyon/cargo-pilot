@@ -112,8 +112,9 @@ ya da en azından branch protection eklenecek.
 > `apps/backend/docs/matematiksel_model.md` (425 satır),
 > `apps/backend/docs/sistem_mimarisi.md` (330),
 > `apps/backend/docs/bin_packing_implementation_plan.md` (405).
-> Toplam 1.160 satır algoritma tasarım dokümanı. Algoritma geliştiricisi için değerli olabilir —
-> silmeden önce ayrı bir doküman PR'ı ile `test`'e alınmalı.
+> Toplam 1.160 satır algoritma tasarım dokümanı.
+> ✅ **Kurtarıldı:** PR #888 (`chore/algoritma-tasarim-dokumanlari`). Merge edildikten sonra
+> `feature/3D_Packing_Algorithm` güvenle silinebilir.
 
 ### 4.3 Branch silinsin, iş backlog'a taşınsın (4)
 
