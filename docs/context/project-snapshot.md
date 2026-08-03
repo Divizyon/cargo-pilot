@@ -36,10 +36,10 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 
 ## 3. Ortamlar
 
-| Ortam | Branch | URL | Durum |
+| Ortam | Kaynak | URL | Durum |
 |-------|--------|-----|-------|
-| Test | `test` | http://cargopilot.divizyon.org · 104.247.163.42 | ✅ Aktif (demo da buradan yapılıyor) |
-| Production | `main` | 104.247.163.42:80 | ❌ **Hiç deploy edilmedi** |
+| Test | `main` push | http://cargopilot.divizyon.org · 104.247.163.42 | ✅ Aktif (demo da buradan yapılıyor) |
+| Production | `v*` tag (pipeline yok) | 104.247.163.42:80 | ❌ **Hiç deploy edilmedi** |
 
 **Sunucu:** tek makine, Ubuntu 24.04, 8 vCPU / 16 GB / 147 GB SSD. Prod ve test aynı host'ta.
 
@@ -61,13 +61,12 @@ Workflow'lar: `ci.yml`, `test-deploy.yml`, `cache-cleanup.yml`, `sync-base-image
 
 | Tetikleyici | Sonuç |
 |-------------|-------|
-| push `feature/**`, `bugfix/**` | CI + Deploy (Test) — inline build |
-| PR → `dev` | CI + Deploy (Test) |
-| PR → `test` | `enforce-test-base` + Image Build + Deploy (Test) |
-| push `test` | Image Build → GHCR → Deploy (Test) |
-| push `main` | **hiçbir şey — production pipeline yok** |
+| push `feat/**`, `fix/**`, `hotfix/**`, `chore/**`, `infra/**` (+ eski `feature/**`, `bugfix/**`) | CI + Deploy (Test) — inline build |
+| PR → `main` | CI + Pending Migration Kontrolü + Image Build + Deploy (Test) |
+| push `main` | Image Build → GHCR → test sunucusuna deploy |
+| `v*` tag | **hiçbir şey — production pipeline yok** (devops-backlog 2.2) |
 
-- `enforce-test-base`: head `dev` olamaz + PR commit'i `origin/dev`'de bulunmalı. `sync/*` muaf.
+- `enforce-test-base` job'u **kaldırıldı** (2026-08-03 trunk geçişi) — iki dallı model bittiği için gereksizdi.
 - GHCR image'ları **public**; geliştirici login'i gerekmiyor. Immutable tag: `test-{sha}`.
 - Koruma **repository ruleset** ile yapılıyor (klasik branch protection API'si 404 döner — yanıltıcıdır):
   `main-protection`, `test-protection`, `dev-protection` aktif; `freeze` kapalı.
@@ -103,14 +102,18 @@ branch silme ve force-push kapalı. `main`'de ayrıca `update` kuralı → doğr
 
 ---
 
-## 6. Süreç Gözlemi
+## 6. Branch Modeli — Trunk (2026-08-03'ten itibaren)
 
-- Mevcut model: `test`'ten branch aç → PR `dev` → **aynı branch'ten** PR `test` → PR `test→main`.
-- Bu model her iş için **2 PR** üretiyor. PR numaraları 887'yi geçmiş; son 40 PR'da 13 branch
-  birden fazla PR açmış, son 30 PR'ın 10'u merge edilmeden kapatılmış.
-- Bilinen yan etki (known-issues #6): `dev` ile `test` ayrışabiliyor. **Şu an ayrışma yok** —
-  iki branch'in ağacı birebir aynı (bkz. [branch-audit.md](branch-audit.md) §3.1).
-- Öneri ve gerekçe: [branching-proposal.md](branching-proposal.md).
+```
+main ──► feat|fix|chore|infra/* ──► PR → main ──► test ortamına otomatik deploy
+```
+
+- Tek uzun ömürlü branch: **`main`** (default). İş branch'leri kısa ömürlü, merge sonrası otomatik silinir.
+- İş başına **1 PR**. Eski `feature → dev → test → main` modeli kaldırıldı.
+- `dev` ve `test` branch'leri `main` ile aynı içeriği taşıyan **dondurulmuş kopyalar**; CI tetiklemezler,
+  ekip onayıyla silinecekler.
+- Silinen tüm eski branch'ler `archive/<branch-adı>` tag'i olarak korunuyor (26 tag).
+- Kurallar: [BRANCHING.md](../conventions/BRANCHING.md) · Gerekçe ve ölçümler: [branching-proposal.md](branching-proposal.md)
 
 ---
 

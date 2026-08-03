@@ -1,16 +1,21 @@
 name: CI — Kod Kalite ve Build Kontrolü
 
-# Tüm feature/bugfix push'larında ve dev/test PR'larında çalışır.
-# Amaç: hataları main/test branch'e ulaşmadan yakalamak.
+# Tüm iş branch'i push'larında ve main PR'larında çalışır.
+# Amaç: hataları main'e ulaşmadan yakalamak.
 on:
   push:
     branches:
+      - feat/**
+      - fix/**
+      - hotfix/**
+      - chore/**
+      - infra/**
+      # Eski isimlendirme — geçiş dönemi için korunuyor
       - feature/**
       - bugfix/**
   pull_request:
     branches:
-      - dev
-      - test
+      - main
 
 jobs:
   # ─── Frontend CI ─────────────────────────────────────────────────────────────
@@ -86,7 +91,7 @@ jobs:
             dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
           fi
 
-  # ─── Docker Image Build (sadece test'e giden PR ve test push) ────────────────
+  # ─── Docker Image Build (main'e giden PR ve iş branch'i push'ları) ───────────
   docker-build:
     name: Docker Image Build
     runs-on: ubuntu-latest
@@ -95,9 +100,8 @@ jobs:
       contents: read
       packages: read
     if: |
-      (github.event_name == 'pull_request' && github.base_ref == 'test') ||
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')) ||
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/bugfix/'))
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref != 'refs/heads/main')
 
     steps:
       - name: Kodu al
