@@ -1,0 +1,49 @@
+name: Sürüm Etiketi
+
+# `test → main` terfisi bir sürüm noktasıdır. Prod sunucusu kurulana kadar main
+# deploy tetiklemez, ama etiket şimdiden atılır:
+#   - `infra/scripts/rollback.sh` tag tabanlı çalışır (TARGET_REF)
+#   - Prod açıldığı gün sürüm geçmişi ve geri dönüş noktaları hazır olur
+#
+# Sürüm şeması: v0.<minor>.0 — prod'a ilk çıkışta v1.0.0'a geçilir.
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag:
+    name: Sürüm Etiketi Oluştur
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sıradaki sürümü belirle ve etiketle
+        run: |
+          set -e
+          git fetch --tags --force
+
+          LAST=$(git tag -l 'v0.*.0' | sort -V | tail -n 1)
+          if [ -z "$LAST" ]; then
+            NEXT_MINOR=1
+          else
+            NEXT_MINOR=$(( $(echo "$LAST" | cut -d. -f2) + 1 ))
+          fi
+          TAG="v0.${NEXT_MINOR}.0"
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "Etiket zaten var, atlanıyor: ${TAG}"
+            exit 0
+          fi
+
+          git tag -a "$TAG" -m "Sürüm ${TAG} — $(git log -1 --pretty=%s)"
+          git push origin "$TAG"
+
+          echo "Etiket oluşturuldu: **${TAG}** (önceki: ${LAST:-yok})" >> "$GITHUB_STEP_SUMMARY"

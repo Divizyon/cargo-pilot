@@ -1,15 +1,18 @@
 name: Test Ortamı CI/CD
 
-# Trunk modeli: tek uzun ömürlü branch = main. "test" bir ORTAM adıdır, branch değil.
+# Üç dallı terfi modeli: feat/* → dev → test → main
+# Test SUNUCUSU'nun kaynağı `test` dalıdır; gösterilen ve QA'in denediği sürüm odur.
+# `main` production'a ayrılmıştır — prod sunucusu kurulana kadar deploy tetiklemez.
 #
 # Tetikleyiciler:
-#   push (iş branch'leri)  → sadece deploy (inline build + healthcheck)
-#   pull_request → main    → build + deploy (doğrulama)
-#   push (main)            → build + GHCR push + test sunucusuna deploy
+#   push (iş branch'leri)  → geçici stack ile doğrulama (inline build + healthcheck)
+#   pull_request → test    → migration + build + geçici stack doğrulaması
+#   pull_request → main    → yalnızca migration kontrolü (içerik test'te zaten koştu)
+#   push (test)            → build + GHCR push + test sunucusuna deploy
 on:
   push:
     branches:
-      - main
+      - test
       - feat/**
       - fix/**
       - hotfix/**
@@ -20,17 +23,18 @@ on:
       - bugfix/**
   pull_request:
     branches:
+      - test
       - main
 
 jobs:
   # ─── Migration kontrolü: model değişmiş ama migration oluşturulmamışsa fail ──
-  # Sadece main'e giden PR'larda veya main'e push'ta çalışır (iş branch'i push'larında gereksiz)
+  # test/main PR'larında ve test push'ta çalışır (iş branch'i push'larında gereksiz)
   migration-check:
     name: Pending Migration Kontrolü
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'pull_request' && (github.base_ref == 'test' || github.base_ref == 'main')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/test')
 
     steps:
       - name: Kodu al
@@ -62,17 +66,16 @@ jobs:
             --configuration Release
           echo "Migration kontrolü geçti: bekleyen model değişikliği yok."
 
-  # ─── Build job: sadece main'e giden PR'da veya main'e push'ta çalışır ────────
-  # US-D27-I: main push'ta image'lar GHCR'a push edilir.
+  # ─── Build job: test'e giden PR'da veya test'e push'ta çalışır ──────────────
+  # US-D27-I: test push'ta image'lar GHCR'a push edilir.
   # Her push'ta hem :test (mutable, latest) hem :test-{sha} (immutable) tag'i push edilir.
-  # NOT: :test tag'i ORTAM adıdır (test sunucusu), branch adı değil.
   # deploy-test-server job'u immutable tag'i kullanır; rollback için geçmişe erişim sağlar.
   build:
     name: Image Build
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'pull_request' && github.base_ref == 'test') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/test')
 
     # packages: write — GHCR'a push edebilmek için gerekli
     permissions:
@@ -108,7 +111,7 @@ jobs:
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
           tags: |
             ghcr.io/divizyon/cargo-pilot-backend:test
             ghcr.io/divizyon/cargo-pilot-backend:${{ steps.sha.outputs.tag }}
@@ -123,7 +126,7 @@ jobs:
         with:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/test' }}
           tags: |
             ghcr.io/divizyon/cargo-pilot-frontend:test
             ghcr.io/divizyon/cargo-pilot-frontend:${{ steps.sha.outputs.tag }}
@@ -148,7 +151,7 @@ jobs:
       always() &&
       (needs.migration-check.result == 'success' || needs.migration-check.result == 'skipped') &&
       (
-        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+        (github.event_name == 'pull_request' && github.base_ref == 'test') ||
         (github.event_name == 'push')
       )
 
@@ -287,7 +290,7 @@ jobs:
         run: |
           docker compose -f infra/compose/docker-compose.test.yml down -v
 
-  # ─── Test sunucusuna deploy: sadece main'e push'ta çalışır ───────────────────
+  # ─── Test sunucusuna deploy: sadece test'e push'ta çalışır ──────────────────
   deploy-test-server:
     name: Deploy (Test Server)
     runs-on: ubuntu-latest
@@ -297,7 +300,7 @@ jobs:
       (needs.migration-check.result == 'success') &&
       (needs.build.result == 'success') &&
       github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/test'
 
     steps:
       # US-D27-I: Sunucu artık build yapmıyor; GHCR'dan pull edilen image'ı kullanıyor.
@@ -315,11 +318,11 @@ jobs:
             set -e
             cd /opt/cargo-pilot
 
-            echo "==> main branch güncelleniyor..."
+            echo "==> test branch güncelleniyor..."
             git remote prune origin
             git fetch --prune origin
-            git checkout main
-            git reset --hard origin/main
+            git checkout test
+            git reset --hard origin/test
 
             # GHCR paketleri public; login GEREKMEZ. Sunucuda kalmış eski/süresi dolmuş
             # bir ghcr.io kimlik bilgisi varsa docker anonim pull'a düşmez ve
