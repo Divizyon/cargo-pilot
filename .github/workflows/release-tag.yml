@@ -28,6 +28,10 @@ jobs:
       - name: Sıradaki sürümü belirle ve etiketle
         run: |
           set -e
+          # Annotated tag committer kimliği ister; runner'da tanımlı değil.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git fetch --tags --force
 
           LAST=$(git tag -l 'v0.*.0' | sort -V | tail -n 1)
