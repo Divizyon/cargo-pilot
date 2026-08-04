@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useShareByToken, useRecordShareView } from '@/lib/api/useShareLinks';
+import { useShareByToken, useRecordShareView, isShareExpiredError } from '@/lib/api/useShareLinks';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { NewPlanPage } from '@/pages/NewPlanPage';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
@@ -158,7 +158,8 @@ export function SharePage() {
     };
   }, []);
 
-  const is404 = (error as AxiosError | null)?.response?.status === 404;
+  const isExpired = isShareExpiredError(error);
+  const is404 = !isExpired && (error as AxiosError | null)?.response?.status === 404;
 
   if (isLoading) {
     return (
@@ -172,6 +173,22 @@ export function SharePage() {
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      </main>
+    );
+  }
+
+  // Süre kontrolü sunucuda yapıldığı için süresi dolmuş bağlantı plan verisi
+  // döndürmez; bu yüzden hata dalından önce değerlendirilir.
+  if (isExpired) {
+    return (
+      <main className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center">
+        <div className="text-center space-y-3 max-w-sm px-6">
+          <Clock className="w-10 h-10 text-amber-400 mx-auto" />
+          <h1 className="text-lg font-semibold text-zinc-800">Bağlantı Süresi Doldu</h1>
+          <p className="text-sm text-zinc-500">
+            Bu paylaşım bağlantısının geçerlilik süresi sona ermiştir.
+          </p>
         </div>
       </main>
     );

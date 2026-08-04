@@ -98,9 +98,7 @@ export function ShareLinksManager() {
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <XCircle className="w-8 h-8 text-zinc-300 mb-2" />
             <p className="text-sm text-zinc-500">Paylaşım bağlantıları yüklenemedi.</p>
-            <p className="text-xs text-zinc-400 mt-1">
-              Bu özellik için backend desteği bekleniyor.
-            </p>
+            <p className="text-xs text-zinc-400 mt-1">Lütfen sayfayı yenileyip tekrar deneyin.</p>
           </div>
         )}
 

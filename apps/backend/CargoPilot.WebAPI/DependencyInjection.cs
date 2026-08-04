@@ -139,6 +139,19 @@ public static class DependencyInjection {
                         QueueLimit        = 0,
                     }));
 
+            // Anonim paylaşım görüntüleme: 60 istek / 1 dk / IP.
+            // Kimlik doğrulaması yoktur; geçerli token'ı olan biri sunucuyu yormamalı.
+            options.AddPolicy("share-public", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 60,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 4,
+                        QueueLimit        = 0,
+                    }));
+
             // Contact form: 5 istek / 15 dk / IP
             options.AddPolicy("contact", httpContext =>
                 RateLimitPartition.GetSlidingWindowLimiter(
