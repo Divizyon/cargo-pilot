@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 import {
   ChevronRight,
   Home,
@@ -21,9 +20,7 @@ import {
   CheckCircle2,
   Loader2,
   Play,
-  RefreshCw,
   Trash2,
-  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +44,6 @@ import {
   useLoadingPlanDetail,
   useApprovePlan,
   useDeleteLoadingPlan,
-  useExportPlanToERP,
   useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
 import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
@@ -563,7 +559,7 @@ interface PlanDetailContentProps {
   onBack?: () => void;
 }
 
-type ErpExportStatus = 'idle' | 'sending' | 'sent' | 'error';
+type ErpExportStatus = 'idle' | 'queued';
 
 export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const navigate = useNavigate();
@@ -571,7 +567,6 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [erpStatus, setErpStatus] = useState<ErpExportStatus>('idle');
-  const [erpExportedAt, setErpExportedAt] = useState<Date | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const autoTriggerOnApproval = useErpSettingsStore((s) => s.autoTriggerOnApproval);
@@ -580,46 +575,16 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const { data: productGroups = [] } = useLoadingPlanProducts(id);
   const { mutateAsync: approvePlan, isPending: isApproving } = useApprovePlan();
   const { mutate: deletePlan, isPending: isDeleting } = useDeleteLoadingPlan();
-  const { mutateAsync: exportToERP } = useExportPlanToERP();
 
   async function handleApprove() {
     try {
       await approvePlan(id);
       if (!autoTriggerOnApproval) return;
-      setErpStatus('sending');
-      try {
-        await exportToERP(id);
-        const now = new Date();
-        setErpStatus('sent');
-        setErpExportedAt(now);
-        toast.success("Plan ERP'ye başarıyla iletildi.", { position: 'bottom-right' });
-      } catch {
-        setErpStatus('error');
-        toast.error(
-          <span>
-            ERP aktarımı başarısız.{' '}
-            <Link to={`/planning/${id}`} className="underline font-medium">
-              Planı Görüntüle
-            </Link>
-          </span>,
-          { position: 'bottom-right', duration: 8000 },
-        );
-      }
+      // Onay isteği ERP aktarımını sunucu tarafında kuyruğa alır; ayrı bir tetikleme ucu yoktur.
+      setErpStatus('queued');
+      toast.success('Plan onaylandı, ERP aktarımı kuyruğa alındı.', { position: 'bottom-right' });
     } catch {
       // approvePlan mutation handles its own error toast
-    }
-  }
-
-  async function handleRetryErp() {
-    setErpStatus('sending');
-    try {
-      await exportToERP(id);
-      const now = new Date();
-      setErpStatus('sent');
-      setErpExportedAt(now);
-      toast.success("Plan ERP'ye başarıyla iletildi.", { position: 'bottom-right' });
-    } catch {
-      setErpStatus('error');
     }
   }
 
@@ -704,30 +669,10 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
 
           <div className="flex items-center gap-2 shrink-0">
             {/* ERP export status label */}
-            {erpStatus === 'sending' && (
+            {erpStatus === 'queued' && (
               <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                ERP'ye gönderiliyor…
-              </span>
-            )}
-            {erpStatus === 'sent' && erpExportedAt && (
-              <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" />
-                ERP'ye iletildi · {format(erpExportedAt, 'HH:mm', { locale: tr })}
-              </span>
-            )}
-            {erpStatus === 'error' && (
-              <span className="flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700">
-                <XCircle className="h-3 w-3" />
-                Aktarım başarısız
-                <button
-                  type="button"
-                  onClick={() => void handleRetryErp()}
-                  className="ml-1 flex items-center gap-0.5 underline hover:no-underline"
-                >
-                  <RefreshCw className="h-2.5 w-2.5" />
-                  Tekrar Dene
-                </button>
+                ERP aktarımı kuyrukta…
               </span>
             )}
 
@@ -736,7 +681,7 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={isApproving || erpStatus === 'sending'}
+                disabled={isApproving || erpStatus === 'queued'}
                 onClick={() => void handleApprove()}
               >
                 {isApproving ? (

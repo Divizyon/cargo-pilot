@@ -32,10 +32,27 @@ const subscriptionDetailSchema = z.object({
   usage: subscriptionUsageSchema,
 });
 
-const subscriptionResponseSchema = z.object({
+/** Backend `GET /api/v1/me/subscription` yanıtı; enum'lar sayı olarak serileşir. */
+const mySubscriptionResponseSchema = z.object({
   isSuccess: z.boolean(),
-  data: subscriptionDetailSchema,
+  data: z.object({
+    subscriptionType: z.number().int(),
+    maxItemCount: z.number().int(),
+    remainingItemCount: z.number().int(),
+    maxVehicleCount: z.number().int(),
+    remainingVehicleCount: z.number().int(),
+    maxLoadingPlanCount: z.number().int(),
+    remainingLoadingPlanCount: z.number().int(),
+    trialEndsAt: z.string().nullable(),
+  }),
 });
+
+/** Backend SubscriptionType: Free=0, Pro=1, Enterprise=2. `starter` karşılığı yoktur. */
+const PLAN_BY_SUBSCRIPTION_TYPE: Record<number, SubscriptionPlan> = {
+  0: 'free',
+  1: 'pro',
+  2: 'enterprise',
+};
 
 const purchaseResponseSchema = z.object({
   isSuccess: z.boolean(),
@@ -99,9 +116,29 @@ export function useSubscription() {
   return useQuery({
     queryKey: ['subscription'] as const,
     queryFn: async () => {
-      const { data: raw } = await axiosInstance.get('/api/v1/subscriptions/me');
-      const parsed = subscriptionResponseSchema.parse(raw);
-      const d = parsed.data;
+      const { data: raw } = await axiosInstance.get('/api/v1/me/subscription');
+      const s = mySubscriptionResponseSchema.parse(raw).data;
+
+      // Backend limit + kalan hak döndürür; kullanım = limit - kalan.
+      // Ödeme/iptal/downgrade alanlarının backend karşılığı henüz yoktur.
+      const d = subscriptionDetailSchema.parse({
+        plan: PLAN_BY_SUBSCRIPTION_TYPE[s.subscriptionType] ?? 'free',
+        expiresAt: s.trialEndsAt,
+        cancelAtPeriodEnd: false,
+        pendingDowngradePlan: null,
+        pendingDowngradeDate: null,
+        customerId: null,
+        nextBillingDate: null,
+        usage: {
+          plansUsed: Math.max(s.maxLoadingPlanCount - s.remainingLoadingPlanCount, 0),
+          plansLimit: s.maxLoadingPlanCount,
+          vehiclesCount: Math.max(s.maxVehicleCount - s.remainingVehicleCount, 0),
+          vehiclesLimit: s.maxVehicleCount,
+          productsCount: Math.max(s.maxItemCount - s.remainingItemCount, 0),
+          productsLimit: s.maxItemCount,
+          renewalDate: s.trialEndsAt,
+        },
+      });
 
       store.setPlan(d.plan, d.expiresAt);
       store.setUsage(d.usage as SubscriptionUsage);

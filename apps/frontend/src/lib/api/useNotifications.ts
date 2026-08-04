@@ -138,12 +138,15 @@ export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { data: raw } = await axiosInstance.patch(`/api/v1/notifications/${id}`);
+      const { data: raw } = await axiosInstance.patch(`/api/v1/notifications/${id}/read`);
       boolResponseSchema.parse(raw);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+    },
+    onError: () => {
+      toast.error('Bildirim okundu olarak işaretlenemedi.', { position: 'bottom-right' });
     },
   });
 }
