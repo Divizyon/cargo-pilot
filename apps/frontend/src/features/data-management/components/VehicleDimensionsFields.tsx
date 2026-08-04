@@ -3,7 +3,7 @@ import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { calculateVolume } from '@/lib/utils/calculateVolume';
+import { calcVolume } from '@/lib/utils/calcVolume';
 import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
@@ -28,7 +28,7 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
 
   const volume = useMemo(() => {
     if (!length || !width || !height) return null;
-    return calculateVolume(length, width, height);
+    return calcVolume(length, width, height);
   }, [length, width, height]);
 
   return (

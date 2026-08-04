@@ -52,7 +52,7 @@ import { usePlanStore } from '@/lib/store/usePlanStore';
 import { OptimizationModal } from './OptimizationModal';
 import { AddVehicleModal } from './AddVehicleModal';
 import { toast } from 'sonner';
-import { useDebounce } from '@/lib/utils/useDebounce';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
 import {
   VehicleType,
