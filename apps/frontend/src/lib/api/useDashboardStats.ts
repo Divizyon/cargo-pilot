@@ -63,12 +63,19 @@ async function fetchDashboardStats(): Promise<DashboardStatsData> {
   };
 }
 
+/**
+ * Panel verisi her pencere odağında yeniden çekilmesin diye kısa bir tazelik
+ * süresi tanımlanır; `staleTime: 0` ile her sekme dönüşü tüm sorguları
+ * tetikliyordu.
+ */
+export const DASHBOARD_STALE_TIME = 60 * 1000;
+
 export function useDashboardStats() {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
     queryKey: ['dashboard-stats', userId] as const,
     queryFn: fetchDashboardStats,
-    staleTime: 0,
+    staleTime: DASHBOARD_STALE_TIME,
     enabled: Boolean(userId),
   });
 }
@@ -86,13 +93,20 @@ async function fetchLoadingPlans(params: Record<string, unknown>): Promise<Loadi
   return results;
 }
 
-export function useDashboardPlans() {
+/**
+ * Panelin son planlar listesi. `select` ile aynı sorgudan farklı görünümler
+ * türetilebilir; ayrı bir anahtarla aynı isteği ikinci kez atmaya gerek yoktur.
+ */
+export function useDashboardPlans<TData = LoadingPlanListItem[]>(
+  select?: (plans: LoadingPlanListItem[]) => TData,
+) {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
     queryKey: ['dashboard-plans', userId] as const,
     queryFn: () =>
       fetchLoadingPlans({ page: 1, pageSize: 10, sortBy: 'createdAt', sortDirection: 'desc' }),
-    staleTime: 0,
+    select,
+    staleTime: DASHBOARD_STALE_TIME,
     enabled: Boolean(userId),
   });
 }
@@ -112,7 +126,7 @@ export function useWeeklyTrendPlans() {
         startDate: sixDaysAgo.toISOString(),
       });
     },
-    staleTime: 0,
+    staleTime: DASHBOARD_STALE_TIME,
     enabled: Boolean(userId),
   });
 }
