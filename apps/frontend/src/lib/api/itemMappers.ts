@@ -138,13 +138,13 @@ export const itemApiResponseSchema = z.object({
 
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
-function fromCategory(category: number): 'koli' | 'varil' | 'palet' {
+export function fromCategory(category: number): 'koli' | 'varil' | 'palet' {
   if (category === ITEM_CATEGORY.Pallet) return 'palet';
   if (category === ITEM_CATEGORY.Box) return 'koli';
   return 'varil';
 }
 
-function fromAllowedRotations(v: number): {
+export function fromAllowedRotations(v: number): {
   allowRotateX: boolean;
   allowRotateY: boolean;
   allowRotateZ: boolean;
