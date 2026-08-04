@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Shares.CreateShareLink;
