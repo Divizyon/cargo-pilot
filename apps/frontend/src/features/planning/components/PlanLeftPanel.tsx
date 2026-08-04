@@ -53,7 +53,7 @@ import { useItems } from '@/lib/api/useItems';
 import { useDeletePlanGroup } from '@/lib/api/useLoadingPlans';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
-import { StepAnimationControls } from './scene/StepAnimationControls';
+import { StepAnimationControls } from '@/features/planning/scene/components/StepAnimationControls';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';

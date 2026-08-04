@@ -3,15 +3,15 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Stats, useProgress } from '@react-three/drei';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SCENE } from '@/lib/config/scene-config';
-import { SceneLights } from '@/features/planning/components/scene/SceneLights';
-import { SceneControls } from '@/features/planning/components/scene/SceneControls';
-import { CargoMeshInstanced } from '@/features/planning/components/scene/CargoMeshInstanced';
-import { ContainerMesh } from '@/features/planning/components/scene/ContainerMesh';
-import { CogMarker } from '@/features/planning/components/scene/CogMarker';
+import { SceneLights } from '@/features/planning/scene/components/SceneLights';
+import { SceneControls } from '@/features/planning/scene/components/SceneControls';
+import { CargoMeshInstanced } from '@/features/planning/scene/components/CargoMeshInstanced';
+import { ContainerMesh } from '@/features/planning/scene/components/ContainerMesh';
+import { CogMarker } from '@/features/planning/scene/components/CogMarker';
 import { SceneDisposer } from '@/lib/three/SceneDisposer';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { SelectedBoxCoords } from '@/features/planning/components/scene/SelectedBoxCoords';
-import { SceneFloor } from '@/features/planning/components/scene/SceneFloor';
+import { SelectedBoxCoords } from '@/features/planning/scene/components/SelectedBoxCoords';
+import { SceneFloor } from '@/features/planning/scene/components/SceneFloor';
 
 interface PlanCanvasProps {
   className?: string;

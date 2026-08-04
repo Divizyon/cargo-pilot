@@ -50,7 +50,7 @@ import {
   useExportPlanToERP,
   useUploadPlanThumbnail,
 } from '@/lib/api/useLoadingPlans';
-import { PlanCanvas } from '@/features/planning/components/scene/PlanCanvas';
+import { PlanCanvas } from '@/features/planning/scene/components/PlanCanvas';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { PlanStatus } from '@/lib/types/loadingPlan';
