@@ -2,6 +2,8 @@
 
 Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 **Toplam 25 dosya / ~4.600 satır.** Tarama: 2026-08-03.
+**Güncelleme 2026-08-04:** `iyilestirme-analizi-2026-08.md`, 3 algoritma tasarım arşivi ve
+`docs/context/kod-taramasi-2026-08.md` haritaya eklendi.
 
 ---
 
@@ -36,7 +38,8 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 | `secret-management.md` | 167 | "Repoya secret girmez" kuralı, env dosya tablosu, GHCR public durumu, backend local secret yöntemleri (User Secrets / Local JSON), GitHub Actions secret listesi, Google OAuth + Resend değişkenleri, ihlal prosedürü | Secret ekleme/döndürme |
 | `monitoring-setup.md` | 239 | Prometheus/Loki/Promtail/Grafana mimarisi, ilk kurulum, toplanan metrikler, 3 alert kuralı, sorun giderme (Loki log şişmesi dahil) | Alert/dashboard işleri |
 | `known-issues.md` | 160 | 8 açık sorun + çözülenler tablosu | **Her sprint başında.** Özeti: `project-snapshot.md` §5 |
-| `devops-backlog.md` | 237 | 11 maddelik öncelik matrisi + kategori bazlı detay (uyumsuzluklar, eksikler, güncellenecekler, GHCR, operasyonel) | DevOps planlaması |
+| `devops-backlog.md` | 237 | 11 maddelik öncelik matrisi + kategori bazlı detay (uyumsuzluklar, eksikler, güncellenecekler, GHCR, operasyonel). **Not:** 1.2-1.4 maddeleri PR #908 ile kapandı ama hâlâ "Açık" işaretli | DevOps planlaması |
+| `iyilestirme-analizi-2026-08.md` | ~900 | **51 bulguluk** kapsamlı devops analizi (2026-08-03): compose, CI/CD, güvenlik, monitoring, doküman tutarsızlıkları; bazı bulgular "doğrulanmadı" işaretli | DevOps iyileştirme planlarken — en güncel ve en detaylı kaynak |
 
 ## infra
 
@@ -55,6 +58,9 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 | `user-story-tracker.md` | 528 | 17 story'nin alt iş bazında durum takibi (✅/🟡/⬜) + kanıt dosya listesi. Açık kalanlar: Story 8 "validation hatalarını envelope'a bağla", Story 9 correlation id + exception testleri | Backend ilerleme durumu |
 | `erp-integration/data-model.md` | 53 | `Integration`, `SyncLog`, `ErpUserMapping` entity'leri + `Item`/`Vehicle`'a eklenecek alanlar | ERP entegrasyonu |
 | `erp-integration/erp-schema-divizyon.md` | 455 | Müşteri ERP şeması: `TBLSTSABIT` (stok, 134 kolon), `TBLSIPAMAS` (sipariş başlığı, 106), `TBLSIPATRA` (satırlar, 97), boyut birimi notu, sync ve delta-sync sorguları | ERP alan eşlemesi |
+| `matematiksel_model.md` | 443 | **Tasarım arşivi** — bin packing matematiksel modeli (EP, dominance, maliyet fonksiyonu). Kod hem ileride hem geride; arşiv notundaki "MediatR kullanılmaz" cümlesi hatalı. Fark listesi: `docs/context/kod-taramasi-2026-08.md` §4 | Algoritma tarihçesi |
+| `sistem_mimarisi.md` | 348 | **Tasarım arşivi** — planlanan packing mimarisi; `PackingEngine` sınıfı hiç yazılmadı, gerçek motor `OptimizationEngine.cs` | Algoritma tarihçesi |
+| `bin_packing_implementation_plan.md` | 423 | **Tasarım arşivi** — uygulama planı; güncel implementasyonla birebir değil | Algoritma tarihçesi |
 
 ## apps/frontend (AI asistan kuralları)
 
