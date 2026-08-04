@@ -4,7 +4,7 @@ import { AlertCircle, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useShareByToken, useRecordShareView } from '@/lib/api/useShareLinks';
 import { usePlanStore } from '@/lib/store/usePlanStore';
-import { NewPlanPage } from '@/pages/NewPlanPage';
+import { NewPlanPage } from '@/pages/plans/NewPlanPage';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { ProductType } from '@/lib/types/item';
 import type { AxiosError } from 'axios';
