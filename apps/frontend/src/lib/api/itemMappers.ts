@@ -27,9 +27,11 @@ export const ITEM_CATEGORY = {
   Package: 0,
   Pallet: 1,
   Box: 2,
+  Drum: 3,
 } as const;
 export type ItemCategoryValue = (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY];
 
+/** Backend `AllowedRotations` enum'u 0-5 aralığındadır; başka bir değer 400 döner. */
 export const ALLOWED_ROTATIONS = {
   All: 0,
   NoVertical: 1,
@@ -37,7 +39,6 @@ export const ALLOWED_ROTATIONS = {
   NoYaw: 3,
   PitchOnly: 4,
   RollOnly: 5,
-  YawOnly: 6,
 } as const;
 export type AllowedRotationsValue = (typeof ALLOWED_ROTATIONS)[keyof typeof ALLOWED_ROTATIONS];
 
@@ -67,9 +68,17 @@ export interface CreateItemRequest {
 export function toCategory(productType: ProductType): ItemCategoryValue {
   if (productType === 'palet') return ITEM_CATEGORY.Pallet;
   if (productType === 'koli') return ITEM_CATEGORY.Box;
-  return ITEM_CATEGORY.Package;
+  return ITEM_CATEGORY.Drum;
 }
 
+/**
+ * Eksen izinlerini backend enum'una çevirir. X=Pitch, Y=Yaw, Z=Roll.
+ *
+ * Sekiz kombinasyonun altısının birebir karşılığı vardır. Karşılığı olmayan iki
+ * durumda (Yaw+Roll ve Yaw+Pitch) yalnızca Yaw'a izin veren alt küme seçilir:
+ * fazladan dönüş vermek kırılgan ürünü yasak bir yüzeye yatırabilir, eksik dönüş
+ * ise yalnızca yerleşim seçeneğini daraltır.
+ */
 export function toAllowedRotations(
   allowRotateX: boolean,
   allowRotateY: boolean,
@@ -81,8 +90,7 @@ export function toAllowedRotations(
   if (allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // T F T
   if (allowRotateX && !allowRotateY && !allowRotateZ) return ALLOWED_ROTATIONS.PitchOnly; // T F F
   if (!allowRotateX && !allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.RollOnly; // F F T
-  if (!allowRotateX && allowRotateY && allowRotateZ) return ALLOWED_ROTATIONS.NoYaw; // F T T → en yakın
-  return ALLOWED_ROTATIONS.AllLocked; // T T F → fallback
+  return ALLOWED_ROTATIONS.NoVertical; // F T T ve T T F → yalnızca Yaw
 }
 
 export function toMaxWeightOnTop(
@@ -138,6 +146,7 @@ export const itemApiResponseSchema = z.object({
 
 // ─── Backend → frontend mappers ───────────────────────────────────────────────
 
+/** Varil daha önce `Package` olarak kaydedildiğinden eski kayıtlarda 0 da varil demektir. */
 function fromCategory(category: number): 'koli' | 'varil' | 'palet' {
   if (category === ITEM_CATEGORY.Pallet) return 'palet';
   if (category === ITEM_CATEGORY.Box) return 'koli';
@@ -160,8 +169,6 @@ function fromAllowedRotations(v: number): {
       return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
     case ALLOWED_ROTATIONS.RollOnly:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
-    case ALLOWED_ROTATIONS.YawOnly:
-      return { allowRotateX: false, allowRotateY: true, allowRotateZ: false };
     default:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
   }
@@ -199,12 +206,15 @@ export function fromApiItem(api: ItemApi): Item {
 export function itemToFormValues(item: Item): Partial<ProductFormValues> {
   const { dimensionUnit, weightUnit } = useUnitStore.getState();
   const unit = dimensionUnit as DimensionUnitKey;
+  // Kayıtta palet tabanı yüksekliğe eklenir; formda yalnızca ürün yüksekliği gösterilir.
+  const heightCm =
+    item.productType === 'palet' ? Math.max(item.height - PALLET_HEIGHT_CM, 0) : item.height;
   return {
     name: item.name,
     sku: item.sku,
     productType: item.productType,
     width: fromCentimeters(item.width, unit),
-    height: fromCentimeters(item.height, unit),
+    height: fromCentimeters(heightCm, unit),
     length: fromCentimeters(item.length, unit),
     weight: fromKilograms(item.weight, weightUnit as WeightUnitKey),
     fragility: item.fragility,
@@ -245,6 +255,8 @@ export function buildCreateItemPayload(values: ProductFormValues): CreateItemReq
       toCentimeters(values.height, dimensionUnit) +
       (values.productType === 'palet' ? PALLET_HEIGHT_CM : 0),
     length: isVaril ? widthCm : toCentimeters(values.length, dimensionUnit),
+    // Varilde form genişlik alanı çapı taşır.
+    diameter: isVaril ? widthCm : null,
     weight: weightKg,
     fragilityType: values.fragility,
     isStackable,

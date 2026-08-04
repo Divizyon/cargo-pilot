@@ -101,7 +101,9 @@ public sealed class BulkCreateItemsCommandHandler
                 diameter: cmd.Diameter,
                 imageUrl: cmd.ImageUrl,
                 stackGroup: cmd.StackGroup,
+                incompatibleGroups: cmd.IncompatibleGroups,
                 specialNotes: cmd.SpecialNotes,
+                constraintIds: cmd.ConstraintIds,
                 companyId: companyId));
         }
 
