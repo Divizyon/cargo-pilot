@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useDraftItems, useRejectDraftItem, type DraftItem } from '@/lib/api/useDraftItems';
+import { fromCategory, fromAllowedRotations } from '@/lib/api/itemMappers';
 import {
   BulkImportDialog,
   type EditableRow,
@@ -30,46 +31,10 @@ import {
 const PAGE_SIZE = 20;
 
 function draftItemToRow(item: DraftItem): EditableRow {
-  let tip: string;
-  if (item.category === 1) tip = 'palet';
-  else if (item.category === 0) tip = 'koli';
-  else tip = 'varil';
-
-  let allowRotateX = false,
-    allowRotateY = false,
-    allowRotateZ = false;
-  switch (item.allowedRotations) {
-    case 0:
-      allowRotateX = true;
-      allowRotateY = true;
-      allowRotateZ = true;
-      break;
-    case 1:
-      allowRotateX = false;
-      allowRotateY = true;
-      allowRotateZ = false;
-      break;
-    case 3:
-      allowRotateX = true;
-      allowRotateY = false;
-      allowRotateZ = true;
-      break;
-    case 4:
-      allowRotateX = true;
-      allowRotateY = false;
-      allowRotateZ = false;
-      break;
-    case 5:
-      allowRotateX = false;
-      allowRotateY = false;
-      allowRotateZ = true;
-      break;
-    case 6:
-      allowRotateX = false;
-      allowRotateY = true;
-      allowRotateZ = false;
-      break;
-  }
+  // Kategori ve rotasyon eşlemesi tek kaynaktan gelir; burada tekrarlanırsa
+  // taslak onayında ürün tipi sessizce değişir.
+  const tip = fromCategory(item.category);
+  const { allowRotateX, allowRotateY, allowRotateZ } = fromAllowedRotations(item.allowedRotations);
 
   return {
     _id: crypto.randomUUID(),

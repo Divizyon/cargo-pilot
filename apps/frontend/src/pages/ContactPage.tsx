@@ -6,32 +6,34 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
+import {
+  contactMessageSchema,
+  useSendContactMessage,
+  type ContactMessageValues,
+} from '@/lib/api/useContact';
 
-const contactSchema = z.object({
-  name: z.string().min(2, 'Ad en az 2 karakter olmalıdır.'),
-  email: z.string().email('Geçerli bir e-posta adresi giriniz.'),
-  subject: z.string().min(3, 'Konu en az 3 karakter olmalıdır.'),
-  message: z.string().min(10, 'Mesajınız en az 10 karakter olmalıdır.'),
-});
-
-type ContactFormValues = z.infer<typeof contactSchema>;
+type ContactFormValues = ContactMessageValues;
 
 export function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const { mutate: sendMessage, isPending, error } = useSendContactMessage();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<ContactFormValues>({
-    resolver: zodResolver(contactSchema),
+    resolver: zodResolver(contactMessageSchema),
   });
 
-  function onSubmit(_data: ContactFormValues) {
-    setSubmitted(true);
+  const serverError = error
+    ? (error.response?.data?.detail ?? 'Mesajınız gönderilemedi. Lütfen tekrar deneyin.')
+    : null;
+
+  function onSubmit(data: ContactFormValues) {
+    sendMessage(data, { onSuccess: () => setSubmitted(true) });
   }
 
   return (
@@ -161,8 +163,10 @@ export function ContactPage() {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Gönderiliyor…' : 'Gönder'}
+                {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+
+                <Button type="submit" className="w-full" disabled={isPending}>
+                  {isPending ? 'Gönderiliyor…' : 'Gönder'}
                 </Button>
               </form>
             )}

@@ -391,8 +391,9 @@ export function useTriggerERPSync() {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
+      // "Atlanan" sayısı backend akışında hiç üretilmiyor; gösterilmesi yanıltıcı olur.
       toast.success(
-        `Senkronizasyon tamamlandı — ${summary.added} eklendi, ${summary.updated} güncellendi, ${summary.skipped} atlandı`,
+        `Senkronizasyon tamamlandı — ${summary.added} eklendi, ${summary.updated} güncellendi`,
         { position: 'bottom-right', duration: 6000 },
       );
     },
