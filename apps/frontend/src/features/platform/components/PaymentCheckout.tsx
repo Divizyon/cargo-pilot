@@ -54,11 +54,15 @@ export function PaymentCheckout({ plan, onBack }: PaymentCheckoutProps) {
     : null;
 
   function onSubmit(values: PaymentFormValues) {
+    // Kart numarası hiçbir koşulda sunucuya gönderilmez. Gerçek entegrasyonda
+    // token ödeme sağlayıcısının SDK'sından gelir; buradaki değer yer tutucudur.
+    const last4 = values.cardNumber.replace(/\s/g, '').slice(-4);
+
     purchase(
       {
         plan: plan.key,
         cardholderName: values.cardholderName,
-        paymentMethodToken: values.cardNumber.replace(/\s/g, ''),
+        paymentMethodToken: `tok_${last4}`,
       },
       {
         onSuccess(data) {
