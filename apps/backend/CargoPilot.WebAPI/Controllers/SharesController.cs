@@ -6,6 +6,7 @@ using CargoPilot.Application.Features.Shares.RecordShareView;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CargoPilot.WebAPI.Controllers;
 
@@ -93,8 +94,10 @@ public sealed class SharesController : BaseController
     /// <response code="404">Bağlantı bulunamadı.</response>
     [HttpGet("{token}/plan")]
     [AllowAnonymous]
+    [EnableRateLimiting("share-public")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> GetSharePlan(
         [FromRoute] string token,
         CancellationToken cancellationToken = default)
@@ -112,7 +115,9 @@ public sealed class SharesController : BaseController
     /// <response code="204">Görüntülenme kaydedildi.</response>
     [HttpPost("{token}/view")]
     [AllowAnonymous]
+    [EnableRateLimiting("share-public")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> RecordView(
         [FromRoute] string token,
         CancellationToken cancellationToken = default)
