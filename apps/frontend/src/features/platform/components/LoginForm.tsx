@@ -356,7 +356,7 @@ function DevBypass() {
               id: 'dev-1',
               email: 'dev@cargopilot.io',
               fullName: 'Dev Admin',
-              role: USER_ROLES.Admin,
+              role: USER_ROLES.CompanyAdmin,
             },
             'dev-token',
           );
