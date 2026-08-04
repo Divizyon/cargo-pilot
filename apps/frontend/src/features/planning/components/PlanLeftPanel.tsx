@@ -606,7 +606,6 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
   const updateItem = usePlanStore((s) => s.updateItem);
   const updateItemQtyOnly = usePlanStore((s) => s.updateItemQtyOnly);
   const initItems = usePlanStore((s) => s.initItems);
-  const mockPlacements = usePlanStore((s) => s.mockPlacements);
   const setPlacements = usePlanStore((s) => s.setPlacements);
   const skuColorMap = usePlanStore((s) => s.skuColorMap);
   const unfitItems = usePlanStore((s) => s.unfitItems);
@@ -1940,16 +1939,6 @@ export function PlanLeftPanel({ planId, onAddSuggestedVehicle }: PlanLeftPanelPr
 
       {import.meta.env.DEV && (
         <div className="shrink-0 border-t border-border px-3 py-2 flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="flex-1 h-7 text-xs"
-            onClick={() => mockPlacements(500)}
-            title="500 random kutu enjekte et (yalnızca dev)"
-          >
-            Stres Testi (500)
-          </Button>
           {placements.length > 0 && (
             <Button
               type="button"

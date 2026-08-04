@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { USER_ROLES, useAuthStore } from '@/lib/store/useAuthStore';
 import {
   useLogin,
   isLoginNotFound,
@@ -329,8 +328,6 @@ export function LoginForm() {
           Kayıt ol
         </Link>
       </p>
-
-      {import.meta.env.DEV && <DevBypass />}
     </div>
   );
 }
@@ -339,32 +336,4 @@ function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function DevBypass() {
-  const navigate = useNavigate();
-  const setAuth = useAuthStore((s) => s.setAuth);
-
-  return (
-    <div className="mt-4 border-t border-dashed pt-4">
-      <Button
-        variant="outline"
-        className="w-full border-dashed text-xs text-muted-foreground"
-        onClick={() => {
-          setAuth(
-            {
-              id: 'dev-1',
-              email: 'dev@cargopilot.io',
-              fullName: 'Dev Admin',
-              role: USER_ROLES.Admin,
-            },
-            'dev-token',
-          );
-          navigate('/dashboard', { replace: true });
-        }}
-      >
-        [DEV] Hızlı Giriş
-      </Button>
-    </div>
-  );
 }
