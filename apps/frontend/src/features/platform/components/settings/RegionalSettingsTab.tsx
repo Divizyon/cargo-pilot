@@ -77,6 +77,7 @@ function Row({ label, tooltip, children }: RowProps) {
 export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps) {
   const setUnits = useUnitStore((s) => s.setUnits);
   const storedLanguage = useUnitStore((s) => s.language);
+  const storedTimezone = useUnitStore((s) => s.timezone);
   const storedDimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const storedWeightUnit = useUnitStore((s) => s.weightUnit);
   const storedVolumeUnit = useUnitStore((s) => s.volumeUnit);
@@ -87,6 +88,7 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
     defaultValues: {
       ...DEFAULT_VALUES,
       language: storedLanguage,
+      timezone: storedTimezone,
       dimensionUnit: storedDimensionUnit,
       weightUnit: storedWeightUnit,
       volumeUnit: storedVolumeUnit,
@@ -109,6 +111,7 @@ export function RegionalSettingsTab({ onDirtyChange }: RegionalSettingsTabProps)
   function onSubmit(values: RegionalSettingsValues) {
     setUnits({
       language: values.language,
+      timezone: values.timezone,
       dimensionUnit: values.dimensionUnit,
       weightUnit: values.weightUnit,
       volumeUnit: values.volumeUnit,
