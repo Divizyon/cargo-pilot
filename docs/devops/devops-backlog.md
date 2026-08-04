@@ -1,6 +1,6 @@
 # DevOps Backlog
 
-**Oluşturulma:** 2026-05-10 | **Son güncelleme:** 2026-05-16\
+**Oluşturulma:** 2026-05-10 | **Son güncelleme:** 2026-08-04\
 **Sorumlu:** DevOps Chapter Lead
 
 ---
@@ -12,7 +12,7 @@
 | 1 | Production Stack Deploy | 🔴 Kritik | ⚠️ Açık |
 | 2 | Production CI/CD Pipeline | 🔴 Kritik | ⚠️ Açık |
 | 3 | Prod GHCR Image Pipeline | 🔴 Kritik | ⚠️ Açık |
-| 4 | `docker-compose.prod.yml` — healthcheck, OAuth/CORS/Resend env | 🔴 Kritik | ⚠️ Açık |
+| 4 | `docker-compose.prod.yml` — healthcheck, OAuth/CORS/Resend env | 🔴 Kritik | ✅ PR #908 |
 | 5 | MSSQL SA Parolası Döndürme | 🔴 Güvenlik | ⚠️ Açık |
 | 6 | Grafana Alert Contact Point | 🟠 Yüksek | ⚠️ Açık |
 | 7 | Resend Domain Doğrulaması | 🟠 Yüksek | ⚠️ Açık |
@@ -37,41 +37,33 @@
 
 ### 1.2 `docker-compose.prod.yml` — Backend healthcheck yok
 
-{% hint style="warning" %}
-**⚠️ Açık**
+{% hint style="success" %}
+**✅ Tamamlandı — PR #908 (2026-08-03)**
 {% endhint %}
 
-Test'te backend için healthcheck tanımlı. Prod'da `healthcheck:` bloğu eksik.
-
-**Etki:** Container ayağa kalksa bile backend hazır olmadan dependent servisler başlayabilir.\
-**Çözüm:** Test compose ile aynı `healthcheck:` bloğu prod'a eklenmeli.
+Backend `healthcheck:` bloğu prod compose'a eklendi. **Not:** Prod stack sahada hiç
+çalıştırılmadığı için healthcheck fiilen doğrulanmadı.
 
 ---
 
 ### 1.3 `docker-compose.prod.yml` — MSSQL healthcheck env var uyumsuzluğu
 
-{% hint style="warning" %}
-**⚠️ Açık**
+{% hint style="success" %}
+**✅ Tamamlandı — PR #908 (2026-08-03)**
 {% endhint %}
 
-Test'te `MSSQL_SA_PASSWORD`, prod'da `SA_PASSWORD` kullanılıyor — healthcheck komutuyla uyumsuz.
-
-**Etki:** Prod MSSQL healthcheck daima fail edebilir, bağımlı servisler başlamaz.\
-**Çözüm:** `SA_PASSWORD` → `MSSQL_SA_PASSWORD` olarak hizalanmalı.
+`MSSQL_SA_PASSWORD` ve `SA_PASSWORD` hizalandı; healthcheck `MSSQL_SA_PASSWORD` kullanıyor.
 
 ---
 
 ### 1.4 `docker-compose.prod.yml` — OAuth, CORS, Resend env var eksik
 
-{% hint style="warning" %}
-**⚠️ Açık**
+{% hint style="success" %}
+**✅ Tamamlandı — PR #908 (2026-08-03)**
 {% endhint %}
 
-Prod backend'de test'teki şu env var'lar yok:
-`OAuth__Google__*`, `Cors__AllowedOrigins__0`, `Resend__*`, `PasswordReset__FrontendResetUrl`, `MSSQL_HOST/PORT/DATABASE/USER/PASSWORD`
-
-**Etki:** Prod'da Google OAuth, e-posta ve CORS çalışmaz.\
-**Çözüm:** Test compose'daki tüm backend env var'ları prod'a eklenmeli.
+`OAuth__Google__*`, `Cors__*`, `Resend__*` ve MinIO env var'ları prod compose'a eklendi.
+**Not:** Değerlerin sahada dolu bir `.env.prod` ile doğrulanması madde 2.1'e bağlı.
 
 ---
 
@@ -123,15 +115,19 @@ Test için `:test` tag'i push ediliyor. Production için `:prod` veya `:{git-tag
 
 ---
 
-### 2.4 Grafana Alert Bildirim Kanalı (Contact Point) Yok
+### 2.4 Grafana Alert Bildirimi Gitmiyor (SMTP eksik)
 
 {% hint style="warning" %}
-**⚠️ Açık**
+**⚠️ Açık — kapsam güncellendi (2026-08-04)**
 {% endhint %}
 
-3 alert kuralı mevcut. Ancak `contact-points.yml` yok — alertler tetiklense de bildirim gitmiyor.
+6 alert kuralı mevcut (5xx, error log, backend up, CPU, RAM, disk). `contact-points.yml` ve
+`notification-policies.yml` dosyaları **oluşturulmuş durumda** — eksik olan, hiçbir compose
+dosyasında `GF_SMTP_*` env var'larının tanımlı olmaması. E-posta contact point'i yapılandırılı
+ama gönderemiyor.
 
-**Çözüm:** `infra/docker/grafana/provisioning/alerting/contact-points.yml` oluşturulmalı.
+**Çözüm:** Grafana servisine `GF_SMTP_HOST/USER/PASSWORD/FROM_ADDRESS` env var'ları eklenmeli
+ve test bildirimi doğrulanmalı.
 
 ---
 

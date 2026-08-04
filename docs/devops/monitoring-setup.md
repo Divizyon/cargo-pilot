@@ -154,14 +154,22 @@ CPU Usage • Memory Usage • Disk Usage • Network I/O • Disk I/O • Conta
 
 ### Alert Kuralları
 
+6 kural tanımlı (`infra/docker/grafana/provisioning/alerting/alert-rules.yml` + `.test.yml`):
+
 | Kural | Koşul | Süre | Severity |
 |-------|-------|------|---------|
 | Yüksek 5xx Hata Oranı | `sum(rate(...{code=~"5.."}[5m])) > 0.1` | 2 dk | critical |
 | Fazla Error Log | Son 5dk'da > 5 error log | 2 dk | warning |
 | Backend Health Degraded | `up{job="cargo-pilot-backend-test"} < 1` | 1 dk | critical |
+| Yüksek CPU Kullanımı | CPU > %75 | — | warning |
+| Yüksek RAM Kullanımı | RAM > %80 | — | warning |
+| Yüksek Disk Kullanımı | Disk > %80 | — | warning |
 
 {% hint style="warning" %}
-**Bildirim kanalı (Contact Point) tanımlanmadı.** Kurallar "Normal/Alerting" durumu gösterir ama e-posta/Slack/webhook bildirimi gitmez. Karar alındığında `infra/docker/grafana/provisioning/alerting/contact-points.yml` oluşturulmalı.
+**Bildirim gitmiyor — SMTP eksik.** `contact-points.yml` ve `notification-policies.yml`
+provisioning dosyaları mevcut; ancak compose dosyalarında `GF_SMTP_*` env var'ları tanımlı
+olmadığı için e-posta gönderilemiyor. Çözüm: Grafana servisine `GF_SMTP_HOST/USER/PASSWORD/FROM_ADDRESS`
+eklenmeli (bkz. devops-backlog 2.4).
 {% endhint %}
 
 ---
