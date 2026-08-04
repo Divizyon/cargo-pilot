@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Config;
 using FluentValidation;
 
 namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
@@ -10,7 +11,9 @@ public sealed class ReOptimizePlanCommandValidator : AbstractValidator<ReOptimiz
             .NotEmpty().WithMessage("Araç ID'si boş olamaz.");
 
         RuleFor(x => x.Items)
-            .NotEmpty().WithMessage("İtem listesi boş olamaz.");
+            .NotEmpty().WithMessage("İtem listesi boş olamaz.")
+            .Must(items => items is null || items.Sum(i => (long)i.Quantity) <= OptimizationLimits.MaxTotalBoxCount)
+                .WithMessage($"Toplam kutu sayısı en fazla {OptimizationLimits.MaxTotalBoxCount} olabilir. Yükü birden fazla plana bölün.");
 
         RuleForEach(x => x.Items).ChildRules(item =>
         {

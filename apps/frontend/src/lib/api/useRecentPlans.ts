@@ -1,40 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
-import { axiosInstance } from '@/lib/api/axiosInstance';
-import { useAuthStore } from '@/lib/store/useAuthStore';
-import {
-  planListApiResponseSchema,
-  planListApiItemSchema,
-  extractListData,
-  fromApiPlanListItem,
-} from '@/lib/api/loadingPlanMappers';
+import { useDashboardPlans } from '@/lib/api/useDashboardStats';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 
 export type RecentPlan = LoadingPlanListItem;
 
-async function fetchRecentPlans(): Promise<LoadingPlanListItem[]> {
-  const { data } = await axiosInstance.get<unknown>('/api/v1/loading-plans', {
-    params: { page: 1, pageSize: 10, sortBy: 'createdAt', sortDirection: 'desc' },
-  });
-  const parsed = planListApiResponseSchema.safeParse(data);
-  if (!parsed.success) return [];
-  const { rawItems } = extractListData(parsed.data);
-  const results: LoadingPlanListItem[] = [];
-  for (const raw of rawItems) {
-    if (results.length >= 7) break;
-    const p = planListApiItemSchema.safeParse(raw);
-    if (!p.success) continue;
-    results.push(fromApiPlanListItem(p.data));
-  }
-  return results;
-}
+const RECENT_PLAN_LIMIT = 7;
 
+/**
+ * Panelin "son planlar" kartı. Panel plan listesiyle birebir aynı isteği
+ * kullanır; daha önce aynı URL ayrı bir anahtarla ikinci kez çekiliyordu.
+ */
 export function useRecentPlans() {
-  const userId = useAuthStore((s) => s.user?.id);
-  return useQuery({
-    queryKey: ['recent-plans', userId] as const,
-    queryFn: fetchRecentPlans,
-    staleTime: 0,
-    retry: false,
-    enabled: Boolean(userId),
-  });
+  return useDashboardPlans((plans) => plans.slice(0, RECENT_PLAN_LIMIT));
 }

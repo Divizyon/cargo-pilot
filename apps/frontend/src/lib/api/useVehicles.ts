@@ -128,14 +128,13 @@ export interface VehiclesPage {
 export async function fetchAllVehicles(
   filters?: Pick<VehicleFilters, 'search' | 'vehicleType' | 'status' | 'sortBy' | 'sortOrder'>,
 ): Promise<Vehicle[]> {
-  const PAGE_SIZE = 100;
-
-  async function fetchPage(page: number) {
+  // Backend isExport ile tüm kayıtları tek istekte döndürür; sayfa sayfa çekmek
+  // araç sayısıyla orantılı paralel istek üretiyordu.
+  async function fetchAll() {
     const params = new URLSearchParams();
     params.set('isDeleted', 'false');
     if (filters?.search) params.set('searchTerm', filters.search);
-    params.set('page', String(page));
-    params.set('pageSize', String(PAGE_SIZE));
+    params.set('isExport', 'true');
 
     if (filters?.vehicleType) {
       const typeInt = VEHICLE_TYPE_INT[filters.vehicleType as keyof typeof VEHICLE_TYPE_INT];
@@ -156,7 +155,6 @@ export async function fetchAllVehicles(
     const { data } = await axiosInstance.get<unknown>(`/api/v1/vehicles?${params.toString()}`);
     const raw = (data as Record<string, unknown>)?.data as Record<string, unknown>;
     const rawItems = raw?.items;
-    const totalCount = (raw?.totalCount as number) ?? 0;
 
     const items: Vehicle[] = [];
     if (Array.isArray(rawItems)) {
@@ -165,17 +163,10 @@ export async function fetchAllVehicles(
         if (result.success) items.push(fromApiVehicleListItem(result.data));
       }
     }
-    return { items, totalCount };
+    return items;
   }
 
-  const first = await fetchPage(1);
-  const totalPages = Math.ceil(first.totalCount / PAGE_SIZE);
-  if (totalPages <= 1) return first.items;
-
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2)),
-  );
-  return [...first.items, ...rest.flatMap((r) => r.items)];
+  return fetchAll();
 }
 
 export function useVehicles(filters?: VehicleFilters) {
