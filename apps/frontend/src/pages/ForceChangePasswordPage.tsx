@@ -13,12 +13,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { AuthLayout } from '@/features/platform/components/AuthLayout';
+import { AuthLayout } from '@/features/platform/auth/components/AuthLayout';
 import { useChangePassword } from '@/lib/api/useAuth';
 import {
   passwordChangeSchema,
   type PasswordChangeFormValues,
-} from '@/features/platform/schemas/passwordChangeSchema';
+} from '@/features/platform/auth/schemas/passwordChangeSchema';
 
 function ForceChangePasswordForm() {
   const navigate = useNavigate();

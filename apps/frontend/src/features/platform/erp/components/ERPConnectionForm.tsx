@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   erpConnectionFormSchema,
   type ErpConnectionFormValues,
-} from '@/features/platform/schemas/erpConnectionSchema';
+} from '@/features/platform/erp/schemas/erpConnectionSchema';
 import {
   useERPConnection,
   useERPSettings,

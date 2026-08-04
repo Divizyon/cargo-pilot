@@ -1,5 +1,5 @@
-import { AuthLayout } from '@/features/platform/components/AuthLayout';
-import { OAuthCallback } from '@/features/platform/components/OAuthCallback';
+import { AuthLayout } from '@/features/platform/auth/components/AuthLayout';
+import { OAuthCallback } from '@/features/platform/auth/components/OAuthCallback';
 
 export function AuthCallbackPage() {
   return (

@@ -20,7 +20,7 @@ import { useCreateCompanyMember } from '@/lib/api/useCompanyMembers';
 import {
   createMemberSchema,
   type CreateMemberFormValues,
-} from '@/features/platform/schemas/createMemberSchema';
+} from '@/features/platform/members/schemas/createMemberSchema';
 
 interface AddMemberFormProps {
   onCancel: () => void;

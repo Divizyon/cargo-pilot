@@ -2,13 +2,13 @@ import { useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SettingsTabShell } from '@/components/shared/SettingsTabShell';
-import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionForm';
-import { ERPPendingMatches } from '@/features/platform/components/ERPPendingMatches';
-import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
-import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
-import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
-import { ERPDraftItems } from '@/features/platform/components/ERPDraftItems';
-import { ERPUserMapping } from '@/features/platform/components/ERPUserMapping';
+import { ERPConnectionForm } from '@/features/platform/erp/components/ERPConnectionForm';
+import { ERPPendingMatches } from '@/features/platform/erp/components/ERPPendingMatches';
+import { ERPShipmentOrders } from '@/features/platform/erp/components/ERPShipmentOrders';
+import { ERPSyncHistory } from '@/features/platform/erp/components/ERPSyncHistory';
+import { ERPSyncPanel } from '@/features/platform/erp/components/ERPSyncPanel';
+import { ERPDraftItems } from '@/features/platform/erp/components/ERPDraftItems';
+import { ERPUserMapping } from '@/features/platform/erp/components/ERPUserMapping';
 import {
   useERPConnection,
   useERPPendingMatches,

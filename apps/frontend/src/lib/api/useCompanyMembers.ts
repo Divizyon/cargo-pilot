@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { axiosInstance } from '@/lib/api/axiosInstance';
-import type { CreateMemberFormValues } from '@/features/platform/schemas/createMemberSchema';
+import type { CreateMemberFormValues } from '@/features/platform/members/schemas/createMemberSchema';
 
 export const companyMemberSchema = z.object({
   id: z.string().uuid(),

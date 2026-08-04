@@ -19,7 +19,7 @@ import {
   type ErpShipmentOrderFilters,
   type ErpSyncInterval,
 } from '@/lib/types/erp';
-import type { ErpConnectionFormValues } from '@/features/platform/schemas/erpConnectionSchema';
+import type { ErpConnectionFormValues } from '@/features/platform/erp/schemas/erpConnectionSchema';
 
 const ERP_BASE = '/api/v1/integrations';
 const ERP_SETTINGS_BASE = '/api/v1/erp-settings';

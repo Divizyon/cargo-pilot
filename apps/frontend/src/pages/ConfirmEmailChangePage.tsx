@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AuthLayout } from '@/features/platform/components/AuthLayout';
+import { AuthLayout } from '@/features/platform/auth/components/AuthLayout';
 import { useConfirmEmailChange } from '@/lib/api/useAuth';
 
 function ConfirmEmailChangeContent() {

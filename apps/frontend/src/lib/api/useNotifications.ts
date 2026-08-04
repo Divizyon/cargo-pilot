@@ -8,7 +8,7 @@ import {
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { axiosInstance } from './axiosInstance';
-import type { SummaryNotificationValues } from '@/features/platform/schemas/summaryNotificationSchema';
+import type { SummaryNotificationValues } from '@/features/platform/notifications/schemas/summaryNotificationSchema';
 
 // ─── Domain constants ─────────────────────────────────────────────────────────
 

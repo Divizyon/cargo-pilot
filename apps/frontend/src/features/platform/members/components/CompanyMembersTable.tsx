@@ -39,7 +39,7 @@ import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useSubscriptionStore } from '@/lib/store/useSubscriptionStore';
 import { useSubscription } from '@/lib/api/useSubscription';
 import { PLAN_MAX_MEMBERS } from '@/lib/config/plan-features';
-import { AddMemberForm } from '@/features/platform/components/AddMemberForm';
+import { AddMemberForm } from '@/features/platform/members/components/AddMemberForm';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',

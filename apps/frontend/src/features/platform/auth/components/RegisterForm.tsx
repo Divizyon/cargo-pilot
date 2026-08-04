@@ -30,8 +30,8 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRegister, isEmailDuplicate } from '@/lib/api/useAuth';
 import { OAUTH_GOOGLE_URL } from '@/lib/config/env';
-import { registerSchema } from '@/features/platform/schemas/registerSchema';
-import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
+import { registerSchema } from '@/features/platform/auth/schemas/registerSchema';
+import type { RegisterFormValues } from '@/features/platform/auth/schemas/registerSchema';
 
 const PASSWORD_RULES = [
   { label: 'En az 8 karakter', test: (v: string) => v.length >= 8 },

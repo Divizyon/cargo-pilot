@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loginSchema } from '@/features/platform/schemas/loginSchema';
+import { loginSchema } from '@/features/platform/auth/schemas/loginSchema';
 
 describe('loginSchema', () => {
   it('geçerli email ve şifre ile parse başarılı olur', () => {

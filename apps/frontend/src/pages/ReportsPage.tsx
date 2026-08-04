@@ -1,4 +1,4 @@
-import { ReportsTable } from '@/features/platform/components/ReportsTable';
+import { ReportsTable } from '@/features/platform/reporting/components/ReportsTable';
 
 export function ReportsPage() {
   function handleBulkDownload(from: string, to: string) {

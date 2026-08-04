@@ -26,8 +26,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useResetPassword, isResetTokenInvalid, isPasswordReused } from '@/lib/api/useAuth';
-import { resetPasswordSchema } from '@/features/platform/schemas/resetPasswordSchema';
-import type { ResetPasswordFormValues } from '@/features/platform/schemas/resetPasswordSchema';
+import { resetPasswordSchema } from '@/features/platform/auth/schemas/resetPasswordSchema';
+import type { ResetPasswordFormValues } from '@/features/platform/auth/schemas/resetPasswordSchema';
 
 const PASSWORD_RULES = [
   { label: 'En az 8 karakter', test: (v: string) => v.length >= 8 },

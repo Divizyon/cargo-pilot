@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { DashboardGreeting } from '@/features/platform/components/DashboardGreeting';
-import { DashboardStatsCards } from '@/features/platform/components/DashboardStatsCards';
-import { DashboardRecentPlans } from '@/features/platform/components/DashboardRecentPlans';
-import { OnboardingDialog } from '@/features/platform/components/OnboardingDialog';
+import { DashboardGreeting } from '@/features/platform/dashboard/components/DashboardGreeting';
+import { DashboardStatsCards } from '@/features/platform/dashboard/components/DashboardStatsCards';
+import { DashboardRecentPlans } from '@/features/platform/dashboard/components/DashboardRecentPlans';
+import { OnboardingDialog } from '@/features/platform/dashboard/components/OnboardingDialog';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 
 function useOnboarding() {

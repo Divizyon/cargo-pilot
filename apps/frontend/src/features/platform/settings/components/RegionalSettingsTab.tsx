@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   regionalSettingsSchema,
   type RegionalSettingsValues,
-} from '@/features/platform/schemas/systemSettingsSchema';
+} from '@/features/platform/settings/schemas/systemSettingsSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate } from '@/lib/utils/formatDate';
 import i18n from '@/lib/config/i18n';

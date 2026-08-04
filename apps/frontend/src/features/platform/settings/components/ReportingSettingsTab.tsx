@@ -28,8 +28,8 @@ import {
   useUploadReportingLogo,
   useRemoveReportingLogo,
 } from '@/lib/api/useReportingSettings';
-import { reportingSettingsSchema } from '@/features/platform/schemas/reportingSettingsSchema';
-import type { ReportingSettingsFormValues } from '@/features/platform/schemas/reportingSettingsSchema';
+import { reportingSettingsSchema } from '@/features/platform/settings/schemas/reportingSettingsSchema';
+import type { ReportingSettingsFormValues } from '@/features/platform/settings/schemas/reportingSettingsSchema';
 import { useReportingSettingsStore } from '@/lib/store/useReportingSettingsStore';
 import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
 import { cn } from '@/lib/utils';

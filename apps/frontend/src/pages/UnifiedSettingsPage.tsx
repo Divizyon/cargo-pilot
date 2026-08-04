@@ -13,15 +13,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { SettingsTabShell } from '@/components/shared/SettingsTabShell';
-import { ProfileForm } from '@/features/platform/components/ProfileForm';
-import { CompanyMembersTable } from '@/features/platform/components/CompanyMembersTable';
-import { SubscriptionTab } from '@/features/platform/components/SubscriptionTab';
-import { RegionalSettingsTab } from '@/features/platform/components/settings/RegionalSettingsTab';
-import { ReportingSettingsTab } from '@/features/platform/components/ReportingSettingsTab';
-import { ERPConnectionForm } from '@/features/platform/components/ERPConnectionForm';
-import { ERPShipmentOrders } from '@/features/platform/components/ERPShipmentOrders';
-import { ERPSyncHistory } from '@/features/platform/components/ERPSyncHistory';
-import { ERPSyncPanel } from '@/features/platform/components/ERPSyncPanel';
+import { ProfileForm } from '@/features/platform/profile/components/ProfileForm';
+import { CompanyMembersTable } from '@/features/platform/members/components/CompanyMembersTable';
+import { SubscriptionTab } from '@/features/platform/billing/components/SubscriptionTab';
+import { RegionalSettingsTab } from '@/features/platform/settings/components/RegionalSettingsTab';
+import { ReportingSettingsTab } from '@/features/platform/settings/components/ReportingSettingsTab';
+import { ERPConnectionForm } from '@/features/platform/erp/components/ERPConnectionForm';
+import { ERPShipmentOrders } from '@/features/platform/erp/components/ERPShipmentOrders';
+import { ERPSyncHistory } from '@/features/platform/erp/components/ERPSyncHistory';
+import { ERPSyncPanel } from '@/features/platform/erp/components/ERPSyncPanel';
 import {
   useERPConnection,
   useERPShipmentOrders,

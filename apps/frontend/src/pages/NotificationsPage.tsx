@@ -1,4 +1,4 @@
-import { NotificationsPanel } from '@/features/platform/components/NotificationsPanel';
+import { NotificationsPanel } from '@/features/platform/notifications/components/NotificationsPanel';
 
 export function NotificationsPage() {
   return (

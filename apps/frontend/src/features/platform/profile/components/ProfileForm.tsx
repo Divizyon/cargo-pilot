@@ -22,13 +22,13 @@ import {
 } from '@/lib/api/useAuth';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useSubscriptionStore, type SavedCardInfo } from '@/lib/store/useSubscriptionStore';
-import { SavedCardForm } from '@/features/platform/components/SavedCardForm';
-import { profileSchema } from '@/features/platform/schemas/profileSchema';
-import type { ProfileFormValues } from '@/features/platform/schemas/profileSchema';
+import { SavedCardForm } from '@/features/platform/billing/components/SavedCardForm';
+import { profileSchema } from '@/features/platform/profile/schemas/profileSchema';
+import type { ProfileFormValues } from '@/features/platform/profile/schemas/profileSchema';
 import {
   passwordChangeSchema,
   type PasswordChangeFormValues,
-} from '@/features/platform/schemas/passwordChangeSchema';
+} from '@/features/platform/auth/schemas/passwordChangeSchema';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

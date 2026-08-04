@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ShareLinksManager } from '@/features/platform/components/ShareLinksManager';
+import { ShareLinksManager } from '@/features/platform/sharing/components/ShareLinksManager';
 
 export function ShareLinksPage() {
   const navigate = useNavigate();

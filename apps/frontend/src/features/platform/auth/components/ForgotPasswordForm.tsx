@@ -15,8 +15,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useForgotPassword } from '@/lib/api/useAuth';
-import { forgotPasswordSchema } from '@/features/platform/schemas/forgotPasswordSchema';
-import type { ForgotPasswordFormValues } from '@/features/platform/schemas/forgotPasswordSchema';
+import { forgotPasswordSchema } from '@/features/platform/auth/schemas/forgotPasswordSchema';
+import type { ForgotPasswordFormValues } from '@/features/platform/auth/schemas/forgotPasswordSchema';
 
 export function ForgotPasswordForm() {
   const [submitted, setSubmitted] = useState(false);

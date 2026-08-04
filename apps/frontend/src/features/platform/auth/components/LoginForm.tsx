@@ -34,8 +34,8 @@ import {
   getLockedMinutesRemaining,
 } from '@/lib/api/useAuth';
 import { OAUTH_GOOGLE_URL } from '@/lib/config/env';
-import { loginSchema } from '@/features/platform/schemas/loginSchema';
-import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
+import { loginSchema } from '@/features/platform/auth/schemas/loginSchema';
+import type { LoginFormValues } from '@/features/platform/auth/schemas/loginSchema';
 
 function GoogleIcon() {
   return (
