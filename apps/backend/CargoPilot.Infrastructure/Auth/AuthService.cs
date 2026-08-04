@@ -26,6 +26,14 @@ internal sealed class AuthService : IAuthService
         BCrypt.Net.BCrypt.HashPassword("__timing_protection__", workFactor: 11);
 #pragma warning restore S2068
 
+    /// <summary>
+    /// Refresh token'lar veritabanına hash'lenerek yazılır; veritabanı sızıntısında
+    /// token'lar doğrudan kullanılamaz. Token yüksek entropili rastgele değer
+    /// olduğundan sözlük saldırısı geçerli değildir, SHA-256 yeterlidir.
+    /// </summary>
+    private static string HashRefreshToken(string refreshToken)
+        => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+
     private static readonly Action<ILogger, Guid, Exception?> LogNewDeviceEmailFailed =
         LoggerMessage.Define<Guid>(
             LogLevel.Error,
@@ -233,7 +241,7 @@ internal sealed class AuthService : IAuthService
         var session = new UserSession(
             id: Guid.NewGuid(),
             userId: user.Id,
-            token: refreshToken,
+            token: HashRefreshToken(refreshToken),
             expiresAt: sessionExpiry,
             lastUsedAt: now,
             createdByIp: ipAddress,
@@ -297,9 +305,11 @@ internal sealed class AuthService : IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
+        var hashedToken = HashRefreshToken(refreshToken);
+
         var session = await _context.UserSessions
             .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Token == hashedToken, cancellationToken);
 
         if (session is null || session.User is null)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
@@ -345,7 +355,7 @@ internal sealed class AuthService : IAuthService
         var newSession = new UserSession(
             id: Guid.NewGuid(),
             userId: session.UserId,
-            token: newRefreshToken,
+            token: HashRefreshToken(newRefreshToken),
             expiresAt: sessionExpiry,
             lastUsedAt: now,
             createdByIp: ipAddress,
@@ -453,8 +463,10 @@ internal sealed class AuthService : IAuthService
         string refreshToken,
         CancellationToken cancellationToken = default)
     {
+        var hashedToken = HashRefreshToken(refreshToken);
+
         var session = await _context.UserSessions
-            .FirstOrDefaultAsync(s => s.Token == refreshToken, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Token == hashedToken, cancellationToken);
 
         if (session is null || session.IsRevoked)
             return Result<bool>.Success(true);
@@ -507,7 +519,7 @@ internal sealed class AuthService : IAuthService
         _context.UserSessions.Add(new UserSession(
             id: Guid.NewGuid(),
             userId: user.Id,
-            token: refreshToken,
+            token: HashRefreshToken(refreshToken),
             expiresAt: sessionExpiry,
             lastUsedAt: now,
             createdByIp: null,
