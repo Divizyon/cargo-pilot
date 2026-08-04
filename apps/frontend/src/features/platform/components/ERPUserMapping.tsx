@@ -34,7 +34,7 @@ import {
   useERPRoleConflictLog,
 } from '@/lib/api/useERPIntegration';
 import { useCompanyMembers } from '@/lib/api/useCompanyMembers';
-import { useAuthStore, USER_ROLES } from '@/lib/store/useAuthStore';
+import { useAuthStore, isCompanyAdminRole } from '@/lib/store/useAuthStore';
 import type { ErpUserMapping } from '@/lib/types/erp';
 
 // ─── Role conflict detection ──────────────────────────────────────────────────
@@ -50,7 +50,8 @@ const ERP_READONLY_PATTERNS = [
   'guest',
 ];
 
-const CP_WRITE_ROLES = new Set([USER_ROLES.Admin, USER_ROLES.Manager, USER_ROLES.Operator]);
+/** Şirket üyesi rolleri (auth rolünden ayrıdır); yazma yetkisi olanlar. */
+const CP_WRITE_ROLES = new Set<string>(['admin', 'manager', 'operator']);
 
 function isRoleConflict(erpRole: string | null | undefined, cpRole: string): boolean {
   if (!erpRole) return false;
@@ -151,7 +152,7 @@ function RoleConflictLog() {
 
 export function ERPUserMapping() {
   const currentUserRole = useAuthStore((s) => s.user?.role);
-  const isAdmin = currentUserRole === USER_ROLES.Admin;
+  const isAdmin = isCompanyAdminRole(currentUserRole);
 
   const { data: erpUsers, isLoading: isLoadingErp } = useERPRemoteUsers();
   const { data: mappings, isLoading: isLoadingMappings } = useERPUserMappings();

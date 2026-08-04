@@ -3,10 +3,14 @@ import { useAuthStore } from '@/lib/store/useAuthStore';
 import type { UserRole } from '@/lib/store/useAuthStore';
 
 interface ProtectedRouteProps {
-  requiredRole?: UserRole;
+  /**
+   * Rotayı görebilecek roller. Yetki çoğu yerde sekme/aksiyon düzeyinde
+   * uygulanır; tüm sayfası yetkiye bağlı rotalar için buradan verilir.
+   */
+  requiredRoles?: readonly UserRole[];
 }
 
-export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ requiredRoles }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitializing = useAuthStore((s) => s.isInitializing);
   const user = useAuthStore((s) => s.user);
@@ -24,7 +28,7 @@ export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
+  if (requiredRoles && (!user?.role || !requiredRoles.includes(user.role))) {
     return <Navigate to="/error" replace />;
   }
 

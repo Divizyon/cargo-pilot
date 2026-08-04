@@ -35,7 +35,7 @@ import {
   useRemoveMemberAccess,
   type CompanyMember,
 } from '@/lib/api/useCompanyMembers';
-import { useAuthStore } from '@/lib/store/useAuthStore';
+import { useAuthStore, isCompanyAdminRole } from '@/lib/store/useAuthStore';
 import { useSubscriptionStore } from '@/lib/store/useSubscriptionStore';
 import { useSubscription } from '@/lib/api/useSubscription';
 import { PLAN_MAX_MEMBERS } from '@/lib/config/plan-features';
@@ -125,10 +125,8 @@ export function CompanyMembersTable({ onNavigateToBilling }: CompanyMembersTable
   const currentUserRole = useAuthStore((s) => s.user?.role);
   const currentPlan = useSubscriptionStore((s) => s.plan);
 
-  const isCurrentUserAdmin =
-    currentUserRole?.toLowerCase() === 'admin' ||
-    currentUserRole?.toLowerCase() === 'superadmin' ||
-    currentUserRole?.toLowerCase() === 'individual';
+  // Backend'deki CompanyAdmin politikasıyla aynı: yalnızca SuperAdmin ve CompanyAdmin.
+  const isCurrentUserAdmin = isCompanyAdminRole(currentUserRole);
   const memberCount = members?.length ?? 0;
   const maxMembers = PLAN_MAX_MEMBERS[currentPlan];
   const isAtLimit = memberCount >= maxMembers;

@@ -28,6 +28,7 @@ import {
   useERPSyncLogs,
 } from '@/lib/api/useERPIntegration';
 import { ErpShipmentStatus } from '@/lib/types/erp';
+import { useAuthStore, isCompanyAdminRole } from '@/lib/store/useAuthStore';
 
 type TabId =
   | 'bireysel-hesap'
@@ -102,13 +103,36 @@ const ERP_TABS: TabDef[] = [
 const ALL_TABS = [...GENERAL_TABS, ...ERP_TABS];
 const VALID_TAB_IDS = new Set<string>(ALL_TABS.map((t) => t.id));
 const DEFAULT_TAB: TabId = 'bireysel-hesap';
+
+/**
+ * Backend'de CompanyAdmin politikasıyla korunan uçları kullanan sekmeler.
+ * Yetkisiz kullanıcı bu sekmeleri göremez; URL ile gelirse varsayılana düşer.
+ */
+const ADMIN_ONLY_TABS = new Set<TabId>([
+  'kullanicilar',
+  'erp-baglanti',
+  'erp-sevkiyatlar',
+  'erp-senkronizasyon',
+  'erp-gecmis',
+]);
 const DIRTY_TRACKED_TABS = new Set<TabId>(['bolgesel-ayarlar', 'goruntu-ayarlari']);
 
 export function UnifiedSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const currentUserRole = useAuthStore((s) => s.user?.role);
+  const canManageCompany = isCompanyAdminRole(currentUserRole);
+
   const rawTab = searchParams.get('tab') ?? '';
-  const activeTab: TabId = VALID_TAB_IDS.has(rawTab) ? (rawTab as TabId) : DEFAULT_TAB;
+  const requestedTab: TabId = VALID_TAB_IDS.has(rawTab) ? (rawTab as TabId) : DEFAULT_TAB;
+  // Yetkisiz kullanıcı admin sekmesine URL ile gelirse varsayılana düşer.
+  const activeTab: TabId =
+    ADMIN_ONLY_TABS.has(requestedTab) && !canManageCompany ? DEFAULT_TAB : requestedTab;
   const activeTabDef = ALL_TABS.find((t) => t.id === activeTab)!;
+
+  const visibleGeneralTabs = GENERAL_TABS.filter(
+    (t) => canManageCompany || !ADMIN_ONLY_TABS.has(t.id),
+  );
+  const visibleErpTabs = canManageCompany ? ERP_TABS : [];
 
   const [pendingTab, setPendingTab] = useState<TabId | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -200,17 +224,21 @@ export function UnifiedSettingsPage() {
         {/* Sekme paneli — mobil'de yatay scroll, sm'den itibaren dikey sol panel */}
         <div className="w-full shrink-0 rounded-xl bg-card p-3 sm:w-52">
           <nav className="flex gap-1 overflow-x-auto pb-1 sm:flex-col sm:overflow-x-visible sm:pb-0">
-            {GENERAL_TABS.map((tab) => renderNavButton(tab))}
+            {visibleGeneralTabs.map((tab) => renderNavButton(tab))}
 
-            {/* ERP grup ayırıcı */}
-            <div className="my-1 hidden sm:block">
-              <div className="border-t" />
-              <p className="mt-2 px-3 text-xs font-medium text-muted-foreground">
-                ERP Entegrasyonu
-              </p>
-            </div>
+            {visibleErpTabs.length > 0 && (
+              <>
+                {/* ERP grup ayırıcı */}
+                <div className="my-1 hidden sm:block">
+                  <div className="border-t" />
+                  <p className="mt-2 px-3 text-xs font-medium text-muted-foreground">
+                    ERP Entegrasyonu
+                  </p>
+                </div>
 
-            {ERP_TABS.map((tab) => renderNavButton(tab, getErpBadge(tab.id)))}
+                {visibleErpTabs.map((tab) => renderNavButton(tab, getErpBadge(tab.id)))}
+              </>
+            )}
           </nav>
         </div>
 
