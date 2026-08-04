@@ -2,7 +2,6 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.SearchVehicles;
@@ -12,33 +11,21 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
     private readonly IUserRepository _userRepository;
     private readonly IUserVehicleFavoriteRepository _favoriteRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<SearchVehiclesQuery> _validator;
 
     public SearchVehiclesQueryHandler(
         IVehicleRepository vehicleRepository,
         IUserRepository userRepository,
         IUserVehicleFavoriteRepository favoriteRepository,
-        ICurrentUserService currentUserService,
-        IValidator<SearchVehiclesQuery> validator) {
+        ICurrentUserService currentUserService) {
         _vehicleRepository = vehicleRepository;
         _userRepository = userRepository;
         _favoriteRepository = favoriteRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<PagedResult<VehicleSummaryDto>>> Handle(
         SearchVehiclesQuery request,
         CancellationToken cancellationToken) {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid) {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<PagedResult<VehicleSummaryDto>>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var (page, pageSize) = request.IsExport ? (1, int.MaxValue) : (request.Page, request.PageSize);
 
         IReadOnlyList<Guid>? favoriteIds = null;

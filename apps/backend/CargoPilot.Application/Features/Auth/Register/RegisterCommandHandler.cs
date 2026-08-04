@@ -2,7 +2,6 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Auth.Register;
@@ -12,34 +11,21 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Re
     private readonly IUserRepository _userRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IValidator<RegisterCommand> _validator;
 
     public RegisterCommandHandler(
         IUserRepository userRepository,
         ICompanyRepository companyRepository,
-        IPasswordHasher passwordHasher,
-        IValidator<RegisterCommand> validator)
+        IPasswordHasher passwordHasher)
     {
         _userRepository = userRepository;
         _companyRepository = companyRepository;
         _passwordHasher = passwordHasher;
-        _validator = validator;
     }
 
     public async Task<Result<RegisterResponse>> Handle(
         RegisterCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<RegisterResponse>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var emailNormalized = request.Email.Trim().ToLowerInvariant();
 
         var emailExists = await _userRepository.ExistsByEmailAsync(emailNormalized, cancellationToken);

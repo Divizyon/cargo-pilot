@@ -4,7 +4,6 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
@@ -18,7 +17,6 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
-    private readonly IValidator<ReOptimizePlanCommand> _validator;
 
     public ReOptimizePlanCommandHandler(
         ILoadingPlanRepository planRepository,
@@ -27,8 +25,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
-        INotificationService notificationService,
-        IValidator<ReOptimizePlanCommand> validator)
+        INotificationService notificationService)
     {
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
@@ -37,21 +34,10 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
-        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(ReOptimizePlanCommand request, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         var plan = await _planRepository.GetByIdAsync(request.Id, companyId, cancellationToken);

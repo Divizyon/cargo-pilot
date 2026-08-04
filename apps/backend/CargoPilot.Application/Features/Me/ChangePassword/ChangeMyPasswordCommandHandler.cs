@@ -23,7 +23,6 @@ internal sealed class ChangeMyPasswordCommandHandler
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<ChangeMyPasswordCommand> _validator;
     private readonly ILogger<ChangeMyPasswordCommandHandler> _logger;
 
     public ChangeMyPasswordCommandHandler(
@@ -42,7 +41,6 @@ internal sealed class ChangeMyPasswordCommandHandler
         _passwordHasher = passwordHasher;
         _emailService = emailService;
         _currentUserService = currentUserService;
-        _validator = validator;
         _logger = logger;
     }
 
@@ -50,16 +48,6 @@ internal sealed class ChangeMyPasswordCommandHandler
         ChangeMyPasswordCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<bool>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         if (_currentUserService.UserId is not { } userId)
             return Result<bool>.Failure(
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));
