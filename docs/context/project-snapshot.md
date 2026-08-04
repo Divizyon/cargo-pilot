@@ -1,6 +1,8 @@
 # Proje Anlık Görüntüsü
 
 **Kaynak tarama:** 2026-08-03 · `test` @ `3c42f65a` · Repodaki 25 `.md` dosyası okundu.
+**Kod taraması:** 2026-08-04 · 6 kategoride kod tabanı tarandı, §2 kodla doğrulanıp düzeltildi.
+Detaylı bulgular: [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md).
 
 ---
 
@@ -13,20 +15,24 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 
 ## 2. Teknoloji
 
-| Katman | Teknoloji | Kritik kural |
+| Katman | Teknoloji (kurulu sürüm, 2026-08-04 kod taraması) | Kritik kural |
 |--------|-----------|--------------|
-| Frontend | React 18 + Vite + TS strict | `any` yasak, barrel export yasak, default export yasak |
-| UI | Tailwind v3 + shadcn/ui + Radix | Sıfırdan UI bileşeni yazılmaz, `cn()` zorunlu, `@apply` yasak |
-| Form | react-hook-form + zod | Tip `z.infer`'den türetilir, manuel interface yazılmaz |
+| Frontend | React 18.3 + **Vite 8** + TS 5.9 strict + **React Router 7** | `any` yasak, barrel export yasak, default export yasak |
+| UI | Tailwind v3.4 + shadcn/ui (kopya, `components/ui`) + Radix | Sıfırdan UI bileşeni yazılmaz, `cn()` zorunlu, `@apply` yasak |
+| Form | react-hook-form 7 + **zod 4** | Tip `z.infer`'den türetilir, manuel interface yazılmaz |
 | Server state | TanStack Query v5 | Tuple query key, API verisi Zustand'a **kopyalanmaz** |
-| Client state | Zustand v4 | Sadece UI state; access token yalnızca `useAuthStore` (localStorage yasak) |
-| 3D | Three.js + R3F + drei | cm birimi; X=genişlik, Y=yükseklik, Z=derinlik; origin **sol-alt-arka** |
-| Export | react-pdf, SheetJS | PDF `React.lazy`, Canvas `preserveDrawingBuffer: true` |
-| Backend | .NET 8, Clean Architecture | Domain ← Application ← Infrastructure/WebAPI; MediatR **yok**, service-based |
-| Backend hata | `Result<T>` + `Error` + `ErrorType` | Exception ile akış kontrolü yapılmaz |
-| Validation | FluentValidation (BE) / Zod (FE) | — |
-| DB | SQL Server 2022 + EF Core | Soft delete global query filter, `BaseEntity` audit alanları |
+| Client state | **Zustand v5** (10 store) | Sadece UI state; access token yalnızca `useAuthStore` (localStorage yasak) |
+| i18n | i18next 26 + react-i18next (`tr` varsayılan, `en` fallback) | Kaynaklar `src/locales/{tr,en}.json` |
+| 3D | Three.js 0.162 + R3F 8 + drei 9 | cm birimi; X=genişlik, Y=yükseklik, Z=derinlik; origin **sol-alt-arka** |
+| Export | @react-pdf/renderer 4, SheetJS | PDF dinamik import ile code-split, Canvas `preserveDrawingBuffer: true` |
+| Backend | .NET 8, Clean Architecture + **MediatR 12** (Command/Query/Handler) | Domain ← Application ← Infrastructure/WebAPI. *(Eski "MediatR yok, service-based" iddiası kodla çelişiyordu — architecture.md hâlâ eski modeli anlatıyor)* |
+| Backend hata | `Result<T>` + `Error` + `ErrorType` | Exception ile akış kontrolü yapılmaz (kodda doğrulandı) |
+| Background job | **Hangfire 1.8** (SQL storage) | Trial expiry, notification cleanup, ERP export job'ları; dashboard SuperAdmin'e kısıtlı |
+| Optimizasyon | `OptimizationEngine` (Infrastructure, extreme-point greedy) | Kırılganlık modelde **yok**; CoG sadece soft ceza; detay: kod-taramasi §4 |
+| Validation | FluentValidation 11 (BE) / Zod (FE) | — |
+| DB | SQL Server 2022 + EF Core 8.0.25 (**43 migration**) | Soft delete global query filter (18/25 entity), `BaseEntity` audit alanları |
 | Storage | MinIO | Bucket policy public, nginx `/media/` proxy |
+| Test | Vitest 4 (**yalnızca FE, 13 dosya**) | RTL/Playwright paketleri kurulu değil; backend test projesi yok, CI'da `dotnet test` fiilen atlanıyor |
 | Paket | npm (pnpm/yarn yasak) | — |
 
 **3D pivot farkı:** Three.js pivot merkezde, backend pivot sol-alt-arka köşede.
@@ -98,6 +104,9 @@ geri-merge zorunlu olurdu.
 ---
 
 ## 5. Açık Riskler (docs/devops/known-issues.md + devops-backlog.md özeti)
+
+> Ayrıca: 51 bulguluk detaylı analiz `docs/devops/iyilestirme-analizi-2026-08.md`'de;
+> 2026-08-04 kod taramasının kategoriler arası kritik bulguları [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md) §1'de.
 
 | # | Risk | Seviye |
 |---|------|--------|

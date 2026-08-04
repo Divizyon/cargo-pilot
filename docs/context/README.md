@@ -16,6 +16,7 @@ vermek için 25 ayrı `.md` dosyasını baştan okumak zorunda kalmamak.
 |-------|--------|-----------------|
 | [project-snapshot.md](project-snapshot.md) | Stack, ortamlar, portlar, CI/CD, açık riskler — tek sayfa | Her oturum başında |
 | [doc-map.md](doc-map.md) | Repodaki 25 `.md` dosyasının haritası + özeti | "Bu bilgi nerede yazıyor?" sorusunda |
+| [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md) | 6 kategoride kod tabanı taraması: gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde; algoritma/test/devops durumu sorulduğunda |
 | [branch-audit.md](branch-audit.md) | 30 remote branch + açık PR analizi, temizlik kararları | Branch/PR temizliği yaparken |
 | [branching-proposal.md](branching-proposal.md) | 5 kişilik ekip için önerilen branch stratejisi | Strateji kararı alınırken |
 
