@@ -178,12 +178,13 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         OptimizationResult result;
         try
         {
-            var engineResult = _optimizationEngine.Run(finalInput);
+            var engineResult = _optimizationEngine.Run(finalInput, cancellationToken);
             result = contamination.Contaminated.Count > 0
                 ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
                 : engineResult;
         }
-        catch (Exception ex)
+        // İstemci vazgeçtiğinde kullanıcıya "başarısız" bildirimi gönderilmez.
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             if (_currentUserService.UserId is { } failedUserId)
             {
