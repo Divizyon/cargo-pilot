@@ -3,7 +3,6 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Me.GetMyProfile;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Me.UpdateMyProfile;
@@ -13,32 +12,19 @@ internal sealed class UpdateMyProfileCommandHandler
 {
     private readonly IUserRepository _userRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<UpdateMyProfileCommand> _validator;
 
     public UpdateMyProfileCommandHandler(
         IUserRepository userRepository,
-        ICurrentUserService currentUserService,
-        IValidator<UpdateMyProfileCommand> validator)
+        ICurrentUserService currentUserService)
     {
         _userRepository = userRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<GetMyProfileResponse>> Handle(
         UpdateMyProfileCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<GetMyProfileResponse>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         if (_currentUserService.UserId is not { } userId)
             return Result<GetMyProfileResponse>.Failure(
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));

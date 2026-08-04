@@ -2,7 +2,6 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.DraftItems.UpdateDraftItem;
@@ -11,30 +10,17 @@ public sealed class UpdateDraftItemCommandHandler : IRequestHandler<UpdateDraftI
 {
     private readonly IDraftItemRepository _draftItemRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<UpdateDraftItemCommand> _validator;
 
     public UpdateDraftItemCommandHandler(
         IDraftItemRepository draftItemRepository,
-        ICurrentUserService currentUserService,
-        IValidator<UpdateDraftItemCommand> validator)
+        ICurrentUserService currentUserService)
     {
         _draftItemRepository = draftItemRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<Unit>> Handle(UpdateDraftItemCommand request, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Unit>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
         if (companyId is null)
             return Result<Unit>.Failure(new Error(ErrorType.Unauthorized, "Auth.Unauthorized", "Yetkisiz erişim."));

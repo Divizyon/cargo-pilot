@@ -19,7 +19,6 @@ internal sealed class UpdateCompanyUserCommandHandler : IRequestHandler<UpdateCo
     private readonly IUserRepository _userRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmailService _emailService;
-    private readonly IValidator<UpdateCompanyUserCommand> _validator;
     private readonly ILogger<UpdateCompanyUserCommandHandler> _logger;
 
     public UpdateCompanyUserCommandHandler(
@@ -32,22 +31,11 @@ internal sealed class UpdateCompanyUserCommandHandler : IRequestHandler<UpdateCo
         _userRepository = userRepository;
         _currentUserService = currentUserService;
         _emailService = emailService;
-        _validator = validator;
         _logger = logger;
     }
 
     public async Task<Result<Guid>> Handle(UpdateCompanyUserCommand request, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         if (_currentUserService.UserType != UserType.CompanyAdmin)
             return Result<Guid>.Failure(
                 new Error(ErrorType.Forbidden, "CompanyUser.Forbidden",

@@ -1,7 +1,6 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Items.UpdateItem;
@@ -10,32 +9,19 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
 {
     private readonly IItemRepository _itemRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<UpdateItemCommand> _validator;
 
     public UpdateItemCommandHandler(
         IItemRepository itemRepository,
-        ICurrentUserService currentUserService,
-        IValidator<UpdateItemCommand> validator)
+        ICurrentUserService currentUserService)
     {
         _itemRepository = itemRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(
         UpdateItemCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         var item = await _itemRepository.GetByIdAsync(request.Id, companyId, cancellationToken);

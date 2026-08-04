@@ -1,7 +1,6 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
@@ -11,32 +10,19 @@ public sealed class GetLoadingPlanReportsQueryHandler
 {
     private readonly ILoadingPlanRepository _repository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<GetLoadingPlanReportsQuery> _validator;
 
     public GetLoadingPlanReportsQueryHandler(
         ILoadingPlanRepository repository,
-        ICurrentUserService currentUserService,
-        IValidator<GetLoadingPlanReportsQuery> validator)
+        ICurrentUserService currentUserService)
     {
         _repository = repository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<PagedResult<LoadingPlanReportDto>>> Handle(
         GetLoadingPlanReportsQuery request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<PagedResult<LoadingPlanReportDto>>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var pagedResult = await _repository.GetPagedReportsAsync(
             request.Page,
             request.PageSize,

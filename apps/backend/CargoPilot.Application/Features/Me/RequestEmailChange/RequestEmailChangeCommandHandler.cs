@@ -23,7 +23,6 @@ internal sealed class RequestEmailChangeCommandHandler
     private readonly IEmailChangeTokenRepository _tokenRepository;
     private readonly IEmailService _emailService;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<RequestEmailChangeCommand> _validator;
     private readonly EmailChangeSettings _settings;
     private readonly ILogger<RequestEmailChangeCommandHandler> _logger;
 
@@ -40,7 +39,6 @@ internal sealed class RequestEmailChangeCommandHandler
         _tokenRepository = tokenRepository;
         _emailService = emailService;
         _currentUserService = currentUserService;
-        _validator = validator;
         _settings = settings;
         _logger = logger;
     }
@@ -49,16 +47,6 @@ internal sealed class RequestEmailChangeCommandHandler
         RequestEmailChangeCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<bool>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         if (_currentUserService.UserId is not { } userId)
             return Result<bool>.Failure(
                 new Error(ErrorType.Unauthorized, "AUTH_UNAUTHORIZED", "Kimlik doğrulaması gereklidir."));
