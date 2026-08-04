@@ -25,7 +25,7 @@ import { useDraftItems, useRejectDraftItem, type DraftItem } from '@/lib/api/use
 import {
   BulkImportDialog,
   type EditableRow,
-} from '@/features/data-management/components/BulkImportDialog';
+} from '@/features/data-management/imports/components/BulkImportDialog';
 
 const PAGE_SIZE = 20;
 

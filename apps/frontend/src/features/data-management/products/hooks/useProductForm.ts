@@ -5,7 +5,7 @@ import type { Resolver, FieldValues, FieldErrors } from 'react-hook-form';
 import {
   productSchema,
   type ProductFormValues,
-} from '@/features/data-management/schemas/productSchema';
+} from '@/features/data-management/products/schemas/productSchema';
 
 function translateErrors<T extends FieldValues>(
   errors: FieldErrors<T>,

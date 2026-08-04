@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   vehicleFormSchema,
   type VehicleFormValues,
-} from '@/features/data-management/schemas/vehicleSchema';
+} from '@/features/data-management/vehicles/schemas/vehicleSchema';
 
 export function useVehicleForm(
   defaultValues?: Partial<VehicleFormValues>,

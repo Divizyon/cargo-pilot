@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { VehicleForm } from '@/features/data-management/components/VehicleForm';
+import { VehicleForm } from '@/features/data-management/vehicles/components/VehicleForm';
 import { useCreateVehicle } from '@/lib/api/useVehicles';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 
 export function VehicleCreatePage() {
   const navigate = useNavigate();

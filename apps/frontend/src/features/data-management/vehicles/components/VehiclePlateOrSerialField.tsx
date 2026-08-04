@@ -4,7 +4,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useVehiclePlateCheck, useVehicleSerialCheck } from '@/lib/api/useVehicles';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import { VehicleType } from '@/lib/types/vehicle';
 
 interface VehiclePlateOrSerialFieldProps {

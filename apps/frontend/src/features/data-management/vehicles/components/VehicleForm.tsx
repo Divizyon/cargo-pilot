@@ -17,9 +17,9 @@ import {
 import { VehicleKingpinSection } from './VehicleKingpinSection';
 import { VehicleFormActions } from './VehicleFormActions';
 import { VehiclePreviewPanel } from './VehiclePreviewPanel';
-import { useVehicleForm } from '@/features/data-management/hooks/useVehicleForm';
-import { useVehicleFormVisibility } from '@/features/data-management/hooks/useVehicleFormVisibility';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import { useVehicleForm } from '@/features/data-management/vehicles/hooks/useVehicleForm';
+import { useVehicleFormVisibility } from '@/features/data-management/vehicles/hooks/useVehicleFormVisibility';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import { VehicleType, type Vehicle } from '@/lib/types/vehicle';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
 import { Button } from '@/components/ui/button';

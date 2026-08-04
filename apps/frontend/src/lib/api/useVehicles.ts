@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { axiosInstance } from './axiosInstance';
 import {

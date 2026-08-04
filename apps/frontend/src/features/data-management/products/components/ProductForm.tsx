@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProductForm } from '@/features/data-management/hooks/useProductForm';
+import { useProductForm } from '@/features/data-management/products/hooks/useProductForm';
 import {
   FRAGILITY_LEVELS,
   NOTES_MAX_LENGTH,
@@ -46,11 +46,11 @@ import {
   fromCentimeters,
   type ProductFormValues,
   type DimensionUnitKey,
-} from '@/features/data-management/schemas/productSchema';
+} from '@/features/data-management/products/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
 import { cn } from '@/lib/utils';
-import { ProductPreview3D } from '@/features/data-management/components/ProductPreview3D';
+import { ProductPreview3D } from '@/features/data-management/products/components/ProductPreview3D';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';
 import { resolveProductColor } from '@/lib/config/productColors';
 

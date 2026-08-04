@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
-import { ProductForm } from '@/features/data-management/components/ProductForm';
-import { ProductDeleteDialog } from '@/features/data-management/components/ProductDeleteDialog';
-import { ErpSourceBadge } from '@/features/data-management/components/ErpSourceBadge';
+import { ProductForm } from '@/features/data-management/products/components/ProductForm';
+import { ProductDeleteDialog } from '@/features/data-management/products/components/ProductDeleteDialog';
+import { ErpSourceBadge } from '@/features/data-management/products/components/ErpSourceBadge';
 import { useItem, useUpdateItem } from '@/lib/api/useItems';
 import { itemToFormValues } from '@/lib/api/itemMappers';
 import { Button } from '@/components/ui/button';

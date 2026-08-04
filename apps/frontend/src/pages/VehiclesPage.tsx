@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { VehicleTable } from '@/features/data-management/components/VehicleTable';
+import { VehicleTable } from '@/features/data-management/vehicles/components/VehicleTable';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 
 export function VehiclesPage() {

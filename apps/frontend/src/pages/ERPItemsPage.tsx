@@ -1,4 +1,4 @@
-import { ERPItemsTable } from '@/features/data-management/components/ERPItemsTable';
+import { ERPItemsTable } from '@/features/data-management/imports/components/ERPItemsTable';
 
 export function ERPItemsPage() {
   return (

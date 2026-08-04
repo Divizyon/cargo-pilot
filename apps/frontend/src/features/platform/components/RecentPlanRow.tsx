@@ -10,7 +10,7 @@ import { ROUTES } from '@/lib/config/routes';
 import {
   fromKilograms,
   type WeightUnitKey,
-} from '@/features/data-management/schemas/productSchema';
+} from '@/features/data-management/products/schemas/productSchema';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { cn } from '@/lib/utils';
 import { ShareLinkDialog } from '@/features/planning/components/ShareLinkDialog';

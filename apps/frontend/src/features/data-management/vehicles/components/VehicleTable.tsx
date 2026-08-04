@@ -39,7 +39,7 @@ import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
 import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleDeleteDialog } from './VehicleDeleteDialog';
-import { VehicleBulkImportDialog } from './VehicleBulkImportDialog';
+import { VehicleBulkImportDialog } from '@/features/data-management/imports/components/VehicleBulkImportDialog';
 
 // ─── Type icons ───────────────────────────────────────────────────────────────
 

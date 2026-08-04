@@ -56,7 +56,7 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
 import { useLoadingPlanFilters } from '../hooks/useLoadingPlanFilters';
 import { SearchInput } from '@/components/shared/SearchInput';
-import { VehicleCard } from './VehicleCard';
+import { VehicleCard } from '@/features/data-management/vehicles/components/VehicleCard';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

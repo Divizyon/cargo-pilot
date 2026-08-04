@@ -4,7 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { SCENE } from '@/lib/config/scene-config';
-import type { ProductType } from '@/features/data-management/schemas/productSchema';
+import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
 import { buildBoxLabel, loadIcons } from '@/lib/utils/buildBoxLabel';
 
 interface Props {

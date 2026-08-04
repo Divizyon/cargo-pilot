@@ -47,7 +47,7 @@ import {
   formatWeightDisplay,
 } from '@/lib/utils/unitConversion';
 import { exportItemsToExcel } from '@/lib/utils/export-utils';
-import { BulkImportDialog } from './BulkImportDialog';
+import { BulkImportDialog } from '@/features/data-management/imports/components/BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from '@/components/shared/SearchInput';
 

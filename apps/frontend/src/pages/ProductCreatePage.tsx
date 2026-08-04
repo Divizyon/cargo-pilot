@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ProductForm } from '@/features/data-management/components/ProductForm';
+import { ProductForm } from '@/features/data-management/products/components/ProductForm';
 import { useCreateItem } from '@/lib/api/useItems';
 
 export function ProductCreatePage() {

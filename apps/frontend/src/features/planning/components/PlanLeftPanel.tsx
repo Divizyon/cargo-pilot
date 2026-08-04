@@ -58,7 +58,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useReadOnly } from '../ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
-import { ConstraintIcons } from '@/features/data-management/components/ConstraintIcons';
+import { ConstraintIcons } from '@/features/data-management/products/components/ConstraintIcons';
 import {
   AlertDialog,
   AlertDialogContent,

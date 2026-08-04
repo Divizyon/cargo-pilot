@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ProductTable } from '@/features/data-management/components/ProductTable';
+import { ProductTable } from '@/features/data-management/products/components/ProductTable';
 import { useUsageQuota, isQuotaExceeded } from '@/lib/api/useUsageQuota';
 import type { Item } from '@/lib/types/item';
 

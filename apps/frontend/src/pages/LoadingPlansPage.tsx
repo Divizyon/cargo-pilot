@@ -1,4 +1,4 @@
-import { LoadingPlanTable } from '@/features/data-management/components/LoadingPlanTable';
+import { LoadingPlanTable } from '@/features/data-management/plans/components/LoadingPlanTable';
 
 export function LoadingPlansPage() {
   return (

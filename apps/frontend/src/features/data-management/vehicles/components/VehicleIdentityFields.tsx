@@ -4,7 +4,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useVehicleDuplicateCheck } from '@/lib/api/useVehicles';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 
 interface VehicleIdentityFieldsProps {
   form: UseFormReturn<VehicleFormValues>;
