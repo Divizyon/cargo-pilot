@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
-import type { ProductFormValues } from '@/features/data-management/schemas/productSchema';
+import type { ProductFormValues } from '@/features/data-management/products/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { axiosInstance } from './axiosInstance';
 import {

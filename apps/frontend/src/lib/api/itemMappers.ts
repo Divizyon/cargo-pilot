@@ -8,7 +8,7 @@ import {
   type ProductType,
   type DimensionUnitKey,
   type WeightUnitKey,
-} from '@/features/data-management/schemas/productSchema';
+} from '@/features/data-management/products/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 

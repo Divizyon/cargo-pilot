@@ -61,7 +61,7 @@ export default [
   /* 50+ kutu kuralı: planning sahne dosyalarında doğrudan <mesh> JSX yasak.
      BoxWrapper (<50 kutu) veya CargoMeshInstanced (≥50 kutu) kullanılır. */
   {
-    files: ['src/features/planning/components/scene/**/*.{ts,tsx}'],
+    files: ['src/features/planning/scene/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': [
         'error',

@@ -7,94 +7,94 @@ import { lazy } from 'react';
  */
 
 export const LandingPage = lazy(() =>
-  import('@/pages/LandingPage').then((m) => ({ default: m.LandingPage })),
+  import('@/pages/public/LandingPage').then((m) => ({ default: m.LandingPage })),
 );
 export const LoginPage = lazy(() =>
-  import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
+  import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
 );
 export const RegisterPage = lazy(() =>
-  import('@/pages/RegisterPage').then((m) => ({ default: m.RegisterPage })),
+  import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })),
 );
 export const AuthCallbackPage = lazy(() =>
-  import('@/pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })),
+  import('@/pages/auth/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })),
 );
 export const ForgotPasswordPage = lazy(() =>
-  import('@/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+  import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
 );
 export const ResetPasswordPage = lazy(() =>
-  import('@/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+  import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
 );
 export const ConfirmEmailChangeRedirect = lazy(() =>
-  import('@/pages/ConfirmEmailChangeRedirect').then((m) => ({
+  import('@/pages/auth/ConfirmEmailChangeRedirect').then((m) => ({
     default: m.ConfirmEmailChangeRedirect,
   })),
 );
 export const ConfirmEmailChangePage = lazy(() =>
-  import('@/pages/ConfirmEmailChangePage').then((m) => ({ default: m.ConfirmEmailChangePage })),
+  import('@/pages/auth/ConfirmEmailChangePage').then((m) => ({ default: m.ConfirmEmailChangePage })),
 );
 export const ForceChangePasswordPage = lazy(() =>
-  import('@/pages/ForceChangePasswordPage').then((m) => ({ default: m.ForceChangePasswordPage })),
+  import('@/pages/auth/ForceChangePasswordPage').then((m) => ({ default: m.ForceChangePasswordPage })),
 );
 export const SharePage = lazy(() =>
-  import('@/pages/SharePage').then((m) => ({ default: m.SharePage })),
+  import('@/pages/public/SharePage').then((m) => ({ default: m.SharePage })),
 );
 export const PrivacyPage = lazy(() =>
-  import('@/pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
+  import('@/pages/public/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
 );
 export const TermsPage = lazy(() =>
-  import('@/pages/TermsPage').then((m) => ({ default: m.TermsPage })),
+  import('@/pages/public/TermsPage').then((m) => ({ default: m.TermsPage })),
 );
 export const ContactPage = lazy(() =>
-  import('@/pages/ContactPage').then((m) => ({ default: m.ContactPage })),
+  import('@/pages/public/ContactPage').then((m) => ({ default: m.ContactPage })),
 );
 export const SecurityRedirect = lazy(() =>
-  import('@/pages/SecurityRedirect').then((m) => ({ default: m.SecurityRedirect })),
+  import('@/pages/auth/SecurityRedirect').then((m) => ({ default: m.SecurityRedirect })),
 );
 export const ErrorPage = lazy(() =>
-  import('@/pages/ErrorPage').then((m) => ({ default: m.ErrorPage })),
+  import('@/pages/public/ErrorPage').then((m) => ({ default: m.ErrorPage })),
 );
 export const DashboardPage = lazy(() =>
-  import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+  import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
 export const ProductsPage = lazy(() =>
-  import('@/pages/ProductsPage').then((m) => ({ default: m.ProductsPage })),
+  import('@/pages/products/ProductsPage').then((m) => ({ default: m.ProductsPage })),
 );
 export const ProductCreatePage = lazy(() =>
-  import('@/pages/ProductCreatePage').then((m) => ({ default: m.ProductCreatePage })),
+  import('@/pages/products/ProductCreatePage').then((m) => ({ default: m.ProductCreatePage })),
 );
 export const ProductEditPage = lazy(() =>
-  import('@/pages/ProductEditPage').then((m) => ({ default: m.ProductEditPage })),
+  import('@/pages/products/ProductEditPage').then((m) => ({ default: m.ProductEditPage })),
 );
 export const VehiclesPage = lazy(() =>
-  import('@/pages/VehiclesPage').then((m) => ({ default: m.VehiclesPage })),
+  import('@/pages/vehicles/VehiclesPage').then((m) => ({ default: m.VehiclesPage })),
 );
 export const VehicleCreatePage = lazy(() =>
-  import('@/pages/VehicleCreatePage').then((m) => ({ default: m.VehicleCreatePage })),
+  import('@/pages/vehicles/VehicleCreatePage').then((m) => ({ default: m.VehicleCreatePage })),
 );
 export const VehicleEditPage = lazy(() =>
-  import('@/pages/VehicleEditPage').then((m) => ({ default: m.VehicleEditPage })),
+  import('@/pages/vehicles/VehicleEditPage').then((m) => ({ default: m.VehicleEditPage })),
 );
 export const LoadingPlansPage = lazy(() =>
-  import('@/pages/LoadingPlansPage').then((m) => ({ default: m.LoadingPlansPage })),
+  import('@/pages/plans/LoadingPlansPage').then((m) => ({ default: m.LoadingPlansPage })),
 );
 export const NewPlanPage = lazy(() =>
-  import('@/pages/NewPlanPage').then((m) => ({ default: m.NewPlanPage })),
+  import('@/pages/plans/NewPlanPage').then((m) => ({ default: m.NewPlanPage })),
 );
 export const ReportsPage = lazy(() =>
-  import('@/pages/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+  import('@/pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
 );
 export const ReportDetailPage = lazy(() =>
-  import('@/pages/ReportDetailPage').then((m) => ({ default: m.ReportDetailPage })),
+  import('@/pages/reports/ReportDetailPage').then((m) => ({ default: m.ReportDetailPage })),
 );
 export const ShareLinksPage = lazy(() =>
-  import('@/pages/ShareLinksPage').then((m) => ({ default: m.ShareLinksPage })),
+  import('@/pages/sharing/ShareLinksPage').then((m) => ({ default: m.ShareLinksPage })),
 );
 export const NotificationsPage = lazy(() =>
-  import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+  import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
 );
 export const ERPItemsPage = lazy(() =>
-  import('@/pages/ERPItemsPage').then((m) => ({ default: m.ERPItemsPage })),
+  import('@/pages/erp/ERPItemsPage').then((m) => ({ default: m.ERPItemsPage })),
 );
 export const UnifiedSettingsPage = lazy(() =>
-  import('@/pages/UnifiedSettingsPage').then((m) => ({ default: m.UnifiedSettingsPage })),
+  import('@/pages/settings/UnifiedSettingsPage').then((m) => ({ default: m.UnifiedSettingsPage })),
 );

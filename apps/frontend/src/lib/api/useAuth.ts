@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { axiosInstance } from '@/lib/api/axiosInstance';
 import { useAuthStore, parseUserRole, USER_ROLES, type AuthUser } from '@/lib/store/useAuthStore';
-import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
-import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
+import type { LoginFormValues } from '@/features/platform/auth/schemas/loginSchema';
+import type { RegisterFormValues } from '@/features/platform/auth/schemas/registerSchema';
 
 const AUTH_ENDPOINTS = {
   login: '/api/v1/auth/login',

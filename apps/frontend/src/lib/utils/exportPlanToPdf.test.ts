@@ -12,7 +12,7 @@ vi.mock('@react-pdf/renderer', () => ({
   pdf: mockPdf,
 }));
 
-vi.mock('@/features/planning/components/PlanPdfDocument', () => ({
+vi.mock('@/features/planning/export/components/PlanPdfDocument', () => ({
   PlanPdfDocument: () => null,
 }));
 

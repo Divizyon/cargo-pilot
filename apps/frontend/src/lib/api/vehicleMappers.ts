@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import {
   toCentimeters,
   fromCentimeters,
   toKilograms,
   fromKilograms,
   type WeightUnitKey,
-} from '@/features/data-management/schemas/productSchema';
+} from '@/features/data-management/products/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 
