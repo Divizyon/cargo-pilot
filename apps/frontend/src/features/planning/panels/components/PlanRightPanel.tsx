@@ -63,8 +63,8 @@ import {
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatWeightDisplay } from '@/lib/utils/unitConversion';
-import { ShareLinkDialog } from './ShareLinkDialog';
-import { useReadOnly } from '../ReadOnlyContext';
+import { ShareLinkDialog } from '@/features/planning/sharing/components/ShareLinkDialog';
+import { useReadOnly } from '@/features/planning/ReadOnlyContext';
 
 // ─── Vehicle type filter metadata ────────────────────────────────────────────
 

@@ -13,7 +13,7 @@ import {
 } from '@/features/data-management/products/schemas/productSchema';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { cn } from '@/lib/utils';
-import { ShareLinkDialog } from '@/features/planning/components/ShareLinkDialog';
+import { ShareLinkDialog } from '@/features/planning/sharing/components/ShareLinkDialog';
 
 interface Props {
   plan: LoadingPlanListItem;

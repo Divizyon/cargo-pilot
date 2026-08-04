@@ -41,7 +41,7 @@ import {
   type PlanReport,
   type ReportsFilters,
 } from '@/lib/api/useReports';
-import { ShareLinkDialog } from '@/features/planning/components/ShareLinkDialog';
+import { ShareLinkDialog } from '@/features/planning/sharing/components/ShareLinkDialog';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useLoadingPlanList } from '@/lib/api/useLoadingPlans';
 

@@ -55,7 +55,7 @@ import { useVehicles } from '@/lib/api/useVehicles';
 import { UnfitItemsPanel } from './UnfitItemsPanel';
 import { StepAnimationControls } from '@/features/planning/scene/components/StepAnimationControls';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useReadOnly } from '../ReadOnlyContext';
+import { useReadOnly } from '@/features/planning/ReadOnlyContext';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { ConstraintIcons } from '@/features/data-management/products/components/ConstraintIcons';
