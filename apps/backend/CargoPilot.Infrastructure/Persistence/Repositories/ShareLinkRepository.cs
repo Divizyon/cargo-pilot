@@ -22,11 +22,16 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
 
     public async Task<SharePlanDto?> GetSharePlanByTokenAsync(string token, CancellationToken cancellationToken = default)
     {
+        var now = DateTime.UtcNow;
+
+        // Süresi dolmuş bağlantı sorgu düzeyinde elenir; çağıranın kontrolüne bırakılmaz.
         var shareLink = await _context.ShareLinks
             .AsNoTracking()
             .Include(sl => sl.Plan)
                 .ThenInclude(p => p.Vehicle)
-            .FirstOrDefaultAsync(sl => sl.Token == token, cancellationToken);
+            .FirstOrDefaultAsync(
+                sl => sl.Token == token && (sl.ExpiresAt == null || sl.ExpiresAt > now),
+                cancellationToken);
 
         if (shareLink is null) return null;
 

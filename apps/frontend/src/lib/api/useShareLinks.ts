@@ -71,6 +71,19 @@ export function useDeleteShareLink() {
   });
 }
 
+/** Backend süresi dolmuş bağlantıda plan verisi döndürmez, bu kodu döner. */
+const SHARE_EXPIRED_CODE = 'Share.Expired';
+
+const shareErrorSchema = z.object({ error: z.object({ code: z.string() }).partial() }).partial();
+
+/** Sunucunun "süresi dolmuş" yanıtını 404'ten ayırır. */
+export function isShareExpiredError(error: unknown): boolean {
+  const response = (error as AxiosError<unknown> | null)?.response;
+  if (!response) return false;
+  const parsed = shareErrorSchema.safeParse(response.data);
+  return parsed.success && parsed.data.error?.code === SHARE_EXPIRED_CODE;
+}
+
 export function useShareByToken(token: string) {
   return useQuery({
     queryKey: ['share-by-token', token] as const,
