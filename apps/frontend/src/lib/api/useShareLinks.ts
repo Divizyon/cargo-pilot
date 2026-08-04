@@ -48,9 +48,8 @@ export function useShareLinks() {
     queryKey: ['share-links'] as const,
     queryFn: async (): Promise<ShareLink[]> => {
       const { data } = await axiosInstance.get<unknown>('/api/v1/shares');
-      const parsed = z.object({ data: z.array(shareLinkSchema) }).safeParse(data);
-      if (!parsed.success) return [];
-      return parsed.data.data;
+      // Sessiz boş liste yerine hata: şema kayması kullanıcıya görünür olmalı.
+      return z.object({ data: z.array(shareLinkSchema) }).parse(data).data;
     },
     staleTime: 2 * 60 * 1000,
   });
