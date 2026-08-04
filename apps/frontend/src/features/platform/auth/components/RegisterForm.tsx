@@ -1,4 +1,4 @@
-// src/features/platform/components/RegisterForm.tsx
+// src/features/platform/auth/components/RegisterForm.tsx
 import React, { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

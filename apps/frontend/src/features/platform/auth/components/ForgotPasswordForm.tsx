@@ -1,4 +1,4 @@
-// src/features/platform/components/ForgotPasswordForm.tsx
+// src/features/platform/auth/components/ForgotPasswordForm.tsx
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

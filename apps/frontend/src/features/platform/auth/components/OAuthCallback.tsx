@@ -1,4 +1,4 @@
-// src/features/platform/components/OAuthCallback.tsx
+// src/features/platform/auth/components/OAuthCallback.tsx
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';

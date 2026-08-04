@@ -71,7 +71,7 @@ Animasyonda başlangıç ve hedefe offset uygulanır. 50+ kutuda `InstancedMesh`
 
 ## InstancedMesh + Raycaster
 
-50+ kutuda ayrı `<mesh>` yasak. `onClick` → `e.instanceId` (standart Mesh'te `e.object`) — `placements[e.instanceId]` ile kutu bulunur. `useBoxSelection.ts`'e izole et. `useSceneStore`'a `selectedInstanceId:number|null`.
+50+ kutuda ayrı `<mesh>` yasak. `onClick` → `e.instanceId` (standart Mesh'te `e.object`) — `placements[e.instanceId]` ile kutu bulunur. Seçim mantığı `scene/hooks/` altında bir hook'a izole edilir. `useSceneStore`'a `selectedInstanceId:number|null`.
 
 ## Animasyon State Machine
 
