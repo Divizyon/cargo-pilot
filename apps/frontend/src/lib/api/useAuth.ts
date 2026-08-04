@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { axiosInstance } from '@/lib/api/axiosInstance';
-import { useAuthStore, type AuthUser, type UserRole } from '@/lib/store/useAuthStore';
+import { useAuthStore, parseUserRole, USER_ROLES, type AuthUser } from '@/lib/store/useAuthStore';
 import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
 import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
 
@@ -148,7 +148,7 @@ export function useLogin() {
         id: res.data.userId,
         email: res.data.email,
         fullName: res.data.fullName,
-        role: (res.data.role?.toLowerCase() ?? 'operator') as UserRole,
+        role: parseUserRole(res.data.role) ?? USER_ROLES.CompanyWorker,
         companyId: res.data.companyId || undefined,
       };
       setAuth(user, res.data.accessToken);

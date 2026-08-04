@@ -2,14 +2,32 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { QueryClient } from '@tanstack/react-query';
 
+/**
+ * Backend `UserType` enum'unun karşılığı. Değerler backend'in gönderdiği
+ * adların küçük harfli hâlidir; başka bir sözlük kullanılırsa rol kontrolleri
+ * sessizce hep başarısız olur.
+ */
 export const USER_ROLES = {
-  Admin: 'admin',
-  Manager: 'manager',
-  Viewer: 'viewer',
-  Operator: 'operator',
+  SuperAdmin: 'superadmin',
+  CompanyAdmin: 'companyadmin',
+  CompanyWorker: 'companyworker',
+  Individual: 'individual',
 } as const;
 
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+
+const ROLE_VALUES = new Set<string>(Object.values(USER_ROLES));
+
+/** Backend'den gelen rol adını güvenle çözer; tanınmayan değer için null döner. */
+export function parseUserRole(raw: string | null | undefined): UserRole | null {
+  const normalized = raw?.trim().toLowerCase() ?? '';
+  return ROLE_VALUES.has(normalized) ? (normalized as UserRole) : null;
+}
+
+/** Şirket yönetimi yetkisi olan roller. */
+export function isCompanyAdminRole(role: UserRole | null | undefined): boolean {
+  return role === USER_ROLES.SuperAdmin || role === USER_ROLES.CompanyAdmin;
+}
 
 export interface AuthUser {
   id: string;
