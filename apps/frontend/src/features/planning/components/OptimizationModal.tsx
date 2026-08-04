@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
 import { usePlanStore, type InlineGroup } from '@/lib/store/usePlanStore';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 // ─── SortableGroupRow ─────────────────────────────────────────────────────────

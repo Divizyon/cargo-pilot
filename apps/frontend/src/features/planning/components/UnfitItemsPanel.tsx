@@ -10,7 +10,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import type { ElementType } from 'react';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { UnfitReason } from '@/lib/types/loadingPlan';
 import type { UnfitItem } from '@/lib/types/loadingPlan';

@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
 import { formatStatsDelta } from '@/lib/utils/formatStatsDelta';
 
 interface Props {

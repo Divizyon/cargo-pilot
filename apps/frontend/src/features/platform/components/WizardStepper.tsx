@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Check } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
 
 export interface WizardStep {
   step: number;
