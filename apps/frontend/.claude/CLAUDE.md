@@ -68,12 +68,19 @@ src/
 │   ├── api/                → TanStack Query hook'ları ve fetcher fonksiyonları
 │   ├── store/              → Zustand store slice'ları
 │   ├── hooks/              → Genel amaçlı hook'lar (useDebounce, useSessionTimeout)
-│   ├── three/              → Three.js yardımcıları ve kaynak yönetimi
 │   ├── types/              → Paylaşılan TypeScript tipleri
-│   ├── utils/              → Yardımcı fonksiyonlar
+│   ├── utils/              → Yardımcı fonksiyonlar, konusuna göre gruplu
+│   │   ├── format/         → tarih, birim, sayı biçimleme ve ayrıştırma
+│   │   ├── geometry/       → kutu/araç ölçü, yönelim ve ağırlık merkezi hesabı
+│   │   ├── scene/          → 3D sahne yardımcıları (etiket, atlas, filtre, yükleme sırası)
+│   │   └── export/         → Excel ve PDF çıktı üretimi
 │   └── config/             → Ortam değişkenleri ve sabitler
 └── assets/                 → Statik dosyalar (svg, font, görsel)
 ```
+
+> **`lib/` yalnızca birden fazla feature'ın kullandığı kod içindir.** Tek bir feature'a
+> hizmet eden yardımcı, o feature'ın altına `utils/` olarak yazılır
+> (ör. `platform/billing/utils/luhn.ts`, `planning/scene/utils/ResourceTracker.ts`).
 
 ### Feature Klasörü İç Yapısı
 
@@ -416,7 +423,7 @@ Koordinat mapping'i `lib/config/scene-config.ts` dosyasında merkezi olarak tan�
 Three.js'in pivot'u merkezde, backend'in pivot'u Sol-Alt-Arka köşededir. Bu fark `BoxWrapper` ile çözülür.
 
 ```typescript
-// components/shared/BoxWrapper.tsx
+// features/planning/scene/components/BoxWrapper.tsx
 export function BoxWrapper({ width, height, depth, positionX, positionY, positionZ, color = "#2563EB", opacity = 0.85, onClick, itemId }: BoxWrapperProps) {
   // Pivot offset: her eksende boyutun yarısı kadar kaydır
   const cx = positionX + width  / 2;
