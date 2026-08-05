@@ -3,7 +3,7 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
-import { formatDate, formatTimestamp } from '@/lib/utils/pdfDateUtils';
+import { formatDate, formatTimestamp } from '@/lib/utils/export/pdfDateUtils';
 
 // ─── Font sanitizer ───────────────────────────────────────────────────────────
 // Helvetica (built-in PDF font) uses Latin-1 encoding. Turkish chars ı (U+0131),

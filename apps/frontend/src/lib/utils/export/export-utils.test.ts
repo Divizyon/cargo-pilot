@@ -18,7 +18,7 @@ vi.mock('xlsx', () => ({
   writeFile: mockWriteFile,
 }));
 
-const { exportPlanToExcel } = await import('@/lib/utils/export-utils');
+const { exportPlanToExcel } = await import('@/lib/utils/export/export-utils');
 
 describe('exportPlanToExcel', () => {
   const mockItem: Item = {

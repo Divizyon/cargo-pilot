@@ -2,17 +2,17 @@ import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { BoxWrapper } from '@/components/shared/BoxWrapper';
-import { LandingWireframe } from '@/components/shared/LandingWireframe';
+import { BoxWrapper } from '@/features/planning/scene/components/BoxWrapper';
+import { LandingWireframe } from '@/features/planning/scene/components/LandingWireframe';
 import { SCENE } from '@/lib/config/scene-config';
-import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/boxOrientations';
-import { isGhosted, isPlacementVisible, isSelectionDimmed } from '@/lib/utils/sceneFilter';
+import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/geometry/boxOrientations';
+import { isGhosted, isPlacementVisible, isSelectionDimmed } from '@/lib/utils/scene/sceneFilter';
 import { useLandingAnimation } from '@/features/planning/scene/hooks/useLandingAnimation';
 import { useLoadingAnimation } from '@/features/planning/scene/hooks/useLoadingAnimation';
-import { buildLoadOrder } from '@/lib/utils/loadOrder';
-import { buildBoxLabel, loadIcons } from '@/lib/utils/buildBoxLabel';
-import { buildAtlasTexture } from '@/lib/utils/buildAtlasTexture';
-import type { AtlasResult } from '@/lib/utils/buildAtlasTexture';
+import { buildLoadOrder } from '@/lib/utils/scene/loadOrder';
+import { buildBoxLabel, loadIcons } from '@/lib/utils/scene/buildBoxLabel';
+import { buildAtlasTexture } from '@/lib/utils/scene/buildAtlasTexture';
+import type { AtlasResult } from '@/lib/utils/scene/buildAtlasTexture';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
 // ─── Atlas label ShaderMaterial ────────────────────────────────────────────────

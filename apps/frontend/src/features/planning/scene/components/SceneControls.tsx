@@ -7,7 +7,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
-import { animateCameraTo } from '@/lib/three/cameraUtils';
+import { animateCameraTo } from '@/features/planning/scene/utils/cameraUtils';
 
 const tmpPos = new Vector3();
 const tmpLook = new Vector3();

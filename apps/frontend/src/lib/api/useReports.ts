@@ -10,7 +10,7 @@ import {
   planFullDetailApiResponseSchema,
   fromApiFullDetail,
 } from './loadingPlanMappers';
-import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
+import { exportPlanToPdf } from '@/lib/utils/export/exportPlanToPdf';
 
 export const planReportSchema = z.object({
   id: z.uuid(),

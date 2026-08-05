@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
-import { ResourceTracker } from '@/lib/three/ResourceTracker';
+import { ResourceTracker } from '@/features/planning/scene/utils/ResourceTracker';
 
 function spyGeo() {
   const geo = new THREE.BufferGeometry();

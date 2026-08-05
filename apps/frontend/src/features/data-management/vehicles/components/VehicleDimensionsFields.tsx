@@ -3,8 +3,8 @@ import { useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { calcVolume } from '@/lib/utils/calcVolume';
-import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
+import { calcVolume } from '@/lib/utils/geometry/calcVolume';
+import { formatVolumeDisplay } from '@/lib/utils/format/unitConversion';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 

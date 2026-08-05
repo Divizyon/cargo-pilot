@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFilters } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDate, getExcelDateCellValue } from '@/lib/utils/formatDate';
+import { formatDate, getExcelDateCellValue } from '@/lib/utils/format/formatDate';
 
 const DOOR_LABELS: Record<string, string> = {
   front: 'Ön',

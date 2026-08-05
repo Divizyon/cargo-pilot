@@ -35,7 +35,7 @@ import {
   type DraftItem,
 } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDimensionDisplay } from '@/lib/utils/unitConversion';
+import { formatDimensionDisplay } from '@/lib/utils/format/unitConversion';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { SearchInput } from '@/components/shared/SearchInput';
 

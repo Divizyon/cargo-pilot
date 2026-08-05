@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { luhnCheck } from '@/lib/utils/luhn';
+import { luhnCheck } from '@/features/platform/billing/utils/luhn';
 
 export const paymentSchema = z.object({
   cardholderName: z.string().min(2, 'Kart sahibinin adı gereklidir.'),

@@ -53,7 +53,7 @@ import { OptimizationModal } from './OptimizationModal';
 import { AddVehicleModal } from './AddVehicleModal';
 import { toast } from 'sonner';
 import { useDebounce } from '@/lib/hooks/useDebounce';
-import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
+import { exportPlanToPdf } from '@/lib/utils/export/exportPlanToPdf';
 import {
   VehicleType,
   type Vehicle,
@@ -62,7 +62,7 @@ import {
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatWeightDisplay } from '@/lib/utils/unitConversion';
+import { formatWeightDisplay } from '@/lib/utils/format/unitConversion';
 import { ShareLinkDialog } from '@/features/planning/sharing/components/ShareLinkDialog';
 import { useReadOnly } from '@/features/planning/ReadOnlyContext';
 

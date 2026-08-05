@@ -29,7 +29,7 @@ import {
   computeGroupVolumes,
   type GroupVolume,
   type ContaminationConflict,
-} from '@/lib/utils/contamination';
+} from '@/features/planning/panels/utils/contamination';
 
 const REASON_LABEL: Record<UnfitReason, string> = {
   [UnfitReason.Volume]: 'Hacim Yetersiz',

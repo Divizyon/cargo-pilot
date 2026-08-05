@@ -48,8 +48,8 @@ import {
   type DimensionUnitKey,
 } from '@/features/data-management/products/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatVolumeDisplay } from '@/lib/utils/unitConversion';
-import { parseDecimalInput } from '@/lib/utils/parseDecimalInput';
+import { formatVolumeDisplay } from '@/lib/utils/format/unitConversion';
+import { parseDecimalInput } from '@/lib/utils/format/parseDecimalInput';
 import { cn } from '@/lib/utils';
 import { ProductPreview3D } from '@/features/data-management/products/components/ProductPreview3D';
 import { FormWithPreviewLayout } from '@/components/shared/FormWithPreviewLayout';

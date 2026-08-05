@@ -34,9 +34,9 @@ import {
 import { toast } from 'sonner';
 import { useVehicles, useToggleFavorite, fetchAllVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/unitConversion';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/format/unitConversion';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
-import { exportVehiclesToExcel } from '@/lib/utils/exportVehiclesToExcel';
+import { exportVehiclesToExcel } from '@/lib/utils/export/exportVehiclesToExcel';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleDeleteDialog } from './VehicleDeleteDialog';
 import { VehicleBulkImportDialog } from '@/features/data-management/imports/components/VehicleBulkImportDialog';

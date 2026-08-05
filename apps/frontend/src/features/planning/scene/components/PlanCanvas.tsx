@@ -8,7 +8,7 @@ import { SceneControls } from '@/features/planning/scene/components/SceneControl
 import { CargoMeshInstanced } from '@/features/planning/scene/components/CargoMeshInstanced';
 import { ContainerMesh } from '@/features/planning/scene/components/ContainerMesh';
 import { CogMarker } from '@/features/planning/scene/components/CogMarker';
-import { SceneDisposer } from '@/lib/three/SceneDisposer';
+import { SceneDisposer } from '@/features/planning/scene/components/SceneDisposer';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SelectedBoxCoords } from '@/features/planning/scene/components/SelectedBoxCoords';
 import { SceneFloor } from '@/features/planning/scene/components/SceneFloor';

@@ -73,7 +73,7 @@ import {
   computeGroupVolumes,
   type GroupVolume,
   type ContaminationConflict,
-} from '@/lib/utils/contamination';
+} from '@/features/planning/panels/utils/contamination';
 
 const VIRTUAL_THRESHOLD = 100;
 

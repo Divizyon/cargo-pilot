@@ -18,7 +18,7 @@ import {
   type RegionalSettingsValues,
 } from '@/features/platform/settings/schemas/systemSettingsSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDate } from '@/lib/utils/formatDate';
+import { formatDate } from '@/lib/utils/format/formatDate';
 import i18n from '@/lib/config/i18n';
 
 const DEFAULT_VALUES: RegionalSettingsValues = {

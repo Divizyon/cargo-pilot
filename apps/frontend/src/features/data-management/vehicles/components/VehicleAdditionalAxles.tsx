@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Trash2 } from 'lucide-react';
-import { validateAxleDistances } from '@/lib/utils/validateAxleSum';
+import { validateAxleDistances } from '@/features/data-management/vehicles/utils/validateAxleSum';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 

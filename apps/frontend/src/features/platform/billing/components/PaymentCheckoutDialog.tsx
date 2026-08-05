@@ -18,13 +18,13 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { luhnCheck } from '@/lib/utils/luhn';
+import { luhnCheck } from '@/features/platform/billing/utils/luhn';
 import {
   CardType,
   detectCardType,
   formatCardNumber,
   formatExpiry,
-} from '@/lib/utils/cardFormatting';
+} from '@/features/platform/billing/utils/cardFormatting';
 import { paymentSchema, type PaymentFormValues } from '../schemas/paymentSchema';
 import { usePurchaseSubscription } from '@/lib/api/useSubscription';
 import { useSubscriptionStore, type SubscriptionPlan } from '@/lib/store/useSubscriptionStore';

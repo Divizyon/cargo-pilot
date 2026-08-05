@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useCreateVehicle } from '@/lib/api/useVehicles';
-import { downloadVehicleImportTemplate } from '@/lib/utils/export-utils';
+import { downloadVehicleImportTemplate } from '@/lib/utils/export/export-utils';
 
 interface VehicleBulkImportDialogProps {
   open: boolean;

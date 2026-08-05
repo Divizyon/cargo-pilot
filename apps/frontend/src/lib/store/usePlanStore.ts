@@ -9,13 +9,13 @@ import type {
 } from '@/lib/types/loadingPlan';
 import { UnfitReason as UnfitReasonConst } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
-import { computeViolations } from '@/lib/utils/geometry';
+import { computeViolations } from '@/lib/utils/geometry/geometry';
 import {
   rotatedDimensions,
   isOrientationAllowed,
   type OrientationIndex,
-} from '@/lib/utils/boxOrientations';
-import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/checkOrientationFit';
+} from '@/lib/utils/geometry/boxOrientations';
+import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/geometry/checkOrientationFit';
 import { useUIStore } from '@/lib/store/useUIStore';
 
 function applySurfaceViolations(

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { PdfExportData } from '@/lib/utils/exportPlanToPdf';
+import type { PdfExportData } from '@/lib/utils/export/exportPlanToPdf';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 
@@ -36,7 +36,7 @@ vi.mock('@/lib/store/useReportingSettingsStore', () => ({
   ),
 }));
 
-const { exportPlanToPdf } = await import('@/lib/utils/exportPlanToPdf');
+const { exportPlanToPdf } = await import('@/lib/utils/export/exportPlanToPdf');
 
 describe('exportPlanToPdf', () => {
   const mockItem: Item = {

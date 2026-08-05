@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/lib/store/useAuthStore';
-import { getGreetingByHour } from '@/lib/utils/getGreetingByHour';
+import { getGreetingByHour } from '@/lib/utils/format/getGreetingByHour';
 
 const dateFormatter = new Intl.DateTimeFormat('tr-TR', {
   weekday: 'long',

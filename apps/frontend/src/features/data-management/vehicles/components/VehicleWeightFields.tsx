@@ -4,7 +4,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { validateAxleCapacity } from '@/lib/utils/validateAxleSum';
+import { validateAxleCapacity } from '@/features/data-management/vehicles/utils/validateAxleSum';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 

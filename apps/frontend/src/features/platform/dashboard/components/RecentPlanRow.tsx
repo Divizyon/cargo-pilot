@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useDownloadPlanPdf } from '@/lib/api/useReports';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDate } from '@/lib/utils/formatDate';
+import { formatDate } from '@/lib/utils/format/formatDate';
 import { ROUTES } from '@/lib/config/routes';
 import {
   fromKilograms,

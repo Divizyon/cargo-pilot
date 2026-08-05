@@ -40,13 +40,13 @@ import {
 import { useDeleteItem, useItems, fetchAllItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
-import { calcVolume } from '@/lib/utils/calcVolume';
+import { calcVolume } from '@/lib/utils/geometry/calcVolume';
 import {
   formatDimensionDisplay,
   formatVolumeDisplay,
   formatWeightDisplay,
-} from '@/lib/utils/unitConversion';
-import { exportItemsToExcel } from '@/lib/utils/export-utils';
+} from '@/lib/utils/format/unitConversion';
+import { exportItemsToExcel } from '@/lib/utils/export/export-utils';
 import { BulkImportDialog } from '@/features/data-management/imports/components/BulkImportDialog';
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from '@/components/shared/SearchInput';

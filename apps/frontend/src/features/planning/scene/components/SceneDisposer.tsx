@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ResourceTracker } from '@/lib/three/ResourceTracker';
+import { ResourceTracker } from '@/features/planning/scene/utils/ResourceTracker';
 
 /**
  * `<Canvas>` içine yerleştirilen cleanup bileşeni.

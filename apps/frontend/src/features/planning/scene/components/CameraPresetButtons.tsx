@@ -18,7 +18,7 @@ import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE, type CameraPreset } from '@/lib/config/scene-config';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/lib/hooks/useDebounce';
-import { calcCenterOfGravity, calcBalance, buildCogInputs } from '@/lib/utils/calcCenterOfGravity';
+import { calcCenterOfGravity, calcBalance, buildCogInputs } from '@/lib/utils/geometry/calcCenterOfGravity';
 
 const PRESETS: { key: CameraPreset; icon: typeof Box }[] = [
   { key: 'TOP', icon: ArrowDownToLine },

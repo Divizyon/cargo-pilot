@@ -11,8 +11,8 @@ import {
   formatDimensionDisplay,
   formatWeightDisplay,
   formatVolumeDisplay,
-} from '@/lib/utils/unitConversion';
-import { formatAuditDate } from '@/lib/utils/formatAuditDate';
+} from '@/lib/utils/format/unitConversion';
+import { formatAuditDate } from '@/lib/utils/format/formatAuditDate';
 import type { Vehicle } from '@/lib/types/vehicle';
 
 const DOOR_LABELS: Record<string, string> = {

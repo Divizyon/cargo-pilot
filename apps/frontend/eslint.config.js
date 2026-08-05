@@ -62,6 +62,13 @@ export default [
      BoxWrapper (<50 kutu) veya CargoMeshInstanced (≥50 kutu) kullanılır. */
   {
     files: ['src/features/planning/scene/**/*.{ts,tsx}'],
+    /* Kuralın işaret ettiği primitifin kendisi ve sahne dekoru muaftır:
+       BoxWrapper zaten kutu çizmenin yetkili yolu, LandingWireframe ise
+       kutu değil tel kafes çiziyor. */
+    ignores: [
+      'src/features/planning/scene/components/BoxWrapper.tsx',
+      'src/features/planning/scene/components/LandingWireframe.tsx',
+    ],
     rules: {
       'no-restricted-syntax': [
         'error',

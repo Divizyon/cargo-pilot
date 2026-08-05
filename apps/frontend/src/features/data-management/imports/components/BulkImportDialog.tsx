@@ -31,7 +31,7 @@ import {
   useBulkApproveItemsIndividual,
   type UpdateDraftItemPayload,
 } from '@/lib/api/useDraftItems';
-import { downloadItemImportTemplate } from '@/lib/utils/export-utils';
+import { downloadItemImportTemplate } from '@/lib/utils/export/export-utils';
 
 // Google Sheets şablonu oluşturulduğunda bu URL'i buraya ekleyin
 const ITEM_SHEETS_TEMPLATE_URL = '';

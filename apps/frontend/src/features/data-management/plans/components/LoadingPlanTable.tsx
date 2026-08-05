@@ -53,7 +53,7 @@ import {
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { PlanStatus } from '@/lib/types/loadingPlan';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatWeightDisplay } from '@/lib/utils/unitConversion';
+import { formatWeightDisplay } from '@/lib/utils/format/unitConversion';
 import { useLoadingPlanFilters } from '../hooks/useLoadingPlanFilters';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { VehicleCard } from '@/features/data-management/vehicles/components/VehicleCard';

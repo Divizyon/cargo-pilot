@@ -3,7 +3,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDate, getExcelDateCellValue } from '@/lib/utils/formatDate';
+import { formatDate, getExcelDateCellValue } from '@/lib/utils/format/formatDate';
 
 // ─── Excel 365 native checkbox injection ─────────────────────────────────────
 //
