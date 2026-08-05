@@ -3,7 +3,11 @@ import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { calcCenterOfGravity, calcBalance, buildCogInputs } from '@/lib/utils/geometry/calcCenterOfGravity';
+import {
+  calcCenterOfGravity,
+  calcBalance,
+  buildCogInputs,
+} from '@/lib/utils/geometry/calcCenterOfGravity';
 import { SCENE } from '@/lib/config/scene-config';
 
 const SPHERE_RADIUS = 12;

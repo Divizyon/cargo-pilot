@@ -30,10 +30,14 @@ export const ConfirmEmailChangeRedirect = lazy(() =>
   })),
 );
 export const ConfirmEmailChangePage = lazy(() =>
-  import('@/pages/auth/ConfirmEmailChangePage').then((m) => ({ default: m.ConfirmEmailChangePage })),
+  import('@/pages/auth/ConfirmEmailChangePage').then((m) => ({
+    default: m.ConfirmEmailChangePage,
+  })),
 );
 export const ForceChangePasswordPage = lazy(() =>
-  import('@/pages/auth/ForceChangePasswordPage').then((m) => ({ default: m.ForceChangePasswordPage })),
+  import('@/pages/auth/ForceChangePasswordPage').then((m) => ({
+    default: m.ForceChangePasswordPage,
+  })),
 );
 export const SharePage = lazy(() =>
   import('@/pages/public/SharePage').then((m) => ({ default: m.SharePage })),

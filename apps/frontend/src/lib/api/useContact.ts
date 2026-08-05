@@ -18,7 +18,6 @@ interface ProblemDetails {
 
 export function useSendContactMessage() {
   return useMutation<void, AxiosError<ProblemDetails>, ContactMessageValues>({
-    mutationFn: (values) =>
-      axiosInstance.post('/api/v1/contact', values).then(() => undefined),
+    mutationFn: (values) => axiosInstance.post('/api/v1/contact', values).then(() => undefined),
   });
 }

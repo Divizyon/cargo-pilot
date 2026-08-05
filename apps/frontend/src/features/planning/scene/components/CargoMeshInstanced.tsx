@@ -5,7 +5,10 @@ import { useSceneStore } from '@/lib/store/useSceneStore';
 import { BoxWrapper } from '@/features/planning/scene/components/BoxWrapper';
 import { LandingWireframe } from '@/features/planning/scene/components/LandingWireframe';
 import { SCENE } from '@/lib/config/scene-config';
-import { applyOrientationQuaternion, rotatedDimensions } from '@/lib/utils/geometry/boxOrientations';
+import {
+  applyOrientationQuaternion,
+  rotatedDimensions,
+} from '@/lib/utils/geometry/boxOrientations';
 import { isGhosted, isPlacementVisible, isSelectionDimmed } from '@/lib/utils/scene/sceneFilter';
 import { useLandingAnimation } from '@/features/planning/scene/hooks/useLandingAnimation';
 import { useLoadingAnimation } from '@/features/planning/scene/hooks/useLoadingAnimation';
