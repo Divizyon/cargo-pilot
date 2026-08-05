@@ -117,22 +117,6 @@ export function useUpdateDraftItem() {
   });
 }
 
-export function useApproveDraftItem() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
-    mutationFn: (id) => axiosInstance.post(`${DRAFT_BASE}/${id}/approve`).then((r) => r.data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
-      void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success('Ürün onaylandı.', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Ürün onaylanamadı.', { position: 'bottom-right' });
-    },
-  });
-}
-
 export function useBulkApproveDraftItems() {
   const queryClient = useQueryClient();
   return useMutation<unknown, AxiosError<ApiError>, string[]>({

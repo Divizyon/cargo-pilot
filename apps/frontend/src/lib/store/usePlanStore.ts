@@ -18,19 +18,6 @@ import {
 import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/checkOrientationFit';
 import { useUIStore } from '@/lib/store/useUIStore';
 
-export function assignSkuColor(
-  sku: string,
-  currentMap: Record<string, string>,
-): Record<string, string> {
-  if (currentMap[sku]) return currentMap;
-  const palette = SCENE.COLORS.SKU_PALETTE;
-  const usedColors = new Set(Object.values(currentMap));
-  const nextColor =
-    palette.find((c) => !usedColors.has(c)) ??
-    palette[Object.keys(currentMap).length % palette.length];
-  return { ...currentMap, [sku]: nextColor };
-}
-
 function applySurfaceViolations(
   placements: PlacementWithDimensions[],
   items: Array<{ item: Item; quantity: number }>,

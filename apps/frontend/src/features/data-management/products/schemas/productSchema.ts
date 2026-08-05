@@ -13,8 +13,6 @@ export const FRAGILITY_LEVELS = {
   Chemical: 9,
 } as const;
 
-export type FragilityLevel = (typeof FRAGILITY_LEVELS)[keyof typeof FRAGILITY_LEVELS];
-
 export const PRODUCT_TYPES = ['koli', 'varil', 'palet'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
@@ -24,19 +22,13 @@ export const DIMENSION_UNITS = {
 } as const;
 
 export type DimensionUnitKey = keyof typeof DIMENSION_UNITS;
-export type DimensionUnitId = (typeof DIMENSION_UNITS)[DimensionUnitKey];
-
 export const WEIGHT_UNITS = {
   kg: 1,
   ton: 1000,
 } as const;
 
 export type WeightUnitKey = keyof typeof WEIGHT_UNITS;
-export type WeightUnitId = (typeof WEIGHT_UNITS)[WeightUnitKey];
-
 export const NOTES_MAX_LENGTH = 1000;
-export const NOTES_PREVIEW_LENGTH = 50;
-
 const numField = (msgKey: string) => z.number({ message: msgKey }).positive(msgKey);
 
 export const productSchema = z

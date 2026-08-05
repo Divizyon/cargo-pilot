@@ -12,14 +12,11 @@ import {
   extractListData,
   fromApiPlanListItem,
   fromApiDetailPlacements,
-  fromApiPlacementsToScene,
   planFullDetailApiResponseSchema,
   fromApiFullDetail,
   type PlanFullDetail,
 } from './loadingPlanMappers';
-import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
-import type { UnplacedEntry } from '@/lib/store/usePlanStore';
 
 // ─── Existing plan detail (3D viewer) ─────────────────────────────────────────
 
@@ -27,14 +24,6 @@ export function useLoadingPlans(filters?: { vehicleId?: string; page?: number })
   return useQuery({
     queryKey: ['loading-plans', filters] as const,
     queryFn: () => apiFetch('/loading-plans', z.array(loadingPlanSchema)),
-  });
-}
-
-export function useLoadingPlan(id: string) {
-  return useQuery({
-    queryKey: ['loading-plans', id] as const,
-    queryFn: () => apiFetch(`/loading-plans/${id}`, loadingPlanSchema),
-    enabled: Boolean(id),
   });
 }
 
@@ -409,22 +398,6 @@ function applyClientFilters(
 
 // ─── Scene placements from backend result ─────────────────────────────────────
 
-export function useLoadingPlanScenePlacements(planId: string, colorMap?: Record<string, string>) {
-  return useQuery({
-    queryKey: ['loading-plan-scene-placements', planId, colorMap] as const,
-    queryFn: async (): Promise<PlacementWithDimensions[]> => {
-      const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
-      const parsed = planDetailApiResponseSchema.safeParse(data);
-      if (!parsed.success) return [];
-      const d = parsed.data.data;
-      const raw = d.placements?.length ? d.placements : (d.placementDetails ?? []);
-      return fromApiPlacementsToScene(raw, colorMap);
-    },
-    enabled: Boolean(planId),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 export function useLoadingPlanProducts(planId: string) {
   return useQuery({
     queryKey: ['loading-plan-products', planId] as const,
@@ -445,32 +418,6 @@ export function useLoadingPlanProducts(planId: string) {
       // Fallback: sadece yerleştirilen kutular (adetler eksik olabilir)
       const rawPlacements = d.placements?.length ? d.placements : (d.placementDetails ?? []);
       return fromApiDetailPlacements(rawPlacements);
-    },
-    enabled: Boolean(planId),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useLoadingPlanUnplaced(planId: string | null) {
-  return useQuery({
-    queryKey: ['loading-plan-unplaced', planId] as const,
-    queryFn: async (): Promise<UnplacedEntry[]> => {
-      const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${planId}`);
-      const parsed = planDetailApiResponseSchema.safeParse(data);
-      if (!parsed.success) return [];
-      type RawU = {
-        id?: string;
-        itemId?: string;
-        quantity: number;
-        reason?: number;
-        item?: { name?: string } | null;
-      };
-      return (parsed.data.data.unplacedItems ?? []).map((u: RawU) => ({
-        itemId: u.itemId ?? u.id ?? '',
-        quantity: u.quantity,
-        reason: u.reason ?? 0,
-        name: u.item?.name ?? '',
-      }));
     },
     enabled: Boolean(planId),
     staleTime: 5 * 60 * 1000,
@@ -507,19 +454,3 @@ export function useDeletePlanGroup() {
 }
 
 // ─── Imperative fetch helper (araç zincirleme taşma) ─────────────────────────
-
-export async function fetchPlanUnplacedItems(
-  id: string,
-): Promise<Array<{ itemId: string; quantity: number }>> {
-  try {
-    const { data } = await axiosInstance.get<unknown>(`/api/v1/loading-plans/${id}`);
-    const parsed = planFullDetailApiResponseSchema.safeParse(data);
-    if (!parsed.success) return [];
-    return fromApiFullDetail(parsed.data.data).unplacedItems.map((u) => ({
-      itemId: u.itemId,
-      quantity: u.quantity,
-    }));
-  } catch {
-    return [];
-  }
-}

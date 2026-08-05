@@ -34,11 +34,6 @@ const mySubscriptionResponseSchema = z.object({
   data: mySubscriptionSchema,
 });
 
-export function usagePercent(used: number, limit: number | null): number {
-  if (limit === null || limit === 0) return 0;
-  return Math.min(Math.round((used / limit) * 100), 100);
-}
-
 export function isQuotaExceeded(item: QuotaItem): boolean {
   if (item.limit === null || item.limit === 0) return false;
   return item.used >= item.limit;

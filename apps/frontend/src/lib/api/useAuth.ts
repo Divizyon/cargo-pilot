@@ -289,19 +289,6 @@ export function useRequestEmailChange() {
   });
 }
 
-export function useTourCompleted() {
-  const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id);
-
-  return useMutation<void, AxiosError, { tourCompleted: boolean }>({
-    mutationFn: (payload) =>
-      axiosInstance.patch('/api/v1/me/tour-completed', payload).then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
-    },
-  });
-}
-
 export function useConfirmEmailChange(token: string | null) {
   return useQuery({
     queryKey: ['confirm-email-change', token],

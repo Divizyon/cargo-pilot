@@ -20,8 +20,6 @@ export const visualizationSettingsSchema = z.object({
   colorScheme: z.enum(['default', 'category', 'weight']),
 });
 
-export type VisualizationSettingsValues = z.infer<typeof visualizationSettingsSchema>;
-
 export const reportingSettingsSchema = z.object({
   reportLanguage: z.enum(['tr', 'en']),
   pageSize: z.enum(['A4', 'A3', 'Letter']),
@@ -30,5 +28,3 @@ export const reportingSettingsSchema = z.object({
   headerText: z.string().max(200),
   footerText: z.string().max(200),
 });
-
-export type ReportingSettingsValues = z.infer<typeof reportingSettingsSchema>;

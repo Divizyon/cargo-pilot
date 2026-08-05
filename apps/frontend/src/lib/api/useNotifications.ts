@@ -3,12 +3,10 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-  type InfiniteData,
 } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { axiosInstance } from './axiosInstance';
-import type { SummaryNotificationValues } from '@/features/platform/notifications/schemas/summaryNotificationSchema';
 
 // ─── Domain constants ─────────────────────────────────────────────────────────
 
@@ -183,78 +181,4 @@ export function useDeleteNotification() {
   });
 }
 
-// ─── Bulk delete ──────────────────────────────────────────────────────────────
-
-export function useBulkDeleteNotifications() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (ids: string[]): Promise<void> => {
-      const { data: raw } = await axiosInstance.delete('/api/v1/notifications/bulk', {
-        data: { ids },
-      });
-      boolResponseSchema.parse(raw);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      void queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
-    },
-  });
-}
-
-// ─── Summary notification preferences ────────────────────────────────────────
-
-const summaryPrefsResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.object({
-    enabled: z.boolean(),
-    frequency: z.enum(['Gunluk', 'Haftalik']),
-    sendTime: z.string(),
-    eventTypes: z.array(z.enum(['ErpExportError', 'PendingShipment', 'ProductChange'])),
-  }),
-});
-
-export function useSummaryNotificationSettings() {
-  return useQuery({
-    queryKey: ['notification-preferences-summary'] as const,
-    queryFn: async (): Promise<SummaryNotificationValues> => {
-      const { data: raw } = await axiosInstance.get('/api/v1/notification-preferences/summary');
-      const parsed = summaryPrefsResponseSchema.safeParse(raw);
-      if (!parsed.success) {
-        return { enabled: true, frequency: 'Gunluk', sendTime: '08:00', eventTypes: [] };
-      }
-      return parsed.data.data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useSaveSummaryNotificationSettings() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (values: SummaryNotificationValues): Promise<void> => {
-      await axiosInstance.put('/api/v1/notification-preferences/summary', values);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notification-preferences-summary'] });
-      toast.success('Bildirim ayarları kaydedildi.', { position: 'bottom-right' });
-    },
-    onError: () => {
-      toast.error('Bildirim ayarları kaydedilemedi.', { position: 'bottom-right' });
-    },
-  });
-}
-
 // ─── Cache updater helper (used by optimistic updates) ───────────────────────
-
-export function updateNotificationInCache(
-  data: InfiniteData<NotificationsPage>,
-  updater: (n: Notification) => Notification,
-): InfiniteData<NotificationsPage> {
-  return {
-    ...data,
-    pages: data.pages.map((page) => ({
-      ...page,
-      items: page.items.map(updater),
-    })),
-  };
-}

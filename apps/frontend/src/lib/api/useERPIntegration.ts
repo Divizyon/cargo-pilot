@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
-import type { CreateItemRequest } from './itemMappers';
 import {
   erpPendingMatchSchema,
   erpRemoteUserSchema,
@@ -11,7 +10,6 @@ import {
   erpSettingsApiSchema,
   erpShipmentOrderSchema,
   erpSyncOptionsSchema,
-  erpSyncRunSchema,
   erpSyncSummarySchema,
   erpUnassignedDataItemSchema,
   erpUserMappingSchema,
@@ -49,21 +47,9 @@ const pendingItemMappingApiSchema = erpPendingMatchSchema.extend({
   cargoPilotItemSku: z.string().nullable().optional(),
 });
 
-export type ErpPendingMappingItem = z.infer<typeof pendingItemMappingApiSchema>;
-
 const pendingItemMappingListResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: z.array(pendingItemMappingApiSchema),
-});
-
-const erpPendingMappingsPageResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.object({
-    items: z.array(pendingItemMappingApiSchema),
-    totalCount: z.number().int(),
-    page: z.number().int(),
-    pageSize: z.number().int(),
-  }),
 });
 
 // Raw API sync settings schema
@@ -94,11 +80,6 @@ const erpSyncSummaryResponseSchema = z.object({
 const erpShipmentOrdersResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: z.array(erpShipmentOrderSchema),
-});
-
-const erpSyncHistoryResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(erpSyncRunSchema),
 });
 
 const syncLogsPageResponseSchema = z.object({
@@ -197,8 +178,6 @@ const integrationItemSchema = z.object({
   apiEndpoint: z.string(),
 });
 
-export type ErpIntegration = z.infer<typeof integrationItemSchema>;
-
 const integrationsListResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: z.array(integrationItemSchema),
@@ -214,40 +193,6 @@ export function useERPConnection() {
       return parsed.data.data[0];
     },
     retry: false,
-  });
-}
-
-export function useSaveERPConnection() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, ErpConnectionFormValues & { id?: string }>({
-    mutationFn: ({ id, ...values }) => {
-      if (id) {
-        return axiosInstance.put(`${ERP_BASE}/${id}`, values).then((r) => r.data);
-      }
-      return axiosInstance.post(ERP_BASE, values).then((r) => r.data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'connection'] });
-      toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Bağlantı ayarları kaydedilemedi', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useTestERPConnection() {
-  return useMutation<
-    { success: boolean; message?: string | null },
-    AxiosError<ApiError>,
-    ErpConnectionFormValues
-  >({
-    mutationFn: async (values) => {
-      const { data } = await axiosInstance.post<unknown>(`${ERP_BASE}/test-connection`, values);
-      const parsed = testConnectionResponseSchema.parse(data);
-      return { success: parsed.data.isSuccess, message: parsed.data.message };
-    },
   });
 }
 
@@ -475,18 +420,6 @@ export function useRunERPSyncNow() {
   });
 }
 
-export function useERPSyncHistory() {
-  return useQuery({
-    queryKey: ['erp', 'sync-history'] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/sync-history`);
-      const parsed = erpSyncHistoryResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
-    },
-    retry: false,
-  });
-}
-
 export interface SyncLogsParams {
   page: number;
   pageSize: number;
@@ -508,24 +441,6 @@ export function useERPSyncLogs(integrationId: string | undefined, params: SyncLo
     },
     enabled: Boolean(integrationId),
     retry: false,
-  });
-}
-
-export function useRetryERPSyncItem() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { logEntryId: string }>({
-    mutationFn: ({ logEntryId }) =>
-      axiosInstance.post(`${ERP_BASE}/retry-sync`, { logEntryId }).then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-history'] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches'] });
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success('Kayıt yeniden senkronize edildi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Yeniden senkronizasyon başarısız', { position: 'bottom-right' });
-    },
   });
 }
 
@@ -707,54 +622,3 @@ export function useAssignUnassignedData() {
 }
 
 // ─── ERP Items Page hooks ─────────────────────────────────────────────────────
-
-export function useERPPendingMappingsPaginated(
-  integrationId: string | undefined,
-  params: { page: number; pageSize: number; status?: number },
-) {
-  return useQuery({
-    queryKey: ['erp', 'pending-mappings-paged', integrationId, params] as const,
-    queryFn: async () => {
-      const p = new URLSearchParams();
-      p.set('page', String(params.page));
-      p.set('pageSize', String(params.pageSize));
-      if (params.status !== undefined) p.set('status', String(params.status));
-      const { data } = await axiosInstance.get<unknown>(
-        `${ERP_BASE}/${integrationId}/pending-item-mappings?${p.toString()}`,
-      );
-      const parsed = erpPendingMappingsPageResponseSchema.parse(data);
-      return parsed.data;
-    },
-    enabled: Boolean(integrationId),
-  });
-}
-
-export function useApproveERPMappingWithNewItem() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      integrationId,
-      mappingId,
-      itemPayload,
-    }: {
-      integrationId: string;
-      mappingId: string;
-      itemPayload: CreateItemRequest;
-    }) => {
-      const createRes = await axiosInstance.post<{ isSuccess: boolean; data?: { id: string } }>(
-        '/api/v1/items',
-        itemPayload,
-      );
-      const newItemId = createRes.data.data?.id;
-      if (!newItemId) throw new Error('Item ID alınamadı');
-      await axiosInstance.put(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`, {
-        cargoPilotItemId: newItemId,
-      });
-    },
-    onSuccess: (_data, { integrationId }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-mappings-paged', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-    },
-  });
-}

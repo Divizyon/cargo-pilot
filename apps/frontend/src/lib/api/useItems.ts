@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import type { ProductFormValues } from '@/features/data-management/products/schemas/productSchema';
@@ -241,49 +240,6 @@ export function useBulkCreateItems() {
       if (status && status !== 401 && status < 500) {
         toast.error(message ?? 'Toplu ürün eklenemedi.', { position: 'bottom-right' });
       }
-    },
-  });
-}
-
-const duplicateItemResponseSchema = z.object({
-  data: z.object({ id: z.string() }).optional(),
-});
-
-export function useDuplicateItem() {
-  const queryClient = useQueryClient();
-
-  return useMutation<
-    { id: string } | null,
-    AxiosError<ProblemDetails>,
-    { id: string; name: string; sku: string }
-  >({
-    mutationFn: async ({ id, name, sku }) => {
-      const { data } = await axiosInstance.post<unknown>(`${ITEMS_ENDPOINT}/${id}/duplicate`, {
-        name,
-        sku,
-      });
-      const parsed = duplicateItemResponseSchema.parse(data);
-      return parsed.data ?? null;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success('Ürün başarıyla kopyalandı.', { position: 'bottom-right' });
-    },
-    onError: () => {
-      toast.error('Ürün kopyalanırken hata oluştu.', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useCreatePlanItem() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: CreateItemRequest): Promise<string | null> => {
-      const { data } = await axiosInstance.post<CreateItemResponse>(ITEMS_ENDPOINT, payload);
-      return data?.data?.id ?? null;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['items'] });
     },
   });
 }

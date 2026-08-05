@@ -28,7 +28,4 @@ if (!_result.success) {
 const _env = _result.data;
 
 export const API_BASE_URL = _env.VITE_API_BASE_URL;
-export const APP_VERSION = _env.VITE_APP_VERSION;
-export const APP_ENV = _env.VITE_APP_ENV;
 export const OAUTH_GOOGLE_URL = _env.VITE_OAUTH_GOOGLE_URL;
-export const OAUTH_MICROSOFT_URL = _env.VITE_OAUTH_MICROSOFT_URL;

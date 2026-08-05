@@ -157,4 +157,3 @@ export const vehicleFormSchema = z
   });
 
 export type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
-export type AxleEntry = z.infer<typeof axleEntrySchema>;

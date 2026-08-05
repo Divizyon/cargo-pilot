@@ -75,15 +75,6 @@ export const vehicleApiSchema = z.object({
 
 export type VehicleApi = z.infer<typeof vehicleApiSchema>;
 
-export const paginatedVehiclesApiSchema = z.object({
-  data: z.object({
-    items: z.array(vehicleApiSchema),
-    totalCount: z.number().int(),
-    page: z.number().int(),
-    pageSize: z.number().int(),
-  }),
-});
-
 export const singleVehicleApiSchema = z.object({
   data: vehicleApiSchema,
 });
@@ -347,11 +338,4 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       ? values.axles![0].maxLoad
       : null,
   };
-}
-
-export function buildUpdateVehiclePayload(
-  id: string,
-  values: VehicleFormValues,
-): CreateVehicleRequest & { id: string } {
-  return { id, ...buildCreateVehiclePayload(values) };
 }

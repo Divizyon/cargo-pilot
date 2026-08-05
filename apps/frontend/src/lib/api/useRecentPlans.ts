@@ -1,7 +1,4 @@
 import { useDashboardPlans } from '@/lib/api/useDashboardStats';
-import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
-
-export type RecentPlan = LoadingPlanListItem;
 
 const RECENT_PLAN_LIMIT = 7;
 
