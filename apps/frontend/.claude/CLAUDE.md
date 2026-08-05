@@ -52,36 +52,65 @@ alwaysApply: true
 
 ```
 src/
-├── pages/                  → React Router sayfa bileşenleri (route entry point'ler)
+├── pages/                  → React Router sayfa bileşenleri, rota alanına göre gruplu
+│   ├── auth/               → login, register, şifre sıfırlama, e-posta onayı
+│   ├── public/             → landing, iletişim, gizlilik, koşullar, share, hata
+│   ├── dashboard/  products/  vehicles/  plans/
+│   └── erp/  reports/  notifications/  sharing/  settings/
 ├── features/
 │   ├── data-management/    → Squad 3 sorumluluk alanı
 │   ├── planning/           → Squad 2 sorumluluk alanı
 │   └── platform/           → Squad 1 sorumluluk alanı
 ├── components/
-│   └── shared/             → Tüm squad'lerin kullandığı ortak bileşenler
+│   ├── shared/             → Tüm squad'lerin kullandığı ortak bileşenler
+│   └── ui/                 → shadcn/ui primitives (elle düzenlenmez)
 ├── lib/
 │   ├── api/                → TanStack Query hook'ları ve fetcher fonksiyonları
 │   ├── store/              → Zustand store slice'ları
+│   ├── hooks/              → Genel amaçlı hook'lar (useDebounce, useSessionTimeout)
 │   ├── types/              → Paylaşılan TypeScript tipleri
-│   ├── utils/              → Yardımcı fonksiyonlar
+│   ├── utils/              → Yardımcı fonksiyonlar, konusuna göre gruplu
+│   │   ├── format/         → tarih, birim, sayı biçimleme ve ayrıştırma
+│   │   ├── geometry/       → kutu/araç ölçü, yönelim ve ağırlık merkezi hesabı
+│   │   ├── scene/          → 3D sahne yardımcıları (etiket, atlas, filtre, yükleme sırası)
+│   │   └── export/         → Excel ve PDF çıktı üretimi
 │   └── config/             → Ortam değişkenleri ve sabitler
 └── assets/                 → Statik dosyalar (svg, font, görsel)
 ```
 
+> **`lib/` yalnızca birden fazla feature'ın kullandığı kod içindir.** Tek bir feature'a
+> hizmet eden yardımcı, o feature'ın altına `utils/` olarak yazılır
+> (ör. `platform/billing/utils/luhn.ts`, `planning/scene/utils/ResourceTracker.ts`).
+
 ### Feature Klasörü İç Yapısı
+
+Her feature **alt alanlara** bölünür; alt alan kendi `components/`, `hooks/` ve `schemas/`
+klasörünü taşır. Feature kökünde yalnızca alt alanlar arası paylaşılan dosyalar durur
+(örn. `planning/ReadOnlyContext.tsx`).
 
 ```
 features/data-management/
-├── components/             → Bu feature'a özel bileşenler
-│   ├── ProductForm.tsx
-│   ├── ProductTable.tsx
-│   └── ConstraintToggle.tsx
-├── hooks/                  → Bu feature'a özel hook'lar
-│   └── useProductForm.ts
-├── schemas/                → Zod şemaları
-│   └── productSchema.ts
-└── types/                  → Feature'a özel tipler (lib/types'a taşınana kadar)
+├── products/
+│   ├── components/         → ProductForm.tsx, ProductTable.tsx, ConstraintIcons.tsx
+│   ├── hooks/              → useProductForm.ts
+│   └── schemas/            → productSchema.ts
+├── vehicles/               → components/ hooks/ schemas/
+├── imports/                → toplu içe aktarma ve ERP ürün alım kuyruğu
+└── plans/                  → yükleme planı listesi
 ```
+
+Mevcut alt alanlar:
+
+| Feature           | Alt alanlar                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `data-management` | `products` · `vehicles` · `imports` · `plans`                                                                             |
+| `planning`        | `panels` · `scene` · `export` · `sharing`                                                                                 |
+| `platform`        | `auth` · `billing` · `dashboard` · `erp` · `members` · `profile` · `reporting` · `settings` · `notifications` · `sharing` |
+
+> Yeni dosya, mevcut bir alt alana yazılır. Yeni alt alan yalnızca gerçekten yeni bir
+> iş alanı için açılır.
+
+> Alt alanlar arası import `@/` alias'ı ile yapılır, göreli `../` ile değil.
 
 > API hook'ları feature klasörüne **değil**, `lib/api/` altına yazılır.
 
@@ -268,7 +297,6 @@ style={{ backgroundColor: "#2563EB" }}
 
 | Store Slice            | Sorumluluk                                                    | Squad   |
 | ---------------------- | ------------------------------------------------------------- | ------- |
-| `useFormStore`         | Form draft state'leri, step wizard                            | Squad 1 |
 | `usePlanStore`         | Seçili araç, yük listesi, optimizasyon kriteri, placements    | Squad 2 |
 | `useSceneStore`        | Aktif katman filtresi, seçili kutu ID'si, wireframe/solid mod | Squad 2 |
 | `useAuthStore`         | Aktif kullanıcı, rol, JWT token, oturum durumu                | Squad 3 |
@@ -395,7 +423,7 @@ Koordinat mapping'i `lib/config/scene-config.ts` dosyasında merkezi olarak tan�
 Three.js'in pivot'u merkezde, backend'in pivot'u Sol-Alt-Arka köşededir. Bu fark `BoxWrapper` ile çözülür.
 
 ```typescript
-// components/shared/BoxWrapper.tsx
+// features/planning/scene/components/BoxWrapper.tsx
 export function BoxWrapper({ width, height, depth, positionX, positionY, positionZ, color = "#2563EB", opacity = 0.85, onClick, itemId }: BoxWrapperProps) {
   // Pivot offset: her eksende boyutun yarısı kadar kaydır
   const cx = positionX + width  / 2;
@@ -532,24 +560,13 @@ function ProtectedRoute({ requiredRole }: { requiredRole?: UserRole }) {
 
 ### Abonelik Kilitleme
 
-Hard redirect değil, **modal pattern** kullanılır.
+Hard redirect değil, **modal pattern** kullanılır: kilitli aksiyon tıklanınca yükseltme
+diyaloğu açılır, kullanıcı sessizce başarısız olan bir butonla karşılaşmaz.
 
-```typescript
-function LockedFeatureButton({ feature, children }) {
-  const hasAccess  = checkFeatureAccess(feature);
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  return (
-    <>
-      <Button onClick={() => hasAccess ? doAction() : setShowUpgrade(true)}
-              variant={hasAccess ? "default" : "outline"}>
-        {!hasAccess && <Lock className="mr-2 h-4 w-4" />}
-        {children}
-      </Button>
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
-    </>
-  );
-}
-```
+> **Durum:** Bu deseni uygulayan `LockedFeatureButton`, `UpgradeModal` ve
+> `checkFeatureAccess` bileşenleri hiçbir ekrana bağlanmamıştı ve ölü kod temizliğinde
+> (AUDIT-07) kaldırıldı. Abonelik kilitleme arayüzü yeniden yazılırken bu desen esas
+> alınır; eski dosyalar git geçmişinden çıkarılabilir.
 
 ---
 

@@ -1,97 +1,160 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { ConfirmEmailChangeRedirect } from '@/pages/ConfirmEmailChangeRedirect';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
-import { LandingPage } from '@/pages/LandingPage';
-import { LoginPage } from '@/pages/LoginPage';
-import { RegisterPage } from '@/pages/RegisterPage';
-import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
-import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
-import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
-import { DashboardPage } from '@/pages/DashboardPage';
-import { ProductsPage } from '@/pages/ProductsPage';
-import { NewPlanPage } from '@/pages/NewPlanPage';
-import { ProductCreatePage } from '@/pages/ProductCreatePage';
-import { ProductEditPage } from '@/pages/ProductEditPage';
-import { VehiclesPage } from '@/pages/VehiclesPage';
-import { VehicleCreatePage } from '@/pages/VehicleCreatePage';
-import { VehicleEditPage } from '@/pages/VehicleEditPage';
-import { LoadingPlansPage } from '@/pages/LoadingPlansPage';
-import { ErrorPage } from '@/pages/ErrorPage';
-import { SharePage } from '@/pages/SharePage';
-import { SecurityRedirect } from '@/pages/SecurityRedirect';
-import { UnifiedSettingsPage } from '@/pages/UnifiedSettingsPage';
-import { ReportsPage } from '@/pages/ReportsPage';
-import { ReportDetailPage } from '@/pages/ReportDetailPage';
-import { NotificationsPage } from '@/pages/NotificationsPage';
-import { ShareLinksPage } from '@/pages/ShareLinksPage';
-import { ConfirmEmailChangePage } from '@/pages/ConfirmEmailChangePage';
-import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage';
-import { ERPItemsPage } from '@/pages/ERPItemsPage';
-import { PrivacyPage } from '@/pages/PrivacyPage';
-import { TermsPage } from '@/pages/TermsPage';
-import { ContactPage } from '@/pages/ContactPage';
+import { PageSuspense } from '@/components/shared/PageSuspense';
+import {
+  AuthCallbackPage,
+  ConfirmEmailChangePage,
+  ConfirmEmailChangeRedirect,
+  ContactPage,
+  DashboardPage,
+  ERPItemsPage,
+  ErrorPage,
+  ForceChangePasswordPage,
+  ForgotPasswordPage,
+  LandingPage,
+  LoadingPlansPage,
+  LoginPage,
+  NewPlanPage,
+  NotificationsPage,
+  PrivacyPage,
+  ProductCreatePage,
+  ProductEditPage,
+  ProductsPage,
+  RegisterPage,
+  ReportDetailPage,
+  ReportsPage,
+  ResetPasswordPage,
+  SecurityRedirect,
+  ShareLinksPage,
+  SharePage,
+  TermsPage,
+  UnifiedSettingsPage,
+  VehicleCreatePage,
+  VehicleEditPage,
+  VehiclesPage,
+} from '@/pages/lazyPages';
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <LandingPage />,
+    element: (
+      <PageSuspense>
+        <LandingPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/login',
-    element: <LoginPage />,
+    element: (
+      <PageSuspense>
+        <LoginPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/register',
-    element: <RegisterPage />,
+    element: (
+      <PageSuspense>
+        <RegisterPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/callback',
-    element: <AuthCallbackPage />,
+    element: (
+      <PageSuspense>
+        <AuthCallbackPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/forgot-password',
-    element: <ForgotPasswordPage />,
+    element: (
+      <PageSuspense>
+        <ForgotPasswordPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/reset-password',
-    element: <ResetPasswordPage />,
+    element: (
+      <PageSuspense>
+        <ResetPasswordPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/confirm-email-change',
-    element: <ConfirmEmailChangeRedirect />,
+    element: (
+      <PageSuspense>
+        <ConfirmEmailChangeRedirect />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/confirm-email-change',
-    element: <ConfirmEmailChangePage />,
+    element: (
+      <PageSuspense>
+        <ConfirmEmailChangePage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/auth/force-change-password',
-    element: <ForceChangePasswordPage />,
+    element: (
+      <PageSuspense>
+        <ForceChangePasswordPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/share/:token',
-    element: <SharePage />,
+    element: (
+      <PageSuspense>
+        <SharePage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/gizlilik',
-    element: <PrivacyPage />,
+    element: (
+      <PageSuspense>
+        <PrivacyPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/kullanim-kosullari',
-    element: <TermsPage />,
+    element: (
+      <PageSuspense>
+        <TermsPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/iletisim',
-    element: <ContactPage />,
+    element: (
+      <PageSuspense>
+        <ContactPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/security/revoke',
-    element: <SecurityRedirect />,
+    element: (
+      <PageSuspense>
+        <SecurityRedirect />
+      </PageSuspense>
+    ),
   },
   {
     path: '/error',
-    element: <ErrorPage />,
+    element: (
+      <PageSuspense>
+        <ErrorPage />
+      </PageSuspense>
+    ),
   },
   {
     element: <ProtectedRoute />,
@@ -99,24 +162,143 @@ export const router = createBrowserRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { path: '/dashboard', element: <DashboardPage /> },
-          { path: '/products', element: <ProductsPage /> },
-          { path: '/products/new', element: <ProductCreatePage /> },
-          { path: '/products/:id/edit', element: <ProductEditPage /> },
-          { path: '/vehicles', element: <VehiclesPage /> },
-          { path: '/vehicles/new', element: <VehicleCreatePage /> },
-          { path: '/vehicles/:id/edit', element: <VehicleEditPage /> },
-          { path: '/planning', element: <LoadingPlansPage /> },
-          { path: '/planning/new', element: <NewPlanPage /> },
-          { path: '/reports', element: <ReportsPage /> },
-          { path: '/reports/:id', element: <ReportDetailPage /> },
-          { path: '/planning/shares', element: <ShareLinksPage /> },
-          { path: '/planning/:id', element: <NewPlanPage /> },
-          { path: '/erp', element: <ERPItemsPage /> },
+          {
+            path: '/dashboard',
+            element: (
+              <PageSuspense>
+                <DashboardPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/products',
+            element: (
+              <PageSuspense>
+                <ProductsPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/products/new',
+            element: (
+              <PageSuspense>
+                <ProductCreatePage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/products/:id/edit',
+            element: (
+              <PageSuspense>
+                <ProductEditPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/vehicles',
+            element: (
+              <PageSuspense>
+                <VehiclesPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/vehicles/new',
+            element: (
+              <PageSuspense>
+                <VehicleCreatePage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/vehicles/:id/edit',
+            element: (
+              <PageSuspense>
+                <VehicleEditPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/planning',
+            element: (
+              <PageSuspense>
+                <LoadingPlansPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/planning/new',
+            element: (
+              <PageSuspense>
+                <NewPlanPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/reports',
+            element: (
+              <PageSuspense>
+                <ReportsPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/reports/:id',
+            element: (
+              <PageSuspense>
+                <ReportDetailPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/planning/shares',
+            element: (
+              <PageSuspense>
+                <ShareLinksPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/planning/:id',
+            element: (
+              <PageSuspense>
+                <NewPlanPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/erp',
+            element: (
+              <PageSuspense>
+                <ERPItemsPage />
+              </PageSuspense>
+            ),
+          },
           { path: '/integrations', element: <Navigate to="/settings?tab=erp-baglanti" replace /> },
-          { path: '/notifications', element: <NotificationsPage /> },
-          { path: '/knowledge', element: <DashboardPage /> },
-          { path: '/settings', element: <UnifiedSettingsPage /> },
+          {
+            path: '/notifications',
+            element: (
+              <PageSuspense>
+                <NotificationsPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/knowledge',
+            element: (
+              <PageSuspense>
+                <DashboardPage />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: '/settings',
+            element: (
+              <PageSuspense>
+                <UnifiedSettingsPage />
+              </PageSuspense>
+            ),
+          },
           { path: '/profile', element: <Navigate to="/settings?tab=bireysel-hesap" replace /> },
         ],
       },

@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { axiosInstance } from '@/lib/api/axiosInstance';
-import { useAuthStore, type AuthUser, type UserRole } from '@/lib/store/useAuthStore';
-import type { LoginFormValues } from '@/features/platform/schemas/loginSchema';
-import type { RegisterFormValues } from '@/features/platform/schemas/registerSchema';
+import { useAuthStore, parseUserRole, USER_ROLES, type AuthUser } from '@/lib/store/useAuthStore';
+import type { LoginFormValues } from '@/features/platform/auth/schemas/loginSchema';
+import type { RegisterFormValues } from '@/features/platform/auth/schemas/registerSchema';
 
 const AUTH_ENDPOINTS = {
   login: '/api/v1/auth/login',
@@ -148,7 +148,7 @@ export function useLogin() {
         id: res.data.userId,
         email: res.data.email,
         fullName: res.data.fullName,
-        role: (res.data.role?.toLowerCase() ?? 'operator') as UserRole,
+        role: parseUserRole(res.data.role) ?? USER_ROLES.CompanyWorker,
         companyId: res.data.companyId || undefined,
       };
       setAuth(user, res.data.accessToken);
@@ -286,19 +286,6 @@ export function useRequestEmailChange() {
   return useMutation<void, AxiosError, RequestEmailChangePayload>({
     mutationFn: (payload) =>
       axiosInstance.post('/api/v1/me/request-email-change', payload).then((r) => r.data),
-  });
-}
-
-export function useTourCompleted() {
-  const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id);
-
-  return useMutation<void, AxiosError, { tourCompleted: boolean }>({
-    mutationFn: (payload) =>
-      axiosInstance.patch('/api/v1/me/tour-completed', payload).then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
-    },
   });
 }
 

@@ -1,7 +1,6 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Plans.UploadPlanThumbnail;
@@ -11,32 +10,19 @@ internal sealed class UploadPlanThumbnailCommandHandler : IRequestHandler<Upload
     private readonly ILoadingPlanRepository _planRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IStorageService _storageService;
-    private readonly IValidator<UploadPlanThumbnailCommand> _validator;
 
     public UploadPlanThumbnailCommandHandler(
         ILoadingPlanRepository planRepository,
         ICurrentUserService currentUserService,
-        IStorageService storageService,
-        IValidator<UploadPlanThumbnailCommand> validator)
+        IStorageService storageService)
     {
         _planRepository = planRepository;
         _currentUserService = currentUserService;
         _storageService = storageService;
-        _validator = validator;
     }
 
     public async Task<Result<string>> Handle(UploadPlanThumbnailCommand request, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<string>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
         var plan = await _planRepository.GetByIdAsync(request.PlanId, companyId, cancellationToken);
         if (plan is null)

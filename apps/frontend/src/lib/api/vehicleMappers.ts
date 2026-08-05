@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import type { VehicleFormValues } from '@/features/data-management/schemas/vehicleSchema';
+import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import {
   toCentimeters,
   fromCentimeters,
   toKilograms,
   fromKilograms,
   type WeightUnitKey,
-} from '@/features/data-management/schemas/productSchema';
+} from '@/features/data-management/products/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
 
@@ -74,15 +74,6 @@ export const vehicleApiSchema = z.object({
 });
 
 export type VehicleApi = z.infer<typeof vehicleApiSchema>;
-
-export const paginatedVehiclesApiSchema = z.object({
-  data: z.object({
-    items: z.array(vehicleApiSchema),
-    totalCount: z.number().int(),
-    page: z.number().int(),
-    pageSize: z.number().int(),
-  }),
-});
 
 export const singleVehicleApiSchema = z.object({
   data: vehicleApiSchema,
@@ -347,11 +338,4 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       ? values.axles![0].maxLoad
       : null,
   };
-}
-
-export function buildUpdateVehiclePayload(
-  id: string,
-  values: VehicleFormValues,
-): CreateVehicleRequest & { id: string } {
-  return { id, ...buildCreateVehiclePayload(values) };
 }

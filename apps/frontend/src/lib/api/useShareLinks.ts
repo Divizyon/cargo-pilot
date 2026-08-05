@@ -48,9 +48,8 @@ export function useShareLinks() {
     queryKey: ['share-links'] as const,
     queryFn: async (): Promise<ShareLink[]> => {
       const { data } = await axiosInstance.get<unknown>('/api/v1/shares');
-      const parsed = z.object({ data: z.array(shareLinkSchema) }).safeParse(data);
-      if (!parsed.success) return [];
-      return parsed.data.data;
+      // Sessiz boş liste yerine hata: şema kayması kullanıcıya görünür olmalı.
+      return z.object({ data: z.array(shareLinkSchema) }).parse(data).data;
     },
     staleTime: 2 * 60 * 1000,
   });
@@ -69,6 +68,19 @@ export function useDeleteShareLink() {
       toast.error(detail ?? 'Bağlantı iptal edilemedi.', { position: 'bottom-right' });
     },
   });
+}
+
+/** Backend süresi dolmuş bağlantıda plan verisi döndürmez, bu kodu döner. */
+const SHARE_EXPIRED_CODE = 'Share.Expired';
+
+const shareErrorSchema = z.object({ error: z.object({ code: z.string() }).partial() }).partial();
+
+/** Sunucunun "süresi dolmuş" yanıtını 404'ten ayırır. */
+export function isShareExpiredError(error: unknown): boolean {
+  const response = (error as AxiosError<unknown> | null)?.response;
+  if (!response) return false;
+  const parsed = shareErrorSchema.safeParse(response.data);
+  return parsed.success && parsed.data.error?.code === SHARE_EXPIRED_CODE;
 }
 
 export function useShareByToken(token: string) {

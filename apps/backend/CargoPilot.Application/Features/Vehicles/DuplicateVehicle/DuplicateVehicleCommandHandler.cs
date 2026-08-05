@@ -2,7 +2,6 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
@@ -10,27 +9,15 @@ namespace CargoPilot.Application.Features.Vehicles.DuplicateVehicle;
 public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVehicleCommand, Result<Guid>> {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<DuplicateVehicleCommand> _validator;
 
     public DuplicateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
-        ICurrentUserService currentUserService,
-        IValidator<DuplicateVehicleCommand> validator) {
+        ICurrentUserService currentUserService) {
         _vehicleRepository = vehicleRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(DuplicateVehicleCommand request, CancellationToken cancellationToken) {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid) {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         var source = await _vehicleRepository.GetByIdAsync(request.Id, companyId, cancellationToken);

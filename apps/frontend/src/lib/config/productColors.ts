@@ -30,8 +30,6 @@ const PRODUCT_GROUP_COLOR: Record<ProductType, Record<string, string>> = {
 
 // Bilinmeyen kombinasyonlar için fallback
 export const COLOR_FALLBACK = '#FB7185'; // Steel Rose
-export const COLOR_FALLBACK_2 = '#0EA5E9'; // Deep Ocean — rezerv
-
 function normalize(s: string): string {
   return s.trim().toLowerCase();
 }
@@ -59,19 +57,3 @@ export function resolveProductColor(
 
   return COLOR_FALLBACK;
 }
-
-// Ürün yönetimi ekranı için sadece load group adından renk döner (type bilinmiyorsa koli varsayılır)
-export function resolveLoadGroupColor(
-  groupName: string | null | undefined,
-  productType?: string | null,
-): string {
-  return resolveProductColor(productType ?? 'koli', groupName);
-}
-
-// Tüm renk referansları için export — UI'da chip/badge rengi olarak kullanılır
-export const ALL_PRODUCT_COLORS = {
-  ...PRODUCT_GROUP_COLOR.koli,
-  ...PRODUCT_GROUP_COLOR.varil,
-  palet: PRODUCT_GROUP_COLOR.palet._default,
-  fallback: COLOR_FALLBACK,
-} as const;

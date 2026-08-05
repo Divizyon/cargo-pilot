@@ -25,7 +25,6 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
     private readonly IErpProductFetcher _erpProductFetcher;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
-    private readonly IValidator<SyncErpItemsCommand> _validator;
     private readonly ILogger<SyncErpItemsCommandHandler> _logger;
 
     public SyncErpItemsCommandHandler(
@@ -46,7 +45,6 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         _erpProductFetcher = erpProductFetcher;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
-        _validator = validator;
         _logger = logger;
     }
 
@@ -54,16 +52,6 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         SyncErpItemsCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<SyncErpItemsResult>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId, cancellationToken);

@@ -5,7 +5,6 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Plans.CreatePlan;
@@ -19,7 +18,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
-    private readonly IValidator<CreatePlanCommand> _validator;
 
     public CreatePlanCommandHandler(
         ILoadingPlanRepository planRepository,
@@ -28,8 +26,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
-        INotificationService notificationService,
-        IValidator<CreatePlanCommand> validator)
+        INotificationService notificationService)
     {
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
@@ -38,21 +35,10 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
-        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(CreatePlanCommand request, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } planUserId)
@@ -178,12 +164,13 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         OptimizationResult result;
         try
         {
-            var engineResult = _optimizationEngine.Run(finalInput);
+            var engineResult = _optimizationEngine.Run(finalInput, cancellationToken);
             result = contamination.Contaminated.Count > 0
                 ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
                 : engineResult;
         }
-        catch (Exception ex)
+        // İstemci vazgeçtiğinde kullanıcıya "başarısız" bildirimi gönderilmez.
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             if (_currentUserService.UserId is { } failedUserId)
             {
