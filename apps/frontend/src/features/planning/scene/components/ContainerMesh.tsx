@@ -10,8 +10,10 @@ import type { DoorDirection } from '@/lib/types/vehicle';
 import { ContainerBody } from './ContainerBody';
 
 import normalUrl from '@/assets/textures/container-steel/normal.jpg';
+// metalness.jpg, roughness.jpg ile birebir ayni dosyaydi. Vite ayni icerikli
+// iki varligi tek dosyaya indirdigi icin metalness URL'i 404 veriyordu; tek
+// doku iki haritaya da veriliyor.
 import roughnessUrl from '@/assets/textures/container-steel/roughness.jpg';
-import metalnessUrl from '@/assets/textures/container-steel/metalness.jpg';
 import aoUrl from '@/assets/textures/container-steel/ao.jpg';
 
 const UV_SCALE = 0.008;
@@ -25,21 +27,16 @@ function DoorPanel({
   height: number;
   depth?: number;
 }) {
-  const [normalMap, roughnessMap, metalnessMap, aoMap] = useTexture([
-    normalUrl,
-    roughnessUrl,
-    metalnessUrl,
-    aoUrl,
-  ]);
+  const [normalMap, roughnessMap, aoMap] = useTexture([normalUrl, roughnessUrl, aoUrl]);
 
   useEffect(() => {
-    for (const tex of [normalMap, roughnessMap, metalnessMap, aoMap]) {
+    for (const tex of [normalMap, roughnessMap, aoMap]) {
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(width * UV_SCALE, height * UV_SCALE);
       tex.needsUpdate = true;
     }
-  }, [width, height, normalMap, roughnessMap, metalnessMap, aoMap]);
+  }, [width, height, normalMap, roughnessMap, aoMap]);
 
   return (
     <mesh position={[width / 2, height / 2, 0]}>
@@ -47,7 +44,7 @@ function DoorPanel({
       <meshStandardMaterial
         normalMap={normalMap}
         roughnessMap={roughnessMap}
-        metalnessMap={metalnessMap}
+        metalnessMap={roughnessMap}
         aoMap={aoMap}
         metalness={0.45}
         roughness={0.7}

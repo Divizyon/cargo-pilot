@@ -70,6 +70,9 @@ async function fetchDashboardStats(): Promise<DashboardStatsData> {
  */
 export const DASHBOARD_STALE_TIME = 60 * 1000;
 
+/** Backend `GetPlansQueryValidator` sayfa boyutunu 1-100 ile sınırlar. */
+const WEEKLY_TREND_PAGE_SIZE = 100;
+
 export function useDashboardStats() {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
@@ -120,7 +123,8 @@ export function useWeeklyTrendPlans() {
       const sixDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
       return fetchLoadingPlans({
         page: 1,
-        pageSize: 200,
+        // Backend sayfa boyutunu 1-100 ile sınırlıyor; daha büyük değer 400 döner.
+        pageSize: WEEKLY_TREND_PAGE_SIZE,
         sortBy: 'createdAt',
         sortDirection: 'desc',
         startDate: sixDaysAgo.toISOString(),
