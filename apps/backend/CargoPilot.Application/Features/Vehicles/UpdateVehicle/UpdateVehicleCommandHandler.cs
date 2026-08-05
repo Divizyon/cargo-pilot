@@ -1,7 +1,6 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.UpdateVehicle;
@@ -9,27 +8,15 @@ namespace CargoPilot.Application.Features.Vehicles.UpdateVehicle;
 public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand, Result<Guid>> {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<UpdateVehicleCommand> _validator;
 
     public UpdateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
-        ICurrentUserService currentUserService,
-        IValidator<UpdateVehicleCommand> validator) {
+        ICurrentUserService currentUserService) {
         _vehicleRepository = vehicleRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(UpdateVehicleCommand request, CancellationToken cancellationToken) {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid) {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         var vehicle = await _vehicleRepository.GetByIdAsync(request.Id, companyId, cancellationToken);

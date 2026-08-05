@@ -45,9 +45,18 @@ public sealed class ErpExportJob {
         _integrationRepository.AddSyncLog(syncLog);
 
         try {
-            await _erpExportService.ExportAsync(plan, integration, cancellationToken);
-            syncLog.Complete(syncedRecordCount: 1);
-            plan.MarkErpSent();
+            var exportResult = await _erpExportService.ExportAsync(plan, integration, cancellationToken);
+
+            if (exportResult.IsSuccess) {
+                syncLog.Complete(exportResult.Data);
+                plan.MarkErpSent();
+            }
+            else {
+                // Aktarım yapılmadıysa başarı kaydı üretilmez.
+                syncLog.Fail(exportResult.Error?.Description ?? "ERP aktarımı başarısız.");
+                plan.MarkErpFailed();
+            }
+
             // Tek SaveChanges: plan durumu + syncLog aynı DbContext üzerinden kaydedilir.
             await _planRepository.SaveChangesAsync(cancellationToken);
         }

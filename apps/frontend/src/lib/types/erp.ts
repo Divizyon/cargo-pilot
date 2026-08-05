@@ -31,16 +31,12 @@ export const erpConnectionSchema = z.object({
   lastTestedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-export type ErpConnection = z.infer<typeof erpConnectionSchema>;
-
 export const erpSyncSettingsSchema = z.object({
   syncInterval: z.enum(['FourHours', 'Daily']),
   syncStatus: z.enum(['Idle', 'Running']),
   nextScheduledSyncAt: z.string().datetime({ offset: true }).nullable(),
   lastSyncedAt: z.string().datetime({ offset: true }).nullable(),
 });
-
-export type ErpSyncSettings = z.infer<typeof erpSyncSettingsSchema>;
 
 export const erpPendingMatchSchema = z.object({
   id: z.string().uuid(),
@@ -78,8 +74,6 @@ export const erpSyncSummarySchema = z.object({
   syncedAt: z.string().datetime({ offset: true }).optional(),
 });
 
-export type ErpSyncSummary = z.infer<typeof erpSyncSummarySchema>;
-
 export const erpSyncFiltersSchema = z.object({
   categoryId: z.string().nullable().optional(),
   warehouseId: z.string().nullable().optional(),
@@ -92,14 +86,10 @@ export const erpFilterOptionSchema = z.object({
   name: z.string(),
 });
 
-export type ErpFilterOption = z.infer<typeof erpFilterOptionSchema>;
-
 export const erpSyncOptionsSchema = z.object({
   categories: z.array(erpFilterOptionSchema),
   warehouses: z.array(erpFilterOptionSchema),
 });
-
-export type ErpSyncOptions = z.infer<typeof erpSyncOptionsSchema>;
 
 export const ErpShipmentStatus = {
   Pending: 'Pending',
@@ -116,8 +106,6 @@ export const erpShipmentOrderItemSchema = z.object({
   quantity: z.number().int().min(1),
   unitWeight: z.number().nullable(),
 });
-
-export type ErpShipmentOrderItem = z.infer<typeof erpShipmentOrderItemSchema>;
 
 export const erpShipmentOrderSchema = z.object({
   id: z.string(),
@@ -163,8 +151,6 @@ export const erpSyncLogEntrySchema = z.object({
   occurredAt: z.string().datetime({ offset: true }),
 });
 
-export type ErpSyncLogEntry = z.infer<typeof erpSyncLogEntrySchema>;
-
 export const erpSyncRunSchema = z.object({
   id: z.string(),
   startedAt: z.string().datetime({ offset: true }),
@@ -175,8 +161,6 @@ export const erpSyncRunSchema = z.object({
   errorCount: z.number().int().min(0),
   entries: z.array(erpSyncLogEntrySchema),
 });
-
-export type ErpSyncRun = z.infer<typeof erpSyncRunSchema>;
 
 export const SyncLogStatus = { Running: 0, Success: 1, PartialFailure: 2, Failed: 3 } as const;
 export type SyncLogStatusValue = (typeof SyncLogStatus)[keyof typeof SyncLogStatus];
@@ -190,8 +174,6 @@ export const syncLogDtoSchema = z.object({
   errorMessage: z.string().nullable(),
 });
 
-export type SyncLogDto = z.infer<typeof syncLogDtoSchema>;
-
 // ─── User Mapping ──────────────────────────────────────────────────────────────
 
 export const erpRemoteUserSchema = z.object({
@@ -200,8 +182,6 @@ export const erpRemoteUserSchema = z.object({
   erpUserEmail: z.string().nullable(),
   erpRole: z.string().nullable().optional(),
 });
-
-export type ErpRemoteUser = z.infer<typeof erpRemoteUserSchema>;
 
 export const erpUserMappingSchema = z.object({
   id: z.string(),
@@ -229,8 +209,6 @@ export const erpRoleConflictLogSchema = z.object({
   cargoUserRole: z.string(),
 });
 
-export type ErpRoleConflictLog = z.infer<typeof erpRoleConflictLogSchema>;
-
 export const erpUnassignedDataItemSchema = z.object({
   id: z.string(),
   entityType: z.enum(['Product', 'ShipmentOrder']),
@@ -240,8 +218,6 @@ export const erpUnassignedDataItemSchema = z.object({
   erpUserName: z.string(),
   occurredAt: z.string().datetime({ offset: true }),
 });
-
-export type ErpUnassignedDataItem = z.infer<typeof erpUnassignedDataItemSchema>;
 
 // ─── ERP Settings (connection credentials) ────────────────────────────────────
 
@@ -253,5 +229,3 @@ export const erpSettingsApiSchema = z.object({
   serverAddress: z.string(),
   hasPassword: z.boolean(),
 });
-
-export type ErpSettingsApi = z.infer<typeof erpSettingsApiSchema>;

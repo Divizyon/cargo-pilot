@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { GlobalSpinner } from '@/components/shared/GlobalSpinner';
 import { NotificationBridge } from '@/components/shared/NotificationBridge';
 import { queryClient } from '@/lib/api/queryClient';
-import { initializeAuth } from '@/lib/auth/initializeAuth';
+import { initializeAuth } from '@/lib/api/initializeAuth';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import i18n from '@/lib/config/i18n';

@@ -2,7 +2,6 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
-using CargoPilot.Domain.Enums;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Integrations.TriggerSync;
@@ -39,36 +38,12 @@ internal sealed class TriggerSyncCommandHandler : IRequestHandler<TriggerSyncCom
             return Result<SyncSettingsResponse>.Failure(
                 new Error(ErrorType.NotFound, "Integration.NotFound", "Entegrasyon bulunamadı."));
 
-        integration.StartSync();
-        await _integrationRepository.SaveChangesAsync(cancellationToken);
-
-        try
-        {
-            await ExecuteSyncAsync();
-
-            var now = DateTime.UtcNow;
-            DateTime? nextScheduledSyncAt = integration.SyncFrequency.HasValue
-                ? now.Add(integration.SyncFrequency.Value.ToTimeSpan())
-                : null;
-
-            integration.CompleteSync(now, nextScheduledSyncAt);
-        }
-        catch (Exception)
-        {
-            integration.FailSync();
-        }
-
-        await _integrationRepository.SaveChangesAsync(cancellationToken);
-
-        return Result<SyncSettingsResponse>.Success(new SyncSettingsResponse(
-            integration.Id,
-            integration.SyncFrequency,
-            integration.LastSyncDate,
-            integration.NextScheduledSyncAt,
-            integration.SyncStatus
-        ));
+        // Manuel senkronizasyon henüz uygulanmadı (PR #463 bekleniyor). Hiçbir kayıt
+        // aktarılmadığı için LastSyncDate damgalanmaz; aksi halde kullanıcı güncel
+        // olmayan veriyi senkronize sanır. Durum da Running'de bırakılmaz.
+        return Result<SyncSettingsResponse>.Failure(new Error(
+            ErrorType.Unexpected,
+            "Sync.NotImplemented",
+            "Manuel senkronizasyon henüz kullanıma açılmadı. Ürünler ERP ekranından aktarılabilir."));
     }
-
-    // STUB: PR #463 (ERP vehicle upsert) merge edildiğinde IErpExportService.ExportAsync() çağrısıyla değiştirilecek.
-    private static Task ExecuteSyncAsync() => Task.CompletedTask;
 }

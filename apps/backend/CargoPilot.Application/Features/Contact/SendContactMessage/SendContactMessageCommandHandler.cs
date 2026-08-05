@@ -16,7 +16,6 @@ internal sealed class SendContactMessageCommandHandler
             "İletişim formu otomatik yanıt gönderilemedi. Alıcı: {Email}");
 
     private readonly IEmailService _emailService;
-    private readonly IValidator<SendContactMessageCommand> _validator;
     private readonly ILogger<SendContactMessageCommandHandler> _logger;
 
     public SendContactMessageCommandHandler(
@@ -25,7 +24,6 @@ internal sealed class SendContactMessageCommandHandler
         ILogger<SendContactMessageCommandHandler> logger)
     {
         _emailService = emailService;
-        _validator = validator;
         _logger = logger;
     }
 
@@ -33,16 +31,6 @@ internal sealed class SendContactMessageCommandHandler
         SendContactMessageCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<bool>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         await _emailService.SendContactNotificationEmailAsync(
             request.Name,
             request.Email,

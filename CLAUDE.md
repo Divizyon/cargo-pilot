@@ -68,7 +68,19 @@
 
 \- `features/platform` for auth, users, billing, settings, reports, and sharing.
 
-\- Route entry components belong in `pages`.
+\- Each feature is split into sub-domain folders, and each sub-domain owns its own `components/`, `hooks/`, and `schemas/`:
+
+\- `data-management/{products,vehicles,imports,plans}`
+
+\- `planning/{panels,scene,export,sharing}`
+
+\- `platform/{auth,billing,dashboard,erp,members,profile,reporting,settings,notifications,sharing}`
+
+\- Add a file to an existing sub-domain rather than to the feature root; open a new sub-domain only for a genuinely new business area.
+
+\- Cross-sub-domain imports use the `@/` alias, not relative `../` paths.
+
+\- Route entry components belong in `pages`, grouped by route area (`pages/auth`, `pages/products`, …).
 
 \- Shared UI belongs in `components/shared`.
 
@@ -76,7 +88,7 @@
 
 \- Query hooks and fetchers belong in `lib/api`, not feature folders.
 
-\- Avoid new top-level folders, barrel exports, and broad file moves.
+\- Avoid new top-level folders, barrel exports, and broad file moves. The sub-domain layout above was introduced by a one-off approved restructuring (AUDIT-07); do not treat it as licence for further moves.
 
 \- Prefer named exports and function components; avoid default exports and `React.FC`.
 

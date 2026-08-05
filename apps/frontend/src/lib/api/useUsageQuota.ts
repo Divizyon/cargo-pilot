@@ -18,22 +18,45 @@ const usageQuotaSchema = z.object({
 export type UsageQuota = z.infer<typeof usageQuotaSchema>;
 export type QuotaItem = z.infer<typeof quotaItemSchema>;
 
-export function usagePercent(used: number, limit: number | null): number {
-  if (limit === null || limit === 0) return 0;
-  return Math.min(Math.round((used / limit) * 100), 100);
-}
+/** Backend `GET /api/v1/me/subscription` yanıtı — limit ve kalan hak alanları. */
+const mySubscriptionSchema = z.object({
+  maxItemCount: z.number().int(),
+  remainingItemCount: z.number().int(),
+  maxVehicleCount: z.number().int(),
+  remainingVehicleCount: z.number().int(),
+  maxLoadingPlanCount: z.number().int(),
+  remainingLoadingPlanCount: z.number().int(),
+  trialEndsAt: z.string().nullable(),
+});
+
+const mySubscriptionResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: mySubscriptionSchema,
+});
 
 export function isQuotaExceeded(item: QuotaItem): boolean {
   if (item.limit === null || item.limit === 0) return false;
   return item.used >= item.limit;
 }
 
+/** Backend limit + kalan hak döndürür; kullanım = limit - kalan. */
+function toQuotaItem(max: number, remaining: number): QuotaItem {
+  return { used: Math.max(max - remaining, 0), limit: max };
+}
+
 export function useUsageQuota() {
   return useQuery({
-    queryKey: ['usage-quota'],
-    queryFn: async () => {
-      const res = await axiosInstance.get('/subscriptions/usage');
-      return usageQuotaSchema.parse(res.data);
+    queryKey: ['usage-quota'] as const,
+    queryFn: async (): Promise<UsageQuota> => {
+      const res = await axiosInstance.get('/api/v1/me/subscription');
+      const { data } = mySubscriptionResponseSchema.parse(res.data);
+      return usageQuotaSchema.parse({
+        plans: toQuotaItem(data.maxLoadingPlanCount, data.remainingLoadingPlanCount),
+        vehicles: toQuotaItem(data.maxVehicleCount, data.remainingVehicleCount),
+        products: toQuotaItem(data.maxItemCount, data.remainingItemCount),
+        renewsAt: data.trialEndsAt,
+        scope: 'user',
+      });
     },
     staleTime: 2 * 60 * 1000,
   });

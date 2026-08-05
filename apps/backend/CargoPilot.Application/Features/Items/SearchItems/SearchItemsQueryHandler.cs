@@ -1,7 +1,6 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Items.SearchItems;
@@ -11,34 +10,21 @@ public sealed class SearchItemsQueryHandler : IRequestHandler<SearchItemsQuery, 
     private readonly IItemRepository _itemRepository;
     private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<SearchItemsQuery> _validator;
 
     public SearchItemsQueryHandler(
         IItemRepository itemRepository,
         IIntegrationRepository integrationRepository,
-        ICurrentUserService currentUserService,
-        IValidator<SearchItemsQuery> validator)
+        ICurrentUserService currentUserService)
     {
         _itemRepository = itemRepository;
         _integrationRepository = integrationRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<PagedResult<ItemSummaryDto>>> Handle(
         SearchItemsQuery request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<PagedResult<ItemSummaryDto>>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         var pagedItems = await _itemRepository.SearchAsync(
