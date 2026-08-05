@@ -22,11 +22,16 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
 
     public async Task<SharePlanDto?> GetSharePlanByTokenAsync(string token, CancellationToken cancellationToken = default)
     {
+        var now = DateTime.UtcNow;
+
+        // Süresi dolmuş bağlantı sorgu düzeyinde elenir; çağıranın kontrolüne bırakılmaz.
         var shareLink = await _context.ShareLinks
             .AsNoTracking()
             .Include(sl => sl.Plan)
                 .ThenInclude(p => p.Vehicle)
-            .FirstOrDefaultAsync(sl => sl.Token == token, cancellationToken);
+            .FirstOrDefaultAsync(
+                sl => sl.Token == token && (sl.ExpiresAt == null || sl.ExpiresAt > now),
+                cancellationToken);
 
         if (shareLink is null) return null;
 
@@ -119,7 +124,37 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
             sl.ViewCount);
     }
 
+    public async Task<IReadOnlyList<ShareLinkDto>> ListByCompanyAsync(
+        Guid? companyId,
+        CancellationToken cancellationToken = default)
+        => await _context.ShareLinks
+            .AsNoTracking()
+            .Include(sl => sl.Plan)
+            .Where(sl => sl.Plan.CompanyId == companyId)
+            .OrderByDescending(sl => sl.CreatedAtUtc)
+            .Select(sl => new ShareLinkDto(
+                sl.Id,
+                sl.PlanId,
+                sl.Plan.PlanName,
+                sl.Token,
+                sl.Validity,
+                sl.ExpiresAt,
+                sl.CreatedAtUtc,
+                sl.ExpiresAt != null && sl.ExpiresAt < DateTime.UtcNow,
+                sl.ViewCount))
+            .ToListAsync(cancellationToken);
+
+    public async Task<ShareLink?> GetOwnedByCompanyAsync(
+        Guid id,
+        Guid? companyId,
+        CancellationToken cancellationToken = default)
+        => await _context.ShareLinks
+            .Include(sl => sl.Plan)
+            .FirstOrDefaultAsync(sl => sl.Id == id && sl.Plan.CompanyId == companyId, cancellationToken);
+
     public void Add(ShareLink shareLink) => _context.ShareLinks.Add(shareLink);
+
+    public void Remove(ShareLink shareLink) => _context.ShareLinks.Remove(shareLink);
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);

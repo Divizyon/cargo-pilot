@@ -3,7 +3,6 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Integrations.UpdateSyncSettings;
@@ -12,30 +11,17 @@ internal sealed class UpdateSyncSettingsCommandHandler : IRequestHandler<UpdateS
 {
     private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IValidator<UpdateSyncSettingsCommand> _validator;
 
     public UpdateSyncSettingsCommandHandler(
         IIntegrationRepository integrationRepository,
-        ICurrentUserService currentUserService,
-        IValidator<UpdateSyncSettingsCommand> validator)
+        ICurrentUserService currentUserService)
     {
         _integrationRepository = integrationRepository;
         _currentUserService = currentUserService;
-        _validator = validator;
     }
 
     public async Task<Result<SyncSettingsResponse>> Handle(UpdateSyncSettingsCommand request, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<SyncSettingsResponse>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
         if (companyId is null)
             return Result<SyncSettingsResponse>.Failure(

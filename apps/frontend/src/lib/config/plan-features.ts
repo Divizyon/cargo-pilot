@@ -13,8 +13,6 @@ export const PLAN_FEATURES = {
   apiAccess: 'enterprise',
 } as const satisfies Record<string, SubscriptionPlan>;
 
-export type FeatureKey = keyof typeof PLAN_FEATURES;
-
 export const PLAN_MAX_MEMBERS: Record<SubscriptionPlan, number> = {
   free: 1,
   starter: 5,
@@ -33,10 +31,4 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
   starter: { maxPlansPerMonth: 30, maxVehicles: 5, maxProducts: 500 },
   pro: { maxPlansPerMonth: null, maxVehicles: null, maxProducts: null },
   enterprise: { maxPlansPerMonth: null, maxVehicles: null, maxProducts: null },
-};
-
-export const PLAN_PRICES: Record<Exclude<SubscriptionPlan, 'enterprise'>, number> = {
-  free: 0,
-  starter: 499,
-  pro: 1299,
 };

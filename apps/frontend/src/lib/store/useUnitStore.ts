@@ -9,13 +9,17 @@ export type AppLanguage = 'tr' | 'en';
 
 interface UnitState {
   language: AppLanguage;
+  timezone: string;
   dimensionUnit: DimensionUnit;
   weightUnit: WeightUnit;
   volumeUnit: VolumeUnit;
   dateFormat: DateFormat;
   setUnits: (
     units: Partial<
-      Pick<UnitState, 'language' | 'dimensionUnit' | 'weightUnit' | 'volumeUnit' | 'dateFormat'>
+      Pick<
+        UnitState,
+        'language' | 'timezone' | 'dimensionUnit' | 'weightUnit' | 'volumeUnit' | 'dateFormat'
+      >
     >,
   ) => void;
 }
@@ -24,6 +28,7 @@ export const useUnitStore = create<UnitState>()(
   persist(
     (set) => ({
       language: 'tr',
+      timezone: 'Europe/Istanbul',
       dimensionUnit: 'cm',
       weightUnit: 'kg',
       volumeUnit: 'm³',

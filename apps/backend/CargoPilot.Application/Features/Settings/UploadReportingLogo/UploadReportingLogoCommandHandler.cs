@@ -1,7 +1,6 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Settings.UploadReportingLogo;
@@ -12,34 +11,21 @@ internal sealed class UploadReportingLogoCommandHandler
     private readonly ICompanyRepository _companyRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IStorageService _storageService;
-    private readonly IValidator<UploadReportingLogoCommand> _validator;
 
     public UploadReportingLogoCommandHandler(
         ICompanyRepository companyRepository,
         ICurrentUserService currentUserService,
-        IStorageService storageService,
-        IValidator<UploadReportingLogoCommand> validator)
+        IStorageService storageService)
     {
         _companyRepository = companyRepository;
         _currentUserService = currentUserService;
         _storageService = storageService;
-        _validator = validator;
     }
 
     public async Task<Result<string>> Handle(
         UploadReportingLogoCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<string>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
         if (companyId is null)
             return Result<string>.Failure(

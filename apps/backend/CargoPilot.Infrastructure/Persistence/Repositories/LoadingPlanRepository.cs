@@ -149,11 +149,18 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         if (vehicleId.HasValue)
             query = query.Where(p => p.VehicleId == vehicleId.Value);
 
+        // API doluluk filtresini yüzde (0-100) olarak alır, kolon ise oran (0-1) saklar.
         if (minFillRate.HasValue)
-            query = query.Where(p => p.FillRate >= minFillRate.Value);
+        {
+            var minRatio = minFillRate.Value / 100m;
+            query = query.Where(p => p.FillRate >= minRatio);
+        }
 
         if (maxFillRate.HasValue)
-            query = query.Where(p => p.FillRate <= maxFillRate.Value);
+        {
+            var maxRatio = maxFillRate.Value / 100m;
+            query = query.Where(p => p.FillRate <= maxRatio);
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 

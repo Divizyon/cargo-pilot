@@ -9,27 +9,14 @@ import type {
 } from '@/lib/types/loadingPlan';
 import { UnfitReason as UnfitReasonConst } from '@/lib/types/loadingPlan';
 import { SCENE } from '@/lib/config/scene-config';
-import { computeViolations } from '@/lib/utils/geometry';
+import { computeViolations } from '@/lib/utils/geometry/geometry';
 import {
   rotatedDimensions,
   isOrientationAllowed,
   type OrientationIndex,
-} from '@/lib/utils/boxOrientations';
-import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/checkOrientationFit';
+} from '@/lib/utils/geometry/boxOrientations';
+import { applyContainerOverflow, fitsInVehicle } from '@/lib/utils/geometry/checkOrientationFit';
 import { useUIStore } from '@/lib/store/useUIStore';
-
-export function assignSkuColor(
-  sku: string,
-  currentMap: Record<string, string>,
-): Record<string, string> {
-  if (currentMap[sku]) return currentMap;
-  const palette = SCENE.COLORS.SKU_PALETTE;
-  const usedColors = new Set(Object.values(currentMap));
-  const nextColor =
-    palette.find((c) => !usedColors.has(c)) ??
-    palette[Object.keys(currentMap).length % palette.length];
-  return { ...currentMap, [sku]: nextColor };
-}
 
 function applySurfaceViolations(
   placements: PlacementWithDimensions[],
@@ -381,7 +368,6 @@ interface PlanStore {
    * Optimizasyon algoritmasını bypass eder, sadece render yükü oluşturur.
    * Gereksinim: en az 1 selectedItem ve selectedVehicle olmalı.
    */
-  mockPlacements: (count: number) => void;
   updatePlacementPosition: (idx: number, x: number, y: number, z: number) => void;
   reorderItems: (activeId: string, overId: string) => void;
   reorderVehicles: (activeId: string, overId: string) => void;
@@ -709,38 +695,6 @@ export const usePlanStore = create<PlanStore>((set) => ({
             ? [...s.placements, ...extraStagingPlacements]
             : s.placements,
       };
-    }),
-
-  mockPlacements: (count) =>
-    set((s) => {
-      const v = s.selectedVehicle;
-      const items = s.selectedItems;
-      if (!v || items.length === 0) return {};
-      const placements: PlacementWithDimensions[] = [];
-      for (let i = 0; i < count; i++) {
-        const entry = items[i % items.length];
-        const item = entry.item;
-        const color = s.skuColorMap[item.sku] ?? SCENE.COLORS.NORMAL_STR;
-        // Pseudo-random pozisyon — overlap normal, isViolation pipeline yakalar.
-        const x = Math.random() * Math.max(0, v.width - item.width);
-        const y = Math.random() * Math.max(0, v.height - item.height);
-        const z = Math.random() * Math.max(0, v.length - item.length);
-        placements.push({
-          itemId: item.id,
-          positionX: x,
-          positionY: y,
-          positionZ: z,
-          orientationIndex: 0,
-          layer: 1,
-          isViolation: false,
-          width: item.width,
-          height: item.height,
-          depth: item.length,
-          weight: item.weight,
-          color,
-        });
-      }
-      return { placements };
     }),
 
   setOrientation: (instanceId, idx) =>

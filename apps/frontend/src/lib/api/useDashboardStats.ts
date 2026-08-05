@@ -63,12 +63,22 @@ async function fetchDashboardStats(): Promise<DashboardStatsData> {
   };
 }
 
+/**
+ * Panel verisi her pencere odağında yeniden çekilmesin diye kısa bir tazelik
+ * süresi tanımlanır; `staleTime: 0` ile her sekme dönüşü tüm sorguları
+ * tetikliyordu.
+ */
+export const DASHBOARD_STALE_TIME = 60 * 1000;
+
+/** Backend `GetPlansQueryValidator` sayfa boyutunu 1-100 ile sınırlar. */
+const WEEKLY_TREND_PAGE_SIZE = 100;
+
 export function useDashboardStats() {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
     queryKey: ['dashboard-stats', userId] as const,
     queryFn: fetchDashboardStats,
-    staleTime: 0,
+    staleTime: DASHBOARD_STALE_TIME,
     enabled: Boolean(userId),
   });
 }
@@ -86,13 +96,20 @@ async function fetchLoadingPlans(params: Record<string, unknown>): Promise<Loadi
   return results;
 }
 
-export function useDashboardPlans() {
+/**
+ * Panelin son planlar listesi. `select` ile aynı sorgudan farklı görünümler
+ * türetilebilir; ayrı bir anahtarla aynı isteği ikinci kez atmaya gerek yoktur.
+ */
+export function useDashboardPlans<TData = LoadingPlanListItem[]>(
+  select?: (plans: LoadingPlanListItem[]) => TData,
+) {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery({
     queryKey: ['dashboard-plans', userId] as const,
     queryFn: () =>
       fetchLoadingPlans({ page: 1, pageSize: 10, sortBy: 'createdAt', sortDirection: 'desc' }),
-    staleTime: 0,
+    select,
+    staleTime: DASHBOARD_STALE_TIME,
     enabled: Boolean(userId),
   });
 }
@@ -106,13 +123,14 @@ export function useWeeklyTrendPlans() {
       const sixDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
       return fetchLoadingPlans({
         page: 1,
-        pageSize: 200,
+        // Backend sayfa boyutunu 1-100 ile sınırlıyor; daha büyük değer 400 döner.
+        pageSize: WEEKLY_TREND_PAGE_SIZE,
         sortBy: 'createdAt',
         sortDirection: 'desc',
         startDate: sixDaysAgo.toISOString(),
       });
     },
-    staleTime: 0,
+    staleTime: DASHBOARD_STALE_TIME,
     enabled: Boolean(userId),
   });
 }

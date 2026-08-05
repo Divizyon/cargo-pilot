@@ -9,7 +9,7 @@ import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
 import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
-import { type OrientationIndex } from '@/lib/utils/boxOrientations';
+import { type OrientationIndex } from '@/lib/utils/geometry/boxOrientations';
 import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
 // ─── Vehicle sub-object ───────────────────────────────────────────────────────

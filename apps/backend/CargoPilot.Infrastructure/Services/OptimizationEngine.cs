@@ -6,7 +6,7 @@ namespace CargoPilot.Infrastructure.Services;
 
 internal sealed class OptimizationEngine : IOptimizationEngine
 {
-    public OptimizationResult Run(OptimizationInput input)
+    public OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken = default)
     {
         var placements = new List<PlacedBox>();
         var unplaced = new List<UnplacedBox>();
@@ -39,6 +39,10 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         foreach (var item in instances)
         {
+            // Her kutu için aday pozisyon taraması pahalıdır; iptal edilen istekte
+            // döngünün sonuna kadar çalışmaya devam edilmez.
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (totalWeight + item.Weight > input.VehicleMaxWeight)
             {
                 unplaced.Add(new UnplacedBox(item.ItemId, UnplacedReason.WeightLimitExceeded));
@@ -107,7 +111,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // CoG sapması azaltılır. En fazla 3 tur çalışır, O(n²) her turda.
         if (input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance && totalWeight > 0m)
             placements = ImproveBalance(placements, input.VehicleWidth, input.VehicleHeight,
-                                        input.VehicleLength, totalWeight, halfW, halfL);
+                                        input.VehicleLength, totalWeight, halfW, halfL,
+                                        cancellationToken);
 
         totalWeight = placements.Sum(p => p.Weight);
 
@@ -225,12 +230,16 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         List<PlacedBox> placements,
         decimal vW, decimal vH, decimal vL,
         decimal totalWeight, decimal halfW, decimal halfL,
+        CancellationToken cancellationToken,
         int maxPasses = 3)
     {
         var current = placements.ToList();
 
         for (int pass = 0; pass < maxPasses; pass++)
         {
+            // Her geçiş O(n²) çift dener; iptal edilen istekte kalan geçişler atlanır.
+            cancellationToken.ThrowIfCancellationRequested();
+
             var improved = false;
             var bestPenalty = GlobalBalancePenalty(current, totalWeight, halfW, halfL);
 
@@ -292,6 +301,10 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         // Takas sonrası istif kısıtı kontrolü: i ve j kendileri hariç tutularak
         // kontrol edilir (others zaten bu listeyi oluşturmuş durumda).
+        // İstiflenebilirlik de burada doğrulanır; aksi hâlde denge iyileştirmesi
+        // bir kutuyu istiflenemez kutunun üstüne taşıyabiliyordu.
+        if (ViolatesStackability(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
+        if (ViolatesStackability(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
         if (ViolatesStackCount(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
         if (ViolatesStackCount(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
         if (ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;

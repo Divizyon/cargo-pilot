@@ -4,7 +4,6 @@ using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
-using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Items.CreateItem;
@@ -14,34 +13,21 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
     private readonly IItemRepository _itemRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
-    private readonly IValidator<CreateItemCommand> _validator;
 
     public CreateItemCommandHandler(
         IItemRepository itemRepository,
         ICurrentUserService currentUserService,
-        INotificationService notificationService,
-        IValidator<CreateItemCommand> validator)
+        INotificationService notificationService)
     {
         _itemRepository = itemRepository;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
-        _validator = validator;
     }
 
     public async Task<Result<Guid>> Handle(
         CreateItemCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var failures = validationResult.Errors
-                .Select(e => new ValidationFailure(e.PropertyName, e.ErrorMessage))
-                .ToList();
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures));
-        }
-
         var companyId = _currentUserService.CompanyId;
 
         if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } userId)

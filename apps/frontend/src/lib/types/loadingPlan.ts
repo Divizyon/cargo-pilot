@@ -29,9 +29,6 @@ export const loadingPlanSchema = z.object({
   placementDetails: z.array(placementSchema),
 });
 
-export type Placement = z.infer<typeof placementSchema>;
-export type LoadingPlan = z.infer<typeof loadingPlanSchema>;
-
 export const placementWithDimensionsSchema = placementSchema.extend({
   vehicleId: z.string().optional(),
   width: z.number().positive(),

@@ -1,6 +1,8 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Behaviors;
 using CargoPilot.Application.Services;
 using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CargoPilot.Application;
@@ -13,6 +15,8 @@ public static class DependencyInjection
             cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         services.AddScoped<INotificationService, NotificationService>();
 

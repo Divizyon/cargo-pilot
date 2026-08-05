@@ -95,7 +95,6 @@ public static class DependencyInjection {
         services.AddScoped<ILoadingPlanRepository, LoadingPlanRepository>();
         services.AddScoped<ILoadingPlanItemGroupRepository, LoadingPlanItemGroupRepository>();
         services.AddScoped<IOptimizationEngine, OptimizationEngine>();
-        services.AddScoped<IErpConstraintMappingService, ErpConstraintMappingService>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserPasswordHistoryRepository, UserPasswordHistoryRepository>();

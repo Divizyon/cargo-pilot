@@ -10,7 +10,7 @@ import {
   planFullDetailApiResponseSchema,
   fromApiFullDetail,
 } from './loadingPlanMappers';
-import { exportPlanToPdf } from '@/lib/utils/exportPlanToPdf';
+import { exportPlanToPdf } from '@/lib/utils/export/exportPlanToPdf';
 
 export const planReportSchema = z.object({
   id: z.uuid(),
@@ -62,9 +62,12 @@ const reportsApiResponseSchema = z
   })
   .passthrough();
 
+/**
+ * Backend doluluk oranını 0-1 aralığında saklar (yerleşen hacim / araç hacmi).
+ * Ölçek çalışma anında tahmin edilmez; sözleşme değişirse burası da değişmelidir.
+ */
 function toFillPct(value: number | null | undefined): number {
-  const v = value ?? 0;
-  const pct = v <= 1 ? v * 100 : v;
+  const pct = (value ?? 0) * 100;
   return Math.min(100, Math.max(0, Math.round(pct)));
 }
 
