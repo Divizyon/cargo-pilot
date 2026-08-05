@@ -234,8 +234,16 @@ export function useERPSavedMatches(integrationId?: string) {
   });
 }
 
-export function useConfirmERPMatch() {
+export type ErpMatchMode = 'create' | 'update';
+
+/**
+ * Eşleştirme kaydetme ve güncelleme ayni PUT isteğidir; yalnızca kullanıcıya
+ * gösterilen metin değişir. Iki ayrı hook yerine tek hook mode alir.
+ */
+export function useSaveERPMatch(mode: ErpMatchMode) {
   const queryClient = useQueryClient();
+  const verb = mode === 'create' ? 'kaydedildi' : 'güncellendi';
+  const failVerb = mode === 'create' ? 'kaydedilemedi' : 'güncellenemedi';
   return useMutation<
     unknown,
     AxiosError<ApiError>,
@@ -250,35 +258,11 @@ export function useConfirmERPMatch() {
     onSuccess: (_data, { integrationId }) => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
       queryClient.invalidateQueries({ queryKey: ['erp', 'saved-matches', integrationId] });
-      toast.success('Eşleştirme kaydedildi', { position: 'bottom-right' });
+      toast.success(`Eşleştirme ${verb}`, { position: 'bottom-right' });
     },
     onError: (error) => {
       const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme kaydedilemedi', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useUpdateERPMatch() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    unknown,
-    AxiosError<ApiError>,
-    { integrationId: string; mappingId: string; cargoPilotItemId: string }
-  >({
-    mutationFn: ({ integrationId, mappingId, cargoPilotItemId }) =>
-      axiosInstance
-        .put(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`, {
-          cargoPilotItemId,
-        })
-        .then((r) => r.data),
-    onSuccess: (_data, { integrationId }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'saved-matches', integrationId] });
-      toast.success('Eşleştirme güncellendi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme güncellenemedi', { position: 'bottom-right' });
+      toast.error(detail ?? `Eşleştirme ${failVerb}`, { position: 'bottom-right' });
     },
   });
 }

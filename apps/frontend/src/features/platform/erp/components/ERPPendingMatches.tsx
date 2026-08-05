@@ -30,8 +30,7 @@ import {
   useERPConnection,
   useERPPendingMatches,
   useERPSavedMatches,
-  useConfirmERPMatch,
-  useUpdateERPMatch,
+  useSaveERPMatch,
   useDeleteERPMatch,
 } from '@/lib/api/useERPIntegration';
 import { useItems } from '@/lib/api/useItems';
@@ -45,8 +44,8 @@ export function ERPPendingMatches() {
   const { data: saved, isLoading: isSavedLoading } = useERPSavedMatches(integrationId);
   const { data: itemsData, isLoading: isItemsLoading } = useItems({ pageSize: 200 });
 
-  const { mutate: confirm, isPending: isConfirming } = useConfirmERPMatch();
-  const { mutate: update, isPending: isUpdating } = useUpdateERPMatch();
+  const { mutate: confirm, isPending: isConfirming } = useSaveERPMatch('create');
+  const { mutate: update, isPending: isUpdating } = useSaveERPMatch('update');
   const { mutate: remove, isPending: isDeleting } = useDeleteERPMatch();
 
   const [matchDialog, setMatchDialog] = useState<{
