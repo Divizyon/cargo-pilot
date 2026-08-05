@@ -3,7 +3,8 @@
 **Test edilecek dal:** `chore/AUDIT-test-birlesik`
 **Karşılaştırma tabanı:** `dev`
 
-Bu dal sekiz denetim dalının birleşimidir (AUDIT-01…07, 09). Toplam **329 dosya, +1.487 / −8.738 satır**.
+Bu dal on denetim dalının birleşimidir (AUDIT-01…07, 09, 10, 11). Toplam **376 dosya,
++2.071 / −9.448 satır**.
 
 ```bash
 git fetch origin
@@ -375,6 +376,56 @@ yerine `validationErrors` listesinde. Arayüzde mesaj görünmüyorsa **bunu bil
 
 ---
 
+## 8A. Kullanılmayan kod temizliği — AUDIT-10
+
+**Davranış değişmedi.** 56 kullanılmayan export ve bunlarla öksüz kalan 14 yardımcı silindi
+(net 584 satır). Amaç: hiçbir canlı akışın etkilenmediğini doğrulamak.
+
+### 8A.1 ERP ekranları
+1. `/settings` → ERP sekmesi: bağlantı ayarları, senkron ayarları, senkron geçmişi.
+2. ERP ürün alım kuyruğu (`/erp`).
+3. ERP eşleştirme ekranı — **bekleyen** bir eşleştirmeyi onayla.
+4. **Kayıtlı** bir eşleştirmeyi düzenle.
+
+**Beklenen:** İkisi de çalışır. Onaylamada "Eşleştirme kaydedildi", düzenlemede
+"Eşleştirme güncellendi" mesajı çıkar.
+
+**Değişen:** Bu iki işlem aynı isteği atan iki ayrı hook'tu, tek hook'a indirildi.
+Düzenleme sonrası artık bekleyen eşleştirme listesi de tazeleniyor — fazladan bir
+yenileme, kaydetme zaten böyle çalışıyordu.
+
+### 8A.2 Bildirimler
+1. Bildirim listesi, okundu işaretleme, tekil silme.
+
+**Beklenen:** Hepsi çalışır. Toplu silme arayüzü zaten yoktu, kodu da kaldırıldı.
+
+### 8A.3 Ürün ve araç formları
+1. Ürün oluştur/düzenle, araç oluştur/düzenle.
+
+**Beklenen:** Ölçü birimleri, kırılganlık seçimi ve dingil doğrulaması aynı çalışır.
+
+---
+
+## 8B. lib/ klasör düzeni — AUDIT-11
+
+**Davranış değişmedi.** 39 dosya taşındı, içerikleri aynı. Yalnızca **import yolları** ve
+bir ESLint kuralının kapsamı değişti.
+
+Doğrulama için Bölüm 0 + Bölüm 7'yi tekrarlamak yeterli. Ek olarak özellikle şunlar:
+
+| Alan | Neden riskli |
+| --- | --- |
+| **3D sahne** (`/planning/new`) | `BoxWrapper`, `LandingWireframe` ve Three.js kaynak yönetimi taşındı |
+| **Plan PDF indirme** | PDF yardımcıları `utils/export/` altına taşındı |
+| **Excel dışa aktarım** (ürün, araç, plan) | Aynı klasöre taşındı |
+| **Ödeme formu** | Kart biçimleme ve Luhn doğrulaması billing feature'ına taşındı — kart numarası maskesi ve geçersiz kart uyarısı çalışmalı |
+| **Araç dingil alanları** | Dingil doğrulaması vehicles feature'ına taşındı |
+| **Panel karşılama ve istatistik kartları** | Selamlama metni ve değişim yüzdesi biçimleyicileri taşındı |
+
+⚠️ **3D sahnede kutular render olmuyorsa** bu taşımayla ilgilidir, öncelikli bildir.
+
+---
+
 ## 9. Ölü kod silme kontrolü
 
 Silinen dosyaların gerçekten kullanılmadığını doğrula — aşağıdakiler **hâlâ çalışmalı**:
@@ -440,5 +491,6 @@ Ekran görüntüsü:
 3. **Bölüm 1.5** — paylaşım sayfası salt-okunur
 4. **Bölüm 2.1 / 2.5** — ürün verisi bozulması
 5. **Bölüm 6.5** — istiflenemez ürünün üstüne kutu konmaması
-6. **Bölüm 7.4** — plan PDF indirme
-7. Kalanlar
+6. **Bölüm 8B** — 3D sahne render'ı ve plan PDF indirme (en çok dosya taşınan alan)
+7. **Bölüm 8A.1** — ERP eşleştirme onaylama ve düzenleme
+8. Kalanlar
