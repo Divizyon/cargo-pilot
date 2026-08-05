@@ -140,7 +140,7 @@
 
 \- Use `react-hook-form` + `zod` for forms; do not manage complex forms with scattered `useState`.
 
-\- Keep `/plan/new` as a single-route SPA wizard; use state, not route changes, for steps.
+\- Keep `/planning/new` as a single-route SPA wizard; use state, not route changes, for steps.
 
 \- Route guards belong in the established auth/RBAC flow.
 

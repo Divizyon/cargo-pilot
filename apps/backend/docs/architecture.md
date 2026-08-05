@@ -2,6 +2,11 @@
 
 Bu dokuman, backend projesinin katmanli yapisini ve temel mimari kararlarini ozetler. Amac; ekip icinde tek bir referans nokta tanimlamak ve yeni gelistirmelerin ayni standartla yapilmasini saglamaktir.
 
+> **Guncelleme (2026-08-04):** Dokumandaki "service-based, MediatR kullanilmaz" karari kod
+> tabaniyla celisiyordu — kod uctan uca MediatR (Command/Query/Handler) kullaniyor. Dokuman
+> kodun gercegine gore duzeltildi. Kurgusal `Cargo`/`TrackingNumber` ornekleri gercek
+> entity'lerle degistirildi. Detay: `docs/context/kod-taramasi-2026-08.md`.
+
 ---
 
 ## 1) Mimari Yaklasim
@@ -40,9 +45,8 @@ Bu yon sayesinde Domain ve Application, framework/DB degisikliklerinden izole ka
 
 ### 2.1 Domain
 
-- `Entities/Cargo.cs`
-- `ValueObjects/TrackingNumber.cs`
-- `Enums/CargoStatus.cs`
+- `Entities/` — `AppUser`, `Company`, `Item`, `Vehicle`, `LoadingPlan*` (Placement, ItemGroup, InputItem, UnplacedItem, Warning), `Integration`, `SyncLog`, `ErpUserMapping` vb. Tumu `BaseEntity`'den turer (audit + soft delete alanlari).
+- `Enums/` — `FragilityType`, `AllowedRotations`, `LoadingType`, `SubscriptionType` vb.
 
 Kurallar:
 - Domain nesneleri framework, EF Core veya HTTP bilmez.
@@ -51,27 +55,30 @@ Kurallar:
 ### 2.2 Application
 
 - `Features/<Aggregate>/<UseCase>/` klasor standardi kullanilir.
-- Her use-case icin ayri servis (service-based) yaklasim; MediatR kullanilmaz.
-- Validator'lar aynik klasor altinda `<UseCase>RequestValidator.cs` olarak durur.
-- Repository soyutlamalari `Abstractions/Persistence/` altinda yasar.
-- Ortak modeller `Common/Models/` altinda (`Result<T>`, `Error`).
+- Her use-case bir **MediatR** Command/Query + Handler ciftidir (`IRequestHandler<TRequest, TResponse>`).
+- Validator'lar ayni klasor altinda `<UseCase>CommandValidator.cs` olarak durur.
+- Repository soyutlamalari `Common/Interfaces/` altinda yasar (`I*Repository`, aggregate-specific).
+- Ortak modeller `Common/Models/` altinda (`Result<T>`, `Error`, `OptimizationInput/Result`).
 
-Ornek klasor:
+Ornek klasor (gercek koddan):
 ```
 Features/
-  Cargos/
-    CreateCargo/
-      CreateCargoRequest.cs
-      CreateCargoUseCase.cs
-      CreateCargoRequestValidator.cs
+  Plans/
+    CreatePlan/
+      CreatePlanCommand.cs
+      CreatePlanCommandHandler.cs
+      CreatePlanCommandValidator.cs
+      CreatePlanItemRequest.cs
 ```
 
 ### 2.3 Infrastructure
 
-- `Persistence/AppDbContext.cs`
+- `Persistence/AppDbContext.cs` (25 DbSet; audit alanlari `SaveChanges` override'inda otomatik dolar)
 - `Persistence/Repositories/<Entity>Repository.cs`
+- `Persistence/Configurations/` — entity konfigurasyonlari + soft delete global query filter
+- `Services/` — `OptimizationEngine` (yuk yerlestirme motoru), `ResendEmailService`, ERP connector'lari (`LogoErpConnector`, `NetsisErpConnector`)
+- `Jobs/` — Hangfire job'lari (`ErpExportJob`, trial expiry, notification cleanup)
 - EF Core + SQL Server saglayicisi kullanilir.
-- Value object donusumleri (`TrackingNumber` gibi) DbContext'te konfigure edilir.
 
 ### 2.4 WebAPI
 
@@ -83,17 +90,19 @@ Features/
 
 ## 3) Temel Mimari Kararlar
 
-### 3.1 Service-based Application
+### 3.1 MediatR ile Use-case Yapisi
 
-Her use-case kendi servis sinifini alir (`CreateCargoUseCase`, `GetCargoByIdUseCase`, ...). MediatR gibi ek bir pipeline cercevesi eklenmez. Sebep: proje kapsaminda MediatR'in getirisi (cross-cutting behavior pipeline) su an gerekli degil; karmasikligi dusuk tutmak tercih edildi.
+Her use-case bir MediatR request'idir: `<UseCase>Command`/`<UseCase>Query` + `<UseCase>CommandHandler` (`IRequestHandler<>`). Controller'lar is mantigi icermez; `IMediator.Send(...)` ile ilgili handler'i cagirir. Command/Query ayrimi ayri proje olarak degil, ayni proje icinde isimlendirme ile yapilir.
+
+> Not: Dokumanin onceki surumu "service-based, MediatR kullanilmaz" diyordu; bu karar
+> uygulamada terk edildi. Kod tabani ~150+ dosyada MediatR desenini kullaniyor.
 
 ### 3.2 Repository Pattern
 
-Veri erisimi `Application/Abstractions/Persistence/` altindaki interface'ler uzerinden yapilir. Application katmani `DbContext`'i dogrudan bilmez.
+Veri erisimi `Application/Common/Interfaces/` altindaki interface'ler uzerinden yapilir (17 aggregate-specific interface). Application katmani `DbContext`'i dogrudan bilmez.
 
-- Interface: `ICargoRepository` (Application)
-- Implementasyon: `CargoRepository` (Infrastructure, EF Core)
-- Development/test icin: `InMemoryCargoRepository`
+- Interface: `IItemRepository`, `IVehicleRepository`, `ILoadingPlanRepository`, ... (Application)
+- Implementasyon: `Persistence/Repositories/*Repository.cs` (Infrastructure, EF Core)
 
 ### 3.3 FluentValidation
 
@@ -101,7 +110,7 @@ Girdi dogrulama standardi olarak FluentValidation kullanilir.
 
 - Paketler: `FluentValidation`, `FluentValidation.DependencyInjectionExtensions`
 - `Application/DependencyInjection.cs` icinde `AddValidatorsFromAssembly(...)` ile assembly scanning yapilir.
-- Use-case constructor'ina `IValidator<TRequest>` inject edilir; ilk is `ValidateAsync`.
+- Validator'lar `<UseCase>CommandValidator.cs` olarak use-case klasorunde durur.
 - Validation hatalari `Result<T>.Failure` uzerinden donulur; exception-for-control-flow kullanilmaz.
 
 ### 3.4 Result<T> ile Hata Akisi
@@ -130,13 +139,18 @@ Kurallar:
 - Ortam bazli kararlar (`IsDevelopment`) `Program.cs`'de alinir; Infrastructure, Hosting soyutlamasina bagimli olmaz.
 - Middleware zinciri `UsePresentation()` uzerinden kurulur.
 
-### 3.6 Development'ta Veritabansiz Calisma
+### 3.6 ~~Development'ta Veritabansiz Calisma~~ (calismiyor — kullanmayin)
 
-Development ortaminda `useInMemoryRepository: true` ile `AppDbContext` ve SQL repository kaydedilmez; yerine `InMemoryCargoRepository` kullanilir. Sebep:
-- Yeni gelistiricinin ilk gun DB kurmadan `dotnet run` yapabilmesi
-- Testlerin ve lokal deneylerin hizlandirilmasi
+`UseInMemoryDatabase` bayragi konfigurasyonda mevcut ama **fiilen calismaz durumda**:
+bayrak `true` iken `AppDbContext`/Hangfire kayitlari atlanir fakat SQL-backed repository'ler
+yine de kayitli kalir — DI cozumlemesi calisma zamaninda patlar. Hicbir `InMemory*` repository
+implementasyonu yazilmamistir. Lokal gelistirme icin `docs/setup/local-setup.md`'deki
+Docker MSSQL akisi kullanilir.
 
-Production ve CI/CD'de bu bayrak `false`'a cekilir; connection string `ConnectionStrings__DefaultConnection` env var'i uzerinden verilir.
+Bu bolum ya bayragin tamamlanmasiyla ya da bayragin koddan temizlenmesiyle kapanacaktir
+(karar bekliyor — bkz. `docs/context/kod-taramasi-2026-08.md` §3).
+
+Production ve CI/CD'de connection string `ConnectionStrings__DefaultConnection` env var'i uzerinden verilir.
 
 ### 3.7 Configuration ve Secret
 
@@ -159,12 +173,12 @@ Production ve CI/CD'de bu bayrak `false`'a cekilir; connection string `Connectio
 ## 5) Yeni Use-case Eklerken Izlenecek Akis
 
 1. `Application/Features/<Aggregate>/<UseCase>/` klasorunu ac.
-2. `<UseCase>Request.cs` (input DTO) yaz.
-3. `<UseCase>RequestValidator.cs` (FluentValidation) yaz.
-4. `<UseCase>UseCase.cs` icinde is mantigini kur; `Result<T>` donur.
-5. Gerekli ise `Application/Abstractions/Persistence/` altinda yeni interface tanimla.
+2. `<UseCase>Command.cs` veya `<UseCase>Query.cs` yaz (`IRequest<Result<T>>` implemente eder).
+3. `<UseCase>CommandValidator.cs` (FluentValidation) yaz.
+4. `<UseCase>CommandHandler.cs` icinde is mantigini kur (`IRequestHandler<>`); `Result<T>` donur.
+5. Gerekli ise `Application/Common/Interfaces/` altinda yeni repository interface'i tanimla.
 6. Infrastructure'da karsilik gelen repository implementasyonunu yaz.
-7. `WebAPI` tarafinda controller endpoint'ini ekle; yalnizca use-case'i cagir ve sonucu map et.
+7. `WebAPI` tarafinda controller endpoint'ini ekle; yalnizca `IMediator.Send(...)` cagir ve sonucu map et.
 8. DI kayitlari gerekiyorsa ilgili katmanin `DependencyInjection.cs` dosyasina ekle.
 
 ---
@@ -173,9 +187,8 @@ Production ve CI/CD'de bu bayrak `false`'a cekilir; connection string `Connectio
 
 Bu mimaride bilincli olarak tercih edilmeyenler:
 
-- MediatR ve benzeri pipeline cerceveleri (su an ihtiyac yok)
 - Domain event altyapisi (ilerideki story'de degerlendirilecek)
-- CQRS ayrimi (command/query ayri projeler olarak bolunmez)
+- CQRS'in proje duzeyinde ayrilmasi (command/query ayrimi ayni proje icinde, isimlendirme ile yapilir)
 - Assembly-scanning framework'u olarak Scrutor (yalnizca FluentValidation icin assembly scan yapilir)
 - Generic repository (repository'ler aggregate-specific tutulur)
 

@@ -3,6 +3,10 @@
 **Son güncelleme:** 2026-05-16
 
 > Geliştirme backlog'u ve iyileştirme maddeleri için bkz. [DevOps Backlog](devops-backlog.md).
+>
+> 2026-08-03 tarihli kapsamlı DevOps taraması ve 51 maddelik bulgu listesi için bkz.
+> [İyileştirme Analizi](iyilestirme-analizi-2026-08.md). O doküman bu dosyadaki bazı
+> maddelerin kapsamını düzeltiyor (özellikle madde 7 — log rotation).
 
 ---
 
@@ -141,7 +145,7 @@ görülmedi**. İlk deploy'da doğrulanmalı. Bkz. madde 2 ve [devops-backlog.md
 **Durum:** ⚠️ Açık
 {% endhint %}
 
-`docker-compose.monitoring.test.yml`'de `loki` ve `cadvisor` servislerinde `logging:` bloğu eksik. Diğer container'larda `max-size: 100m, max-file: 3` tanımlı.
+Hiçbir compose dosyasında (`infra/compose/*.yml`) hiçbir serviste `logging:` bloğu tanımlı değil — 2026-08-04 kod taramasıyla doğrulandı (bu maddenin önceki sürümündeki "diğer container'larda `max-size: 100m` tanımlı" ifadesi hatalıydı). Sorun yalnızca Loki/cAdvisor değil, tüm stack'i kapsıyor.
 
 **Etkisi:** 2026-05-16'da Loki 960 MB log biriktirmiş, Grafana datasource'u 503 vermiş, alertlar `DatasourceNoData` durumuna düşmüştü.
 
