@@ -115,3 +115,6 @@ minio-data/
 
 # Claude Code local settings (içinde hassas token olabilir)
 .claude/settings.local.json
+
+# Serena (yerel LSP/MCP aracı yapılandırması ve önbelleği)
+.serena/
