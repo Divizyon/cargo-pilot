@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Item } from '@/lib/types/item';
-import {
-  BOX_ORIENTATIONS,
-  allowedOrientations,
-  isOrientationAllowed,
-  rotatedDimensions,
-} from './boxOrientations';
+import { BOX_ORIENTATIONS, isOrientationAllowed, rotatedDimensions } from './boxOrientations';
 
 function makeItem(overrides: Partial<Item> = {}): Item {
   return {
@@ -101,24 +96,5 @@ describe('isOrientationAllowed', () => {
     for (let idx = 0; idx < 6; idx++) {
       expect(isOrientationAllowed(item, idx as 0 | 1 | 2 | 3 | 4 | 5)).toBe(true);
     }
-  });
-});
-
-describe('allowedOrientations', () => {
-  it('hepsi açıkken 6 index döner', () => {
-    expect(allowedOrientations(makeItem())).toEqual([0, 1, 2, 3, 4, 5]);
-  });
-
-  it('allowRotateX=false → sadece 0, 4, 5', () => {
-    expect(allowedOrientations(makeItem({ allowRotateX: false }))).toEqual([0, 4, 5]);
-  });
-
-  it('allowRotateZ=false → sadece 0, 1, 2, 3', () => {
-    expect(allowedOrientations(makeItem({ allowRotateZ: false }))).toEqual([0, 1, 2, 3]);
-  });
-
-  it('hepsi kapalı → sadece identity (idx 0)', () => {
-    const item = makeItem({ allowRotateX: false, allowRotateZ: false });
-    expect(allowedOrientations(item)).toEqual([0]);
   });
 });

@@ -3,8 +3,6 @@ import {
   calcCenterOfGravity,
   calcBalance,
   buildCogInputs,
-  COG_BALANCE_THRESHOLD,
-  COG_THRESHOLDS,
   type CogInput,
 } from './calcCenterOfGravity';
 
@@ -100,11 +98,6 @@ describe('calcBalance', () => {
     const result = calcBalance(cog, 200, 400);
     expect(result.isLateralWarning).toBe(false);
     expect(result.lateralLevel).toBe('ideal');
-  });
-
-  it('COG_BALANCE_THRESHOLD equals kritik threshold (0.15)', () => {
-    expect(COG_BALANCE_THRESHOLD).toBe(0.15);
-    expect(COG_BALANCE_THRESHOLD).toBe(COG_THRESHOLDS.KRITIK);
   });
 
   it('classifies levels correctly per PO spec', () => {

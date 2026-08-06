@@ -341,57 +341,6 @@ function placedDimensions(
   }
 }
 
-export function fromApiPlacementsToScene(
-  rawPlacements: PlacementItemApi[],
-  colorMap?: Record<string, string>,
-): PlacementWithDimensions[] {
-  return rawPlacements.flatMap((p) => {
-    const raw = p as Record<string, unknown>;
-    const itemId = (raw.itemId as string | undefined) ?? (raw.id as string | undefined) ?? '';
-    if (!itemId) return [];
-
-    const posX = Number(raw.positionX ?? 0);
-    const posY = Number(raw.positionY ?? 0);
-    const posZ = Number(raw.positionZ ?? 0);
-    const rotation = Number(raw.rotation ?? 0);
-
-    const item = (raw.item ?? {}) as Record<string, unknown>;
-    const origW = Number(item.width ?? 0);
-    const origH = Number(item.height ?? 0);
-    const origL = Number(item.length ?? 0);
-    const weight = Number(item.weight ?? item.unitWeight ?? 0);
-    const sku = String(item.sku ?? item.sKU ?? item.SKU ?? itemId);
-
-    if (origW <= 0 || origH <= 0 || origL <= 0) return [];
-
-    const { pw, ph, pd } = placedDimensions(origW, origH, origL, rotation);
-
-    const rawType = (item.productType as string | undefined)?.toLowerCase();
-    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
-
-    const groupName = (item.groupName ?? item.categoryName ?? item.category) as string | undefined;
-    const color = colorMap?.[sku] ?? resolveProductColor(productType, groupName);
-
-    return [
-      {
-        itemId,
-        positionX: posX,
-        positionY: posY,
-        positionZ: posZ,
-        orientationIndex: 0,
-        layer: posY === 0 ? 1 : Math.ceil(posY / ph) + 1,
-        isViolation: false,
-        width: pw,
-        height: ph,
-        depth: pd,
-        weight,
-        color,
-        productType,
-      } satisfies PlacementWithDimensions,
-    ];
-  });
-}
-
 // Backend bazen timezone bilgisi olmadan UTC datetime döndürür (örn: "2026-05-18T21:41:00").
 // JavaScript bunu yerel saat olarak parse eder ve hatalı görüntüler. 'Z' ekleyerek UTC garantiliyoruz.
 function normalizeUtcDatetime(s: string): string {

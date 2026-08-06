@@ -22,13 +22,6 @@ export const placementSchema = z.object({
   isViolation: z.boolean(),
 });
 
-export const loadingPlanSchema = z.object({
-  id: z.string().uuid(),
-  vehicleId: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  placementDetails: z.array(placementSchema),
-});
-
 export const placementWithDimensionsSchema = placementSchema.extend({
   vehicleId: z.string().optional(),
   width: z.number().positive(),

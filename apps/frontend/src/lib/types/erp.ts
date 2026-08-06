@@ -31,13 +31,6 @@ export const erpConnectionSchema = z.object({
   lastTestedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-export const erpSyncSettingsSchema = z.object({
-  syncInterval: z.enum(['FourHours', 'Daily']),
-  syncStatus: z.enum(['Idle', 'Running']),
-  nextScheduledSyncAt: z.string().datetime({ offset: true }).nullable(),
-  lastSyncedAt: z.string().datetime({ offset: true }).nullable(),
-});
-
 export const erpPendingMatchSchema = z.object({
   id: z.string().uuid(),
   erpProductId: z.string(),
@@ -140,27 +133,6 @@ export const ErpSyncEntityType = {
 } as const;
 
 export type ErpSyncEntityType = (typeof ErpSyncEntityType)[keyof typeof ErpSyncEntityType];
-
-export const erpSyncLogEntrySchema = z.object({
-  id: z.string(),
-  entityType: z.enum(['Product', 'ShipmentOrder']),
-  entityId: z.string(),
-  entityName: z.string(),
-  status: z.enum(['Success', 'Error', 'Warning']),
-  errorReason: z.string().nullable(),
-  occurredAt: z.string().datetime({ offset: true }),
-});
-
-export const erpSyncRunSchema = z.object({
-  id: z.string(),
-  startedAt: z.string().datetime({ offset: true }),
-  completedAt: z.string().datetime({ offset: true }).nullable(),
-  status: z.enum(['Idle', 'Running', 'Completed', 'Failed']),
-  totalCount: z.number().int().min(0),
-  successCount: z.number().int().min(0),
-  errorCount: z.number().int().min(0),
-  entries: z.array(erpSyncLogEntrySchema),
-});
 
 export const SyncLogStatus = { Running: 0, Success: 1, PartialFailure: 2, Failed: 3 } as const;
 export type SyncLogStatusValue = (typeof SyncLogStatus)[keyof typeof SyncLogStatus];

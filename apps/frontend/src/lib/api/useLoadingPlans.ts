@@ -1,9 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
-import { loadingPlanSchema, type LoadingPlanListItem } from '@/lib/types/loadingPlan';
-import { apiFetch } from './fetcher';
+import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { axiosInstance } from './axiosInstance';
 import {
   planDetailApiResponseSchema,
@@ -17,15 +15,6 @@ import {
   type PlanFullDetail,
 } from './loadingPlanMappers';
 import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
-
-// ─── Existing plan detail (3D viewer) ─────────────────────────────────────────
-
-export function useLoadingPlans(filters?: { vehicleId?: string; page?: number }) {
-  return useQuery({
-    queryKey: ['loading-plans', filters] as const,
-    queryFn: () => apiFetch('/loading-plans', z.array(loadingPlanSchema)),
-  });
-}
 
 // ─── List view types ───────────────────────────────────────────────────────────
 
