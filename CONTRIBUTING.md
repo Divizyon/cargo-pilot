@@ -45,7 +45,7 @@ Detay için bkz. [Commit Kuralları](docs/conventions/commits.md).
 ## PR Süreci
 
 1. PR açarken [PR şablonunu](.github/pull_request_template.md) eksiksiz doldurun (özet, ilgili user story/issue, değişiklik tipi, test durumu, ekran görüntüleri, kontrol listesi).
-2. En az **1 onaylayan review** gerekir; push sonrası eski onaylar düşer, yeniden review istenir. Tüm review thread'leri çözülmüş olmalıdır.
+2. Zorunlu review yoktur; CI kapıları geçen PR merge edilebilir. Riskli veya geniş kapsamlı değişikliklerde bir ekip arkadaşından review istemek önerilir.
 3. CI kapılarının geçmesi zorunludur:
    - **Frontend:** `tsc`, `eslint`, `vitest`, `build`
    - **Backend:** `dotnet build`
