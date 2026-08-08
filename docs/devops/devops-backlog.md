@@ -1,7 +1,8 @@
 # DevOps Backlog
 
-**Oluşturulma:** 2026-05-10 | **Son güncelleme:** 2026-08-04\
-**Sorumlu:** DevOps Chapter Lead
+**Son güncelleme:** 2026-08-04 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
+
+Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini önceliklendirilmiş şekilde takip eder.
 
 ---
 
@@ -17,7 +18,7 @@
 | 6 | Grafana Alert Contact Point | 🟠 Yüksek | ⚠️ Açık |
 | 7 | Resend Domain Doğrulaması | 🟠 Yüksek | ⚠️ Açık |
 | 8 | SSL — self-signed → gerçek sertifika | 🟡 Orta | ⚠️ Açık |
-| 9 | `PRODUCTION_DEPLOYMENT_INFO.md` güncelle | 🟡 Orta | ⚠️ Açık |
+| 9 | `deployment.md` güncelle | 🟡 Orta | ⚠️ Açık |
 | 10 | `monitoring-setup.md` — contact point adımları | 🟡 Orta | ⚠️ Açık |
 | 11 | Node.js 20 → 22 geçişi | 🟢 Düşük | ⚠️ Açık |
 
@@ -186,7 +187,7 @@ Self-signed sertifika kullanılıyor. Cloudflare Full SSL modu ile şimdilik ça
 | `local-setup.md` — Vite dev proxy belgelendi | ✅ | #480 |
 | `.env.test.example` — `VITE_DEV_PROXY_TARGET` eklendi | ✅ | #480 |
 | `secret-management.md` — GHCR public bölümü eklendi | ✅ | #480 |
-| `PRODUCTION_DEPLOYMENT_INFO.md` — Prod deploy checklist eksik | ⚠️ Açık | — |
+| `deployment.md` — Prod deploy checklist eksik | ⚠️ Açık | — |
 | `monitoring-setup.md` — Contact point ekleme adımları eksik | ⚠️ Açık | — |
 | Node.js 20 → 22 geçişi (CI + Dockerfile) | ⚠️ Açık | — |
 

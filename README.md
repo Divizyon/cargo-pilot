@@ -50,6 +50,8 @@ cargo-pilot/
 │   └── backend/      # .NET 8 Web API
 ├── database/         # Migration, seed ve DB scriptleri
 ├── docs/             # Proje dokümantasyonu
+│   ├── archive/      # Tarihsel doküman arşivi (algoritma tasarımı, geçmiş planlar)
+│   ├── context/      # Proje bağlamı, anlık görüntüler, doküman haritası
 │   ├── conventions/  # Branching ve commit kuralları
 │   ├── devops/       # Sunucu, monitoring, secret yönetimi
 │   └── setup/        # Local kurulum
@@ -80,8 +82,8 @@ cargo-pilot/
 [Local Setup](docs/setup/local-setup.md)
 {% endcontent-ref %}
 
-{% content-ref url="docs/conventions/BRANCHING.md" %}
-[Branching Strategy](docs/conventions/BRANCHING.md)
+{% content-ref url="docs/conventions/branching.md" %}
+[Branching Strategy](docs/conventions/branching.md)
 {% endcontent-ref %}
 
 {% content-ref url="docs/devops/server-access.md" %}
@@ -91,3 +93,9 @@ cargo-pilot/
 {% content-ref url="docs/devops/known-issues.md" %}
 [Bilinen Sorunlar](docs/devops/known-issues.md)
 {% endcontent-ref %}
+
+---
+
+## Katkı Sağlama
+
+Depoya katkı sağlamadan önce [CONTRIBUTING.md](CONTRIBUTING.md) dosyasını okuyun: branch modeli, commit kuralları ve PR süreci orada özetlenir.

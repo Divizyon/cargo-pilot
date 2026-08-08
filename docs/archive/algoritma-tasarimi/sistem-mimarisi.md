@@ -1,20 +1,17 @@
 # 3D Bin Packing — Sistem Mimarisi ve Gereksinim Dokümantasyonu
 
-> **Durum: Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.**
->
-> Bu doküman `feature/3D_Packing_Algorithm` branch'inde (2026-05-05) üretildi. Branch, `test`'teki
-> `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` implementasyonu tarafından geride
-> bırakıldığı için kapatılmaktadır; tasarım içeriği kaybolmasın diye doküman buraya taşınmıştır.
->
-> Güncel kodla bilinen farklar:
-> - Koordinat ekseni adlandırması burada farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik,
->   Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`,
->   `lib/config/scene-config.ts`).
-> - MediatR'a yapılan atıflar geçerli değildir; backend service-based yaklaşım kullanır
->   (`apps/backend/docs/architecture.md`).
-> - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
->
-> Algoritma çalışması yapılırken kavramsal referans olarak kullanılabilir; kod kaynağı olarak değil.
+**Son güncelleme:** 2026-08-04 · **Durum:** Arşiv
+
+{% hint style="warning" %}
+Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir. `feature/3D_Packing_Algorithm` branch'inde (2026-05-05) üretildi; `test` branch'teki `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` tarafından geride bırakıldı.
+
+**Bilinen farklar:**
+- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik, Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`, `lib/config/scene-config.ts`).
+- MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
+- `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
+
+Algoritma çalışması yapılırken kavramsal referans olarak kullanılabilir; kod kaynağı olarak değil.
+{% endhint %}
 
 ---
 

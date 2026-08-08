@@ -1,5 +1,11 @@
 # Cargo Pilot — Denetim Düzeltmeleri Test Planı
 
+**Son güncelleme:** 2026-08-02 · **Durum:** Arşiv
+
+{% hint style="warning" %}
+`chore/AUDIT-test-birlesik` dalının manuel QA planıydı; dal `test` branch'ine merge edildi (PR #914 / #916, 2026-08 başı). Tarihsel kayıt olarak arşivde saklanır.
+{% endhint %}
+
 **Test edilecek dal:** `chore/AUDIT-test-birlesik`
 **Karşılaştırma tabanı:** `dev`
 

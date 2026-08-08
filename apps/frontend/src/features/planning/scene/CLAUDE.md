@@ -1,5 +1,5 @@
 ---
-description:
+description: Squad 2 3D sahne kuralları — scene-config, koordinat/BoxWrapper, InstancedMesh, animasyon ve bellek yönetimi
 alwaysApply: true
 ---
 
