@@ -1,6 +1,6 @@
 # Branch Stratejisi
 
-**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-08 · **Durum:** Aktif
 
 Cargo Pilot projesinde branch yapısını, geliştirme akışını ve PR kurallarını tanımlar.
 
@@ -204,9 +204,7 @@ Ruleset her dalda yalnızca doğru yöntemi açık bırakır; yanlış seçim ya
 | Kural | Detay |
 |-------|-------|
 | Açıklama | İş kodu + ne yapıldığı |
-| Onay | En az 1 approving review |
-| Push sonrası | Eski onaylar düşer, yeniden review gerekir |
-| Review thread | Tümü çözülmüş olmalı |
+| Onay | Zorunlu review yok (2026-08-08'de kaldırıldı) — CI kapıları geçen PR merge edilebilir; riskli veya geniş kapsamlı işlerde review istemek önerilir |
 | UI değişikliği | Ekran görüntüsü zorunlu |
 | 3D / algoritma değişikliği | Öncesi–sonrası plan karşılaştırması zorunlu |
 
