@@ -1,40 +1,44 @@
 # CargoPilot Developer Setup
 
-Bu dokumanin amaci, tum gelistiricilerin projeyi ayni arac seti ile sorunsuz derlemesini saglamaktir.
+**Son güncelleme:** 2026-04-17 · **Durum:** Aktif
 
-## 1) Gerekli araclar
+Bu dokümanın amacı, tüm geliştiricilerin projeyi aynı araç seti ile sorunsuz derlemesini sağlamaktır.
 
-- Visual Studio 2022 (17.8 veya ustu onerilir)
+---
+
+## 1) Gerekli araçlar
+
+- Visual Studio 2022 (17.8 veya üstü önerilir)
 - .NET SDK 8.0.x
 - Git
 
 ## 2) Visual Studio kurulumu (zorunlu)
 
-Visual Studio Installer uzerinden asagidaki workloadlari kurun:
+Visual Studio Installer üzerinden aşağıdaki workloadları kurun:
 
 - ASP.NET and web development
 - Data storage and processing
 
-Ek olarak su individual componentlerin kurulu oldugunu dogrulayin:
+Ek olarak şu individual componentlerin kurulu olduğunu doğrulayın:
 
 - .NET 8.0 SDK
-- SQL Server Data Tools (SSDT) (onerilir)
+- SQL Server Data Tools (SSDT) (önerilir)
 
-## 3) SDK standardi
+## 3) SDK standardı
 
-Bu repository, kok dizindeki `global.json` dosyasi ile SDK surumunu sabitler:
+Bu repository, kök dizindeki `global.json` dosyası ile SDK sürümünü sabitler:
 
 - `version`: `8.0.419`
 - `rollForward`: `latestPatch`
 
-Anlamlari:
+Anlamları:
 
-- `version`: Takimin temel SDK surumunu belirler.
-- `latestPatch`: Ayni feature band icindeki en guncel patch surumune izin verir.
+- `version`: Takımın temel SDK sürümünü belirler.
+- `latestPatch`: Aynı feature band içindeki en güncel patch sürümüne izin verir.
 
-## 4) Kurulum sonrasi dogrulama
+## 4) Kurulum sonrası doğrulama
 
-Repository kok dizininde su komutlari calistirin:
+Repository kök dizininde şu komutları çalıştırın:
 
 ```powershell
 dotnet --info
@@ -46,29 +50,29 @@ dotnet build .\CargoPilot.WebAPI\CargoPilot.WebAPI.csproj
 
 Beklenen durum:
 
-- `dotnet --version` cikti degeri `8.0.419` olmali (veya ayni bandda `latestPatch` ile secilen patch).
-- Restore ve build adimlari hata vermeden tamamlanmali.
+- `dotnet --version` çıktı değeri `8.0.419` olmalı (veya aynı bandda `latestPatch` ile seçilen patch).
+- Restore ve build adımları hata vermeden tamamlanmalı.
 
-## 5) Siklikla karsilasilan sorunlar
+## 5) Sıklıkla karşılaşılan sorunlar
 
-- **SDK uyusmazligi:** `global.json` bulunan klasorde komut calistirdiginizdan emin olun.
-- **.NET 8 bulunamadi hatasi:** Visual Studio Installer veya .NET installer ile .NET 8 SDK kurun.
-- **NuGet restore sorunu:** Internet/proxy ayarlarinizi ve kurum sertifika politikasini kontrol edin.
+- **SDK uyuşmazlığı:** `global.json` bulunan klasörde komut çalıştırdığınızdan emin olun.
+- **.NET 8 bulunamadı hatası:** Visual Studio Installer veya .NET installer ile .NET 8 SDK kurun.
+- **NuGet restore sorunu:** Internet/proxy ayarlarınızı ve kurum sertifika politikasını kontrol edin.
 
-## 6) Takim standardi
+## 6) Takım standardı
 
-- Projede SDK surumu `global.json` ile yonetilir.
-- SDK degisiklikleri chapter lead onayi ile yapilir.
-- Yeni surume geciste once local dogrulama, sonra CI dogrulamasi yapilir.
+- Projede SDK sürümü `global.json` ile yönetilir.
+- SDK değişiklikleri chapter lead onayı ile yapılır.
+- Yeni sürüme geçişte önce local doğrulama, sonra CI doğrulaması yapılır.
 
-## 7) CI tarafinda SDK sabitleme
+## 7) CI tarafında SDK sabitleme
 
-CI tarafinda da ayni SDK surumu kullanilir. Bu repository'de GitHub Actions pipeline dosyasi:
+CI tarafında da aynı SDK sürümü kullanılır. Bu repository'de GitHub Actions pipeline dosyası:
 
 - `.github/workflows/ci.yml`
 
-Bu dosyada `actions/setup-dotnet@v4` ile su surum pinlenmistir:
+Bu dosyada `actions/setup-dotnet@v4` ile şu sürüm pinlenmiştir:
 
 - `.NET SDK 8.0.419`
 
-Boylece local (`global.json`) ve CI ayni SDK surumu ile build alir.
+Böylece local (`global.json`) ve CI aynı SDK sürümü ile build alır.

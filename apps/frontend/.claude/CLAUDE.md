@@ -1,13 +1,6 @@
 ---
-description:
+description: Cargo Pilot frontend geliştirme standartları — klasör yapısı, TypeScript, shadcn, state, form, 3D, RBAC ve export kuralları
 alwaysApply: true
----
-
----
-
-description:
-alwaysApply: true
-
 ---
 
 # Cargo Pilot — Frontend Geliştirme Standartları
@@ -21,15 +14,15 @@ alwaysApply: true
 
 | Katman           | Teknoloji                                                  |
 | ---------------- | ---------------------------------------------------------- |
-| Framework        | React 18 + Vite 5+                                         |
+| Framework        | React 18 + Vite 8+                                         |
 | Dil              | TypeScript 5+ — **strict mode zorunlu**                    |
 | Stil             | Tailwind CSS v3                                            |
 | UI Bileşen       | shadcn/ui + Radix UI primitives                            |
-| 3D               | Three.js r160+ · @react-three/fiber v8 · @react-three/drei |
-| Form             | react-hook-form v7+ + zod v3+                              |
-| Global State     | Zustand v4+                                                |
+| 3D               | Three.js r162+ · @react-three/fiber v8 · @react-three/drei |
+| Form             | react-hook-form v7+ + zod v4+                              |
+| Global State     | Zustand v5+                                                |
 | Server State     | TanStack Query v5+                                         |
-| Routing          | React Router v6+                                           |
+| Routing          | React Router v7+                                           |
 | Raporlama        | react-pdf                                                  |
 | Excel            | SheetJS / xlsx                                             |
 | Paket Yöneticisi | **npm** (pnpm/yarn kullanılmaz)                            |

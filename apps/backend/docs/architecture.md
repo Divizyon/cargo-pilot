@@ -1,28 +1,30 @@
 # CargoPilot Backend Mimari Rehberi
 
-Bu dokuman, backend projesinin katmanli yapisini ve temel mimari kararlarini ozetler. Amac; ekip icinde tek bir referans nokta tanimlamak ve yeni gelistirmelerin ayni standartla yapilmasini saglamaktir.
+**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
 
-> **Guncelleme (2026-08-04):** Dokumandaki "service-based, MediatR kullanilmaz" karari kod
-> tabaniyla celisiyordu — kod uctan uca MediatR (Command/Query/Handler) kullaniyor. Dokuman
-> kodun gercegine gore duzeltildi. Kurgusal `Cargo`/`TrackingNumber` ornekleri gercek
-> entity'lerle degistirildi. Detay: `docs/context/kod-taramasi-2026-08.md`.
+Bu doküman, backend projesinin katmanlı yapısını ve temel mimari kararlarını özetler. Amaç; ekip içinde tek bir referans nokta tanımlamak ve yeni geliştirmelerin aynı standartla yapılmasını sağlamaktır.
+
+> **Güncelleme (2026-08-04):** Dokümandaki "service-based, MediatR kullanılmaz" kararı kod
+> tabanıyla çelişiyordu — kod uçtan uca MediatR (Command/Query/Handler) kullanıyor. Doküman
+> kodun gerçeğine göre düzeltildi. Kurgusal `Cargo`/`TrackingNumber` örnekleri gerçek
+> entity'lerle değiştirildi. Detay: `docs/context/kod-taramasi-2026-08.md`.
 
 ---
 
-## 1) Mimari Yaklasim
+## 1) Mimari Yaklaşım
 
-Backend, Clean Architecture prensiplerine gore 4 katmana ayrilmistir:
+Backend, Clean Architecture prensiplerine göre 4 katmana ayrılmıştır:
 
 | Katman | Proje | Sorumluluk |
 |--------|-------|------------|
-| Presentation | `CargoPilot.WebAPI` | HTTP giris noktasi, controller'lar, middleware, Swagger |
+| Presentation | `CargoPilot.WebAPI` | HTTP giriş noktası, controller'lar, middleware, Swagger |
 | Application | `CargoPilot.Application` | Use-case / feature servisleri, validator'lar, soyutlamalar |
-| Domain | `CargoPilot.Domain` | Entity, value object, enum; is kurallari |
-| Infrastructure | `CargoPilot.Infrastructure` | EF Core, DbContext, repository implementasyonlari |
+| Domain | `CargoPilot.Domain` | Entity, value object, enum; iş kuralları |
+| Infrastructure | `CargoPilot.Infrastructure` | EF Core, DbContext, repository implementasyonları |
 
-### 1.1 Referans Yonu
+### 1.1 Referans Yönü
 
-Bagimlilik sadece ice dogru akar. Dis katmanlar icteki soyutlamalari referans alir; ic katman dis katmani bilmez.
+Bağımlılık sadece içe doğru akar. Dış katmanlar içteki soyutlamaları referans alır; iç katman dış katmanı bilmez.
 
 ```
 WebAPI ──► Application ──► Domain
@@ -32,35 +34,35 @@ Infrastructure ─┘
 
 Kurallar:
 
-- `Domain` hicbir katmana referans vermez.
-- `Application` yalnizca `Domain`'e referans verir.
+- `Domain` hiçbir katmana referans vermez.
+- `Application` yalnızca `Domain`'e referans verir.
 - `Infrastructure` `Application` ve `Domain`'e referans verir (Application'daki interface'leri implemente eder).
-- `WebAPI` hem `Application`'i hem `Infrastructure`'i referans alir (yalnizca DI composition amaciyla).
+- `WebAPI` hem `Application`'i hem `Infrastructure`'i referans alır (yalnızca DI composition amacıyla).
 
-Bu yon sayesinde Domain ve Application, framework/DB degisikliklerinden izole kalir.
+Bu yön sayesinde Domain ve Application, framework/DB değişikliklerinden izole kalır.
 
 ---
 
-## 2) Katman Icerikleri
+## 2) Katman İçerikleri
 
 ### 2.1 Domain
 
-- `Entities/` — `AppUser`, `Company`, `Item`, `Vehicle`, `LoadingPlan*` (Placement, ItemGroup, InputItem, UnplacedItem, Warning), `Integration`, `SyncLog`, `ErpUserMapping` vb. Tumu `BaseEntity`'den turer (audit + soft delete alanlari).
+- `Entities/` — `AppUser`, `Company`, `Item`, `Vehicle`, `LoadingPlan*` (Placement, ItemGroup, InputItem, UnplacedItem, Warning), `Integration`, `SyncLog`, `ErpUserMapping` vb. Tümü `BaseEntity`'den türer (audit + soft delete alanları).
 - `Enums/` — `FragilityType`, `AllowedRotations`, `LoadingType`, `SubscriptionType` vb.
 
 Kurallar:
 - Domain nesneleri framework, EF Core veya HTTP bilmez.
-- Davranis entity uzerinde tutulur (anemic modelden kacinilir).
+- Davranış entity üzerinde tutulur (anemic modelden kaçınılır).
 
 ### 2.2 Application
 
-- `Features/<Aggregate>/<UseCase>/` klasor standardi kullanilir.
-- Her use-case bir **MediatR** Command/Query + Handler ciftidir (`IRequestHandler<TRequest, TResponse>`).
-- Validator'lar ayni klasor altinda `<UseCase>CommandValidator.cs` olarak durur.
-- Repository soyutlamalari `Common/Interfaces/` altinda yasar (`I*Repository`, aggregate-specific).
-- Ortak modeller `Common/Models/` altinda (`Result<T>`, `Error`, `OptimizationInput/Result`).
+- `Features/<Aggregate>/<UseCase>/` klasör standardı kullanılır.
+- Her use-case bir **MediatR** Command/Query + Handler çiftidir (`IRequestHandler<TRequest, TResponse>`).
+- Validator'lar aynı klasör altında `<UseCase>CommandValidator.cs` olarak durur.
+- Repository soyutlamaları `Common/Interfaces/` altında yaşar (`I*Repository`, aggregate-specific).
+- Ortak modeller `Common/Models/` altında (`Result<T>`, `Error`, `OptimizationInput/Result`).
 
-Ornek klasor (gercek koddan):
+Örnek klasör (gerçek koddan):
 ```
 Features/
   Plans/
@@ -73,59 +75,59 @@ Features/
 
 ### 2.3 Infrastructure
 
-- `Persistence/AppDbContext.cs` (25 DbSet; audit alanlari `SaveChanges` override'inda otomatik dolar)
+- `Persistence/AppDbContext.cs` (25 DbSet; audit alanları `SaveChanges` override'inda otomatik dolar)
 - `Persistence/Repositories/<Entity>Repository.cs`
-- `Persistence/Configurations/` — entity konfigurasyonlari + soft delete global query filter
-- `Services/` — `OptimizationEngine` (yuk yerlestirme motoru), `ResendEmailService`, ERP connector'lari (`LogoErpConnector`, `NetsisErpConnector`)
-- `Jobs/` — Hangfire job'lari (`ErpExportJob`, trial expiry, notification cleanup)
-- EF Core + SQL Server saglayicisi kullanilir.
+- `Persistence/Configurations/` — entity konfigürasyonları + soft delete global query filter
+- `Services/` — `OptimizationEngine` (yük yerleştirme motoru), `ResendEmailService`, ERP connector'ları (`LogoErpConnector`, `NetsisErpConnector`)
+- `Jobs/` — Hangfire job'ları (`ErpExportJob`, trial expiry, notification cleanup)
+- EF Core + SQL Server sağlayıcısı kullanılır.
 
 ### 2.4 WebAPI
 
-- Controller'lar ince tutulur; is mantigi Application katmaninda.
-- Swagger yalnizca Development ortaminda aktiftir.
-- Middleware zinciri `DependencyInjection.UsePresentation()` icinde kurulur.
+- Controller'lar ince tutulur; iş mantığı Application katmanında.
+- Swagger yalnızca Development ortamında aktiftir.
+- Middleware zinciri `DependencyInjection.UsePresentation()` içinde kurulur.
 
 ---
 
 ## 3) Temel Mimari Kararlar
 
-### 3.1 MediatR ile Use-case Yapisi
+### 3.1 MediatR ile Use-case Yapısı
 
-Her use-case bir MediatR request'idir: `<UseCase>Command`/`<UseCase>Query` + `<UseCase>CommandHandler` (`IRequestHandler<>`). Controller'lar is mantigi icermez; `IMediator.Send(...)` ile ilgili handler'i cagirir. Command/Query ayrimi ayri proje olarak degil, ayni proje icinde isimlendirme ile yapilir.
+Her use-case bir MediatR request'idir: `<UseCase>Command`/`<UseCase>Query` + `<UseCase>CommandHandler` (`IRequestHandler<>`). Controller'lar iş mantığı içermez; `IMediator.Send(...)` ile ilgili handler'ı çağırır. Command/Query ayrımı ayrı proje olarak değil, aynı proje içinde isimlendirme ile yapılır.
 
-> Not: Dokumanin onceki surumu "service-based, MediatR kullanilmaz" diyordu; bu karar
-> uygulamada terk edildi. Kod tabani ~150+ dosyada MediatR desenini kullaniyor.
+> Not: Dokümanın önceki sürümü "service-based, MediatR kullanılmaz" diyordu; bu karar
+> uygulamada terk edildi. Kod tabanı ~150+ dosyada MediatR desenini kullanıyor.
 
 ### 3.2 Repository Pattern
 
-Veri erisimi `Application/Common/Interfaces/` altindaki interface'ler uzerinden yapilir (17 aggregate-specific interface). Application katmani `DbContext`'i dogrudan bilmez.
+Veri erişimi `Application/Common/Interfaces/` altındaki interface'ler üzerinden yapılır (17 aggregate-specific interface). Application katmanı `DbContext`'i doğrudan bilmez.
 
 - Interface: `IItemRepository`, `IVehicleRepository`, `ILoadingPlanRepository`, ... (Application)
 - Implementasyon: `Persistence/Repositories/*Repository.cs` (Infrastructure, EF Core)
 
 ### 3.3 FluentValidation
 
-Girdi dogrulama standardi olarak FluentValidation kullanilir.
+Girdi doğrulama standardı olarak FluentValidation kullanılır.
 
 - Paketler: `FluentValidation`, `FluentValidation.DependencyInjectionExtensions`
-- `Application/DependencyInjection.cs` icinde `AddValidatorsFromAssembly(...)` ile assembly scanning yapilir.
-- Validator'lar `<UseCase>CommandValidator.cs` olarak use-case klasorunde durur.
-- Validation hatalari `Result<T>.Failure` uzerinden donulur; exception-for-control-flow kullanilmaz.
+- `Application/DependencyInjection.cs` içinde `AddValidatorsFromAssembly(...)` ile assembly scanning yapılır.
+- Validator'lar `<UseCase>CommandValidator.cs` olarak use-case klasöründe durur.
+- Validation hataları `Result<T>.Failure` üzerinden dönülür; exception-for-control-flow kullanılmaz.
 
-### 3.4 Result<T> ile Hata Akisi
+### 3.4 Result<T> ile Hata Akışı
 
-Use-case'ler exception firlatmaz; sonuc `Result<T>` zarfinda donulur.
+Use-case'ler exception fırlatmaz; sonuç `Result<T>` zarfında dönülür.
 
-- Basari: `Result<T>.Success(value)`
+- Başarı: `Result<T>.Success(value)`
 - Hata: `Result<T>.Failure(Error)`
-- Kod tarafinda try/catch ile akis kontrolu yapilmaz.
+- Kod tarafında try/catch ile akış kontrolü yapılmaz.
 
-Not: Ortak API response envelope'u US-Story 8 kapsaminda olgunlastirilacaktir.
+Not: Ortak API response envelope'u US-Story 8 kapsamında olgunlaştırılacaktır.
 
 ### 3.5 Composition Root (DI)
 
-Her katman kendi `DependencyInjection.cs` dosyasini sunar; `Program.cs` yalnizca orkestrasyon yapar.
+Her katman kendi `DependencyInjection.cs` dosyasını sunar; `Program.cs` yalnızca orkestrasyon yapar.
 
 ```csharp
 builder.Services
@@ -135,67 +137,67 @@ builder.Services
 ```
 
 Kurallar:
-- `Program.cs` concrete tip veya EF Core referansi icermez.
-- Ortam bazli kararlar (`IsDevelopment`) `Program.cs`'de alinir; Infrastructure, Hosting soyutlamasina bagimli olmaz.
-- Middleware zinciri `UsePresentation()` uzerinden kurulur.
+- `Program.cs` concrete tip veya EF Core referansı içermez.
+- Ortam bazlı kararlar (`IsDevelopment`) `Program.cs`'de alınır; Infrastructure, Hosting soyutlamasına bağımlı olmaz.
+- Middleware zinciri `UsePresentation()` üzerinden kurulur.
 
-### 3.6 ~~Development'ta Veritabansiz Calisma~~ (calismiyor — kullanmayin)
+### 3.6 ~~Development'ta Veritabansız Çalışma~~ (çalışmıyor — kullanmayın)
 
-`UseInMemoryDatabase` bayragi konfigurasyonda mevcut ama **fiilen calismaz durumda**:
-bayrak `true` iken `AppDbContext`/Hangfire kayitlari atlanir fakat SQL-backed repository'ler
-yine de kayitli kalir — DI cozumlemesi calisma zamaninda patlar. Hicbir `InMemory*` repository
-implementasyonu yazilmamistir. Lokal gelistirme icin `docs/setup/local-setup.md`'deki
-Docker MSSQL akisi kullanilir.
+`UseInMemoryDatabase` bayrağı konfigürasyonda mevcut ama **fiilen çalışmaz durumda**:
+bayrak `true` iken `AppDbContext`/Hangfire kayıtları atlanır fakat SQL-backed repository'ler
+yine de kayıtlı kalır — DI çözümlemesi çalışma zamanında patlar. Hiçbir `InMemory*` repository
+implementasyonu yazılmamıştır. Lokal geliştirme için `docs/setup/local-setup.md`'deki
+Docker MSSQL akışı kullanılır.
 
-Bu bolum ya bayragin tamamlanmasiyla ya da bayragin koddan temizlenmesiyle kapanacaktir
+Bu bölüm ya bayrağın tamamlanmasıyla ya da bayrağın koddan temizlenmesiyle kapanacaktır
 (karar bekliyor — bkz. `docs/context/kod-taramasi-2026-08.md` §3).
 
-Production ve CI/CD'de connection string `ConnectionStrings__DefaultConnection` env var'i uzerinden verilir.
+Production ve CI/CD'de connection string `ConnectionStrings__DefaultConnection` env var'ı üzerinden verilir.
 
 ### 3.7 Configuration ve Secret
 
-- Yapilandirma: `appsettings.json` + `appsettings.{Environment}.json`
+- Yapılandırma: `appsettings.json` + `appsettings.{Environment}.json`
 - Development secret: User Secrets (planlanan)
-- Prod/Staging secret: env var (`Section__SubSection__Key` formatinda)
+- Prod/Staging secret: env var (`Section__SubSection__Key` formatında)
 - Detay: [environment-variables.md](./environment-variables.md)
 
 ---
 
-## 4) Kod Standardi
+## 4) Kod Standardı
 
-- `.editorconfig` ile stil kurallari sabitlenmistir.
+- `.editorconfig` ile stil kuralları sabitlenmiştir.
 - Analyzer paketleri: `Microsoft.CodeAnalysis.NetAnalyzers`, `SonarAnalyzer.CSharp`.
-- `ImplicitUsings` ve `Nullable` tum projelerde aciktir.
+- `ImplicitUsings` ve `Nullable` tüm projelerde açıktır.
 - Hedef framework: `net8.0` (bkz. `global.json`).
 
 ---
 
-## 5) Yeni Use-case Eklerken Izlenecek Akis
+## 5) Yeni Use-case Eklerken İzlenecek Akış
 
-1. `Application/Features/<Aggregate>/<UseCase>/` klasorunu ac.
+1. `Application/Features/<Aggregate>/<UseCase>/` klasörünü aç.
 2. `<UseCase>Command.cs` veya `<UseCase>Query.cs` yaz (`IRequest<Result<T>>` implemente eder).
 3. `<UseCase>CommandValidator.cs` (FluentValidation) yaz.
-4. `<UseCase>CommandHandler.cs` icinde is mantigini kur (`IRequestHandler<>`); `Result<T>` donur.
-5. Gerekli ise `Application/Common/Interfaces/` altinda yeni repository interface'i tanimla.
-6. Infrastructure'da karsilik gelen repository implementasyonunu yaz.
-7. `WebAPI` tarafinda controller endpoint'ini ekle; yalnizca `IMediator.Send(...)` cagir ve sonucu map et.
-8. DI kayitlari gerekiyorsa ilgili katmanin `DependencyInjection.cs` dosyasina ekle.
+4. `<UseCase>CommandHandler.cs` içinde iş mantığını kur (`IRequestHandler<>`); `Result<T>` döner.
+5. Gerekli ise `Application/Common/Interfaces/` altında yeni repository interface'i tanımla.
+6. Infrastructure'da karşılık gelen repository implementasyonunu yaz.
+7. `WebAPI` tarafında controller endpoint'ini ekle; yalnızca `IMediator.Send(...)` çağır ve sonucu map et.
+8. DI kayıtları gerekiyorsa ilgili katmanın `DependencyInjection.cs` dosyasına ekle.
 
 ---
 
-## 6) Yapilmayacaklar (Scope Disi)
+## 6) Yapılmayacaklar (Scope Dışı)
 
-Bu mimaride bilincli olarak tercih edilmeyenler:
+Bu mimaride bilinçli olarak tercih edilmeyenler:
 
-- Domain event altyapisi (ilerideki story'de degerlendirilecek)
-- CQRS'in proje duzeyinde ayrilmasi (command/query ayrimi ayni proje icinde, isimlendirme ile yapilir)
-- Assembly-scanning framework'u olarak Scrutor (yalnizca FluentValidation icin assembly scan yapilir)
+- Domain event altyapısı (ilerideki story'de değerlendirilecek)
+- CQRS'in proje düzeyinde ayrılması (command/query ayrımı aynı proje içinde, isimlendirme ile yapılır)
+- Assembly-scanning framework'ü olarak Scrutor (yalnızca FluentValidation için assembly scan yapılır)
 - Generic repository (repository'ler aggregate-specific tutulur)
 
 ---
 
-## 7) Ilgili Dokumanlar
+## 7) İlgili Dokümanlar
 
-- [developer-setup.md](./developer-setup.md) — Gelistirici ortam kurulumu
-- [environment-variables.md](./environment-variables.md) — Env var naming ve yapilandirma
-- [user-story-tracker.md](./user-story-tracker.md) — Story bazli ilerleme takibi
+- [developer-setup.md](./developer-setup.md) — Geliştirici ortam kurulumu
+- [environment-variables.md](./environment-variables.md) — Env var naming ve yapılandırma
+- [user-story-tracker.md](./user-story-tracker.md) — Story bazlı ilerleme takibi
