@@ -1,6 +1,8 @@
 # Bilinen Sorunlar
 
-**Son güncelleme:** 2026-05-16
+**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+
+Bu doküman açık ve çözülmüş devops sorunlarını, kök nedenlerini ve uygulanan/uygulanacak çözümlerini listeler.
 
 > Geliştirme backlog'u ve iyileştirme maddeleri için bkz. [DevOps Backlog](devops-backlog.md).
 >
@@ -135,7 +137,7 @@ görülmedi**. İlk deploy'da doğrulanmalı. Bkz. madde 2 ve [devops-backlog.md
 
 **Süreç kuralı:** İş branch'leri yalnızca `dev`'e PR açar. `dev → test` ve `test → main` ayrı terfi PR'larıdır. Test ortamında bulunan bug `test`'te değil, `dev`'den açılan `fix/*` ile düzeltilir.
 
-**Kalan risk:** `hotfix/* → main` sonrası `main → test → dev` geri-merge'ünün unutulması. Bu adım otomatikleştirilmedi — bkz. [BRANCHING.md](../conventions/BRANCHING.md) "Hotfix".
+**Kalan risk:** `hotfix/* → main` sonrası `main → test → dev` geri-merge'ünün unutulması. Bu adım otomatikleştirilmedi — bkz. [branching.md](../conventions/branching.md) "Hotfix".
 
 ---
 

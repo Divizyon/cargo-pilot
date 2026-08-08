@@ -1,6 +1,8 @@
-# Infra Environment Yapılandırması
+# Infra Ortam Değişkenleri
 
-Bu klasör, Docker Compose ve altyapı servisleri için ortam değişkenlerini içerir.
+**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+
+Docker Compose ve altyapı servisleri için ortam değişkenlerini ve kurulum adımlarını açıklar.
 
 ## Dosya Yapısı
 

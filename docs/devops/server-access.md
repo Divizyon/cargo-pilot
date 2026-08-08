@@ -1,6 +1,8 @@
 # Sunucu Erişim & Ağ Yapılandırması
 
-**Son güncelleme:** 2026-05-16
+**Son güncelleme:** 2026-05-17 · **Durum:** Aktif
+
+Bu doküman sunucuya SSH erişimini, güvenlik duvarı/fail2ban yapılandırmasını, nginx reverse proxy kurallarını ve monitoring stack başlatma adımlarını açıklar.
 
 ---
 

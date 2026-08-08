@@ -1,5 +1,11 @@
 # Branch & PR Denetimi
 
+**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+
+30 remote branch ve açık PR'ların denetimi, temizlik kararları ve uygulanan üç dallı terfi modelinin kaydı.
+
+---
+
 **Tarih:** 2026-08-03 · **Referans:** `origin/test` @ `3c42f65a` (denetim anı)
 **Durum:** ✅ **Tamamlandı ve uygulandı.** Sonuç: **29 branch → 3** (`main`, `test`, `dev`),
 26 `archive/*` tag'i, açık PR yok. Ardından trunk geçişi yapıldı (§8), aynı gün üç dallı
@@ -120,9 +126,9 @@ Eksik: `main`'de required status check tanımlı değil — CI geçmeden merge e
 
 > ⚠️ **Silmeden önce kurtarılacak:** `feature/3D_Packing_Algorithm` branch'i şu üç dosyayı
 > içeriyor ve bunlar `test`'te yok:
-> `apps/backend/docs/matematiksel_model.md` (425 satır),
-> `apps/backend/docs/sistem_mimarisi.md` (330),
-> `apps/backend/docs/bin_packing_implementation_plan.md` (405).
+> `docs/archive/algoritma-tasarimi/matematiksel-model.md` (425 satır),
+> `docs/archive/algoritma-tasarimi/sistem-mimarisi.md` (330),
+> `docs/archive/algoritma-tasarimi/bin-packing-uygulama-plani.md` (405).
 > Toplam 1.160 satır algoritma tasarım dokümanı.
 > ✅ **Kurtarıldı:** PR #888 (`chore/algoritma-tasarim-dokumanlari`). Merge edildikten sonra
 > `feature/3D_Packing_Algorithm` güvenle silinebilir.
@@ -167,7 +173,7 @@ Her adım ayrı ve geri alınabilir tutulmalı.
 | 5 | §5'teki 4 branch için sahipleriyle karar | Yok | ⏳ Ekipte |
 | 6 | §4.3'teki 4 story'yi backlog'a yaz, sonra branch'leri sil | Düşük | ⏳ |
 | 7 | `delete_branch_on_merge` ayarını **açık** hale getir | Yok — birikmeyi kökten keser | ⏳ |
-| 8 | Branch stratejisi kararı → [branching-proposal.md](branching-proposal.md) | — | ⏳ |
+| 8 | Branch stratejisi kararı → [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md) | — | ⏳ |
 
 > `dev`'de kurtarılacak iş bulunmadığı için (§3.1) ayrı bir taşıma adımı gerekmiyor.
 
@@ -206,7 +212,7 @@ Kurtarma kararı verilmeden silinen, `test`'te karşılığı olmayan işler —
 
 ## 8. Trunk Geçişi — 2026-08-03
 
-Temizlikten sonra [branching-proposal.md](branching-proposal.md) uygulandı.
+Temizlikten sonra [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md) uygulandı.
 
 | Adım | Durum |
 |------|-------|
@@ -216,14 +222,14 @@ Temizlikten sonra [branching-proposal.md](branching-proposal.md) uygulandı.
 | Workflow tetikleyicileri `test`/`dev` → `main` | ✅ |
 | `enforce-test-base` job'u kaldırıldı | ✅ |
 | Sunucu deploy script'i `git checkout main` | ✅ |
-| `BRANCHING.md` trunk modeliyle yeniden yazıldı | ✅ |
+| `branching.md` trunk modeliyle yeniden yazıldı | ✅ |
 | Default branch → `main` | ✅ |
 | `main-protection`'a required status check eklendi | ✅ |
 | Production pipeline (`v*` tag) | ⛔ Yapılmadı — gerekçe aşağıda |
 
 ### Production pipeline neden yapılmadı
 
-`branching-proposal.md` §5 adım 5'te yer alıyor ama şu an inşa edilemez:
+`docs/archive/branching-proposal-2026-08.md` §5 adım 5'te yer alıyor ama şu an inşa edilemez:
 
 1. `PROD_SSH_HOST` / `PROD_SSH_PRIVATE_KEY` secret'ları tanımlı değil.
 2. Production stack sunucuda **hiç kurulmadı** — `.env.prod` yok (`known-issues.md` #2).
@@ -267,7 +273,7 @@ Yeni modelde iş branch'i **yalnızca `dev`'e** PR açar; `dev → test` ve `tes
 | `release-tag.yml` — `main`'e terfide `v0.<n>.0` | ✅ `v0.1.0` oluştu |
 | Ruleset'ler: dal bazında merge yöntemi + required check | ✅ |
 | Bypass modu `always` → `pull_request` (dev/test) | ✅ |
-| `BRANCHING.md` üç dallı modelle yeniden yazıldı | ✅ |
+| `branching.md` üç dallı modelle yeniden yazıldı | ✅ |
 | Production pipeline | ⛔ Hâlâ yok — §8'deki gerekçeler geçerli |
 
 PR zinciri: #898 (→dev) → #899 (→test) → #900 (→main) → #901/#902/#903 (etiket düzeltmesi).
@@ -299,4 +305,4 @@ Bu tablonun 26 iş branch'iyle oluşmasının üç nedeni var; hiçbiri kişi ka
 3. **Uzun ömürlü branch'ler** → 1000+ commit geride kalan branch rebase edilemiyor, kimse silmeye de
    cesaret edemiyor, süresiz duruyor.
 
-Üçünün de yapısal karşılığı [branching-proposal.md](branching-proposal.md)'de.
+Üçünün de yapısal karşılığı [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md)'de.
