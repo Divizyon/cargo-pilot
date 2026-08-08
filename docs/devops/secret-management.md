@@ -1,6 +1,8 @@
 # Secret Yönetimi
 
-**Görev:** US-D23-S | **Tarih:** 2026-04-25
+**Son güncelleme:** 2026-04-25 · **Durum:** Aktif · **Görev:** US-D23-S
+
+Bu doküman repoya girmemesi gereken secret'ları, ortam dosyalarının konumunu, GHCR/CI-CD secret'larını ve bir secret ihlali durumunda izlenecek adımları açıklar.
 
 ---
 

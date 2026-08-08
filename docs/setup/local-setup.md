@@ -1,6 +1,8 @@
 # Local Setup
 
-Bu doküman, Cargo Pilot projesini local geliştirme ortamında ayağa kaldırmak için izlenecek adımları açıklar.
+**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+
+Cargo Pilot projesini local geliştirme ortamında ayağa kaldırmak için izlenecek adımları açıklar.
 
 ---
 
@@ -146,22 +148,22 @@ Sunucuda nginx `/media/` path'i MinIO S3 API'ye (port 9002) reverse proxy yapıl
 # 1. Remote'u güncelle
 git fetch origin
 
-# 2. test branch'inden yeni branch aç (branching kuralı)
-git checkout -b feature/US-XXX-aciklama origin/test
+# 2. dev branch'inden yeni branch aç (branching kuralı)
+git checkout -b feat/US-XXX-aciklama origin/dev
 
 # 3. Geliştir, test et, commit at
 git add <dosyalar>
 git commit -m "kısa açıklayıcı mesaj"
 
 # 4. Push et
-git push origin feature/US-XXX-aciklama
+git push origin feat/US-XXX-aciklama
 
-# 5. dev'e PR aç, ardından aynı branch'ten test'e PR aç
+# 5. dev'e PR aç
 gh pr create --base dev
 ```
 
 {% hint style="info" %}
-Branch ve commit kuralları için bkz. [Branching Strategy](../conventions/BRANCHING.md) ve [Commit Kuralları](../conventions/COMMITS.md).
+Branch ve commit kuralları için bkz. [Branch Stratejisi](../conventions/branching.md) ve [Commit Kuralları](../conventions/commits.md).
 {% endhint %}
 
 ---
@@ -256,12 +258,12 @@ docker logs cargo-pilot-minio-test --tail=30
 
 ## İlgili Dokümanlar
 
-{% content-ref url="../conventions/BRANCHING.md" %}
-[Branching Strategy](../conventions/BRANCHING.md)
+{% content-ref url="../conventions/branching.md" %}
+[Branch Stratejisi](../conventions/branching.md)
 {% endcontent-ref %}
 
-{% content-ref url="../conventions/COMMITS.md" %}
-[Commit Kuralları](../conventions/COMMITS.md)
+{% content-ref url="../conventions/commits.md" %}
+[Commit Kuralları](../conventions/commits.md)
 {% endcontent-ref %}
 
 {% content-ref url="../devops/secret-management.md" %}

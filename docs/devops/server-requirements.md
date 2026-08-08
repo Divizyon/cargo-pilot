@@ -1,6 +1,8 @@
 # Sunucu Gereksinimleri
 
-**Görev:** US-D01-I | **Tarih:** 2026-04-23
+**Son güncelleme:** 2026-04-23 · **Durum:** Aktif · **Görev:** US-D01-I
+
+Bu doküman mevcut sunucunun kapasitesini, bileşen bazlı kaynak gereksinimlerini ve prod + test ortamlarının birlikte çalışabilirliğini özetler.
 
 ---
 

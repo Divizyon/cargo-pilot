@@ -15,10 +15,14 @@
 
 - [ ] Manuel test yapıldı
 
+## Ekran Görüntüleri
+
+<!-- UI değişikliği içeren PR'larda zorunludur; önce/sonra görselleri ekleyin. UI değişikliği yoksa "UI değişikliği yok" yazın. -->
+
 ## Kontrol Listesi
 
 - [ ] Kod standartlarına uygun
-- [ ] Commit mesajları [commit kurallarına](docs/conventions/COMMITS.md) uygun
+- [ ] Commit mesajları [commit kurallarına](docs/conventions/commits.md) uygun
 - [ ] Linter hataları yok
 - [ ] Self-review yapıldı
 - [ ] Dokümantasyon güncellendi (gerekiyorsa)

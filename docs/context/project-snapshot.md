@@ -1,5 +1,11 @@
 # Proje Anlık Görüntüsü
 
+**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+
+Stack, ortamlar, portlar, CI/CD ve açık risklerin tek sayfalık teknik anlık görüntüsü.
+
+---
+
 **Kaynak tarama:** 2026-08-03 · `test` @ `3c42f65a` · Repodaki 25 `.md` dosyası okundu.
 **Kod taraması:** 2026-08-04 · 6 kategoride kod tabanı tarandı, §2 kodla doğrulanıp düzeltildi.
 Detaylı bulgular: [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md).
@@ -145,7 +151,7 @@ feat/* ──PR(squash)──► dev ──PR(merge)──► test ──PR(merg
 - `hotfix/*` → `main` tek istisna; ardından `main → test → dev` geri-merge **zorunlu**.
 - `dev` her an çıkılabilir olmalı: erken terfide `dev`'deki her şey birlikte gider.
 - Silinen tüm eski branch'ler `archive/<branch-adı>` tag'i olarak korunuyor (28 tag).
-- Kurallar: [BRANCHING.md](../conventions/BRANCHING.md) · Karar geçmişi: [branching-proposal.md](branching-proposal.md)
+- Kurallar: [branching.md](../conventions/branching.md) · Karar geçmişi: [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md)
 
 **Not:** 2026-08-03 sabahı kısa süreliğine trunk modeline (`main` tek dal) geçildi, aynı gün
 üç dallı modele dönüldü. Gerekçe: test ortamı fiilen müşteriye gösterilen yüzey ve ayrı bir

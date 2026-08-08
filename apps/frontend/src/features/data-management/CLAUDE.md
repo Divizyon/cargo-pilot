@@ -1,5 +1,5 @@
 ---
-description:
+description: Squad 1 veri yönetimi kuralları — ürün/araç form şemaları, bağımlı alanlar ve Figma referansları
 alwaysApply: true
 ---
 

@@ -1,5 +1,9 @@
 # ERP Veritabanı Şeması — DIVIZYON
 
+**Son güncelleme:** 2026-05-15 · **Durum:** Aktif
+
+Bu doküman, DIVIZYON ERP sisteminin veritabanı şemasını ve Cargo Pilot alan eşleştirmelerini tanımlar.
+
 Kaynak: `DIVIZYON.bak` (SQL Server 2019, 4.35 MB)  
 Restore: `erp-schema-inspect` Docker container, port 1435  
 Tablo sayısı: 3 | `TBLSTSABIT` (134 kol), `TBLSIPAMAS` (106 kol), `TBLSIPATRA` (97 kol)
