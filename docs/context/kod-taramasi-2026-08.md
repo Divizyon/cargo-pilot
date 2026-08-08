@@ -1,5 +1,11 @@
 # Kod Taraması — Ağustos 2026
 
+**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+
+Kod tabanının 6 kategoride taranmasından çıkan gerçek durum: stack, algoritma, devops, veritabanı ve test bulguları.
+
+---
+
 **Tarama:** 2026-08-04 · 6 kategori (frontend, backend, algoritma, devops, veritabanı, test/kalite)
 paralel ajanlarla kod tabanı üzerinden tarandı; bulgular burada birleştirildi.
 Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR/Actions geçmişi sorgulanmadı.
@@ -48,7 +54,7 @@ Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR
 - **Çift mantık:** frontend `buildPlacements` (shelf/row) tamamen ayrı bir heuristik — ön izleme/staging için. Manuel drag doğrulaması backend kurallarının **alt kümesi**: %80 destek, MaxStackCount, MaxWeightOnTop, LIFO, drag sonrası ağırlık kontrolü frontend'de yok; tek violation mesajı sınır/çakışma. Yüzey (face) kısıtı ise **sadece** frontend'de var.
 - **Sözleşme:** eksen eşlemesi ve sol-alt-arka pivot backend'de tutarlı ama yazılı değil; cm birimi hiçbir yerde zorlanmıyor (konvansiyon). Pivot offset `scene-config.ts`'te değil, `BoxWrapper`/`CargoMeshInstanced` içine dağılmış (CLAUDE.md kuralının kısmi ihlali). Rotasyon→boyut eşlemesi FE/BE birebir uyumlu doğrulandı; ancak FE `ALLOWED_ROTATIONS.YawOnly=6`'nın backend enum karşılığı yok (latent uyumsuzluk). `allowContamination` FE'den gönderiliyor, BE komutlarında alan yok → sessizce yok sayılıyor.
 - **Performans:** dominance filtresi yok → pratik O(N³); `ImproveBalance` O(N⁴)'e çıkabilir; sıcak döngü `decimal`; `CancellationToken`/timeout yok (HTTP isteğini bloke ediyor); plan başına kutu sayısı sınırsız; hiç benchmark/test yok. FE: `InstancedMesh` eşiği 50, dispose disiplinli, `computeViolations` O(n²) ama sadece `pointerup`'ta.
-- **Tasarım dokümanları arşiv** (`matematiksel_model.md`, `sistem_mimarisi.md`, `bin_packing_implementation_plan.md`): kod hem ileride (AllowedRotations, gruplama, kontaminasyon) hem geride (dominance filtresi, CoG hard constraint + fallback + uyarı üretimi, normalize maliyet fonksiyonu yok). Arşiv notundaki "MediatR kullanılmaz" cümlesi de hatalı.
+- **Tasarım dokümanları arşiv** (`docs/archive/algoritma-tasarimi/matematiksel-model.md`, `sistem-mimarisi.md`, `bin-packing-uygulama-plani.md`): kod hem ileride (AllowedRotations, gruplama, kontaminasyon) hem geride (dominance filtresi, CoG hard constraint + fallback + uyarı üretimi, normalize maliyet fonksiyonu yok). Arşiv notundaki "MediatR kullanılmaz" cümlesi de hatalı.
 
 ## 5. Veritabanı
 

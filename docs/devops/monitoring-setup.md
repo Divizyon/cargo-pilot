@@ -1,7 +1,8 @@
 # Monitoring & Alerting
 
-**Görevler:** US-D19-I, US-D20-I, US-D21-I, US-D28-I, US-D29-I\
-**Son güncelleme:** 2026-05-16
+**Son güncelleme:** 2026-08-04 · **Durum:** Aktif · **Görev:** US-D19-I, US-D20-I, US-D21-I, US-D28-I, US-D29-I
+
+Bu doküman Prometheus, Loki/Promtail ve Grafana ile kurulu monitoring stack'in mimarisini, kurulum adımlarını, alert kurallarını ve sorun giderme yöntemlerini açıklar.
 
 ---
 

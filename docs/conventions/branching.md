@@ -1,6 +1,8 @@
-# Branching Strategy
+# Branch Stratejisi
 
-Bu doküman, Cargo Pilot projesinde branch yapısını, geliştirme akışını ve PR kurallarını tanımlar.
+**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+
+Cargo Pilot projesinde branch yapısını, geliştirme akışını ve PR kurallarını tanımlar.
 
 **Model:** Üç dallı terfi (promotion) modeli — `dev` → `test` → `main`.
 **Geçerlilik:** 2026-08-03'ten itibaren.
@@ -267,6 +269,6 @@ git checkout -b feat/US-XXX-devam archive/feature/eski-branch-adi
 
 ## İlgili Dokümanlar
 
-{% content-ref url="COMMITS.md" %}
-[Commit Kuralları](COMMITS.md)
+{% content-ref url="commits.md" %}
+[Commit Kuralları](commits.md)
 {% endcontent-ref %}

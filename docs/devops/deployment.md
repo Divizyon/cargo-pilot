@@ -1,15 +1,12 @@
-# Deployment Bilgileri
+# Deployment
 
-**Sunucu:** `104.247.163.42` / `cargopilot.divizyon.org`\
-**CI/CD:** GitHub Actions → otomatik deploy aktif
+**Son güncelleme:** 2026-08-08 · **Durum:** Aktif
 
-{% hint style="warning" %}
-**Production stack henüz deploy edilmedi.** Test ortamı şu an product demo için kullanılmaktadır. Detaylar için bkz. [Bilinen Sorunlar](docs/devops/known-issues.md).
-{% endhint %}
+Bu doküman test ve production ortamlarının servis adreslerini, stack yönetimini, env dosyalarını, database migration sürecini, container operasyonlarını ve CI/CD akışını açıklar.
 
 ---
 
-## Servis Adresleri
+## Ortamlar ve servis adresleri
 
 {% tabs %}
 {% tab title="🧪 Test" %}
@@ -41,7 +38,7 @@
 
 ---
 
-## Stack Yönetimi
+## Stack yönetimi
 
 {% tabs %}
 {% tab title="🧪 Test" %}
@@ -79,7 +76,7 @@ docker logs -f cargo-pilot-frontend-prod
 
 ---
 
-## Env Dosyaları (Sunucuda)
+## Env Dosyaları
 
 | Ortam | Yol |
 |-------|-----|
@@ -132,7 +129,7 @@ docker exec cargo-pilot-mssql-test /opt/mssql-tools18/bin/sqlcmd \
 
 ---
 
-## Container Durumu
+## Container Operasyonları
 
 ```bash
 # Tüm cargo-pilot container'larını gör
@@ -154,6 +151,20 @@ docker restart cargo-pilot-backend-prod
 | `test` | PR + Push | Image Build → GHCR Push → Deploy (Test) |
 | `main` | Push | _(Production pipeline henüz yok)_ |
 
-{% hint style="info" %}
-SSH erişimi ve sunucu detayları için bkz. [Sunucu Erişim & Ağ](docs/devops/server-access.md).
+---
+
+## Production Durumu
+
+{% hint style="warning" %}
+**Production stack henüz deploy edilmedi.** Test ortamı şu an product demo için kullanılmaktadır. Detaylar için bkz. [Bilinen Sorunlar](known-issues.md).
 {% endhint %}
+
+`main` branch'e push sonrası `release-tag.yml` otomatik olarak `v0.<n>.0` formatında bir sürüm etiketi atar; bu etiketleme herhangi bir deploy tetiklemez. `v*` etiketleri şu an hiçbir workflow tarafından tüketilmiyor — production CI/CD pipeline'ı henüz kurulmadı.
+
+---
+
+## İlgili Dokümanlar
+
+- [Sunucu Erişim & Ağ](server-access.md) — SSH erişimi ve sunucu ağ detayları
+- [Bilinen Sorunlar](known-issues.md) — açık deployment riskleri
+- [Secret Yönetimi](secret-management.md) — env dosyaları ve CI/CD secret'ları

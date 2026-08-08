@@ -1,5 +1,11 @@
 # ERP Entegrasyon — Veri Modeli
 
+**Son güncelleme:** 2026-05-08 · **Durum:** Aktif
+
+Bu doküman, ERP entegrasyonu için CargoPilot veri modelinde eklenecek yeni tabloları ve mevcut tablolara eklenecek alanları tanımlar.
+
+---
+
 ## Integration
 | Alan | Tip | Not |
 |------|-----|-----|

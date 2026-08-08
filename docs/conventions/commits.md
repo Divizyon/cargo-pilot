@@ -1,5 +1,7 @@
 # Commit Kuralları
 
+**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+
 Commit geçmişini anlaşılır, okunabilir ve takip edilebilir tutmak için uyulacak kurallar.
 
 ---
@@ -100,6 +102,6 @@ Amaç kusursuz değil, **okunabilir** bir geçmiş oluşturmaktır.
 
 ## İlgili Dokümanlar
 
-{% content-ref url="BRANCHING.md" %}
-[Branching Strategy](BRANCHING.md)
+{% content-ref url="branching.md" %}
+[Branch Stratejisi](branching.md)
 {% endcontent-ref %}
