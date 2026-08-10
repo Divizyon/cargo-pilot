@@ -405,7 +405,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         };
     }
 
-    private static (decimal w, decimal h, decimal d, LoadingPlanPlacementRotation rotation)[]
+    internal static (decimal w, decimal h, decimal d, LoadingPlanPlacementRotation rotation)[]
         GetOrientations(OptimizationItemInput item)
     {
         var (W, H, L) = (item.Width, item.Height, item.Length);
