@@ -133,6 +133,10 @@ gh pr create --base dev --head feat/US-142-login-form
 gh pr create --base test --head dev --title "Terfi: dev → test"
 ```
 
+PR açıldıktan ve CI (zorunlu kontroller) çalışmaya başladıktan sonra **Terfi** workflow'unu
+tetikleyin (Actions → Terfi → Run workflow, hedef: `dev-test`). Workflow kontrollerin
+yeşile dönmesini bekler ve PR'ı merge commit ile birleştirir.
+
 **Merge yöntemi: merge commit.** Squash yapılırsa `test`, `dev`'de olmayan yeni bir commit alır
 ve dallar kalıcı olarak ayrışır.
 
@@ -144,7 +148,29 @@ Merge sonrası test sunucusuna otomatik deploy olur — geliştiriciler ve QA bu
 gh pr create --base main --head test --title "Sürüm: test → main"
 ```
 
+PR açıldıktan sonra **Terfi** workflow'unu tetikleyin (Actions → Terfi → Run workflow,
+hedef: `test-main`).
+
 Merge sonrası CI otomatik `v0.<n>.0` sürüm etiketi atar.
+
+{% hint style="warning" %}
+**Bu PR'ları elle `gh pr merge` ile merge ETMEYİN.** Merge-commit ile terfi modelinde
+`test`/`main` dalı `dev`/`test`'te olmayan bir merge commit içerir; bu yüzden terfi PR'ının
+`mergeStateStatus` değeri kalıcı olarak `BEHIND` görünür ve `gh pr merge`'ün istemci tarafı
+kontrolü merge'i şu hatayla reddeder:
+
+```
+X Pull request #928 is not mergeable: the head branch is not up to date with the base branch.
+```
+
+Bu bir ruleset arızası değildir (üç ruleset'te de `strict_required_status_checks_policy`
+kapalıdır) — `BEHIND` durumu, merge-commit ile terfi modelinin doğal ve zararsız sonucudur.
+Doğru yol yukarıdaki **Terfi** workflow'udur (`.github/workflows/promote.yml`). Workflow
+kullanılamıyorsa GitHub REST API (`gh api repos/<org>/<repo>/pulls/<PR>/merge -X PUT -f
+merge_method=merge`) veya GitHub arayüzündeki **"Merge pull request"** düğmesi kullanılabilir
+— ikisi de `gh pr merge`'ün istemci tarafı kontrolünü uygulamaz. Korumaları atlamak için
+**`--admin` veya bypass kullanılmaz.**
+{% endhint %}
 
 ---
 
