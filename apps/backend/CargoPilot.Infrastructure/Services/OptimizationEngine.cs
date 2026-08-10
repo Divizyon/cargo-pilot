@@ -56,7 +56,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                 continue;
             }
 
-            groupZones.TryGetValue(item.UnloadingOrder ?? -1, out var zone);
+            decimal? zoneStart = null;
+            decimal? zoneEnd = null;
+            if (groupZones.TryGetValue(item.UnloadingOrder ?? -1, out var zone))
+            {
+                zoneStart = zone.ZStart;
+                zoneEnd = zone.ZEnd;
+            }
 
             PlacedBox? best = null;
             var bestScore = decimal.MaxValue;
@@ -82,7 +88,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                         item.Weight, totalWeight,
                         momentX, momentZ,
                         halfW, halfL,
-                        zone.ZStart, zone.ZEnd);
+                        zoneStart, zoneEnd);
 
                     if (score < bestScore)
                     {
