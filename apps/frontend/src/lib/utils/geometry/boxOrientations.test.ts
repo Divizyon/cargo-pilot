@@ -102,6 +102,37 @@ describe('isOrientationAllowed', () => {
       expect(isOrientationAllowed(item, idx as 0 | 1 | 2 | 3 | 4 | 5)).toBe(true);
     }
   });
+
+  it.each([
+    [0, 'allowFaceBottom'],
+    [1, 'allowFaceTop'],
+    [2, 'allowFaceFront'],
+    [3, 'allowFaceBack'],
+    [4, 'allowFaceLeft'],
+    [5, 'allowFaceRight'],
+  ] as const)('idx %i → %s=false o orientation için reddeder', (idx, faceKey) => {
+    const item = makeItem({ [faceKey]: false });
+    expect(isOrientationAllowed(item, idx)).toBe(false);
+  });
+
+  it('allowFace*=false diğer indexleri etkilemez', () => {
+    const item = makeItem({ allowFaceTop: false });
+    expect(isOrientationAllowed(item, 0)).toBe(true);
+    expect(isOrientationAllowed(item, 2)).toBe(true);
+    expect(isOrientationAllowed(item, 3)).toBe(true);
+    expect(isOrientationAllowed(item, 4)).toBe(true);
+    expect(isOrientationAllowed(item, 5)).toBe(true);
+  });
+
+  it('eksen izinli olsa da yüz kısıtı reddederse orientation izinsizdir', () => {
+    const item = makeItem({ allowRotateX: true, allowFaceFront: false });
+    expect(isOrientationAllowed(item, 2)).toBe(false);
+  });
+
+  it('yüz izinli olsa da eksen kısıtı reddederse orientation izinsizdir', () => {
+    const item = makeItem({ allowRotateX: false, allowFaceFront: true });
+    expect(isOrientationAllowed(item, 2)).toBe(false);
+  });
 });
 
 describe('allowedOrientations', () => {
@@ -120,5 +151,15 @@ describe('allowedOrientations', () => {
   it('hepsi kapalı → sadece identity (idx 0)', () => {
     const item = makeItem({ allowRotateX: false, allowRotateZ: false });
     expect(allowedOrientations(item)).toEqual([0]);
+  });
+
+  it('allowFaceTop=false → idx 1 hariç tüm eksen-izinli set döner', () => {
+    const item = makeItem({ allowFaceTop: false });
+    expect(allowedOrientations(item)).toEqual([0, 2, 3, 4, 5]);
+  });
+
+  it('allowRotateX=false + allowFaceLeft=false birlikte → sadece 0, 5', () => {
+    const item = makeItem({ allowRotateX: false, allowFaceLeft: false });
+    expect(allowedOrientations(item)).toEqual([0, 5]);
   });
 });
