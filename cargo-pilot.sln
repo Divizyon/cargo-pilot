@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -13,6 +13,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoPilot.Infrastructure", "apps\backend\CargoPilot.Infrastructure\CargoPilot.Infrastructure.csproj", "{E77D7D49-8EF0-4E3A-67E8-CA37E299AA5E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoPilot.WebAPI", "apps\backend\CargoPilot.WebAPI\CargoPilot.WebAPI.csproj", "{4618B678-DBA1-7394-A174-B0F4FF20BA42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoPilot.Infrastructure.Tests", "apps\backend\CargoPilot.Infrastructure.Tests\CargoPilot.Infrastructure.Tests.csproj", "{CE7ABED3-744E-4A97-8353-C8E57A1DA532}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +38,10 @@ Global
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE7ABED3-744E-4A97-8353-C8E57A1DA532}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE7ABED3-744E-4A97-8353-C8E57A1DA532}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE7ABED3-744E-4A97-8353-C8E57A1DA532}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE7ABED3-744E-4A97-8353-C8E57A1DA532}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +52,7 @@ Global
 		{73B7F73A-6F8A-4518-CEF9-C809F44E5ACD} = {270F7A58-C097-D64B-0343-582534E94D4F}
 		{E77D7D49-8EF0-4E3A-67E8-CA37E299AA5E} = {270F7A58-C097-D64B-0343-582534E94D4F}
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42} = {270F7A58-C097-D64B-0343-582534E94D4F}
+		{CE7ABED3-744E-4A97-8353-C8E57A1DA532} = {270F7A58-C097-D64B-0343-582534E94D4F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {33884C42-0BAE-4853-8852-85F38E436D95}
