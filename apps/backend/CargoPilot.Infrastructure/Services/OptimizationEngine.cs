@@ -147,8 +147,11 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     }
 
     // ── Grup zone hesaplama ───────────────────────────────────────────────────
-    // Gruplara ait distinct UnloadingOrder değerlerini DESC sıralar ve kamyon
-    // uzunluğunu eşit bölümlere ayırır. 0-1 grup varsa zone uygulanmaz.
+    // Arka kapı Z=0'dadır. UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya
+    // en yakın (en küçük Z) bölgeye düşer. Distinct UnloadingOrder değerleri ASC
+    // sıralanır ve kamyon uzunluğu eşit bölümlere ayrılır; sıradaki her grup bir
+    // sonraki bölgeye, yani kapıdan daha uzağa yerleşir. 0-1 grup varsa zone
+    // uygulanmaz.
     private static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
@@ -163,7 +166,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             .Where(i => i.GroupId.HasValue && i.UnloadingOrder.HasValue)
             .Select(i => i.UnloadingOrder!.Value)
             .Distinct()
-            .OrderByDescending(o => o)
+            .OrderBy(o => o)
             .ToList();
 
         if (orders.Count <= 1)
@@ -180,7 +183,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
     // ── Grup-bilinçli sıralama ────────────────────────────────────────────────
     // GroupId'si olan items yükleme sırasına göre sıralanır:
-    // yüksek UnloadingOrder = araç arkası = önce yüklenir (DESC sıra).
+    // yüksek UnloadingOrder = en son inecek grup = kapıdan en uzak bölge
+    // (arka kapıda Z=length tarafı) = önce yüklenir (DESC sıra).
     // GroupId'si olmayan items en sona eklenir.
     // Grup yoksa mevcut criteria-based sıralama uygulanır.
     private static List<OptimizationItemInput> SortForGroupPlacement(
