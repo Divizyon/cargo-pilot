@@ -56,16 +56,11 @@ public sealed class OptimizationEngineTests
     /// hâlâ uygulandığını doğrular (regresyon testi). Bu, F0-03 düzeltmesinin
     /// geçerli bölge eşleşmelerini bozmadığını garanti eder.
     ///
-    /// ComputeGroupZones distinct UnloadingOrder değerlerini DESC sıralar; bu
-    /// dalda (F0-01 kapı yönü düzeltmesinden önce) en yüksek UnloadingOrder
-    /// değeri kapıya (Z=0) en yakın bölgeye düşer.
-    ///
-    /// Araç genişliği kutu genişliğiyle birebir (tek sıra) seçilir: bu dalda
-    /// LIFO bölge başlangıçları henüz aday nokta olarak tohumlanmıyor (bkz.
-    /// F0-01), yani bir bölgeye yalnızca önceki kutuların ürettiği aday
-    /// noktalarla ulaşılabilir. Grup 2 kendi bölge derinliğini (2 kutu) tam
-    /// doldurur; böylece aday nokta cephesi grup 1'in bölgesine ilerler ve
-    /// grup 1'in tek kutusu kendi bölgesi içine düşer.
+    /// Kasıtlı olarak yöne bağımsızdır: hangi grubun kapıya (Z=0) yakın bölgeye
+    /// düştüğü F0-01'in sorumluluğudur ve orada (GroupZoneTests) doğrulanır.
+    /// Burada yalnızca her grubun kendi UnloadingOrder'ına ait, zoneSize
+    /// genişliğindeki dilime toplandığı ve iki grubun farklı, çakışmayan
+    /// dilimlere düştüğü doğrulanır.
     /// </summary>
     [Fact]
     public void Lifo_MultipleGroups_ZonePenaltyApplied()
@@ -95,20 +90,31 @@ public sealed class OptimizationEngineTests
         Assert.Empty(result.UnplacedItems);
 
         var group1Placement = Assert.Single(result.Placements, p => p.ItemId == group1Box.ItemId);
+        var group2Placements = new[] { group2Box1, group2Box2 }
+            .Select(item => Assert.Single(result.Placements, p => p.ItemId == item.ItemId))
+            .ToList();
 
-        // UnloadingOrder=1 (düşük) -> bölge [zoneSize, vehicleLength) -> kapıdan en uzak.
-        Assert.True(group1Placement.Z >= zoneSize && group1Placement.Z + group1Placement.Depth <= vehicleLength,
-            $"UnloadingOrder=1 bölgesi [{zoneSize},{vehicleLength}] dışında: Z={group1Placement.Z}, derinlik={group1Placement.Depth}");
+        // Grup 1'in düştüğü bölge dilimi ne olursa olsun (kapıya yakın ya da uzak),
+        // tek kutusu o dilimin dışına taşmamalı.
+        var group1Zone = ZoneIndex(group1Placement.Z, zoneSize);
+        Assert.True(WithinZone(group1Placement, group1Zone, zoneSize),
+            $"Grup 1 kutusu kendi bölge dilimi [{group1Zone * zoneSize},{(group1Zone + 1) * zoneSize}] dışında: Z={group1Placement.Z}, derinlik={group1Placement.Depth}");
 
-        foreach (var group2Item in new[] { group2Box1, group2Box2 })
+        foreach (var placement in group2Placements)
         {
-            var placement = Assert.Single(result.Placements, p => p.ItemId == group2Item.ItemId);
+            var group2Zone = ZoneIndex(placement.Z, zoneSize);
+            Assert.True(WithinZone(placement, group2Zone, zoneSize),
+                $"Grup 2 kutusu kendi bölge dilimi [{group2Zone * zoneSize},{(group2Zone + 1) * zoneSize}] dışında: Z={placement.Z}, derinlik={placement.Depth}");
 
-            // UnloadingOrder=2 (yüksek) -> bölge [0, zoneSize) -> kapıya en yakın.
-            Assert.True(placement.Z >= 0m && placement.Z + placement.Depth <= zoneSize,
-                $"UnloadingOrder=2 bölgesi [0,{zoneSize}] dışında: Z={placement.Z}, derinlik={placement.Depth}");
+            // İki grup, aynı bölge dilimini paylaşmamalı (bölge cezası ayrıştırıyor).
+            Assert.NotEqual(group1Zone, group2Zone);
         }
     }
+
+    private static int ZoneIndex(decimal z, decimal zoneSize) => (int)(z / zoneSize);
+
+    private static bool WithinZone(PlacedItemResult placement, int zoneIndex, decimal zoneSize)
+        => placement.Z >= zoneIndex * zoneSize && placement.Z + placement.Depth <= (zoneIndex + 1) * zoneSize;
 
     private static OptimizationItemInput CreateItem(decimal weight, int? unloadingOrder, Guid? groupId)
         => new(
