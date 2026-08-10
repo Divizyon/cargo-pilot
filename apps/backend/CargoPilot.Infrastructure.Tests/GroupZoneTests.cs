@@ -1,7 +1,6 @@
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Services;
-using Xunit;
 
 namespace CargoPilot.Infrastructure.Tests;
 
