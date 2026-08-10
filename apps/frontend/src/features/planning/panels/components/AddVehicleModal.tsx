@@ -79,11 +79,12 @@ const FORM_VEHICLE_TYPE_INT: Record<string, number> = {
   konteyner: 3,
 };
 
+// Backend LoadingType: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4.
+// Bu modalde sağ/sol kapı seçimi yok; "yan" seçimi varsayılan olarak SideRight'a eşlenir.
 const LOADING_AREA_INT: Record<string, number> = {
   arka: 0,
   yan: 1,
-  ust: 2,
-  'arka-yan': 3,
+  ust: 4,
 };
 
 export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleModalProps) {
