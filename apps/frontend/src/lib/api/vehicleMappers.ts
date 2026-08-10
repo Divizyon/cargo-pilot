@@ -18,7 +18,7 @@ export const VEHICLE_TYPE_INT = {
   Kamposet: 3, // Romork
 } as const;
 
-// Backend: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
+// Backend: Trailer=0, Truck=1, Container=2, Romork=3
 export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
   0: VehicleType.Tir,
   1: VehicleType.Kamyon,
@@ -27,15 +27,42 @@ export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
 };
 
 // loadingType int → { direction, doorSide }
-// Backend: Rear=0, Side=1, Top=2
+// Backend (CargoPilot.Domain.Enums.LoadingType): Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
 export const LOADING_TYPE_FROM_INT: Record<
   number,
   { direction: DoorDirection; doorSide?: 'right' | 'left' }
 > = {
   0: { direction: DoorDirection.Rear },
-  1: { direction: DoorDirection.Side },
-  2: { direction: DoorDirection.Top },
+  1: { direction: DoorDirection.Side, doorSide: 'right' },
+  2: { direction: DoorDirection.Side, doorSide: 'left' },
+  // SideBoth: hem sağ hem sol kapı var, frontend'de tek bir "her iki taraf" kavramı yok.
+  // En küçük doğru karşılık: side yönü, doorSide belirsiz bırakılır. loadOrder.ts ve
+  // ContainerMesh/VehiclePreview3D, doorSide tanımsızken sağ kapı varsayımına düşer —
+  // yani SideBoth aracı, sağ kapıdan yükleniyormuş gibi gösterilir/sıralanır (yanlış değil,
+  // eksik bilgiyle en güvenli varsayım).
+  3: { direction: DoorDirection.Side },
+  4: { direction: DoorDirection.Top },
 };
+
+/**
+ * Backend loadingType (int) değerini { direction, doorSide } çiftine çevirir.
+ * - null/undefined: veri yok, `undefined` döner — çağıran taraf kendi varsayılanını uygular.
+ * - Eşleşmeyen/bilinmeyen int (tabloda karşılığı olmayan): backend'e yeni bir LoadingType
+ *   değeri eklenmiş ya da veri bozuk olabilir — sessizce yutulmaz, konsola uyarı basılır ve
+ *   `undefined` döner (çağıran taraf kendi varsayılanına bilinçli olarak düşer).
+ */
+export function resolveLoadingType(
+  loadingType: number | null | undefined,
+): { direction: DoorDirection; doorSide?: 'right' | 'left' } | undefined {
+  if (loadingType == null) return undefined;
+  const mapped = LOADING_TYPE_FROM_INT[loadingType];
+  if (!mapped) {
+    console.warn(
+      `[vehicleMappers] Bilinmeyen loadingType değeri: ${loadingType} — eşleme tablosunda karşılığı yok, varsayılana düşülüyor.`,
+    );
+  }
+  return mapped;
+}
 
 // ─── Backend response schema ──────────────────────────────────────────────────
 
@@ -146,6 +173,7 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
 
   const vehicleType = VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir;
   const isContainer = vehicleType === VehicleType.Konteyner;
+  const loadingTypeInfo = resolveLoadingType(api.loadingType);
   return {
     id: api.id,
     name: api.vehicleName,
@@ -158,8 +186,8 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
     height: api.internalHeight,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Front,
-    doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
+    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Front,
+    doorSide: loadingTypeInfo?.doorSide,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -207,6 +235,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
 
   const vehicleType = VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir;
   const isContainer = vehicleType === VehicleType.Konteyner;
+  const loadingTypeInfo = resolveLoadingType(api.loadingType);
   return {
     id: api.id,
     name: api.vehicleName,
@@ -221,8 +250,8 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     grossWeight: api.grossWeight ?? undefined,
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.direction ?? DoorDirection.Front,
-    doorSide: LOADING_TYPE_FROM_INT[api.loadingType ?? -1]?.doorSide,
+    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Front,
+    doorSide: loadingTypeInfo?.doorSide,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -316,9 +345,15 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       ? toKilograms(values.maxCargoWeight, weightUnit as WeightUnitKey)
       : 0,
     layerCount: Number.isFinite(values.layerCount) ? (values.layerCount ?? 1) : 1,
+    // Backend LoadingType: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4.
+    // 'front' ve 'rearAndSide' için backend'de birebir karşılık yok — Rear (0) varsayılanına düşülür.
     loadingType: (() => {
-      const map: Record<string, number> = { rear: 0, side: 1, top: 2 };
-      return map[values.doorDirection] ?? 0;
+      if (values.doorDirection === 'rear') return 0;
+      if (values.doorDirection === 'top') return 4;
+      if (values.doorDirection === 'side') {
+        return values.doorSide === 'left' ? 2 : 1; // SideLeft : SideRight (belirtilmemişse sağ)
+      }
+      return 0;
     })(),
     isActive: values.isActive ?? true,
     kingPinDistanceMm: Number.isFinite(values.kingpin?.distance) ? values.kingpin!.distance : null,
