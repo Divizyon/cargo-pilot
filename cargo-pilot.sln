@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoPilot.Infrastructure",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoPilot.WebAPI", "apps\backend\CargoPilot.WebAPI\CargoPilot.WebAPI.csproj", "{4618B678-DBA1-7394-A174-B0F4FF20BA42}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoPilot.Infrastructure.Tests", "apps\backend\CargoPilot.Infrastructure.Tests\CargoPilot.Infrastructure.Tests.csproj", "{70352A23-AD76-4E27-A9D9-68B9E5E55BA8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +38,10 @@ Global
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70352A23-AD76-4E27-A9D9-68B9E5E55BA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70352A23-AD76-4E27-A9D9-68B9E5E55BA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70352A23-AD76-4E27-A9D9-68B9E5E55BA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70352A23-AD76-4E27-A9D9-68B9E5E55BA8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +52,7 @@ Global
 		{73B7F73A-6F8A-4518-CEF9-C809F44E5ACD} = {270F7A58-C097-D64B-0343-582534E94D4F}
 		{E77D7D49-8EF0-4E3A-67E8-CA37E299AA5E} = {270F7A58-C097-D64B-0343-582534E94D4F}
 		{4618B678-DBA1-7394-A174-B0F4FF20BA42} = {270F7A58-C097-D64B-0343-582534E94D4F}
+		{70352A23-AD76-4E27-A9D9-68B9E5E55BA8} = {270F7A58-C097-D64B-0343-582534E94D4F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {33884C42-0BAE-4853-8852-85F38E436D95}
