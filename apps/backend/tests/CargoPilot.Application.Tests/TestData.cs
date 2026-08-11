@@ -10,8 +10,10 @@ internal static class TestData
     public static Integration CreateIntegration(Guid id, Guid companyId) =>
         new(id, companyId, "Netsis", "localhost", mappingTable: null, syncInterval: null, authCredentials: null);
 
-    public static ErpSettings CreateErpSettings(Guid companyId) =>
-        new(Guid.NewGuid(), companyId, ErpProviderType.Netsis, "DIVIZYON", "sa", "sifreli", "localhost");
+    public static ErpSettings CreateErpSettings(
+        Guid companyId,
+        ErpProviderType providerType = ErpProviderType.Netsis) =>
+        new(Guid.NewGuid(), companyId, providerType, "MUSTERI_DB", "erp_okuyucu", "sifreli", "localhost");
 
     public static ErpProductDto CreateErpProduct(
         string erpId = "ERP-1",

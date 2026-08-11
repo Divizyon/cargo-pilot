@@ -36,7 +36,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
     private readonly IErpSettingsRepository _erpSettingsRepository;
     private readonly IErpPasswordProtector _passwordProtector;
     private readonly IDraftItemRepository _draftItemRepository;
-    private readonly IErpProductFetcher _erpProductFetcher;
+    private readonly IEnumerable<IErpProductFetcher> _erpProductFetchers;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
     private readonly ILogger<SyncErpItemsCommandHandler> _logger;
@@ -46,7 +46,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         IErpSettingsRepository erpSettingsRepository,
         IErpPasswordProtector passwordProtector,
         IDraftItemRepository draftItemRepository,
-        IErpProductFetcher erpProductFetcher,
+        IEnumerable<IErpProductFetcher> erpProductFetchers,
         ICurrentUserService currentUserService,
         INotificationService notificationService,
         IValidator<SyncErpItemsCommand> validator,
@@ -56,7 +56,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         _erpSettingsRepository = erpSettingsRepository;
         _passwordProtector = passwordProtector;
         _draftItemRepository = draftItemRepository;
-        _erpProductFetcher = erpProductFetcher;
+        _erpProductFetchers = erpProductFetchers;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
         _logger = logger;
@@ -96,6 +96,19 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 new Error(ErrorType.NotFound, "ErpSettings.NotConfigured", "ERP bağlantı ayarları yapılandırılmamış."));
         }
 
+        // Saglayiciya karsilik gelen fetcher yoksa sync hic baslamaz; boylece yanlis
+        // sema (or. Logo veritabaninda Netsis tablosu) sorgulanmasi imkansizdir.
+        var productFetcher = _erpProductFetchers
+            .FirstOrDefault(f => f.ProviderType == erpSettings.ProviderType);
+        if (productFetcher is null)
+        {
+            return Result<SyncErpItemsResult>.Failure(
+                new Error(
+                    ErrorType.Validation,
+                    "Sync.ProviderNotSupported",
+                    $"{ProviderDisplayName(erpSettings.ProviderType)} ürün senkronizasyonu henüz desteklenmiyor."));
+        }
+
         var plainPassword = _passwordProtector.Unprotect(erpSettings.PasswordEncrypted);
         var authCredentialsJson = JsonSerializer.Serialize(new
         {
@@ -113,7 +126,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
         try
         {
-            var erpProducts = await _erpProductFetcher.FetchAsync(
+            var erpProducts = await productFetcher.FetchAsync(
                 erpSettings.ServerAddress,
                 authCredentialsJson,
                 request.CategoryFilter,
@@ -252,10 +265,20 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     cancellationToken: cancellationToken);
             }
 
+            // Yapilandirma hatasi kullaniciya aynen gosterilir; digerleri genel mesaja duser.
             return Result<SyncErpItemsResult>.Failure(
-                new Error(ErrorType.Unexpected, "Sync.Failed", "ERP senkronizasyonu sırasında bir hata oluştu."));
+                ex is ErpConfigurationException
+                    ? new Error(ErrorType.Validation, "Sync.ErpConfigurationInvalid", ex.Message)
+                    : new Error(ErrorType.Unexpected, "Sync.Failed", "ERP senkronizasyonu sırasında bir hata oluştu."));
         }
     }
+
+    private static string ProviderDisplayName(ErpProviderType providerType) => providerType switch
+    {
+        ErpProviderType.Logo => "Logo",
+        ErpProviderType.Netsis => "Netsis",
+        _ => "Seçili ERP"
+    };
 
     /// <summary>
     /// Hata durumunu yazmak da basarisiz olabilir (or. kayit sirasindaki ihlal); bu durumda

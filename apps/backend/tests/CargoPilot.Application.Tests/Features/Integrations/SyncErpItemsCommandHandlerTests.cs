@@ -33,7 +33,7 @@ public sealed class SyncErpItemsCommandHandlerTests
             _erpSettingsRepository,
             _passwordProtector,
             _draftItemRepository,
-            _erpProductFetcher,
+            [_erpProductFetcher],
             _currentUserService,
             _notificationService,
             Substitute.For<IValidator<SyncErpItemsCommand>>(),
@@ -43,6 +43,7 @@ public sealed class SyncErpItemsCommandHandlerTests
 
     private void ArrangeHappyPath(params ErpProductDto[] products)
     {
+        _erpProductFetcher.ProviderType.Returns(ErpProviderType.Netsis);
         _currentUserService.CompanyId.Returns(CompanyId);
         _currentUserService.UserId.Returns(Guid.NewGuid());
         _integration = TestData.CreateIntegration(IntegrationId, CompanyId);
@@ -273,6 +274,74 @@ public sealed class SyncErpItemsCommandHandlerTests
 
         result.IsSuccess.Should().BeFalse();
         result.Error!.Code.Should().Be("ErpSettings.NotConfigured");
+    }
+
+    /// <remarks>Logo icin fetcher kayitli degil; yanlis sema sorgulanmasi yerine acik hata doner.</remarks>
+    [Fact]
+    public async Task Handle_LogoSaglayicisi_DesteklenmiyorHatasiDonerVeSyncBaslamaz()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        _erpSettingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>())
+            .Returns(TestData.CreateErpSettings(CompanyId, ErpProviderType.Logo));
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Sync.ProviderNotSupported");
+        result.Error.Type.Should().Be(ErrorType.Validation);
+        result.Error.Description.Should().Contain("Logo");
+        _integrationRepository.DidNotReceiveWithAnyArgs().AddSyncLog(default!);
+        _integration.SyncStatus.Should().Be(ErpSyncStatus.Idle);
+        await _erpProductFetcher.DidNotReceiveWithAnyArgs().FetchAsync(default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task Handle_NetsisSaglayicisi_NetsisFetcheriSecilir()
+    {
+        var logoFetcher = Substitute.For<IErpProductFetcher>();
+        logoFetcher.ProviderType.Returns(ErpProviderType.Logo);
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        var sut = new SyncErpItemsCommandHandler(
+            _integrationRepository,
+            _erpSettingsRepository,
+            _passwordProtector,
+            _draftItemRepository,
+            [logoFetcher, _erpProductFetcher],
+            _currentUserService,
+            _notificationService,
+            Substitute.For<IValidator<SyncErpItemsCommand>>(),
+            NullLogger<SyncErpItemsCommandHandler>.Instance);
+
+        var result = await sut.Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        await _erpProductFetcher.ReceivedWithAnyArgs(1).FetchAsync(default!, default, default, default);
+        await logoFetcher.DidNotReceiveWithAnyArgs().FetchAsync(default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task Handle_ErpYapilandirmasiEksikse_AciklayiciValidationHatasiDoner()
+    {
+        ArrangeHappyPath();
+        _erpProductFetcher.FetchAsync(
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns<IReadOnlyList<ErpProductDto>>(_ =>
+                throw new ErpConfigurationException("ERP veritabanı adı tanımlı değil."));
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Sync.ErpConfigurationInvalid");
+        result.Error.Type.Should().Be(ErrorType.Validation);
+        result.Error.Description.Should().Be("ERP veritabanı adı tanımlı değil.");
+        _integration.SyncStatus.Should().Be(ErpSyncStatus.Failed);
     }
 
     [Fact]

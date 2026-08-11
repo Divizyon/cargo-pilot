@@ -1,5 +1,14 @@
 # ERP Veritabanı Şeması — DIVIZYON
 
+> **Bu bir Netsis şemasıdır.** Buradaki tablo/kolon adları yalnızca Netsis sağlayıcısı
+> için geçerlidir ve `NetsisProductFetcher` bu şemayı sorgular. Logo sağlayıcısının
+> şeması farklıdır (`LG_` önekli tablolar); Logo şema dokümanı gelene kadar Logo
+> entegrasyonunda ürün senkronizasyonu açık hata döndürür, Netsis SQL'i çalıştırılmaz.
+>
+> Veritabanı adı müşteriye göre değişir; `DIVIZYON` yalnızca bu örnek yedeğin adıdır ve
+> kodda varsayılan olarak kullanılmaz — ERP ayarlarındaki "Veritabanı Adı" alanı esastır.
+> Bağlantı için salt-okunur (`db_datareader`) bir SQL login'i önerilir.
+
 Kaynak: `DIVIZYON.bak` (SQL Server 2019, 4.35 MB)  
 Restore: `erp-schema-inspect` Docker container, port 1435  
 Tablo sayısı: 3 | `TBLSTSABIT` (134 kol), `TBLSIPAMAS` (106 kol), `TBLSIPATRA` (97 kol)

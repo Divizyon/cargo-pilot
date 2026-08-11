@@ -9,6 +9,7 @@ using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
+using CargoPilot.Infrastructure.Services.Erp;
 using CargoPilot.Infrastructure.Services.ErpConnectors;
 using Hangfire;
 using Hangfire.SqlServer;
@@ -106,7 +107,8 @@ public static class DependencyInjection {
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();       
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
-        services.AddScoped<IErpProductFetcher, SqlServerErpProductFetcher>();
+        // Saglayici-basina fetcher: Logo icin kayit yok, sync acik hata dondurur (ERP-21).
+        services.AddScoped<IErpProductFetcher, NetsisProductFetcher>();
         services.AddDataProtection()
             .PersistKeysToDbContext<AppDbContext>();
         services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
