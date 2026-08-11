@@ -178,6 +178,22 @@ FROM TBLSTSABIT
 WHERE SATISKILIT IS NULL OR SATISKILIT != 'E'
 ```
 
+### Ürün sync'inde delta yok — tam tarama ve satır limiti
+
+Sipariş tablolarının aksine `TBLSTSABIT`'te delta sorgusuna dayanak olacak bir değişiklik
+damgası (`KAYITTARIHI` / `DUZELTMETARIHI` karşılığı) yoktur; tablodaki datetime kolonları
+yedek alanlardır ve müşteri kurulumunda doldurulacağı garanti değildir. Bu yüzden ürün sync'i
+her çalışmada tam tarama yapar. Maliyet iki yerden sınırlanır:
+
+- Sorgu `SELECT TOP (@MaxRowCount)` ile çalışır (`NetsisProductFetcher.MaxRowCount` = 20.000).
+  Limit dolarsa uyarı loglanır, alınmayan satırlar mutabakat kırılımında görünür ve bir sonraki
+  çalışmaya kalır.
+- Zamanlanmış sync (`ErpScheduledSyncJob`) 15 dakikada bir tarar ama yalnızca vadesi gelen
+  entegrasyonları çalıştırır; şirket başına eşzamanlı tek sync kuralı korunur.
+
+Müşteri şemasında güvenilir bir güncelleme damgası doğrulanırsa delta sorgusu buraya eklenir ve
+tam tarama yalnızca ilk yüklemede kullanılır.
+
 ---
 
 ## TBLSIPAMAS — Sipariş Başlığı
