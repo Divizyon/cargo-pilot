@@ -41,6 +41,7 @@ import { useDeleteItem, useItems, fetchAllItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/geometry/calcVolume';
+import { DIMENSION_LABEL } from '@/lib/config/erpTerms';
 import {
   formatDimensionDisplay,
   formatVolumeDisplay,
@@ -744,13 +745,13 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk/Çap (X)
+                  {DIMENSION_LABEL.width}
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik (Y)
+                  {DIMENSION_LABEL.height}
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik (Z)
+                  {DIMENSION_LABEL.length}
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim (m³)
