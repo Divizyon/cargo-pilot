@@ -31,6 +31,9 @@ public sealed class DraftItem : BaseEntity
     public string? StackGroup { get; private set; }
     public string? SpecialNotes { get; private set; }
 
+    /// <summary>ERP kaynaginda eksik/sifir gelen alan adlarinin JSON listesi.</summary>
+    public string MissingFieldsJson { get; private set; } = "[]";
+
 #pragma warning disable S1144
     public Company? Company { get; private set; }
     public Integration? Integration { get; private set; }
@@ -58,7 +61,8 @@ public sealed class DraftItem : BaseEntity
         decimal maxWeightOnTop,
         AllowedRotations allowedRotations,
         string? barcode = null,
-        decimal? diameter = null) : base(id)
+        decimal? diameter = null,
+        IEnumerable<string>? missingFields = null) : base(id)
     {
         CompanyId = companyId;
         IntegrationId = integrationId;
@@ -80,13 +84,19 @@ public sealed class DraftItem : BaseEntity
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
+        MissingFieldsJson = SerializeMissingFields(missingFields);
     }
 
-    public void UpdateFromErp(string sku, string name, string erpRawDataJson)
+    public void UpdateFromErp(
+        string sku,
+        string name,
+        string erpRawDataJson,
+        IEnumerable<string>? missingFields = null)
     {
         SKU = sku;
         Name = name;
         ErpRawDataJson = erpRawDataJson;
+        MissingFieldsJson = SerializeMissingFields(missingFields);
     }
 
     public void UpdateUserFields(
@@ -125,6 +135,7 @@ public sealed class DraftItem : BaseEntity
         StackGroup = stackGroup;
         SpecialNotes = specialNotes;
         ConstraintIdsJson = SerializeConstraintIds(constraintIds);
+        PruneFilledMissingFields();
     }
 
     public void Approve() => Status = DraftItemStatus.Approved;
@@ -133,12 +144,59 @@ public sealed class DraftItem : BaseEntity
 
     public void ResetToPending() => Status = DraftItemStatus.Pending;
 
-    public void SetUpdatePending(string sku, string name, string erpRawDataJson)
+    public void SetUpdatePending(
+        string sku,
+        string name,
+        string erpRawDataJson,
+        IEnumerable<string>? missingFields = null)
     {
         SKU = sku;
         Name = name;
         ErpRawDataJson = erpRawDataJson;
+        MissingFieldsJson = SerializeMissingFields(missingFields);
         Status = DraftItemStatus.UpdatePending;
+    }
+
+    /// <summary>ERP kaynaginda eksik gelen ve halen doldurulmamis alan adlari.</summary>
+    public IReadOnlyList<string> GetMissingFields()
+    {
+        if (string.IsNullOrEmpty(MissingFieldsJson) || MissingFieldsJson == "[]")
+            return [];
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(MissingFieldsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Kullanici eksik alani doldurdugunda isareti kaldirir; bayrak bayatlamaz.</summary>
+    private void PruneFilledMissingFields()
+    {
+        var missing = GetMissingFields();
+        if (missing.Count == 0)
+            return;
+
+        var remaining = missing.Where(IsStillMissing).ToArray();
+        if (remaining.Length != missing.Count)
+            MissingFieldsJson = SerializeMissingFields(remaining);
+    }
+
+    private bool IsStillMissing(string field) => field switch
+    {
+        DraftItemField.Width => Width <= 0,
+        DraftItemField.Height => Height <= 0,
+        DraftItemField.Length => Length <= 0,
+        DraftItemField.Weight => Weight <= 0,
+        _ => true
+    };
+
+    private static string SerializeMissingFields(IEnumerable<string>? missingFields)
+    {
+        var values = missingFields?.Distinct().ToArray() ?? [];
+        return values.Length == 0 ? "[]" : JsonSerializer.Serialize(values);
     }
 
     public int[] GetConstraintIds()

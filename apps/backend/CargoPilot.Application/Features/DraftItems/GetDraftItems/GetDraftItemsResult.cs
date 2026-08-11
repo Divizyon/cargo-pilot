@@ -32,4 +32,5 @@ public sealed record DraftItemDto(
     string? SpecialNotes,
     int[] ConstraintIds,
     DateTime CreatedAtUtc,
-    string? IntegrationSystemName);
+    string? IntegrationSystemName,
+    IReadOnlyList<string> MissingFields);

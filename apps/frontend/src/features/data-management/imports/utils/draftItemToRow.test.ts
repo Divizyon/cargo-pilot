@@ -65,4 +65,14 @@ describe('draftItemToRow', () => {
     expect(row.constraintIds).toEqual([2, 5]);
     expect([row.width, row.height, row.length, row.weight]).toEqual(['60', '40', '80', '12.5']);
   });
+
+  it('ERP eksik alan işaretlerini satır modeline taşır', () => {
+    const row = draftItemToRow(makeDraft({ width: 0, missingFields: ['width'] }));
+
+    expect(row.missingFields).toEqual(['width']);
+  });
+
+  it('eksik alan bilgisi yoksa boş liste taşır', () => {
+    expect(draftItemToRow(makeDraft({})).missingFields).toEqual([]);
+  });
 });

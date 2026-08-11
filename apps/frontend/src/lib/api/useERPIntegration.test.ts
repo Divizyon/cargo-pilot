@@ -68,7 +68,14 @@ describe('SyncLogStatus', () => {
 describe('buildSyncToastMessage', () => {
   it('hata yoksa yalnızca eklenen ve güncellenen sayısını yazar', () => {
     expect(
-      buildSyncToastMessage({ added: 12, updated: 3, skipped: 0, errorCount: 0, rowErrors: [] }),
+      buildSyncToastMessage({
+        added: 12,
+        updated: 3,
+        skipped: 0,
+        errorCount: 0,
+        missingFieldCount: 0,
+        rowErrors: [],
+      }),
     ).toBe('Senkronizasyon tamamlandı — 12 eklendi, 3 güncellendi');
   });
 
@@ -79,8 +86,24 @@ describe('buildSyncToastMessage', () => {
         updated: 1,
         skipped: 1,
         errorCount: 1,
+        missingFieldCount: 0,
         rowErrors: [{ erpId: 'ERP-2', sku: 'SKU-2', reason: 'satir bozuk' }],
       }),
     ).toBe('Senkronizasyon tamamlandı — 2 eklendi, 1 güncellendi, 1 satır hata nedeniyle atlandı');
+  });
+
+  it('eksik alanlı satır varsa kullanıcıyı tamamlaması için uyarır', () => {
+    expect(
+      buildSyncToastMessage({
+        added: 5,
+        updated: 0,
+        skipped: 0,
+        errorCount: 0,
+        missingFieldCount: 2,
+        rowErrors: [],
+      }),
+    ).toBe(
+      'Senkronizasyon tamamlandı — 5 eklendi, 0 güncellendi. 2 satırda eksik alan var, tamamlanmadan aktarılamaz.',
+    );
   });
 });

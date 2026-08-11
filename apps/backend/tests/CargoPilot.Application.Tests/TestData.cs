@@ -16,24 +16,32 @@ internal static class TestData
     public static ErpProductDto CreateErpProduct(
         string erpId = "ERP-1",
         string sku = "SKU-1",
-        string name = "Test Urun") =>
+        string name = "Test Urun",
+        decimal width = 10m,
+        decimal weight = 5m,
+        IReadOnlyList<string>? missingFields = null) =>
         new(
             ErpId: erpId,
             Sku: sku,
             Name: name,
             ProductType: "STANDARD",
-            Width: 10m,
+            Width: width,
             Height: 20m,
             Length: 30m,
-            Weight: 5m,
+            Weight: weight,
             Category: "Package",
             Warehouse: null,
             Barcode: null,
             Diameter: null,
             ErpConstraints: new Dictionary<string, string?>(),
-            RawDataJson: "{}");
+            RawDataJson: "{}",
+            MissingFields: missingFields);
 
-    public static DraftItem CreateDraftItem(Guid companyId, Guid integrationId, string erpId = "ERP-1") =>
+    public static DraftItem CreateDraftItem(
+        Guid companyId,
+        Guid integrationId,
+        string erpId = "ERP-1",
+        IReadOnlyList<string>? missingFields = null) =>
         new(
             Guid.NewGuid(),
             companyId,
@@ -52,7 +60,10 @@ internal static class TestData
             isStackable: true,
             maxStackCount: 1,
             maxWeightOnTop: 0m,
-            AllowedRotations.All);
+            AllowedRotations.All,
+            barcode: null,
+            diameter: null,
+            missingFields: missingFields);
 
     public static LoadingPlan CreateCalculatedPlan(Guid id, Guid companyId)
     {

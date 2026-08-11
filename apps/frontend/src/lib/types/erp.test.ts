@@ -137,6 +137,17 @@ describe('erpSyncSummarySchema', () => {
   it('errorCount/rowErrors gönderilmezse varsayılana düşer', () => {
     const parsed = erpSyncSummarySchema.parse({ added: 0, updated: 0, skipped: 0 });
     expect(parsed.errorCount).toBe(0);
+    expect(parsed.missingFieldCount).toBe(0);
     expect(parsed.rowErrors).toEqual([]);
+  });
+
+  it('eksik alanlı satır sayısını taşır', () => {
+    const parsed = erpSyncSummarySchema.parse({
+      added: 5,
+      updated: 0,
+      skipped: 0,
+      missingFieldCount: 2,
+    });
+    expect(parsed.missingFieldCount).toBe(2);
   });
 });

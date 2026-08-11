@@ -197,6 +197,28 @@ public sealed class SyncErpItemsCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_EksikOlculuSatir_EksikAlanIsaretiyleTaslagaYazilir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct(
+            width: 0m,
+            weight: 0m,
+            missingFields: [DraftItemField.Width, DraftItemField.Weight]));
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        DraftItem? eklenen = null;
+        _draftItemRepository.When(r => r.Add(Arg.Any<DraftItem>())).Do(c => eklenen = c.Arg<DraftItem>());
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Added.Should().Be(1);
+        result.Data.Skipped.Should().Be(0);
+        result.Data.MissingFieldCount.Should().Be(1);
+        eklenen!.GetMissingFields().Should().Equal(DraftItemField.Width, DraftItemField.Weight);
+    }
+
+    [Fact]
     public async Task Handle_TekSatirHataVerirse_DigerSatirlarKaydedilirVeKismiBasariYazilir()
     {
         ArrangeHappyPath(

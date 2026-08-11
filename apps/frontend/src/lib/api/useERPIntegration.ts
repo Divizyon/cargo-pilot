@@ -189,7 +189,10 @@ export function useERPConnection() {
 export function buildSyncToastMessage(summary: ErpSyncSummary): string {
   const parts = [`${summary.added} eklendi`, `${summary.updated} güncellendi`];
   if (summary.skipped > 0) parts.push(`${summary.skipped} satır hata nedeniyle atlandı`);
-  return `Senkronizasyon tamamlandı — ${parts.join(', ')}`;
+  const message = `Senkronizasyon tamamlandı — ${parts.join(', ')}`;
+  return summary.missingFieldCount > 0
+    ? `${message}. ${summary.missingFieldCount} satırda eksik alan var, tamamlanmadan aktarılamaz.`
+    : message;
 }
 
 export function useTriggerERPSync() {
@@ -215,7 +218,7 @@ export function useTriggerERPSync() {
       queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       queryClient.invalidateQueries({ queryKey: ['erp', 'sync-logs'] });
       const message = buildSyncToastMessage(summary);
-      if (summary.skipped > 0) {
+      if (summary.skipped > 0 || summary.missingFieldCount > 0) {
         toast.warning(message, { position: 'bottom-right', duration: 8000 });
         return;
       }

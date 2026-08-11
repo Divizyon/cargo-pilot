@@ -29,5 +29,6 @@ export function draftItemToRow(item: DraftItem): EditableRow {
     constraintIds: item.constraintIds ?? [],
     incompatibleGroups: [],
     notes: item.specialNotes ?? '',
+    missingFields: item.missingFields ?? [],
   };
 }

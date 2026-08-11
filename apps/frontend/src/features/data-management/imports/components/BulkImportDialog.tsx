@@ -80,6 +80,8 @@ const editableRowSchema = z.object({
   allowRotateY: z.boolean(),
   allowRotateZ: z.boolean(),
   notes: z.string(),
+  /** ERP kaynağında boş/sıfır gelen alan adları; hücre hatası bu satırlarda 'ERP'de eksik' der. */
+  missingFields: z.array(z.string()).default([]),
 });
 
 export type EditableRow = z.infer<typeof editableRowSchema>;
@@ -93,16 +95,25 @@ type RowErrors = Partial<
 
 // ─── Validation & mapping ─────────────────────────────────────────────────────
 
+/** ERP'den eksik gelen alan, kullanıcı hatası değildir; mesaj bunu ayırt eder. */
+function numericFieldError(row: EditableRow, field: string, value: string): string | undefined {
+  if (value && Number(value) > 0) return undefined;
+  return row.missingFields.includes(field) ? 'ERP’de eksik' : 'Pozitif sayı';
+}
+
 function validateRow(row: EditableRow): RowErrors {
   const e: RowErrors = {};
   if (!row.sku.trim()) e.sku = 'Zorunlu alan';
   if (!row.name.trim()) e.name = 'Zorunlu alan';
   if (!['koli', 'varil', 'palet'].includes(row.tip)) e.tip = 'koli / varil / palet';
-  if (!row.width || Number(row.width) <= 0) e.width = 'Pozitif sayı';
-  if (!row.height || Number(row.height) <= 0) e.height = 'Pozitif sayı';
-  if (!row.length || Number(row.length) <= 0) e.length = 'Pozitif sayı';
-  if (!row.weight || Number(row.weight) <= 0) e.weight = 'Pozitif sayı';
+  e.width = numericFieldError(row, 'width', row.width);
+  e.height = numericFieldError(row, 'height', row.height);
+  e.length = numericFieldError(row, 'length', row.length);
+  e.weight = numericFieldError(row, 'weight', row.weight);
   if (row.incompatibleGroups.length === 0) e.incompatibleGroups = 'Zorunlu alan';
+  for (const key of Object.keys(e) as Array<keyof RowErrors>) {
+    if (e[key] === undefined) delete e[key];
+  }
   return e;
 }
 

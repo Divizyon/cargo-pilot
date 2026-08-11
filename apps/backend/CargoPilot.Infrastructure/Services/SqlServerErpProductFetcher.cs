@@ -1,5 +1,6 @@
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Domain.Entities;
 using Microsoft.Data.SqlClient;
 using System.Text.Json;
 
@@ -16,14 +17,13 @@ internal sealed class SqlServerErpProductFetcher : IErpProductFetcher
     {
         var connectionString = BuildConnectionString(apiEndpoint, authCredentialsJson);
 
+        // Olcu koseleri artik SQL'de elenmez: eksik olculu satirlar 'eksik alan'
+        // isaretiyle taslaga duser (ERP-09). Satis kilitli satirlar cekilmez.
         var sql = """
             SELECT STOK_KODU, STOK_ADI, BIRIM_AGIRLIK, EN, BOY, GENISLIK,
                    GRUP_KODU, DEPO_KODU, BARKOD1
             FROM TBLSTSABIT
             WHERE (SATISKILIT IS NULL OR SATISKILIT != 'E')
-              AND EN IS NOT NULL AND EN > 0
-              AND BOY IS NOT NULL AND BOY > 0
-              AND GENISLIK IS NOT NULL AND GENISLIK > 0
             """;
 
         if (categoryFilter is not null)
@@ -81,10 +81,26 @@ internal sealed class SqlServerErpProductFetcher : IErpProductFetcher
                 Barcode: barkod,
                 Diameter: null,
                 ErpConstraints: new Dictionary<string, string?>(),
-                RawDataJson: JsonSerializer.Serialize(rawData)));
+                RawDataJson: JsonSerializer.Serialize(rawData),
+                MissingFields: CollectMissingFields(width, height, depth, weight)));
         }
 
         return results;
+    }
+
+    /// <summary>Kaynakta bos veya sifir gelen olcu/agirlik alanlarini isaretler.</summary>
+    private static List<string> CollectMissingFields(
+        decimal width,
+        decimal height,
+        decimal depth,
+        decimal weight)
+    {
+        var missing = new List<string>();
+        if (width <= 0) missing.Add(DraftItemField.Width);
+        if (height <= 0) missing.Add(DraftItemField.Height);
+        if (depth <= 0) missing.Add(DraftItemField.Length);
+        if (weight <= 0) missing.Add(DraftItemField.Weight);
+        return missing;
     }
 
     private static string BuildConnectionString(string apiEndpoint, string? authCredentialsJson)

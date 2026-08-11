@@ -37,7 +37,17 @@ export const draftItemSchema = z.object({
   constraintIds: z.array(z.number().int()),
   createdAtUtc: z.string(),
   integrationSystemName: z.string().nullable().optional(),
+  /** ERP kaynağında boş/sıfır gelen alan adları (backend: DraftItemField). */
+  missingFields: z.array(z.string()).default([]),
 });
+
+/** Backend sözleşmesi: CargoPilot.Domain/Entities/DraftItemField */
+export const DRAFT_FIELD = {
+  Width: 'width',
+  Height: 'height',
+  Length: 'length',
+  Weight: 'weight',
+} as const;
 
 export type DraftItem = z.infer<typeof draftItemSchema>;
 

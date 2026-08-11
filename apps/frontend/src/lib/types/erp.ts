@@ -32,6 +32,8 @@ export const erpSyncSummarySchema = z.object({
   /** Hata nedeniyle yazılamayan satır sayısı. */
   skipped: z.number().int().min(0),
   errorCount: z.number().int().min(0).default(0),
+  /** Eksik alan işaretiyle taslağa yazılan satır sayısı. */
+  missingFieldCount: z.number().int().min(0).default(0),
   rowErrors: z.array(syncRowErrorSchema).default([]),
   syncedAt: z.string().datetime({ offset: true }).optional(),
 });

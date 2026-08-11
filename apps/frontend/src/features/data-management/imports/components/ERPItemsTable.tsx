@@ -2,6 +2,7 @@
 import { cn } from '@/lib/utils';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import {
+  AlertTriangle,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -13,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +30,7 @@ import { useERPConnection, useTriggerERPSync } from '@/lib/api/useERPIntegration
 import {
   useDraftItems,
   useBulkRejectDraftItems,
+  DRAFT_FIELD,
   DRAFT_PENDING,
   DRAFT_APPROVED,
   DRAFT_REJECTED,
@@ -41,6 +44,28 @@ import { SearchInput } from '@/components/shared/SearchInput';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
 
 const ROW_H = 48;
+
+const MISSING_FIELD_LABEL: Record<string, string> = {
+  [DRAFT_FIELD.Width]: 'Uzunluk/Çap',
+  [DRAFT_FIELD.Height]: 'Yükseklik',
+  [DRAFT_FIELD.Length]: 'Derinlik',
+  [DRAFT_FIELD.Weight]: 'Ağırlık',
+};
+
+interface DraftValueCellProps {
+  isMissing: boolean;
+  value: string;
+}
+
+/** ERP'de eksik gelen ölçü, gerçek 0 değeriymiş gibi gösterilmez. */
+function DraftValueCell({ isMissing, value }: DraftValueCellProps) {
+  if (isMissing) {
+    return (
+      <span className="text-xs font-medium text-amber-700 dark:text-amber-400">ERP’de eksik</span>
+    );
+  }
+  return <span className="text-xs text-foreground">{value}</span>;
+}
 const HEADER_ROW_H = 36;
 const BELOW_TABLE_H = 80;
 
@@ -491,6 +516,18 @@ export function ERPItemsTable() {
                       >
                         {row.name}
                       </span>
+                      {row.missingFields.length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 gap-1 border-amber-500/60 px-1.5 text-[10px] text-amber-700 dark:text-amber-400"
+                          title={`ERP'de eksik: ${row.missingFields
+                            .map((field) => MISSING_FIELD_LABEL[field] ?? field)
+                            .join(', ')}`}
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Eksik alan
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="py-0 px-3 text-xs text-muted-foreground">
@@ -503,22 +540,28 @@ export function ERPItemsTable() {
                     {row.barcode ?? '—'}
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {formatDimensionDisplay(row.width, dimensionUnit)}
-                    </span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Width)}
+                      value={formatDimensionDisplay(row.width, dimensionUnit)}
+                    />
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {formatDimensionDisplay(row.height, dimensionUnit)}
-                    </span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Height)}
+                      value={formatDimensionDisplay(row.height, dimensionUnit)}
+                    />
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {formatDimensionDisplay(row.length, dimensionUnit)}
-                    </span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Length)}
+                      value={formatDimensionDisplay(row.length, dimensionUnit)}
+                    />
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">{row.weight} kg</span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Weight)}
+                      value={`${row.weight} kg`}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

@@ -57,7 +57,8 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
             x.SpecialNotes,
             x.GetConstraintIds(),
             x.CreatedAtUtc,
-            integrationNames.GetValueOrDefault(x.IntegrationId)))
+            integrationNames.GetValueOrDefault(x.IntegrationId),
+            x.GetMissingFields()))
             .ToList();
 
         return Result<GetDraftItemsResult>.Success(new GetDraftItemsResult(dtos, totalCount, request.Page, request.PageSize));

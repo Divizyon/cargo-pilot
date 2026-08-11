@@ -95,13 +95,17 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 request.WarehouseFilter,
                 cancellationToken);
 
-            int added = 0, updated = 0;
+            int added = 0, updated = 0, missingFieldCount = 0;
             var rowErrors = new List<SyncRowError>();
 
             foreach (var product in erpProducts)
             {
                 try
                 {
+                    var missingFields = product.MissingFields ?? [];
+                    if (missingFields.Count > 0)
+                        missingFieldCount++;
+
                     var existing = await _draftItemRepository.GetByErpIdAsync(
                         product.ErpId, integration.Id, companyId.Value, cancellationToken);
 
@@ -109,13 +113,13 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     {
                         if (existing.Status == DraftItemStatus.Approved)
                         {
-                            existing.SetUpdatePending(product.Sku, product.Name, product.RawDataJson);
+                            existing.SetUpdatePending(product.Sku, product.Name, product.RawDataJson, missingFields);
                             _draftItemRepository.Update(existing);
                             updated++;
                             continue;
                         }
 
-                        existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson);
+                        existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson, missingFields);
                         if (existing.Status == DraftItemStatus.Rejected)
                             existing.ResetToPending();
 
@@ -144,7 +148,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             maxWeightOnTop: 0m,
                             AllowedRotations.All,
                             product.Barcode,
-                            product.Diameter);
+                            product.Diameter,
+                            missingFields);
 
                         _draftItemRepository.Add(draft);
                         added++;
@@ -176,7 +181,14 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             await _draftItemRepository.SaveChangesAsync(cancellationToken);
 
             return Result<SyncErpItemsResult>.Success(
-                new SyncErpItemsResult(syncLog.Id, added, updated, rowErrors.Count, rowErrors.Count, rowErrors));
+                new SyncErpItemsResult(
+                    syncLog.Id,
+                    added,
+                    updated,
+                    rowErrors.Count,
+                    rowErrors.Count,
+                    missingFieldCount,
+                    rowErrors));
         }
         catch (Exception ex)
         {

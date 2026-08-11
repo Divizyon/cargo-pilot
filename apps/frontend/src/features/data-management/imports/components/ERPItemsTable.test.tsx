@@ -92,6 +92,7 @@ function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'
     allowedRotations: 0,
     constraintIds: [],
     createdAtUtc: '2026-02-14T08:00:00Z',
+    missingFields: [],
     ...overrides,
   };
 }
@@ -112,6 +113,14 @@ const draftItems: DraftItem[] = [
     name: 'Aktarilmis Urun',
     sku: 'APP-0001',
     status: DRAFT_APPROVED,
+  }),
+  makeDraft({
+    id: '44444444-4444-4444-8444-444444444444',
+    name: 'Olcusuz Urun',
+    sku: 'EKS-0001',
+    width: 0,
+    weight: 0,
+    missingFields: ['width', 'weight'],
   }),
 ];
 
@@ -134,6 +143,15 @@ describe('ERPItemsTable', () => {
     expect(screen.getByText('Palet Kasa 60x40')).toBeInTheDocument();
     expect(screen.getByText('KOL-3020')).toBeInTheDocument();
     expect(screen.queryByText('Aktarilmis Urun')).not.toBeInTheDocument();
+  });
+
+  it('eksik alanlı taslakta rozet gösterir ve 0 değerini ölçü gibi basmaz', () => {
+    render(<ERPItemsTable />);
+
+    expect(screen.getByText('Olcusuz Urun')).toBeInTheDocument();
+    expect(screen.getByText('Eksik alan')).toBeInTheDocument();
+    expect(screen.getAllByText('ERP’de eksik')).toHaveLength(2);
+    expect(screen.queryByText('0 kg')).not.toBeInTheDocument();
   });
 
   it('seçilen taslak aktarım diyaloğuna taşınır', async () => {
