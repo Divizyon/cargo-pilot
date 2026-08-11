@@ -12,6 +12,7 @@ import {
   EyeOff,
   ShieldAlert,
   ClipboardList,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -24,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -51,11 +52,13 @@ import {
 } from '@/features/platform/erp/schemas/erpConnectionSchema';
 import {
   PROVIDER_TYPE_FROM_INT,
+  useDeleteERPSettings,
   useERPConnection,
   useERPSettings,
   useSaveERPSettings,
   useTestERPSettings,
 } from '@/lib/api/useERPIntegration';
+import type { ErpSettings } from '@/lib/types/erp';
 import { getApiErrorMessage } from '@/lib/api/apiError';
 import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuidance';
 
@@ -107,7 +110,21 @@ function formatTestDate(iso: string | null): string {
   return Number.isNaN(parsed.getTime()) ? '—' : format(parsed, 'dd.MM.yyyy HH:mm', { locale: tr });
 }
 
-export function ERPConnectionForm() {
+/** Sağlayıcı, veritabanı veya sunucu değiştiyse senkronizasyonun kaynağı değişiyor demektir. */
+function isDataSourceChanged(values: ErpConnectionFormValues, existing: ErpSettings): boolean {
+  return (
+    values.systemType !== PROVIDER_TYPE_FROM_INT[existing.providerType] ||
+    values.companyCode !== existing.companyCode ||
+    values.serverAddress !== existing.serverAddress
+  );
+}
+
+interface ERPConnectionFormProps {
+  /** Kaydedilmemiş değişiklik korumasını çalıştırmak için üst sekmeye bildirilir. */
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<TestResult>(null);
   const [saveDespiteFailure, setSaveDespiteFailure] = useState<ErpConnectionFormValues | null>(
@@ -115,6 +132,8 @@ export function ERPConnectionForm() {
   );
   /** Test sonucunun hangi form içeriğine ait olduğunu tutar. */
   const [testedSignature, setTestedSignature] = useState<string | null>(null);
+  const [pendingOverwrite, setPendingOverwrite] = useState<ErpConnectionFormValues | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: connection } = useERPConnection();
   const {
@@ -126,6 +145,7 @@ export function ERPConnectionForm() {
   } = useERPSettings();
   const { mutate: save, isPending: isSaving } = useSaveERPSettings();
   const { mutate: testConnection, isPending: isTesting } = useTestERPSettings();
+  const { mutate: removeConnection, isPending: isDeleting } = useDeleteERPSettings();
 
   const form = useForm<ErpConnectionFormValues>({
     resolver: zodResolver(erpConnectionFormSchema),
@@ -166,6 +186,11 @@ export function ERPConnectionForm() {
     existing?.lastTestedAt ?? null,
   );
 
+  const { isDirty } = form.formState;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
   async function handleCopyChecklist() {
     await navigator.clipboard.writeText(guidance.itChecklist);
     toast.success('Bilgi listesi panoya kopyalandı.', { position: 'bottom-right' });
@@ -178,8 +203,19 @@ export function ERPConnectionForm() {
     });
   }
 
-  /** Kaydetmeden önce bağlantı test edilir; başarısızsa kayıt teyide bağlanır. */
+  /**
+   * Veri kaynağını değiştiren kayıt (sağlayıcı, veritabanı veya sunucu adresi)
+   * teyit alınmadan uygulanmaz; senkronizasyon bundan sonra yeni kaynaktan çalışır.
+   */
   function onSubmit(values: ErpConnectionFormValues) {
+    if (existing && isDataSourceChanged(values, existing)) {
+      setPendingOverwrite(values);
+      return;
+    }
+    testThenSave(values);
+  }
+
+  function testThenSave(values: ErpConnectionFormValues) {
     setTestResult(null);
     setTestedSignature(formSignature);
     testConnection(values, {
@@ -197,6 +233,24 @@ export function ERPConnectionForm() {
           message: getApiErrorMessage(error, 'Bağlantı test edilemedi.'),
         });
         setSaveDespiteFailure(values);
+      },
+    });
+  }
+
+  function handleRemoveConnection() {
+    removeConnection(undefined, {
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        setTestResult(null);
+        loadedSettingsIdRef.current = null;
+        form.reset({
+          systemType: 'Logo',
+          companyCode: '',
+          username: '',
+          password: '',
+          serverAddress: '',
+          trustServerCertificate: true,
+        });
       },
     });
   }
@@ -466,6 +520,28 @@ export function ERPConnectionForm() {
         <p className="text-xs text-muted-foreground">
           Kaydetmeden önce bağlantı otomatik olarak test edilir.
         </p>
+
+        {existing && (
+          <div className="rounded-lg border border-destructive/40 px-4 py-3">
+            <p className="text-sm font-medium text-foreground">Bağlantıyı kaldır</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Kimlik bilgileri silinir ve otomatik çekim durur. Senkronizasyon geçmişi korunur;
+              bağlantıyı sonradan yeniden kurabilirsiniz.
+            </p>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="mt-3"
+              disabled={isDeleting}
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Trash2 className="mr-2 h-4 w-4" />
+              Bağlantıyı kaldır
+            </Button>
+          </div>
+        )}
       </form>
 
       <AlertDialog
@@ -492,6 +568,59 @@ export function ERPConnectionForm() {
               }}
             >
               Yine de kaydet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={pendingOverwrite !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingOverwrite(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Veri kaynağı değişiyor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mevcut ERP bağlantısının üzerine yazılacak; senkronizasyon bundan sonra bu yeni
+              kaynaktan çalışacak. Devam etmek istiyor musunuz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const values = pendingOverwrite;
+                setPendingOverwrite(null);
+                if (values) testThenSave(values);
+              }}
+            >
+              Üzerine yaz
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bağlantı kaldırılsın mı?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ERP kimlik bilgileri silinecek ve otomatik çekim duracak. ERP&apos;den yeni ürün
+              çekilemeyecek; mevcut ürünler ve senkronizasyon geçmişi silinmez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              className={cn(buttonVariants({ variant: 'destructive' }))}
+              onClick={(event) => {
+                event.preventDefault();
+                handleRemoveConnection();
+              }}
+            >
+              Bağlantıyı kaldır
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,3 +1,4 @@
+using CargoPilot.Application.Features.ErpSettings.DeleteErpSettings;
 using CargoPilot.Application.Features.ErpSettings.GetErpSettings;
 using CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 using CargoPilot.Application.Features.ErpSettings.UpsertErpSettings;
@@ -53,6 +54,23 @@ public sealed class ErpSettingsController : BaseController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Şirkete ait ERP bağlantısını kaldırır. Kimlik bilgileri silinir, entegrasyon kaydı
+    /// pasifleşir; senkronizasyon geçmişi korunur.
+    /// </summary>
+    /// <response code="200">Bağlantı kaldırıldı.</response>
+    /// <response code="404">Kaldırılacak bağlantı bulunamadı.</response>
+    [HttpDelete]
+    [Authorize(Policy = "CompanyAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new DeleteErpSettingsCommand(), cancellationToken);
         return HandleResult(result);
     }
 

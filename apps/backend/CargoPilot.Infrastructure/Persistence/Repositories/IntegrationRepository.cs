@@ -36,6 +36,11 @@ internal sealed class IntegrationRepository : IIntegrationRepository
             .Where(i => i.CompanyId == companyId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Integration>> ListTrackedByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
+        => await _dbContext.Integrations
+            .Where(i => i.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Integration>> ListDueForScheduledSyncAsync(
         DateTime utcNow, CancellationToken cancellationToken = default)
         => await _dbContext.Integrations

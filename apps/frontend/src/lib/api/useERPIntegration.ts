@@ -148,6 +148,26 @@ export function useSaveERPSettings() {
 }
 
 /**
+ * Bağlantıyı kaldırır: kimlik bilgileri silinir, entegrasyon kaydı pasifleşir.
+ * Senkronizasyon geçmişi sunucuda korunur.
+ */
+export function useDeleteERPSettings() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, void>({
+    mutationFn: () => axiosInstance.delete(ERP_SETTINGS_BASE).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['erp'] });
+      toast.success('ERP bağlantısı kaldırıldı', { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'ERP bağlantısı kaldırılamadı'), {
+        position: 'bottom-right',
+      });
+    },
+  });
+}
+
+/**
  * Şifre boş bırakılırsa backend kayıtlı şifreyle test eder. Test sonucu sunucuda
  * saklandığı için başarılı/başarısız sonuç sonrası kayıtlı ayarlar tazelenir.
  */

@@ -105,7 +105,7 @@ const ADMIN_ONLY_TABS = new Set<TabId>([
   'erp-senkronizasyon',
   'erp-gecmis',
 ]);
-const DIRTY_TRACKED_TABS = new Set<TabId>(['bolgesel-ayarlar']);
+const DIRTY_TRACKED_TABS = new Set<TabId>(['bolgesel-ayarlar', 'erp-baglanti']);
 
 export function UnifiedSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -244,7 +244,11 @@ export function UnifiedSettingsPage() {
               />
             )}
             {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}
-            {activeTab === 'erp-baglanti' && <ERPConnectionForm />}
+            {activeTab === 'erp-baglanti' && (
+              <ERPConnectionForm
+                onDirtyChange={(dirty) => handleDirtyChange('erp-baglanti', dirty)}
+              />
+            )}
             {activeTab === 'erp-senkronizasyon' && <ERPSyncPanel />}
             {activeTab === 'erp-gecmis' && <ERPSyncHistory />}
           </SettingsTabShell>

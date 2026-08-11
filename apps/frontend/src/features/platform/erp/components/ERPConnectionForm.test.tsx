@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  put: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+}));
 
 vi.mock('@/lib/api/axiosInstance', () => ({
-  axiosInstance: { get: mocks.get, put: mocks.put, post: mocks.post },
+  axiosInstance: { get: mocks.get, put: mocks.put, post: mocks.post, delete: mocks.delete },
 }));
 
 const { ERPConnectionForm } = await import('./ERPConnectionForm');
@@ -179,5 +184,76 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
     await user.click(screen.getByRole('button', { name: 'Yine de kaydet' }));
 
     expect(mocks.put).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ERPConnectionForm riskli değişiklik korumaları', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('sunucu adresi değişince kayıt teyide bağlanır', async () => {
+    mockSavedSettings();
+    mockTestConnection(true, 'Bağlantı başarılı.');
+    mocks.put.mockResolvedValue({ data: { isSuccess: true, data: SAVED_SETTINGS } });
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    await user.type(await screen.findByLabelText('Sunucu Adresi'), '9');
+    await user.click(screen.getByRole('button', { name: 'Kaydet' }));
+
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('Veri kaynağı değişiyor');
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.put).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Üzerine yaz' }));
+
+    expect(mocks.put).toHaveBeenCalledTimes(1);
+  });
+
+  it('yalnızca kullanıcı adı değiştiyse üzerine yazma teyidi istemez', async () => {
+    mockSavedSettings();
+    mockTestConnection(true, 'Bağlantı başarılı.');
+    mocks.put.mockResolvedValue({ data: { isSuccess: true, data: SAVED_SETTINGS } });
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    await user.type(await screen.findByLabelText('Kullanıcı Adı'), '2');
+    await user.click(screen.getByRole('button', { name: 'Kaydet' }));
+
+    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Veri kaynağı değişiyor')).not.toBeInTheDocument();
+  });
+
+  it('bağlantı kaldırma teyit ister ve DELETE ucunu çağırır', async () => {
+    mockSavedSettings();
+    mocks.delete.mockResolvedValue({ data: { isSuccess: true, data: true } });
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    await user.click(await screen.findByRole('button', { name: /Bağlantıyı kaldır/ }));
+
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('Bağlantı kaldırılsın mı?');
+    expect(mocks.delete).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Bağlantıyı kaldır' }));
+
+    expect(mocks.delete).toHaveBeenCalledWith('/api/v1/erp-settings');
+  });
+
+  it('form kirlendiğinde üst sekmeye bildirir', async () => {
+    mockSavedSettings();
+    const onDirtyChange = vi.fn();
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm onDirtyChange={onDirtyChange} />);
+
+    await user.type(await screen.findByLabelText('Sunucu Adresi'), '9');
+
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 });

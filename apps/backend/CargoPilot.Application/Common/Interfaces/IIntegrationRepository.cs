@@ -18,6 +18,8 @@ public interface IIntegrationRepository
     Task<IReadOnlyList<Integration>> ListDueForScheduledSyncAsync(DateTime utcNow, CancellationToken cancellationToken = default);
     Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
+    /// <summary>Degistirilecek kayitlar icin izlenen (tracked) liste; kaydetmede kalicilasir.</summary>
+    Task<IReadOnlyList<Integration>> ListTrackedByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<PagedResult<SyncLog>> ListSyncLogsAsync(Guid integrationId, int page, int pageSize, CancellationToken cancellationToken = default);
     /// <summary>
     /// Entegrasyonun tamamindaki basarisiz ve kismi basarisiz sync kayit sayisi; sayfa
