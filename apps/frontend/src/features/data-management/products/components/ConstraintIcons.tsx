@@ -82,7 +82,7 @@ const FRAGILITY_DEFS: Record<number, Omit<ConstraintDef, 'icon'> & { icon: Eleme
   1: { icon: Wine, label: 'Kırılgan', className: 'border-amber-200 bg-amber-50 text-amber-600' },
   2: {
     icon: Droplets,
-    label: 'Sıvı İçerir',
+    label: 'Sıvı',
     className: 'border-blue-200 bg-blue-50 text-blue-600',
   },
   3: {
