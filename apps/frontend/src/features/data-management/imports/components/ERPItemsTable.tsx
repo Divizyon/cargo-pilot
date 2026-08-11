@@ -64,7 +64,7 @@ import {
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { ErpSyncRequirementsDialog } from './ErpSyncRequirementsDialog';
 import { collectMissingSyncRequirements } from '@/features/data-management/imports/utils/erpSyncRequirements';
-import { ErpProviderMark } from './ErpProviderMark';
+import { ErpProviderMark } from '@/components/shared/ErpProviderMark';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';

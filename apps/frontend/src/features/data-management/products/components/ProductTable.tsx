@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ErpProviderMark } from '@/components/shared/ErpProviderMark';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -245,13 +246,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
     <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
       <TableCell className={cn(cell, 'max-w-[176px]')}>
         <div className="flex items-center gap-1.5 min-w-0">
-          {item.erpProviderName?.toLowerCase().includes('logo') && (
-            <img
-              src="/icons/erp-logo.png"
-              alt="Logo"
-              className="h-6 w-auto shrink-0 object-contain"
-            />
-          )}
+          <ErpProviderMark systemName={item.erpProviderName} />
           <span className="block truncate text-xs text-muted-foreground" title={item.name}>
             <HighlightText text={item.name} query={searchTerm} />
           </span>
