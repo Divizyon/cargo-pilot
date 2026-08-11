@@ -107,7 +107,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
         if (results.Count >= MaxRowCount)
             _logRowLimitReached(_logger, MaxRowCount, null);
 
-        return new ErpFetchResult(results, totals.SourceTotal, BuildDroppedAtSource(totals));
+        return new ErpFetchResult(results, totals.SourceTotal, BuildDroppedAtSource(totals, results.Count));
     }
 
     /// <summary>
@@ -117,24 +117,27 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
     private static async Task<SourceTotals> ReadTotalsAsync(SqlDataReader reader, CancellationToken cancellationToken)
     {
         if (!await reader.ReadAsync(cancellationToken))
-            return new SourceTotals(0, 0, 0, 0);
+            return new SourceTotals(0, 0, 0, 0, 0);
 
         return new SourceTotals(
             SourceTotal: await ReadCountAsync(reader, 0, cancellationToken),
             SalesLocked: await ReadCountAsync(reader, 1, cancellationToken),
             CategoryFiltered: await ReadCountAsync(reader, 2, cancellationToken),
-            WarehouseFiltered: await ReadCountAsync(reader, 3, cancellationToken));
+            WarehouseFiltered: await ReadCountAsync(reader, 3, cancellationToken),
+            Eligible: await ReadCountAsync(reader, 4, cancellationToken));
     }
 
     private static async Task<int> ReadCountAsync(SqlDataReader reader, int ordinal, CancellationToken cancellationToken) =>
         await reader.IsDBNullAsync(ordinal, cancellationToken) ? 0 : reader.GetInt32(ordinal);
 
-    private static Dictionary<ErpDropReason, int> BuildDroppedAtSource(SourceTotals totals)
+    private static Dictionary<ErpDropReason, int> BuildDroppedAtSource(SourceTotals totals, int fetchedCount)
     {
         var dropped = new Dictionary<ErpDropReason, int>();
         AddIfPositive(dropped, ErpDropReason.SalesLocked, totals.SalesLocked);
         AddIfPositive(dropped, ErpDropReason.CategoryFiltered, totals.CategoryFiltered);
         AddIfPositive(dropped, ErpDropReason.WarehouseFiltered, totals.WarehouseFiltered);
+        // TOP limiti yuzunden bu sync'e alinmayan satirlar da mutabakatta gorunmeli.
+        AddIfPositive(dropped, ErpDropReason.RowLimitExceeded, totals.Eligible - fetchedCount);
         return dropped;
     }
 
@@ -170,7 +173,8 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
             SELECT COUNT(*) AS SourceTotal,
                    {salesLockedCount} AS SalesLocked,
                    {categoryCount} AS CategoryFiltered,
-                   {warehouseCount} AS WarehouseFiltered
+                   {warehouseCount} AS WarehouseFiltered,
+                   {CountOf(eligibleCondition)} AS Eligible
             FROM TBLSTSABIT;
             SELECT TOP (@MaxRowCount)
                    STOK_KODU, STOK_ADI, BIRIM_AGIRLIK, EN, BOY, GENISLIK,
@@ -204,7 +208,8 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
         int SourceTotal,
         int SalesLocked,
         int CategoryFiltered,
-        int WarehouseFiltered);
+        int WarehouseFiltered,
+        int Eligible);
 
     /// <summary>Kaynakta bos veya sifir gelen olcu/agirlik alanlarini isaretler.</summary>
     private static List<string> CollectMissingFields(

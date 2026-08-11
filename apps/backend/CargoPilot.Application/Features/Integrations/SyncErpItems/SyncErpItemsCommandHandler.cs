@@ -159,11 +159,11 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 try
                 {
                     // (IntegrationId, ErpId) DB'de unique; ayni partide tekrar eden kayit
-                    // tum save'i dusurmesin diye satir hatasina cevrilir.
+                    // hata degil eleme sayilir ve muhasebede DuplicateErpId olarak gorunur.
                     if (!seenErpIds.Add(product.ErpId))
                     {
-                        rowErrors.Add(new SyncRowError(
-                            product.ErpId, product.Sku, "Aynı ERP kaydı bu senkronizasyonda birden fazla geldi."));
+                        dropped[ErpDropReason.DuplicateErpId] =
+                            dropped.GetValueOrDefault(ErpDropReason.DuplicateErpId) + 1;
                         continue;
                     }
 

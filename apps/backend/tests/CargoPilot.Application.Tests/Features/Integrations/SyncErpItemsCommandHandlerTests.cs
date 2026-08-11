@@ -233,7 +233,7 @@ public sealed class SyncErpItemsCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AyniErpIdIkiKezGelirse_IkincisiSatirHatasinaDonusur()
+    public async Task Handle_AyniErpIdIkiKezGelirse_IkincisiDuplicateErpIdOlarakSayilir()
     {
         ArrangeHappyPath(
             TestData.CreateErpProduct(),
@@ -245,8 +245,13 @@ public sealed class SyncErpItemsCommandHandlerTests
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Added.Should().Be(1);
-        result.Data.Skipped.Should().Be(1);
-        result.Data.RowErrors.Should().ContainSingle().Which.ErpId.Should().Be("ERP-1");
+        result.Data.Skipped.Should().Be(0);
+        result.Data.RowErrors.Should().BeEmpty();
+        result.Data.DroppedByReason.Should()
+            .ContainSingle()
+            .Which.Should().BeEquivalentTo(
+                new KeyValuePair<string, int>(nameof(ErpDropReason.DuplicateErpId), 1));
+        result.Data.Unaccounted.Should().Be(0);
         _draftItemRepository.Received(1).Add(Arg.Any<DraftItem>());
     }
 

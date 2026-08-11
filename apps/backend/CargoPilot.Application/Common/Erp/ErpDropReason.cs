@@ -19,4 +19,10 @@ public enum ErpDropReason
 
     /// <summary>Kullanicinin sectigi depo filtresinin disinda kaldi (bilgi, sorun degil).</summary>
     WarehouseFiltered,
+
+    /// <summary>Tek sync satir limiti asildi; kalan satirlar bu sync'e alinmadi.</summary>
+    RowLimitExceeded,
+
+    /// <summary>Ayni ERP kaydi ayni partide tekrar geldi; yalnizca ilki islenir.</summary>
+    DuplicateErpId,
 }

@@ -33,6 +33,8 @@ export const ErpDropReason = {
   SalesLocked: 'SalesLocked',
   CategoryFiltered: 'CategoryFiltered',
   WarehouseFiltered: 'WarehouseFiltered',
+  RowLimitExceeded: 'RowLimitExceeded',
+  DuplicateErpId: 'DuplicateErpId',
 } as const;
 
 export type ErpDropReason = (typeof ErpDropReason)[keyof typeof ErpDropReason];

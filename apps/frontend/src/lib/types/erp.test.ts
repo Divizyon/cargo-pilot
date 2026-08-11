@@ -180,11 +180,11 @@ describe('erpSyncSummarySchema', () => {
       updated: 0,
       skipped: 1,
       sourceTotal: 10,
-      droppedByReason: { [ErpDropReason.SalesLocked]: 2, [ErpDropReason.CategoryFiltered]: 1 },
+      droppedByReason: { [ErpDropReason.SalesLocked]: 2, [ErpDropReason.DuplicateErpId]: 1 },
       unaccounted: 0,
     });
     expect(parsed.sourceTotal).toBe(10);
-    expect(parsed.droppedByReason[ErpDropReason.CategoryFiltered]).toBe(1);
+    expect(parsed.droppedByReason[ErpDropReason.DuplicateErpId]).toBe(1);
     expect(parsed.unaccounted).toBe(0);
   });
 

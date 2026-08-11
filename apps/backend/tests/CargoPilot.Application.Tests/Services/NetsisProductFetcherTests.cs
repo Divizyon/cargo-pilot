@@ -66,6 +66,7 @@ public sealed class NetsisProductFetcherTests
         sql.Should().Contain("AS SalesLocked");
         sql.Should().Contain("AS CategoryFiltered");
         sql.Should().Contain("AS WarehouseFiltered");
+        sql.Should().Contain("AS Eligible");
         Regex.Matches(sql, "FROM TBLSTSABIT").Should().HaveCount(2);
     }
 
