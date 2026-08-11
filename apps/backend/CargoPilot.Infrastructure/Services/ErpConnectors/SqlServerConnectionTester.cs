@@ -19,31 +19,26 @@ internal static class SqlServerConnectionTester
 {
     public static async Task<ErpConnectionResult> TestAsync(
         string serverAddress,
-        string database,
-        string username,
-        string password,
+        ErpCredentials credentials,
         ErpSchemaProbe schemaProbe,
         CancellationToken cancellationToken)
     {
         try
         {
-            var connectionString = ErpSqlConnection.Build(serverAddress, database, username, password);
+            var connectionString = ErpSqlConnection.Build(serverAddress, credentials);
 
             await using var conn = new SqlConnection(connectionString);
             await conn.OpenAsync(cancellationToken);
 
-            await using var cmd = new SqlCommand(schemaProbe.CountSql, conn)
-            {
-                CommandTimeout = ErpSqlConnection.CommandTimeoutSeconds
-            };
-            var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
-            var matchCount = scalar is null or DBNull
-                ? 0
-                : Convert.ToInt32(scalar, CultureInfo.InvariantCulture);
+            var matchCount = await ExecuteScalarIntAsync(conn, schemaProbe.CountSql, cancellationToken);
 
             return matchCount > 0
                 ? new ErpConnectionResult(true, null)
                 : new ErpConnectionResult(false, schemaProbe.SchemaNotFoundMessage);
+        }
+        catch (ErpConfigurationException ex)
+        {
+            return new ErpConnectionResult(false, ex.Message);
         }
         catch (SqlException ex)
         {
@@ -53,5 +48,19 @@ internal static class SqlServerConnectionTester
         {
             return new ErpConnectionResult(false, "Bağlantı zaman aşımına uğradı. Sunucu adresini kontrol edin.");
         }
+    }
+
+    private static async Task<int> ExecuteScalarIntAsync(
+        SqlConnection conn,
+        string sql,
+        CancellationToken cancellationToken)
+    {
+        await using var cmd = new SqlCommand(sql, conn)
+        {
+            CommandTimeout = ErpSqlConnection.CommandTimeoutSeconds
+        };
+
+        var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+        return scalar is null or DBNull ? 0 : Convert.ToInt32(scalar, CultureInfo.InvariantCulture);
     }
 }

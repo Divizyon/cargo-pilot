@@ -44,6 +44,16 @@ describe('erpSettingsApiSchema', () => {
     const result = erpSettingsApiSchema.safeParse(omit(validSettings, 'hasPassword'));
     expect(result.success).toBe(false);
   });
+
+  it('trustServerCertificate gelmezse varsayılan true olur', () => {
+    const parsed = erpSettingsApiSchema.parse(validSettings);
+    expect(parsed.trustServerCertificate).toBe(true);
+  });
+
+  it('trustServerCertificate false gelirse korunur', () => {
+    const parsed = erpSettingsApiSchema.parse({ ...validSettings, trustServerCertificate: false });
+    expect(parsed.trustServerCertificate).toBe(false);
+  });
 });
 
 describe('syncLogDtoSchema', () => {

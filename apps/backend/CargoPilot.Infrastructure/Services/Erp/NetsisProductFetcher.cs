@@ -31,13 +31,13 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
     public ErpProviderType ProviderType => ErpProviderType.Netsis;
 
     public async Task<IReadOnlyList<ErpProductDto>> FetchAsync(
-        string apiEndpoint,
-        string? authCredentialsJson,
+        string serverAddress,
+        ErpCredentials credentials,
         string? categoryFilter,
         string? warehouseFilter,
         CancellationToken cancellationToken = default)
     {
-        var connectionString = BuildConnectionString(apiEndpoint, authCredentialsJson);
+        var connectionString = ErpSqlConnection.Build(serverAddress, credentials);
         var sql = BuildSql(categoryFilter is not null, warehouseFilter is not null);
 
         var results = new List<ErpProductDto>();
@@ -146,46 +146,4 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
         if (weight <= 0) missing.Add(DraftItemField.Weight);
         return missing;
     }
-
-    /// <summary>
-    /// Eksik yapilandirmada varsayilan sunucu/veritabani/kullanici uydurulmaz; kullaniciya
-    /// gosterilebilir bir yapilandirma hatasi firlatilir.
-    /// </summary>
-    internal static string BuildConnectionString(string serverAddress, string? authCredentialsJson)
-    {
-        if (string.IsNullOrWhiteSpace(serverAddress))
-            throw new ErpConfigurationException("ERP sunucu adresi tanımlı değil. ERP ayarlarını tamamlayın.");
-
-        if (string.IsNullOrWhiteSpace(authCredentialsJson))
-            throw new ErpConfigurationException("ERP kimlik bilgileri okunamadı. ERP ayarlarını tamamlayın.");
-
-        ErpAuthCredentials? credentials;
-        try
-        {
-            credentials = JsonSerializer.Deserialize<ErpAuthCredentials>(authCredentialsJson);
-        }
-        catch (JsonException ex)
-        {
-            throw new ErpConfigurationException("ERP kimlik bilgileri okunamadı. ERP ayarlarını tamamlayın.", ex);
-        }
-
-        if (credentials is null)
-            throw new ErpConfigurationException("ERP kimlik bilgileri okunamadı. ERP ayarlarını tamamlayın.");
-
-        if (string.IsNullOrWhiteSpace(credentials.Database))
-            throw new ErpConfigurationException("ERP veritabanı adı tanımlı değil. ERP ayarlarından veritabanı adını girin.");
-
-        if (string.IsNullOrWhiteSpace(credentials.UserId))
-            throw new ErpConfigurationException("ERP kullanıcı adı tanımlı değil. ERP ayarlarından kullanıcı adını girin.");
-
-        if (string.IsNullOrWhiteSpace(credentials.Password))
-            throw new ErpConfigurationException("ERP parolası tanımlı değil. ERP ayarlarından parolayı girin.");
-
-        return ErpSqlConnection.Build(serverAddress, credentials.Database, credentials.UserId, credentials.Password);
-    }
-
-    private sealed record ErpAuthCredentials(
-        string? Database,
-        string? UserId,
-        string? Password);
 }

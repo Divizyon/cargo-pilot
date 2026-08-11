@@ -8,4 +8,5 @@ public record ErpSettingsResponse(
     string CompanyCode,
     string Username,
     string ServerAddress,
-    bool HasPassword);
+    bool HasPassword,
+    bool TrustServerCertificate);

@@ -13,8 +13,8 @@ public interface IErpProductFetcher
     ErpProviderType ProviderType { get; }
 
     Task<IReadOnlyList<ErpProductDto>> FetchAsync(
-        string apiEndpoint,
-        string? authCredentialsJson,
+        string serverAddress,
+        ErpCredentials credentials,
         string? categoryFilter,
         string? warehouseFilter,
         CancellationToken cancellationToken = default);

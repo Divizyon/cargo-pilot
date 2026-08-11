@@ -56,7 +56,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         _passwordProtector.Unprotect(Arg.Any<string>()).Returns("duz-sifre");
         _erpProductFetcher.FetchAsync(
                 Arg.Any<string>(),
-                Arg.Any<string?>(),
+                Arg.Any<ErpCredentials>(),
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
@@ -209,7 +209,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         ErpSyncStatus? fetchAnindakiDurum = null;
         _erpProductFetcher.FetchAsync(
                 Arg.Any<string>(),
-                Arg.Any<string?>(),
+                Arg.Any<ErpCredentials>(),
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
@@ -292,7 +292,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         result.Error.Description.Should().Contain("Logo");
         _integrationRepository.DidNotReceiveWithAnyArgs().AddSyncLog(default!);
         _integration.SyncStatus.Should().Be(ErpSyncStatus.Idle);
-        await _erpProductFetcher.DidNotReceiveWithAnyArgs().FetchAsync(default!, default, default, default);
+        await _erpProductFetcher.DidNotReceiveWithAnyArgs().FetchAsync(default!, default!, default, default);
     }
 
     [Fact]
@@ -318,8 +318,8 @@ public sealed class SyncErpItemsCommandHandlerTests
         var result = await sut.Handle(Command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        await _erpProductFetcher.ReceivedWithAnyArgs(1).FetchAsync(default!, default, default, default);
-        await logoFetcher.DidNotReceiveWithAnyArgs().FetchAsync(default!, default, default, default);
+        await _erpProductFetcher.ReceivedWithAnyArgs(1).FetchAsync(default!, default!, default, default);
+        await logoFetcher.DidNotReceiveWithAnyArgs().FetchAsync(default!, default!, default, default);
     }
 
     [Fact]
@@ -328,7 +328,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         ArrangeHappyPath();
         _erpProductFetcher.FetchAsync(
                 Arg.Any<string>(),
-                Arg.Any<string?>(),
+                Arg.Any<ErpCredentials>(),
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
@@ -350,7 +350,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         ArrangeHappyPath();
         _erpProductFetcher.FetchAsync(
                 Arg.Any<string>(),
-                Arg.Any<string?>(),
+                Arg.Any<ErpCredentials>(),
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())

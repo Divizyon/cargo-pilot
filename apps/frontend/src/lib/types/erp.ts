@@ -64,4 +64,6 @@ export const erpSettingsApiSchema = z.object({
   username: z.string(),
   serverAddress: z.string(),
   hasPassword: z.boolean(),
+  /** false ise ERP sunucusunun TLS sertifikası doğrulanır. Eski kayıtlarda alan gelmeyebilir. */
+  trustServerCertificate: z.boolean().default(true),
 });

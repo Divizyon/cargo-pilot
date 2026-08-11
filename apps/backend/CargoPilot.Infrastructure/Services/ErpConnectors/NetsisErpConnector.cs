@@ -15,10 +15,7 @@ internal sealed class NetsisErpConnector : IErpConnector
 
     public Task<ErpConnectionResult> TestConnectionAsync(
         string serverAddress,
-        string companyCode,
-        string username,
-        string password,
+        ErpCredentials credentials,
         CancellationToken cancellationToken = default) =>
-        SqlServerConnectionTester.TestAsync(
-            serverAddress, companyCode, username, password, SchemaProbe, cancellationToken);
+        SqlServerConnectionTester.TestAsync(serverAddress, credentials, SchemaProbe, cancellationToken);
 }

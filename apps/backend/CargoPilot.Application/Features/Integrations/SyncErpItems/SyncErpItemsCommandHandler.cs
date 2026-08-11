@@ -109,13 +109,21 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     $"{ProviderDisplayName(erpSettings.ProviderType)} ürün senkronizasyonu henüz desteklenmiyor."));
         }
 
-        var plainPassword = _passwordProtector.Unprotect(erpSettings.PasswordEncrypted);
-        var authCredentialsJson = JsonSerializer.Serialize(new
+        // Kimlik bilgisi duz JSON string yerine tipli tasinir; ToString sifreyi maskeler.
+        ErpCredentials credentials;
+        try
         {
-            Database = erpSettings.CompanyCode,
-            UserId = erpSettings.Username,
-            Password = plainPassword
-        });
+            credentials = ErpCredentials.Create(
+                erpSettings.CompanyCode,
+                erpSettings.Username,
+                _passwordProtector.Unprotect(erpSettings.PasswordEncrypted),
+                erpSettings.TrustServerCertificate);
+        }
+        catch (ErpConfigurationException ex)
+        {
+            return Result<SyncErpItemsResult>.Failure(
+                new Error(ErrorType.Validation, "Sync.ErpConfigurationInvalid", ex.Message));
+        }
 
         var syncLog = new SyncLog(Guid.NewGuid(), integration.Id);
         _integrationRepository.AddSyncLog(syncLog);
@@ -128,7 +136,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         {
             var erpProducts = await productFetcher.FetchAsync(
                 erpSettings.ServerAddress,
-                authCredentialsJson,
+                credentials,
                 request.CategoryFilter,
                 request.WarehouseFilter,
                 cancellationToken);

@@ -37,6 +37,7 @@ internal sealed class GetErpSettingsQueryHandler : IRequestHandler<GetErpSetting
             settings.CompanyCode,
             settings.Username,
             settings.ServerAddress,
-            !string.IsNullOrEmpty(settings.PasswordEncrypted)));
+            !string.IsNullOrEmpty(settings.PasswordEncrypted),
+            settings.TrustServerCertificate));
     }
 }

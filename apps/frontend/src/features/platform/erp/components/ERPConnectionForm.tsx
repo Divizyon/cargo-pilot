@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import {
   erpConnectionFormSchema,
@@ -60,6 +62,7 @@ export function ERPConnectionForm() {
       username: '',
       password: '',
       serverAddress: '',
+      trustServerCertificate: true,
     },
   });
 
@@ -71,6 +74,7 @@ export function ERPConnectionForm() {
       username: existing.username,
       password: '',
       serverAddress: existing.serverAddress,
+      trustServerCertificate: existing.trustServerCertificate,
     });
   }, [existing, form]);
 
@@ -235,6 +239,26 @@ export function ERPConnectionForm() {
                 <Input placeholder="192.168.1.100 veya erp.sirket.com" {...field} />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="trustServerCertificate"
+          render={({ field }) => (
+            <FormItem className="flex items-start justify-between gap-4 rounded-lg border border-border px-4 py-3">
+              <div className="space-y-1">
+                <FormLabel>Sunucu sertifikasını doğrulama</FormLabel>
+                <FormDescription>
+                  Açıkken ERP sunucusunun TLS sertifikası doğrulanmaz; kurum içi (self-signed)
+                  sertifikalı sunucular için gerekir ama bağlantı araya girme saldırılarına
+                  açık hale gelir. Sunucunun geçerli bir sertifikası varsa kapatın.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
             </FormItem>
           )}
         />

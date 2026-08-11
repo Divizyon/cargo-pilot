@@ -104,20 +104,26 @@ export function useERPSettings() {
   });
 }
 
+/** Kaydetme ve test uçları aynı bağlantı gövdesini kullanır; şifre yalnızca girildiyse gönderilir. */
+function buildErpSettingsBody(values: ErpConnectionFormValues): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    providerType: PROVIDER_TYPE_TO_INT[values.systemType],
+    companyCode: values.companyCode,
+    username: values.username,
+    serverAddress: values.serverAddress,
+    trustServerCertificate: values.trustServerCertificate,
+  };
+  if (values.password) {
+    body.password = values.password;
+  }
+  return body;
+}
+
 export function useSaveERPSettings() {
   const queryClient = useQueryClient();
   return useMutation<unknown, AxiosError<ApiErrorResponse>, ErpConnectionFormValues>({
     mutationFn: (values) => {
-      const body: Record<string, unknown> = {
-        providerType: PROVIDER_TYPE_TO_INT[values.systemType],
-        companyCode: values.companyCode,
-        username: values.username,
-        serverAddress: values.serverAddress,
-      };
-      if (values.password) {
-        body.password = values.password;
-      }
-      return axiosInstance.put(ERP_SETTINGS_BASE, body).then((r) => r.data);
+      return axiosInstance.put(ERP_SETTINGS_BASE, buildErpSettingsBody(values)).then((r) => r.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
@@ -140,18 +146,9 @@ export function useTestERPSettings() {
     ErpConnectionFormValues
   >({
     mutationFn: async (values) => {
-      const body: Record<string, unknown> = {
-        providerType: PROVIDER_TYPE_TO_INT[values.systemType],
-        companyCode: values.companyCode,
-        username: values.username,
-        serverAddress: values.serverAddress,
-      };
-      if (values.password) {
-        body.password = values.password;
-      }
       const { data } = await axiosInstance.post<unknown>(
         `${ERP_SETTINGS_BASE}/test-connection`,
-        body,
+        buildErpSettingsBody(values),
       );
       const parsed = testConnectionResponseSchema.parse(data);
       return { success: parsed.data.isSuccess, message: parsed.data.message };

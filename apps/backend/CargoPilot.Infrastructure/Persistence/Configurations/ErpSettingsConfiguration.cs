@@ -34,6 +34,10 @@ internal sealed class ErpSettingsConfiguration : IEntityTypeConfiguration<ErpSet
             .HasMaxLength(500)
             .IsRequired();
 
+        builder.Property(e => e.TrustServerCertificate)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasIndex(e => e.CompanyId).IsUnique();
 
         builder.HasOne(e => e.Company)

@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using MediatR;
@@ -20,17 +21,25 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
             return Result<ErpConnectionTestResponse>.Failure(
                 new Error(ErrorType.Validation, "ErpSettings.UnsupportedProvider", "Desteklenmeyen ERP sağlayıcısı."));
 
-        var result = await connector.TestConnectionAsync(
-            request.ServerAddress,
-            request.CompanyCode,
-            request.Username,
-            request.Password,
-            cancellationToken);
+        ErpCredentials credentials;
+        try
+        {
+            credentials = ErpCredentials.Create(
+                request.CompanyCode, request.Username, request.Password, request.TrustServerCertificate);
+        }
+        catch (ErpConfigurationException ex)
+        {
+            return Result<ErpConnectionTestResponse>.Failure(
+                new Error(ErrorType.Validation, "ErpSettings.CredentialsInvalid", ex.Message));
+        }
+
+        var result = await connector.TestConnectionAsync(request.ServerAddress, credentials, cancellationToken);
 
         var message = result.IsSuccess
             ? "Bağlantı başarılı."
             : result.ErrorMessage ?? "ERP sistemine bağlanılamadı.";
 
-        return Result<ErpConnectionTestResponse>.Success(new ErpConnectionTestResponse(result.IsSuccess, message));
+        return Result<ErpConnectionTestResponse>.Success(
+            new ErpConnectionTestResponse(result.IsSuccess, message));
     }
 }

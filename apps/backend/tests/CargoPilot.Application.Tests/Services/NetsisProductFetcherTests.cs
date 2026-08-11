@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Services.Erp;
@@ -9,17 +8,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace CargoPilot.Application.Tests.Services;
 
 /// <summary>
-/// Netsis fetcher'inin SQL'i ve baglanti kurulumu davranis-sabitleme testleri
-/// (ERP-17/ERP-21): sorgu TBLSTSABIT'e sabit kalir, eksik yapilandirmada varsayilan
-/// kimlik bilgisi uydurulmaz.
+/// Netsis fetcher'inin SQL'i ve ERP baglanti kurulumu davranis-sabitleme testleri
+/// (ERP-17/ERP-21/ERP-22): sorgu TBLSTSABIT'e sabit kalir, eksik yapilandirmada
+/// varsayilan kimlik bilgisi uydurulmaz, sifre maskelenir ve sertifika dogrulamasi
+/// ayardan gelir.
 /// </summary>
 public sealed class NetsisProductFetcherTests
 {
-    private static string CredentialsJson(
-        string? database = "MUSTERI_DB",
-        string? userId = "erp_okuyucu",
-        string? password = "gizli") =>
-        JsonSerializer.Serialize(new { Database = database, UserId = userId, Password = password });
+    private static ErpCredentials Credentials(bool trustServerCertificate = true) =>
+        ErpCredentials.Create("MUSTERI_DB", "erp_okuyucu", "gizli", trustServerCertificate);
 
     [Fact]
     public void ProviderType_NetsisTir()
@@ -59,9 +56,9 @@ public sealed class NetsisProductFetcherTests
     }
 
     [Fact]
-    public void BuildConnectionString_TamKimlikBilgisi_AyarlardanUretilir()
+    public void Build_TamKimlikBilgisi_AyarlardanUretilir()
     {
-        var connectionString = NetsisProductFetcher.BuildConnectionString("10.0.0.5", CredentialsJson());
+        var connectionString = ErpSqlConnection.Build("10.0.0.5", Credentials());
 
         connectionString.Should().Contain("Data Source=10.0.0.5");
         connectionString.Should().Contain("Initial Catalog=MUSTERI_DB");
@@ -69,39 +66,49 @@ public sealed class NetsisProductFetcherTests
         connectionString.Should().Contain($"Connect Timeout={ErpSqlConnection.ConnectTimeoutSeconds}");
     }
 
+    [Fact]
+    public void Build_SertifikaDogrulamasiAcik_TrustServerCertificateFalseYazilir()
+    {
+        var connectionString = ErpSqlConnection.Build("10.0.0.5", Credentials(trustServerCertificate: false));
+
+        connectionString.Should().Contain("Trust Server Certificate=False");
+        connectionString.Should().Contain("Encrypt=True");
+    }
+
+    [Fact]
+    public void Build_SertifikaDogrulamasiKapali_TrustServerCertificateTrueYazilir()
+    {
+        var connectionString = ErpSqlConnection.Build("10.0.0.5", Credentials(trustServerCertificate: true));
+
+        connectionString.Should().Contain("Trust Server Certificate=True");
+    }
+
     [Theory]
     [InlineData(null, "erp_okuyucu", "gizli", "veritabanı")]
     [InlineData("MUSTERI_DB", null, "gizli", "kullanıcı adı")]
     [InlineData("MUSTERI_DB", "erp_okuyucu", null, "parola")]
-    public void BuildConnectionString_EksikKimlikBilgisi_VarsayilanUydurmazAciklayiciHataVerir(
+    public void Create_EksikKimlikBilgisi_VarsayilanUydurmazAciklayiciHataVerir(
         string? database, string? userId, string? password, string beklenenIfade)
     {
-        var act = () => NetsisProductFetcher.BuildConnectionString(
-            "10.0.0.5", CredentialsJson(database, userId, password));
+        var act = () => ErpCredentials.Create(database, userId, password);
 
         act.Should().Throw<ErpConfigurationException>().WithMessage($"*{beklenenIfade}*");
     }
 
     [Fact]
-    public void BuildConnectionString_KimlikBilgisiYok_AciklayiciHataVerir()
+    public void ToString_SifreyiMaskeler()
     {
-        var act = () => NetsisProductFetcher.BuildConnectionString("10.0.0.5", authCredentialsJson: null);
+        var metin = ErpCredentials.Create("MUSTERI_DB", "erp_okuyucu", "cok-gizli-parola").ToString();
 
-        act.Should().Throw<ErpConfigurationException>().WithMessage("*kimlik bilgileri okunamadı*");
+        metin.Should().NotContain("cok-gizli-parola");
+        metin.Should().Contain("***");
+        metin.Should().Contain("MUSTERI_DB");
     }
 
     [Fact]
-    public void BuildConnectionString_BozukJson_YutulmazHataVerir()
+    public void Build_SunucuAdresiYok_AciklayiciHataVerir()
     {
-        var act = () => NetsisProductFetcher.BuildConnectionString("10.0.0.5", "{bozuk-json");
-
-        act.Should().Throw<ErpConfigurationException>();
-    }
-
-    [Fact]
-    public void BuildConnectionString_SunucuAdresiYok_AciklayiciHataVerir()
-    {
-        var act = () => NetsisProductFetcher.BuildConnectionString(" ", CredentialsJson());
+        var act = () => ErpSqlConnection.Build(" ", Credentials());
 
         act.Should().Throw<ErpConfigurationException>().WithMessage("*sunucu adresi*");
     }

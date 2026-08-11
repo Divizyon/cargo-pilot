@@ -49,7 +49,8 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
                 request.CompanyCode,
                 request.Username,
                 encrypted,
-                request.ServerAddress);
+                request.ServerAddress,
+                request.TrustServerCertificate);
 
             _repository.Add(newSettings);
 
@@ -74,7 +75,8 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
                 newSettings.CompanyCode,
                 newSettings.Username,
                 newSettings.ServerAddress,
-                true));
+                true,
+                newSettings.TrustServerCertificate));
         }
 
         string? newEncryptedPassword = null;
@@ -86,6 +88,7 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
             request.CompanyCode,
             request.Username,
             request.ServerAddress,
+            request.TrustServerCertificate,
             newEncryptedPassword);
 
         var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);
@@ -101,6 +104,7 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
             existing.CompanyCode,
             existing.Username,
             existing.ServerAddress,
-            true));
+            true,
+            existing.TrustServerCertificate));
     }
 }
