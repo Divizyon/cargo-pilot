@@ -104,9 +104,12 @@ internal static class PlacementValidator
 
             if (!b.IsStackable) return true;
 
-            // LIFO stack kuralı: daha geç inen ürün, daha erken inenin üstüne konamaz
+            // LIFO stack kuralı: daha geç inen ürün, daha erken inenin üstüne konamaz.
+            // Yön semantiği için bkz. LifoPlacement.CompareUnloadingOrder — aynı
+            // semantik grup sıralamasında ve bölge sıralamasında da paylaşılır.
+            // Bu dikey kural fiziksel geçerlilikle iç içe olduğu için burada kalır.
             if (newItemUnloadingOrder.HasValue && b.UnloadingOrder.HasValue
-                && newItemUnloadingOrder.Value > b.UnloadingOrder.Value)
+                && LifoPlacement.CompareUnloadingOrder(newItemUnloadingOrder.Value, b.UnloadingOrder.Value) > 0)
                 return true;
         }
         return false;

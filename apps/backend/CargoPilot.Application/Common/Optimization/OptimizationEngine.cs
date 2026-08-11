@@ -35,7 +35,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
         }
 
-        var groupZones = ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, input.Criteria);
+        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, input.Criteria);
 
         // LIFO bölgeleri de aynı nedenle tohumlanır: aday noktalar yalnızca
         // yerleştirilmiş kutulara komşu doğduğu için ilk yüklenen grup her zaman
@@ -159,47 +159,17 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         return new OptimizationResult(placedResults, unplacedResults, totalWeight, fillRate, cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ);
     }
 
-    // ── Grup zone hesaplama ───────────────────────────────────────────────────
-    // Arka kapı Z=0'dadır. UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya
-    // en yakın (en küçük Z) bölgeye düşer. Distinct UnloadingOrder değerleri ASC
-    // sıralanır ve kamyon uzunluğu eşit bölümlere ayrılır; sıradaki her grup bir
-    // sonraki bölgeye, yani kapıdan daha uzağa yerleşir. 0-1 grup varsa zone
-    // uygulanmaz.
-    private static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
-        IReadOnlyList<OptimizationItemInput> items,
-        decimal vehicleLength,
-        LoadingType loadingType,
-        LoadingPlanOptimizationCriteria criteria)
-    {
-        // Zone ayrımı yalnızca LIFO modunda ve arka kapı yüklemesinde geçerli.
-        if (criteria != LoadingPlanOptimizationCriteria.Lifo || loadingType != LoadingType.Rear)
-            return [];
-
-        var orders = items
-            .Where(i => i.GroupId.HasValue && i.UnloadingOrder.HasValue)
-            .Select(i => i.UnloadingOrder!.Value)
-            .Distinct()
-            .OrderBy(o => o)
-            .ToList();
-
-        if (orders.Count <= 1)
-            return [];
-
-        var zoneSize = vehicleLength / orders.Count;
-        var zones = new Dictionary<int, (decimal ZStart, decimal ZEnd)>();
-
-        for (int i = 0; i < orders.Count; i++)
-            zones[orders[i]] = (i * zoneSize, (i + 1) * zoneSize);
-
-        return zones;
-    }
-
     // ── Grup-bilinçli sıralama ────────────────────────────────────────────────
     // GroupId'si olan items yükleme sırasına göre sıralanır:
     // yüksek UnloadingOrder = en son inecek grup = kapıdan en uzak bölge
     // (arka kapıda Z=length tarafı) = önce yüklenir (DESC sıra).
     // GroupId'si olmayan items en sona eklenir.
     // Grup yoksa mevcut criteria-based sıralama uygulanır.
+    //
+    // Aşağıdaki DESC sıra, LifoPlacement.CompareUnloadingOrder'da adlandırılan
+    // yön semantiğinin uygulamasıdır; aynı semantik LifoPlacement.ComputeGroupZones
+    // (bölge sırası) ve PlacementValidator.ViolatesStackability (dikey istif)
+    // içinde de geçerlidir.
     private static List<OptimizationItemInput> SortForGroupPlacement(
         IEnumerable<OptimizationItemInput> expanded,
         LoadingPlanOptimizationCriteria criteria,
@@ -379,13 +349,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         var balancePenalty = normDevX + normDevZ;
 
-        var zonePenalty = 0m;
-        if (zoneStart.HasValue && zoneEnd.HasValue)
-        {
-            var overLeft  = Math.Max(0m, zoneStart.Value - ez);
-            var overRight = Math.Max(0m, (ez + d) - zoneEnd.Value);
-            zonePenalty = (overLeft + overRight) * 2_000m;
-        }
+        var zonePenalty = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, d);
 
         return criteria switch
         {
