@@ -29,6 +29,9 @@ public sealed class DraftItem : BaseEntity
     public AllowedRotations AllowedRotations { get; private set; }
     public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
+
+    /// <summary>Kullanicinin sectigi yuk gruplari; onayda Item'a birebir tasinir.</summary>
+    public string IncompatibleGroupsJson { get; private set; } = "[]";
     public string? SpecialNotes { get; private set; }
 
     /// <summary>ERP kaynaginda eksik/sifir gelen alan adlarinin JSON listesi.</summary>
@@ -115,6 +118,7 @@ public sealed class DraftItem : BaseEntity
         string? barcode,
         string? imageUrl,
         string? stackGroup,
+        string[]? incompatibleGroups,
         string? specialNotes,
         int[]? constraintIds = null)
     {
@@ -133,6 +137,7 @@ public sealed class DraftItem : BaseEntity
         Barcode = barcode;
         ImageUrl = imageUrl;
         StackGroup = stackGroup;
+        IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;
         ConstraintIdsJson = SerializeConstraintIds(constraintIds);
         PruneFilledMissingFields();
@@ -197,6 +202,28 @@ public sealed class DraftItem : BaseEntity
     {
         var values = missingFields?.Distinct().ToArray() ?? [];
         return values.Length == 0 ? "[]" : JsonSerializer.Serialize(values);
+    }
+
+    /// <summary>Kullanicinin sectigi yuk gruplari; hic secilmediyse bos dizi.</summary>
+    public string[] GetIncompatibleGroups()
+    {
+        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
+            return [];
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static string SerializeStringArray(string[]? values)
+    {
+        if (values is null or { Length: 0 })
+            return "[]";
+        return JsonSerializer.Serialize(values);
     }
 
     public int[] GetConstraintIds()

@@ -56,6 +56,7 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
             x.StackGroup,
             x.SpecialNotes,
             x.GetConstraintIds(),
+            x.GetIncompatibleGroups(),
             x.CreatedAtUtc,
             integrationNames.GetValueOrDefault(x.IntegrationId),
             x.GetMissingFields()))

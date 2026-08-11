@@ -35,6 +35,8 @@ export const draftItemSchema = z.object({
   stackGroup: z.string().nullable().optional(),
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()),
+  /** Kullanıcının taslakta seçtiği yük grupları; onayda ürüne birebir taşınır. */
+  incompatibleGroups: z.array(z.string()).default([]),
   createdAtUtc: z.string(),
   integrationSystemName: z.string().nullable().optional(),
   /** ERP kaynağında boş/sıfır gelen alan adları (backend: DraftItemField). */
@@ -99,6 +101,8 @@ export interface UpdateDraftItemPayload {
   barcode?: string | null;
   imageUrl?: string | null;
   stackGroup?: string | null;
+  /** Zorunlu iş kuralı: boş gönderilen taslak onay adımında reddedilir. */
+  incompatibleGroups?: string[];
   specialNotes?: string | null;
   constraintIds?: number[];
 }

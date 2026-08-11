@@ -80,6 +80,11 @@ internal sealed class DraftItemConfiguration : IEntityTypeConfiguration<DraftIte
         builder.Property(x => x.StackGroup).HasMaxLength(100);
         builder.Property(x => x.SpecialNotes).HasMaxLength(1000);
 
+        builder.Property(x => x.IncompatibleGroupsJson)
+            .IsRequired()
+            .HasMaxLength(500)
+            .HasDefaultValue("[]");
+
         builder.Property(x => x.MissingFieldsJson)
             .IsRequired()
             .HasMaxLength(200)

@@ -170,6 +170,7 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
     allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
     constraintIds: row.constraintIds,
     stackGroup: row.incompatibleGroups[0] ?? null,
+    incompatibleGroups: row.incompatibleGroups,
     specialNotes: row.notes.trim() || null,
   };
 }

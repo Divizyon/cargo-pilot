@@ -69,6 +69,7 @@ public sealed class DraftItemsController : BaseController
             request.Barcode,
             request.ImageUrl,
             request.StackGroup,
+            request.IncompatibleGroups,
             request.SpecialNotes,
             request.ConstraintIds);
         var result = await _mediator.Send(command, cancellationToken);
@@ -131,6 +132,7 @@ public sealed record UpdateDraftItemRequest(
     string? Barcode,
     string? ImageUrl,
     string? StackGroup,
+    string[]? IncompatibleGroups,
     string? SpecialNotes,
     int[]? ConstraintIds);
 

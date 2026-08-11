@@ -26,6 +26,7 @@ public sealed class DraftItemMissingFieldsTests
             barcode: null,
             imageUrl: null,
             stackGroup: null,
+            incompatibleGroups: null,
             specialNotes: null);
 
     [Fact]

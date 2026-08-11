@@ -4,6 +4,7 @@ using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.DraftItems.ApproveDraftItem;
 using CargoPilot.Application.Features.DraftItems.ApproveDraftItems;
+using CargoPilot.Application.Features.DraftItems.UpdateDraftItem;
 using CargoPilot.Application.Features.Items.CreateItem;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
@@ -31,10 +32,39 @@ public sealed class DraftItemApprovalValidationTests
     private ApproveDraftItemsCommandHandler CreateBulkSut() =>
         new(_draftItemRepository, _itemRepository, _currentUserService, _specValidator);
 
+    /// <summary>Kullanicinin diyalogda duzenleyip yuk grubunu doldurdugu taslak.</summary>
+    private static DraftItem CreateEditedDraft(
+        string erpId = "ERP-1",
+        string sku = "SKU-1",
+        decimal weight = 5m,
+        string[]? incompatibleGroups = null)
+    {
+        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId, erpId: erpId, sku: sku);
+        draft.UpdateUserFields(
+            productType: "STANDARD",
+            category: ItemCategory.Package,
+            width: 10m,
+            height: 20m,
+            length: 30m,
+            weight: weight,
+            diameter: null,
+            fragilityType: FragilityType.NonFragile,
+            isStackable: true,
+            maxStackCount: 1,
+            maxWeightOnTop: 5m,
+            allowedRotations: AllowedRotations.All,
+            barcode: null,
+            imageUrl: null,
+            stackGroup: null,
+            incompatibleGroups: incompatibleGroups ?? ["Genel"],
+            specialNotes: null);
+        return draft;
+    }
+
     [Fact]
     public async Task TekilOnay_AgirligiSifirTaslak_IsKuraliHatasiVeAlanListesiDoner()
     {
-        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId, weight: 0m, maxWeightOnTop: 1m);
+        var draft = CreateEditedDraft(weight: 0m);
         _draftItemRepository.GetByIdAsync(draft.Id, CompanyId, Arg.Any<CancellationToken>()).Returns(draft);
 
         var result = await CreateSingleSut().Handle(new ApproveDraftItemCommand(draft.Id), CancellationToken.None);
@@ -51,7 +81,7 @@ public sealed class DraftItemApprovalValidationTests
     [Fact]
     public async Task TekilOnay_GecerliTaslak_UrunOlusturVeErpKaynagiIsaretlenir()
     {
-        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId);
+        var draft = CreateEditedDraft(incompatibleGroups: ["Kimya", "Gıda"]);
         _draftItemRepository.GetByIdAsync(draft.Id, CompanyId, Arg.Any<CancellationToken>()).Returns(draft);
         _itemRepository.ExistsBySkuAsync(draft.SKU, CompanyId, Arg.Any<CancellationToken>()).Returns(false);
 
@@ -66,13 +96,52 @@ public sealed class DraftItemApprovalValidationTests
         eklenen!.ErpId.Should().Be(draft.ErpId);
         eklenen.IntegrationId.Should().Be(IntegrationId);
         eklenen.Weight.Should().Be(draft.Weight);
+        eklenen.GetIncompatibleGroups().Should().Equal("Kimya", "Gıda");
+    }
+
+    [Fact]
+    public async Task TekilOnay_YukGrubuBosTaslak_OnaylanamazVeNedeniDoner()
+    {
+        var draft = CreateEditedDraft(incompatibleGroups: []);
+        _draftItemRepository.GetByIdAsync(draft.Id, CompanyId, Arg.Any<CancellationToken>()).Returns(draft);
+
+        var result = await CreateSingleSut().Handle(new ApproveDraftItemCommand(draft.Id), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Type.Should().Be(ErrorType.BusinessRule);
+        result.Error.ValidationErrors.Should().ContainSingle()
+            .Which.Field.Should().Be(nameof(ItemSpec.IncompatibleGroups));
+        _itemRepository.DidNotReceiveWithAnyArgs().Add(default!);
+    }
+
+    [Fact]
+    public async Task TekilOnay_GuncellemeTaslagi_YukGrubunuMevcutUruneTasir()
+    {
+        var draft = CreateEditedDraft(incompatibleGroups: ["Tekstil"]);
+        draft.Approve();
+        draft.SetUpdatePending(draft.SKU, "Yeni Ad", "{}");
+        _draftItemRepository.GetByIdAsync(draft.Id, CompanyId, Arg.Any<CancellationToken>()).Returns(draft);
+
+        var mevcut = new Item(
+            Guid.NewGuid(), draft.SKU, "Eski Ad", "STANDARD", ItemCategory.Package,
+            10m, 20m, 30m, 5m, FragilityType.NonFragile,
+            isStackable: true, maxStackCount: 1, maxWeightOnTop: 5m, AllowedRotations.All,
+            companyId: CompanyId);
+        _itemRepository.GetByErpIdAsync(draft.ErpId, IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns(mevcut);
+
+        var result = await CreateSingleSut().Handle(new ApproveDraftItemCommand(draft.Id), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        mevcut.GetIncompatibleGroups().Should().Equal("Tekstil");
+        mevcut.Name.Should().Be("Yeni Ad");
     }
 
     [Fact]
     public async Task TopluOnay_GecersizTaslak_NedeniyleAtlanirDigerleriOnaylanir()
     {
-        var gecerli = TestData.CreateDraftItem(CompanyId, IntegrationId, erpId: "ERP-1", sku: "SKU-1");
-        var gecersiz = TestData.CreateDraftItem(CompanyId, IntegrationId, erpId: "ERP-2", sku: "SKU-2", weight: 0m);
+        var gecerli = CreateEditedDraft();
+        var gecersiz = CreateEditedDraft(erpId: "ERP-2", sku: "SKU-2", weight: 0m);
         _draftItemRepository.GetByIdsAsync(Arg.Any<IReadOnlyList<Guid>>(), CompanyId, Arg.Any<CancellationToken>())
             .Returns([gecerli, gecersiz]);
         _itemRepository.ExistsBySkuAsync(Arg.Any<string>(), CompanyId, Arg.Any<CancellationToken>()).Returns(false);
@@ -94,7 +163,7 @@ public sealed class DraftItemApprovalValidationTests
     [Fact]
     public async Task TopluOnay_KullanilanSku_NedeniyleAtlanir()
     {
-        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId);
+        var draft = CreateEditedDraft();
         _draftItemRepository.GetByIdsAsync(Arg.Any<IReadOnlyList<Guid>>(), CompanyId, Arg.Any<CancellationToken>())
             .Returns([draft]);
         _itemRepository.ExistsBySkuAsync(draft.SKU, CompanyId, Arg.Any<CancellationToken>()).Returns(true);
@@ -105,6 +174,49 @@ public sealed class DraftItemApprovalValidationTests
         result.Data!.Approved.Should().Be(0);
         result.Data.SkippedItems.Should().ContainSingle()
             .Which.Reason.Should().Contain("SKU");
+    }
+
+    /// <summary>Kontrat: PUT draft -> approve zincirinde secilen yuk grubu Item'a kaydedilir.</summary>
+    [Fact]
+    public async Task TaslakGuncellemeSonrasiOnay_SecilenYukGrubuUrunKaydinaGecer()
+    {
+        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId);
+        _draftItemRepository.GetByIdAsync(draft.Id, CompanyId, Arg.Any<CancellationToken>()).Returns(draft);
+        _itemRepository.ExistsBySkuAsync(draft.SKU, CompanyId, Arg.Any<CancellationToken>()).Returns(false);
+
+        var updateResult = await new UpdateDraftItemCommandHandler(_draftItemRepository, _currentUserService)
+            .Handle(
+                new UpdateDraftItemCommand(
+                    Id: draft.Id,
+                    ProductType: "STANDARD",
+                    Category: ItemCategory.Package,
+                    Width: 10m,
+                    Height: 20m,
+                    Length: 30m,
+                    Weight: 5m,
+                    Diameter: null,
+                    FragilityType: FragilityType.NonFragile,
+                    IsStackable: true,
+                    MaxStackCount: 1,
+                    MaxWeightOnTop: 5m,
+                    AllowedRotations: AllowedRotations.All,
+                    Barcode: null,
+                    ImageUrl: null,
+                    StackGroup: null,
+                    IncompatibleGroups: ["Kimya"],
+                    SpecialNotes: null,
+                    ConstraintIds: null),
+                CancellationToken.None);
+
+        updateResult.IsSuccess.Should().BeTrue();
+
+        Item? eklenen = null;
+        _itemRepository.When(r => r.Add(Arg.Any<Item>())).Do(c => eklenen = c.Arg<Item>());
+
+        var approveResult = await CreateSingleSut().Handle(new ApproveDraftItemCommand(draft.Id), CancellationToken.None);
+
+        approveResult.IsSuccess.Should().BeTrue();
+        eklenen!.GetIncompatibleGroups().Should().Equal("Kimya");
     }
 
     /// <summary>Kural seti tek kaynaktan geliyor; iki yol ayni girdide ayni hata kodlarini uretir.</summary>
@@ -127,7 +239,7 @@ public sealed class DraftItemApprovalValidationTests
             Barcode: null,
             ImageUrl: null,
             StackGroup: null,
-            IncompatibleGroups: null,
+            IncompatibleGroups: ["Genel"],
             SpecialNotes: null,
             ConstraintIds: null);
 

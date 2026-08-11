@@ -75,4 +75,14 @@ describe('draftItemToRow', () => {
   it('eksik alan bilgisi yoksa boş liste taşır', () => {
     expect(draftItemToRow(makeDraft({})).missingFields).toEqual([]);
   });
+
+  it('taslakta kayıtlı yük gruplarını satır modeline taşır', () => {
+    const row = draftItemToRow(makeDraft({ incompatibleGroups: ['Kimya', 'Gıda'] }));
+
+    expect(row.incompatibleGroups).toEqual(['Kimya', 'Gıda']);
+  });
+
+  it('yük grubu seçilmemiş taslakta boş liste taşır', () => {
+    expect(draftItemToRow(makeDraft({})).incompatibleGroups).toEqual([]);
+  });
 });

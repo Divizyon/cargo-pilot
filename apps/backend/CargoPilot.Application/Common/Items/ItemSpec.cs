@@ -40,7 +40,7 @@ public sealed record ItemSpec(
         draft.Barcode,
         draft.ImageUrl,
         draft.StackGroup,
-        IncompatibleGroups: null,
+        draft.GetIncompatibleGroups(),
         draft.SpecialNotes,
         draft.GetConstraintIds());
 }

@@ -31,6 +31,7 @@ public sealed record DraftItemDto(
     string? StackGroup,
     string? SpecialNotes,
     int[] ConstraintIds,
+    string[] IncompatibleGroups,
     DateTime CreatedAtUtc,
     string? IntegrationSystemName,
     IReadOnlyList<string> MissingFields);

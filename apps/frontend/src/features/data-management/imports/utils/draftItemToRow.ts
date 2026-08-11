@@ -27,7 +27,7 @@ export function draftItemToRow(item: DraftItem): EditableRow {
     allowRotateY,
     allowRotateZ,
     constraintIds: item.constraintIds ?? [],
-    incompatibleGroups: [],
+    incompatibleGroups: item.incompatibleGroups ?? [],
     notes: item.specialNotes ?? '',
     missingFields: item.missingFields ?? [],
   };

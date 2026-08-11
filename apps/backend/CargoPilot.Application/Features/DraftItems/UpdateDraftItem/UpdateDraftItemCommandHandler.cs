@@ -48,6 +48,7 @@ public sealed class UpdateDraftItemCommandHandler : IRequestHandler<UpdateDraftI
             request.Barcode,
             request.ImageUrl,
             request.StackGroup,
+            request.IncompatibleGroups,
             request.SpecialNotes,
             request.ConstraintIds);
 

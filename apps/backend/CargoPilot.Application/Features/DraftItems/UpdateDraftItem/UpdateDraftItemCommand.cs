@@ -22,8 +22,6 @@ public sealed record UpdateDraftItemCommand(
     string? Barcode,
     string? ImageUrl,
     string? StackGroup,
+    string[]? IncompatibleGroups,
     string? SpecialNotes,
-    int[]? ConstraintIds) : IItemSpec, IRequest<Result<Unit>>
-{
-    public string[]? IncompatibleGroups => null;
-}
+    int[]? ConstraintIds) : IItemSpec, IRequest<Result<Unit>>;
