@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 export const erpConnectionFormSchema = z.object({
   systemType: z.enum(['Logo', 'Netsis']),
-  companyCode: z.string().min(1, 'Şirket kodu zorunludur'),
+  /** Backend'de SQL InitialCatalog olarak kullanılır; arayüzdeki adı 'Veritabanı Adı'dır. */
+  companyCode: z.string().min(1, 'Veritabanı adı zorunludur'),
   username: z.string().min(1, 'Kullanıcı adı zorunludur'),
   password: z.string().optional(),
   serverAddress: z.string().min(1, 'Sunucu adresi zorunludur'),

@@ -14,8 +14,8 @@ public sealed class TestErpConnectionCommandValidator : AbstractValidator<TestEr
             .MaximumLength(500).WithMessage("Sunucu adresi en fazla 500 karakter olabilir.");
 
         RuleFor(x => x.CompanyCode)
-            .NotEmpty().WithMessage("Şirket kodu boş olamaz.")
-            .MaximumLength(100).WithMessage("Şirket kodu en fazla 100 karakter olabilir.");
+            .NotEmpty().WithMessage("Veritabanı adı boş olamaz.")
+            .MaximumLength(100).WithMessage("Veritabanı adı en fazla 100 karakter olabilir.");
 
         RuleFor(x => x.Username)
             .NotEmpty().WithMessage("Kullanıcı adı boş olamaz.")

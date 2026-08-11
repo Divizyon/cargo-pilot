@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  EyeOff,
+  ShieldAlert,
+  ClipboardList,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +45,7 @@ import {
   useTestERPSettings,
 } from '@/lib/api/useERPIntegration';
 import { getApiErrorMessage } from '@/lib/api/apiError';
+import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuidance';
 
 type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
 
@@ -77,6 +87,14 @@ export function ERPConnectionForm() {
       trustServerCertificate: existing.trustServerCertificate,
     });
   }, [existing, form]);
+
+  const systemType = useWatch({ control: form.control, name: 'systemType' });
+  const guidance = getErpFieldGuidance(systemType);
+
+  async function handleCopyChecklist() {
+    await navigator.clipboard.writeText(guidance.itChecklist);
+    toast.success('Bilgi listesi panoya kopyalandı.', { position: 'bottom-right' });
+  }
 
   function onSubmit(values: ErpConnectionFormValues) {
     setTestResult(null);
@@ -160,20 +178,42 @@ export function ERPConnectionForm() {
                   <SelectItem value="Netsis">Netsis</SelectItem>
                 </SelectContent>
               </Select>
+              <FormDescription>
+                Seçtiğiniz sisteme göre aşağıdaki alanların örnekleri ve açıklamaları değişir.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <div className="rounded-lg border border-dashed border-border px-4 py-3">
+          <p className="text-sm font-medium text-foreground">Bu bilgileri nereden bulacaksınız?</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Aşağıdaki alanların tamamı ERP sunucunuzu yöneten IT ekibinde bulunur. Listeyi kopyalayıp
+            IT yöneticinize iletebilirsiniz.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={handleCopyChecklist}
+          >
+            <ClipboardList className="mr-2 h-4 w-4" />
+            IT'nize gönderilecek bilgi listesini kopyala
+          </Button>
+        </div>
 
         <FormField
           control={form.control}
           name="companyCode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Şirket Kodu</FormLabel>
+              <FormLabel>Veritabanı Adı</FormLabel>
               <FormControl>
-                <Input placeholder="001" {...field} />
+                <Input placeholder={guidance.databasePlaceholder} {...field} />
               </FormControl>
+              <FormDescription>{guidance.databaseHelp}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -186,8 +226,13 @@ export function ERPConnectionForm() {
             <FormItem>
               <FormLabel>Kullanıcı Adı</FormLabel>
               <FormControl>
-                <Input placeholder="erp_user" autoComplete="username" {...field} />
+                <Input
+                  placeholder={guidance.usernamePlaceholder}
+                  autoComplete="username"
+                  {...field}
+                />
               </FormControl>
+              <FormDescription>{guidance.usernameHelp}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -221,11 +266,13 @@ export function ERPConnectionForm() {
                   </Button>
                 </div>
               </FormControl>
-              {existing?.hasPassword && !field.value && (
+              {existing?.hasPassword && !field.value ? (
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                   <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />
                   Kayıtlı şifre korunuyor — değiştirmek için yeni şifre girin.
                 </p>
+              ) : (
+                <FormDescription>{guidance.passwordHelp}</FormDescription>
               )}
               <FormMessage />
             </FormItem>
@@ -239,8 +286,9 @@ export function ERPConnectionForm() {
             <FormItem>
               <FormLabel>Sunucu Adresi</FormLabel>
               <FormControl>
-                <Input placeholder="192.168.1.100 veya erp.sirket.com" {...field} />
+                <Input placeholder={guidance.serverPlaceholder} {...field} />
               </FormControl>
+              <FormDescription>{guidance.serverHelp}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
