@@ -38,6 +38,23 @@ describe('ERPItemsPage', () => {
     expect(screen.queryByRole('link', { name: /Genel Bakış/ })).not.toBeInTheDocument();
   });
 
+  it('şirket yöneticisine senkronizasyon ayarları köprüsü gösterir', () => {
+    signInAs(USER_ROLES.CompanyAdmin);
+    renderPage();
+
+    expect(screen.getByRole('link', { name: /Senkronizasyon Ayarları/ })).toHaveAttribute(
+      'href',
+      '/settings?tab=erp-senkronizasyon',
+    );
+  });
+
+  it('yetkisiz kullanıcıya ayarlar köprüsü göstermez', () => {
+    signInAs(USER_ROLES.CompanyWorker);
+    renderPage();
+
+    expect(screen.queryByRole('link', { name: /Senkronizasyon Ayarları/ })).not.toBeInTheDocument();
+  });
+
   it('yetkisiz kullanıcıya tablo yerine kilit mesajı gösterir', () => {
     signInAs(USER_ROLES.CompanyWorker);
     renderPage();

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
@@ -7,10 +8,15 @@ import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
 
 const DRAFT_BASE = '/api/v1/draft-items';
 
+/** Onaylanan taslakların gittiği ekran; toast aksiyonu buraya götürür. */
+const PRODUCTS_ROUTE = '/products';
+
 export const DRAFT_PENDING = 0;
 export const DRAFT_APPROVED = 1;
 export const DRAFT_REJECTED = 2;
 export const DRAFT_UPDATE_PENDING = 3;
+/** ERP güncellemesi reddedildi; ürün onaylanmış haliyle kalır (backend: UpdateDismissed). */
+export const DRAFT_UPDATE_DISMISSED = 4;
 
 export const draftItemSchema = z.object({
   id: z.string().uuid(),
@@ -161,6 +167,7 @@ export function formatApproveSummary(result: ApproveDraftItemsResult): string {
 
 export function useBulkApproveDraftItems() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   return useMutation<ApproveDraftItemsResult, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: async (ids) => {
       const { data } = await axiosInstance.post<unknown>(`${DRAFT_BASE}/approve-bulk`, { ids });
@@ -174,7 +181,11 @@ export function useBulkApproveDraftItems() {
         toast.warning(summary, { position: 'bottom-right' });
         return;
       }
-      toast.success(summary, { position: 'bottom-right' });
+      // Aktarılan ürünlerin nereye gittiği toast üzerinden görünür kılınır.
+      toast.success(summary, {
+        position: 'bottom-right',
+        action: { label: 'Ürünlere git', onClick: () => navigate(PRODUCTS_ROUTE) },
+      });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Toplu onaylama başarısız.'), {
@@ -198,15 +209,43 @@ export function useRejectDraftItem() {
   });
 }
 
+/**
+ * Reddedilen taslağı tekrar karar bekler duruma alır. Ret kalıcı olduğu için
+ * sonraki sync taslağı geri getirmez; geri alma yalnızca bu uçtan yapılır.
+ */
+export function useReinstateDraftItems() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
+    mutationFn: (ids) =>
+      Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reinstate`))).then(
+        () => {},
+      ),
+    onSuccess: (_data, ids) => {
+      void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
+      toast.success(`${ids.length} ürün tekrar beklemeye alındı.`, { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Tekrar beklemeye alma başarısız.'), {
+        position: 'bottom-right',
+      });
+    },
+  });
+}
+
 export function useBulkRejectDraftItems() {
   const queryClient = useQueryClient();
+  const reinstate = useReinstateDraftItems();
   return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: (ids) =>
       Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`))).then(() => {}),
     onSuccess: (_data, ids) => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success(`${ids.length} güncelleme reddedildi.`, { position: 'bottom-right' });
+      toast.success(`${ids.length} ürün reddedildi.`, {
+        position: 'bottom-right',
+        description: 'Reddedilenler sekmesinden geri alabilirsiniz.',
+        action: { label: 'Geri Al', onClick: () => reinstate.mutate(ids) },
+      });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Reddetme işlemi başarısız.'), {

@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import type { DraftItem, DraftItemsParams } from '@/lib/api/useDraftItems';
 import type { EditableRow } from './BulkImportDialog';
 
 const mocks = vi.hoisted(() => ({
   connection: vi.fn(),
+  erpSettings: vi.fn(),
   triggerSync: vi.fn(),
   bulkReject: vi.fn(),
   draftItemsState: { isLoading: false, isEmpty: false, error: null as unknown },
@@ -16,6 +20,7 @@ vi.mock('@/lib/api/useERPIntegration', async (importOriginal) => {
   return {
     ...actual,
     useERPConnection: () => ({ data: mocks.connection() }),
+    useERPSettings: () => ({ data: mocks.erpSettings() }),
     useTriggerERPSync: () => ({ mutate: mocks.triggerSync, isPending: false }),
   };
 });
@@ -71,6 +76,15 @@ vi.mock('./BulkImportDialog', () => ({
 }));
 
 const { ERPItemsTable } = await import('./ERPItemsTable');
+
+function renderTable(node: ReactNode = <ERPItemsTable />) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{node}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 const { DRAFT_PENDING, DRAFT_APPROVED } = await import('@/lib/api/useDraftItems');
 
 function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'>): DraftItem {
@@ -135,10 +149,19 @@ describe('ERPItemsTable', () => {
       systemName: 'Netsis',
       apiEndpoint: 'http://erp.local',
     });
+    mocks.erpSettings.mockReturnValue({
+      id: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
+      providerType: 2,
+      companyCode: 'NETSIS2024',
+      username: 'erp_user',
+      serverAddress: '192.168.1.10',
+      hasPassword: true,
+      trustServerCertificate: true,
+    });
   });
 
   it('bekleyen taslak ürünleri listeler', () => {
-    render(<ERPItemsTable />);
+    renderTable();
 
     expect(screen.getByText('Palet Kasa 60x40')).toBeInTheDocument();
     expect(screen.getByText('KOL-3020')).toBeInTheDocument();
@@ -146,7 +169,7 @@ describe('ERPItemsTable', () => {
   });
 
   it('eksik alanlı taslakta rozet gösterir ve 0 değerini ölçü gibi basmaz', () => {
-    render(<ERPItemsTable />);
+    renderTable();
 
     expect(screen.getByText('Olcusuz Urun')).toBeInTheDocument();
     expect(screen.getByText('Eksik alan')).toBeInTheDocument();
@@ -156,7 +179,7 @@ describe('ERPItemsTable', () => {
 
   it('seçilen taslak aktarım diyaloğuna taşınır', async () => {
     const user = userEvent.setup();
-    render(<ERPItemsTable />);
+    renderTable();
 
     expect(screen.queryByTestId('bulk-import-dialog')).not.toBeInTheDocument();
 
@@ -173,9 +196,9 @@ describe('ERPItemsTable', () => {
 
   it('seçim yapılmadan sync tetiklenir, aktarım diyaloğu açılmaz', async () => {
     const user = userEvent.setup();
-    render(<ERPItemsTable />);
+    renderTable();
 
-    await user.click(screen.getByRole('button', { name: /ERP ile Sync/ }));
+    await user.click(screen.getByRole('button', { name: /ERP'den Ürün Çek/ }));
 
     expect(mocks.triggerSync).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('bulk-import-dialog')).not.toBeInTheDocument();
@@ -183,7 +206,7 @@ describe('ERPItemsTable', () => {
 
   it('yükleme sırasında satır yerine iskelet gösterir', () => {
     mocks.draftItemsState.isLoading = true;
-    render(<ERPItemsTable />);
+    renderTable();
 
     expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: 'Tümünü seç' })).not.toBeInTheDocument();
@@ -197,7 +220,7 @@ describe('ERPItemsTable', () => {
       },
     };
 
-    render(<ERPItemsTable />);
+    renderTable();
 
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Taslak ürünler yüklenemedi');
@@ -206,12 +229,48 @@ describe('ERPItemsTable', () => {
     expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument();
   });
 
-  it('ERP bağlantısı yoksa boş durum mesajı gösterir', () => {
+  it('ERP bağlantısı yokken kurulum akışını ve bağlantı butonunu gösterir', () => {
     mocks.connection.mockReturnValue(null);
+    mocks.erpSettings.mockReturnValue(null);
     mocks.draftItemsState.isEmpty = true;
 
-    render(<ERPItemsTable />);
+    renderTable();
 
-    expect(screen.getByText('ERP bağlantısı yapılandırılmamış.')).toBeInTheDocument();
+    expect(screen.getByText('Henüz ERP bağlantınız yok')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'ERP Bağlantısı Kur' })).toHaveAttribute(
+      'href',
+      '/settings?tab=erp-baglanti',
+    );
+  });
+
+  it('bağlantı varken bekleyen ürün yoksa çekim aksiyonu sunar', async () => {
+    const user = userEvent.setup();
+    mocks.draftItemsState.isEmpty = true;
+
+    renderTable();
+
+    expect(screen.getByText('Bekleyen ERP ürünü yok.')).toBeInTheDocument();
+    const syncButtons = screen.getAllByRole('button', { name: /ERP'den Ürün Çek/ });
+    expect(syncButtons).toHaveLength(2);
+
+    await user.click(syncButtons[1]);
+    expect(mocks.triggerSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('ayar eksikken sync butonu sessizce başarısız olmaz, eksikleri diyalogla sorar', async () => {
+    const user = userEvent.setup();
+    mocks.connection.mockReturnValue(null);
+    mocks.erpSettings.mockReturnValue(null);
+    mocks.draftItemsState.isEmpty = true;
+
+    renderTable();
+
+    const syncButton = screen.getByRole('button', { name: /ERP'den Ürün Çek/ });
+    expect(syncButton).toBeEnabled();
+
+    await user.click(syncButton);
+
+    expect(await screen.findByText('Çekim için ERP ayarları eksik')).toBeInTheDocument();
+    expect(mocks.triggerSync).not.toHaveBeenCalled();
   });
 });

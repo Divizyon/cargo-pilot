@@ -98,3 +98,5 @@ export const erpSettingsApiSchema = z.object({
   /** false ise ERP sunucusunun TLS sertifikası doğrulanır. Eski kayıtlarda alan gelmeyebilir. */
   trustServerCertificate: z.boolean().default(true),
 });
+
+export type ErpSettings = z.infer<typeof erpSettingsApiSchema>;
