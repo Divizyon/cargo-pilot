@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { AxiosError, AxiosHeaders } from 'axios';
 
@@ -34,7 +35,11 @@ function renderWithQueryClient(node: ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{node}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 function mockSyncLogs(result: { ok: true; payload: unknown } | { ok: false; error: unknown }) {
@@ -197,6 +202,22 @@ describe('ERPSyncHistory hata durumu', () => {
     expect(badge).toHaveAttribute(
       'title',
       'Kaynak toplamı ile sayaçlar arasında 7 satırlık fark var; bu satırlar hiçbir sayaca düşmedi.',
+    );
+  });
+
+  it('bağlantı yokken kayıt yok demez, bağlantı ekranına yönlendirir', async () => {
+    mocks.get.mockImplementation((url: string) => {
+      if (url.includes('sync-logs')) return Promise.reject(httpError(404));
+      return Promise.resolve({ data: { isSuccess: true, data: [] } });
+    });
+
+    renderWithQueryClient(<ERPSyncHistory />);
+
+    expect(await screen.findByText('Önce ERP bağlantısını kaydedin')).toBeInTheDocument();
+    expect(screen.queryByText('Henüz senkronizasyon geçmişi yok.')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'ERP Bağlantısı Kur' })).toHaveAttribute(
+      'href',
+      '/settings?tab=erp-baglanti',
     );
   });
 
