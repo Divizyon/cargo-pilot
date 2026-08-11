@@ -72,6 +72,8 @@ const syncLogsPageResponseSchema = z.object({
     totalCount: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
+    /** Entegrasyonun tamamındaki başarısız/kısmi kayıt sayısı; sayfa boyutundan bağımsızdır. */
+    failedCount: z.number().int().min(0).default(0),
   }),
 });
 

@@ -63,6 +63,14 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         return new PagedResult<SyncLog>(items, totalCount, page, pageSize);
     }
 
+    public Task<int> CountFailedSyncLogsAsync(Guid integrationId, CancellationToken cancellationToken = default)
+        => _dbContext.SyncLogs
+            .AsNoTracking()
+            .CountAsync(
+                l => l.IntegrationId == integrationId
+                    && (l.Status == SyncLogStatus.PartialFailure || l.Status == SyncLogStatus.Failed),
+                cancellationToken);
+
     public void Add(Integration integration) => _dbContext.Integrations.Add(integration);
 
     public void AddSyncLog(SyncLog syncLog) => _dbContext.SyncLogs.Add(syncLog);

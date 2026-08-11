@@ -89,6 +89,9 @@ const ERP_TABS: TabDef[] = [
   },
 ];
 
+/** Hata rozeti için kayıt listesi gerekmez; zarftaki failedCount okunur. */
+const BADGE_ONLY_PAGE_SIZE = 1;
+
 const ALL_TABS = [...GENERAL_TABS, ...ERP_TABS];
 const VALID_TAB_IDS = new Set<string>(ALL_TABS.map((t) => t.id));
 const DEFAULT_TAB: TabId = 'bireysel-hesap';
@@ -128,10 +131,14 @@ export function UnifiedSettingsPage() {
 
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
-  const { data: syncLogsPage } = useERPSyncLogs(integrationId, { page: 1, pageSize: 20 });
+  // Rozet yalnızca sayıyı kullanır; kayıtların kendisi Geçmiş sekmesinde yüklenir.
+  const { data: syncLogsPage } = useERPSyncLogs(integrationId, {
+    page: 1,
+    pageSize: BADGE_ONLY_PAGE_SIZE,
+  });
 
-  const syncErrorCount =
-    syncLogsPage?.items.filter((l) => l.status === 2 || l.status === 3).length ?? 0;
+  // Sayı sunucudan gelir; sayfa sınırındaki kayıtları sayarak tahmin edilmez.
+  const syncErrorCount = syncLogsPage?.failedCount ?? 0;
 
   function getErpBadge(tabId: TabId): number {
     return tabId === 'erp-gecmis' ? syncErrorCount : 0;

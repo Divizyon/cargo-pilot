@@ -19,6 +19,11 @@ public interface IIntegrationRepository
     Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<PagedResult<SyncLog>> ListSyncLogsAsync(Guid integrationId, int page, int pageSize, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Entegrasyonun tamamindaki basarisiz ve kismi basarisiz sync kayit sayisi; sayfa
+    /// sinirindan bagimsizdir.
+    /// </summary>
+    Task<int> CountFailedSyncLogsAsync(Guid integrationId, CancellationToken cancellationToken = default);
     void Add(Integration integration);
     void AddSyncLog(SyncLog syncLog);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
