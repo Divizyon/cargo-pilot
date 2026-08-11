@@ -32,9 +32,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
     public DbSet<LoadingPlanWarning> LoadingPlanWarnings => Set<LoadingPlanWarning>();
     public DbSet<Integration> Integrations => Set<Integration>();
     public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
-    public DbSet<ErpUserMapping> ErpUserMappings => Set<ErpUserMapping>();
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<PendingItemMapping> PendingItemMappings => Set<PendingItemMapping>();
     public DbSet<ErpSettings> ErpSettings => Set<ErpSettings>();
     public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
     public DbSet<DraftItem> DraftItems => Set<DraftItem>();
@@ -69,9 +67,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
         modelBuilder.ApplyConfiguration(new LoadingPlanWarningConfiguration());
         modelBuilder.ApplyConfiguration(new IntegrationConfiguration());
         modelBuilder.ApplyConfiguration(new SyncLogConfiguration());
-        modelBuilder.ApplyConfiguration(new ErpUserMappingConfiguration());
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
-        modelBuilder.ApplyConfiguration(new PendingItemMappingConfiguration());
         modelBuilder.ApplyConfiguration(new ErpSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new ShareLinkConfiguration());
         modelBuilder.ApplyConfiguration(new DraftItemConfiguration());

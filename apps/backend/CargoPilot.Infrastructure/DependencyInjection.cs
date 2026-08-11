@@ -106,7 +106,6 @@ public static class DependencyInjection {
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();       
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
-        services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
         services.AddScoped<IErpProductFetcher, SqlServerErpProductFetcher>();
         services.AddDataProtection()
             .PersistKeysToDbContext<AppDbContext>();

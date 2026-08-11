@@ -18,7 +18,6 @@ public sealed class Integration : BaseEntity {
     public Company? Company { get; private set; }
 #pragma warning restore S1144
     public ICollection<SyncLog> SyncLogs { get; } = [];
-    public ICollection<ErpUserMapping> ErpUserMappings { get; } = [];
 
     private Integration() { }
 
