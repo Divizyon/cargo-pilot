@@ -28,7 +28,6 @@ import {
 import {
   useUpdateDraftItem,
   useBulkApproveDraftItems,
-  useBulkApproveItemsIndividual,
   type UpdateDraftItemPayload,
 } from '@/lib/api/useDraftItems';
 import { downloadItemImportTemplate } from '@/lib/utils/export/export-utils';
@@ -406,6 +405,31 @@ function findDuplicateSkuIds(rows: EditableRow[]): Set<string> {
   );
 }
 
+interface ConfirmLabelInput {
+  isPending: boolean;
+  isUpdate: boolean;
+  isDraft: boolean;
+  hasErrorRows: boolean;
+  validRowCount: number;
+}
+
+/** Hatalı satır varken buton yalnızca geçerli satırları aktaracağını söyler. */
+function confirmButtonLabel({
+  isPending,
+  isUpdate,
+  isDraft,
+  hasErrorRows,
+  validRowCount,
+}: ConfirmLabelInput): string {
+  if (isPending) {
+    if (isUpdate) return 'Güncelleniyor…';
+    return isDraft ? 'Aktarılıyor…' : 'Yükleniyor…';
+  }
+  if (hasErrorRows) return `Geçerli satırları aktar (${validRowCount})`;
+  if (isDraft) return isUpdate ? `${validRowCount} Ürünü Güncelle` : `${validRowCount} Ürünü Onayla`;
+  return `${validRowCount} Ürün Ekle`;
+}
+
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
 export function BulkImportDialog({
@@ -419,11 +443,12 @@ export function BulkImportDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>(() => initialRows ?? []);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
+  /** Kısmi aktarım sonrası diyalogda kalan satırların özeti. */
+  const [remainingNotice, setRemainingNotice] = useState<string | null>(null);
 
   const bulkCreate = useBulkCreateItems();
   const updateDraftItem = useUpdateDraftItem();
   const bulkApproveDraft = useBulkApproveDraftItems();
-  const bulkApproveIndividual = useBulkApproveItemsIndividual();
 
   const { data: existingItems } = useQuery({
     queryKey: ['items-all-skus'] as const,
@@ -437,6 +462,35 @@ export function BulkImportDialog({
     [existingItems],
   );
 
+  const duplicateSkuIds = findDuplicateSkuIds(rows);
+  const validations = rows.map((r) => {
+    const skuKey = r.sku.trim().toLowerCase();
+    return {
+      id: r._id,
+      errors: {
+        ...validateRow(r),
+        ...(duplicateSkuIds.has(r._id)
+          ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' }
+          : {}),
+        ...(skuKey && existingSkus.has(skuKey) ? { sku: 'Bu SKU kullanılıyor' } : {}),
+      },
+    };
+  });
+  const errorRowIds = new Set(
+    validations.filter((v) => Object.keys(v.errors).length > 0).map((v) => v.id),
+  );
+  const errorRowCount = errorRowIds.size;
+  const validRowCount = rows.length - errorRowCount;
+  const isDraftPending = updateDraftItem.isPending || bulkApproveDraft.isPending;
+  const canImport = validRowCount > 0 && !bulkCreate.isPending && !isDraftPending;
+  const confirmLabel = confirmButtonLabel({
+    isPending: isDraftPending || bulkCreate.isPending,
+    isUpdate,
+    isDraft: Boolean(draftItemIds),
+    hasErrorRows: errorRowCount > 0,
+    validRowCount,
+  });
+
   function patchRow(id: string, patch: Partial<EditableRow>) {
     setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...patch } : r)));
   }
@@ -449,32 +503,50 @@ export function BulkImportDialog({
       const wb = XLSX.read(ev.target?.result, { type: 'array' });
       setRows(xlsxToRows(wb.Sheets[wb.SheetNames[0]]));
       setApiErrors([]);
+      setRemainingNotice(null);
     };
     reader.readAsArrayBuffer(file);
     if (e.target) e.target.value = '';
   }
 
+  /** Aktarılamayan satırlar diyalogda kalır; hepsi geçtiyse diyalog kapanır. */
+  function finishImport(remaining: EditableRow[]) {
+    if (remaining.length === 0) {
+      handleClose();
+      return;
+    }
+    setRows(remaining);
+    setRemainingNotice(`${remaining.length} satır hata nedeniyle bekliyor.`);
+  }
+
   async function handleImport() {
-    const hasClientErrors = rows.some((r) => Object.keys(validateRow(r)).length > 0);
-    if (hasClientErrors || rows.length === 0) return;
+    const validRows = rows.filter((r) => !errorRowIds.has(r._id));
+    const invalidRows = rows.filter((r) => errorRowIds.has(r._id));
+    if (validRows.length === 0) return;
     setApiErrors([]);
+    setRemainingNotice(null);
 
     if (draftItemIds) {
+      const approvableRows = validRows.filter((row) => draftItemIds[row._id]);
+      if (approvableRows.length === 0) return;
       try {
         await Promise.all(
-          rows.map((row) => {
-            const draftId = draftItemIds[row._id];
-            if (!draftId) return Promise.resolve();
-            return updateDraftItem.mutateAsync({ id: draftId, payload: rowToUpdatePayload(row) });
-          }),
+          approvableRows.map((row) =>
+            updateDraftItem.mutateAsync({
+              id: draftItemIds[row._id],
+              payload: rowToUpdatePayload(row),
+            }),
+          ),
         );
-        const ids = rows.map((row) => draftItemIds[row._id]).filter(Boolean);
-        if (mode === 'update') {
-          await bulkApproveDraft.mutateAsync(ids);
-        } else {
-          await bulkApproveIndividual.mutateAsync(ids);
-        }
-        handleClose();
+        const result = await bulkApproveDraft.mutateAsync(
+          approvableRows.map((row) => draftItemIds[row._id]),
+        );
+        const skippedIds = new Set(result.skippedItems.map((s) => s.id.toLowerCase()));
+        const skippedRows = approvableRows.filter((row) =>
+          skippedIds.has(draftItemIds[row._id].toLowerCase()),
+        );
+        setApiErrors(result.skippedItems.map((s) => `${s.sku || '—'}: ${s.reason}`));
+        finishImport([...invalidRows, ...skippedRows]);
       } catch {
         // errors surfaced via toasts in mutation hooks
       }
@@ -482,9 +554,9 @@ export function BulkImportDialog({
     }
 
     bulkCreate.mutate(
-      { items: rows.map(rowToRequest) },
+      { items: validRows.map(rowToRequest) },
       {
-        onSuccess: () => handleClose(),
+        onSuccess: () => finishImport(invalidRows),
         onError: (err) => {
           const errData = (err as AxiosError<BackendError>).response?.data?.error;
           const failures = errData?.validationFailures;
@@ -505,27 +577,8 @@ export function BulkImportDialog({
     onOpenChange(false);
     setRows([]);
     setApiErrors([]);
+    setRemainingNotice(null);
   }
-
-  const duplicateSkuIds = findDuplicateSkuIds(rows);
-  const validations = rows.map((r) => {
-    const skuKey = r.sku.trim().toLowerCase();
-    return {
-      id: r._id,
-      errors: {
-        ...validateRow(r),
-        ...(duplicateSkuIds.has(r._id)
-          ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' }
-          : {}),
-        ...(skuKey && existingSkus.has(skuKey) ? { sku: 'Bu SKU kullanılıyor' } : {}),
-      },
-    };
-  });
-  const errorRowCount = validations.filter((v) => Object.keys(v.errors).length > 0).length;
-  const isDraftPending =
-    updateDraftItem.isPending || bulkApproveDraft.isPending || bulkApproveIndividual.isPending;
-  const canImport =
-    rows.length > 0 && errorRowCount === 0 && !bulkCreate.isPending && !isDraftPending;
 
   // ─── Empty state: file picker ─────────────────────────────────────────────
 
@@ -617,25 +670,35 @@ export function BulkImportDialog({
                 {draftItemIds ? 'onaylayın.' : 'içe aktarın.'}
               </p>
             </div>
-            <div className="mr-4">
-              {errorRowCount > 0 ? (
+            <div className="mr-4 flex items-center gap-2">
+              {errorRowCount > 0 && (
                 <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
                   {errorRowCount} satırda hata var
                 </span>
-              ) : (
+              )}
+              {validRowCount > 0 && (
                 <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                  {rows.length} ürün aktarıma hazır
+                  {validRowCount} ürün aktarıma hazır
                 </span>
               )}
             </div>
           </div>
         </DialogHeader>
 
+        {/* Kısmi aktarım özeti */}
+        {remainingNotice && (
+          <div className="flex-none border-b border-amber-200 bg-amber-50 px-6 py-2" role="status">
+            <p className="text-xs font-medium text-amber-800">{remainingNotice}</p>
+          </div>
+        )}
+
         {/* API errors */}
         {apiErrors.length > 0 && (
           <div className="flex-none border-b border-destructive/20 bg-destructive/5 px-6 py-2">
             <p className="mb-1 text-xs font-semibold text-destructive">
-              Sunucu {apiErrors.length} satırı reddetti:
+              {draftItemIds
+                ? `${apiErrors.length} satır atlandı:`
+                : `Sunucu ${apiErrors.length} satırı reddetti:`}
             </p>
             <ul className="list-inside list-disc space-y-0.5">
               {apiErrors.map((e, i) => (
@@ -949,17 +1012,7 @@ export function BulkImportDialog({
               disabled={!canImport}
               type="button"
             >
-              {draftItemIds
-                ? isDraftPending
-                  ? isUpdate
-                    ? 'Güncelleniyor…'
-                    : 'Aktarılıyor…'
-                  : isUpdate
-                    ? `${rows.length} Ürünü Güncelle`
-                    : `${rows.length} Ürünü Onayla`
-                : bulkCreate.isPending
-                  ? 'Yükleniyor…'
-                  : `${rows.length} Ürün Ekle`}
+              {confirmLabel}
             </Button>
           </div>
         </div>

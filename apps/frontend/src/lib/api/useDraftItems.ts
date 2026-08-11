@@ -127,15 +127,54 @@ export function useUpdateDraftItem() {
   });
 }
 
+const skippedDraftItemSchema = z.object({
+  id: z.string(),
+  sku: z.string().nullable().optional(),
+  reason: z.string(),
+});
+
+/** Backend sözleşmesi: ApproveDraftItemsResult (approved / skipped / skippedItems). */
+export const approveDraftItemsResultSchema = z.object({
+  approved: z.number().int(),
+  skipped: z.number().int(),
+  skippedItems: z.array(skippedDraftItemSchema).default([]),
+});
+
+export type ApproveDraftItemsResult = z.infer<typeof approveDraftItemsResultSchema>;
+
+const approveDraftItemsResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: approveDraftItemsResultSchema,
+});
+
+const MAX_SUMMARY_REASONS = 2;
+
+/** Toplu onayın kısmi sonucunu kullanıcı diline çevirir; sayılar backend'den gelir. */
+export function formatApproveSummary(result: ApproveDraftItemsResult): string {
+  if (result.skipped === 0) return `${result.approved} ürün aktarıldı.`;
+  const reasons = Array.from(new Set(result.skippedItems.map((s) => s.reason)))
+    .slice(0, MAX_SUMMARY_REASONS)
+    .join(' · ');
+  const detail = reasons ? ` (${reasons})` : '';
+  return `${result.approved} ürün aktarıldı, ${result.skipped} ürün atlandı${detail}`;
+}
+
 export function useBulkApproveDraftItems() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiErrorResponse>, string[]>({
-    mutationFn: (ids) =>
-      axiosInstance.post(`${DRAFT_BASE}/approve-bulk`, { ids }).then((r) => r.data),
-    onSuccess: (_data, ids) => {
+  return useMutation<ApproveDraftItemsResult, AxiosError<ApiErrorResponse>, string[]>({
+    mutationFn: async (ids) => {
+      const { data } = await axiosInstance.post<unknown>(`${DRAFT_BASE}/approve-bulk`, { ids });
+      return approveDraftItemsResponseSchema.parse(data).data;
+    },
+    onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
+      const summary = formatApproveSummary(result);
+      if (result.approved === 0 && result.skipped > 0) {
+        toast.warning(summary, { position: 'bottom-right' });
+        return;
+      }
+      toast.success(summary, { position: 'bottom-right' });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Toplu onaylama başarısız.'), {
@@ -155,26 +194,6 @@ export function useRejectDraftItem() {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Ürün reddedilemedi.'), { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useBulkApproveItemsIndividual() {
-  const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
-    mutationFn: (ids) =>
-      Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/approve`))).then(
-        () => {},
-      ),
-    onSuccess: (_data, ids) => {
-      void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
-      void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Toplu onaylama başarısız.'), {
-        position: 'bottom-right',
-      });
     },
   });
 }
