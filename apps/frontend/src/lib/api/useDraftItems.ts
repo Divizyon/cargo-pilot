@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { axiosInstance } from './axiosInstance';
+import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
 
 const DRAFT_BASE = '/api/v1/draft-items';
 
@@ -10,11 +11,6 @@ export const DRAFT_PENDING = 0;
 export const DRAFT_APPROVED = 1;
 export const DRAFT_REJECTED = 2;
 export const DRAFT_UPDATE_PENDING = 3;
-
-interface ApiError {
-  detail?: string;
-  title?: string;
-}
 
 export const draftItemSchema = z.object({
   id: z.string().uuid(),
@@ -102,7 +98,7 @@ export function useUpdateDraftItem() {
   const queryClient = useQueryClient();
   return useMutation<
     unknown,
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     { id: string; payload: UpdateDraftItemPayload }
   >({
     mutationFn: ({ id, payload }) =>
@@ -111,15 +107,16 @@ export function useUpdateDraftItem() {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Taslak ürün güncellenemedi.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Taslak ürün güncellenemedi.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useBulkApproveDraftItems() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string[]>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: (ids) =>
       axiosInstance.post(`${DRAFT_BASE}/approve-bulk`, { ids }).then((r) => r.data),
     onSuccess: (_data, ids) => {
@@ -128,30 +125,30 @@ export function useBulkApproveDraftItems() {
       toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Toplu onaylama başarısız.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Toplu onaylama başarısız.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useRejectDraftItem() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, string>({
     mutationFn: (id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`).then((r) => r.data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       toast.success('Ürün reddedildi.', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Ürün reddedilemedi.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Ürün reddedilemedi.'), { position: 'bottom-right' });
     },
   });
 }
 
 export function useBulkApproveItemsIndividual() {
   const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ApiError>, string[]>({
+  return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: (ids) =>
       Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/approve`))).then(
         () => {},
@@ -162,15 +159,16 @@ export function useBulkApproveItemsIndividual() {
       toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Toplu onaylama başarısız.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Toplu onaylama başarısız.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useBulkRejectDraftItems() {
   const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ApiError>, string[]>({
+  return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: (ids) =>
       Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`))).then(() => {}),
     onSuccess: (_data, ids) => {
@@ -179,8 +177,9 @@ export function useBulkRejectDraftItems() {
       toast.success(`${ids.length} güncelleme reddedildi.`, { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Reddetme işlemi başarısız.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Reddetme işlemi başarısız.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }

@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
+import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
 import {
   erpPendingMatchSchema,
   erpRemoteUserSchema,
@@ -31,11 +32,6 @@ export const PROVIDER_TYPE_FROM_INT: Record<number, ErpProviderName> = {
   [PROVIDER_TYPE_TO_INT.Logo]: 'Logo',
   [PROVIDER_TYPE_TO_INT.Netsis]: 'Netsis',
 };
-
-interface ApiError {
-  detail?: string;
-  title?: string;
-}
 
 export const SYNC_FREQUENCY_TO_INT: Record<string, number> = {
   FourHours: 0,
@@ -128,7 +124,7 @@ export function useERPSettings() {
 
 export function useSaveERPSettings() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, ErpConnectionFormValues>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, ErpConnectionFormValues>({
     mutationFn: (values) => {
       const body: Record<string, unknown> = {
         providerType: PROVIDER_TYPE_TO_INT[values.systemType],
@@ -148,8 +144,9 @@ export function useSaveERPSettings() {
       toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Bağlantı ayarları kaydedilemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Bağlantı ayarları kaydedilemedi'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
@@ -157,7 +154,7 @@ export function useSaveERPSettings() {
 export function useTestERPSettings() {
   return useMutation<
     { success: boolean; message?: string | null },
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     ErpConnectionFormValues
   >({
     mutationFn: async (values) => {
@@ -254,7 +251,7 @@ export function useSaveERPMatch(mode: ErpMatchMode) {
   const failVerb = mode === 'create' ? 'kaydedilemedi' : 'güncellenemedi';
   return useMutation<
     unknown,
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     { integrationId: string; mappingId: string; cargoPilotItemId: string }
   >({
     mutationFn: ({ integrationId, mappingId, cargoPilotItemId }) =>
@@ -269,15 +266,20 @@ export function useSaveERPMatch(mode: ErpMatchMode) {
       toast.success(`Eşleştirme ${verb}`, { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? `Eşleştirme ${failVerb}`, { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, `Eşleştirme ${failVerb}`), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useDeleteERPMatch() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { integrationId: string; mappingId: string }>({
+  return useMutation<
+    unknown,
+    AxiosError<ApiErrorResponse>,
+    { integrationId: string; mappingId: string }
+  >({
     mutationFn: ({ integrationId, mappingId }) =>
       axiosInstance
         .delete(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`)
@@ -288,8 +290,7 @@ export function useDeleteERPMatch() {
       toast.success('Eşleştirme silindi', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme silinemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Eşleştirme silinemedi'), { position: 'bottom-right' });
     },
   });
 }
@@ -310,7 +311,7 @@ export function useTriggerERPSync() {
   const queryClient = useQueryClient();
   return useMutation<
     { added: number; updated: number; skipped: number; syncedAt?: string; syncLogId?: string },
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     { integrationId: string; categoryFilter?: string | null; warehouseFilter?: string | null }
   >({
     mutationFn: async ({ integrationId, categoryFilter, warehouseFilter }) => {
@@ -335,8 +336,9 @@ export function useTriggerERPSync() {
       );
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Senkronizasyon başarısız', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Senkronizasyon başarısız'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
@@ -369,7 +371,7 @@ export function useSaveERPSyncSettings() {
   const queryClient = useQueryClient();
   return useMutation<
     unknown,
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     { integrationId: string; syncInterval: ErpSyncInterval }
   >({
     mutationFn: ({ integrationId, syncInterval }) =>
@@ -383,15 +385,14 @@ export function useSaveERPSyncSettings() {
       toast.success('Senkronizasyon sıklığı kaydedildi', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Sıklık kaydedilemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Sıklık kaydedilemedi'), { position: 'bottom-right' });
     },
   });
 }
 
 export function useRunERPSyncNow() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, string>({
     mutationFn: (integrationId) =>
       axiosInstance.post(`${ERP_BASE}/${integrationId}/sync/run-now`).then((r) => r.data),
     onSuccess: (_data, integrationId) => {
@@ -401,13 +402,13 @@ export function useRunERPSyncNow() {
       queryClient.invalidateQueries({ queryKey: ['items'] });
     },
     onError: (error) => {
-      const status = error.response?.status;
-      const detail = error.response?.data?.detail;
-      if (status === 409) {
+      if (error.response?.status === 409) {
         toast.error('Senkronizasyon zaten devam ediyor.', { position: 'bottom-right' });
         return;
       }
-      toast.error(detail ?? 'Senkronizasyon başlatılamadı', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Senkronizasyon başlatılamadı'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
@@ -513,7 +514,7 @@ export function useCreateERPUserMapping() {
   const queryClient = useQueryClient();
   return useMutation<
     unknown,
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     { erpUserId: string; cargoUserId: string; hasRoleConflict?: boolean }
   >({
     mutationFn: (payload) =>
@@ -526,8 +527,9 @@ export function useCreateERPUserMapping() {
       toast.success('Kullanıcı eşleştirmesi kaydedildi', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme kaydedilemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Eşleştirme kaydedilemedi'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
@@ -547,7 +549,11 @@ export function useERPRoleConflictLog() {
 
 export function useUpdateERPUserMapping() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { mappingId: string; erpUserId: string }>({
+  return useMutation<
+    unknown,
+    AxiosError<ApiErrorResponse>,
+    { mappingId: string; erpUserId: string }
+  >({
     mutationFn: ({ mappingId, erpUserId }) =>
       axiosInstance
         .patch(`${ERP_BASE}/user-mappings/${mappingId}`, { erpUserId })
@@ -557,15 +563,16 @@ export function useUpdateERPUserMapping() {
       toast.success('Eşleştirme güncellendi', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme güncellenemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Eşleştirme güncellenemedi'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useDeleteERPUserMapping() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, string>({
     mutationFn: (mappingId) =>
       axiosInstance.delete(`${ERP_BASE}/user-mappings/${mappingId}`).then(() => undefined),
     onSuccess: () => {
@@ -576,8 +583,7 @@ export function useDeleteERPUserMapping() {
       });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme silinemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Eşleştirme silinemedi'), { position: 'bottom-right' });
     },
   });
 }
@@ -597,7 +603,11 @@ export function useERPUnassignedData() {
 
 export function useAssignUnassignedData() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { dataId: string; cargoUserId: string }>({
+  return useMutation<
+    unknown,
+    AxiosError<ApiErrorResponse>,
+    { dataId: string; cargoUserId: string }
+  >({
     mutationFn: ({ dataId, cargoUserId }) =>
       axiosInstance
         .post(`${ERP_BASE}/unassigned-data/${dataId}/assign`, { cargoUserId })
@@ -607,8 +617,7 @@ export function useAssignUnassignedData() {
       toast.success('Veri kullanıcıya atandı', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Atama başarısız', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Atama başarısız'), { position: 'bottom-right' });
     },
   });
 }

@@ -32,6 +32,7 @@ import {
   useSaveERPSettings,
   useTestERPSettings,
 } from '@/lib/api/useERPIntegration';
+import { getApiErrorMessage } from '@/lib/api/apiError';
 
 type TestResult = { success: boolean; message?: string | null } | null;
 
@@ -86,9 +87,10 @@ export function ERPConnectionForm() {
       testConnection(values, {
         onSuccess: (result) => setTestResult(result),
         onError: (error) => {
-          const d = error.response?.data;
-          const msg = d?.detail ?? d?.title ?? 'Bağlantı test edilemedi.';
-          setTestResult({ success: false, message: msg });
+          setTestResult({
+            success: false,
+            message: getApiErrorMessage(error, 'Bağlantı test edilemedi.'),
+          });
         },
       });
     });
