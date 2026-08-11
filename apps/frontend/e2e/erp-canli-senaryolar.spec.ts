@@ -75,9 +75,11 @@ test.describe('ERP canlı senaryoları', () => {
     await page
       .getByPlaceholder('Ürün adı, SKU, ERP ID veya barkod ile ara...')
       .fill(FAKE_ERP_ROWS.box.sku);
-    await expect(page.getByRole('cell', { name: FAKE_ERP_ROWS.box.sku })).toBeVisible();
+    // Bağlantı her senaryoda yeniden kurulduğu için aynı ERP kodu birden fazla
+    // taslak kaydına karşılık gelebilir; ilk satır üzerinden ilerlenir.
+    await expect(page.getByRole('cell', { name: FAKE_ERP_ROWS.box.sku }).first()).toBeVisible();
 
-    await page.getByLabel(`${FAKE_ERP_ROWS.box.name} satırını seç`).check();
+    await page.getByLabel(`${FAKE_ERP_ROWS.box.name} satırını seç`).first().check();
     await page.getByRole('button', { name: 'Ürünlere Aktar' }).click();
 
     const dialog = page.getByRole('dialog');

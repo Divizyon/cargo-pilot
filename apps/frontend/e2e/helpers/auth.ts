@@ -5,18 +5,29 @@ interface LoginApiResponse {
   data?: { accessToken?: string };
 }
 
-/** Arayüzden giriş; oturum sonrası panele düşülmesi de doğrulanır. */
+/**
+ * Arayüzden giriş; oturum sonrası panele düşülmesi de doğrulanır.
+ *
+ * Giriş formunda FormControl doğrudan Input'u değil saran div'i kimliklendirdiği
+ * için etiket-alan bağı kurulmuyor; alanlar placeholder ile bulunur.
+ */
 export async function loginViaUi(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/auth/login');
-  await page.getByLabel('E-posta').fill(email);
-  await page.getByLabel('Şifre', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Giriş Yap' }).click();
+  await page.getByPlaceholder('ornek@sirket.com').fill(email);
+  await page.getByPlaceholder('••••••••').fill(password);
+  await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
 export async function loginAsAdmin(page: Page): Promise<void> {
   await loginViaUi(page, ADMIN_USER.email, ADMIN_USER.password);
 }
+
+/**
+ * Giriş ucu IP başına dakikada 10 istekle sınırlıdır; aynı kullanıcının jetonu
+ * koşum boyunca yeniden kullanılır.
+ */
+const tokenCache = new Map<string, string>();
 
 /**
  * API üzerinden erişim jetonu alır. Jeton yalnızca bellekte tutulduğu için
@@ -28,12 +39,17 @@ export async function getAccessToken(
   email: string = ADMIN_USER.email,
   password: string = ADMIN_USER.password,
 ): Promise<string> {
+  const cached = tokenCache.get(email);
+  if (cached) return cached;
+
   const response = await request.post('/api/v1/auth/login', { data: { email, password } });
   expect(response.ok(), 'Giriş isteği başarısız').toBeTruthy();
 
   const body = (await response.json()) as LoginApiResponse;
   const token = body.data?.accessToken;
   expect(token, 'Giriş yanıtında accessToken yok').toBeTruthy();
+
+  tokenCache.set(email, token as string);
   return token as string;
 }
 

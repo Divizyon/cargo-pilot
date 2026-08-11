@@ -48,7 +48,8 @@ export async function saveErpConnection(
   await page.getByRole('option', { name: 'Netsis' }).click();
   await page.getByLabel('Veritabanı Adı').fill(FAKE_ERP.database);
   await page.getByLabel('Kullanıcı Adı').fill(FAKE_ERP.username);
-  await page.getByLabel('Şifre', { exact: true }).fill(FAKE_ERP.password);
+  // Şifre alanı saran div içinde olduğu için etiketle bulunamıyor; autocomplete sabit.
+  await page.locator('input[autocomplete="current-password"]').fill(FAKE_ERP.password);
   await page.getByLabel('Sunucu Adresi').fill(serverAddress);
 
   await page.getByRole('button', { name: 'Kaydet', exact: true }).click();

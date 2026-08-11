@@ -36,6 +36,8 @@ test.describe('ERP çekim zinciri (smoke)', () => {
       .getByPlaceholder('Ürün adı, SKU, ERP ID veya barkod ile ara...')
       .fill(FAKE_ERP_ROWS.box.sku);
 
-    await expect(page.getByRole('cell', { name: FAKE_ERP_ROWS.box.sku })).toBeVisible();
+    // Bağlantı her senaryoda yeniden kurulduğu için aynı ERP kodu birden fazla
+    // taslak kaydına karşılık gelebilir; varlık kontrolü ilk satır üzerinden yapılır.
+    await expect(page.getByRole('cell', { name: FAKE_ERP_ROWS.box.sku }).first()).toBeVisible();
   });
 });
