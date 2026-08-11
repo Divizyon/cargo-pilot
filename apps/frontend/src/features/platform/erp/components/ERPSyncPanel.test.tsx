@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { AxiosError, AxiosHeaders } from 'axios';
 
@@ -48,7 +49,11 @@ function renderWithQueryClient(node: ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{node}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 function mockSyncSettings(result: { ok: true; payload: unknown } | { ok: false; error: unknown }) {
@@ -70,9 +75,7 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
 
     renderWithQueryClient(<ERPSyncPanel />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Son senkronizasyon başarısız oldu.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Son çekim başarısız oldu.');
   });
 
   it('Idle(0) durumunda başarısız uyarısı göstermez', async () => {
@@ -93,7 +96,7 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
     expect(screen.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
   });
 
-  it('planlanmış vade varsa sonraki otomatik senkronizasyon tarihini gösterir', async () => {
+  it('planlanmış vade varsa sonraki otomatik çekim tarihini gösterir', async () => {
     mockSyncSettings({
       ok: true,
       payload: syncSettingsResponse(0, 1, '2026-03-01T09:00:00Z').data,
@@ -101,16 +104,27 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
 
     renderWithQueryClient(<ERPSyncPanel />);
 
-    expect(await screen.findByText(/Sonraki otomatik senkronizasyon:/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sonraki otomatik çekim:/)).toBeInTheDocument();
   });
 
-  it('planlanmış vade yoksa sonraki senkronizasyon satırını göstermez', async () => {
+  it('planlanmış vade yoksa sonraki çekim satırını göstermez', async () => {
     mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, 1, null).data });
 
     renderWithQueryClient(<ERPSyncPanel />);
 
     expect(await screen.findByText('Günlük')).toBeInTheDocument();
-    expect(screen.queryByText(/Sonraki otomatik senkronizasyon:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sonraki otomatik çekim:/)).not.toBeInTheDocument();
+  });
+
+  it('elle çekim için ERP Ürünleri ekranına köprü gösterir', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0).data });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByRole('link', { name: /ERP'den Ürün Çek/ })).toHaveAttribute(
+      'href',
+      '/erp',
+    );
   });
 
   it('ayarlar uç hatası verirse hata kutusu gösterir', async () => {

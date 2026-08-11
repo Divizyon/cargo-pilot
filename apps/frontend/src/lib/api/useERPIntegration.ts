@@ -342,32 +342,6 @@ export function useSaveERPSyncSettings() {
   });
 }
 
-export function useRunERPSyncNow() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiErrorResponse>, string>({
-    mutationFn: (integrationId) =>
-      axiosInstance.post(`${ERP_BASE}/${integrationId}/sync/run-now`).then((r) => r.data),
-    onSuccess: (_data, integrationId) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-settings', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-logs', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['draft-items'] });
-      toast.success('Senkronizasyon tamamlandı. Sonuç geçmiş sekmesinde görünür.', {
-        position: 'bottom-right',
-      });
-    },
-    onError: (error) => {
-      if (error.response?.status === 409) {
-        toast.error('Senkronizasyon zaten devam ediyor.', { position: 'bottom-right' });
-        return;
-      }
-      toast.error(getApiErrorMessage(error, 'Senkronizasyon başlatılamadı'), {
-        position: 'bottom-right',
-      });
-    },
-  });
-}
-
 export interface SyncLogsParams {
   page: number;
   pageSize: number;

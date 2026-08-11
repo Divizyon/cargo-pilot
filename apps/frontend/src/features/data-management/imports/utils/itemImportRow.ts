@@ -117,7 +117,7 @@ export function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
           .trim() || 'koli',
       width: String(r[ITEM_SHEET_HEADER.width] ?? ''),
       height: String(r[ITEM_SHEET_HEADER.height] ?? ''),
-      length: String(r[ITEM_SHEET_HEADER.length] ?? ''),
+      length: String(cell(r, ITEM_SHEET_HEADER.length, LEGACY_ITEM_SHEET_HEADER.length) ?? ''),
       weight: String(r[ITEM_SHEET_HEADER.weight] ?? ''),
       fragility: String(toFragilityValue(constraintIds)),
       constraintIds,

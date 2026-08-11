@@ -31,6 +31,7 @@ import {
 } from '@/lib/api/useDraftItems';
 import { downloadItemImportTemplate } from '@/lib/utils/export/export-utils';
 import { FRAGILITY_OPTIONS, LOAD_GROUPS, toFragilityValue } from '@/lib/config/item-import-columns';
+import { DIMENSION_LABEL, ERP_TERM } from '@/lib/config/erpTerms';
 import {
   emptyRow,
   validateRow,
@@ -406,8 +407,7 @@ function confirmButtonLabel({
     return isDraft ? 'Aktarılıyor…' : 'Yükleniyor…';
   }
   if (hasErrorRows) return `Geçerli satırları aktar (${validRowCount})`;
-  if (isDraft)
-    return isUpdate ? `${validRowCount} Ürünü Güncelle` : `${validRowCount} Ürünü Onayla`;
+  if (isDraft) return isUpdate ? `${validRowCount} Ürünü Güncelle` : `${validRowCount} Ürünü Aktar`;
   return `${validRowCount} Ürün Ekle`;
 }
 
@@ -664,12 +664,12 @@ export function BulkImportDialog({
                 {isUpdate
                   ? 'ERP Güncellemeyi Onayla'
                   : draftItemIds
-                    ? 'Taslak Ürünleri Onayla'
+                    ? ERP_TERM.approve
                     : 'Toplu Ürün İçe Aktar'}
               </DialogTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından{' '}
-                {draftItemIds ? 'onaylayın.' : 'içe aktarın.'}
+                {draftItemIds ? 'ürünlere aktarın.' : 'içe aktarın.'}
               </p>
             </div>
             <div className="mr-4 flex items-center gap-2">
@@ -721,9 +721,15 @@ export function BulkImportDialog({
                 <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
                 <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Uzunluk/Çap (X) *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik (Y) *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Derinlik (Z) *</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">
+                  {DIMENSION_LABEL.width} *
+                </th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">
+                  {DIMENSION_LABEL.height} *
+                </th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">
+                  {DIMENSION_LABEL.length} *
+                </th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
                 <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">
                   <div className="flex items-center justify-between gap-1">

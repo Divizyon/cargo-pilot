@@ -38,7 +38,7 @@ export const ITEM_SHEET_HEADER = {
   productType: 'Tip (koli/varil/palet)',
   width: 'Genişlik(cm)',
   height: 'Yükseklik(cm)',
-  length: 'Uzunluk(cm)',
+  length: 'Derinlik(cm)',
   weight: 'Ağırlık(kg)',
   constraints: `Kırılganlık (${FRAGILITY_HEADER_LEGEND})`,
   loadGroups: `Yük Grubu (${LOAD_GROUPS.join('/')})`,
@@ -54,6 +54,8 @@ export const ITEM_SHEET_HEADER = {
 export const LEGACY_ITEM_SHEET_HEADER = {
   constraints: 'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)',
   loadGroups: 'Yük Grubu',
+  /** Z kenarı önceki şablonlarda 'Uzunluk' başlığıyla üretiliyordu. */
+  length: 'Uzunluk(cm)',
 } as const;
 
 const CELL_SEPARATOR = ', ';

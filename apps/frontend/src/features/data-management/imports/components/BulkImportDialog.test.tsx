@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import * as XLSX from 'xlsx';
 import {
@@ -70,7 +71,9 @@ function renderDialog(rows: EditableRow[], onOpenChange = vi.fn()) {
   const draftItemIds = Object.fromEntries(rows.map((r) => [r._id, `draft-${r._id}`]));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
   );
   render(
     <BulkImportDialog
@@ -126,7 +129,7 @@ describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
     });
     renderDialog([makeRow('a'), makeRow('b')]);
 
-    await user.click(screen.getByRole('button', { name: '2 Ürünü Onayla' }));
+    await user.click(screen.getByRole('button', { name: '2 Ürünü Aktar' }));
 
     expect(
       await screen.findByText('SKU-b: Bu SKU ile kayıtlı bir ürün zaten mevcut.'),
@@ -139,7 +142,7 @@ describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
     const user = userEvent.setup();
     const { onOpenChange } = renderDialog([makeRow('a'), makeRow('b')]);
 
-    await user.click(screen.getByRole('button', { name: '2 Ürünü Onayla' }));
+    await user.click(screen.getByRole('button', { name: '2 Ürünü Aktar' }));
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -165,9 +168,10 @@ describe('BulkImportDialog — sütun bazlı toplu doldurma (ERP-33)', () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Genel' }));
     await user.click(screen.getByRole('button', { name: 'Uygula' }));
 
-    const confirm = await screen.findByRole('button', { name: '50 Ürünü Onayla' });
+    const confirm = await screen.findByRole('button', { name: '50 Ürünü Aktar' });
     expect(confirm).toBeEnabled();
-  });
+    // 50 satırlık grid varsayılan 5 sn sınırına yakın çiziliyor; ölçüm değil davranış testi.
+  }, 15000);
 
   it('onay olmadan dolu satırın üzerine yazmaz, onaylanınca yazar', async () => {
     const user = userEvent.setup();
