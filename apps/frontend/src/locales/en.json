@@ -112,53 +112,6 @@
     "erpIntegration": "ERP integration",
     "apiAccess": "API access"
   },
-  "erp": {
-    "page": {
-      "title": "ERP Integration",
-      "description": "Connect your ERP system, sync product data, and manage product matches."
-    },
-    "tabs": {
-      "connection": "Connection",
-      "matches": "Matches",
-      "sync": "Sync"
-    },
-    "connection": {
-      "title": "ERP Connection Settings",
-      "description": "Enter your company code, credentials, and server address to connect to your ERP system.",
-      "systemType": "ERP System",
-      "companyCode": "Company Code",
-      "username": "Username",
-      "password": "Password",
-      "serverAddress": "Server Address",
-      "testButton": "Test Connection",
-      "saveButton": "Save",
-      "testSuccess": "Connection successful. ERP system is reachable.",
-      "testFailDefault": "Server unreachable. Check the server address and credentials."
-    },
-    "matches": {
-      "pendingTab": "Pending",
-      "savedTab": "Saved Matches",
-      "noPending": "No pending matches.",
-      "noSaved": "No saved matches.",
-      "matchButton": "Match",
-      "confirmTitle": "Match Product",
-      "searchPlaceholder": "Search by product name or SKU…",
-      "confirmButton": "Confirm",
-      "deleteTitle": "Delete match",
-      "deleteDescription": "This match will be permanently deleted. Are you sure?"
-    },
-    "sync": {
-      "title": "ERP Sync",
-      "description": "Import product data from ERP into Cargo Pilot. A summary notification is shown after sync.",
-      "categoryFilter": "Category Filter",
-      "warehouseFilter": "Warehouse Filter",
-      "allCategories": "All categories",
-      "allWarehouses": "All warehouses",
-      "syncButton": "Sync Now",
-      "syncing": "Syncing…",
-      "summaryToast": "Sync complete — {{added}} added, {{updated}} updated, {{skipped}} skipped"
-    }
-  },
   "upgrade": {
     "title": "This feature is not included in your plan",
     "description": "To use {{feature}}, you need to upgrade to at least the {{plan}} plan.",
