@@ -93,7 +93,7 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
     expect(screen.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
   });
 
-  it('zamanlayıcı yokken sonraki senkronizasyon tarihi taahhüdü göstermez', async () => {
+  it('planlanmış vade varsa sonraki otomatik senkronizasyon tarihini gösterir', async () => {
     mockSyncSettings({
       ok: true,
       payload: syncSettingsResponse(0, 1, '2026-03-01T09:00:00Z').data,
@@ -101,8 +101,16 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
 
     renderWithQueryClient(<ERPSyncPanel />);
 
-    expect(await screen.findByText('Yakında')).toBeInTheDocument();
-    expect(screen.queryByText(/Sonraki senkronizasyon/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/Sonraki otomatik senkronizasyon:/)).toBeInTheDocument();
+  });
+
+  it('planlanmış vade yoksa sonraki senkronizasyon satırını göstermez', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, 1, null).data });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByText('Günlük')).toBeInTheDocument();
+    expect(screen.queryByText(/Sonraki otomatik senkronizasyon:/)).not.toBeInTheDocument();
   });
 
   it('ayarlar uç hatası verirse hata kutusu gösterir', async () => {

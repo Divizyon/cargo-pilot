@@ -79,7 +79,7 @@ const ERP_TABS: TabDef[] = [
     id: 'erp-senkronizasyon',
     label: 'Senkronizasyon',
     description:
-      'Senkronizasyonu şimdi başlatın; otomatik sıklık ayarı zamanlayıcı devreye girdiğinde uygulanır.',
+      'Otomatik senkronizasyon sıklığını ayarlayın veya senkronizasyonu şimdi başlatın.',
   },
   {
     id: 'erp-gecmis',

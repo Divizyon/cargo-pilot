@@ -1,7 +1,6 @@
-import { RefreshCw, Loader2, Clock, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Loader2, Clock, CalendarClock, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -19,6 +18,12 @@ import { ErpSyncInterval, ErpSyncStatus } from '@/lib/types/erp';
 function formatSyncDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   return format(parseISO(iso), 'dd.MM.yyyy HH:mm', { locale: tr });
+}
+
+/** Manuel ve otomatik çalıştırmalar aynı durumu yazar; kullanıcı sonucu tarihle birlikte görür. */
+function lastSyncOutcomeLabel(status: ErpSyncStatus | undefined): string {
+  if (status === ErpSyncStatus.Running) return 'devam ediyor';
+  return status === ErpSyncStatus.Failed ? 'başarısız' : 'başarılı';
 }
 
 export function ERPSyncPanel() {
@@ -87,15 +92,11 @@ export function ERPSyncPanel() {
       {/* Otomatik senkronizasyon sıklığı */}
       <div className="space-y-4 pb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-foreground">Otomatik Senkronizasyon Sıklığı</p>
-            <Badge variant="outline" className="text-[10px]">
-              Yakında
-            </Badge>
-          </div>
+          <p className="text-sm font-medium text-foreground">Otomatik Senkronizasyon Sıklığı</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Otomatik zamanlayıcı henüz devrede değil. Seçtiğiniz sıklık kaydedilir ve zamanlayıcı
-            açıldığında uygulanır; şimdilik senkronizasyonu aşağıdaki düğmeyle başlatın.
+            Seçtiğiniz sıklıkta ERP ürünleri arka planda otomatik çekilir. Zamanlayıcı vadesi
+            gelenleri 15 dakikada bir tarar; o sırada devam eden bir senkronizasyon varsa sıra bir
+            sonraki taramaya kalır.
           </p>
         </div>
 
@@ -132,6 +133,13 @@ export function ERPSyncPanel() {
             </div>
           </RadioGroup>
         )}
+
+        {syncSettings?.nextScheduledSyncAt && (
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+            Sonraki otomatik senkronizasyon: {formatSyncDate(syncSettings.nextScheduledSyncAt)}
+          </p>
+        )}
       </div>
 
       {/* Manuel senkronizasyon */}
@@ -157,7 +165,8 @@ export function ERPSyncPanel() {
           {syncSettings?.lastSyncedAt && (
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5 shrink-0" />
-              Son senkronizasyon: {formatSyncDate(syncSettings.lastSyncedAt)}
+              Son senkronizasyon: {formatSyncDate(syncSettings.lastSyncedAt)} ·{' '}
+              {lastSyncOutcomeLabel(syncSettings.syncStatus)}
             </span>
           )}
         </div>
