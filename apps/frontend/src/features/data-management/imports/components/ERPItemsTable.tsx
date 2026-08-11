@@ -40,6 +40,7 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/format/unitConversion';
 import { draftItemToRow } from '@/features/data-management/imports/utils/draftItemToRow';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
+import { ErpProviderMark } from './ErpProviderMark';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
 
@@ -503,13 +504,7 @@ export function ERPItemsTable() {
                   </TableCell>
                   <TableCell className="py-0 px-3 max-w-[176px]">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {row.integrationSystemName?.toLowerCase().includes('logo') && (
-                        <img
-                          src="/icons/erp-logo.png"
-                          alt="Logo"
-                          className="h-6 w-auto shrink-0 object-contain"
-                        />
-                      )}
+                      <ErpProviderMark systemName={row.integrationSystemName} />
                       <span
                         className="block truncate text-xs text-muted-foreground"
                         title={row.name}
