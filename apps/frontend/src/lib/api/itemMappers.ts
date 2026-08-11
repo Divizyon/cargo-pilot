@@ -169,6 +169,8 @@ export function fromAllowedRotations(v: number): {
       return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
     case ALLOWED_ROTATIONS.RollOnly:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.AllLocked:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
     default:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
   }

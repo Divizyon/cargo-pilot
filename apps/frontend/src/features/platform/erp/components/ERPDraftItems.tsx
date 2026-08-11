@@ -22,40 +22,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useDraftItems, useRejectDraftItem, type DraftItem } from '@/lib/api/useDraftItems';
-import { fromCategory, fromAllowedRotations } from '@/lib/api/itemMappers';
 import {
   BulkImportDialog,
   type EditableRow,
 } from '@/features/data-management/imports/components/BulkImportDialog';
+import { draftItemToRow } from '@/features/data-management/imports/utils/draftItemToRow';
 
 const PAGE_SIZE = 20;
-
-function draftItemToRow(item: DraftItem): EditableRow {
-  // Kategori ve rotasyon eşlemesi tek kaynaktan gelir; burada tekrarlanırsa
-  // taslak onayında ürün tipi sessizce değişir.
-  const tip = fromCategory(item.category);
-  const { allowRotateX, allowRotateY, allowRotateZ } = fromAllowedRotations(item.allowedRotations);
-
-  return {
-    _id: crypto.randomUUID(),
-    sku: item.sku ?? '',
-    name: item.name,
-    tip,
-    width: String(item.width),
-    height: String(item.height),
-    length: String(item.length),
-    weight: String(item.weight),
-    fragility: String(item.fragilityType),
-    isStackable: item.isStackable,
-    maxStackCount: String(item.maxStackCount > 0 ? item.maxStackCount : 1),
-    allowRotateX,
-    allowRotateY,
-    allowRotateZ,
-    constraintIds: item.constraintIds ?? [],
-    incompatibleGroups: [],
-    notes: item.specialNotes ?? '',
-  };
-}
 
 function DraftItemsSkeleton() {
   return (

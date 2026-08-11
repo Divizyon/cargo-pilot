@@ -32,81 +32,16 @@ import {
   DRAFT_APPROVED,
   DRAFT_REJECTED,
   DRAFT_UPDATE_PENDING,
-  type DraftItem,
 } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay } from '@/lib/utils/format/unitConversion';
+import { draftItemToRow } from '@/features/data-management/imports/utils/draftItemToRow';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { SearchInput } from '@/components/shared/SearchInput';
 
 const ROW_H = 48;
 const HEADER_ROW_H = 36;
 const BELOW_TABLE_H = 80;
-
-// ─── ERP → BulkImportDialog row dönüşümü (cm → mm) ──────────────────────────
-
-function draftItemToImportRow(item: DraftItem): EditableRow {
-  let tip: string;
-  if (item.category === 1) tip = 'palet';
-  else if (item.category === 0) tip = 'koli';
-  else tip = 'varil';
-
-  let allowRotateX = false,
-    allowRotateY = false,
-    allowRotateZ = false;
-  switch (item.allowedRotations) {
-    case 0:
-      allowRotateX = true;
-      allowRotateY = true;
-      allowRotateZ = true;
-      break;
-    case 1:
-      allowRotateX = false;
-      allowRotateY = true;
-      allowRotateZ = false;
-      break;
-    case 3:
-      allowRotateX = true;
-      allowRotateY = false;
-      allowRotateZ = true;
-      break;
-    case 4:
-      allowRotateX = true;
-      allowRotateY = false;
-      allowRotateZ = false;
-      break;
-    case 5:
-      allowRotateX = false;
-      allowRotateY = false;
-      allowRotateZ = true;
-      break;
-    case 6:
-      allowRotateX = false;
-      allowRotateY = true;
-      allowRotateZ = false;
-      break;
-  }
-
-  return {
-    _id: crypto.randomUUID(),
-    name: item.name,
-    sku: item.sku ?? '',
-    tip,
-    width: String(item.width),
-    height: String(item.height),
-    length: String(item.length),
-    weight: String(item.weight),
-    fragility: String(item.fragilityType),
-    isStackable: item.isStackable,
-    maxStackCount: String(item.maxStackCount > 0 ? item.maxStackCount : 1),
-    allowRotateX,
-    allowRotateY,
-    allowRotateZ,
-    constraintIds: item.constraintIds ?? [],
-    incompatibleGroups: [],
-    notes: item.specialNotes ?? '',
-  };
-}
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -295,7 +230,7 @@ export function ERPItemsTable() {
 
   function handleOpenImport() {
     const selected = filteredItems.filter((item) => effectiveSelectedIds.has(item.id));
-    const rows = selected.map(draftItemToImportRow);
+    const rows = selected.map(draftItemToRow);
     const draftIds: Record<string, string> = {};
     rows.forEach((row, i) => {
       draftIds[row._id] = selected[i].id;
