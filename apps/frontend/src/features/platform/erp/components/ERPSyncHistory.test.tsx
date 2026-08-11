@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { AxiosError, AxiosHeaders } from 'axios';
@@ -82,6 +83,41 @@ describe('ERPSyncHistory hata durumu', () => {
       'Senkronizasyon geçmişi yüklenemedi',
     );
     expect(screen.queryByText('Henüz senkronizasyon geçmişi yok.')).not.toBeInTheDocument();
+  });
+
+  it('kısmi başarıda satır hatalarını açılır detayda gösterir', async () => {
+    mockSyncLogs({
+      ok: true,
+      payload: {
+        isSuccess: true,
+        data: {
+          items: [
+            {
+              id: 'b1d0c6e8-3f5b-4b2a-9c11-6f3d2e7a4b90',
+              startedAt: '2026-02-14T08:00:00Z',
+              completedAt: '2026-02-14T08:01:12Z',
+              status: 2,
+              syncedRecordCount: 2,
+              errorMessage: '3 satırdan 1 tanesi işlenemedi; diğer satırlar kaydedildi.',
+              rowErrors: [{ erpId: 'ERP-2', sku: 'SKU-2', reason: 'satir bozuk' }],
+            },
+          ],
+          totalCount: 1,
+          page: 1,
+          pageSize: 20,
+        },
+      },
+    });
+
+    renderWithQueryClient(<ERPSyncHistory />);
+
+    expect(await screen.findByText('Kısmi Hata')).toBeInTheDocument();
+    expect(screen.queryByText('satir bozuk')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '1 hatalı satır' }));
+
+    expect(screen.getByText('ERP-2')).toBeInTheDocument();
+    expect(screen.getByText('satir bozuk')).toBeInTheDocument();
   });
 
   it('başarılı boş listede boş-durum metni gösterir', async () => {

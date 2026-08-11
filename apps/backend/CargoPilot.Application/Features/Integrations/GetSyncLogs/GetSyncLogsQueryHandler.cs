@@ -1,4 +1,6 @@
+using System.Text.Json;
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using MediatR;
@@ -37,9 +39,25 @@ public sealed class GetSyncLogsQueryHandler : IRequestHandler<GetSyncLogsQuery, 
             l.CompletedAt,
             l.Status,
             l.SyncedRecordCount,
-            l.ErrorMessage)).ToList();
+            l.ErrorMessage,
+            ParseRowErrors(l.RowErrorsJson))).ToList();
 
         return Result<PagedResult<SyncLogDto>>.Success(
             new PagedResult<SyncLogDto>(dtos, pagedLogs.TotalCount, pagedLogs.Page, pagedLogs.PageSize));
+    }
+
+    private static List<SyncRowError> ParseRowErrors(string? rowErrorsJson)
+    {
+        if (string.IsNullOrWhiteSpace(rowErrorsJson))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<SyncRowError>>(rowErrorsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 }

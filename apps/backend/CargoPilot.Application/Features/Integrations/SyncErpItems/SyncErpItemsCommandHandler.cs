@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -17,6 +18,12 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             LogLevel.Error,
             new EventId(1, "ErpSyncFailed"),
             "ERP sync failed for integration {IntegrationId}");
+
+    private static readonly Action<ILogger, Guid, string, Exception?> _logRowFailed =
+        LoggerMessage.Define<Guid, string>(
+            LogLevel.Warning,
+            new EventId(2, "ErpSyncRowFailed"),
+            "ERP sync row failed for integration {IntegrationId}, erpId {ErpId}");
 
     private readonly IIntegrationRepository _integrationRepository;
     private readonly IErpSettingsRepository _erpSettingsRepository;
@@ -88,66 +95,88 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 request.WarehouseFilter,
                 cancellationToken);
 
-            int added = 0, updated = 0, skipped = 0;
+            int added = 0, updated = 0;
+            var rowErrors = new List<SyncRowError>();
 
             foreach (var product in erpProducts)
             {
-                var existing = await _draftItemRepository.GetByErpIdAsync(
-                    product.ErpId, integration.Id, companyId.Value, cancellationToken);
-
-                if (existing is not null)
+                try
                 {
-                    if (existing.Status == DraftItemStatus.Approved)
+                    var existing = await _draftItemRepository.GetByErpIdAsync(
+                        product.ErpId, integration.Id, companyId.Value, cancellationToken);
+
+                    if (existing is not null)
                     {
-                        existing.SetUpdatePending(product.Sku, product.Name, product.RawDataJson);
+                        if (existing.Status == DraftItemStatus.Approved)
+                        {
+                            existing.SetUpdatePending(product.Sku, product.Name, product.RawDataJson);
+                            _draftItemRepository.Update(existing);
+                            updated++;
+                            continue;
+                        }
+
+                        existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson);
+                        if (existing.Status == DraftItemStatus.Rejected)
+                            existing.ResetToPending();
+
                         _draftItemRepository.Update(existing);
                         updated++;
-                        continue;
                     }
+                    else
+                    {
+                        var draft = new DraftItem(
+                            Guid.NewGuid(),
+                            companyId.Value,
+                            integration.Id,
+                            product.ErpId,
+                            product.RawDataJson,
+                            product.Sku,
+                            product.Name,
+                            string.IsNullOrWhiteSpace(product.ProductType) ? "STANDARD" : product.ProductType,
+                            ParseCategory(product.Category),
+                            product.Width,
+                            product.Height,
+                            product.Length,
+                            product.Weight,
+                            FragilityType.NonFragile,
+                            isStackable: true,
+                            maxStackCount: 1,
+                            maxWeightOnTop: 0m,
+                            AllowedRotations.All,
+                            product.Barcode,
+                            product.Diameter);
 
-                    existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson);
-                    if (existing.Status == DraftItemStatus.Rejected)
-                        existing.ResetToPending();
-
-                    _draftItemRepository.Update(existing);
-                    updated++;
+                        _draftItemRepository.Add(draft);
+                        added++;
+                    }
                 }
-                else
+#pragma warning disable CA1031 // Tek bozuk satir diger satirlarin kaydini engellememeli.
+                catch (Exception rowEx)
+#pragma warning restore CA1031
                 {
-                    var draft = new DraftItem(
-                        Guid.NewGuid(),
-                        companyId.Value,
-                        integration.Id,
-                        product.ErpId,
-                        product.RawDataJson,
-                        product.Sku,
-                        product.Name,
-                        string.IsNullOrWhiteSpace(product.ProductType) ? "STANDARD" : product.ProductType,
-                        ParseCategory(product.Category),
-                        product.Width,
-                        product.Height,
-                        product.Length,
-                        product.Weight,
-                        FragilityType.NonFragile,
-                        isStackable: true,
-                        maxStackCount: 1,
-                        maxWeightOnTop: 0m,
-                        AllowedRotations.All,
-                        product.Barcode,
-                        product.Diameter);
-
-                    _draftItemRepository.Add(draft);
-                    added++;
+                    _logRowFailed(_logger, integration.Id, product.ErpId, rowEx);
+                    rowErrors.Add(new SyncRowError(product.ErpId, product.Sku, rowEx.Message));
                 }
             }
 
             integration.RecordSync(DateTime.UtcNow);
-            syncLog.Complete(added + updated);
+
+            if (rowErrors.Count > 0)
+            {
+                syncLog.PartialFail(
+                    added + updated,
+                    BuildPartialFailMessage(rowErrors.Count, erpProducts.Count),
+                    JsonSerializer.Serialize(rowErrors));
+            }
+            else
+            {
+                syncLog.Complete(added + updated);
+            }
 
             await _draftItemRepository.SaveChangesAsync(cancellationToken);
 
             return Result<SyncErpItemsResult>.Success(
-                new SyncErpItemsResult(syncLog.Id, added, updated, skipped));
+                new SyncErpItemsResult(syncLog.Id, added, updated, rowErrors.Count, rowErrors.Count, rowErrors));
         }
         catch (Exception ex)
         {
@@ -172,6 +201,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 new Error(ErrorType.Unexpected, "Sync.Failed", "ERP senkronizasyonu sırasında bir hata oluştu."));
         }
     }
+
+    private static string BuildPartialFailMessage(int failedCount, int totalCount) =>
+        $"{totalCount} satırdan {failedCount} tanesi işlenemedi; diğer satırlar kaydedildi.";
 
     private static ItemCategory ParseCategory(string? category)
     {

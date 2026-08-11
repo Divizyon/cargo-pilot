@@ -81,6 +81,22 @@ describe('syncLogDtoSchema', () => {
     const result = syncLogDtoSchema.safeParse(omit(validLog, 'errorMessage'));
     expect(result.success).toBe(false);
   });
+
+  it('kısmi başarıda satır hatalarını ayrıştırır', () => {
+    const parsed = syncLogDtoSchema.parse({
+      ...validLog,
+      status: SyncLogStatus.PartialFailure,
+      errorMessage: '3 satırdan 1 tanesi işlenemedi; diğer satırlar kaydedildi.',
+      rowErrors: [{ erpId: 'ERP-2', sku: 'SKU-2', reason: 'satir bozuk' }],
+    });
+    expect(parsed.status).toBe(SyncLogStatus.PartialFailure);
+    expect(parsed.rowErrors).toHaveLength(1);
+    expect(parsed.rowErrors[0].erpId).toBe('ERP-2');
+  });
+
+  it('rowErrors gönderilmezse boş listeye düşer', () => {
+    expect(syncLogDtoSchema.parse(validLog).rowErrors).toEqual([]);
+  });
 });
 
 describe('erpSyncSummarySchema', () => {
@@ -104,5 +120,23 @@ describe('erpSyncSummarySchema', () => {
   it('ondalıklı added değerini reddeder', () => {
     const result = erpSyncSummarySchema.safeParse({ added: 1.5, updated: 0, skipped: 0 });
     expect(result.success).toBe(false);
+  });
+
+  it('kısmi başarıda hata sayısını ve satır hatalarını taşır', () => {
+    const parsed = erpSyncSummarySchema.parse({
+      added: 2,
+      updated: 0,
+      skipped: 1,
+      errorCount: 1,
+      rowErrors: [{ erpId: 'ERP-2', sku: null, reason: 'satir bozuk' }],
+    });
+    expect(parsed.errorCount).toBe(1);
+    expect(parsed.rowErrors[0].sku).toBeNull();
+  });
+
+  it('errorCount/rowErrors gönderilmezse varsayılana düşer', () => {
+    const parsed = erpSyncSummarySchema.parse({ added: 0, updated: 0, skipped: 0 });
+    expect(parsed.errorCount).toBe(0);
+    expect(parsed.rowErrors).toEqual([]);
   });
 });

@@ -197,6 +197,38 @@ public sealed class SyncErpItemsCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_TekSatirHataVerirse_DigerSatirlarKaydedilirVeKismiBasariYazilir()
+    {
+        ArrangeHappyPath(
+            TestData.CreateErpProduct(),
+            TestData.CreateErpProduct("ERP-2", "SKU-2", "Ikinci Urun"),
+            TestData.CreateErpProduct("ERP-3", "SKU-3", "Ucuncu Urun"));
+
+        _draftItemRepository.GetByErpIdAsync(Arg.Any<string>(), IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+        _draftItemRepository.GetByErpIdAsync("ERP-2", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns<DraftItem?>(_ => throw new InvalidOperationException("satir bozuk"));
+
+        SyncLog? kaydedilenLog = null;
+        _integrationRepository.When(r => r.AddSyncLog(Arg.Any<SyncLog>())).Do(c => kaydedilenLog = c.Arg<SyncLog>());
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Added.Should().Be(2);
+        result.Data.Skipped.Should().Be(1);
+        result.Data.ErrorCount.Should().Be(1);
+        result.Data.RowErrors.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new SyncRowError("ERP-2", "SKU-2", "satir bozuk"));
+
+        _draftItemRepository.Received(2).Add(Arg.Any<DraftItem>());
+        kaydedilenLog!.Status.Should().Be(SyncLogStatus.PartialFailure);
+        kaydedilenLog.SyncedRecordCount.Should().Be(2);
+        kaydedilenLog.RowErrorsJson.Should().Contain("ERP-2").And.Contain("satir bozuk");
+        await _draftItemRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Handle_BasariliSync_SyncLogTamamlanirVeKayitEdilir()
     {
         ArrangeHappyPath(TestData.CreateErpProduct(), TestData.CreateErpProduct("ERP-2", "SKU-2", "Ikinci Urun"));
@@ -212,6 +244,9 @@ public sealed class SyncErpItemsCommandHandlerTests
         result.Data!.Added.Should().Be(2);
         kaydedilenLog!.Status.Should().Be(SyncLogStatus.Success);
         kaydedilenLog.SyncedRecordCount.Should().Be(2);
+        kaydedilenLog.RowErrorsJson.Should().BeNull();
+        result.Data.Skipped.Should().Be(0);
+        result.Data.RowErrors.Should().BeEmpty();
         result.Data.SyncLogId.Should().Be(kaydedilenLog.Id);
         await _draftItemRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }

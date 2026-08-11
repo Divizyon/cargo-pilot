@@ -3,6 +3,7 @@ import {
   PROVIDER_TYPE_FROM_INT,
   PROVIDER_TYPE_TO_INT,
   SYNC_FREQUENCY_TO_INT,
+  buildSyncToastMessage,
 } from './useERPIntegration';
 import { SyncLogStatus } from '@/lib/types/erp';
 
@@ -61,5 +62,25 @@ describe('SyncLogStatus', () => {
       PartialFailure: 2,
       Failed: 3,
     });
+  });
+});
+
+describe('buildSyncToastMessage', () => {
+  it('hata yoksa yalnızca eklenen ve güncellenen sayısını yazar', () => {
+    expect(
+      buildSyncToastMessage({ added: 12, updated: 3, skipped: 0, errorCount: 0, rowErrors: [] }),
+    ).toBe('Senkronizasyon tamamlandı — 12 eklendi, 3 güncellendi');
+  });
+
+  it('atlanan satır varsa nedenini belirterek sayıyı gösterir', () => {
+    expect(
+      buildSyncToastMessage({
+        added: 2,
+        updated: 1,
+        skipped: 1,
+        errorCount: 1,
+        rowErrors: [{ erpId: 'ERP-2', sku: 'SKU-2', reason: 'satir bozuk' }],
+      }),
+    ).toBe('Senkronizasyon tamamlandı — 2 eklendi, 1 güncellendi, 1 satır hata nedeniyle atlandı');
   });
 });

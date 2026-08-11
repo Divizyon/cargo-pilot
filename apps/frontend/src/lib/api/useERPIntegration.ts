@@ -10,6 +10,7 @@ import {
   erpSyncSummarySchema,
   syncLogDtoSchema,
   type ErpSyncInterval,
+  type ErpSyncSummary,
 } from '@/lib/types/erp';
 import type { ErpConnectionFormValues } from '@/features/platform/erp/schemas/erpConnectionSchema';
 
@@ -181,10 +182,20 @@ export function useERPConnection() {
   });
 }
 
+/**
+ * "Atlandı" yalnızca hata nedeniyle yazılamayan satırları anlatır; kullanıcının
+ * seçtiği filtrelerle elenen satırlar bu sayıya dahil değildir.
+ */
+export function buildSyncToastMessage(summary: ErpSyncSummary): string {
+  const parts = [`${summary.added} eklendi`, `${summary.updated} güncellendi`];
+  if (summary.skipped > 0) parts.push(`${summary.skipped} satır hata nedeniyle atlandı`);
+  return `Senkronizasyon tamamlandı — ${parts.join(', ')}`;
+}
+
 export function useTriggerERPSync() {
   const queryClient = useQueryClient();
   return useMutation<
-    { added: number; updated: number; skipped: number; syncedAt?: string; syncLogId?: string },
+    ErpSyncSummary,
     AxiosError<ApiErrorResponse>,
     { integrationId: string; categoryFilter?: string | null; warehouseFilter?: string | null }
   >({
@@ -202,11 +213,13 @@ export function useTriggerERPSync() {
     onSuccess: (summary) => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['draft-items'] });
-      // "Atlanan" sayısı backend akışında hiç üretilmiyor; gösterilmesi yanıltıcı olur.
-      toast.success(
-        `Senkronizasyon tamamlandı — ${summary.added} eklendi, ${summary.updated} güncellendi`,
-        { position: 'bottom-right', duration: 6000 },
-      );
+      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-logs'] });
+      const message = buildSyncToastMessage(summary);
+      if (summary.skipped > 0) {
+        toast.warning(message, { position: 'bottom-right', duration: 8000 });
+        return;
+      }
+      toast.success(message, { position: 'bottom-right', duration: 6000 });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Senkronizasyon başarısız'), {

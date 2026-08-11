@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, History } from 'lucide-react';
@@ -39,6 +39,7 @@ const PAGE_SIZE = 20;
 
 export function ERPSyncHistory() {
   const [page, setPage] = useState(1);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
 
@@ -96,23 +97,64 @@ export function ERPSyncHistory() {
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="h-12 border-t border-border hover:bg-muted/20">
-                    <td className="px-4 py-0 text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDate(log.startedAt)}
-                    </td>
-                    <td className="px-4 py-0 text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDate(log.completedAt)}
-                    </td>
-                    <td className="px-4 py-0">
-                      <Badge variant={STATUS_VARIANT[log.status]} className="text-xs">
-                        {STATUS_LABEL[log.status]}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-0 text-xs text-foreground">{log.syncedRecordCount}</td>
-                    <td className="px-4 py-0 text-xs text-destructive max-w-xs truncate">
-                      {log.errorMessage ?? '—'}
-                    </td>
-                  </tr>
+                  <Fragment key={log.id}>
+                    <tr className="h-12 border-t border-border hover:bg-muted/20">
+                      <td className="px-4 py-0 text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate(log.startedAt)}
+                      </td>
+                      <td className="px-4 py-0 text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate(log.completedAt)}
+                      </td>
+                      <td className="px-4 py-0">
+                        <Badge variant={STATUS_VARIANT[log.status]} className="text-xs">
+                          {STATUS_LABEL[log.status]}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-0 text-xs text-foreground">{log.syncedRecordCount}</td>
+                      <td className="px-4 py-0 text-xs text-destructive">
+                        <div className="flex items-center gap-2">
+                          <span className="max-w-xs truncate" title={log.errorMessage ?? undefined}>
+                            {log.errorMessage ?? '—'}
+                          </span>
+                          {log.rowErrors.length > 0 && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto shrink-0 p-0 text-xs"
+                              aria-expanded={expandedLogId === log.id}
+                              onClick={() =>
+                                setExpandedLogId((prev) => (prev === log.id ? null : log.id))
+                              }
+                            >
+                              {log.rowErrors.length} hatalı satır
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedLogId === log.id && log.rowErrors.length > 0 && (
+                      <tr className="border-t border-border bg-muted/20">
+                        <td colSpan={5} className="px-4 py-3">
+                          <ul className="space-y-1">
+                            {log.rowErrors.map((rowError, index) => (
+                              <li
+                                key={`${rowError.erpId}-${index}`}
+                                className="flex flex-wrap items-baseline gap-x-2 text-xs"
+                              >
+                                <span className="font-mono text-foreground">{rowError.erpId}</span>
+                                {rowError.sku && (
+                                  <span className="font-mono text-muted-foreground">
+                                    {rowError.sku}
+                                  </span>
+                                )}
+                                <span className="text-destructive">{rowError.reason}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

@@ -13,6 +13,9 @@ public sealed class SyncLog : BaseEntity {
     public int RuleNotAssignedCount { get; private set; }
     public string? ErrorMessage { get; private set; }
 
+    /// <summary>Satir bazli hatalarin JSON listesi; kismi basari durumunda doldurulur.</summary>
+    public string? RowErrorsJson { get; private set; }
+
 #pragma warning disable S1144
     public Integration? Integration { get; private set; }
 #pragma warning restore S1144
@@ -43,11 +46,17 @@ public sealed class SyncLog : BaseEntity {
         ErrorMessage = errorMessage;
     }
 
-    public void PartialFail(int syncedRecordCount, string errorMessage, int ruleAssignedCount = 0, int ruleNotAssignedCount = 0) {
+    public void PartialFail(
+        int syncedRecordCount,
+        string errorMessage,
+        string? rowErrorsJson = null,
+        int ruleAssignedCount = 0,
+        int ruleNotAssignedCount = 0) {
         CompletedAt = DateTime.UtcNow;
         Status = SyncLogStatus.PartialFailure;
         SyncedRecordCount = syncedRecordCount;
         ErrorMessage = errorMessage;
+        RowErrorsJson = rowErrorsJson;
         RuleAssignedCount = ruleAssignedCount;
         RuleNotAssignedCount = ruleNotAssignedCount;
     }

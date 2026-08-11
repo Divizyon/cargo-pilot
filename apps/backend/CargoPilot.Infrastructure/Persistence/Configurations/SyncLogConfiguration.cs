@@ -55,6 +55,8 @@ internal sealed class SyncLogConfiguration : IEntityTypeConfiguration<SyncLog> {
         builder.Property(s => s.ErrorMessage)
             .HasMaxLength(2000);
 
+        builder.Property(s => s.RowErrorsJson);
+
         builder.HasOne(s => s.Integration)
             .WithMany(i => i.SyncLogs)
             .HasForeignKey(s => s.IntegrationId)
