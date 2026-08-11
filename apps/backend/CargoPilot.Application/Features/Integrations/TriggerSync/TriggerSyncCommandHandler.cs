@@ -3,6 +3,7 @@ using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
+using CargoPilot.Application.Features.Integrations.SyncErpItems;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Integrations.TriggerSync;
@@ -11,13 +12,16 @@ internal sealed class TriggerSyncCommandHandler : IRequestHandler<TriggerSyncCom
 {
     private readonly IIntegrationRepository _integrationRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ISender _sender;
 
     public TriggerSyncCommandHandler(
         IIntegrationRepository integrationRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ISender sender)
     {
         _integrationRepository = integrationRepository;
         _currentUserService = currentUserService;
+        _sender = sender;
     }
 
     public async Task<Result<SyncSettingsResponse>> Handle(TriggerSyncCommand request, CancellationToken cancellationToken)
@@ -40,12 +44,20 @@ internal sealed class TriggerSyncCommandHandler : IRequestHandler<TriggerSyncCom
             return Result<SyncSettingsResponse>.Failure(
                 new Error(ErrorType.NotFound, "Integration.NotFound", "Entegrasyon bulunamadı."));
 
-        // Manuel senkronizasyon henüz uygulanmadı (PR #463 bekleniyor). Hiçbir kayıt
-        // aktarılmadığı için LastSyncDate damgalanmaz; aksi halde kullanıcı güncel
-        // olmayan veriyi senkronize sanır. Durum da Running'de bırakılmaz.
-        return Result<SyncSettingsResponse>.Failure(new Error(
-            ErrorType.Unexpected,
-            "Sync.NotImplemented",
-            "Manuel senkronizasyon henüz kullanıma açılmadı. Ürünler ERP ekranından aktarılabilir."));
+        // Tek sync mantigi SyncErpItems'ta yasar; run-now yalnizca onu tetikler.
+        var syncResult = await _sender.Send(
+            new SyncErpItemsCommand(request.IntegrationId, CategoryFilter: null, WarehouseFilter: null),
+            cancellationToken);
+
+        if (!syncResult.IsSuccess)
+            return Result<SyncSettingsResponse>.Failure(syncResult.Error!);
+
+        return Result<SyncSettingsResponse>.Success(new SyncSettingsResponse(
+            integration.Id,
+            integration.SyncFrequency,
+            integration.LastSyncDate,
+            integration.NextScheduledSyncAt,
+            integration.SyncStatus
+        ));
     }
 }
