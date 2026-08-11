@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
 import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
 import { ErpSyncStatus } from '@/lib/types/erp';
+import { summarizeDrops } from '@/lib/config/erpDropReasons';
 import {
   erpSettingsApiSchema,
   erpSyncSummarySchema,
@@ -189,16 +190,32 @@ export function useERPConnection() {
 }
 
 /**
- * "Atlandı" yalnızca hata nedeniyle yazılamayan satırları anlatır; kullanıcının
- * seçtiği filtrelerle elenen satırlar bu sayıya dahil değildir.
+ * Kaynak toplamından başlayan tam muhasebe cümlesi:
+ * "ERP'de X satır bulundu — Y eklendi, U güncellendi, Z filtrelendi, K atlandı".
+ * "Filtrelendi" kullanıcının kendi seçtiği filtreleri, "atlandı" hata ve kaynak
+ * elemelerini anlatır; ikisi bilerek ayrı sayılır.
  */
 export function buildSyncToastMessage(summary: ErpSyncSummary): string {
+  const { filtered, dropped } = summarizeDrops(summary.droppedByReason);
   const parts = [`${summary.added} eklendi`, `${summary.updated} güncellendi`];
-  if (summary.skipped > 0) parts.push(`${summary.skipped} satır hata nedeniyle atlandı`);
-  const message = `Senkronizasyon tamamlandı — ${parts.join(', ')}`;
-  return summary.missingFieldCount > 0
-    ? `${message}. ${summary.missingFieldCount} satırda eksik alan var, tamamlanmadan aktarılamaz.`
-    : message;
+  if (filtered > 0) parts.push(`${filtered} filtrelendi`);
+
+  const skippedTotal = summary.skipped + dropped;
+  if (skippedTotal > 0) parts.push(`${skippedTotal} atlandı`);
+
+  const prefix =
+    summary.sourceTotal > 0
+      ? `ERP'de ${summary.sourceTotal} satır bulundu`
+      : 'Senkronizasyon tamamlandı';
+
+  let message = `${prefix} — ${parts.join(', ')}`;
+  if (summary.missingFieldCount > 0) {
+    message += `. ${summary.missingFieldCount} satırda eksik alan var, tamamlanmadan aktarılamaz.`;
+  }
+  if (summary.unaccounted !== 0) {
+    message += `. ${Math.abs(summary.unaccounted)} satır hiçbir sayaca düşmedi (mutabakat farkı).`;
+  }
+  return message;
 }
 
 export function useTriggerERPSync() {
@@ -224,7 +241,13 @@ export function useTriggerERPSync() {
       queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       queryClient.invalidateQueries({ queryKey: ['erp', 'sync-logs'] });
       const message = buildSyncToastMessage(summary);
-      if (summary.skipped > 0 || summary.missingFieldCount > 0) {
+      // Filtre kaynaklı eleme kullanıcının kendi seçimidir; uyarı sayılmaz.
+      const needsAttention =
+        summary.skipped > 0 ||
+        summary.missingFieldCount > 0 ||
+        summary.unaccounted !== 0 ||
+        summarizeDrops(summary.droppedByReason).dropped > 0;
+      if (needsAttention) {
         toast.warning(message, { position: 'bottom-right', duration: 8000 });
         return;
       }

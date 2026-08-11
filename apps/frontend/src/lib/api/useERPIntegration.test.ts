@@ -5,7 +5,7 @@ import {
   SYNC_FREQUENCY_TO_INT,
   buildSyncToastMessage,
 } from './useERPIntegration';
-import { SyncLogStatus } from '@/lib/types/erp';
+import { ErpDropReason, SyncLogStatus, type ErpSyncSummary } from '@/lib/types/erp';
 
 /**
  * Bu dosya frontend enum eşlemelerini backend enum sayılarına kilitler.
@@ -66,44 +66,76 @@ describe('SyncLogStatus', () => {
 });
 
 describe('buildSyncToastMessage', () => {
-  it('hata yoksa yalnızca eklenen ve güncellenen sayısını yazar', () => {
-    expect(
-      buildSyncToastMessage({
-        added: 12,
-        updated: 3,
-        skipped: 0,
-        errorCount: 0,
-        missingFieldCount: 0,
-        rowErrors: [],
-      }),
-    ).toBe('Senkronizasyon tamamlandı — 12 eklendi, 3 güncellendi');
+  const emptySummary = {
+    added: 0,
+    updated: 0,
+    skipped: 0,
+    errorCount: 0,
+    missingFieldCount: 0,
+    rowErrors: [],
+    sourceTotal: 0,
+    droppedByReason: {},
+    unaccounted: 0,
+  } satisfies ErpSyncSummary;
+
+  it('kaynak toplamı biliniyorsa cümleye ERP satır sayısıyla başlar', () => {
+    expect(buildSyncToastMessage({ ...emptySummary, added: 12, updated: 3, sourceTotal: 15 })).toBe(
+      "ERP'de 15 satır bulundu — 12 eklendi, 3 güncellendi",
+    );
   });
 
-  it('atlanan satır varsa nedenini belirterek sayıyı gösterir', () => {
+  it('kaynak toplamı yoksa genel tamamlandı cümlesine düşer', () => {
+    expect(buildSyncToastMessage({ ...emptySummary, added: 12, updated: 3 })).toBe(
+      'Senkronizasyon tamamlandı — 12 eklendi, 3 güncellendi',
+    );
+  });
+
+  it('kullanıcı filtresiyle elenen satırları filtrelendi dilinde raporlar', () => {
     expect(
       buildSyncToastMessage({
+        ...emptySummary,
+        added: 2,
+        updated: 1,
+        sourceTotal: 220,
+        droppedByReason: {
+          [ErpDropReason.WarehouseFiltered]: 210,
+          [ErpDropReason.CategoryFiltered]: 7,
+        },
+      }),
+    ).toBe("ERP'de 220 satır bulundu — 2 eklendi, 1 güncellendi, 217 filtrelendi");
+  });
+
+  it('hata ve kaynak elemelerini tek atlandı sayısında toplar', () => {
+    expect(
+      buildSyncToastMessage({
+        ...emptySummary,
         added: 2,
         updated: 1,
         skipped: 1,
         errorCount: 1,
-        missingFieldCount: 0,
+        sourceTotal: 10,
+        droppedByReason: {
+          [ErpDropReason.SalesLocked]: 4,
+          [ErpDropReason.CategoryFiltered]: 2,
+        },
         rowErrors: [{ erpId: 'ERP-2', sku: 'SKU-2', reason: 'satir bozuk' }],
       }),
-    ).toBe('Senkronizasyon tamamlandı — 2 eklendi, 1 güncellendi, 1 satır hata nedeniyle atlandı');
+    ).toBe("ERP'de 10 satır bulundu — 2 eklendi, 1 güncellendi, 2 filtrelendi, 5 atlandı");
   });
 
   it('eksik alanlı satır varsa kullanıcıyı tamamlaması için uyarır', () => {
     expect(
-      buildSyncToastMessage({
-        added: 5,
-        updated: 0,
-        skipped: 0,
-        errorCount: 0,
-        missingFieldCount: 2,
-        rowErrors: [],
-      }),
+      buildSyncToastMessage({ ...emptySummary, added: 5, sourceTotal: 5, missingFieldCount: 2 }),
     ).toBe(
-      'Senkronizasyon tamamlandı — 5 eklendi, 0 güncellendi. 2 satırda eksik alan var, tamamlanmadan aktarılamaz.',
+      "ERP'de 5 satır bulundu — 5 eklendi, 0 güncellendi. 2 satırda eksik alan var, tamamlanmadan aktarılamaz.",
+    );
+  });
+
+  it('mutabakat farkını ayrı cümlede bildirir', () => {
+    expect(
+      buildSyncToastMessage({ ...emptySummary, added: 5, sourceTotal: 8, unaccounted: 3 }),
+    ).toBe(
+      "ERP'de 8 satır bulundu — 5 eklendi, 0 güncellendi. 3 satır hiçbir sayaca düşmedi (mutabakat farkı).",
     );
   });
 });
