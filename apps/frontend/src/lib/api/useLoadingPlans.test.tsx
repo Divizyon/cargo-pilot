@@ -3,15 +3,15 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-const mocks = vi.hoisted(() => ({ post: vi.fn() }));
+const mocks = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn() }));
 
 vi.mock('@/lib/api/axiosInstance', () => ({
-  axiosInstance: { get: vi.fn(), post: mocks.post, put: vi.fn() },
+  axiosInstance: { get: mocks.get, post: mocks.post, put: vi.fn() },
 }));
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-const { useApprovePlan } = await import('./useLoadingPlans');
+const { useApprovePlan, useLoadingPlanListItem } = await import('./useLoadingPlans');
 
 const PLAN_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
@@ -32,6 +32,60 @@ function approveResponse(erpExportQueued: boolean, message: string) {
     },
   };
 }
+
+/** Plan detay ucu: ERP aktarım durumu ve son başarısız denemenin nedeni. */
+function detailResponse(erp: { erpExportStatus?: number | null; erpExportMessage?: string | null }) {
+  return {
+    data: {
+      isSuccess: true,
+      data: {
+        id: PLAN_ID,
+        planName: 'Plan 1',
+        vehicle: { id: '11111111-2222-4333-8444-555555555555', vehicleName: 'Tır', maxWeightCapacity: 20000 },
+        optimizationStatus: 1,
+        createdAtUtc: '2026-08-11T10:00:00Z',
+        ...erp,
+      },
+    },
+  };
+}
+
+describe('useLoadingPlanListItem — ERP aktarım durumu', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('aktarılan planda durumu ve nedeni sunucudan okur', async () => {
+    mocks.get.mockResolvedValue(detailResponse({ erpExportStatus: 1 }));
+
+    const { result } = renderHook(() => useLoadingPlanListItem(PLAN_ID), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.erpExportStatus).toBe(1);
+    expect(result.current.data?.erpExportMessage).toBeUndefined();
+  });
+
+  it('başarısız aktarımda nedeni taşır', async () => {
+    mocks.get.mockResolvedValue(
+      detailResponse({ erpExportStatus: 2, erpExportMessage: 'ERP sunucusuna bağlanılamadı.' }),
+    );
+
+    const { result } = renderHook(() => useLoadingPlanListItem(PLAN_ID), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.erpExportStatus).toBe(2);
+    expect(result.current.data?.erpExportMessage).toBe('ERP sunucusuna bağlanılamadı.');
+  });
+
+  it('bilinmeyen durum kodunda rozet için değer üretmez', async () => {
+    mocks.get.mockResolvedValue(detailResponse({ erpExportStatus: 99 }));
+
+    const { result } = renderHook(() => useLoadingPlanListItem(PLAN_ID), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.erpExportStatus).toBeUndefined();
+  });
+});
 
 describe('useApprovePlan', () => {
   beforeEach(() => {

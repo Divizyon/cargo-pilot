@@ -225,7 +225,17 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(g => g.LoadingPlanId == id)
             .ToListAsync(cancellationToken);
 
-        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems, groups);
+        // Aktarim basarisizsa nedeni plan detayinda gorunsun diye son deneme kaydi okunur.
+        var erpExportMessage = plan.ErpExportStatus == ErpExportStatus.Failed
+            ? await _context.SyncLogs
+                .AsNoTracking()
+                .Where(l => l.LoadingPlanId == id)
+                .OrderByDescending(l => l.StartedAt)
+                .Select(l => l.ErrorMessage)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems, groups, erpExportMessage);
     }
 
     private static PlanDetailDto MapToDetailDto(
@@ -234,7 +244,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         List<LoadingPlanUnplacedItem> unplacedItems,
         List<LoadingPlanWarning> warnings,
         List<LoadingPlanInputItem> inputItems,
-        List<LoadingPlanItemGroup> groups)
+        List<LoadingPlanItemGroup> groups,
+        string? erpExportMessage)
     {
         var vehicleDto = new VehicleInPlanDto(
             plan.Vehicle.Id,
@@ -319,6 +330,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
             plan.CreatedAtUtc,
             plan.ErpExportStatus,
+            erpExportMessage,
             plan.ThumbnailUrl,
             vehicleDto,
             placementDtos,

@@ -98,6 +98,8 @@ export function useLoadingPlanListItem(id: string) {
         plannedAt: d.plannedAt,
         planCode: d.planCode,
         status: d.status,
+        erpExportStatus: d.erpExportStatus,
+        erpExportMessage: d.erpExportMessage,
         thumbnailUrl: (() => {
           const raw = ((d as Record<string, unknown>)['thumbnailUrl'] ??
             (d as Record<string, unknown>)['snapshotUrl'] ??

@@ -5,6 +5,7 @@ import type {
   PlanProductItem,
   PlacementWithDimensions,
 } from '@/lib/types/loadingPlan';
+import { ErpExportStatus } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
@@ -54,6 +55,9 @@ export const planListApiItemSchema = z
     plannedAt: z.string().nullable().optional(),
     planCode: z.string().nullable().optional(),
     status: z.string().nullable().optional(),
+    // Plan detay ucundan gelir: ERP aktarım durumu ve son başarısız denemenin nedeni.
+    erpExportStatus: z.number().int().nullable().optional(),
+    erpExportMessage: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -163,6 +167,8 @@ export const planDetailApiResponseSchema = z.object({
       plannedAt: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string().nullable().optional(),
+      erpExportStatus: z.number().int().nullable().optional(),
+      erpExportMessage: z.string().nullable().optional(),
       placements: z.array(placementItemApiSchema).optional(),
       placementDetails: z.array(placementItemApiSchema).optional(),
       items: z.array(placementItemApiSchema).optional(),
@@ -352,6 +358,18 @@ function normalizeUtcDatetime(s: string): string {
 
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
 
+/** Bilinmeyen bir durum kodu geldiğinde aktarım durumu gösterilmez (uydurma rozet çıkmaz). */
+function mapErpExportStatus(raw: number | null | undefined): ErpExportStatus | undefined {
+  switch (raw) {
+    case ErpExportStatus.Pending:
+    case ErpExportStatus.Sent:
+    case ErpExportStatus.Failed:
+      return raw;
+    default:
+      return undefined;
+  }
+}
+
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
   const planName = api.planName ?? ((api as Record<string, unknown>)['name'] as string) ?? '—';
@@ -400,6 +418,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
       // Normalize http → https to avoid mixed-content blocks
       return raw.replace(/^http:\/\//, 'https://');
     })(),
+    erpExportStatus: mapErpExportStatus(api.erpExportStatus),
+    erpExportMessage: api.erpExportMessage ?? undefined,
   };
 }
 
