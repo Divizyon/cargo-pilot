@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { AxiosError, AxiosHeaders } from 'axios';
 
-const mocks = vi.hoisted(() => ({ get: vi.fn() }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn() }));
 
 vi.mock('@/lib/api/axiosInstance', () => ({
-  axiosInstance: { get: mocks.get, post: vi.fn(), put: vi.fn() },
+  axiosInstance: { get: mocks.get, post: vi.fn(), put: mocks.put },
 }));
 
 const { ERPSyncPanel } = await import('./ERPSyncPanel');
@@ -94,6 +95,23 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
 
     expect(await screen.findByRole('radio', { name: '4 saatte bir' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
+  });
+
+  it('sıklık değiştirilirken seçim anında yansır ve kayıt bitene kadar kilitlenir', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, 1).data });
+    // İstek askıda kalır: optimistic yazım ve kaydetme sırasındaki kilit gözlenebilir olur.
+    mocks.put.mockImplementation(() => new Promise(() => {}));
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    const fourHours = await screen.findByRole('radio', { name: '4 saatte bir' });
+    await userEvent.click(fourHours);
+
+    expect(mocks.put).toHaveBeenCalledWith(`/api/v1/integrations/${INTEGRATION_ID}/sync-settings`, {
+      syncFrequency: 0,
+    });
+    expect(fourHours).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Günlük' })).toBeDisabled();
   });
 
   it('planlanmış vade varsa sonraki otomatik çekim tarihini gösterir', async () => {

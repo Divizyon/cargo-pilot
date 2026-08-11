@@ -78,7 +78,7 @@ const ERP_TABS: TabDef[] = [
     id: 'erp-senkronizasyon',
     label: 'Senkronizasyon',
     description:
-      'Otomatik senkronizasyon sıklığını ayarlayın veya senkronizasyonu şimdi başlatın.',
+      'Otomatik çekim sıklığını ayarlayın ve son çekimin durumunu görün. Elle çekim ERP Ürünleri ekranından yapılır.',
   },
   {
     id: 'erp-gecmis',
