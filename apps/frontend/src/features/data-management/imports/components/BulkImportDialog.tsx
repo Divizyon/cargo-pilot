@@ -454,9 +454,23 @@ export function BulkImportDialog({
     [existingItems],
   );
 
+  /**
+   * Güncelleme akışında satır, zaten var olan bir ürünün kendisidir; kendi SKU'su
+   * çakışma sayılırsa tüm satırlar kilitlenir. Başka bir kaydın SKU'su çakışma kalır.
+   */
+  const ownSkuByRowId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!isUpdate) return map;
+    for (const row of initialRows ?? []) {
+      map.set(row._id, row.sku.trim().toLowerCase());
+    }
+    return map;
+  }, [isUpdate, initialRows]);
+
   const duplicateSkuIds = findDuplicateSkuIds(rows);
   const validations = rows.map((r) => {
     const skuKey = r.sku.trim().toLowerCase();
+    const isOwnSku = Boolean(skuKey) && ownSkuByRowId.get(r._id) === skuKey;
     return {
       id: r._id,
       errors: {
@@ -464,7 +478,7 @@ export function BulkImportDialog({
         ...(duplicateSkuIds.has(r._id)
           ? { sku: 'Bu SKU başka bir satırda zaten kullanılıyor' }
           : {}),
-        ...(skuKey && existingSkus.has(skuKey) ? { sku: 'Bu SKU kullanılıyor' } : {}),
+        ...(skuKey && !isOwnSku && existingSkus.has(skuKey) ? { sku: 'Bu SKU kullanılıyor' } : {}),
       },
     };
   });

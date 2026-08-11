@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   updateDraft: vi.fn(),
   approveBulk: vi.fn(),
   bulkCreate: vi.fn(),
+  fetchAllItems: vi.fn(),
 }));
 
 vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
@@ -40,7 +41,7 @@ vi.mock('@/lib/api/useItems', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api/useItems')>();
   return {
     ...actual,
-    fetchAllItems: () => Promise.resolve([]),
+    fetchAllItems: () => mocks.fetchAllItems(),
     useBulkCreateItems: () => ({ mutate: mocks.bulkCreate, isPending: false }),
   };
 });
@@ -71,7 +72,11 @@ function makeRow(id: string, overrides: Partial<EditableRow> = {}): EditableRow 
   };
 }
 
-function renderDialog(rows: EditableRow[], onOpenChange = vi.fn()) {
+function renderDialog(
+  rows: EditableRow[],
+  onOpenChange = vi.fn(),
+  mode: 'import' | 'update' = 'import',
+) {
   const draftItemIds = Object.fromEntries(rows.map((r) => [r._id, `draft-${r._id}`]));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -85,6 +90,7 @@ function renderDialog(rows: EditableRow[], onOpenChange = vi.fn()) {
       onOpenChange={onOpenChange}
       initialRows={rows}
       draftItemIds={draftItemIds}
+      mode={mode}
     />,
     { wrapper },
   );
@@ -94,6 +100,7 @@ function renderDialog(rows: EditableRow[], onOpenChange = vi.fn()) {
 describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.fetchAllItems.mockResolvedValue([]);
     mocks.updateDraft.mockResolvedValue({});
     mocks.approveBulk.mockResolvedValue({ approved: 2, skipped: 0, skippedItems: [] });
   });
@@ -155,6 +162,7 @@ describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
 describe('BulkImportDialog — sütun bazlı toplu doldurma (ERP-33)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.fetchAllItems.mockResolvedValue([]);
     mocks.updateDraft.mockResolvedValue({});
     mocks.approveBulk.mockResolvedValue({ approved: 50, skipped: 0, skippedItems: [] });
   });
@@ -336,5 +344,50 @@ describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
     expect(rows[0].constraintIds).toEqual([2]);
     expect(rows[0].fragility).toBe('2');
     expect(rows[0].incompatibleGroups).toEqual(['Gıda']);
+  });
+});
+
+// ─── Güncelleme onayında mevcut-SKU kontrolü ──────────────────────────────────
+
+describe('BulkImportDialog — ERP güncelleme onayında SKU çakışması', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.updateDraft.mockResolvedValue({});
+    mocks.approveBulk.mockResolvedValue({ approved: 1, skipped: 0, skippedItems: [] });
+  });
+
+  it('güncellemede kendi SKU’su çakışma sayılmaz, başka kaydın SKU’su sayılır', async () => {
+    const user = userEvent.setup();
+    mocks.fetchAllItems.mockResolvedValue([
+      makeItem({ id: '11111111-1111-4111-8111-111111111111', sku: 'SKU-a' }),
+      makeItem({ id: '22222222-2222-4222-8222-222222222222', sku: 'SKU-b' }),
+      makeItem({ id: '33333333-3333-4333-8333-333333333333', sku: 'SKU-baska' }),
+    ]);
+
+    renderDialog([makeRow('a'), makeRow('b')], vi.fn(), 'update');
+
+    // Her iki satırın SKU'su üründe zaten kayıtlı; kendi kaydı çakışma sayılmaz.
+    const confirm = await screen.findByRole('button', { name: '2 Ürünü Güncelle' });
+    expect(confirm).toBeEnabled();
+    expect(screen.getByDisplayValue('SKU-a')).not.toHaveAttribute('title', 'Bu SKU kullanılıyor');
+
+    // SKU başka bir kaydınkine çevrilirse çakışma yeniden işaretlenir.
+    const skuInput = screen.getByDisplayValue('SKU-b');
+    await user.clear(skuInput);
+    await user.type(skuInput, 'SKU-baska');
+
+    expect(await screen.findByText('1 satırda hata var')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('SKU-baska')).toHaveAttribute('title', 'Bu SKU kullanılıyor');
+    expect(screen.getByRole('button', { name: 'Geçerli satırları aktar (1)' })).toBeEnabled();
+  });
+
+  it('aktarım modunda mevcut SKU çakışma olarak işaretlenir', async () => {
+    mocks.fetchAllItems.mockResolvedValue([
+      makeItem({ id: '11111111-1111-4111-8111-111111111111', sku: 'SKU-a' }),
+    ]);
+
+    renderDialog([makeRow('a')]);
+
+    expect(await screen.findByText('1 satırda hata var')).toBeInTheDocument();
   });
 });
