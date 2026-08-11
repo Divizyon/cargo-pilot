@@ -6,6 +6,10 @@ namespace CargoPilot.Application.Common.Optimization;
 
 internal sealed class OptimizationEngine : IOptimizationEngine
 {
+    // Kalibre edilmiş yerçekimi katsayısı: yükseklik farkı diğer tüm
+    // terimleri bastırır, yani motor önce alçak noktaları doldurur.
+    private const decimal GravityCoefficient = 1_000_000m;
+
     public OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken = default)
     {
         var placements = new List<PlacedBox>();
@@ -18,7 +22,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var expanded = input.Items
             .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i));
 
-        var instances = SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups);
+        var instances = ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups);
 
         var halfW = input.VehicleWidth  / 2m;
         var halfL = input.VehicleLength / 2m;
@@ -123,9 +127,9 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // WeightBalance modunda, greedy faz sonrası kutu çiftleri takas edilerek
         // CoG sapması azaltılır. En fazla 3 tur çalışır, O(n²) her turda.
         if (input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance && totalWeight > 0m)
-            placements = ImproveBalance(placements, input.VehicleWidth, input.VehicleHeight,
-                                        input.VehicleLength, totalWeight, halfW, halfL,
-                                        cancellationToken);
+            placements = BalanceScoring.ImproveBalance(placements, input.VehicleWidth, input.VehicleHeight,
+                                                       input.VehicleLength, totalWeight, halfW, halfL,
+                                                       cancellationToken);
 
         totalWeight = placements.Sum(p => p.Weight);
 
@@ -159,174 +163,21 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         return new OptimizationResult(placedResults, unplacedResults, totalWeight, fillRate, cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ);
     }
 
-    // ── Grup-bilinçli sıralama ────────────────────────────────────────────────
-    // GroupId'si olan items yükleme sırasına göre sıralanır:
-    // yüksek UnloadingOrder = en son inecek grup = kapıdan en uzak bölge
-    // (arka kapıda Z=length tarafı) = önce yüklenir (DESC sıra).
-    // GroupId'si olmayan items en sona eklenir.
-    // Grup yoksa mevcut criteria-based sıralama uygulanır.
-    //
-    // Aşağıdaki DESC sıra, LifoPlacement.CompareUnloadingOrder'da adlandırılan
-    // yön semantiğinin uygulamasıdır; aynı semantik LifoPlacement.ComputeGroupZones
-    // (bölge sırası) ve PlacementValidator.ViolatesStackability (dikey istif)
-    // içinde de geçerlidir.
-    private static List<OptimizationItemInput> SortForGroupPlacement(
-        IEnumerable<OptimizationItemInput> expanded,
-        LoadingPlanOptimizationCriteria criteria,
-        bool clusterGroups)
-    {
-        var list = expanded.ToList();
-
-        var hasGroups = list.Any(i => i.GroupId.HasValue);
-
-        // Kümeleme kapalıysa veya grup yoksa: tüm ürünleri criteria-sort ile karıştır
-        if (!hasGroups || !clusterGroups)
-            return ApplyCriteriaSort(list, criteria).ToList();
-
-        // Kümeleme açık: gruplu ürünler önce (UnloadingOrder DESC), grupsuzlar sonda
-        var grouped = list
-            .Where(i => i.GroupId.HasValue)
-            .GroupBy(i => (i.GroupId!.Value, i.UnloadingOrder ?? 0))
-            .OrderByDescending(g => g.Key.Item2);
-
-        var sortedGrouped = grouped.SelectMany(g => ApplyCriteriaSort(g, criteria));
-        var ungrouped = ApplyCriteriaSort(list.Where(i => !i.GroupId.HasValue), criteria);
-
-        return sortedGrouped.Concat(ungrouped).ToList();
-    }
-
-    private static IEnumerable<OptimizationItemInput> ApplyCriteriaSort(
-        IEnumerable<OptimizationItemInput> items,
-        LoadingPlanOptimizationCriteria criteria)
-        => criteria switch
-        {
-            LoadingPlanOptimizationCriteria.WeightBalance =>
-                items.OrderByDescending(i => i.Weight).ThenBy(i => i.ItemId),
-            LoadingPlanOptimizationCriteria.Lifo =>
-                items.OrderByDescending(i => i.Width * i.Height * i.Length).ThenBy(i => i.ItemId),
-            _ =>
-                items.OrderByDescending(i => i.Width * i.Height * i.Length).ThenBy(i => i.ItemId),
-        };
-
-    // ── İkinci geçiş: greedy swap balance iyileştirici ───────────────────────
-    //
-    // Her turda tüm kutu çiftleri taranır. İki kutu pozisyon değiştirdiğinde
-    // denge cezası azalıyorsa ve takas geçerliyse (sınır + çakışma + destek)
-    // takas kabul edilir. En fazla maxPasses tur çalışır.
-    private static List<PlacedBox> ImproveBalance(
-        List<PlacedBox> placements,
-        decimal vW, decimal vH, decimal vL,
-        decimal totalWeight, decimal halfW, decimal halfL,
-        CancellationToken cancellationToken,
-        int maxPasses = 3)
-    {
-        var current = placements.ToList();
-
-        for (int pass = 0; pass < maxPasses; pass++)
-        {
-            // Her geçiş O(n²) çift dener; iptal edilen istekte kalan geçişler atlanır.
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var improved = false;
-            var bestPenalty = GlobalBalancePenalty(current, totalWeight, halfW, halfL);
-
-            for (int i = 0; i < current.Count; i++)
-            {
-                for (int j = i + 1; j < current.Count; j++)
-                {
-                    var a = current[i];
-                    var b = current[j];
-
-                    // Sınır kontrolü: a, b'nin yerine sığıyor mu?
-                    if (b.X + a.W > vW || b.Y + a.H > vH || b.Z + a.D > vL) continue;
-                    // Sınır kontrolü: b, a'nın yerine sığıyor mu?
-                    if (a.X + b.W > vW || a.Y + b.H > vH || a.Z + b.D > vL) continue;
-
-                    var swapped = current.ToList();
-                    swapped[i] = a with { X = b.X, Y = b.Y, Z = b.Z };
-                    swapped[j] = b with { X = a.X, Y = a.Y, Z = a.Z };
-
-                    if (!SwapIsValid(swapped, i, j)) continue;
-
-                    var newPenalty = GlobalBalancePenalty(swapped, totalWeight, halfW, halfL);
-                    if (newPenalty < bestPenalty - 0.001m)
-                    {
-                        current      = swapped;
-                        bestPenalty  = newPenalty;
-                        improved     = true;
-                    }
-                }
-            }
-
-            if (!improved) break;
-        }
-
-        return current;
-    }
-
-    // Takas sonrası i ve j kutularının geçerli olup olmadığını doğrular:
-    // çakışma yok + zemin üzerinde veya %80 destek alıyor.
-    private static bool SwapIsValid(
-        List<PlacedBox> placements, int i, int j)
-    {
-        var a = placements[i];
-        var b = placements[j];
-
-        // Diğer kutularla çakışma kontrolü (i ve j hariç)
-        for (int k = 0; k < placements.Count; k++)
-        {
-            if (k == i || k == j) continue;
-            var c = placements[k];
-
-            if (PlacementValidator.BoxesOverlap(a, c) || PlacementValidator.BoxesOverlap(b, c)) return false;
-        }
-
-        // Destek kontrolü
-        var others = placements.Where((_, k) => k != i && k != j).ToList();
-        if (!PlacementValidator.HasSupportFor(a, others)) return false;
-        if (!PlacementValidator.HasSupportFor(b, others)) return false;
-
-        // Takas sonrası istif kısıtı kontrolü: i ve j kendileri hariç tutularak
-        // kontrol edilir (others zaten bu listeyi oluşturmuş durumda).
-        // İstiflenebilirlik de burada doğrulanır; aksi hâlde denge iyileştirmesi
-        // bir kutuyu istiflenemez kutunun üstüne taşıyabiliyordu.
-        if (PlacementValidator.ViolatesStackability(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesStackability(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (PlacementValidator.ViolatesStackCount(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesStackCount(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (PlacementValidator.ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
-        if (PlacementValidator.ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
-
-        // Yükseklikler farklıysa: eski konumların üstündeki kutular havada kalabilir.
-        // a, B'nin eski Y'sindedir (a.Y = B_eski.Y); a.H = A'nın yüksekliği → A'nın eski üst yüzeyi = b.Y + a.H
-        // b, A'nın eski Y'sindedir (b.Y = A_eski.Y); b.H = B'nin yüksekliği → B'nin eski üst yüzeyi = a.Y + b.H
-        if (a.H != b.H)
-        {
-            var oldATopY = b.Y + a.H;
-            var oldBTopY = a.Y + b.H;
-
-            foreach (var c in others)
-            {
-                if (c.Y != oldATopY && c.Y != oldBTopY) continue;
-                var supportersOfC = others.Where(p => p != c).Append(a).Append(b).ToList();
-                if (!PlacementValidator.HasSupportFor(c, supportersOfC)) return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static decimal GlobalBalancePenalty(
-        List<PlacedBox> placements, decimal totalWeight,
-        decimal halfW, decimal halfL)
-    {
-        if (totalWeight == 0m || halfW == 0m || halfL == 0m) return 0m;
-        var cogX = placements.Sum(p => p.Weight * (p.X + p.W / 2m)) / totalWeight;
-        var cogZ = placements.Sum(p => p.Weight * (p.Z + p.D / 2m)) / totalWeight;
-        return Math.Abs(cogX - halfW) / halfW + Math.Abs(cogZ - halfL) / halfL;
-    }
-
     // ── Maliyet fonksiyonu ────────────────────────────────────────────────────
+    //
+    // Skor artık kriter başına ayrı bir ifade değil, modül terimlerinin
+    // toplamıdır. İlgisiz modülün terimi tam olarak 0m'dir.
+    //
+    // TOPLAMA SIRASI KRİTİKTİR: decimal toplamada sıra değişirse yuvarlama
+    // farkı en-iyi-aday seçimini kaydırabilir. Tek bir sabit sıra kullanılır —
+    // yerçekimi → derinlik → denge → genişlik → bölge — ve bu sıra her kriterin
+    // bugünkü ifadesindeki sıfır olmayan terimlerin göreli sırasıyla birebir
+    // aynıdır:
+    //   VolumeFirst  : ey*1e6 + ez*1e3 + denge*500     + ex + bölge
+    //   WeightBalance: ey*1e6 +          denge*900_000      + bölge
+    //   Lifo         : ey*1e6 + ez*1e3 +                ex + bölge
+    // Kapalı modülün terimi ölçeği 0 olan 0m sabitidir; decimal toplamada
+    // değeri de ölçeği de değiştirmez.
     private static decimal ComputeScore(
         LoadingPlanOptimizationCriteria criteria,
         decimal ex, decimal ey, decimal ez,
@@ -336,32 +187,23 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         decimal halfW, decimal halfL,
         decimal? zoneStart, decimal? zoneEnd)
     {
-        var newTotal = totalWeight + itemWeight;
+        // Yerçekimi terimi her kriterde ortaktır ve kapatılamaz: alçak nokta
+        // her zaman baskın tercihtir.
+        var gravityTerm = ey * GravityCoefficient;
 
-        decimal normDevX = 0m, normDevZ = 0m;
-        if (newTotal > 0m && halfW > 0m && halfL > 0m)
-        {
-            var newCogX = (momentX + itemWeight * (ex + w / 2m)) / newTotal;
-            var newCogZ = (momentZ + itemWeight * (ez + d / 2m)) / newTotal;
-            normDevX = Math.Abs(newCogX - halfW) / halfW;
-            normDevZ = Math.Abs(newCogZ - halfL) / halfL;
-        }
+        var depthTerm = VolumeScoring.DepthTerm(criteria, ez);
 
-        var balancePenalty = normDevX + normDevZ;
+        var balanceTerm = BalanceScoring.Term(
+            criteria,
+            ex, ez, w, d,
+            itemWeight, totalWeight,
+            momentX, momentZ,
+            halfW, halfL);
 
-        var zonePenalty = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, d);
+        var widthTerm = VolumeScoring.WidthTerm(criteria, ex);
 
-        return criteria switch
-        {
-            LoadingPlanOptimizationCriteria.VolumeFirst =>
-                ey * 1_000_000m + ez * 1_000m + balancePenalty * 500m + ex + zonePenalty,
+        var zoneTerm = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, d);
 
-            // Sadece yerçekimi ve denge — Z/X tercihi yok
-            LoadingPlanOptimizationCriteria.WeightBalance =>
-                ey * 1_000_000m + balancePenalty * 900_000m + zonePenalty,
-
-            _ => // Lifo
-                ey * 1_000_000m + ez * 1_000m + ex + zonePenalty,
-        };
+        return gravityTerm + depthTerm + balanceTerm + widthTerm + zoneTerm;
     }
 }
