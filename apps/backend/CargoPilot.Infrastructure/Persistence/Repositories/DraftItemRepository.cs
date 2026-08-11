@@ -24,7 +24,7 @@ internal sealed class DraftItemRepository : IDraftItemRepository
 
     public async Task<(IReadOnlyList<DraftItem> Items, int TotalCount)> ListByCompanyAsync(
         Guid companyId,
-        DraftItemStatus? status,
+        IReadOnlyList<DraftItemStatus>? statuses,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -32,8 +32,8 @@ internal sealed class DraftItemRepository : IDraftItemRepository
         var query = _context.DraftItems
             .Where(x => x.CompanyId == companyId);
 
-        if (status.HasValue)
-            query = query.Where(x => x.Status == status.Value);
+        if (statuses is { Count: > 0 })
+            query = query.Where(x => statuses.Contains(x.Status));
 
         var totalCount = await query.CountAsync(cancellationToken);
 

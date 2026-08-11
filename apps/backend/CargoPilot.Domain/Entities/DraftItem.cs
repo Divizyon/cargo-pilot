@@ -147,7 +147,13 @@ public sealed class DraftItem : BaseEntity
 
     public void Reject() => Status = DraftItemStatus.Rejected;
 
+    /// <summary>ERP guncellemesi reddedilir; urun onaylanmis verisiyle kalir, taslak Approved sayilmaz.</summary>
+    public void DismissUpdate() => Status = DraftItemStatus.UpdateDismissed;
+
     public void ResetToPending() => Status = DraftItemStatus.Pending;
+
+    /// <summary>Reddedilmis ERP guncellemesini tekrar karar bekler duruma alir.</summary>
+    public void RestoreUpdatePending() => Status = DraftItemStatus.UpdatePending;
 
     public void SetUpdatePending(
         string sku,

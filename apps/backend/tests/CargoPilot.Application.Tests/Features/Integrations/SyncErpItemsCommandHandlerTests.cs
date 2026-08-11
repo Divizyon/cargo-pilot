@@ -120,12 +120,9 @@ public sealed class SyncErpItemsCommandHandlerTests
         _draftItemRepository.Received(1).Update(mevcut);
     }
 
-    /// <remarks>
-    /// Davranis-sabitleme: bugun reddedilen taslak sonraki sync'te Pending'e donuyor.
-    /// ERP-16 (kalici ret karari) bu davranisi degistirdiginde test guncellenmeli.
-    /// </remarks>
+    /// <remarks>Kalici ret: sync taslagin verisini tazeler ama durumunu Pending'e cevirmez.</remarks>
     [Fact]
-    public async Task Handle_ReddedilmisTaslak_SuAnPendingeDoner()
+    public async Task Handle_ReddedilmisTaslak_RejectedKalirVerisiGuncellenir()
     {
         ArrangeHappyPath(TestData.CreateErpProduct(sku: "SKU-YENI", name: "Yeni Ad"));
         var mevcut = TestData.CreateDraftItem(CompanyId, IntegrationId);
@@ -137,8 +134,24 @@ public sealed class SyncErpItemsCommandHandlerTests
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Updated.Should().Be(1);
-        mevcut.Status.Should().Be(DraftItemStatus.Pending);
+        mevcut.Status.Should().Be(DraftItemStatus.Rejected);
         mevcut.Name.Should().Be("Yeni Ad");
+    }
+
+    [Fact]
+    public async Task Handle_GuncellemesiReddedilmisTaslak_UpdatePendingeDonmez()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct(sku: "SKU-YENI", name: "Yeni Ad"));
+        var mevcut = TestData.CreateDraftItem(CompanyId, IntegrationId);
+        mevcut.DismissUpdate();
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns(mevcut);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        mevcut.Status.Should().Be(DraftItemStatus.UpdateDismissed);
+        mevcut.SKU.Should().Be("SKU-YENI");
     }
 
     [Fact]

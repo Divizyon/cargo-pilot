@@ -30,9 +30,14 @@ public sealed class RejectDraftItemCommandHandler : IRequestHandler<RejectDraftI
         if (draft.Status == DraftItemStatus.Approved)
             return Result<Unit>.Failure(new Error(ErrorType.Conflict, "DraftItem.AlreadyApproved", "Onaylanmış taslak reddedilemez."));
 
+        if (draft.Status is DraftItemStatus.Rejected or DraftItemStatus.UpdateDismissed)
+            return Result<Unit>.Success(Unit.Value);
+
         if (draft.Status == DraftItemStatus.UpdatePending)
         {
-            draft.Approve();
+            // Guncelleme reddi taslagi Approved isaretlemez; aksi halde taslak,
+            // urune hic yazilmamis ERP verisini onaylanmis gibi tasir.
+            draft.DismissUpdate();
             _draftItemRepository.Update(draft);
             await _draftItemRepository.SaveChangesAsync(cancellationToken);
             return Result<Unit>.Success(Unit.Value);

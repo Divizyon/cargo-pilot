@@ -154,10 +154,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             continue;
                         }
 
+                        // Ret kalicidir: Rejected/UpdateDismissed taslagin ERP verisi tazelenir
+                        // ama durumu sync ile Pending'e donmez; geri alma yalnizca kullanicidadir.
                         existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson, missingFields);
-                        if (existing.Status == DraftItemStatus.Rejected)
-                            existing.ResetToPending();
-
                         _draftItemRepository.Update(existing);
                         updated++;
                     }

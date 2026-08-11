@@ -1,6 +1,7 @@
 using CargoPilot.Application.Features.DraftItems.ApproveDraftItem;
 using CargoPilot.Application.Features.DraftItems.ApproveDraftItems;
 using CargoPilot.Application.Features.DraftItems.GetDraftItems;
+using CargoPilot.Application.Features.DraftItems.ReinstateDraftItem;
 using CargoPilot.Application.Features.DraftItems.RejectDraftItem;
 using CargoPilot.Application.Features.DraftItems.UpdateDraftItem;
 using CargoPilot.Domain.Enums;
@@ -112,6 +113,19 @@ public sealed class DraftItemsController : BaseController
     public async Task<IActionResult> Reject(Guid id, CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new RejectDraftItemCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Reddedilmiş taslağı tekrar beklemeye alır (ret kalıcıdır, geri alma yalnızca buradan yapılır).
+    /// </summary>
+    [HttpPost("{id:guid}/reinstate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reinstate(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new ReinstateDraftItemCommand(id), cancellationToken);
         return HandleResult(result);
     }
 }
