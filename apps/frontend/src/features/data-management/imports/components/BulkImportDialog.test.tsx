@@ -133,3 +133,51 @@ describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
+
+describe('BulkImportDialog — sütun bazlı toplu doldurma (ERP-33)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.updateDraft.mockResolvedValue({});
+    mocks.approveBulk.mockResolvedValue({ approved: 50, skipped: 0, skippedItems: [] });
+  });
+
+  it('50 satırın yük grubu tek işlemle dolar ve onay butonu aktifleşir', async () => {
+    const user = userEvent.setup();
+    const rows = Array.from({ length: 50 }, (_, i) =>
+      makeRow(String(i), { incompatibleGroups: [] }),
+    );
+    renderDialog(rows);
+
+    expect(screen.getByRole('button', { name: 'Geçerli satırları aktar (0)' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Yük Grubu sütununu toplu doldur' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Genel' }));
+    await user.click(screen.getByRole('button', { name: 'Uygula' }));
+
+    const confirm = await screen.findByRole('button', { name: '50 Ürünü Onayla' });
+    expect(confirm).toBeEnabled();
+  });
+
+  it('onay olmadan dolu satırın üzerine yazmaz, onaylanınca yazar', async () => {
+    const user = userEvent.setup();
+    renderDialog([
+      makeRow('a', { incompatibleGroups: ['Kimya'] }),
+      makeRow('b', { incompatibleGroups: [] }),
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Yük Grubu sütununu toplu doldur' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Gıda' }));
+    await user.click(screen.getByRole('button', { name: 'Uygula' }));
+
+    expect(screen.getByText('Kimya')).toBeInTheDocument();
+    expect(screen.getAllByText('Gıda')).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: 'Yük Grubu sütununu toplu doldur' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Gıda' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Dolu satırların üzerine yaz' }));
+    await user.click(screen.getByRole('button', { name: 'Uygula' }));
+
+    expect(screen.queryByText('Kimya')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Gıda')).toHaveLength(2);
+  });
+});

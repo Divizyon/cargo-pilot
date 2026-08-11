@@ -61,6 +61,13 @@ interface BulkImportDialogProps {
 
 const LOAD_GROUPS = ['Kimya', 'Tehlikeli Madde', 'Gıda', 'Elektronik', 'Tekstil', 'Genel'] as const;
 
+/** Sütun başlığındaki toplu doldurma seçenekleri; hücre bileşenleriyle aynı sözlükten türer. */
+const LOAD_GROUP_FILL_OPTIONS = LOAD_GROUPS.map((g) => ({ value: g, label: g }));
+const FRAGILITY_FILL_OPTIONS = FRAGILITY_OPTIONS.map((o) => ({
+  value: String(o.value),
+  label: o.label,
+}));
+
 const editableRowSchema = z.object({
   _id: z.string(),
   sku: z.string(),
@@ -360,6 +367,104 @@ function LoadGroupCell({ selected, error, onChange }: LoadGroupCellProps) {
   );
 }
 
+// ─── Column bulk fill (header) ────────────────────────────────────────────────
+
+interface BulkFillOption {
+  value: string;
+  label: string;
+}
+
+interface ColumnBulkFillProps {
+  title: string;
+  options: readonly BulkFillOption[];
+  /** Halihazırda dolu satır sayısı; 0'dan büyükse üzerine yazma onayı istenir. */
+  filledCount: number;
+  onApply: (values: string[], overwrite: boolean) => void;
+}
+
+function ColumnBulkFill({ title, options, filledCount, onApply }: ColumnBulkFillProps) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [overwrite, setOverwrite] = useState(false);
+
+  function toggle(value: string) {
+    setSelected((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  }
+
+  function reset() {
+    setSelected([]);
+    setOverwrite(false);
+  }
+
+  function apply() {
+    onApply(selected, overwrite);
+    setOpen(false);
+    reset();
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) reset();
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${title} sütununu toplu doldur`}
+          className="flex items-center gap-0.5 rounded border border-border bg-background px-1 py-0.5 text-[9px] font-medium normal-case text-muted-foreground hover:bg-muted"
+        >
+          Tümü
+          <ChevronDown className="h-2.5 w-2.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <p className="mb-1.5 text-[11px] font-medium normal-case tracking-normal text-muted-foreground">
+          {title} — tüm satırlara uygula
+        </p>
+        <div className="space-y-1">
+          {options.map((opt) => (
+            <label
+              key={opt.value}
+              className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs font-normal normal-case tracking-normal hover:bg-muted"
+            >
+              <Checkbox
+                aria-label={opt.label}
+                checked={selected.includes(opt.value)}
+                onCheckedChange={() => toggle(opt.value)}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+        {filledCount > 0 && (
+          <label className="mt-2 flex cursor-pointer items-center gap-2 rounded border-t px-1 pt-2 text-[11px] font-normal normal-case tracking-normal text-muted-foreground">
+            <Checkbox
+              aria-label="Dolu satırların üzerine yaz"
+              checked={overwrite}
+              onCheckedChange={(c) => setOverwrite(Boolean(c))}
+            />
+            Dolu {filledCount} satırın üzerine yaz
+          </label>
+        )}
+        <Button
+          type="button"
+          size="sm"
+          className="mt-2 h-7 w-full text-xs"
+          disabled={selected.length === 0}
+          onClick={apply}
+        >
+          Uygula
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── Cell components ──────────────────────────────────────────────────────────
 
 interface TextCellProps {
@@ -490,9 +595,34 @@ export function BulkImportDialog({
     hasErrorRows: errorRowCount > 0,
     validRowCount,
   });
+  const filledLoadGroupCount = rows.filter((r) => r.incompatibleGroups.length > 0).length;
+  const filledFragilityCount = rows.filter((r) => r.constraintIds.length > 0).length;
 
   function patchRow(id: string, patch: Partial<EditableRow>) {
     setRows((prev) => prev.map((r) => (r._id === id ? { ...r, ...patch } : r)));
+  }
+
+  /** Sütun başlığından toplu doldurma; dolu satırlar yalnızca 'üzerine yaz' onayıyla değişir. */
+  function fillLoadGroups(groups: string[], overwrite: boolean) {
+    setRows((prev) =>
+      prev.map((r) =>
+        overwrite || r.incompatibleGroups.length === 0 ? { ...r, incompatibleGroups: groups } : r,
+      ),
+    );
+  }
+
+  function fillFragility(constraintIds: number[], overwrite: boolean) {
+    setRows((prev) =>
+      prev.map((r) =>
+        overwrite || r.constraintIds.length === 0
+          ? {
+              ...r,
+              constraintIds,
+              fragility: constraintIds.length > 0 ? String(Math.max(...constraintIds)) : '0',
+            }
+          : r,
+      ),
+    );
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -723,8 +853,28 @@ export function BulkImportDialog({
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik (Y) *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Derinlik (Z) *</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
-                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Kırılganlık</th>
-                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Yük Grubu *</th>
+                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-1">
+                    Kırılganlık
+                    <ColumnBulkFill
+                      title="Kırılganlık"
+                      options={FRAGILITY_FILL_OPTIONS}
+                      filledCount={filledFragilityCount}
+                      onApply={(values, overwrite) => fillFragility(values.map(Number), overwrite)}
+                    />
+                  </div>
+                </th>
+                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-1">
+                    Yük Grubu *
+                    <ColumnBulkFill
+                      title="Yük Grubu"
+                      options={LOAD_GROUP_FILL_OPTIONS}
+                      filledCount={filledLoadGroupCount}
+                      onApply={fillLoadGroups}
+                    />
+                  </div>
+                </th>
                 <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
