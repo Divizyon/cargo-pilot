@@ -1,10 +1,12 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace CargoPilot.Application.Tests.Features.Plans;
@@ -16,25 +18,70 @@ public sealed class ApprovePlanCommandHandlerTests
 
     private readonly ILoadingPlanRepository _planRepository = Substitute.For<ILoadingPlanRepository>();
     private readonly ICurrentUserService _currentUserService = Substitute.For<ICurrentUserService>();
+    private readonly IIntegrationRepository _integrationRepository = Substitute.For<IIntegrationRepository>();
     private readonly IErpExportJobScheduler _jobScheduler = Substitute.For<IErpExportJobScheduler>();
 
-    private ApprovePlanCommandHandler CreateSut() =>
-        new(_planRepository, _currentUserService, _jobScheduler);
+    private ApprovePlanCommandHandler CreateSut(bool exportEnabled) =>
+        new(
+            _planRepository,
+            _currentUserService,
+            _integrationRepository,
+            _jobScheduler,
+            Options.Create(new ErpExportSettings { ExportEnabled = exportEnabled }));
 
     [Fact]
-    public async Task Handle_HesaplanmisPlanOnaylaninca_EnqueueTamBirKezCagrilir()
+    public async Task Handle_AktarimAcikVeEntegrasyonVarsa_EnqueueTamBirKezCagrilir()
+    {
+        _currentUserService.CompanyId.Returns(CompanyId);
+        var plan = TestData.CreateCalculatedPlan(PlanId, CompanyId);
+        _planRepository.GetByIdAsync(PlanId, CompanyId, Arg.Any<CancellationToken>()).Returns(plan);
+        _integrationRepository.ExistsByCompanyAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(true);
+
+        var result = await CreateSut(exportEnabled: true)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.PlanId.Should().Be(PlanId);
+        result.Data.ErpExportQueued.Should().BeTrue();
+        plan.ErpExportStatus.Should().Be(ErpExportStatus.Pending);
+        _jobScheduler.Received(1).Enqueue(PlanId, CompanyId);
+        await _planRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_AktarimKapaliyken_EnqueueCagrilmazVeErpDurumuDegismez()
     {
         _currentUserService.CompanyId.Returns(CompanyId);
         var plan = TestData.CreateCalculatedPlan(PlanId, CompanyId);
         _planRepository.GetByIdAsync(PlanId, CompanyId, Arg.Any<CancellationToken>()).Returns(plan);
 
-        var result = await CreateSut().Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+        var result = await CreateSut(exportEnabled: false)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data.Should().Be(PlanId);
-        plan.ErpExportStatus.Should().Be(ErpExportStatus.Pending);
-        _jobScheduler.Received(1).Enqueue(PlanId, CompanyId);
-        await _planRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        result.Data!.ErpExportQueued.Should().BeFalse();
+        plan.ErpExportStatus.Should().BeNull();
+        _jobScheduler.DidNotReceiveWithAnyArgs().Enqueue(Guid.Empty, Guid.Empty);
+        await _planRepository.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_AktarimAcikAmaEntegrasyonYoksa_AciklayiciHataDoner()
+    {
+        _currentUserService.CompanyId.Returns(CompanyId);
+        var plan = TestData.CreateCalculatedPlan(PlanId, CompanyId);
+        _planRepository.GetByIdAsync(PlanId, CompanyId, Arg.Any<CancellationToken>()).Returns(plan);
+        _integrationRepository.ExistsByCompanyAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(false);
+
+        var result = await CreateSut(exportEnabled: true)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Erp.NoIntegration");
+        result.Error.Type.Should().Be(ErrorType.BusinessRule);
+        result.Error.Description.Should().NotBeNullOrWhiteSpace();
+        plan.ErpExportStatus.Should().BeNull();
+        _jobScheduler.DidNotReceiveWithAnyArgs().Enqueue(Guid.Empty, Guid.Empty);
     }
 
     [Fact]
@@ -50,7 +97,8 @@ public sealed class ApprovePlanCommandHandlerTests
             CompanyId);
         _planRepository.GetByIdAsync(PlanId, CompanyId, Arg.Any<CancellationToken>()).Returns(plan);
 
-        var result = await CreateSut().Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+        var result = await CreateSut(exportEnabled: true)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
         result.Error!.Code.Should().Be("Plan.NotCalculated");
@@ -65,7 +113,8 @@ public sealed class ApprovePlanCommandHandlerTests
         plan.MarkErpSent();
         _planRepository.GetByIdAsync(PlanId, CompanyId, Arg.Any<CancellationToken>()).Returns(plan);
 
-        var result = await CreateSut().Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+        var result = await CreateSut(exportEnabled: true)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
         result.Error!.Code.Should().Be("Plan.AlreadyExported");
@@ -77,7 +126,8 @@ public sealed class ApprovePlanCommandHandlerTests
     {
         _currentUserService.CompanyId.Returns((Guid?)null);
 
-        var result = await CreateSut().Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+        var result = await CreateSut(exportEnabled: true)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
         result.Error!.Code.Should().Be("Auth.NoCompany");

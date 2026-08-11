@@ -67,6 +67,10 @@ public static class DependencyInjection {
             .Bind(configuration.GetSection("SubscriptionPlans"))
             .ValidateOnStart();
 
+        // Bolum yoksa varsayilan (ExportEnabled=false) gecerli olur.
+        services.AddOptions<ErpExportSettings>()
+            .Bind(configuration.GetSection("Erp"));
+
         services.AddOptions<MinioSettings>()
             .Bind(configuration.GetSection("Minio"))
             .Validate(s => !string.IsNullOrWhiteSpace(s.Endpoint), "Minio:Endpoint is required.")
