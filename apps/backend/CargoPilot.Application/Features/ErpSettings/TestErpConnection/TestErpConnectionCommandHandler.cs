@@ -40,6 +40,6 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
             : result.ErrorMessage ?? "ERP sistemine bağlanılamadı.";
 
         return Result<ErpConnectionTestResponse>.Success(
-            new ErpConnectionTestResponse(result.IsSuccess, message));
+            new ErpConnectionTestResponse(result.IsSuccess, message, result.Warning));
     }
 }

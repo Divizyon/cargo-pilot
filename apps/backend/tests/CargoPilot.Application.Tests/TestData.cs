@@ -8,7 +8,7 @@ namespace CargoPilot.Application.Tests;
 internal static class TestData
 {
     public static Integration CreateIntegration(Guid id, Guid companyId) =>
-        new(id, companyId, "Netsis", "localhost", mappingTable: null, syncInterval: null, authCredentials: null);
+        new(id, companyId, "Netsis", "localhost", mappingTable: null, syncInterval: null);
 
     public static ErpSettings CreateErpSettings(
         Guid companyId,

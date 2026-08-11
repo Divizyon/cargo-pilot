@@ -16,8 +16,6 @@ public sealed class Integration : BaseEntity {
     /// <summary>Calisan sync'in baslangic ani; Running'de takilan kayitlarin zaman asimi icin kullanilir.</summary>
     public DateTime? SyncStartedAtUtc { get; private set; }
 
-    public string? AuthCredentials { get; private set; }
-
 #pragma warning disable S1144
     public Company? Company { get; private set; }
 #pragma warning restore S1144
@@ -31,14 +29,12 @@ public sealed class Integration : BaseEntity {
         string systemName,
         string apiEndpoint,
         string? mappingTable,
-        int? syncInterval,
-        string? authCredentials) : base(id) {
+        int? syncInterval) : base(id) {
         CompanyId = companyId;
         SystemName = systemName;
         ApiEndpoint = apiEndpoint;
         MappingTable = mappingTable;
         SyncInterval = syncInterval;
-        AuthCredentials = authCredentials;
     }
 
     public void Update(string systemName, string apiEndpoint, string? mappingTable, int? syncInterval) {
@@ -47,8 +43,6 @@ public sealed class Integration : BaseEntity {
         MappingTable = mappingTable;
         SyncInterval = syncInterval;
     }
-
-    public void UpdateAuthCredentials(string? authCredentials) => AuthCredentials = authCredentials;
 
     public void RecordSync(DateTime syncDate) => LastSyncDate = syncDate;
 

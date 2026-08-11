@@ -13,10 +13,25 @@ internal sealed record ErpSchemaProbe(string CountSql, string SchemaNotFoundMess
 
 /// <summary>
 /// MSSQL tabanli ERP connector'larinin ortak baglanti testi: login basarili olsa bile
-/// beklenen sema yoksa 'basarili' donmez.
+/// beklenen sema yoksa 'basarili' donmez, hesabin yazma yetkisi varsa uyari doner.
 /// </summary>
 internal static class SqlServerConnectionTester
 {
+    /// <summary>
+    /// Baglanan hesabin veritabani genelinde yazma yetkisi olup olmadigini sorar.
+    /// CargoPilot yalnizca okuma yapar; yazma yetkili hesap gereksiz risk uretir.
+    /// </summary>
+    private const string WritePermissionSql = """
+        SELECT CASE WHEN
+            ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'INSERT'), 0) = 1 OR
+            ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'UPDATE'), 0) = 1 OR
+            ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'DELETE'), 0) = 1
+        THEN 1 ELSE 0 END
+        """;
+
+    internal const string WritePermissionWarning =
+        "Bağlanılan SQL hesabının veritabanında yazma yetkisi var. Güvenlik için yalnızca okuma yetkisi olan (db_datareader) ayrı bir hesap önerilir.";
+
     public static async Task<ErpConnectionResult> TestAsync(
         string serverAddress,
         ErpCredentials credentials,
@@ -31,10 +46,11 @@ internal static class SqlServerConnectionTester
             await conn.OpenAsync(cancellationToken);
 
             var matchCount = await ExecuteScalarIntAsync(conn, schemaProbe.CountSql, cancellationToken);
+            if (matchCount == 0)
+                return new ErpConnectionResult(false, schemaProbe.SchemaNotFoundMessage);
 
-            return matchCount > 0
-                ? new ErpConnectionResult(true, null)
-                : new ErpConnectionResult(false, schemaProbe.SchemaNotFoundMessage);
+            var warning = await TryGetWritePermissionWarningAsync(conn, cancellationToken);
+            return new ErpConnectionResult(true, null, warning);
         }
         catch (ErpConfigurationException ex)
         {
@@ -47,6 +63,24 @@ internal static class SqlServerConnectionTester
         catch (TaskCanceledException)
         {
             return new ErpConnectionResult(false, "Bağlantı zaman aşımına uğradı. Sunucu adresini kontrol edin.");
+        }
+    }
+
+    /// <summary>
+    /// Yetki sorgusu basarisiz olursa test sonucu bozulmaz; uyari uretilmez.
+    /// </summary>
+    private static async Task<string?> TryGetWritePermissionWarningAsync(
+        SqlConnection conn,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var canWrite = await ExecuteScalarIntAsync(conn, WritePermissionSql, cancellationToken);
+            return canWrite == 1 ? WritePermissionWarning : null;
+        }
+        catch (SqlException)
+        {
+            return null;
         }
     }
 

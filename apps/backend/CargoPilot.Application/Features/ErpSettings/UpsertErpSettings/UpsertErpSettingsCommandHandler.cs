@@ -63,8 +63,7 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
                     systemName: request.ProviderType.ToString(),
                     apiEndpoint: request.ServerAddress,
                     mappingTable: null,
-                    syncInterval: null,
-                    authCredentials: null));
+                    syncInterval: null));
             }
 
             await _repository.SaveChangesAsync(cancellationToken);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,7 +37,7 @@ import {
 } from '@/lib/api/useERPIntegration';
 import { getApiErrorMessage } from '@/lib/api/apiError';
 
-type TestResult = { success: boolean; message?: string | null } | null;
+type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
 
 export function ERPConnectionForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -283,6 +283,13 @@ export function ERPConnectionForm() {
                 : (testResult.message ??
                   'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.')}
             </span>
+          </div>
+        )}
+
+        {testResult?.warning && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{testResult.warning}</span>
           </div>
         )}
 

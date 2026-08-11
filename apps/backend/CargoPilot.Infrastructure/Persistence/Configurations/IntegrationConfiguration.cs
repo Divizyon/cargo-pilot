@@ -54,9 +54,6 @@ internal sealed class IntegrationConfiguration : IEntityTypeConfiguration<Integr
 
         builder.Property(i => i.SyncStartedAtUtc);
 
-        builder.Property(i => i.AuthCredentials)
-            .HasColumnType("nvarchar(max)");
-
         builder.HasOne(i => i.Company)
             .WithMany(c => c.Integrations)
             .HasForeignKey(i => i.CompanyId)

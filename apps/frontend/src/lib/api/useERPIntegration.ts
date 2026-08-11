@@ -76,7 +76,12 @@ const syncLogsPageResponseSchema = z.object({
 
 const testConnectionResponseSchema = z.object({
   isSuccess: z.boolean(),
-  data: z.object({ isSuccess: z.boolean(), message: z.string().nullable().optional() }),
+  data: z.object({
+    isSuccess: z.boolean(),
+    message: z.string().nullable().optional(),
+    /** Bağlantı kurulsa da dikkat gerektiren durum (ör. hesabın yazma yetkisi olması). */
+    warning: z.string().nullable().optional(),
+  }),
 });
 
 const erpSettingsApiResponseSchema = z.object({
@@ -141,7 +146,7 @@ export function useSaveERPSettings() {
 
 export function useTestERPSettings() {
   return useMutation<
-    { success: boolean; message?: string | null },
+    { success: boolean; message?: string | null; warning?: string | null },
     AxiosError<ApiErrorResponse>,
     ErpConnectionFormValues
   >({
@@ -151,7 +156,11 @@ export function useTestERPSettings() {
         buildErpSettingsBody(values),
       );
       const parsed = testConnectionResponseSchema.parse(data);
-      return { success: parsed.data.isSuccess, message: parsed.data.message };
+      return {
+        success: parsed.data.isSuccess,
+        message: parsed.data.message,
+        warning: parsed.data.warning,
+      };
     },
   });
 }
