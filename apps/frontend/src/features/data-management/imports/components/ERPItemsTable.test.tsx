@@ -98,8 +98,13 @@ function renderTable(node: ReactNode = <ERPItemsTable />) {
     </QueryClientProvider>,
   );
 }
-const { DRAFT_PENDING, DRAFT_APPROVED, DRAFT_REJECTED, DRAFT_UPDATE_DISMISSED } =
-  await import('@/lib/api/useDraftItems');
+const {
+  DRAFT_PENDING,
+  DRAFT_APPROVED,
+  DRAFT_REJECTED,
+  DRAFT_UPDATE_PENDING,
+  DRAFT_UPDATE_DISMISSED,
+} = await import('@/lib/api/useDraftItems');
 
 function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'>): DraftItem {
   return {
@@ -161,6 +166,18 @@ const draftItems: DraftItem[] = [
     name: 'Guncellemesi Reddedilmis Urun',
     sku: 'RED-0002',
     status: DRAFT_UPDATE_DISMISSED,
+  }),
+  makeDraft({
+    id: '77777777-7777-4777-8777-777777777777',
+    name: 'Guncellenecek Urun A',
+    sku: 'GNC-0001',
+    status: DRAFT_UPDATE_PENDING,
+  }),
+  makeDraft({
+    id: '88888888-8888-4888-8888-888888888888',
+    name: 'Guncellenecek Urun B',
+    sku: 'GNC-0002',
+    status: DRAFT_UPDATE_PENDING,
   }),
 ];
 
@@ -345,6 +362,52 @@ describe('ERPItemsTable', () => {
 
     await user.click(reinstateButtons[0]);
     expect(mocks.reinstate).toHaveBeenCalledWith(['55555555-5555-4555-8555-555555555555']);
+  });
+
+  it('Güncellemeler sekmesinde tümünü seç yalnızca güncelleme kayıtlarını seçer', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('button', { name: /Güncellemeler/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Tümünü seç' }));
+    await user.click(screen.getByRole('button', { name: /^Reddet/ }));
+
+    // Bekleyenler sekmesinde 3 kayıt var; küme aktif sekmeye bağlıysa sayı 2 olur.
+    expect(await screen.findByText('2 ürünü reddetmek üzeresiniz')).toBeInTheDocument();
+
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Reddet' }));
+
+    expect(mocks.bulkReject.mock.calls[0][0]).toEqual([
+      '77777777-7777-4777-8777-777777777777',
+      '88888888-8888-4888-8888-888888888888',
+    ]);
+  });
+
+  it('Güncellemeler sekmesinde toplu onay görünen güncelleme satırlarını taşır', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('button', { name: /Güncellemeler/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Tümünü seç' }));
+    await user.click(screen.getByRole('button', { name: /^Onayla/ }));
+
+    const dialog = await screen.findByTestId('bulk-import-dialog');
+    expect(within(dialog).getByTestId('dialog-row-names')).toHaveTextContent(
+      'Guncellenecek Urun A|Guncellenecek Urun B',
+    );
+  });
+
+  it('sekme değiştiğinde seçim sıfırlanır', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Palet Kasa 60x40 satırını seç' }));
+    expect(screen.getByRole('button', { name: /^Reddet/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Güncellemeler/ }));
+
+    expect(screen.getByRole('checkbox', { name: 'Tümünü seç' })).not.toBeChecked();
   });
 
   it('sayfalama okları dahil her buton erişilebilir bir ad taşır', () => {

@@ -202,6 +202,10 @@ export function ERPItemsTable() {
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
 
+  const isRejectedTab = statusFilter === DRAFT_REJECTED;
+  const isUpdateTab = statusFilter === DRAFT_UPDATE_PENDING;
+  const isSelectableTab = statusFilter === DRAFT_PENDING || isUpdateTab;
+
   const isSearching = searchTerm.trim().length > 0;
   const hasActiveFilters = categoryFilters.size > 0;
   const queryPage = isSearching ? 1 : page;
@@ -216,9 +220,10 @@ export function ERPItemsTable() {
     refetch: refetchDrafts,
   } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
 
-  const { data: allPendingPage } = useDraftItems(
-    { page: 1, pageSize: 9999, status: DRAFT_PENDING },
-    { enabled: selectAllMode },
+  // Tümünü-seç kümesi aktif sekmeye bağlıdır; aksi halde görünmeyen kayıtlar toplu işleme girer.
+  const { data: allSelectablePage } = useDraftItems(
+    { page: 1, pageSize: 9999, status: statusFilter },
+    { enabled: selectAllMode && isSelectableTab },
   );
 
   // Reddedilenler sekmesi rozeti; kayitlarin kaybolmadigini sekme uzerinden gorunur kilar.
@@ -229,15 +234,14 @@ export function ERPItemsTable() {
   });
 
   const effectiveSelectedIds: ReadonlySet<string> =
-    selectAllMode && allPendingPage ? new Set(allPendingPage.items.map((i) => i.id)) : selectedIds;
+    selectAllMode && allSelectablePage
+      ? new Set(allSelectablePage.items.map((i) => i.id))
+      : selectedIds;
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
   const bulkReject = useBulkRejectDraftItems();
   const reinstate = useReinstateDraftItems();
 
-  const isRejectedTab = statusFilter === DRAFT_REJECTED;
-  const isUpdateTab = statusFilter === DRAFT_UPDATE_PENDING;
-  const isSelectableTab = statusFilter === DRAFT_PENDING || isUpdateTab;
   const columnCount = isRejectedTab ? 10 : 9;
 
   const allItems = draftPage?.items ?? [];
@@ -291,8 +295,8 @@ export function ERPItemsTable() {
   }
 
   function handleSelectRow(id: string, checked: boolean) {
-    if (selectAllMode && allPendingPage) {
-      const materialized = new Set(allPendingPage.items.map((i) => i.id));
+    if (selectAllMode && allSelectablePage) {
+      const materialized = new Set(allSelectablePage.items.map((i) => i.id));
       if (!checked) materialized.delete(id);
       setSelectAllMode(false);
       setSelectedIds(materialized);
