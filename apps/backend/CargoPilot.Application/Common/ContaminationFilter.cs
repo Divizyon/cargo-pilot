@@ -14,6 +14,11 @@ internal static class ContaminationFilter
         IReadOnlyList<OptimizationItemInput> Passed,
         IReadOnlyList<UnplacedItemResult> Contaminated);
 
+    /// <summary>
+    /// Modül kapalıyken kullanılan sonuç: hiçbir ürün elenmez.
+    /// </summary>
+    internal static Result Skipped(IReadOnlyList<OptimizationItemInput> items) => new(items, []);
+
     internal static Result Filter(IReadOnlyList<OptimizationItemInput> items)
     {
         var grouped = items.Where(i => i.StackGroup != null).ToList();

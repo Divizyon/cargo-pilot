@@ -1,0 +1,104 @@
+{
+  "Scenario": "Lifo_IkiGrup_ArkaKapi_BolgelereAyrilir",
+  "Vehicle": {
+    "Width": 100,
+    "Height": 100,
+    "Length": 300,
+    "MaxWeight": 10000,
+    "Criteria": "Lifo",
+    "LoadingType": "Rear",
+    "ClusterGroups": true
+  },
+  "Items": [
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000001",
+      "Sku": "SKU-000000000001",
+      "Width": 100,
+      "Height": 100,
+      "Length": 50,
+      "Weight": 100,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": "00000000-0000-0000-0001-000000000001",
+      "UnloadingOrder": 1
+    },
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000002",
+      "Sku": "SKU-000000000002",
+      "Width": 100,
+      "Height": 100,
+      "Length": 50,
+      "Weight": 100,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": "00000000-0000-0000-0001-000000000002",
+      "UnloadingOrder": 2
+    }
+  ],
+  "Outcome": {
+    "TotalWeight": 400,
+    "FillRate": 0.6666666666666666666666666667,
+    "CenterOfGravityX": 50,
+    "CenterOfGravityY": 50,
+    "CenterOfGravityZ": 125,
+    "WeightBalanceOffsetX": 0,
+    "WeightBalanceOffsetZ": 16.7,
+    "Placements": [
+      {
+        "Order": 0,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 0,
+        "Y": 0,
+        "Z": 150,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 50,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 1,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 0,
+        "Y": 0,
+        "Z": 200,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 50,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 2,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 50,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 3,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 50,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 50,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      }
+    ],
+    "UnplacedItems": []
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "Scenario": "VolumeFirst_SabitRotasyon_GenisKutuSigmaz",
+  "Vehicle": {
+    "Width": 200,
+    "Height": 200,
+    "Length": 400,
+    "MaxWeight": 2000,
+    "Criteria": "VolumeFirst",
+    "LoadingType": "Rear",
+    "ClusterGroups": true
+  },
+  "Items": [
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000001",
+      "Sku": "SKU-000000000001",
+      "Width": 300,
+      "Height": 100,
+      "Length": 100,
+      "Weight": 120,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": null,
+      "UnloadingOrder": null
+    },
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000002",
+      "Sku": "SKU-000000000002",
+      "Width": 100,
+      "Height": 100,
+      "Length": 100,
+      "Weight": 40,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": null,
+      "UnloadingOrder": null
+    }
+  ],
+  "Outcome": {
+    "TotalWeight": 80,
+    "FillRate": 0.125,
+    "CenterOfGravityX": 100,
+    "CenterOfGravityY": 50,
+    "CenterOfGravityZ": 50,
+    "WeightBalanceOffsetX": 0,
+    "WeightBalanceOffsetZ": 75.0,
+    "Placements": [
+      {
+        "Order": 0,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 100,
+        "Rotation": "NoRotation",
+        "Weight": 40
+      },
+      {
+        "Order": 1,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 100,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 100,
+        "Rotation": "NoRotation",
+        "Weight": 40
+      }
+    ],
+    "UnplacedItems": [
+      {
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "Quantity": 2,
+        "Reason": "InsufficientSpace"
+      }
+    ]
+  }
+}
