@@ -18,6 +18,16 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -156,6 +166,7 @@ export function ERPItemsTable() {
   const [selectAllMode, setSelectAllMode] = useState(false);
   const [importMode, setImportMode] = useState<'import' | 'update'>('import');
   const [requirementsOpen, setRequirementsOpen] = useState(false);
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
 
   useEffect(() => {
     let last = pageSize;
@@ -317,7 +328,9 @@ export function ERPItemsTable() {
     setImportOpen(true);
   }
 
-  function handleRejectSelected() {
+  // Toplu ret teyitsiz calismaz; kullanici kac kaydin ne olacagini gorur.
+  function handleConfirmReject() {
+    setRejectConfirmOpen(false);
     bulkReject.mutate(Array.from(effectiveSelectedIds), {
       onSuccess: () => {
         setSelectedIds(new Set());
@@ -728,7 +741,7 @@ export function ERPItemsTable() {
             type="button"
             variant="outline"
             className="gap-1.5"
-            onClick={handleRejectSelected}
+            onClick={() => setRejectConfirmOpen(true)}
             disabled={bulkReject.isPending}
           >
             Reddet
@@ -749,6 +762,31 @@ export function ERPItemsTable() {
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {effectiveSelectedIds.size} ürünü reddetmek üzeresiniz
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isUpdateTab
+                ? "ERP'den gelen güncelleme uygulanmayacak; ürünler mevcut haliyle kalacak. Kayıtlar Reddedilenler sekmesinde durur, buradan tekrar beklemeye alabilirsiniz."
+                : 'Bu ürünler Ürünler listesine aktarılmayacak. Kayıtlar silinmez; Reddedilenler sekmesinde durur ve tekrar beklemeye alabilirsiniz.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleConfirmReject}
+              disabled={bulkReject.isPending}
+            >
+              Reddet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ErpSyncRequirementsDialog
         open={requirementsOpen}

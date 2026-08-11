@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   erpSettings: vi.fn(),
   triggerSync: vi.fn(),
   bulkReject: vi.fn(),
+  reinstate: vi.fn(),
   draftItemsState: { isLoading: false, isEmpty: false, error: null as unknown },
 }));
 
@@ -46,9 +47,12 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
       if (mocks.draftItemsState.isLoading) {
         return { data: undefined, isLoading: true, isFetching: true };
       }
-      const items = mocks.draftItemsState.isEmpty
-        ? []
-        : draftItems.filter((i) => i.status === params.status);
+      // Backend sözleşmesi: 'Reddedilenler' filtresi tam retleri de reddedilen güncellemeleri de döner.
+      const matchesStatus = (item: DraftItem) =>
+        params.status === DRAFT_REJECTED
+          ? item.status === DRAFT_REJECTED || item.status === DRAFT_UPDATE_DISMISSED
+          : item.status === params.status;
+      const items = mocks.draftItemsState.isEmpty ? [] : draftItems.filter(matchesStatus);
       return {
         data: { items, totalCount: items.length, page: params.page, pageSize: params.pageSize },
         isLoading: false,
@@ -56,6 +60,7 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
       };
     },
     useBulkRejectDraftItems: () => ({ mutate: mocks.bulkReject, isPending: false }),
+    useReinstateDraftItems: () => ({ mutate: mocks.reinstate, isPending: false }),
   };
 });
 
@@ -85,7 +90,9 @@ function renderTable(node: ReactNode = <ERPItemsTable />) {
     </QueryClientProvider>,
   );
 }
-const { DRAFT_PENDING, DRAFT_APPROVED } = await import('@/lib/api/useDraftItems');
+const { DRAFT_PENDING, DRAFT_APPROVED, DRAFT_REJECTED, DRAFT_UPDATE_DISMISSED } = await import(
+  '@/lib/api/useDraftItems'
+);
 
 function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'>): DraftItem {
   return {
@@ -135,6 +142,18 @@ const draftItems: DraftItem[] = [
     width: 0,
     weight: 0,
     missingFields: ['width', 'weight'],
+  }),
+  makeDraft({
+    id: '55555555-5555-4555-8555-555555555555',
+    name: 'Reddedilmis Urun',
+    sku: 'RED-0001',
+    status: DRAFT_REJECTED,
+  }),
+  makeDraft({
+    id: '66666666-6666-4666-8666-666666666666',
+    name: 'Guncellemesi Reddedilmis Urun',
+    sku: 'RED-0002',
+    status: DRAFT_UPDATE_DISMISSED,
   }),
 ];
 
@@ -272,5 +291,51 @@ describe('ERPItemsTable', () => {
 
     expect(await screen.findByText('Çekim için ERP ayarları eksik')).toBeInTheDocument();
     expect(mocks.triggerSync).not.toHaveBeenCalled();
+  });
+
+  it('toplu ret teyit istemeden çalışmaz', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Palet Kasa 60x40 satırını seç' }));
+    await user.click(screen.getByRole('button', { name: /^Reddet/ }));
+
+    expect(await screen.findByText('1 ürünü reddetmek üzeresiniz')).toBeInTheDocument();
+    expect(mocks.bulkReject).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Vazgeç' }));
+
+    expect(mocks.bulkReject).not.toHaveBeenCalled();
+  });
+
+  it('teyit onaylanınca seçili taslaklar reddedilir', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Palet Kasa 60x40 satırını seç' }));
+    await user.click(screen.getByRole('button', { name: /^Reddet/ }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Reddet' }));
+
+    expect(mocks.bulkReject).toHaveBeenCalledTimes(1);
+    expect(mocks.bulkReject.mock.calls[0][0]).toEqual(['11111111-1111-4111-8111-111111111111']);
+  });
+
+  it('Reddedilenler sekmesi reddedilen kayıtları ve geri alma yolunu gösterir', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('button', { name: /Reddedilenler/ }));
+
+    expect(screen.getByText('Reddedilmis Urun')).toBeInTheDocument();
+    expect(screen.getByText('Guncellemesi Reddedilmis Urun')).toBeInTheDocument();
+    expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument();
+
+    const reinstateButtons = screen.getAllByRole('button', { name: 'Tekrar beklemeye al' });
+    expect(reinstateButtons).toHaveLength(2);
+
+    await user.click(reinstateButtons[0]);
+    expect(mocks.reinstate).toHaveBeenCalledWith(['55555555-5555-4555-8555-555555555555']);
   });
 });
