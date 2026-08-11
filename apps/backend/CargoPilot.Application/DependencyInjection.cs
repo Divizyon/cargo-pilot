@@ -1,5 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Behaviors;
+using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Application.Services;
 using FluentValidation;
 using MediatR;
@@ -19,6 +21,7 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IOptimizationEngine, OptimizationEngine>();
 
         return services;
     }
