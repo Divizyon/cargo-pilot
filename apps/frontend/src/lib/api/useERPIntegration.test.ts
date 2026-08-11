@@ -4,6 +4,7 @@ import {
   PROVIDER_TYPE_TO_INT,
   SYNC_FREQUENCY_TO_INT,
   buildSyncToastMessage,
+  utcDateTimeSchema,
 } from './useERPIntegration';
 import { ErpDropReason, SyncLogStatus, type ErpSyncSummary } from '@/lib/types/erp';
 
@@ -137,5 +138,22 @@ describe('buildSyncToastMessage', () => {
     ).toBe(
       "ERP'de 8 satır bulundu — 5 eklendi, 0 güncellendi. 3 satır hiçbir sayaca düşmedi (mutabakat farkı).",
     );
+  });
+});
+
+describe('utcDateTimeSchema', () => {
+  it('bölge damgası olmayan backend zamanını UTC olarak işaretler', () => {
+    expect(utcDateTimeSchema.parse('2026-08-11T22:16:40.0926193')).toBe(
+      '2026-08-11T22:16:40.0926193Z',
+    );
+  });
+
+  it('damgalı değerleri olduğu gibi bırakır', () => {
+    expect(utcDateTimeSchema.parse('2026-08-11T22:16:40Z')).toBe('2026-08-11T22:16:40Z');
+    expect(utcDateTimeSchema.parse('2026-08-11T22:16:40+03:00')).toBe('2026-08-11T22:16:40+03:00');
+  });
+
+  it('tarih olmayan değeri reddeder', () => {
+    expect(utcDateTimeSchema.safeParse('dun').success).toBe(false);
   });
 });

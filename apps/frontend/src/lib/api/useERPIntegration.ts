@@ -45,14 +45,24 @@ const SYNC_STATUS_FROM_INT: Record<number, ErpSyncStatus> = {
   2: ErpSyncStatus.Failed,
 };
 
+/**
+ * Backend UTC zamanları bölge damgası olmadan gönderiyor ("2026-08-11T22:16:40.09").
+ * Damgayı zorunlu tutmak, ilk çekimden sonra panelin tamamen hata durumuna
+ * düşmesine yol açıyordu; değer kabul edilip UTC olarak işaretlenir.
+ */
+export const utcDateTimeSchema = z
+  .string()
+  .datetime({ offset: true, local: true })
+  .transform((value) => (/(Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`));
+
 // Raw API sync settings schema
 // syncFrequency: nullable int, syncStatus: int (0=Idle,1=Running), lastSyncAt (not lastSyncedAt)
 const erpSyncSettingsApiSchema = z.object({
   integrationId: z.string().uuid().optional(),
   syncFrequency: z.number().int().nullable(),
   syncStatus: z.number().int(),
-  nextScheduledSyncAt: z.string().datetime({ offset: true }).nullable(),
-  lastSyncAt: z.string().datetime({ offset: true }).nullable(),
+  nextScheduledSyncAt: utcDateTimeSchema.nullable(),
+  lastSyncAt: utcDateTimeSchema.nullable(),
 });
 
 const erpSyncSettingsApiResponseSchema = z.object({
