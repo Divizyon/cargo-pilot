@@ -22,14 +22,14 @@ import type { ErpConnectionFormValues } from '@/features/platform/erp/schemas/er
 const ERP_BASE = '/api/v1/integrations';
 const ERP_SETTINGS_BASE = '/api/v1/erp-settings';
 
-const PROVIDER_TYPE_TO_INT: Record<string, number> = { Logo: 0, Netsis: 1 };
+export const PROVIDER_TYPE_TO_INT: Record<string, number> = { Logo: 0, Netsis: 1 };
 
 interface ApiError {
   detail?: string;
   title?: string;
 }
 
-const SYNC_FREQUENCY_TO_INT: Record<string, number> = {
+export const SYNC_FREQUENCY_TO_INT: Record<string, number> = {
   FourHours: 0,
   Daily: 1,
 };
