@@ -8,7 +8,10 @@ namespace CargoPilot.Application.Common.Optimization;
 /// tabanlı denge iyileştirici. Motordan çıkarılan saf fonksiyonlardır; durum
 /// tutmaz.
 ///
-/// Modül Lifo kriterinde kapalıdır (terim 0).
+/// Modülün açık/kapalı olması <see cref="Models.OptimizationModules.UseWeightBalance"/>
+/// ile belirlenir; varsayılan türetme Lifo kriterinde kapalıdır (terim 0).
+/// Katsayı yine kriterden gelir: Lifo için kalibre edilmiş bir denge katsayısı
+/// olmadığından bayrak orada açılsa bile terim 0 kalır.
 ///
 /// Tasarım kararı: hepsi <c>static</c>. Sıcak döngüde çağrıldıkları için
 /// arayüz/delegate/DI üzerinden sanal çağrı bilinçli olarak kullanılmaz.
@@ -22,17 +25,21 @@ internal static class BalanceScoring
     private const decimal WeightBalanceCoefficient = 900_000m;
 
     /// <summary>
-    /// Denge skor terimi: ceza × kriterin katsayısı. Modülün kapalı olduğu
-    /// kriterde tam olarak <c>0m</c> döner; toplama sırası bozulmasın diye ceza
-    /// hiç hesaplanmaz.
+    /// Denge skor terimi: ceza × kriterin katsayısı. Modül kapalıyken ya da
+    /// kriterin kalibre katsayısı yokken tam olarak <c>0m</c> döner; toplama
+    /// sırası bozulmasın diye ceza hiç hesaplanmaz.
     /// </summary>
     internal static decimal Term(
+        bool enabled,
         LoadingPlanOptimizationCriteria criteria,
         decimal ex, decimal ez, decimal w, decimal d,
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL)
     {
+        if (!enabled)
+            return 0m;
+
         var coefficient = criteria switch
         {
             LoadingPlanOptimizationCriteria.VolumeFirst => VolumeFirstCoefficient,

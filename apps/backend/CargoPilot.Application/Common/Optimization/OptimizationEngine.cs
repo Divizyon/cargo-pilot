@@ -12,6 +12,12 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
     public OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken = default)
     {
+        // Modül bayrakları sıcak döngüden önce bir kez çözülür ve yerel
+        // değişkenlere okunur, böylece aday taramasında kayıt alanı okunmaz.
+        var modules = OptimizationModules.Resolve(input);
+        var useVolume = modules.UseVolume;
+        var useWeightBalance = modules.UseWeightBalance;
+
         var placements = new List<PlacedBox>();
         var unplaced = new List<UnplacedBox>();
         var totalWeight = 0m;
@@ -31,7 +37,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // WeightBalance: aracın 4 kat-zemin köşesi tohumlanır; aksi hâlde greedy
         // her zaman (0,0,0) yakınına yığılır ve ön-arka/sol-sağ denge bozulur.
         var extremePoints = new HashSet<(decimal x, decimal y, decimal z)> { (0m, 0m, 0m) };
-        if (input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance
+        if (useWeightBalance
+            && input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance
             && halfW > 0m && halfL > 0m)
         {
             extremePoints.Add((halfW, 0m, 0m));    // arka-sağ
@@ -39,7 +46,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
         }
 
-        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, input.Criteria);
+        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, modules.UseLifo);
 
         // LIFO bölgeleri de aynı nedenle tohumlanır: aday noktalar yalnızca
         // yerleştirilmiş kutulara komşu doğduğu için ilk yüklenen grup her zaman
@@ -88,6 +95,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
                     var score = ComputeScore(
                         input.Criteria,
+                        useVolume, useWeightBalance,
                         ex, ey, ez, w, d,
                         item.Weight, totalWeight,
                         momentX, momentZ,
@@ -126,7 +134,10 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // ── İkinci geçiş: greedy swap ile denge iyileştirme ──────────────────
         // WeightBalance modunda, greedy faz sonrası kutu çiftleri takas edilerek
         // CoG sapması azaltılır. En fazla 3 tur çalışır, O(n²) her turda.
-        if (input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance && totalWeight > 0m)
+        // Modül kapalıyken ikinci geçiş hiç çalışmaz.
+        if (useWeightBalance
+            && input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance
+            && totalWeight > 0m)
             placements = BalanceScoring.ImproveBalance(placements, input.VehicleWidth, input.VehicleHeight,
                                                        input.VehicleLength, totalWeight, halfW, halfL,
                                                        cancellationToken);
@@ -178,8 +189,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     //   Lifo         : ey*1e6 + ez*1e3 +                ex + bölge
     // Kapalı modülün terimi ölçeği 0 olan 0m sabitidir; decimal toplamada
     // değeri de ölçeği de değiştirmez.
+    //
+    // Hangi terimin açık olduğunu artık kriter değil modül bayrakları belirler.
+    // Bayraklar verilmediğinde kriterden türetildikleri için yukarıdaki üç satır
+    // varsayılan davranış olarak geçerliliğini korur.
     private static decimal ComputeScore(
         LoadingPlanOptimizationCriteria criteria,
+        bool useVolume, bool useWeightBalance,
         decimal ex, decimal ey, decimal ez,
         decimal w,  decimal d,
         decimal itemWeight, decimal totalWeight,
@@ -191,16 +207,17 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // her zaman baskın tercihtir.
         var gravityTerm = ey * GravityCoefficient;
 
-        var depthTerm = VolumeScoring.DepthTerm(criteria, ez);
+        var depthTerm = VolumeScoring.DepthTerm(useVolume, ez);
 
         var balanceTerm = BalanceScoring.Term(
+            useWeightBalance,
             criteria,
             ex, ez, w, d,
             itemWeight, totalWeight,
             momentX, momentZ,
             halfW, halfL);
 
-        var widthTerm = VolumeScoring.WidthTerm(criteria, ex);
+        var widthTerm = VolumeScoring.WidthTerm(useVolume, ex);
 
         var zoneTerm = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, d);
 

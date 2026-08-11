@@ -1,0 +1,156 @@
+using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Enums;
+using CargoPilot.Engine.Tests.Golden;
+
+namespace CargoPilot.Engine.Tests;
+
+/// <summary>
+/// Modül bayraklarının (<see cref="OptimizationModules"/>) davranışını doğrular.
+/// Snapshot karşılaştırması değil, davranışsal testlerdir: varsayılan türetmenin
+/// bugünkü davranışa eşitliği ve kapatılan modülün planı gerçekten değiştirmesi.
+/// </summary>
+public sealed class ModulBayraklariTests
+{
+    /// <summary>
+    /// Varsayılan türetme tablosunu kilitler ve bayrakları elle vermenin
+    /// <c>Modules = null</c> ile birebir aynı planı ürettiğini gösterir.
+    /// Beklenen değerler bilinçli olarak elle yazılmıştır, üretim kodundaki
+    /// türetmeden okunmaz.
+    /// </summary>
+    [Theory]
+    [InlineData(LoadingPlanOptimizationCriteria.VolumeFirst, true, true, false, true)]
+    [InlineData(LoadingPlanOptimizationCriteria.WeightBalance, false, true, false, true)]
+    [InlineData(LoadingPlanOptimizationCriteria.Lifo, true, false, true, true)]
+    public void AcikBayraklar_VarsayilanTuretmeyle_AyniPlaniUretir(
+        LoadingPlanOptimizationCriteria criteria,
+        bool useVolume,
+        bool useWeightBalance,
+        bool useLifo,
+        bool useContamination)
+    {
+        var expectedModules = new OptimizationModules(useVolume, useWeightBalance, useLifo, useContamination);
+        Assert.Equal(expectedModules, OptimizationModules.FromCriteria(criteria));
+
+        var input = MixedInput(criteria);
+        var scenario = nameof(AcikBayraklar_VarsayilanTuretmeyle_AyniPlaniUretir);
+
+        var withDefaults = GoldenMaster.Serialize(scenario, input, EngineScenario.Run(input));
+
+        var explicitInput = input with { Modules = expectedModules };
+        var withExplicitFlags = GoldenMaster.Serialize(scenario, explicitInput, EngineScenario.Run(explicitInput));
+
+        Assert.Equal(withDefaults, withExplicitFlags);
+    }
+
+    /// <summary>
+    /// Denge modülü kapatıldığında WeightBalance kriteri farklı bir plan üretir:
+    /// köşe tohumlaması ve denge terimi devre dışı kalır, ImproveBalance ikinci
+    /// geçişi hiç çalışmaz. Sonuç, açık hâldeki kusursuz dengenin bozulmasıdır.
+    /// </summary>
+    [Fact]
+    public void DengeKapali_WeightBalanceKriterinde_DahaDengesizPlanUretir()
+    {
+        var items = new List<OptimizationItemInput>
+        {
+            EngineScenario.Item(1, width: 100m, height: 100m, length: 100m, weight: 400m, quantity: 2),
+            EngineScenario.Item(2, width: 100m, height: 100m, length: 100m, weight: 20m, quantity: 6),
+        };
+
+        var input = EngineScenario.Input(items, LoadingPlanOptimizationCriteria.WeightBalance, vehicleMaxWeight: 5_000m);
+        var scenario = nameof(DengeKapali_WeightBalanceKriterinde_DahaDengesizPlanUretir);
+
+        var balanceOff = input with
+        {
+            Modules = new OptimizationModules(
+                UseVolume: false,
+                UseWeightBalance: false,
+                UseLifo: false,
+                UseContamination: true),
+        };
+
+        var enabled = EngineScenario.Run(input);
+        var disabled = EngineScenario.Run(balanceOff);
+
+        Assert.NotEqual(
+            GoldenMaster.Serialize(scenario, input, enabled),
+            GoldenMaster.Serialize(scenario, balanceOff, disabled));
+
+        Assert.True(
+            TotalBalanceOffset(disabled) > TotalBalanceOffset(enabled),
+            $"Denge modülü kapalıyken sapma artmalıydı: açık={TotalBalanceOffset(enabled)}, kapalı={TotalBalanceOffset(disabled)}");
+    }
+
+    /// <summary>
+    /// LIFO modülü kapatıldığında bölge sözlüğü boş kalır: bölge tohumu da bölge
+    /// cezası da oluşmaz, gruplar kapıdan itibaren sıkıştırılır. Bu yüzden en
+    /// uzaktaki kutu açık hâldekine göre kapıya daha yakın durur.
+    /// </summary>
+    [Fact]
+    public void LifoKapali_GrupluSenaryoda_BolgeAyrimiUygulanmaz()
+    {
+        var items = new List<OptimizationItemInput>
+        {
+            GroupItem(1, groupIndex: 1, unloadingOrder: 1),
+            GroupItem(2, groupIndex: 2, unloadingOrder: 2),
+            GroupItem(3, groupIndex: 3, unloadingOrder: 3),
+        };
+
+        var input = EngineScenario.Input(
+            items,
+            LoadingPlanOptimizationCriteria.Lifo,
+            vehicleWidth: EngineScenario.CorridorWidth,
+            vehicleHeight: EngineScenario.CorridorHeight,
+            vehicleLength: EngineScenario.CorridorLength,
+            vehicleMaxWeight: 10_000m);
+
+        var scenario = nameof(LifoKapali_GrupluSenaryoda_BolgeAyrimiUygulanmaz);
+
+        var lifoOff = input with
+        {
+            Modules = new OptimizationModules(
+                UseVolume: true,
+                UseWeightBalance: false,
+                UseLifo: false,
+                UseContamination: true),
+        };
+
+        var enabled = EngineScenario.Run(input);
+        var disabled = EngineScenario.Run(lifoOff);
+
+        Assert.NotEqual(
+            GoldenMaster.Serialize(scenario, input, enabled),
+            GoldenMaster.Serialize(scenario, lifoOff, disabled));
+
+        Assert.Equal(enabled.Placements.Count, disabled.Placements.Count);
+        Assert.True(
+            disabled.Placements.Max(p => p.Z) < enabled.Placements.Max(p => p.Z),
+            $"Bölge cezası kalkınca yük kapıya yaklaşmalıydı: açık={enabled.Placements.Max(p => p.Z)}, kapalı={disabled.Placements.Max(p => p.Z)}");
+    }
+
+    private static decimal TotalBalanceOffset(OptimizationResult result)
+        => (result.WeightBalanceOffsetX ?? 0m) + (result.WeightBalanceOffsetZ ?? 0m);
+
+    private static OptimizationItemInput GroupItem(int index, int groupIndex, int unloadingOrder)
+        => EngineScenario.Item(
+            index,
+            width: 100m,
+            height: 100m,
+            length: 40m,
+            weight: 100m,
+            quantity: 2,
+            allowedRotations: AllowedRotations.Fixed,
+            groupIndex: groupIndex,
+            unloadingOrder: unloadingOrder);
+
+    private static OptimizationInput MixedInput(LoadingPlanOptimizationCriteria criteria)
+    {
+        var items = new List<OptimizationItemInput>
+        {
+            EngineScenario.Item(1, width: 120m, height: 80m, length: 100m, weight: 60m, quantity: 3, groupIndex: 1, unloadingOrder: 1),
+            EngineScenario.Item(2, width: 80m, height: 80m, length: 80m, weight: 25m, quantity: 4, groupIndex: 2, unloadingOrder: 2),
+            EngineScenario.Item(3, width: 60m, height: 60m, length: 60m, weight: 5m, quantity: 4, allowedRotations: AllowedRotations.NoVertical),
+        };
+
+        return EngineScenario.Input(items, criteria);
+    }
+}

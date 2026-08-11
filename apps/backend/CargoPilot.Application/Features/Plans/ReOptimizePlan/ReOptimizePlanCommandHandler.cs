@@ -87,7 +87,11 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
 
         var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria, request.ClusterGroups);
 
-        var contamination = ContaminationFilter.Filter(optimizationInput.Items);
+        // Kontaminasyon modülü de bir optimizasyon modülüdür; bayrağı motor
+        // dışında, filtrenin gerçekten çağrıldığı yerde uygulanır.
+        var contamination = OptimizationModules.Resolve(optimizationInput).UseContamination
+            ? ContaminationFilter.Filter(optimizationInput.Items)
+            : ContaminationFilter.Skipped(optimizationInput.Items);
         var finalInput = contamination.Contaminated.Count > 0
             ? optimizationInput with { Items = contamination.Passed }
             : optimizationInput;

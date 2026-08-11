@@ -1,5 +1,3 @@
-using CargoPilot.Domain.Enums;
-
 namespace CargoPilot.Application.Common.Optimization;
 
 /// <summary>
@@ -7,8 +5,9 @@ namespace CargoPilot.Application.Common.Optimization;
 /// genişlik eksenlerinde köşeye doğru iter, böylece boşluk arkada değil önde
 /// birikir. Motordan çıkarılan saf fonksiyonlardır; durum tutmaz.
 ///
-/// Modül WeightBalance kriterinde kapalıdır (terim 0); VolumeFirst ve Lifo aynı
-/// derinlik/genişlik ifadelerini paylaşır.
+/// Modülün açık/kapalı olması <see cref="Models.OptimizationModules.UseVolume"/>
+/// ile belirlenir; varsayılan türetme WeightBalance kriterinde kapalıdır (terim
+/// 0), VolumeFirst ve Lifo ise aynı derinlik/genişlik ifadelerini paylaşır.
 ///
 /// Tasarım kararı: hepsi <c>static</c>. Sıcak döngüde her aday pozisyon ×
 /// yönelim için çağrıldıklarından sanal çağrı bilinçli olarak kullanılmaz.
@@ -20,14 +19,10 @@ internal static class VolumeScoring
     private const decimal DepthCoefficient = 1_000m;
 
     /// <summary>Derinlik terimi: küçük Z (kapıya yakın) tercih edilir.</summary>
-    internal static decimal DepthTerm(LoadingPlanOptimizationCriteria criteria, decimal ez)
-        => IsEnabled(criteria) ? ez * DepthCoefficient : 0m;
+    internal static decimal DepthTerm(bool enabled, decimal ez)
+        => enabled ? ez * DepthCoefficient : 0m;
 
     /// <summary>Genişlik terimi: eşit puanlı adaylar arasında küçük X tercih edilir.</summary>
-    internal static decimal WidthTerm(LoadingPlanOptimizationCriteria criteria, decimal ex)
-        => IsEnabled(criteria) ? ex : 0m;
-
-    // WeightBalance yalnızca yerçekimi ve dengeye bakar; Z/X tercihi yoktur.
-    private static bool IsEnabled(LoadingPlanOptimizationCriteria criteria)
-        => criteria != LoadingPlanOptimizationCriteria.WeightBalance;
+    internal static decimal WidthTerm(bool enabled, decimal ex)
+        => enabled ? ex : 0m;
 }

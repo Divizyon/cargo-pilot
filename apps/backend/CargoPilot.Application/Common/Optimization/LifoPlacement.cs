@@ -8,6 +8,11 @@ namespace CargoPilot.Application.Common.Optimization;
 /// bölge dışına taşma cezası. Motordan çıkarılan saf fonksiyonlardır; durum
 /// tutmaz, sıra bağımlılığı yoktur.
 ///
+/// Modülün açık/kapalı olması <see cref="Models.OptimizationModules.UseLifo"/>
+/// ile belirlenir; varsayılan türetme yalnızca Lifo kriterinde açıktır. Modül
+/// kapalıyken bölge sözlüğü boştur, dolayısıyla bölge tohumlaması da bölge
+/// cezası da oluşmaz.
+///
 /// Tasarım kararı: hepsi <c>static</c>. Sıcak döngüde çağrıldıkları için
 /// arayüz/delegate/DI üzerinden sanal çağrı bilinçli olarak kullanılmaz.
 ///
@@ -40,10 +45,12 @@ internal static class LifoPlacement
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
         LoadingType loadingType,
-        LoadingPlanOptimizationCriteria criteria)
+        bool enabled)
     {
-        // Zone ayrımı yalnızca LIFO modunda ve arka kapı yüklemesinde geçerli.
-        if (criteria != LoadingPlanOptimizationCriteria.Lifo || loadingType != LoadingType.Rear)
+        // Zone ayrımı yalnızca modül açıkken ve arka kapı yüklemesinde geçerli.
+        // Kapı yönü bir modül tercihi değil fiziksel gerçektir, bu yüzden bayrak
+        // ondan bağımsız kontrol edilir.
+        if (!enabled || loadingType != LoadingType.Rear)
             return [];
 
         var orders = items
