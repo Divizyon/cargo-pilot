@@ -155,6 +155,7 @@ public static class DependencyInjection {
                 }));
 
             services.AddTransient<ErpExportJob>();
+            services.AddTransient<ErpScheduledSyncJob>();
             services.AddScoped<IErpExportJobScheduler, HangfireErpExportJobScheduler>();
         } else {
             services.AddScoped<IErpExportJobScheduler, NoOpErpExportJobScheduler>();

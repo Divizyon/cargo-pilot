@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
@@ -33,6 +34,13 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         => await _dbContext.Integrations
             .AsNoTracking()
             .Where(i => i.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Integration>> ListDueForScheduledSyncAsync(
+        DateTime utcNow, CancellationToken cancellationToken = default)
+        => await _dbContext.Integrations
+            .Where(ErpSyncPolicy.DueForScheduledSync(utcNow))
+            .OrderBy(i => i.NextScheduledSyncAt)
             .ToListAsync(cancellationToken);
 
     public Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)

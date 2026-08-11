@@ -72,7 +72,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         SyncErpItemsCommand request,
         CancellationToken cancellationToken)
     {
-        var companyId = _currentUserService.CompanyId;
+        // Arka plan zamanlayicisinin HTTP baglami yoktur; sirket kimligi komutla tasinir.
+        var companyId = request.CompanyIdOverride ?? _currentUserService.CompanyId;
         if (companyId is null)
         {
             return Result<SyncErpItemsResult>.Failure(
@@ -236,7 +237,12 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 }
             }
 
-            integration.CompleteSync(DateTime.UtcNow, integration.NextScheduledSyncAt);
+            // Vade her calismada ileri alinir; aksi halde zamanlayici gecmis bir vadeyi
+            // her taramada yeniden tetiklerdi.
+            var completedAtUtc = DateTime.UtcNow;
+            integration.CompleteSync(
+                completedAtUtc,
+                ErpSyncPolicy.NextScheduledSyncAt(integration.SyncFrequency, completedAtUtc));
 
             var droppedByReason = dropped.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
             var unaccounted = CalculateUnaccounted(
@@ -283,6 +289,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             _logSyncFailed(_logger, integration.Id, ex);
             syncLog.Fail(ex.Message);
             integration.FailSync();
+            // Basarisiz deneme de vadeyi tuketir; hatali entegrasyon her taramada tekrar denenmez.
+            integration.RescheduleNextSync(
+                ErpSyncPolicy.NextScheduledSyncAt(integration.SyncFrequency, DateTime.UtcNow));
             await TrySaveFailureStateAsync(integration.Id, cancellationToken);
 
             if (_currentUserService.UserId is { } userId)

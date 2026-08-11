@@ -51,6 +51,9 @@ public sealed class Integration : BaseEntity {
         NextScheduledSyncAt = nextScheduledSyncAt;
     }
 
+    /// <summary>Frekansi degistirmeden yalnizca bir sonraki vadeyi ileri alir.</summary>
+    public void RescheduleNextSync(DateTime? nextScheduledSyncAt) => NextScheduledSyncAt = nextScheduledSyncAt;
+
     public void StartSync(DateTime startedAtUtc) {
         SyncStatus = ErpSyncStatus.Running;
         SyncStartedAtUtc = startedAtUtc;

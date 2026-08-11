@@ -11,6 +11,11 @@ public interface IIntegrationRepository
     /// baslamis Running kayitlari takilmis sayilir ve kilit olarak degerlendirilmez.
     /// </summary>
     Task<bool> HasAnyRunningSyncAsync(Guid companyId, DateTime staleThresholdUtc, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Zamanlanmis sync vadesi gelmis (frekansi olan ve planlanan ani gecmis) tum sirketlerin
+    /// entegrasyonlari. Arka plan zamanlayicisi kullanir; kayitlar izlenir ki vade guncellenebilsin.
+    /// </summary>
+    Task<IReadOnlyList<Integration>> ListDueForScheduledSyncAsync(DateTime utcNow, CancellationToken cancellationToken = default);
     Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<PagedResult<SyncLog>> ListSyncLogsAsync(Guid integrationId, int page, int pageSize, CancellationToken cancellationToken = default);

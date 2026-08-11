@@ -527,4 +527,50 @@ public sealed class SyncErpItemsCommandHandlerTests
         result.Data.SyncLogId.Should().Be(kaydedilenLog.Id);
         await _draftItemRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
+
+    /// <remarks>Vade ilerlemezse zamanlayici ayni entegrasyonu her taramada yeniden tetiklerdi.</remarks>
+    [Fact]
+    public async Task Handle_BasariliSync_SonrakiVadeFrekansaGoreIlerler()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        _integration.UpdateSyncSettings(SyncFrequency.Every4Hours, DateTime.UtcNow.AddMinutes(-5));
+        _draftItemRepository.GetByErpIdAsync(Arg.Any<string>(), IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        await CreateSut().Handle(Command, CancellationToken.None);
+
+        _integration.NextScheduledSyncAt.Should().BeAfter(DateTime.UtcNow.AddHours(3));
+    }
+
+    [Fact]
+    public async Task Handle_SyncHataVerirse_SonrakiVadeYineIlerler()
+    {
+        ArrangeHappyPath();
+        _integration.UpdateSyncSettings(SyncFrequency.Every4Hours, DateTime.UtcNow.AddMinutes(-5));
+        _erpProductFetcher.FetchAsync(
+                Arg.Any<string>(),
+                Arg.Any<ErpCredentials>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns<ErpFetchResult>(_ => throw new InvalidOperationException("baglanti koptu"));
+
+        await CreateSut().Handle(Command, CancellationToken.None);
+
+        _integration.SyncStatus.Should().Be(ErpSyncStatus.Failed);
+        _integration.NextScheduledSyncAt.Should().BeAfter(DateTime.UtcNow.AddHours(3));
+    }
+
+    /// <remarks>Otomatik sync kapaliyken (frekans yok) vade uretilmez.</remarks>
+    [Fact]
+    public async Task Handle_FrekansSecilmemisse_SonrakiVadeBosKalir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        _draftItemRepository.GetByErpIdAsync(Arg.Any<string>(), IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        await CreateSut().Handle(Command, CancellationToken.None);
+
+        _integration.NextScheduledSyncAt.Should().BeNull();
+    }
 }
