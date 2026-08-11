@@ -1,0 +1,41 @@
+import { expect, test } from '@playwright/test';
+import { getAccessToken, loginAsAdmin } from './helpers/auth';
+import { deleteErpConnection, saveErpConnection, syncButton, toast } from './helpers/erp';
+import { FAKE_ERP, FAKE_ERP_ROWS } from './helpers/testConfig';
+
+/**
+ * ERP-03 kabul kriteri: sahte Netsis kaynağından elle çekim en az bir taslak ürün
+ * üretir. Zincirin tamamı tek senaryoda koşar:
+ * giriş → /erp → bağlantı ayarı → çekim → bekleyen taslak listesi.
+ */
+test.describe('ERP çekim zinciri (smoke)', () => {
+  test('bağlantı kaydedilir, çekim taslak üretir', async ({ page }) => {
+    const token = await getAccessToken(page.request);
+    await deleteErpConnection(page.request, token);
+
+    await loginAsAdmin(page);
+
+    await page.goto('/erp');
+    await expect(page.getByRole('heading', { name: 'ERP Ürünleri' })).toBeVisible();
+
+    await saveErpConnection(page, {
+      serverAddress: FAKE_ERP.serverAddress,
+      expectTestSuccess: true,
+    });
+
+    await page.goto('/erp');
+    await syncButton(page).click();
+
+    // Sahte kaynakta eksik ölçülü ve satışa kapalı satırlar da var; özet uyarı tonunda gelir.
+    const summary = toast(page, 'warning');
+    await expect(summary).toBeVisible({ timeout: 60_000 });
+    await expect(summary).toContainText(/satır bulundu/);
+    await expect(summary).toContainText(/eklendi/);
+
+    await page
+      .getByPlaceholder('Ürün adı, SKU, ERP ID veya barkod ile ara...')
+      .fill(FAKE_ERP_ROWS.box.sku);
+
+    await expect(page.getByRole('cell', { name: FAKE_ERP_ROWS.box.sku })).toBeVisible();
+  });
+});
