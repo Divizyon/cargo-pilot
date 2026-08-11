@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 import {
   Loader2,
   CheckCircle2,
@@ -12,6 +14,16 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -49,9 +61,60 @@ import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuida
 
 type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
 
+/** Kayıtlı bağlantının kullanıcıya gösterilen durumu; 'Bağlı' yalnızca güncel başarılı testle verilir. */
+type ConnectionStatus = {
+  label: string;
+  detail: string;
+  badgeClass: string;
+  icon: typeof CheckCircle2;
+  iconClass: string;
+};
+
+function buildConnectionStatus(
+  lastTestSucceeded: boolean | null,
+  lastTestedAt: string | null,
+): ConnectionStatus {
+  if (lastTestSucceeded === true) {
+    return {
+      label: 'Bağlı',
+      detail: `Son başarılı test: ${formatTestDate(lastTestedAt)}`,
+      badgeClass: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40',
+      icon: CheckCircle2,
+      iconClass: 'text-green-600',
+    };
+  }
+  if (lastTestSucceeded === false) {
+    return {
+      label: 'Test başarısız',
+      detail: `Son deneme: ${formatTestDate(lastTestedAt)} — bu ayarlarla ERP'ye bağlanılamıyor.`,
+      badgeClass: 'text-destructive bg-destructive/10',
+      icon: XCircle,
+      iconClass: 'text-destructive',
+    };
+  }
+  return {
+    label: 'Kayıtlı (test edilmedi)',
+    detail: 'Bu ayarlarla henüz başarılı bir bağlantı testi yapılmadı.',
+    badgeClass: 'text-muted-foreground bg-muted',
+    icon: ShieldAlert,
+    iconClass: 'text-muted-foreground',
+  };
+}
+
+function formatTestDate(iso: string | null): string {
+  if (!iso) return '—';
+  const parsed = new Date(iso);
+  return Number.isNaN(parsed.getTime()) ? '—' : format(parsed, 'dd.MM.yyyy HH:mm', { locale: tr });
+}
+
 export function ERPConnectionForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<TestResult>(null);
+  const [saveDespiteFailure, setSaveDespiteFailure] = useState<ErpConnectionFormValues | null>(
+    null,
+  );
+  /** Test sonucunun hangi form içeriğine ait olduğunu tutar. */
+  const [testedSignature, setTestedSignature] = useState<string | null>(null);
 
   const { data: connection } = useERPConnection();
   const {
@@ -76,8 +139,12 @@ export function ERPConnectionForm() {
     },
   });
 
+  // Kayıtlı ayar yalnızca ilk yüklemede forma basılır; test sonrası yapılan tazeleme
+  // kullanıcının yarım kalan düzenlemesini silmemelidir.
+  const loadedSettingsIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!existing) return;
+    if (!existing || loadedSettingsIdRef.current === existing.id) return;
+    loadedSettingsIdRef.current = existing.id;
     form.reset({
       systemType: PROVIDER_TYPE_FROM_INT[existing.providerType] ?? 'Logo',
       companyCode: existing.companyCode,
@@ -88,32 +155,58 @@ export function ERPConnectionForm() {
     });
   }, [existing, form]);
 
-  const systemType = useWatch({ control: form.control, name: 'systemType' });
-  const guidance = getErpFieldGuidance(systemType);
+  const watchedValues = useWatch({ control: form.control });
+  const guidance = getErpFieldGuidance(watchedValues.systemType ?? 'Logo');
+  // Test sonucu yalnızca test edildiği andaki alanlar hâlâ geçerliyken gösterilir;
+  // herhangi bir alan değişince bayat sonuç ekrandan kalkar.
+  const formSignature = JSON.stringify(watchedValues);
+  const isTestResultFresh = testResult !== null && testedSignature === formSignature;
+  const status = buildConnectionStatus(
+    existing?.lastTestSucceeded ?? null,
+    existing?.lastTestedAt ?? null,
+  );
 
   async function handleCopyChecklist() {
     await navigator.clipboard.writeText(guidance.itChecklist);
     toast.success('Bilgi listesi panoya kopyalandı.', { position: 'bottom-right' });
   }
 
+  function persistSettings(values: ErpConnectionFormValues) {
+    save(values, {
+      // Kayıt sonrası form temiz sayılır; şifre alanı yeniden boşaltılır.
+      onSuccess: () => form.reset({ ...values, password: '' }),
+    });
+  }
+
+  /** Kaydetmeden önce bağlantı test edilir; başarısızsa kayıt teyide bağlanır. */
   function onSubmit(values: ErpConnectionFormValues) {
     setTestResult(null);
-    save(values);
+    setTestedSignature(formSignature);
+    testConnection(values, {
+      onSuccess: (result) => {
+        setTestResult(result);
+        if (result.success) {
+          persistSettings(values);
+          return;
+        }
+        setSaveDespiteFailure(values);
+      },
+      onError: (error) => {
+        setTestResult({
+          success: false,
+          message: getApiErrorMessage(error, 'Bağlantı test edilemedi.'),
+        });
+        setSaveDespiteFailure(values);
+      },
+    });
   }
 
   function handleTestConnection() {
     form.trigger().then((valid) => {
       if (!valid) return;
-      const values = form.getValues();
-      if (existing?.hasPassword && !values.password) {
-        setTestResult({
-          success: false,
-          message: 'Bağlantıyı test etmek için şifrenizi tekrar girin.',
-        });
-        return;
-      }
       setTestResult(null);
-      testConnection(values, {
+      setTestedSignature(formSignature);
+      testConnection(form.getValues(), {
         onSuccess: (result) => setTestResult(result),
         onError: (error) => {
           setTestResult({
@@ -149,15 +242,23 @@ export function ERPConnectionForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        {connection && (
+        {existing && (
           <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 flex items-center gap-3">
-            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+            <status.icon className={cn('h-4 w-4 shrink-0', status.iconClass)} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground">{connection.systemName}</p>
-              <p className="text-xs text-muted-foreground truncate">{connection.apiEndpoint}</p>
+              <p className="text-sm font-medium text-foreground">
+                {connection?.systemName ?? PROVIDER_TYPE_FROM_INT[existing.providerType]}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">{existing.serverAddress}</p>
+              <p className="text-xs text-muted-foreground">{status.detail}</p>
             </div>
-            <span className="text-[11px] text-green-700 dark:text-green-400 font-medium bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-full shrink-0">
-              Bağlı
+            <span
+              className={cn(
+                'text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0',
+                status.badgeClass,
+              )}
+            >
+              {status.label}
             </span>
           </div>
         )}
@@ -189,8 +290,8 @@ export function ERPConnectionForm() {
         <div className="rounded-lg border border-dashed border-border px-4 py-3">
           <p className="text-sm font-medium text-foreground">Bu bilgileri nereden bulacaksınız?</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Aşağıdaki alanların tamamı ERP sunucunuzu yöneten IT ekibinde bulunur. Listeyi kopyalayıp
-            IT yöneticinize iletebilirsiniz.
+            Aşağıdaki alanların tamamı ERP sunucunuzu yöneten IT ekibinde bulunur. Listeyi
+            kopyalayıp IT yöneticinize iletebilirsiniz.
           </p>
           <Button
             type="button"
@@ -303,8 +404,8 @@ export function ERPConnectionForm() {
                 <FormLabel>Sunucu sertifikasını doğrulama</FormLabel>
                 <FormDescription>
                   Açıkken ERP sunucusunun TLS sertifikası doğrulanmaz; kurum içi (self-signed)
-                  sertifikalı sunucular için gerekir ama bağlantı araya girme saldırılarına
-                  açık hale gelir. Sunucunun geçerli bir sertifikası varsa kapatın.
+                  sertifikalı sunucular için gerekir ama bağlantı araya girme saldırılarına açık
+                  hale gelir. Sunucunun geçerli bir sertifikası varsa kapatın.
                 </FormDescription>
               </div>
               <FormControl>
@@ -314,7 +415,7 @@ export function ERPConnectionForm() {
           )}
         />
 
-        {testResult !== null && (
+        {isTestResultFresh && testResult !== null && (
           <div
             className={cn(
               'flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm',
@@ -337,7 +438,7 @@ export function ERPConnectionForm() {
           </div>
         )}
 
-        {testResult?.warning && (
+        {isTestResultFresh && testResult?.warning && (
           <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{testResult.warning}</span>
@@ -356,12 +457,45 @@ export function ERPConnectionForm() {
             {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Bağlantıyı Test Et
           </Button>
-          <Button type="submit" disabled={isSaving}>
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button type="submit" disabled={isSaving || isTesting}>
+            {(isSaving || isTesting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Kaydet
           </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          Kaydetmeden önce bağlantı otomatik olarak test edilir.
+        </p>
       </form>
+
+      <AlertDialog
+        open={saveDespiteFailure !== null}
+        onOpenChange={(open) => {
+          if (!open) setSaveDespiteFailure(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bağlantı testi başarısız</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu bilgilerle ERP sistemine bağlanılamadı. Yine de kaydederseniz ayarlar saklanır
+              ancak senkronizasyon çalışmaz; bağlantı düzeltilene kadar ERP&apos;den ürün çekilemez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Bilgileri düzelt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const values = saveDespiteFailure;
+                setSaveDespiteFailure(null);
+                if (values) persistSettings(values);
+              }}
+            >
+              Yine de kaydet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }

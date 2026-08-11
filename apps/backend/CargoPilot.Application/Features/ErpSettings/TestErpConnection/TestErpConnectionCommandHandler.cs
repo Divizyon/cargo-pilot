@@ -1,17 +1,34 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using MediatR;
+using System.Security.Cryptography;
+using ErpSettingsEntity = CargoPilot.Domain.Entities.ErpSettings;
 
 namespace CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 
+/// <summary>
+/// Sifre gonderilmediyse kayitli sifreyle test eder; sifreyi bilmeyen kullanici bloklanmaz.
+/// Test sonucu, test edilen yapilandirmanin imzasiyla birlikte kayitli ayarlara islenir.
+/// </summary>
 internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpConnectionCommand, Result<ErpConnectionTestResponse>>
 {
     private readonly IEnumerable<IErpConnector> _connectors;
+    private readonly IErpSettingsRepository _settingsRepository;
+    private readonly IErpPasswordProtector _passwordProtector;
+    private readonly ICurrentUserService _currentUserService;
 
-    public TestErpConnectionCommandHandler(IEnumerable<IErpConnector> connectors)
+    public TestErpConnectionCommandHandler(
+        IEnumerable<IErpConnector> connectors,
+        IErpSettingsRepository settingsRepository,
+        IErpPasswordProtector passwordProtector,
+        ICurrentUserService currentUserService)
     {
         _connectors = connectors;
+        _settingsRepository = settingsRepository;
+        _passwordProtector = passwordProtector;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<ErpConnectionTestResponse>> Handle(TestErpConnectionCommand request, CancellationToken cancellationToken)
@@ -21,11 +38,20 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
             return Result<ErpConnectionTestResponse>.Failure(
                 new Error(ErrorType.Validation, "ErpSettings.UnsupportedProvider", "Desteklenmeyen ERP sağlayıcısı."));
 
+        var companyId = _currentUserService.CompanyId;
+        var settings = companyId is null
+            ? null
+            : await _settingsRepository.GetByCompanyIdAsync(companyId.Value, cancellationToken);
+
+        var passwordResult = ResolvePassword(request.Password, settings);
+        if (passwordResult.Error is not null)
+            return Result<ErpConnectionTestResponse>.Failure(passwordResult.Error);
+
         ErpCredentials credentials;
         try
         {
             credentials = ErpCredentials.Create(
-                request.CompanyCode, request.Username, request.Password, request.TrustServerCertificate);
+                request.CompanyCode, request.Username, passwordResult.Password, request.TrustServerCertificate);
         }
         catch (ErpConfigurationException ex)
         {
@@ -35,11 +61,57 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
 
         var result = await connector.TestConnectionAsync(request.ServerAddress, credentials, cancellationToken);
 
+        await RecordTestResultAsync(settings, request, result.IsSuccess, cancellationToken);
+
         var message = result.IsSuccess
             ? "Bağlantı başarılı."
             : result.ErrorMessage ?? "ERP sistemine bağlanılamadı.";
 
         return Result<ErpConnectionTestResponse>.Success(
             new ErpConnectionTestResponse(result.IsSuccess, message, result.Warning));
+    }
+
+    private (string? Password, Error? Error) ResolvePassword(string? requestPassword, ErpSettingsEntity? settings)
+    {
+        if (!string.IsNullOrWhiteSpace(requestPassword))
+            return (requestPassword, null);
+
+        if (settings is null)
+            return (null, new Error(
+                ErrorType.Validation,
+                "ErpSettings.PasswordRequired",
+                "Kayıtlı bağlantı olmadığı için şifre zorunludur."));
+
+        try
+        {
+            return (_passwordProtector.Unprotect(settings.PasswordEncrypted), null);
+        }
+        catch (CryptographicException)
+        {
+            return (null, new Error(
+                ErrorType.Validation,
+                "ErpSettings.StoredPasswordUnreadable",
+                "Kayıtlı şifre okunamadı. Şifreyi tekrar girip deneyin."));
+        }
+    }
+
+    /// <summary>
+    /// Sonuc, test edilen yapilandirmanin imzasiyla saklanir; kayitli ayarlar sonradan
+    /// degisirse arayuz bu sonucu 'guncel' saymaz.
+    /// </summary>
+    private async Task RecordTestResultAsync(
+        ErpSettingsEntity? settings,
+        TestErpConnectionCommand request,
+        bool succeeded,
+        CancellationToken cancellationToken)
+    {
+        if (settings is null)
+            return;
+
+        var testedConfigHash = ErpSettingsEntity.BuildConfigHash(
+            request.ProviderType, request.CompanyCode, request.Username, request.ServerAddress);
+
+        settings.RecordConnectionTest(succeeded, DateTime.UtcNow, testedConfigHash);
+        await _settingsRepository.SaveChangesAsync(cancellationToken);
     }
 }

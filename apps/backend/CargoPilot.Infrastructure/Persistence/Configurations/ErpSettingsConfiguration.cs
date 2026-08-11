@@ -38,6 +38,13 @@ internal sealed class ErpSettingsConfiguration : IEntityTypeConfiguration<ErpSet
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(e => e.LastTestedAtUtc);
+        builder.Property(e => e.LastTestSucceeded);
+
+        // SHA-256 hex imzasi sabit 64 karakterdir.
+        builder.Property(e => e.LastTestedConfigHash)
+            .HasMaxLength(64);
+
         builder.HasIndex(e => e.CompanyId).IsUnique();
 
         builder.HasOne(e => e.Company)

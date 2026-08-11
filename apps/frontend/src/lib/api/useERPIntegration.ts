@@ -147,12 +147,20 @@ export function useSaveERPSettings() {
   });
 }
 
+/**
+ * Şifre boş bırakılırsa backend kayıtlı şifreyle test eder. Test sonucu sunucuda
+ * saklandığı için başarılı/başarısız sonuç sonrası kayıtlı ayarlar tazelenir.
+ */
 export function useTestERPSettings() {
+  const queryClient = useQueryClient();
   return useMutation<
     { success: boolean; message?: string | null; warning?: string | null },
     AxiosError<ApiErrorResponse>,
     ErpConnectionFormValues
   >({
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
+    },
     mutationFn: async (values) => {
       const { data } = await axiosInstance.post<unknown>(
         `${ERP_SETTINGS_BASE}/test-connection`,

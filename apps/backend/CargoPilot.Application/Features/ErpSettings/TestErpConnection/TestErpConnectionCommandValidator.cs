@@ -20,8 +20,6 @@ public sealed class TestErpConnectionCommandValidator : AbstractValidator<TestEr
         RuleFor(x => x.Username)
             .NotEmpty().WithMessage("Kullanıcı adı boş olamaz.")
             .MaximumLength(200).WithMessage("Kullanıcı adı en fazla 200 karakter olabilir.");
-
-        RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Şifre boş olamaz.");
+        // Sifre bos birakilabilir: kayitli bir baglanti varsa saklanan sifreyle test edilir.
     }
 }

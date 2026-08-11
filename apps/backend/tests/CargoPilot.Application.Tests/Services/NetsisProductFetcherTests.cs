@@ -210,7 +210,9 @@ public sealed class NetsisProductFetcherTests
     [Fact]
     public void Connectorler_SaglayiciTipleriniAyirir()
     {
-        new NetsisErpConnector().ProviderType.Should().Be(ErpProviderType.Netsis);
-        new LogoErpConnector().ProviderType.Should().Be(ErpProviderType.Logo);
+        new NetsisErpConnector(NullLogger<NetsisErpConnector>.Instance).ProviderType
+            .Should().Be(ErpProviderType.Netsis);
+        new LogoErpConnector(NullLogger<LogoErpConnector>.Instance).ProviderType
+            .Should().Be(ErpProviderType.Logo);
     }
 }

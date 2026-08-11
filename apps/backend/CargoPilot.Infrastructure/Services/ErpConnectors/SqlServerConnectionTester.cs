@@ -1,6 +1,7 @@
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Infrastructure.Services.Erp;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 
 namespace CargoPilot.Infrastructure.Services.ErpConnectors;
@@ -15,8 +16,14 @@ internal sealed record ErpSchemaProbe(string CountSql, string SchemaNotFoundMess
 /// MSSQL tabanli ERP connector'larinin ortak baglanti testi: login basarili olsa bile
 /// beklenen sema yoksa 'basarili' donmez, hesabin yazma yetkisi varsa uyari doner.
 /// </summary>
-internal static class SqlServerConnectionTester
+internal static partial class SqlServerConnectionTester
 {
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "ERP bağlantı testi başarısız. SqlErrorNumber={SqlErrorNumber} ServerAddress={ServerAddress}")]
+    private static partial void LogConnectionFailed(
+        ILogger logger, Exception exception, int sqlErrorNumber, string serverAddress);
+
     /// <summary>
     /// Baglanan hesabin veritabani genelinde yazma yetkisi olup olmadigini sorar.
     /// CargoPilot yalnizca okuma yapar; yazma yetkili hesap gereksiz risk uretir.
@@ -36,6 +43,7 @@ internal static class SqlServerConnectionTester
         string serverAddress,
         ErpCredentials credentials,
         ErpSchemaProbe schemaProbe,
+        ILogger logger,
         CancellationToken cancellationToken)
     {
         try
@@ -58,7 +66,11 @@ internal static class SqlServerConnectionTester
         }
         catch (SqlException ex)
         {
-            return new ErpConnectionResult(false, $"Veritabanına bağlanılamadı: {ex.Message}");
+            // Ham SqlException mesaji sunucu/sema detayi sizdirir; kullaniciya yalnizca
+            // siniflandirilmis Turkce karsiligi doner, ayrintisi log'da kalir.
+            LogConnectionFailed(logger, ex, ex.Number, serverAddress);
+
+            return new ErpConnectionResult(false, ErpSqlErrorClassifier.Classify(ex.Number, credentials.Database));
         }
         catch (TaskCanceledException)
         {

@@ -1,4 +1,6 @@
 using CargoPilot.Domain.Enums;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CargoPilot.Domain.Entities;
 
@@ -16,6 +18,18 @@ public sealed class ErpSettings : BaseEntity
     /// sunucularinda cogunlukla self-signed sertifika bulundugu icin kurulum bozulmasin.
     /// </summary>
     public bool TrustServerCertificate { get; private set; } = true;
+
+    /// <summary>Son bağlantı testinin anı; hiç test edilmediyse null.</summary>
+    public DateTime? LastTestedAtUtc { get; private set; }
+
+    /// <summary>Son bağlantı testinin sonucu; hiç test edilmediyse null.</summary>
+    public bool? LastTestSucceeded { get; private set; }
+
+    /// <summary>
+    /// Test edilen yapılandırmanın imzası. Kayıtlı ayarlar bu imzadan farklıysa son test
+    /// sonucu güncel değildir ve kullanıcıya 'başarılı' olarak gösterilmez.
+    /// </summary>
+    public string? LastTestedConfigHash { get; private set; }
 
 #pragma warning disable S1144
     public Company? Company { get; private set; }
@@ -56,6 +70,46 @@ public sealed class ErpSettings : BaseEntity
         ServerAddress = serverAddress;
         TrustServerCertificate = trustServerCertificate;
         if (newPasswordEncrypted is not null)
+        {
             PasswordEncrypted = newPasswordEncrypted;
+            // Sifre degistiyse eski test sonucu yeni yapilandirmayi temsil etmez.
+            ClearConnectionTest();
+        }
+    }
+
+    public void RecordConnectionTest(bool succeeded, DateTime testedAtUtc, string testedConfigHash)
+    {
+        LastTestSucceeded = succeeded;
+        LastTestedAtUtc = testedAtUtc;
+        LastTestedConfigHash = testedConfigHash;
+    }
+
+    public void ClearConnectionTest()
+    {
+        LastTestSucceeded = null;
+        LastTestedAtUtc = null;
+        LastTestedConfigHash = null;
+    }
+
+    /// <summary>Son test sonucu kayıtlı yapılandırmayla aynı ayarlarda mı alınmış.</summary>
+    public bool HasCurrentConnectionTest() =>
+        LastTestedConfigHash is not null && LastTestedConfigHash == BuildCurrentConfigHash();
+
+    public string BuildCurrentConfigHash() =>
+        BuildConfigHash(ProviderType, CompanyCode, Username, ServerAddress);
+
+    /// <summary>
+    /// Bağlantıyı belirleyen alanların imzası. Şifre dahil edilmez; şifre değişikliği
+    /// <see cref="Update"/> içinde ayrıca test sonucunu temizler.
+    /// </summary>
+    public static string BuildConfigHash(
+        ErpProviderType providerType,
+        string companyCode,
+        string username,
+        string serverAddress)
+    {
+        var raw = $"{providerType}|{companyCode}|{username}|{serverAddress}";
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
+        return Convert.ToHexString(hash);
     }
 }

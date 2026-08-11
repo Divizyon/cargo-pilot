@@ -68,14 +68,7 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
 
             await _repository.SaveChangesAsync(cancellationToken);
 
-            return Result<ErpSettingsResponse>.Success(new ErpSettingsResponse(
-                newSettings.Id,
-                newSettings.ProviderType,
-                newSettings.CompanyCode,
-                newSettings.Username,
-                newSettings.ServerAddress,
-                true,
-                newSettings.TrustServerCertificate));
+            return Result<ErpSettingsResponse>.Success(ErpSettingsResponse.FromEntity(newSettings));
         }
 
         string? newEncryptedPassword = null;
@@ -97,13 +90,6 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
 
         await _repository.SaveChangesAsync(cancellationToken);
 
-        return Result<ErpSettingsResponse>.Success(new ErpSettingsResponse(
-            existing.Id,
-            existing.ProviderType,
-            existing.CompanyCode,
-            existing.Username,
-            existing.ServerAddress,
-            true,
-            existing.TrustServerCertificate));
+        return Result<ErpSettingsResponse>.Success(ErpSettingsResponse.FromEntity(existing));
     }
 }
