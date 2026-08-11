@@ -21,13 +21,13 @@ public sealed class ApprovePlanCommandHandlerTests
     private readonly IIntegrationRepository _integrationRepository = Substitute.For<IIntegrationRepository>();
     private readonly IErpExportJobScheduler _jobScheduler = Substitute.For<IErpExportJobScheduler>();
 
-    private ApprovePlanCommandHandler CreateSut(bool exportEnabled) =>
+    private ApprovePlanCommandHandler CreateSut(bool exportEnabled, string? customerCode = "120-001") =>
         new(
             _planRepository,
             _currentUserService,
             _integrationRepository,
             _jobScheduler,
-            Options.Create(new ErpExportSettings { ExportEnabled = exportEnabled }));
+            Options.Create(new ErpExportSettings { ExportEnabled = exportEnabled, CustomerCode = customerCode }));
 
     [Fact]
     public async Task Handle_AktarimAcikVeEntegrasyonVarsa_EnqueueTamBirKezCagrilir()
@@ -80,6 +80,23 @@ public sealed class ApprovePlanCommandHandlerTests
         result.Error!.Code.Should().Be("Erp.NoIntegration");
         result.Error.Type.Should().Be(ErrorType.BusinessRule);
         result.Error.Description.Should().NotBeNullOrWhiteSpace();
+        plan.ErpExportStatus.Should().BeNull();
+        _jobScheduler.DidNotReceiveWithAnyArgs().Enqueue(Guid.Empty, Guid.Empty);
+    }
+
+    /// <remarks>ERP-18: cari kodu olmadan siparis yazilamaz; neden onay aninda gorunur.</remarks>
+    [Fact]
+    public async Task Handle_CariKoduTanimsizsa_AciklayiciHataDonerVeEnqueueCagrilmaz()
+    {
+        _currentUserService.CompanyId.Returns(CompanyId);
+        var plan = TestData.CreateCalculatedPlan(PlanId, CompanyId);
+        _planRepository.GetByIdAsync(PlanId, CompanyId, Arg.Any<CancellationToken>()).Returns(plan);
+
+        var result = await CreateSut(exportEnabled: true, customerCode: null)
+            .Handle(new ApprovePlanCommand(PlanId), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Erp.ExportNotConfigured");
         plan.ErpExportStatus.Should().BeNull();
         _jobScheduler.DidNotReceiveWithAnyArgs().Enqueue(Guid.Empty, Guid.Empty);
     }

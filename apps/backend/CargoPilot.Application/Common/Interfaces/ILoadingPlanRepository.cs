@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
@@ -48,6 +49,14 @@ public interface ILoadingPlanRepository
     Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
 
     Task<LoadingPlanInputItem?> GetInputItemByIdAsync(Guid inputItemId, Guid planId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Plandan ERP'ye aktarilacak satirlar: araca yerlesen urunler ve adetleri.
+    /// Yerlesemeyen urunler sevk edilmedigi icin siparise girmez.
+    /// </summary>
+    Task<IReadOnlyList<PlanErpExportLine>> GetErpExportLinesAsync(
+        Guid planId,
+        CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 

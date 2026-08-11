@@ -57,6 +57,12 @@ internal sealed class ApprovePlanCommandHandler : IRequestHandler<ApprovePlanCom
                 new ApprovePlanResult(plan.Id, ErpExportQueued: false),
                 "Plan onaylandı. ERP aktarımı şu an kapalı olduğu için aktarım yapılmadı.");
 
+        // Cari kodu olmadan siparis yazilamaz; job kesin basarisiz olacagi icin nedeni
+        // kullaniciya onay aninda soyluyoruz.
+        if (string.IsNullOrWhiteSpace(_erpExportSettings.CustomerCode))
+            return Result<ApprovePlanResult>.Failure(
+                new Error(ErrorType.BusinessRule, "Erp.ExportNotConfigured", "ERP aktarımı için cari kodu tanımlanmadığından plan aktarılamaz. Sunucu ERP aktarım ayarlarını tamamlayın."));
+
         // Entegrasyon yoksa arka planda sessizce Failed'e dusmek yerine nedeni burada bildiriyoruz.
         var hasIntegration = await _integrationRepository.ExistsByCompanyAsync(companyId.Value, cancellationToken);
         if (!hasIntegration)

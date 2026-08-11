@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
@@ -340,6 +341,20 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     public async Task<LoadingPlanInputItem?> GetInputItemByIdAsync(Guid inputItemId, Guid planId, CancellationToken cancellationToken = default)
         => await _context.LoadingPlanInputItems
             .FirstOrDefaultAsync(i => i.Id == inputItemId && i.LoadingPlanId == planId, cancellationToken);
+
+    /// <summary>
+    /// Yerlesim kayitlari urun basina gruplanir: bir yerlesim satiri araca konulan bir
+    /// kolidir, dolayisiyla adet = o urunun yerlesim sayisidir.
+    /// </summary>
+    public async Task<IReadOnlyList<PlanErpExportLine>> GetErpExportLinesAsync(
+        Guid planId,
+        CancellationToken cancellationToken = default)
+        => await _context.LoadingPlanPlacements
+            .AsNoTracking()
+            .Where(p => p.LoadingPlanId == planId)
+            .GroupBy(p => new { p.Item.ErpId, p.Item.SKU, p.Item.Name })
+            .Select(g => new PlanErpExportLine(g.Key.ErpId, g.Key.SKU, g.Key.Name, g.Count()))
+            .ToListAsync(cancellationToken);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);

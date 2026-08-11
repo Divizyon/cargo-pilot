@@ -109,6 +109,8 @@ public static class DependencyInjection {
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
         // Saglayici-basina fetcher: Logo icin kayit yok, sync acik hata dondurur (ERP-21).
         services.AddScoped<IErpProductFetcher, NetsisProductFetcher>();
+        // Saglayici-basina siparis yazici; Logo icin kayit yok, aktarim acik hata dondurur.
+        services.AddScoped<IErpOrderWriter, NetsisOrderWriter>();
         services.AddDataProtection()
             .PersistKeysToDbContext<AppDbContext>();
         services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
