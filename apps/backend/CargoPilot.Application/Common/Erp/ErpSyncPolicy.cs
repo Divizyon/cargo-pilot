@@ -21,10 +21,6 @@ public static class ErpSyncPolicy
         frequency.HasValue ? fromUtc.Add(frequency.Value.ToTimeSpan()) : null;
 
     /// <summary>
-    /// Vadesi gelmis entegrasyon filtresi: frekans secilmis ve planlanan an gecmis.
-    /// Ayni ifade hem EF sorgusunda hem birim testinde kullanilir.
-    /// </summary>
-    /// <summary>
     /// Urun senkronizasyon gecmisi filtresi: plan->ERP aktarim kayitlari (LoadingPlanId dolu)
     /// urun cekim gecmisine karismaz, cunku o tablonun sayaclari (kaynak satir, eleme nedeni)
     /// aktarim icin anlamsizdir. Aktarim sonucu plan detayinda gorunur.
@@ -32,6 +28,10 @@ public static class ErpSyncPolicy
     public static readonly Expression<Func<SyncLog, bool>> ProductSyncLog =
         log => log.LoadingPlanId == null;
 
+    /// <summary>
+    /// Vadesi gelmis entegrasyon filtresi: frekans secilmis ve planlanan an gecmis.
+    /// Ayni ifade hem EF sorgusunda hem birim testinde kullanilir.
+    /// </summary>
     public static Expression<Func<Integration, bool>> DueForScheduledSync(DateTime utcNow) =>
         integration => integration.SyncFrequency != null
             && integration.NextScheduledSyncAt != null
