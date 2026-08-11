@@ -54,6 +54,10 @@
 | RuleNotAssignedCount | int | |
 | ErrorMessage | string? | |
 | RowErrorsJson | string? | Satır bazlı hataların JSON listesi; kısmi başarıda dolar |
+| SourceTotal | int | ERP kaynağında eleme öncesi bulunan satır sayısı |
+| FetchedCount | int | Kaynaktan uygulamaya çekilen (işlenmeye aday) satır sayısı |
+| DroppedByReasonJson | string? | Neden bazlı eleme sayıları (`ErpDropReason` adı → adet) |
+| UnaccountedCount | int | Mutabakat farkı: SourceTotal − (yazılan + atlanan + elenen) |
 
 > `PartialFailure` durumu uygulanmıştır: satır bazlı hata izolasyonu sonrası bazı
 > satırlar yazılıp bazıları hata alırsa sync bu durumla kapanır ve `RowErrorsJson`
