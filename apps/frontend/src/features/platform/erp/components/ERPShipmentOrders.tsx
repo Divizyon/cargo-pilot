@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import { useERPConnection, useERPShipmentOrders } from '@/lib/api/useERPIntegration';
 import {
   ErpShipmentStatus,
@@ -101,7 +102,13 @@ export function ERPShipmentOrders() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: connection } = useERPConnection();
-  const { data: orders, isLoading } = useERPShipmentOrders(connection?.id, filters);
+  const {
+    data: orders,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useERPShipmentOrders(connection?.id, filters);
 
   const filterValue = filters.status ?? 'all';
   const pendingOrders = orders?.filter((o) => o.status === ErpShipmentStatus.Pending) ?? [];
@@ -161,6 +168,13 @@ export function ERPShipmentOrders() {
 
         {isLoading ? (
           <ShipmentSkeleton />
+        ) : isError ? (
+          <QueryErrorState
+            error={error}
+            title="Sevkiyat emirleri yüklenemedi"
+            fallbackMessage="Sevkiyat emirleri alınamadı. Bu bir bağlantı veya sunucu hatası; kayıt olmadığı anlamına gelmez."
+            onRetry={() => void refetch()}
+          />
         ) : !orders || orders.length === 0 ? (
           <div className="rounded-lg border border-dashed py-12 text-center">
             <Package className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />

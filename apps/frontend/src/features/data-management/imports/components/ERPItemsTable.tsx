@@ -38,6 +38,7 @@ import { formatDimensionDisplay } from '@/lib/utils/format/unitConversion';
 import { draftItemToRow } from '@/features/data-management/imports/utils/draftItemToRow';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { SearchInput } from '@/components/shared/SearchInput';
+import { QueryErrorState } from '@/components/shared/QueryErrorState';
 
 const ROW_H = 48;
 const HEADER_ROW_H = 36;
@@ -142,6 +143,9 @@ export function ERPItemsTable() {
     data: draftPage,
     isLoading,
     isFetching,
+    isError: isDraftError,
+    error: draftError,
+    refetch: refetchDrafts,
   } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
 
   const { data: allPendingPage } = useDraftItems(
@@ -179,9 +183,9 @@ export function ERPItemsTable() {
     ? filteredItems.slice((page - 1) * pageSize, page * pageSize)
     : filteredItems;
 
-  const showSkeleton = isLoading || isFetching;
-  const isEmpty = !showSkeleton && displayedItems.length === 0 && !isSearching;
-  const noResults = !showSkeleton && displayedItems.length === 0 && isSearching;
+  const showSkeleton = (isLoading || isFetching) && !isDraftError;
+  const isEmpty = !showSkeleton && !isDraftError && displayedItems.length === 0 && !isSearching;
+  const noResults = !showSkeleton && !isDraftError && displayedItems.length === 0 && isSearching;
 
   const selectableItems = filteredItems.filter((i) =>
     statusFilter === DRAFT_UPDATE_PENDING
@@ -374,7 +378,15 @@ export function ERPItemsTable() {
         ref={tableCardRef}
         className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
       >
-        {showSkeleton ? (
+        {isDraftError ? (
+          <QueryErrorState
+            error={draftError}
+            title="Taslak ürünler yüklenemedi"
+            fallbackMessage="ERP taslakları alınamadı. Bu bir bağlantı veya sunucu hatası; taslak olmadığı anlamına gelmez."
+            onRetry={() => void refetchDrafts()}
+            className="m-4 w-auto"
+          />
+        ) : showSkeleton ? (
           <ERPItemsTableSkeleton />
         ) : (
           <Table className="min-w-[1100px] table-fixed">

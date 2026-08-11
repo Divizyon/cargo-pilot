@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import {
   erpConnectionFormSchema,
   type ErpConnectionFormValues,
@@ -41,7 +42,13 @@ export function ERPConnectionForm() {
   const [testResult, setTestResult] = useState<TestResult>(null);
 
   const { data: connection } = useERPConnection();
-  const { data: existing, isLoading: isLoadingExisting } = useERPSettings();
+  const {
+    data: existing,
+    isLoading: isLoadingExisting,
+    isError: isSettingsError,
+    error: settingsError,
+    refetch: refetchSettings,
+  } = useERPSettings();
   const { mutate: save, isPending: isSaving } = useSaveERPSettings();
   const { mutate: testConnection, isPending: isTesting } = useTestERPSettings();
 
@@ -102,6 +109,18 @@ export function ERPConnectionForm() {
         <Loader2 className="h-4 w-4 animate-spin" />
         <span>Bağlantı bilgileri yükleniyor…</span>
       </div>
+    );
+  }
+
+  // Ayarlar okunamadiysa boş form gostermek "kayit yok" yanilgisi uretir.
+  if (isSettingsError) {
+    return (
+      <QueryErrorState
+        error={settingsError}
+        title="ERP bağlantı ayarları yüklenemedi"
+        fallbackMessage="Kayıtlı ayarlar okunamadı. Formu doldurmak mevcut ayarların üzerine yazabilir; önce tekrar deneyin."
+        onRetry={() => void refetchSettings()}
+      />
     );
   }
 

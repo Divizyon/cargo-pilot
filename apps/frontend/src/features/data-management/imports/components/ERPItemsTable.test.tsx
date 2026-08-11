@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   connection: vi.fn(),
   triggerSync: vi.fn(),
   bulkReject: vi.fn(),
-  draftItemsState: { isLoading: false, isEmpty: false },
+  draftItemsState: { isLoading: false, isEmpty: false, error: null as unknown },
 }));
 
 vi.mock('@/lib/api/useERPIntegration', async (importOriginal) => {
@@ -27,6 +27,16 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
     useDraftItems: (params: DraftItemsParams, options?: { enabled?: boolean }) => {
       if (options?.enabled === false) {
         return { data: undefined, isLoading: false, isFetching: false };
+      }
+      if (mocks.draftItemsState.error) {
+        return {
+          data: undefined,
+          isLoading: false,
+          isFetching: false,
+          isError: true,
+          error: mocks.draftItemsState.error,
+          refetch: vi.fn(),
+        };
       }
       if (mocks.draftItemsState.isLoading) {
         return { data: undefined, isLoading: true, isFetching: true };
@@ -110,6 +120,7 @@ describe('ERPItemsTable', () => {
     vi.clearAllMocks();
     mocks.draftItemsState.isLoading = false;
     mocks.draftItemsState.isEmpty = false;
+    mocks.draftItemsState.error = null;
     mocks.connection.mockReturnValue({
       id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
       systemName: 'Netsis',
@@ -158,6 +169,23 @@ describe('ERPItemsTable', () => {
 
     expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: 'Tümünü seç' })).not.toBeInTheDocument();
+  });
+
+  it('taslak sorgusu hata verdiğinde boş-durum yerine hata kutusu gösterir', () => {
+    mocks.draftItemsState.error = {
+      response: {
+        status: 500,
+        data: { isSuccess: false, error: { code: 'ServerError', description: 'Sunucu hatası.' } },
+      },
+    };
+
+    render(<ERPItemsTable />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Taslak ürünler yüklenemedi');
+    expect(alert).toHaveTextContent('Sunucu hatası.');
+    expect(screen.queryByText('Bekleyen ERP ürünü yok.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument();
   });
 
   it('ERP bağlantısı yoksa boş durum mesajı gösterir', () => {

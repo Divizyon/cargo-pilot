@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw, Loader2, Clock, CalendarClock } from 'lucide-react';
+import { RefreshCw, Loader2, Clock, CalendarClock, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import {
   useERPSyncOptions,
   useERPSyncSettings,
@@ -22,7 +24,7 @@ import {
   useRunERPSyncNow,
 } from '@/lib/api/useERPIntegration';
 import { useERPConnection } from '@/lib/api/useERPIntegration';
-import { ErpSyncInterval, type ErpSyncFilters } from '@/lib/types/erp';
+import { ErpSyncInterval, ErpSyncStatus, type ErpSyncFilters } from '@/lib/types/erp';
 import { useErpSettingsStore } from '@/lib/store/useErpSettingsStore';
 
 function formatSyncDate(iso: string | null | undefined): string {
@@ -31,11 +33,26 @@ function formatSyncDate(iso: string | null | undefined): string {
 }
 
 export function ERPSyncPanel() {
-  const { data: connection } = useERPConnection();
+  const {
+    data: connection,
+    isError: isConnectionError,
+    error: connectionError,
+    refetch: refetchConnection,
+  } = useERPConnection();
   const integrationId = connection?.id;
 
-  const { data: syncOptions, isLoading: isOptionsLoading } = useERPSyncOptions();
-  const { data: syncSettings, isLoading: isSettingsLoading } = useERPSyncSettings(integrationId);
+  const {
+    data: syncOptions,
+    isLoading: isOptionsLoading,
+    isError: isOptionsError,
+  } = useERPSyncOptions();
+  const {
+    data: syncSettings,
+    isLoading: isSettingsLoading,
+    isError: isSettingsError,
+    error: settingsError,
+    refetch: refetchSettings,
+  } = useERPSyncSettings(integrationId);
 
   const { mutate: saveSettings, isPending: isSavingSettings } = useSaveERPSyncSettings();
   const { mutate: runNow, isPending: isRunNowPending } = useRunERPSyncNow();
@@ -52,7 +69,8 @@ export function ERPSyncPanel() {
     syncSettings?.syncInterval ?? ErpSyncInterval.Daily,
   );
 
-  const isRunning = syncSettings?.syncStatus === 'Running';
+  const isRunning = syncSettings?.syncStatus === ErpSyncStatus.Running;
+  const isLastSyncFailed = syncSettings?.syncStatus === ErpSyncStatus.Failed;
   const isSyncDisabled = isRunning || isRunNowPending || !integrationId;
 
   function handleSaveInterval(value: string) {
@@ -67,6 +85,18 @@ export function ERPSyncPanel() {
   function handleRunNow() {
     if (!integrationId) return;
     runNow(integrationId);
+  }
+
+  // Bağlantı sorgusu hata verdiyse "bağlantı yok" demek yanlis olur.
+  if (isConnectionError) {
+    return (
+      <QueryErrorState
+        error={connectionError}
+        title="ERP bağlantısı okunamadı"
+        fallbackMessage="Bağlantı bilgisi alınamadı; senkronizasyon ayarları gösterilemiyor."
+        onRetry={() => void refetchConnection()}
+      />
+    );
   }
 
   if (!integrationId) {
@@ -93,6 +123,13 @@ export function ERPSyncPanel() {
             <Skeleton className="h-5 w-32" />
             <Skeleton className="h-5 w-32" />
           </div>
+        ) : isSettingsError ? (
+          <QueryErrorState
+            error={settingsError}
+            title="Senkronizasyon ayarları yüklenemedi"
+            fallbackMessage="Kayıtlı sıklık ve durum okunamadı; gösterilen değerler güncel olmayabilir."
+            onRetry={() => void refetchSettings()}
+          />
         ) : (
           <RadioGroup
             value={localInterval}
@@ -113,6 +150,18 @@ export function ERPSyncPanel() {
               </Label>
             </div>
           </RadioGroup>
+        )}
+
+        {isLastSyncFailed && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <div>
+              <AlertDescription>
+                Son senkronizasyon başarısız oldu. Ayrıntı için Geçmiş sekmesindeki hata mesajına
+                bakın, ardından yeniden deneyin.
+              </AlertDescription>
+            </div>
+          </Alert>
         )}
 
         {syncSettings?.nextScheduledSyncAt && (
@@ -211,6 +260,13 @@ export function ERPSyncPanel() {
             </Select>
           </div>
         </div>
+
+        {isOptionsError && (
+          <p className="text-xs text-destructive">
+            Kategori ve depo listesi yüklenemedi; filtreler yalnızca &quot;Tümü&quot; seçeneğiyle
+            çalışır.
+          </p>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button onClick={handleRunNow} disabled={isSyncDisabled}>

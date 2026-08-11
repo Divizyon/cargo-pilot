@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, History } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import { useERPConnection, useERPSyncLogs } from '@/lib/api/useERPIntegration';
 import { SyncLogStatus, type SyncLogStatusValue } from '@/lib/types/erp';
 
@@ -41,7 +42,10 @@ export function ERPSyncHistory() {
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
 
-  const { data, isLoading } = useERPSyncLogs(integrationId, { page, pageSize: PAGE_SIZE });
+  const { data, isLoading, isError, error, refetch } = useERPSyncLogs(integrationId, {
+    page,
+    pageSize: PAGE_SIZE,
+  });
 
   const logs = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -55,6 +59,13 @@ export function ERPSyncHistory() {
             <Skeleton key={i} className="h-14 w-full rounded-lg" />
           ))}
         </div>
+      ) : isError ? (
+        <QueryErrorState
+          error={error}
+          title="Senkronizasyon geçmişi yüklenemedi"
+          fallbackMessage="Geçmiş kayıtları alınamadı. Bu bir bağlantı veya sunucu hatası; kayıt olmadığı anlamına gelmez."
+          onRetry={() => void refetch()}
+        />
       ) : logs.length === 0 ? (
         <div className="rounded-lg border border-dashed py-12 text-center">
           <History className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />

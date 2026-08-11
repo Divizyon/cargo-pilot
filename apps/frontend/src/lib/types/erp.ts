@@ -12,9 +12,11 @@ export const ErpSyncInterval = {
 
 export type ErpSyncInterval = (typeof ErpSyncInterval)[keyof typeof ErpSyncInterval];
 
+/** Backend sözleşmesi: CargoPilot.Domain/Enums/ErpSyncStatus → Idle = 0, Running = 1, Failed = 2 */
 export const ErpSyncStatus = {
   Idle: 'Idle',
   Running: 'Running',
+  Failed: 'Failed',
 } as const;
 
 export type ErpSyncStatus = (typeof ErpSyncStatus)[keyof typeof ErpSyncStatus];

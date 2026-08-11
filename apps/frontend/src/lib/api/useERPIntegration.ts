@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { AxiosError } from 'axios';
+import { isAxiosError, type AxiosError } from 'axios';
 import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
 import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
+import { ErpSyncStatus } from '@/lib/types/erp';
 import {
   erpPendingMatchSchema,
   erpRemoteUserSchema,
@@ -41,6 +42,13 @@ export const SYNC_FREQUENCY_TO_INT: Record<string, number> = {
 const SYNC_FREQUENCY_FROM_INT: Record<number, ErpSyncInterval> = {
   0: 'FourHours',
   1: 'Daily',
+};
+
+/** Backend sözleşmesi: ErpSyncStatus → Idle = 0, Running = 1, Failed = 2 */
+const SYNC_STATUS_FROM_INT: Record<number, ErpSyncStatus> = {
+  0: ErpSyncStatus.Idle,
+  1: ErpSyncStatus.Running,
+  2: ErpSyncStatus.Failed,
 };
 
 // Raw API schema for pending-item-mappings (covers both status=0 and status=1)
@@ -106,16 +114,20 @@ const erpSettingsApiResponseSchema = z.object({
   data: erpSettingsApiSchema,
 });
 
+/**
+ * 404 "ayar yok" anlamına gelir ve hata değildir (ilk kurulumda form boş açılır).
+ * Diğer HTTP ve parse hatalari yutulmaz; cagiran bilesen isError dalini render eder.
+ */
 export function useERPSettings() {
   return useQuery({
     queryKey: ['erp', 'settings'] as const,
     queryFn: async () => {
       try {
         const { data } = await axiosInstance.get<unknown>(ERP_SETTINGS_BASE);
-        const parsed = erpSettingsApiResponseSchema.parse(data);
-        return parsed.data;
-      } catch {
-        return null;
+        return erpSettingsApiResponseSchema.parse(data).data;
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) return null;
+        throw error;
       }
     },
     retry: false,
@@ -193,9 +205,8 @@ export function useERPConnection() {
     queryKey: ['erp', 'connection'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(ERP_BASE);
-      const parsed = integrationsListResponseSchema.safeParse(data);
-      if (!parsed.success || parsed.data.data.length === 0) return null;
-      return parsed.data.data[0];
+      const parsed = integrationsListResponseSchema.parse(data);
+      return parsed.data[0] ?? null;
     },
     retry: false,
   });
@@ -300,8 +311,7 @@ export function useERPSyncOptions() {
     queryKey: ['erp', 'sync-options'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/sync-options`);
-      const parsed = erpSyncOptionsResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : { categories: [], warehouses: [] };
+      return erpSyncOptionsResponseSchema.parse(data).data;
     },
     retry: false,
   });
@@ -351,12 +361,16 @@ export function useERPSyncSettings(integrationId: string | undefined) {
         `${ERP_BASE}/${integrationId}/sync-settings`,
       );
       const parsed = erpSyncSettingsApiResponseSchema.parse(data);
+      const syncStatus = SYNC_STATUS_FROM_INT[parsed.data.syncStatus];
+      if (!syncStatus) {
+        throw new Error(`Bilinmeyen ERP senkronizasyon durumu: ${parsed.data.syncStatus}`);
+      }
       return {
         syncInterval:
           (parsed.data.syncFrequency !== null
             ? SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency]
             : undefined) ?? ('Daily' as ErpSyncInterval),
-        syncStatus: parsed.data.syncStatus === 1 ? 'Running' : 'Idle',
+        syncStatus,
         nextScheduledSyncAt: parsed.data.nextScheduledSyncAt,
         lastSyncedAt: parsed.data.lastSyncAt,
       };
@@ -428,9 +442,7 @@ export function useERPSyncLogs(integrationId: string | undefined, params: SyncLo
       const { data } = await axiosInstance.get<unknown>(
         `${ERP_BASE}/${integrationId}/sync-logs?${p.toString()}`,
       );
-      const parsed = syncLogsPageResponseSchema.safeParse(data);
-      if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
-      return parsed.data.data;
+      return syncLogsPageResponseSchema.parse(data).data;
     },
     enabled: Boolean(integrationId),
     retry: false,
@@ -444,18 +456,13 @@ export function useERPShipmentOrders(
   return useQuery({
     queryKey: ['erp', 'shipment-orders', integrationId, filters] as const,
     queryFn: async () => {
-      try {
-        const params = new URLSearchParams();
-        if (filters?.status) params.set('status', filters.status);
-        const qs = params.toString();
-        const { data } = await axiosInstance.get<unknown>(
-          `${ERP_BASE}/${integrationId}/shipment-orders${qs ? `?${qs}` : ''}`,
-        );
-        const parsed = erpShipmentOrdersResponseSchema.safeParse(data);
-        return parsed.success ? parsed.data.data : [];
-      } catch {
-        return [];
-      }
+      const params = new URLSearchParams();
+      if (filters?.status) params.set('status', filters.status);
+      const qs = params.toString();
+      const { data } = await axiosInstance.get<unknown>(
+        `${ERP_BASE}/${integrationId}/shipment-orders${qs ? `?${qs}` : ''}`,
+      );
+      return erpShipmentOrdersResponseSchema.parse(data).data;
     },
     enabled: Boolean(integrationId),
     retry: false,
@@ -489,8 +496,7 @@ export function useERPRemoteUsers() {
     queryKey: ['erp', 'remote-users'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/erp-users`);
-      const parsed = erpRemoteUsersResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
+      return erpRemoteUsersResponseSchema.parse(data).data;
     },
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -502,8 +508,7 @@ export function useERPUserMappings() {
     queryKey: ['erp', 'user-mappings'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/user-mappings`);
-      const parsed = erpUserMappingsResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
+      return erpUserMappingsResponseSchema.parse(data).data;
     },
     staleTime: 2 * 60 * 1000,
     retry: false,
@@ -539,8 +544,7 @@ export function useERPRoleConflictLog() {
     queryKey: ['erp', 'role-conflict-log'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/role-conflict-log`);
-      const parsed = erpRoleConflictLogResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
+      return erpRoleConflictLogResponseSchema.parse(data).data;
     },
     staleTime: 2 * 60 * 1000,
     retry: false,
@@ -593,8 +597,7 @@ export function useERPUnassignedData() {
     queryKey: ['erp', 'unassigned-data'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/unassigned-data`);
-      const parsed = erpUnassignedDataResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
+      return erpUnassignedDataResponseSchema.parse(data).data;
     },
     staleTime: 2 * 60 * 1000,
     retry: false,

@@ -67,9 +67,8 @@ export function useDraftItems(params: DraftItemsParams, options?: { enabled?: bo
       p.set('pageSize', String(params.pageSize));
       if (params.status !== undefined) p.set('status', String(params.status));
       const { data } = await axiosInstance.get<unknown>(`${DRAFT_BASE}?${p.toString()}`);
-      const parsed = draftItemsPageResponseSchema.safeParse(data);
-      if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
-      return parsed.data.data;
+      // Parse/HTTP hatasi yutulmaz; cagiran bilesen isError dalini render eder.
+      return draftItemsPageResponseSchema.parse(data).data;
     },
   });
 }
