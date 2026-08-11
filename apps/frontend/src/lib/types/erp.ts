@@ -25,6 +25,23 @@ export const syncRowErrorSchema = z.object({
 
 export type SyncRowError = z.infer<typeof syncRowErrorSchema>;
 
+/**
+ * Backend sözleşmesi: CargoPilot.Application/Common/Erp/ErpDropReason.
+ * Eksik ölçü bir eleme nedeni değildir; o satırlar 'eksik alan' işaretiyle taslağa düşer.
+ */
+export const ErpDropReason = {
+  SalesLocked: 'SalesLocked',
+  CategoryFiltered: 'CategoryFiltered',
+  WarehouseFiltered: 'WarehouseFiltered',
+} as const;
+
+export type ErpDropReason = (typeof ErpDropReason)[keyof typeof ErpDropReason];
+
+/** Neden bazlı eleme kırılımı; bilinmeyen neden anahtarları da korunur. */
+export const droppedByReasonSchema = z.record(z.string(), z.number().int().min(0));
+
+export type DroppedByReason = z.infer<typeof droppedByReasonSchema>;
+
 export const erpSyncSummarySchema = z.object({
   syncLogId: z.string().uuid().optional(),
   added: z.number().int().min(0),
@@ -35,6 +52,11 @@ export const erpSyncSummarySchema = z.object({
   /** Eksik alan işaretiyle taslağa yazılan satır sayısı. */
   missingFieldCount: z.number().int().min(0).default(0),
   rowErrors: z.array(syncRowErrorSchema).default([]),
+  /** ERP kaynağında eleme öncesi bulunan satır sayısı. */
+  sourceTotal: z.number().int().min(0).default(0),
+  droppedByReason: droppedByReasonSchema.default({}),
+  /** Mutabakat farkı: sourceTotal − (yazılan + atlanan + elenen). Negatif olabilir. */
+  unaccounted: z.number().int().default(0),
   syncedAt: z.string().datetime({ offset: true }).optional(),
 });
 
@@ -51,6 +73,13 @@ export const syncLogDtoSchema = z.object({
   syncedRecordCount: z.number().int().min(0),
   errorMessage: z.string().nullable(),
   rowErrors: z.array(syncRowErrorSchema).default([]),
+  /** ERP kaynağında eleme öncesi bulunan satır sayısı. */
+  sourceTotal: z.number().int().min(0).default(0),
+  /** Kaynaktan uygulamaya çekilen satır sayısı. */
+  fetchedCount: z.number().int().min(0).default(0),
+  droppedByReason: droppedByReasonSchema.default({}),
+  /** Mutabakat farkı; sıfırdan farklıysa kaynak satırların bir kısmı sayaca düşmemiştir. */
+  unaccounted: z.number().int().default(0),
 });
 
 export type SyncLogDto = z.infer<typeof syncLogDtoSchema>;

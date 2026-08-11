@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Services.Erp;
@@ -32,7 +33,7 @@ public sealed class NetsisProductFetcherTests
         var sql = NetsisProductFetcher.BuildSql(hasCategoryFilter: false, hasWarehouseFilter: false);
 
         sql.Should().Contain("FROM TBLSTSABIT");
-        sql.Should().Contain("SATISKILIT IS NULL OR SATISKILIT != 'E'");
+        sql.Should().Contain("ISNULL(SATISKILIT, '') = 'E'");
         sql.Should().Contain("TOP (@MaxRowCount)");
         sql.Should().Contain("ORDER BY STOK_KODU");
         sql.Should().NotContain("@CategoryFilter");
@@ -44,7 +45,7 @@ public sealed class NetsisProductFetcherTests
     {
         var sql = NetsisProductFetcher.BuildSql(hasCategoryFilter: false, hasWarehouseFilter: true);
 
-        sql.Should().Contain("DEPO_KODU AS NVARCHAR(50)) = @WarehouseFilter");
+        sql.Should().Contain("ISNULL(CAST(DEPO_KODU AS NVARCHAR(50)), '') <> @WarehouseFilter");
     }
 
     [Fact]
@@ -52,7 +53,39 @@ public sealed class NetsisProductFetcherTests
     {
         var sql = NetsisProductFetcher.BuildSql(hasCategoryFilter: true, hasWarehouseFilter: false);
 
-        sql.Should().Contain("GRUP_KODU = @CategoryFilter");
+        sql.Should().Contain("ISNULL(GRUP_KODU, '') <> @CategoryFilter");
+    }
+
+    /// <remarks>ERP-24: kaynak toplami ayni partide sayilir, ayri COUNT gidis-donusu yoktur.</remarks>
+    [Fact]
+    public void BuildSql_KaynakToplamiVeNedenSayilariniAyniPartideDondurur()
+    {
+        var sql = NetsisProductFetcher.BuildSql(hasCategoryFilter: true, hasWarehouseFilter: true);
+
+        sql.Should().Contain("COUNT(*) AS SourceTotal");
+        sql.Should().Contain("AS SalesLocked");
+        sql.Should().Contain("AS CategoryFiltered");
+        sql.Should().Contain("AS WarehouseFiltered");
+        Regex.Matches(sql, "FROM TBLSTSABIT").Should().HaveCount(2);
+    }
+
+    /// <remarks>Filtre yoksa sutun sirasi bozulmasin diye sabit 0 yazilir.</remarks>
+    [Fact]
+    public void BuildSql_FiltreYokken_NedenSutunlariSifirSabitiyleKorunur()
+    {
+        var sql = NetsisProductFetcher.BuildSql(hasCategoryFilter: false, hasWarehouseFilter: false);
+
+        sql.Should().Contain("0 AS CategoryFiltered");
+        sql.Should().Contain("0 AS WarehouseFiltered");
+    }
+
+    /// <remarks>Nedenler birbirini dislar; aksi halde SourceTotal ile toplam tutmaz.</remarks>
+    [Fact]
+    public void BuildSql_NedenSayilariBirbiriniDislar()
+    {
+        var sql = NetsisProductFetcher.BuildSql(hasCategoryFilter: true, hasWarehouseFilter: true);
+
+        sql.Should().Contain("NOT (ISNULL(SATISKILIT, '') = 'E') AND ISNULL(GRUP_KODU, '') <> @CategoryFilter");
     }
 
     [Fact]

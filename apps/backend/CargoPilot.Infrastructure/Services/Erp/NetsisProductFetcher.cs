@@ -30,7 +30,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
 
     public ErpProviderType ProviderType => ErpProviderType.Netsis;
 
-    public async Task<IReadOnlyList<ErpProductDto>> FetchAsync(
+    public async Task<ErpFetchResult> FetchAsync(
         string serverAddress,
         ErpCredentials credentials,
         string? categoryFilter,
@@ -56,6 +56,9 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
             cmd.Parameters.AddWithValue("@WarehouseFilter", warehouseFilter);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        var totals = await ReadTotalsAsync(reader, cancellationToken);
+        await reader.NextResultAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))
         {
@@ -104,33 +107,104 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
         if (results.Count >= MaxRowCount)
             _logRowLimitReached(_logger, MaxRowCount, null);
 
-        return results;
+        return new ErpFetchResult(results, totals.SourceTotal, BuildDroppedAtSource(totals));
+    }
+
+    /// <summary>
+    /// Kaynak toplami ve neden bazli eleme sayilari ayni SQL partisinin ilk sonucundan
+    /// okunur; ikinci bir COUNT gidis-donusu yoktur.
+    /// </summary>
+    private static async Task<SourceTotals> ReadTotalsAsync(SqlDataReader reader, CancellationToken cancellationToken)
+    {
+        if (!await reader.ReadAsync(cancellationToken))
+            return new SourceTotals(0, 0, 0, 0);
+
+        return new SourceTotals(
+            SourceTotal: await ReadCountAsync(reader, 0, cancellationToken),
+            SalesLocked: await ReadCountAsync(reader, 1, cancellationToken),
+            CategoryFiltered: await ReadCountAsync(reader, 2, cancellationToken),
+            WarehouseFiltered: await ReadCountAsync(reader, 3, cancellationToken));
+    }
+
+    private static async Task<int> ReadCountAsync(SqlDataReader reader, int ordinal, CancellationToken cancellationToken) =>
+        await reader.IsDBNullAsync(ordinal, cancellationToken) ? 0 : reader.GetInt32(ordinal);
+
+    private static Dictionary<ErpDropReason, int> BuildDroppedAtSource(SourceTotals totals)
+    {
+        var dropped = new Dictionary<ErpDropReason, int>();
+        AddIfPositive(dropped, ErpDropReason.SalesLocked, totals.SalesLocked);
+        AddIfPositive(dropped, ErpDropReason.CategoryFiltered, totals.CategoryFiltered);
+        AddIfPositive(dropped, ErpDropReason.WarehouseFiltered, totals.WarehouseFiltered);
+        return dropped;
+    }
+
+    private static void AddIfPositive(Dictionary<ErpDropReason, int> dropped, ErpDropReason reason, int count)
+    {
+        if (count > 0)
+            dropped[reason] = count;
     }
 
     /// <summary>
     /// Olcu koseleri SQL'de elenmez: eksik olculu satirlar 'eksik alan' isaretiyle taslaga
     /// duser (ERP-09). Satis kilitli satirlar hic cekilmez. Kategori ve depo filtresi
     /// parametreli olarak SQL'e uygulanir; bellekte ikinci bir eleme yapilmaz.
+    /// Parti iki sonuc dondurur: once eleme sayilari, sonra urun satirlari. Iki ifade de
+    /// ayni eleme kosullarindan uretilir ki sayim ile cekim ayrisamasin.
     /// </summary>
     internal static string BuildSql(bool hasCategoryFilter, bool hasWarehouseFilter)
     {
-        var sql = """
+        const string salesLocked = "ISNULL(SATISKILIT, '') = 'E'";
+        var categoryFiltered = hasCategoryFilter ? "ISNULL(GRUP_KODU, '') <> @CategoryFilter" : null;
+        var warehouseFiltered = hasWarehouseFilter
+            ? "ISNULL(CAST(DEPO_KODU AS NVARCHAR(50)), '') <> @WarehouseFilter"
+            : null;
+
+        // Nedenler oncelik sirasiyla ve birbirini disliyarak sayilir; boylece
+        // SourceTotal = SalesLocked + CategoryFiltered + WarehouseFiltered + Eligible.
+        var salesLockedCount = CountOf(salesLocked);
+        var categoryCount = CountOf(categoryFiltered, Not(salesLocked));
+        var warehouseCount = CountOf(warehouseFiltered, Not(salesLocked), Not(categoryFiltered));
+        var eligibleCondition = Conjunction(Not(salesLocked), Not(categoryFiltered), Not(warehouseFiltered));
+
+        return $"""
+            SELECT COUNT(*) AS SourceTotal,
+                   {salesLockedCount} AS SalesLocked,
+                   {categoryCount} AS CategoryFiltered,
+                   {warehouseCount} AS WarehouseFiltered
+            FROM TBLSTSABIT;
             SELECT TOP (@MaxRowCount)
                    STOK_KODU, STOK_ADI, BIRIM_AGIRLIK, EN, BOY, GENISLIK,
                    GRUP_KODU, DEPO_KODU, BARKOD1
             FROM TBLSTSABIT
-            WHERE (SATISKILIT IS NULL OR SATISKILIT != 'E')
+            WHERE {eligibleCondition}
+            ORDER BY STOK_KODU;
             """;
-
-        if (hasCategoryFilter)
-            sql += " AND GRUP_KODU = @CategoryFilter";
-
-        if (hasWarehouseFilter)
-            sql += " AND CAST(DEPO_KODU AS NVARCHAR(50)) = @WarehouseFilter";
-
-        // TOP deterministik olsun diye sabit siralama.
-        return sql + " ORDER BY STOK_KODU";
     }
+
+    /// <summary>Kosul uygulanmiyorsa sabit 0, uygulaniyorsa onceki nedenleri dislayan SUM.</summary>
+    private static string CountOf(string? condition, params string?[] precedingExclusions)
+    {
+        if (condition is null)
+            return "0";
+
+        var full = Conjunction([.. precedingExclusions, condition]);
+        return $"SUM(CASE WHEN {full} THEN 1 ELSE 0 END)";
+    }
+
+    /// <summary>NULL-guvenli olumsuzlama; kosul yoksa cumleden dusurulur.</summary>
+    private static string? Not(string? condition) => condition is null ? null : $"NOT ({condition})";
+
+    private static string Conjunction(params string?[] conditions)
+    {
+        var applied = conditions.Where(c => c is not null).ToArray();
+        return applied.Length == 0 ? "1 = 1" : string.Join(" AND ", applied);
+    }
+
+    private sealed record SourceTotals(
+        int SourceTotal,
+        int SalesLocked,
+        int CategoryFiltered,
+        int WarehouseFiltered);
 
     /// <summary>Kaynakta bos veya sifir gelen olcu/agirlik alanlarini isaretler.</summary>
     private static List<string> CollectMissingFields(

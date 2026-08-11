@@ -40,10 +40,29 @@ public sealed class GetSyncLogsQueryHandler : IRequestHandler<GetSyncLogsQuery, 
             l.Status,
             l.SyncedRecordCount,
             l.ErrorMessage,
-            ParseRowErrors(l.RowErrorsJson))).ToList();
+            ParseRowErrors(l.RowErrorsJson),
+            l.SourceTotal,
+            l.FetchedCount,
+            ParseDroppedByReason(l.DroppedByReasonJson),
+            l.UnaccountedCount)).ToList();
 
         return Result<PagedResult<SyncLogDto>>.Success(
             new PagedResult<SyncLogDto>(dtos, pagedLogs.TotalCount, pagedLogs.Page, pagedLogs.PageSize));
+    }
+
+    private static Dictionary<string, int> ParseDroppedByReason(string? droppedByReasonJson)
+    {
+        if (string.IsNullOrWhiteSpace(droppedByReasonJson))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, int>>(droppedByReasonJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 
     private static List<SyncRowError> ParseRowErrors(string? rowErrorsJson)

@@ -39,6 +39,17 @@ internal static class TestData
             RawDataJson: "{}",
             MissingFields: missingFields);
 
+    /// <summary>Elemesiz cekim sonucu; kaynak toplami cekilen satir sayisina esittir.</summary>
+    public static ErpFetchResult CreateFetchResult(params ErpProductDto[] products) =>
+        ErpFetchResult.WithoutScreening(products);
+
+    /// <summary>Kaynakta eleme yapilmis cekim sonucu.</summary>
+    public static ErpFetchResult CreateFetchResult(
+        int sourceTotal,
+        IReadOnlyDictionary<ErpDropReason, int> droppedAtSource,
+        params ErpProductDto[] products) =>
+        new(products, sourceTotal, droppedAtSource);
+
     public static DraftItem CreateDraftItem(
         Guid companyId,
         Guid integrationId,

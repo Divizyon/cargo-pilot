@@ -16,6 +16,18 @@ public sealed class SyncLog : BaseEntity {
     /// <summary>Satir bazli hatalarin JSON listesi; kismi basari durumunda doldurulur.</summary>
     public string? RowErrorsJson { get; private set; }
 
+    /// <summary>ERP kaynaginda eleme oncesi bulunan satir sayisi.</summary>
+    public int SourceTotal { get; private set; }
+
+    /// <summary>Kaynaktan uygulamaya cekilen (islenmeye aday) satir sayisi.</summary>
+    public int FetchedCount { get; private set; }
+
+    /// <summary>Neden bazli eleme sayilarinin JSON sozlugu (ErpDropReason adi -> adet).</summary>
+    public string? DroppedByReasonJson { get; private set; }
+
+    /// <summary>Mutabakat farki: SourceTotal - (yazilan + atlanan + elenen).</summary>
+    public int UnaccountedCount { get; private set; }
+
 #pragma warning disable S1144
     public Integration? Integration { get; private set; }
 #pragma warning restore S1144
@@ -32,12 +44,17 @@ public sealed class SyncLog : BaseEntity {
         LoadingPlanId = loadingPlanId;
     }
 
-    public void Complete(int syncedRecordCount, int ruleAssignedCount = 0, int ruleNotAssignedCount = 0) {
+    public void Complete(
+        int syncedRecordCount,
+        SyncAccounting? accounting = null,
+        int ruleAssignedCount = 0,
+        int ruleNotAssignedCount = 0) {
         CompletedAt = DateTime.UtcNow;
         Status = SyncLogStatus.Success;
         SyncedRecordCount = syncedRecordCount;
         RuleAssignedCount = ruleAssignedCount;
         RuleNotAssignedCount = ruleNotAssignedCount;
+        ApplyAccounting(accounting);
     }
 
     public void Fail(string errorMessage) {
@@ -50,6 +67,7 @@ public sealed class SyncLog : BaseEntity {
         int syncedRecordCount,
         string errorMessage,
         string? rowErrorsJson = null,
+        SyncAccounting? accounting = null,
         int ruleAssignedCount = 0,
         int ruleNotAssignedCount = 0) {
         CompletedAt = DateTime.UtcNow;
@@ -59,5 +77,16 @@ public sealed class SyncLog : BaseEntity {
         RowErrorsJson = rowErrorsJson;
         RuleAssignedCount = ruleAssignedCount;
         RuleNotAssignedCount = ruleNotAssignedCount;
+        ApplyAccounting(accounting);
+    }
+
+    private void ApplyAccounting(SyncAccounting? accounting) {
+        if (accounting is null)
+            return;
+
+        SourceTotal = accounting.SourceTotal;
+        FetchedCount = accounting.FetchedCount;
+        DroppedByReasonJson = accounting.DroppedByReasonJson;
+        UnaccountedCount = accounting.Unaccounted;
     }
 }

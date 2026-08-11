@@ -12,7 +12,11 @@ public interface IErpProductFetcher
 {
     ErpProviderType ProviderType { get; }
 
-    Task<IReadOnlyList<ErpProductDto>> FetchAsync(
+    /// <summary>
+    /// Urunleri ceker ve ayni sorgu icinde kaynak toplamini + neden bazli eleme
+    /// sayilarini dondurur (bkz. <see cref="ErpFetchResult"/>).
+    /// </summary>
+    Task<ErpFetchResult> FetchAsync(
         string serverAddress,
         ErpCredentials credentials,
         string? categoryFilter,

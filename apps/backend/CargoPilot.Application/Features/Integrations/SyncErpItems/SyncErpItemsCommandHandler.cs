@@ -26,6 +26,12 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             new EventId(2, "ErpSyncRowFailed"),
             "ERP sync row failed for integration {IntegrationId}, erpId {ErpId}");
 
+    private static readonly Action<ILogger, Guid, int, int, Exception?> _logUnaccountedRows =
+        LoggerMessage.Define<Guid, int, int>(
+            LogLevel.Warning,
+            new EventId(4, "ErpSyncUnaccountedRows"),
+            "ERP sync mutabakat farki: integration {IntegrationId}, kaynak {SourceTotal}, fark {Unaccounted}");
+
     private static readonly Action<ILogger, Guid, Exception?> _logFailureStateNotSaved =
         LoggerMessage.Define<Guid>(
             LogLevel.Error,
@@ -134,16 +140,19 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
         try
         {
-            var erpProducts = await productFetcher.FetchAsync(
+            var fetchResult = await productFetcher.FetchAsync(
                 erpSettings.ServerAddress,
                 credentials,
                 request.CategoryFilter,
                 request.WarehouseFilter,
                 cancellationToken);
 
+            var erpProducts = fetchResult.Products;
+
             int added = 0, updated = 0, missingFieldCount = 0;
             var rowErrors = new List<SyncRowError>();
             var seenErpIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var dropped = new Dictionary<ErpDropReason, int>(fetchResult.DroppedAtSource);
 
             foreach (var product in erpProducts)
             {
@@ -229,16 +238,29 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
             integration.CompleteSync(DateTime.UtcNow, integration.NextScheduledSyncAt);
 
+            var droppedByReason = dropped.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
+            var unaccounted = CalculateUnaccounted(
+                fetchResult.SourceTotalCount, added, updated, rowErrors.Count, dropped);
+            if (unaccounted != 0)
+                _logUnaccountedRows(_logger, integration.Id, fetchResult.SourceTotalCount, unaccounted, null);
+
+            var accounting = new SyncAccounting(
+                fetchResult.SourceTotalCount,
+                erpProducts.Count,
+                droppedByReason.Count > 0 ? JsonSerializer.Serialize(droppedByReason) : null,
+                unaccounted);
+
             if (rowErrors.Count > 0)
             {
                 syncLog.PartialFail(
                     added + updated,
                     BuildPartialFailMessage(rowErrors.Count, erpProducts.Count),
-                    JsonSerializer.Serialize(rowErrors));
+                    JsonSerializer.Serialize(rowErrors),
+                    accounting);
             }
             else
             {
-                syncLog.Complete(added + updated);
+                syncLog.Complete(added + updated, accounting);
             }
 
             await _draftItemRepository.SaveChangesAsync(cancellationToken);
@@ -251,7 +273,10 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     rowErrors.Count,
                     rowErrors.Count,
                     missingFieldCount,
-                    rowErrors));
+                    rowErrors,
+                    fetchResult.SourceTotalCount,
+                    droppedByReason,
+                    unaccounted));
         }
         catch (Exception ex)
         {
@@ -305,6 +330,19 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             _logFailureStateNotSaved(_logger, integrationId, saveEx);
         }
     }
+
+    /// <summary>
+    /// Mutabakat invariantı: SourceTotal == added + updated + skipped + ΣDropped.
+    /// Fark sifir degilse kaynaktaki satirlarin bir kismi hicbir sayaca dusmemistir;
+    /// deger gizlenmeden 'unaccounted' olarak kaydedilir.
+    /// </summary>
+    private static int CalculateUnaccounted(
+        int sourceTotal,
+        int added,
+        int updated,
+        int skipped,
+        IReadOnlyDictionary<ErpDropReason, int> dropped) =>
+        sourceTotal - (added + updated + skipped + dropped.Values.Sum());
 
     private static string BuildPartialFailMessage(int failedCount, int totalCount) =>
         $"{totalCount} satırdan {failedCount} tanesi işlenemedi; diğer satırlar kaydedildi.";

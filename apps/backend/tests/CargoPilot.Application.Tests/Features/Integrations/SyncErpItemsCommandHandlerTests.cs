@@ -41,7 +41,10 @@ public sealed class SyncErpItemsCommandHandlerTests
 
     private Integration _integration = TestData.CreateIntegration(IntegrationId, CompanyId);
 
-    private void ArrangeHappyPath(params ErpProductDto[] products)
+    private void ArrangeHappyPath(params ErpProductDto[] products) =>
+        ArrangeHappyPath(TestData.CreateFetchResult(products));
+
+    private void ArrangeHappyPath(ErpFetchResult fetchResult)
     {
         _erpProductFetcher.ProviderType.Returns(ErpProviderType.Netsis);
         _currentUserService.CompanyId.Returns(CompanyId);
@@ -60,7 +63,7 @@ public sealed class SyncErpItemsCommandHandlerTests
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(products);
+            .Returns(fetchResult);
     }
 
     [Fact]
@@ -216,7 +219,7 @@ public sealed class SyncErpItemsCommandHandlerTests
             .Returns(_ =>
             {
                 fetchAnindakiDurum = _integration.SyncStatus;
-                return new[] { TestData.CreateErpProduct() };
+                return TestData.CreateFetchResult(TestData.CreateErpProduct());
             });
 
         var result = await CreateSut().Handle(Command, CancellationToken.None);
@@ -245,6 +248,71 @@ public sealed class SyncErpItemsCommandHandlerTests
         result.Data.Skipped.Should().Be(1);
         result.Data.RowErrors.Should().ContainSingle().Which.ErpId.Should().Be("ERP-1");
         _draftItemRepository.Received(1).Add(Arg.Any<DraftItem>());
+    }
+
+    /// <remarks>
+    /// ERP-24 mutabakat invariantı: 10 kaynak satir, 3'u kaynakta elenir, 7 cekilir,
+    /// 1 satir handler'da hata verir → 6 yazilir, fark sifirdir.
+    /// </remarks>
+    [Fact]
+    public async Task Handle_KaynaktaElenenVeHataliSatirlar_MutabakatFarkiSifirKalir()
+    {
+        var products = Enumerable.Range(1, 7)
+            .Select(i => TestData.CreateErpProduct($"ERP-{i}", $"SKU-{i}", $"Urun {i}"))
+            .ToArray();
+
+        ArrangeHappyPath(TestData.CreateFetchResult(
+            sourceTotal: 10,
+            droppedAtSource: new Dictionary<ErpDropReason, int>
+            {
+                [ErpDropReason.SalesLocked] = 2,
+                [ErpDropReason.WarehouseFiltered] = 1,
+            },
+            products));
+
+        _draftItemRepository.GetByErpIdAsync(Arg.Any<string>(), IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+        _draftItemRepository.GetByErpIdAsync("ERP-4", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns<DraftItem?>(_ => throw new InvalidOperationException("satir bozuk"));
+
+        SyncLog? kaydedilenLog = null;
+        _integrationRepository.When(r => r.AddSyncLog(Arg.Any<SyncLog>())).Do(c => kaydedilenLog = c.Arg<SyncLog>());
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.SourceTotal.Should().Be(10);
+        result.Data.Added.Should().Be(6);
+        result.Data.Updated.Should().Be(0);
+        result.Data.Skipped.Should().Be(1);
+        result.Data.DroppedByReason.Values.Sum().Should().Be(3);
+        result.Data.Unaccounted.Should().Be(0);
+
+        kaydedilenLog!.SourceTotal.Should().Be(10);
+        kaydedilenLog.FetchedCount.Should().Be(7);
+        kaydedilenLog.UnaccountedCount.Should().Be(0);
+        kaydedilenLog.DroppedByReasonJson.Should()
+            .Contain(nameof(ErpDropReason.SalesLocked))
+            .And.Contain(nameof(ErpDropReason.WarehouseFiltered));
+    }
+
+    [Fact]
+    public async Task Handle_KaynakToplamiSayilamayanSatirBirakirsa_FarkUnaccountedOlarakYazilir()
+    {
+        ArrangeHappyPath(TestData.CreateFetchResult(
+            sourceTotal: 5,
+            droppedAtSource: new Dictionary<ErpDropReason, int>(),
+            TestData.CreateErpProduct()));
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        SyncLog? kaydedilenLog = null;
+        _integrationRepository.When(r => r.AddSyncLog(Arg.Any<SyncLog>())).Do(c => kaydedilenLog = c.Arg<SyncLog>());
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.Data!.Unaccounted.Should().Be(4);
+        kaydedilenLog!.UnaccountedCount.Should().Be(4);
     }
 
     [Fact]
@@ -332,7 +400,7 @@ public sealed class SyncErpItemsCommandHandlerTests
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
-            .Returns<IReadOnlyList<ErpProductDto>>(_ =>
+            .Returns<ErpFetchResult>(_ =>
                 throw new ErpConfigurationException("ERP veritabanı adı tanımlı değil."));
 
         var result = await CreateSut().Handle(Command, CancellationToken.None);
@@ -354,7 +422,7 @@ public sealed class SyncErpItemsCommandHandlerTests
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
-            .Returns<IReadOnlyList<ErpProductDto>>(_ => throw new InvalidOperationException("baglanti koptu"));
+            .Returns<ErpFetchResult>(_ => throw new InvalidOperationException("baglanti koptu"));
 
         SyncLog? kaydedilenLog = null;
         _integrationRepository.When(r => r.AddSyncLog(Arg.Any<SyncLog>())).Do(c => kaydedilenLog = c.Arg<SyncLog>());

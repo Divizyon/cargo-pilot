@@ -26,7 +26,17 @@ public sealed class TriggerSyncCommandHandlerTests
 
     private static Result<SyncErpItemsResult> SyncSuccess() =>
         Result<SyncErpItemsResult>.Success(
-            new SyncErpItemsResult(Guid.NewGuid(), Added: 2, Updated: 1, Skipped: 0, ErrorCount: 0, MissingFieldCount: 0, RowErrors: []));
+            new SyncErpItemsResult(
+                Guid.NewGuid(),
+                Added: 2,
+                Updated: 1,
+                Skipped: 0,
+                ErrorCount: 0,
+                MissingFieldCount: 0,
+                RowErrors: [],
+                SourceTotal: 3,
+                DroppedByReason: new Dictionary<string, int>(),
+                Unaccounted: 0));
 
     [Fact]
     public async Task Handle_SirketBaglamiYokken_AuthNoCompanyDoner()

@@ -57,6 +57,20 @@ internal sealed class SyncLogConfiguration : IEntityTypeConfiguration<SyncLog> {
 
         builder.Property(s => s.RowErrorsJson);
 
+        builder.Property(s => s.SourceTotal)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.FetchedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.DroppedByReasonJson);
+
+        builder.Property(s => s.UnaccountedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.HasOne(s => s.Integration)
             .WithMany(i => i.SyncLogs)
             .HasForeignKey(s => s.IntegrationId)

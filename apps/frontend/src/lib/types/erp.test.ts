@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  ErpDropReason,
   SyncLogStatus,
   erpSettingsApiSchema,
   erpSyncSummarySchema,
@@ -107,6 +108,28 @@ describe('syncLogDtoSchema', () => {
   it('rowErrors gönderilmezse boş listeye düşer', () => {
     expect(syncLogDtoSchema.parse(validLog).rowErrors).toEqual([]);
   });
+
+  it('satır muhasebesi alanlarını taşır', () => {
+    const parsed = syncLogDtoSchema.parse({
+      ...validLog,
+      syncedRecordCount: 6,
+      sourceTotal: 10,
+      fetchedCount: 7,
+      droppedByReason: { [ErpDropReason.SalesLocked]: 2, [ErpDropReason.WarehouseFiltered]: 1 },
+      unaccounted: 0,
+    });
+    expect(parsed.sourceTotal).toBe(10);
+    expect(parsed.fetchedCount).toBe(7);
+    expect(parsed.droppedByReason[ErpDropReason.SalesLocked]).toBe(2);
+    expect(parsed.unaccounted).toBe(0);
+  });
+
+  it('muhasebe alanları gelmeyen eski kayıtlarda varsayılana düşer', () => {
+    const parsed = syncLogDtoSchema.parse(validLog);
+    expect(parsed.sourceTotal).toBe(0);
+    expect(parsed.droppedByReason).toEqual({});
+    expect(parsed.unaccounted).toBe(0);
+  });
 });
 
 describe('erpSyncSummarySchema', () => {
@@ -149,6 +172,38 @@ describe('erpSyncSummarySchema', () => {
     expect(parsed.errorCount).toBe(0);
     expect(parsed.missingFieldCount).toBe(0);
     expect(parsed.rowErrors).toEqual([]);
+  });
+
+  it('kaynak toplamını ve neden bazlı eleme kırılımını taşır', () => {
+    const parsed = erpSyncSummarySchema.parse({
+      added: 6,
+      updated: 0,
+      skipped: 1,
+      sourceTotal: 10,
+      droppedByReason: { [ErpDropReason.SalesLocked]: 2, [ErpDropReason.CategoryFiltered]: 1 },
+      unaccounted: 0,
+    });
+    expect(parsed.sourceTotal).toBe(10);
+    expect(parsed.droppedByReason[ErpDropReason.CategoryFiltered]).toBe(1);
+    expect(parsed.unaccounted).toBe(0);
+  });
+
+  it('mutabakat farkı negatif gelebilir', () => {
+    const parsed = erpSyncSummarySchema.parse({
+      added: 3,
+      updated: 0,
+      skipped: 0,
+      sourceTotal: 2,
+      unaccounted: -1,
+    });
+    expect(parsed.unaccounted).toBe(-1);
+  });
+
+  it('muhasebe alanları gönderilmezse varsayılana düşer', () => {
+    const parsed = erpSyncSummarySchema.parse({ added: 0, updated: 0, skipped: 0 });
+    expect(parsed.sourceTotal).toBe(0);
+    expect(parsed.droppedByReason).toEqual({});
+    expect(parsed.unaccounted).toBe(0);
   });
 
   it('eksik alanlı satır sayısını taşır', () => {
