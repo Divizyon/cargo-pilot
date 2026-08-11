@@ -7,7 +7,8 @@
 >
 > Veritabanı adı müşteriye göre değişir; `DIVIZYON` yalnızca bu örnek yedeğin adıdır ve
 > kodda varsayılan olarak kullanılmaz — ERP ayarlarındaki "Veritabanı Adı" alanı esastır.
-> Bağlantı için salt-okunur (`db_datareader`) bir SQL login'i önerilir.
+> Bağlantı için salt-okunur (`db_datareader`) bir SQL login'i önerilir; ağ ön koşulları ve
+> login şablonu için [adr-baglanti-mimarisi.md](./adr-baglanti-mimarisi.md).
 
 Kaynak: `DIVIZYON.bak` (SQL Server 2019, 4.35 MB)  
 Restore: `erp-schema-inspect` Docker container, port 1435  
