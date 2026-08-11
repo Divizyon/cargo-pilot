@@ -113,6 +113,9 @@ ALTER ROLE db_datareader ADD MEMBER cargopilot_ro;
   alanı hiç kullanılmıyordu ve ERP-23 kapsamında şemadan kaldırıldı.
 - Katmanlar arasında parola düz JSON string ile değil, `ErpCredentials` tipiyle taşınır;
   tipin `ToString`'i parolayı maskeler, böylece log ve exception mesajlarına sızmaz.
+- Kayıtlı parola çözülemezse (anahtar halkası değişmiş ya da kayıt bozulmuşsa) sunucuya
+  bozuk kimlik bilgisiyle bağlanılmaz; kullanıcıya "ERP kimlik bilgileri okunamadı,
+  parolayı yeniden kaydedin" hatası döner.
 
 ## Alternatifler
 
