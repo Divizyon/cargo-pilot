@@ -3,6 +3,11 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import type { Item } from '@/lib/types/item';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate, getExcelDateCellValue } from '@/lib/utils/format/formatDate';
+import {
+  ITEM_SHEET_HEADER,
+  formatConstraintCell,
+  formatLoadGroupCell,
+} from '@/lib/config/item-import-columns';
 
 // ─── Excel 365 native checkbox injection ─────────────────────────────────────
 //
@@ -121,29 +126,45 @@ function downloadXlsxWithExcel365Checkboxes(
   URL.revokeObjectURL(url);
 }
 
-export function exportItemsToExcel(items: Item[]): void {
+/** Ürünün kısıtları boşsa kırılganlık derecesi tek kısıt olarak yazılır; aksi halde veri kaybolur. */
+function itemConstraintIds(item: Item): number[] {
+  const ids = item.constraintIds ?? [];
+  if (ids.length > 0) return ids;
+  return item.fragility > 0 ? [item.fragility] : [];
+}
+
+/** Ayrıştırıcı yük grubunun ilkini `stackGroup` sayar; bu yüzden ilk sıraya o yazılır. */
+function itemLoadGroups(item: Item): string[] {
+  const groups = [
+    ...(item.stackGroup ? [item.stackGroup] : []),
+    ...(item.incompatibleGroups ?? []),
+  ];
+  return Array.from(new Set(groups));
+}
+
+/** Dışa aktarım, içe aktarım şablonuyla birebir aynı sütunları üretir (round-trip). */
+export function buildItemsWorkbook(items: Item[], exportDate: Date): XLSX.WorkBook {
   const { dateFormat } = useUnitStore.getState();
 
   const rows = items.map((item) => ({
-    SKU: item.sku,
-    'Ürün Adı': item.name,
-    'Tip (koli/varil/palet)': item.productType,
-    'Genişlik(cm)': item.width,
-    'Yükseklik(cm)': item.height,
-    'Uzunluk(cm)': item.length,
-    'Ağırlık(kg)': item.weight,
-    'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)':
-      item.fragility === 2 ? 2 : item.fragility === 1 ? 1 : 0,
-    'İstiflenebilir (true/false)': item.isStackable ? 'true' : 'false',
-    'Maks Kat': item.maxStackCount,
-    'X Dönüşümü (true/false)': item.allowRotateX ? 'true' : 'false',
-    'Y Dönüşümü (true/false)': item.allowRotateY ? 'true' : 'false',
-    'Z Dönüşümü (true/false)': item.allowRotateZ ? 'true' : 'false',
-    'Özel Notlar': item.specialNotes ?? '',
+    [ITEM_SHEET_HEADER.sku]: item.sku,
+    [ITEM_SHEET_HEADER.name]: item.name,
+    [ITEM_SHEET_HEADER.productType]: item.productType,
+    [ITEM_SHEET_HEADER.width]: item.width,
+    [ITEM_SHEET_HEADER.height]: item.height,
+    [ITEM_SHEET_HEADER.length]: item.length,
+    [ITEM_SHEET_HEADER.weight]: item.weight,
+    [ITEM_SHEET_HEADER.constraints]: formatConstraintCell(itemConstraintIds(item)),
+    [ITEM_SHEET_HEADER.loadGroups]: formatLoadGroupCell(itemLoadGroups(item)),
+    [ITEM_SHEET_HEADER.isStackable]: item.isStackable ? 'true' : 'false',
+    [ITEM_SHEET_HEADER.maxStackCount]: item.maxStackCount,
+    [ITEM_SHEET_HEADER.rotateX]: item.allowRotateX ? 'true' : 'false',
+    [ITEM_SHEET_HEADER.rotateY]: item.allowRotateY ? 'true' : 'false',
+    [ITEM_SHEET_HEADER.rotateZ]: item.allowRotateZ ? 'true' : 'false',
+    [ITEM_SHEET_HEADER.notes]: item.specialNotes ?? '',
   }));
 
-  const exportDate = new Date();
-  const ws = XLSX.utils.json_to_sheet(rows);
+  const ws = XLSX.utils.json_to_sheet(rows, { header: Object.values(ITEM_SHEET_HEADER) });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Ürünler');
 
@@ -153,28 +174,32 @@ export function exportItemsToExcel(items: Item[]): void {
   );
   XLSX.utils.book_append_sheet(wb, metaWs, 'Meta');
 
+  return wb;
+}
+
+export function exportItemsToExcel(items: Item[]): void {
+  const { dateFormat } = useUnitStore.getState();
+  const exportDate = new Date();
+  const wb = buildItemsWorkbook(items, exportDate);
+
   XLSX.writeFile(wb, `CargoPilot_Urunler_${formatDate(exportDate, dateFormat)}.xlsx`);
 }
 
-export function downloadItemImportTemplate(): void {
-  const headers = [
-    'SKU',
-    'Ürün Adı',
-    'Tip (koli/varil/palet)',
-    'Genişlik(cm)',
-    'Yükseklik(cm)',
-    'Uzunluk(cm)',
-    'Ağırlık(kg)',
-    'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)',
-    'İstiflenebilir (true/false)',
-    'Maks Kat',
-    'X Dönüşümü (true/false)',
-    'Y Dönüşümü (true/false)',
-    'Z Dönüşümü (true/false)',
-    'Özel Notlar',
-  ];
-  // Boolean columns use actual boolean values → Excel 365 renders them as checkboxes
-  // I=İstiflenebilir, K=X Dönüşümü, L=Y Dönüşümü, M=Z Dönüşümü
+const ITEM_TEMPLATE_HEADERS: readonly string[] = Object.values(ITEM_SHEET_HEADER);
+
+/** Boolean sütunlar Excel 365'te onay kutusu olarak çizilir; harf sütun sırasından türetilir. */
+const ITEM_TEMPLATE_BOOL_HEADERS: readonly string[] = [
+  ITEM_SHEET_HEADER.isStackable,
+  ITEM_SHEET_HEADER.rotateX,
+  ITEM_SHEET_HEADER.rotateY,
+  ITEM_SHEET_HEADER.rotateZ,
+];
+
+function columnLetter(index: number): string {
+  return XLSX.utils.encode_col(index);
+}
+
+export function buildItemImportTemplateWorkbook(): XLSX.WorkBook {
   const example = [
     'SKU001',
     'Örnek Koli',
@@ -183,7 +208,8 @@ export function downloadItemImportTemplate(): void {
     '200',
     '100',
     '2.5',
-    '0',
+    formatConstraintCell([1]),
+    formatLoadGroupCell(['Genel']),
     true,
     '3',
     true,
@@ -192,15 +218,21 @@ export function downloadItemImportTemplate(): void {
     '',
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  const ws = XLSX.utils.aoa_to_sheet([[...ITEM_TEMPLATE_HEADERS], example]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Şablon');
-  downloadXlsxWithExcel365Checkboxes(wb, 'CargoPilot_Urun_Import_Sablon.xlsx', [
-    'I',
-    'K',
-    'L',
-    'M',
-  ]);
+  return wb;
+}
+
+export function downloadItemImportTemplate(): void {
+  const boolCols = ITEM_TEMPLATE_BOOL_HEADERS.map((header) =>
+    columnLetter(ITEM_TEMPLATE_HEADERS.indexOf(header)),
+  );
+  downloadXlsxWithExcel365Checkboxes(
+    buildItemImportTemplateWorkbook(),
+    'CargoPilot_Urun_Import_Sablon.xlsx',
+    boolCols,
+  );
 }
 
 export function downloadVehicleImportTemplate(): void {

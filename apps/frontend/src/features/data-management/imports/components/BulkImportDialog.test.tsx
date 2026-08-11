@@ -3,7 +3,18 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import type { EditableRow } from './BulkImportDialog';
+import * as XLSX from 'xlsx';
+import {
+  buildItemImportTemplateWorkbook,
+  buildItemsWorkbook,
+} from '@/lib/utils/export/export-utils';
+import { LEGACY_ITEM_SHEET_HEADER } from '@/lib/config/item-import-columns';
+import {
+  validateRow,
+  xlsxToRows,
+  type EditableRow,
+} from '@/features/data-management/imports/utils/itemImportRow';
+import type { Item } from '@/lib/types/item';
 
 const mocks = vi.hoisted(() => ({
   updateDraft: vi.fn(),
@@ -179,5 +190,116 @@ describe('BulkImportDialog — sütun bazlı toplu doldurma (ERP-33)', () => {
 
     expect(screen.queryByText('Kimya')).not.toBeInTheDocument();
     expect(screen.getAllByText('Gıda')).toHaveLength(2);
+  });
+});
+
+// ─── Şablon simetrisi (ERP-19) ────────────────────────────────────────────────
+
+function makeItem(overrides: Partial<Item> = {}): Item {
+  return {
+    id: '11111111-1111-4111-8111-111111111111',
+    name: 'Kimyasal Bidon',
+    sku: 'SKU-RT-1',
+    productType: 'varil',
+    width: 40,
+    height: 60,
+    length: 40,
+    weight: 18,
+    isStackable: true,
+    maxStackCount: 3,
+    maxWeightOnTop: 54,
+    fragility: 9,
+    allowRotateX: false,
+    allowRotateY: true,
+    allowRotateZ: false,
+    allowFaceBottom: true,
+    allowFaceTop: true,
+    allowFaceFront: true,
+    allowFaceBack: true,
+    allowFaceLeft: true,
+    allowFaceRight: true,
+    specialNotes: 'Dik taşınır',
+    stackGroup: 'Kimya',
+    constraintIds: [2, 9],
+    incompatibleGroups: ['Gıda'],
+    erpProviderName: null,
+    ...overrides,
+  };
+}
+
+function firstSheet(wb: XLSX.WorkBook): XLSX.WorkSheet {
+  return wb.Sheets[wb.SheetNames[0]];
+}
+
+/** Diske yazmadan çalışabilmek için workbook bellekte parse edilir. */
+function reparse(wb: XLSX.WorkBook): EditableRow[] {
+  const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+  const reopened = XLSX.read(buffer, { type: 'array' });
+  return xlsxToRows(firstSheet(reopened));
+}
+
+describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
+  it('resmi şablonun örnek satırı hatasız ayrıştırılır, Yük Grubu zorunlu hatasına düşmez', () => {
+    const rows = reparse(buildItemImportTemplateWorkbook());
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].incompatibleGroups).toEqual(['Genel']);
+    expect(validateRow(rows[0])).toEqual({});
+  });
+
+  it('dışa aktarım → içe aktarımda kırılganlık, kısıt ve yük grubu kaybolmaz', () => {
+    const item = makeItem();
+    const rows = reparse(buildItemsWorkbook([item], new Date('2026-01-01T00:00:00Z')));
+
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+    expect(row.sku).toBe(item.sku);
+    expect(row.name).toBe(item.name);
+    expect(row.tip).toBe('varil');
+    expect(row.width).toBe('40');
+    expect(row.height).toBe('60');
+    expect(row.length).toBe('40');
+    expect(row.weight).toBe('18');
+    expect(row.constraintIds).toEqual([2, 9]);
+    expect(row.fragility).toBe('9');
+    // stackGroup ayrıştırıcıda listenin ilk elemanıdır; sırası korunur.
+    expect(row.incompatibleGroups).toEqual(['Kimya', 'Gıda']);
+    expect(row.isStackable).toBe(true);
+    expect(row.maxStackCount).toBe('3');
+    expect(row.allowRotateX).toBe(false);
+    expect(row.allowRotateY).toBe(true);
+    expect(row.allowRotateZ).toBe(false);
+    expect(row.notes).toBe('Dik taşınır');
+    expect(validateRow(row)).toEqual({});
+  });
+
+  it('kısıt listesi boş olan üründe kırılganlık derecesi korunur', () => {
+    const rows = reparse(
+      buildItemsWorkbook(
+        [makeItem({ fragility: 3, constraintIds: [] })],
+        new Date('2026-01-01T00:00:00Z'),
+      ),
+    );
+
+    expect(rows[0].constraintIds).toEqual([3]);
+    expect(rows[0].fragility).toBe('3');
+  });
+
+  it('eski başlıklarla doldurulmuş dosya da okunur', () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      [
+        'SKU',
+        'Ürün Adı',
+        LEGACY_ITEM_SHEET_HEADER.constraints,
+        LEGACY_ITEM_SHEET_HEADER.loadGroups,
+      ],
+      ['SKU-ESKI', 'Eski Şablon Ürünü', '2', 'Gıda'],
+    ]);
+
+    const rows = xlsxToRows(ws);
+
+    expect(rows[0].constraintIds).toEqual([2]);
+    expect(rows[0].fragility).toBe('2');
+    expect(rows[0].incompatibleGroups).toEqual(['Gıda']);
   });
 });

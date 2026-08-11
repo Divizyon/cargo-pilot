@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { z } from 'zod';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
@@ -31,21 +30,18 @@ import {
   type UpdateDraftItemPayload,
 } from '@/lib/api/useDraftItems';
 import { downloadItemImportTemplate } from '@/lib/utils/export/export-utils';
+import { FRAGILITY_OPTIONS, LOAD_GROUPS, toFragilityValue } from '@/lib/config/item-import-columns';
+import {
+  emptyRow,
+  validateRow,
+  xlsxToRows,
+  type EditableRow,
+} from '@/features/data-management/imports/utils/itemImportRow';
+
+export type { EditableRow } from '@/features/data-management/imports/utils/itemImportRow';
 
 // Google Sheets şablonu oluşturulduğunda bu URL'i buraya ekleyin
 const ITEM_SHEETS_TEMPLATE_URL = '';
-
-const FRAGILITY_OPTIONS = [
-  { value: 1, label: 'Kırılgan' },
-  { value: 2, label: 'Sıvı' },
-  { value: 3, label: 'Yanıcı' },
-  { value: 4, label: 'Oksitleyici' },
-  { value: 5, label: 'Aşındırıcı' },
-  { value: 6, label: 'Kokuya Hassas' },
-  { value: 7, label: 'Gıda Teması' },
-  { value: 8, label: 'Kuru Tut' },
-  { value: 9, label: 'Kimyasal' },
-] as const;
 
 interface BulkImportDialogProps {
   open: boolean;
@@ -59,8 +55,6 @@ interface BulkImportDialogProps {
 
 // ─── Row model ────────────────────────────────────────────────────────────────
 
-const LOAD_GROUPS = ['Kimya', 'Tehlikeli Madde', 'Gıda', 'Elektronik', 'Tekstil', 'Genel'] as const;
-
 /** Sütun başlığındaki toplu doldurma seçenekleri; hücre bileşenleriyle aynı sözlükten türer. */
 const LOAD_GROUP_FILL_OPTIONS = LOAD_GROUPS.map((g) => ({ value: g, label: g }));
 const FRAGILITY_FILL_OPTIONS = FRAGILITY_OPTIONS.map((o) => ({
@@ -68,60 +62,7 @@ const FRAGILITY_FILL_OPTIONS = FRAGILITY_OPTIONS.map((o) => ({
   label: o.label,
 }));
 
-const editableRowSchema = z.object({
-  _id: z.string(),
-  sku: z.string(),
-  name: z.string(),
-  tip: z.string(),
-  width: z.string(),
-  height: z.string(),
-  length: z.string(),
-  weight: z.string(),
-  fragility: z.string(),
-  constraintIds: z.array(z.number().int()),
-  incompatibleGroups: z.array(z.string()),
-  isStackable: z.boolean(),
-  maxStackCount: z.string(),
-  allowRotateX: z.boolean(),
-  allowRotateY: z.boolean(),
-  allowRotateZ: z.boolean(),
-  notes: z.string(),
-  /** ERP kaynağında boş/sıfır gelen alan adları; hücre hatası bu satırlarda 'ERP'de eksik' der. */
-  missingFields: z.array(z.string()).default([]),
-});
-
-export type EditableRow = z.infer<typeof editableRowSchema>;
-
-type RowErrors = Partial<
-  Record<
-    'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight' | 'incompatibleGroups',
-    string
-  >
->;
-
 // ─── Validation & mapping ─────────────────────────────────────────────────────
-
-/** ERP'den eksik gelen alan, kullanıcı hatası değildir; mesaj bunu ayırt eder. */
-function numericFieldError(row: EditableRow, field: string, value: string): string | undefined {
-  if (value && Number(value) > 0) return undefined;
-  return row.missingFields.includes(field) ? 'ERP’de eksik' : 'Pozitif sayı';
-}
-
-function validateRow(row: EditableRow): RowErrors {
-  const e: RowErrors = {};
-  if (!row.sku.trim()) e.sku = 'Zorunlu alan';
-  if (!row.name.trim()) e.name = 'Zorunlu alan';
-  if (!['koli', 'varil', 'palet'].includes(row.tip)) e.tip = 'koli / varil / palet';
-  e.width = numericFieldError(row, 'width', row.width);
-  e.height = numericFieldError(row, 'height', row.height);
-  e.length = numericFieldError(row, 'length', row.length);
-  e.weight = numericFieldError(row, 'weight', row.weight);
-  if (row.incompatibleGroups.length === 0) e.incompatibleGroups = 'Zorunlu alan';
-  for (const key of Object.keys(e) as Array<keyof RowErrors>) {
-    if (e[key] === undefined) delete e[key];
-  }
-  return e;
-}
 
 function tipToCategory(tip: string): (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY] {
   if (tip === 'palet') return ITEM_CATEGORY.Pallet;
@@ -179,72 +120,6 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
     incompatibleGroups: row.incompatibleGroups,
     specialNotes: row.notes.trim() || null,
   };
-}
-
-function parseBool(v: unknown, fallback = true): boolean {
-  if (typeof v === 'boolean') return v;
-  if (typeof v === 'number') return v !== 0;
-  if (typeof v === 'string') {
-    const s = v.toLowerCase().trim();
-    return s === 'true' || s === '1' || s === 'evet';
-  }
-  return fallback;
-}
-
-function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
-  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
-  return raw.map((r) =>
-    editableRowSchema.parse({
-      _id: crypto.randomUUID(),
-      sku: String(r['SKU'] ?? ''),
-      name: String(r['Ürün Adı'] ?? ''),
-      tip:
-        String(r['Tip (koli/varil/palet)'] ?? '')
-          .toLowerCase()
-          .trim() || 'koli',
-      width: String(r['Genişlik(cm)'] ?? ''),
-      height: String(r['Yükseklik(cm)'] ?? ''),
-      length: String(r['Uzunluk(cm)'] ?? ''),
-      weight: String(r['Ağırlık(kg)'] ?? ''),
-      fragility: String(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? '0'),
-      constraintIds: (() => {
-        const v = Number(r['Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)'] ?? 0);
-        return v > 0 ? [v] : [];
-      })(),
-      incompatibleGroups: String(r['Yük Grubu'] ?? '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => (LOAD_GROUPS as readonly string[]).includes(s)),
-      isStackable: parseBool(r['İstiflenebilir (true/false)'], false),
-      maxStackCount: String(r['Maks Kat'] ?? '1'),
-      allowRotateX: parseBool(r['X Dönüşümü (true/false)'], true),
-      allowRotateY: parseBool(r['Y Dönüşümü (true/false)'], true),
-      allowRotateZ: parseBool(r['Z Dönüşümü (true/false)'], true),
-      notes: String(r['Özel Notlar'] ?? ''),
-    }),
-  );
-}
-
-function emptyRow(): EditableRow {
-  return editableRowSchema.parse({
-    _id: crypto.randomUUID(),
-    sku: '',
-    name: '',
-    tip: '',
-    width: '',
-    height: '',
-    length: '',
-    weight: '',
-    fragility: '0',
-    constraintIds: [],
-    incompatibleGroups: [],
-    isStackable: false,
-    maxStackCount: '1',
-    allowRotateX: true,
-    allowRotateY: true,
-    allowRotateZ: true,
-    notes: '',
-  });
 }
 
 // ─── Fragility multi-select cell ──────────────────────────────────────────────
@@ -531,7 +406,8 @@ function confirmButtonLabel({
     return isDraft ? 'Aktarılıyor…' : 'Yükleniyor…';
   }
   if (hasErrorRows) return `Geçerli satırları aktar (${validRowCount})`;
-  if (isDraft) return isUpdate ? `${validRowCount} Ürünü Güncelle` : `${validRowCount} Ürünü Onayla`;
+  if (isDraft)
+    return isUpdate ? `${validRowCount} Ürünü Güncelle` : `${validRowCount} Ürünü Onayla`;
   return `${validRowCount} Ürün Ekle`;
 }
 
@@ -615,11 +491,7 @@ export function BulkImportDialog({
     setRows((prev) =>
       prev.map((r) =>
         overwrite || r.constraintIds.length === 0
-          ? {
-              ...r,
-              constraintIds,
-              fragility: constraintIds.length > 0 ? String(Math.max(...constraintIds)) : '0',
-            }
+          ? { ...r, constraintIds, fragility: String(toFragilityValue(constraintIds)) }
           : r,
       ),
     );
@@ -987,7 +859,7 @@ export function BulkImportDialog({
                         onChange={(ids) =>
                           patchRow(row._id, {
                             constraintIds: ids,
-                            fragility: ids.length > 0 ? String(Math.max(...ids)) : '0',
+                            fragility: String(toFragilityValue(ids)),
                           })
                         }
                       />
