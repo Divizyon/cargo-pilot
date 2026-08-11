@@ -1,0 +1,74 @@
+{
+  "Scenario": "Lifo_KumelemeKapali_GecInenErkenIneninUstuneKonamaz",
+  "Vehicle": {
+    "Width": 100,
+    "Height": 200,
+    "Length": 100,
+    "MaxWeight": 10000,
+    "Criteria": "Lifo",
+    "LoadingType": "Rear",
+    "ClusterGroups": false
+  },
+  "Items": [
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000001",
+      "Sku": "SKU-000000000001",
+      "Width": 100,
+      "Height": 100,
+      "Length": 100,
+      "Weight": 50,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 1,
+      "GroupId": "00000000-0000-0000-0001-000000000001",
+      "UnloadingOrder": 1
+    },
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000002",
+      "Sku": "SKU-000000000002",
+      "Width": 100,
+      "Height": 90,
+      "Length": 100,
+      "Weight": 40,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 1,
+      "GroupId": "00000000-0000-0000-0001-000000000002",
+      "UnloadingOrder": 2
+    }
+  ],
+  "Outcome": {
+    "TotalWeight": 50,
+    "FillRate": 0.5,
+    "CenterOfGravityX": 50,
+    "CenterOfGravityY": 50,
+    "CenterOfGravityZ": 50,
+    "WeightBalanceOffsetX": 0,
+    "WeightBalanceOffsetZ": 0,
+    "Placements": [
+      {
+        "Order": 0,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 100,
+        "Rotation": "NoRotation",
+        "Weight": 50
+      }
+    ],
+    "UnplacedItems": [
+      {
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "Quantity": 1,
+        "Reason": "InsufficientSpace"
+      }
+    ]
+  }
+}

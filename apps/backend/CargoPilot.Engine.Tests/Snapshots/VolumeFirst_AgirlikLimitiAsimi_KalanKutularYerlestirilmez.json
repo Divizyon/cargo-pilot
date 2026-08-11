@@ -1,0 +1,83 @@
+{
+  "Scenario": "VolumeFirst_AgirlikLimitiAsimi_KalanKutularYerlestirilmez",
+  "Vehicle": {
+    "Width": 200,
+    "Height": 200,
+    "Length": 400,
+    "MaxWeight": 300,
+    "Criteria": "VolumeFirst",
+    "LoadingType": "Rear",
+    "ClusterGroups": true
+  },
+  "Items": [
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000001",
+      "Sku": "SKU-000000000001",
+      "Width": 100,
+      "Height": 100,
+      "Length": 100,
+      "Weight": 100,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "All",
+      "Quantity": 6,
+      "GroupId": null,
+      "UnloadingOrder": null
+    }
+  ],
+  "Outcome": {
+    "TotalWeight": 300,
+    "FillRate": 0.1875,
+    "CenterOfGravityX": 83.33333333333333333333333333,
+    "CenterOfGravityY": 50,
+    "CenterOfGravityZ": 83.33333333333333333333333333,
+    "WeightBalanceOffsetX": 16.7,
+    "WeightBalanceOffsetZ": 58.3,
+    "Placements": [
+      {
+        "Order": 0,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 100,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 1,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 100,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 100,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 2,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 100,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 100,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      }
+    ],
+    "UnplacedItems": [
+      {
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "Quantity": 3,
+        "Reason": "WeightLimitExceeded"
+      }
+    ]
+  }
+}

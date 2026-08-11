@@ -1,0 +1,143 @@
+{
+  "Scenario": "Lifo_YanKapi_BolgeUygulanmaz",
+  "Vehicle": {
+    "Width": 100,
+    "Height": 100,
+    "Length": 300,
+    "MaxWeight": 10000,
+    "Criteria": "Lifo",
+    "LoadingType": "SideRight",
+    "ClusterGroups": true
+  },
+  "Items": [
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000001",
+      "Sku": "SKU-000000000001",
+      "Width": 100,
+      "Height": 100,
+      "Length": 40,
+      "Weight": 100,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": "00000000-0000-0000-0001-000000000001",
+      "UnloadingOrder": 1
+    },
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000002",
+      "Sku": "SKU-000000000002",
+      "Width": 100,
+      "Height": 100,
+      "Length": 40,
+      "Weight": 100,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": "00000000-0000-0000-0001-000000000002",
+      "UnloadingOrder": 2
+    },
+    {
+      "ItemId": "00000000-0000-0000-0000-000000000003",
+      "Sku": "SKU-000000000003",
+      "Width": 100,
+      "Height": 100,
+      "Length": 40,
+      "Weight": 100,
+      "IsStackable": true,
+      "MaxStackCount": 0,
+      "MaxWeightOnTop": 0,
+      "AllowedRotations": "Fixed",
+      "Quantity": 2,
+      "GroupId": "00000000-0000-0000-0001-000000000003",
+      "UnloadingOrder": 3
+    }
+  ],
+  "Outcome": {
+    "TotalWeight": 600,
+    "FillRate": 0.8,
+    "CenterOfGravityX": 50,
+    "CenterOfGravityY": 50,
+    "CenterOfGravityZ": 120,
+    "WeightBalanceOffsetX": 0,
+    "WeightBalanceOffsetZ": 20.0,
+    "Placements": [
+      {
+        "Order": 0,
+        "ItemId": "00000000-0000-0000-0000-000000000003",
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 40,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 1,
+        "ItemId": "00000000-0000-0000-0000-000000000003",
+        "X": 0,
+        "Y": 0,
+        "Z": 40,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 40,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 2,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 0,
+        "Y": 0,
+        "Z": 80,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 40,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 3,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 0,
+        "Y": 0,
+        "Z": 120,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 40,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 4,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 160,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 40,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      },
+      {
+        "Order": 5,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 0,
+        "Z": 200,
+        "Width": 100,
+        "Height": 100,
+        "Depth": 40,
+        "Rotation": "NoRotation",
+        "Weight": 100
+      }
+    ],
+    "UnplacedItems": []
+  }
+}

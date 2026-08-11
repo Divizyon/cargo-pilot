@@ -1,6 +1,6 @@
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
-using CargoPilot.Infrastructure.Services;
 
 namespace CargoPilot.Infrastructure.Tests;
 
