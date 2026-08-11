@@ -44,4 +44,9 @@
     <ProjectReference Include="..\CargoPilot.Application\CargoPilot.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- internal servisler birim testlerden dogrudan cagrilabilsin -->
+    <InternalsVisibleTo Include="CargoPilot.Application.Tests" />
+  </ItemGroup>
+
 </Project>

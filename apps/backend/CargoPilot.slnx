@@ -11,6 +11,9 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/CargoPilot.Application.Tests/CargoPilot.Application.Tests.csproj" Id="dfff8497-294c-4d98-9cfa-3ba4766faf95" />
+  </Folder>
   <Folder Name="/WebAPI/">
     <Project Path="CargoPilot.WebAPI/CargoPilot.WebAPI.csproj" Id="cc354531-26a3-4da4-9abb-db9308e283e2" />
   </Folder>

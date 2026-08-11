@@ -21,4 +21,9 @@
     <ProjectReference Include="..\CargoPilot.Domain\CargoPilot.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- internal handler'lar birim testlerden dogrudan cagrilabilsin -->
+    <InternalsVisibleTo Include="CargoPilot.Application.Tests" />
+  </ItemGroup>
+
 </Project>

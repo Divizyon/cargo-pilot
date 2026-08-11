@@ -117,14 +117,17 @@ jobs:
       - name: Build (Release)
         run: dotnet build cargo-pilot.sln --no-restore --configuration Release
 
-      - name: Testleri çalıştır
+      # dotnet test, hiç test projesi olmayan bir çözümde sessizce başarılı döner.
+      # Test kapısının kaldırılmasını yakalamak için varlık kontrolü ayrı adımda zorunlu.
+      - name: Test projesi varlığını doğrula
         run: |
-          TEST_PROJECTS=$(find apps/backend -name "*.Tests.csproj" -o -name "*.Test.csproj" 2>/dev/null)
-          if [ -z "$TEST_PROJECTS" ]; then
-            echo "Test projesi bulunamadı, adım atlanıyor."
-          else
-            dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
+          if [ -z "$(find apps/backend -name '*.Tests.csproj')" ]; then
+            echo "::error::Backend test projesi bulunamadı; test kapısı zorunludur."
+            exit 1
           fi
+
+      - name: Testleri çalıştır
+        run: dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
 
   # ─── Docker Image Build (main'e giden PR ve iş branch'i push'ları) ───────────
   docker-build:
