@@ -29,7 +29,6 @@ type TabId =
   | 'kullanicilar'
   | 'abonelik'
   | 'bolgesel-ayarlar'
-  | 'goruntu-ayarlari'
   | 'raporlama-ayarlari'
   | 'erp-baglanti'
   | 'erp-senkronizasyon'
@@ -106,7 +105,7 @@ const ADMIN_ONLY_TABS = new Set<TabId>([
   'erp-senkronizasyon',
   'erp-gecmis',
 ]);
-const DIRTY_TRACKED_TABS = new Set<TabId>(['bolgesel-ayarlar', 'goruntu-ayarlari']);
+const DIRTY_TRACKED_TABS = new Set<TabId>(['bolgesel-ayarlar']);
 
 export function UnifiedSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();

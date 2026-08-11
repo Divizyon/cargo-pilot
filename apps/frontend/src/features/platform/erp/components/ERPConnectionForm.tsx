@@ -208,14 +208,17 @@ export function ERPConnectionForm() {
                     className="pr-10"
                     {...field}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                    aria-pressed={showPassword}
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
+                    className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  </Button>
                 </div>
               </FormControl>
               {existing?.hasPassword && !field.value && (
