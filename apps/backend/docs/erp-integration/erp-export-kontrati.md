@@ -62,6 +62,17 @@ Aynı planın ikinci aktarımı mükerrer sipariş üretmez.
 Hangfire'ın otomatik yeniden denemesi yalnızca exception'da tetiklendiği için, geçici hata
 sonucu (Result.Failure) durum kaydedildikten sonra bilerek exception'a çevrilir.
 
+## Kullanıcıya görünürlük
+
+Aktarım sonucu plan detayında rozetle görünür: `Sent` → "ERP'ye aktarıldı", `Pending` →
+"ERP aktarımı kuyrukta", `Failed` → "ERP'ye aktarılamadı" + nedeni (tooltip). Neden, planın
+son aktarım denemesine ait sync kaydından (`SyncLog.ErrorMessage`) okunur ve plan detay
+yanıtında `erpExportMessage` alanıyla döner.
+
+Aktarım sync kayıtları (`SyncLog.LoadingPlanId` dolu) **ürün senkronizasyon geçmişinde
+listelenmez**: o tablonun sayaçları (kaynak satır, eleme nedenleri) ürün çekimine özgüdür.
+Filtre `ErpSyncPolicy.ProductSyncLog` ifadesindedir.
+
 ## Hedef entegrasyon seçimi
 
 Şirkette **tam olarak bir** ERP bağlantısı olmalıdır. Bağlantı yoksa ya da birden fazlaysa
