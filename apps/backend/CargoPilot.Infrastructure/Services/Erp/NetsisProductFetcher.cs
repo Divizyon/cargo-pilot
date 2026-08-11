@@ -130,7 +130,12 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
     private static async Task<int> ReadCountAsync(SqlDataReader reader, int ordinal, CancellationToken cancellationToken) =>
         await reader.IsDBNullAsync(ordinal, cancellationToken) ? 0 : reader.GetInt32(ordinal);
 
-    private static Dictionary<ErpDropReason, int> BuildDroppedAtSource(SourceTotals totals, int fetchedCount)
+    /// <summary>
+    /// Kaynakta elenen satirlari neden bazli sozluge cevirir. TOP limiti yuzunden bu sync'e
+    /// alinamayan satirlar da <see cref="ErpDropReason.RowLimitExceeded"/> ile sayilir ki
+    /// SourceTotal = cekilen + toplam eleme esitligi bozulmasin.
+    /// </summary>
+    internal static Dictionary<ErpDropReason, int> BuildDroppedAtSource(SourceTotals totals, int fetchedCount)
     {
         var dropped = new Dictionary<ErpDropReason, int>();
         AddIfPositive(dropped, ErpDropReason.SalesLocked, totals.SalesLocked);
@@ -204,7 +209,8 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
         return applied.Length == 0 ? "1 = 1" : string.Join(" AND ", applied);
     }
 
-    private sealed record SourceTotals(
+    /// <summary>Sorgunun ilk sonucundan okunan, birbirini dislayan kaynak sayilari.</summary>
+    internal sealed record SourceTotals(
         int SourceTotal,
         int SalesLocked,
         int CategoryFiltered,

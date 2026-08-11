@@ -89,6 +89,66 @@ public sealed class NetsisProductFetcherTests
         sql.Should().Contain("NOT (ISNULL(SATISKILIT, '') = 'E') AND ISNULL(GRUP_KODU, '') <> @CategoryFilter");
     }
 
+    /// <remarks>
+    /// ERP-25: kaynakta elenen her satir bir <see cref="ErpDropReason"/> ile sayilir;
+    /// sayaci olmayan eleme yolu birakilmaz.
+    /// </remarks>
+    [Theory]
+    [InlineData(3, 0, 0, nameof(ErpDropReason.SalesLocked))]
+    [InlineData(0, 4, 0, nameof(ErpDropReason.CategoryFiltered))]
+    [InlineData(0, 0, 5, nameof(ErpDropReason.WarehouseFiltered))]
+    public void BuildDroppedAtSource_KaynaktakiEleme_NedeniyleSayilir(
+        int salesLocked, int categoryFiltered, int warehouseFiltered, string beklenenNeden)
+    {
+        var elenen = salesLocked + categoryFiltered + warehouseFiltered;
+        var totals = new NetsisProductFetcher.SourceTotals(
+            SourceTotal: elenen + 2,
+            SalesLocked: salesLocked,
+            CategoryFiltered: categoryFiltered,
+            WarehouseFiltered: warehouseFiltered,
+            Eligible: 2);
+
+        var dropped = NetsisProductFetcher.BuildDroppedAtSource(totals, fetchedCount: 2);
+
+        dropped.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(
+                new KeyValuePair<ErpDropReason, int>(Enum.Parse<ErpDropReason>(beklenenNeden), elenen));
+    }
+
+    /// <remarks>TOP limiti yuzunden alinamayan satirlar da mutabakatta gorunmeli.</remarks>
+    [Fact]
+    public void BuildDroppedAtSource_SatirLimitiAsilirsa_RowLimitExceededSayilir()
+    {
+        var totals = new NetsisProductFetcher.SourceTotals(
+            SourceTotal: 100, SalesLocked: 0, CategoryFiltered: 0, WarehouseFiltered: 0, Eligible: 100);
+
+        var dropped = NetsisProductFetcher.BuildDroppedAtSource(totals, fetchedCount: 60);
+
+        dropped.Should().ContainKey(ErpDropReason.RowLimitExceeded).WhoseValue.Should().Be(40);
+    }
+
+    /// <remarks>Mutabakat invariantı: SourceTotal = cekilen + toplam eleme.</remarks>
+    [Fact]
+    public void BuildDroppedAtSource_TumNedenler_KaynakToplamiylaMutabikKalir()
+    {
+        var totals = new NetsisProductFetcher.SourceTotals(
+            SourceTotal: 30, SalesLocked: 6, CategoryFiltered: 4, WarehouseFiltered: 5, Eligible: 15);
+
+        var dropped = NetsisProductFetcher.BuildDroppedAtSource(totals, fetchedCount: 12);
+
+        dropped.Values.Sum().Should().Be(18);
+        (12 + dropped.Values.Sum()).Should().Be(totals.SourceTotal);
+    }
+
+    [Fact]
+    public void BuildDroppedAtSource_ElemeYoksa_BosSozlukDoner()
+    {
+        var totals = new NetsisProductFetcher.SourceTotals(
+            SourceTotal: 7, SalesLocked: 0, CategoryFiltered: 0, WarehouseFiltered: 0, Eligible: 7);
+
+        NetsisProductFetcher.BuildDroppedAtSource(totals, fetchedCount: 7).Should().BeEmpty();
+    }
+
     [Fact]
     public void Build_TamKimlikBilgisi_AyarlardanUretilir()
     {
