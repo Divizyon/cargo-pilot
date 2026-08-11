@@ -261,10 +261,21 @@ export function useTriggerERPSync() {
   });
 }
 
+export interface ErpSyncSettings {
+  syncInterval: ErpSyncInterval;
+  syncStatus: ErpSyncStatus;
+  nextScheduledSyncAt: string | null;
+  lastSyncedAt: string | null;
+}
+
+function syncSettingsQueryKey(integrationId: string | undefined) {
+  return ['erp', 'sync-settings', integrationId] as const;
+}
+
 export function useERPSyncSettings(integrationId: string | undefined) {
   return useQuery({
-    queryKey: ['erp', 'sync-settings', integrationId] as const,
-    queryFn: async () => {
+    queryKey: syncSettingsQueryKey(integrationId),
+    queryFn: async (): Promise<ErpSyncSettings> => {
       const { data } = await axiosInstance.get<unknown>(
         `${ERP_BASE}/${integrationId}/sync-settings`,
       );
@@ -289,12 +300,17 @@ export function useERPSyncSettings(integrationId: string | undefined) {
   });
 }
 
+/**
+ * Sıklık seçimi sunucu verisinden okunur; yerel kopya tutulmaz. Optimistic update
+ * seçimi anında cache'e yazar, istek başarısızsa önceki değer geri alınır.
+ */
 export function useSaveERPSyncSettings() {
   const queryClient = useQueryClient();
   return useMutation<
     unknown,
     AxiosError<ApiErrorResponse>,
-    { integrationId: string; syncInterval: ErpSyncInterval }
+    { integrationId: string; syncInterval: ErpSyncInterval },
+    { previous: ErpSyncSettings | undefined }
   >({
     mutationFn: ({ integrationId, syncInterval }) =>
       axiosInstance
@@ -302,11 +318,23 @@ export function useSaveERPSyncSettings() {
           syncFrequency: SYNC_FREQUENCY_TO_INT[syncInterval] ?? 0,
         })
         .then((r) => r.data),
+    onMutate: async ({ integrationId, syncInterval }) => {
+      const queryKey = syncSettingsQueryKey(integrationId);
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ErpSyncSettings>(queryKey);
+      if (previous) {
+        queryClient.setQueryData<ErpSyncSettings>(queryKey, { ...previous, syncInterval });
+      }
+      return { previous };
+    },
     onSuccess: (_data, { integrationId }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-settings', integrationId] });
+      queryClient.invalidateQueries({ queryKey: syncSettingsQueryKey(integrationId) });
       toast.success('Senkronizasyon sıklığı kaydedildi', { position: 'bottom-right' });
     },
-    onError: (error) => {
+    onError: (error, { integrationId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(syncSettingsQueryKey(integrationId), context.previous);
+      }
       toast.error(getApiErrorMessage(error, 'Sıklık kaydedilemedi'), { position: 'bottom-right' });
     },
   });

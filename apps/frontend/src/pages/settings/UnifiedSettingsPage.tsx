@@ -78,12 +78,14 @@ const ERP_TABS: TabDef[] = [
   {
     id: 'erp-senkronizasyon',
     label: 'Senkronizasyon',
-    description: 'Otomatik senkronizasyon sıklığını ayarlayın ve manuel senkronizasyon başlatın.',
+    description:
+      'Senkronizasyonu şimdi başlatın; otomatik sıklık ayarı zamanlayıcı devreye girdiğinde uygulanır.',
   },
   {
     id: 'erp-gecmis',
     label: 'Senkronizasyon Geçmişi',
-    description: 'Geçmiş senkronizasyon çalışmalarını ve hata kayıtlarını görüntüleyin.',
+    description:
+      'Geçmiş senkronizasyon çalışmalarını, satır kırılımını ve hata kayıtlarını görüntüleyin.',
   },
 ];
 

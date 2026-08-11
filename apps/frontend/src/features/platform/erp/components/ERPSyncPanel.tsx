@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { RefreshCw, Loader2, Clock, CalendarClock, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Loader2, Clock, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -41,16 +41,15 @@ export function ERPSyncPanel() {
   const { mutate: saveSettings, isPending: isSavingSettings } = useSaveERPSyncSettings();
   const { mutate: runNow, isPending: isRunNowPending } = useRunERPSyncNow();
 
-  const [localInterval, setLocalInterval] = useState<string>(
-    syncSettings?.syncInterval ?? ErpSyncInterval.Daily,
-  );
+  // Seçili sıklık yalnızca sunucu verisinden okunur; yerel kopya kullanıcının
+  // kayıtlı ayarını farkında olmadan ezmesine yol açıyordu.
+  const selectedInterval = syncSettings?.syncInterval ?? ErpSyncInterval.Daily;
 
   const isRunning = syncSettings?.syncStatus === ErpSyncStatus.Running;
   const isLastSyncFailed = syncSettings?.syncStatus === ErpSyncStatus.Failed;
   const isSyncDisabled = isRunning || isRunNowPending || !integrationId;
 
   function handleSaveInterval(value: string) {
-    setLocalInterval(value);
     if (!integrationId) return;
     saveSettings({
       integrationId,
@@ -88,9 +87,15 @@ export function ERPSyncPanel() {
       {/* Otomatik senkronizasyon sıklığı */}
       <div className="space-y-4 pb-6">
         <div>
-          <p className="text-sm font-medium text-foreground">Otomatik Senkronizasyon Sıklığı</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground">Otomatik Senkronizasyon Sıklığı</p>
+            <Badge variant="outline" className="text-[10px]">
+              Yakında
+            </Badge>
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            ERP'den ürün verilerinin ne sıklıkla çekileceğini belirleyin.
+            Otomatik zamanlayıcı henüz devrede değil. Seçtiğiniz sıklık kaydedilir ve zamanlayıcı
+            açıldığında uygulanır; şimdilik senkronizasyonu aşağıdaki düğmeyle başlatın.
           </p>
         </div>
 
@@ -108,7 +113,7 @@ export function ERPSyncPanel() {
           />
         ) : (
           <RadioGroup
-            value={localInterval}
+            value={selectedInterval}
             onValueChange={handleSaveInterval}
             disabled={isSavingSettings}
             className="gap-3"
@@ -127,37 +132,6 @@ export function ERPSyncPanel() {
             </div>
           </RadioGroup>
         )}
-
-        {isLastSyncFailed && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <div>
-              <AlertDescription>
-                Son senkronizasyon başarısız oldu. Ayrıntı için Geçmiş sekmesindeki hata mesajına
-                bakın, ardından yeniden deneyin.
-              </AlertDescription>
-            </div>
-          </Alert>
-        )}
-
-        {syncSettings?.nextScheduledSyncAt && (
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
-            <CalendarClock className="h-4 w-4 shrink-0" />
-            <span>
-              Sonraki senkronizasyon:{' '}
-              <span className="font-medium text-foreground">
-                {formatSyncDate(syncSettings.nextScheduledSyncAt)}
-              </span>
-            </span>
-          </div>
-        )}
-
-        {syncSettings?.lastSyncedAt && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span>Son senkronizasyon: {formatSyncDate(syncSettings.lastSyncedAt)}</span>
-          </div>
-        )}
       </div>
 
       {/* Manuel senkronizasyon */}
@@ -165,8 +139,8 @@ export function ERPSyncPanel() {
         <div>
           <p className="text-sm font-medium text-foreground">Manuel Senkronizasyon</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Planlı zamanı beklemeksizin şimdi senkronize edin. Senkronizasyon tamamlanınca özet
-            bildirim gösterilir.
+            ERP'den ürün verilerini şimdi çekin. Sonucun satır kırılımı Senkronizasyon Geçmişi
+            sekmesinde görünür.
           </p>
         </div>
 
@@ -181,11 +155,24 @@ export function ERPSyncPanel() {
           </Button>
 
           {syncSettings?.lastSyncedAt && (
-            <span className="text-xs text-muted-foreground">
+            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
               Son senkronizasyon: {formatSyncDate(syncSettings.lastSyncedAt)}
             </span>
           )}
         </div>
+
+        {isLastSyncFailed && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <div>
+              <AlertDescription>
+                Son senkronizasyon başarısız oldu. Ayrıntı için Geçmiş sekmesindeki hata mesajına
+                bakın, ardından yeniden deneyin.
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
       </div>
     </div>
   );

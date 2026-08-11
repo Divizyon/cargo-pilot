@@ -21,16 +21,23 @@ const integrationsResponse = {
   },
 };
 
-/** Backend ErpSyncStatus: 0 = Idle, 1 = Running, 2 = Failed */
-function syncSettingsResponse(syncStatus: number) {
+/**
+ * Backend ErpSyncStatus: 0 = Idle, 1 = Running, 2 = Failed
+ * Backend SyncFrequency: 0 = Every4Hours, 1 = Daily
+ */
+function syncSettingsResponse(
+  syncStatus: number,
+  syncFrequency = 1,
+  nextScheduledSyncAt: string | null = null,
+) {
   return {
     data: {
       isSuccess: true,
       data: {
         integrationId: INTEGRATION_ID,
-        syncFrequency: 1,
+        syncFrequency,
         syncStatus,
-        nextScheduledSyncAt: null,
+        nextScheduledSyncAt,
         lastSyncAt: null,
       },
     },
@@ -75,6 +82,27 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
 
     expect(await screen.findByText('Günlük')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('sunucuda kayıtlı sıklık FourHours ise o seçenek seçili gelir', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, 0).data });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByRole('radio', { name: '4 saatte bir' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
+  });
+
+  it('zamanlayıcı yokken sonraki senkronizasyon tarihi taahhüdü göstermez', async () => {
+    mockSyncSettings({
+      ok: true,
+      payload: syncSettingsResponse(0, 1, '2026-03-01T09:00:00Z').data,
+    });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByText('Yakında')).toBeInTheDocument();
+    expect(screen.queryByText(/Sonraki senkronizasyon/)).not.toBeInTheDocument();
   });
 
   it('ayarlar uç hatası verirse hata kutusu gösterir', async () => {
