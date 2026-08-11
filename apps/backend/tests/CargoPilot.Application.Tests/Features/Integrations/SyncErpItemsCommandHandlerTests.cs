@@ -78,6 +78,23 @@ public sealed class SyncErpItemsCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_YeniUrun_IstifVarsayilanlariTutarliYazilir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct(weight: 8m));
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        DraftItem? eklenen = null;
+        _draftItemRepository.When(r => r.Add(Arg.Any<DraftItem>())).Do(c => eklenen = c.Arg<DraftItem>());
+
+        await CreateSut().Handle(Command, CancellationToken.None);
+
+        eklenen!.IsStackable.Should().BeTrue();
+        eklenen.MaxStackCount.Should().Be(1);
+        eklenen.MaxWeightOnTop.Should().BeGreaterThan(0m);
+    }
+
+    [Fact]
     public async Task Handle_OnaylanmisTaslak_UpdatePendingeGecer()
     {
         ArrangeHappyPath(TestData.CreateErpProduct(sku: "SKU-YENI", name: "Yeni Ad"));

@@ -2,6 +2,7 @@ using System.Text.Json;
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
@@ -128,6 +129,14 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     }
                     else
                     {
+                        // ERP istif bilgisi tasimaz; varsayilanlar ortak normalizasyondan gecer
+                        // ki 'istiflenebilir ama ust agirlik limiti 0' celiskisi dogmasin.
+                        var (isStackable, maxStackCount, maxWeightOnTop) = ItemStacking.Normalize(
+                            isStackable: true,
+                            maxStackCount: 1,
+                            maxWeightOnTop: 0m,
+                            product.Weight);
+
                         var draft = new DraftItem(
                             Guid.NewGuid(),
                             companyId.Value,
@@ -143,9 +152,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             product.Length,
                             product.Weight,
                             FragilityType.NonFragile,
-                            isStackable: true,
-                            maxStackCount: 1,
-                            maxWeightOnTop: 0m,
+                            isStackable,
+                            maxStackCount,
+                            maxWeightOnTop,
                             AllowedRotations.All,
                             product.Barcode,
                             product.Diameter,

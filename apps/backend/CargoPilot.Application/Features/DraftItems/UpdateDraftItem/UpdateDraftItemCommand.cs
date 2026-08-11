@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -22,4 +23,7 @@ public sealed record UpdateDraftItemCommand(
     string? ImageUrl,
     string? StackGroup,
     string? SpecialNotes,
-    int[]? ConstraintIds) : IRequest<Result<Unit>>;
+    int[]? ConstraintIds) : IItemSpec, IRequest<Result<Unit>>
+{
+    public string[]? IncompatibleGroups => null;
+}

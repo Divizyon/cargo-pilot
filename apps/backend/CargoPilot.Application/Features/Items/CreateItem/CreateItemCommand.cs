@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -24,4 +25,4 @@ public sealed record CreateItemCommand(
     string? StackGroup,
     string[]? IncompatibleGroups,
     string? SpecialNotes,
-    int[]? ConstraintIds = null) : IRequest<Result<Guid>>;
+    int[]? ConstraintIds = null) : IItemSpec, IRequest<Result<Guid>>;
