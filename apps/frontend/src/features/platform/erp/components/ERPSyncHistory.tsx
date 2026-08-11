@@ -58,14 +58,21 @@ const HEADER_CLASS = 'whitespace-nowrap px-4 py-0 text-[11px] font-semibold uppe
  * hesaplanamayan satır var demektir ve kullanıcıya gizlenmez.
  */
 function UnaccountedBadge({ unaccounted }: { unaccounted: number }) {
+  const explanation = `Kaynak toplamı ile sayaçlar arasında ${Math.abs(unaccounted)} satırlık fark var; bu satırlar hiçbir sayaca düşmedi.`;
+
   return (
-    <Badge
-      variant="destructive"
-      className="text-[10px]"
-      title={`Kaynak toplamı ile sayaçlar arasında ${Math.abs(unaccounted)} satırlık fark var; bu satırlar hiçbir sayaca düşmedi.`}
-    >
-      ±{Math.abs(unaccounted)}
-    </Badge>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="destructive" className="text-[10px]" title={explanation} tabIndex={0}>
+            ±{Math.abs(unaccounted)}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-80 whitespace-pre-wrap break-words">
+          {explanation}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
