@@ -1,7 +1,7 @@
 using System.Globalization;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
-using CargoPilot.Infrastructure.Services;
 
 namespace CargoPilot.Engine.Tests.Golden;
 
