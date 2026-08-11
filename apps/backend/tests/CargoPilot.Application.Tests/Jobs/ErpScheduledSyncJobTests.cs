@@ -85,6 +85,45 @@ public sealed class ErpScheduledSyncJobTests
         await _integrationRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
+    /// <remarks>
+    /// Bir sirketin bozuk yapilandirmasi (or. cozulemeyen sifre) komuttan disari hata firlatabilir;
+    /// bu ayni taramadaki diger sirketlerin vadesini gecirmemelidir.
+    /// </remarks>
+    [Fact]
+    public async Task RunAsync_BirEntegrasyonHataFirlatirsa_DigerleriSenkronizeEdilir()
+    {
+        var patlayan = ArrangeIntegration(SyncFrequency.Daily, TimeSpan.FromMinutes(-10));
+        var saglikli = ArrangeIntegration(SyncFrequency.Daily, TimeSpan.FromMinutes(-5));
+        ArrangeDueScan(patlayan, saglikli);
+        ArrangeSyncResultPerIntegration(command => command.IntegrationId == patlayan.Id
+            ? throw new InvalidOperationException("ERP sifresi cozulemedi.")
+            : Result<SyncErpItemsResult>.Success(EmptySyncResult()));
+
+        await CreateSut().RunAsync(CancellationToken.None);
+
+        _sentCommands.Select(c => c.IntegrationId).Should().Contain(saglikli.Id);
+        patlayan.NextScheduledSyncAt.Should().BeAfter(DateTime.UtcNow.AddHours(23));
+    }
+
+    /// <remarks>Vade yazilamazsa entegrasyon bir sonraki taramada tekrar denenir; tarama yarida kesilmez.</remarks>
+    [Fact]
+    public async Task RunAsync_VadeYazilamazsa_TaramaDevamEder()
+    {
+        var basarisiz = ArrangeIntegration(SyncFrequency.Daily, TimeSpan.FromMinutes(-10));
+        var saglikli = ArrangeIntegration(SyncFrequency.Daily, TimeSpan.FromMinutes(-5));
+        ArrangeDueScan(basarisiz, saglikli);
+        ArrangeSyncResultPerIntegration(command => command.IntegrationId == basarisiz.Id
+            ? Result<SyncErpItemsResult>.Failure(
+                new Error(ErrorType.NotFound, "ErpSettings.NotConfigured", "ERP bağlantı ayarları yapılandırılmamış."))
+            : Result<SyncErpItemsResult>.Success(EmptySyncResult()));
+        _integrationRepository.SaveChangesAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("Veritabani erisilemedi.")));
+
+        await CreateSut().RunAsync(CancellationToken.None);
+
+        _sentCommands.Select(c => c.IntegrationId).Should().Contain(saglikli.Id);
+    }
+
     private static Integration ArrangeIntegration(SyncFrequency frequency, TimeSpan nextSyncOffset)
     {
         var integration = TestData.CreateIntegration(Guid.NewGuid(), CompanyId);
@@ -99,13 +138,18 @@ public sealed class ErpScheduledSyncJobTests
                 .Where(ErpSyncPolicy.DueForScheduledSync(call.Arg<DateTime>()).Compile())
                 .ToList());
 
-    private void ArrangeSyncResult(Result<SyncErpItemsResult> result)
+    private void ArrangeSyncResult(Result<SyncErpItemsResult> result) =>
+        ArrangeSyncResultPerIntegration(_ => result);
+
+    private void ArrangeSyncResultPerIntegration(
+        Func<SyncErpItemsCommand, Result<SyncErpItemsResult>> resultFactory)
     {
         _sender.Send(Arg.Any<SyncErpItemsCommand>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                _sentCommands.Add(call.Arg<SyncErpItemsCommand>());
-                return result;
+                var command = call.Arg<SyncErpItemsCommand>();
+                _sentCommands.Add(command);
+                return resultFactory(command);
             });
     }
 

@@ -49,7 +49,19 @@ public sealed partial class ErpScheduledSyncJob
         foreach (var integration in dueIntegrations)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            await SyncIntegrationAsync(integration, scanStartedAtUtc, cancellationToken);
+        }
+    }
 
+    /// <summary>
+    /// Tek entegrasyonun senkronizasyonu. Beklenmeyen hata taramayi durdurmaz: bir sirketin
+    /// bozuk yapilandirmasi, ayni taramadaki diger sirketlerin vadesini gecirmemelidir.
+    /// </summary>
+    private async Task SyncIntegrationAsync(
+        Integration integration, DateTime scanStartedAtUtc, CancellationToken cancellationToken)
+    {
+        try
+        {
             var result = await _sender.Send(
                 new SyncErpItemsCommand(
                     integration.Id,
@@ -61,19 +73,30 @@ public sealed partial class ErpScheduledSyncJob
             if (result.IsSuccess)
             {
                 LogSyncCompleted(integration.Id, integration.CompanyId);
-                continue;
+                return;
             }
 
             // Sirkette calisan sync varsa vade korunur: entegrasyon bir sonraki taramada tekrar denenir.
             if (result.Error?.Code == AlreadyRunningErrorCode)
             {
                 LogSyncSkipped(integration.Id, integration.CompanyId);
-                continue;
+                return;
             }
 
             LogSyncFailed(result.Error?.Description ?? "Bilinmeyen hata", integration.Id, integration.CompanyId);
-            await AdvanceScheduleIfStillDueAsync(integration, scanStartedAtUtc, cancellationToken);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+#pragma warning disable CA1031 // Tek entegrasyonun hatasi tum taramayi dusurmemeli.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            LogSyncCrashed(ex, integration.Id, integration.CompanyId);
+        }
+
+        await AdvanceScheduleIfStillDueAsync(integration, scanStartedAtUtc, cancellationToken);
     }
 
     /// <summary>
@@ -89,7 +112,21 @@ public sealed partial class ErpScheduledSyncJob
 
         integration.RescheduleNextSync(
             ErpSyncPolicy.NextScheduledSyncAt(integration.SyncFrequency, DateTime.UtcNow));
-        await _integrationRepository.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _integrationRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+#pragma warning disable CA1031 // Vade yazilamazsa entegrasyon sonraki taramada tekrar denenir; tarama durmaz.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            LogRescheduleFailed(ex, integration.Id, integration.CompanyId);
+        }
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Zamanlanmis ERP sync tamamlandi. IntegrationId={IntegrationId} CompanyId={CompanyId}")]
@@ -100,4 +137,10 @@ public sealed partial class ErpScheduledSyncJob
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Zamanlanmis ERP sync basarisiz: {Reason} IntegrationId={IntegrationId} CompanyId={CompanyId}")]
     private partial void LogSyncFailed(string reason, Guid integrationId, Guid companyId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Zamanlanmis ERP sync beklenmeyen hatayla dustu. IntegrationId={IntegrationId} CompanyId={CompanyId}")]
+    private partial void LogSyncCrashed(Exception exception, Guid integrationId, Guid companyId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Zamanlanmis ERP sync vadesi guncellenemedi. IntegrationId={IntegrationId} CompanyId={CompanyId}")]
+    private partial void LogRescheduleFailed(Exception exception, Guid integrationId, Guid companyId);
 }
