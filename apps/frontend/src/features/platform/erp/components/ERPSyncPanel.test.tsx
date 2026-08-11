@@ -29,7 +29,7 @@ const integrationsResponse = {
  */
 function syncSettingsResponse(
   syncStatus: number,
-  syncFrequency = 1,
+  syncFrequency: number | null = 1,
   nextScheduledSyncAt: string | null = null,
 ) {
   return {
@@ -132,6 +132,25 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
 
     expect(await screen.findByText('Günlük')).toBeInTheDocument();
     expect(screen.queryByText(/Sonraki otomatik çekim:/)).not.toBeInTheDocument();
+  });
+
+  it('sunucuda sıklık yoksa hiçbir seçenek seçili gelmez ve otomatik çekimin kapalı olduğunu söyler', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, null).data });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByText(/Otomatik çekim kapalı/)).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: '4 saatte bir' })).not.toBeChecked();
+  });
+
+  it('sıklık kayıtlıysa otomatik çekim kapalı uyarısını göstermez', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, 1).data });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByRole('radio', { name: 'Günlük' })).toBeChecked();
+    expect(screen.queryByText(/Otomatik çekim kapalı/)).not.toBeInTheDocument();
   });
 
   it('elle çekim için ERP Ürünleri ekranına köprü gösterir', async () => {

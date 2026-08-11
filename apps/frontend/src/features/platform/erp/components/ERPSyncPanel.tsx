@@ -16,6 +16,9 @@ import { ErpSyncInterval, ErpSyncStatus } from '@/lib/types/erp';
 /** Elle çekim tek yüzeyde toplanır: ERP Ürünleri ekranındaki "ERP'den Ürün Çek" butonu. */
 const ERP_ITEMS_ROUTE = '/erp';
 
+/** Radix RadioGroup kontrollü kalsın diye "seçim yok" boş dize ile temsil edilir. */
+const NO_INTERVAL = '';
+
 function formatSyncDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   return format(parseISO(iso), 'dd.MM.yyyy HH:mm', { locale: tr });
@@ -39,8 +42,10 @@ function ErpSyncSettings({ integrationId }: { integrationId: string }) {
   const { mutate: saveSettings, isPending: isSavingSettings } = useSaveERPSyncSettings();
 
   // Seçili sıklık yalnızca sunucu verisinden okunur; yerel kopya kullanıcının
-  // kayıtlı ayarını farkında olmadan ezmesine yol açıyordu.
-  const selectedInterval = syncSettings?.syncInterval ?? ErpSyncInterval.Daily;
+  // kayıtlı ayarını farkında olmadan ezmesine yol açıyordu. Sunucuda sıklık yoksa
+  // hiçbir seçenek işaretlenmez: zamanlayıcı da bu entegrasyonu tetiklemez.
+  const selectedInterval = syncSettings?.syncInterval ?? NO_INTERVAL;
+  const isScheduleDisabled = syncSettings?.syncInterval == null;
 
   const isRunning = syncSettings?.syncStatus === ErpSyncStatus.Running;
   const isLastSyncFailed = syncSettings?.syncStatus === ErpSyncStatus.Failed;
@@ -99,11 +104,20 @@ function ErpSyncSettings({ integrationId }: { integrationId: string }) {
           </RadioGroup>
         )}
 
-        {syncSettings?.nextScheduledSyncAt && (
+        {syncSettings?.nextScheduledSyncAt ? (
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
             <CalendarClock className="h-3.5 w-3.5 shrink-0" />
             Sonraki otomatik çekim: {formatSyncDate(syncSettings.nextScheduledSyncAt)}
           </p>
+        ) : (
+          !isSettingsLoading &&
+          !isSettingsError &&
+          isScheduleDisabled && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+              Otomatik çekim kapalı; bir sıklık seçtiğinizde başlar.
+            </p>
+          )
         )}
       </div>
 

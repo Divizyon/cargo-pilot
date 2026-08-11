@@ -264,7 +264,8 @@ export function useTriggerERPSync() {
 }
 
 export interface ErpSyncSettings {
-  syncInterval: ErpSyncInterval;
+  /** null = sunucuda sıklık kayıtlı değil; otomatik çekim çalışmaz. */
+  syncInterval: ErpSyncInterval | null;
   syncStatus: ErpSyncStatus;
   nextScheduledSyncAt: string | null;
   lastSyncedAt: string | null;
@@ -287,10 +288,12 @@ export function useERPSyncSettings(integrationId: string | undefined) {
         throw new Error(`Bilinmeyen ERP senkronizasyon durumu: ${parsed.data.syncStatus}`);
       }
       return {
+        // Sıklık yoksa varsayılan uydurulmaz: zamanlayıcı frekansı olmayan
+        // entegrasyonu hiç tetiklemez, arayüz de seçili bir sıklık göstermemelidir.
         syncInterval:
-          (parsed.data.syncFrequency !== null
-            ? SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency]
-            : undefined) ?? ('Daily' as ErpSyncInterval),
+          parsed.data.syncFrequency !== null
+            ? (SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency] ?? null)
+            : null,
         syncStatus,
         nextScheduledSyncAt: parsed.data.nextScheduledSyncAt,
         lastSyncedAt: parsed.data.lastSyncAt,
