@@ -52,6 +52,7 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         var query = _dbContext.SyncLogs
             .AsNoTracking()
             .Where(l => l.IntegrationId == integrationId)
+            .Where(ErpSyncPolicy.ProductSyncLog)
             .OrderByDescending(l => l.StartedAt);
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -66,6 +67,7 @@ internal sealed class IntegrationRepository : IIntegrationRepository
     public Task<int> CountFailedSyncLogsAsync(Guid integrationId, CancellationToken cancellationToken = default)
         => _dbContext.SyncLogs
             .AsNoTracking()
+            .Where(ErpSyncPolicy.ProductSyncLog)
             .CountAsync(
                 l => l.IntegrationId == integrationId
                     && (l.Status == SyncLogStatus.PartialFailure || l.Status == SyncLogStatus.Failed),

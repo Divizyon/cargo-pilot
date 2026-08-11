@@ -24,6 +24,14 @@ public static class ErpSyncPolicy
     /// Vadesi gelmis entegrasyon filtresi: frekans secilmis ve planlanan an gecmis.
     /// Ayni ifade hem EF sorgusunda hem birim testinde kullanilir.
     /// </summary>
+    /// <summary>
+    /// Urun senkronizasyon gecmisi filtresi: plan->ERP aktarim kayitlari (LoadingPlanId dolu)
+    /// urun cekim gecmisine karismaz, cunku o tablonun sayaclari (kaynak satir, eleme nedeni)
+    /// aktarim icin anlamsizdir. Aktarim sonucu plan detayinda gorunur.
+    /// </summary>
+    public static readonly Expression<Func<SyncLog, bool>> ProductSyncLog =
+        log => log.LoadingPlanId == null;
+
     public static Expression<Func<Integration, bool>> DueForScheduledSync(DateTime utcNow) =>
         integration => integration.SyncFrequency != null
             && integration.NextScheduledSyncAt != null

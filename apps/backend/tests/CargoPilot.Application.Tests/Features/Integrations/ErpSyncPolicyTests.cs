@@ -52,6 +52,24 @@ public sealed class ErpSyncPolicyTests
         due.Should().BeEmpty();
     }
 
+    /// <remarks>
+    /// Plan aktarim kaydi urun sync gecmisinde gorunmemeli; o tablonun sayaclari
+    /// (kaynak satir, eleme nedeni) aktarim icin anlamsizdir.
+    /// </remarks>
+    [Fact]
+    public void ProductSyncLog_PlanAktarimKayitlariniDisarida_Birakir()
+    {
+        var integrationId = Guid.NewGuid();
+        var urunSync = new SyncLog(Guid.NewGuid(), integrationId);
+        var planAktarimi = new SyncLog(Guid.NewGuid(), integrationId, Guid.NewGuid());
+
+        var productLogs = new[] { urunSync, planAktarimi }
+            .Where(ErpSyncPolicy.ProductSyncLog.Compile())
+            .ToList();
+
+        productLogs.Should().BeEquivalentTo(new[] { urunSync });
+    }
+
     private static Integration CreateIntegration(SyncFrequency? frequency, DateTime? nextScheduledSyncAt)
     {
         var integration = TestData.CreateIntegration(Guid.NewGuid(), CompanyId);
