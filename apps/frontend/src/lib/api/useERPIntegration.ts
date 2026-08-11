@@ -208,7 +208,7 @@ export function buildSyncToastMessage(summary: ErpSyncSummary): string {
   const prefix =
     summary.sourceTotal > 0
       ? `ERP'de ${summary.sourceTotal} satır bulundu`
-      : 'Senkronizasyon tamamlandı';
+      : 'ERP ürün çekimi tamamlandı';
 
   let message = `${prefix} — ${parts.join(', ')}`;
   if (summary.missingFieldCount > 0) {
@@ -256,7 +256,7 @@ export function useTriggerERPSync() {
       toast.success(message, { position: 'bottom-right', duration: 6000 });
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Senkronizasyon başarısız'), {
+      toast.error(getApiErrorMessage(error, "ERP'den ürün çekilemedi"), {
         position: 'bottom-right',
       });
     },
@@ -334,7 +334,7 @@ export function useSaveERPSyncSettings() {
     },
     onSuccess: (_data, { integrationId }) => {
       queryClient.invalidateQueries({ queryKey: syncSettingsQueryKey(integrationId) });
-      toast.success('Senkronizasyon sıklığı kaydedildi', { position: 'bottom-right' });
+      toast.success('Otomatik çekim sıklığı kaydedildi', { position: 'bottom-right' });
     },
     onError: (error, { integrationId }, context) => {
       if (context?.previous) {

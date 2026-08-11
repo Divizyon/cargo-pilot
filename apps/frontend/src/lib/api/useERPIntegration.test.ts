@@ -86,7 +86,7 @@ describe('buildSyncToastMessage', () => {
 
   it('kaynak toplamı yoksa genel tamamlandı cümlesine düşer', () => {
     expect(buildSyncToastMessage({ ...emptySummary, added: 12, updated: 3 })).toBe(
-      'Senkronizasyon tamamlandı — 12 eklendi, 3 güncellendi',
+      'ERP ürün çekimi tamamlandı — 12 eklendi, 3 güncellendi',
     );
   });
 
