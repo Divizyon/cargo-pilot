@@ -11,8 +11,10 @@ docker compose -f infra/compose/docker-compose.test.yml \
   --env-file infra/env/.env.test --profile e2e up -d --wait --wait-timeout 420
 
 # 2) Sahte Netsis verisini yükle (TBLSTSABIT)
+#    Bağımlılığı çözebilmek için her iki profil de açılır.
 docker compose -f infra/compose/docker-compose.test.yml \
-  --env-file infra/env/.env.test run --rm erp-mssql-init
+  --env-file infra/env/.env.test --profile e2e --profile e2e-seed \
+  run --rm erp-mssql-init
 ```
 
 `erp-mssql` ve `erp-mssql-init` servisleri profil arkasındadır; `--profile e2e`

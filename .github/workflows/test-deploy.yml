@@ -390,10 +390,12 @@ jobs:
             --profile e2e \
             up -d --no-build --wait --wait-timeout 420
 
+      # Bağımlılığı (erp-mssql) çözebilmek için her iki profil de açılır.
       - name: Sahte ERP verisini yükle
         run: |
           docker compose \
             -f infra/compose/docker-compose.test.yml \
+            --profile e2e --profile e2e-seed \
             run --rm erp-mssql-init
 
       - name: Playwright smoke senaryoları
