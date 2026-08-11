@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { PROVIDER_TYPE_TO_INT, SYNC_FREQUENCY_TO_INT } from './useERPIntegration';
+import {
+  PROVIDER_TYPE_FROM_INT,
+  PROVIDER_TYPE_TO_INT,
+  SYNC_FREQUENCY_TO_INT,
+} from './useERPIntegration';
 import { SyncLogStatus } from '@/lib/types/erp';
 
 /**
@@ -12,9 +16,7 @@ import { SyncLogStatus } from '@/lib/types/erp';
  */
 
 describe('PROVIDER_TYPE_TO_INT', () => {
-  // ERP-04 KAPSAMI: frontend bugün {Logo:0, Netsis:1} gönderiyor, backend
-  // {Logo:1, Netsis:2} bekliyor. Kayma düzeltildiğinde bu testten .skip kaldırılacak.
-  it.skip('backend ErpProviderType değerleriyle eşleşir (ERP-04 ile açılacak)', () => {
+  it('backend ErpProviderType değerleriyle eşleşir', () => {
     expect(PROVIDER_TYPE_TO_INT).toEqual({ Logo: 1, Netsis: 2 });
   });
 
@@ -25,6 +27,18 @@ describe('PROVIDER_TYPE_TO_INT', () => {
   it('sağlayıcılara benzersiz sayı atar', () => {
     const values = Object.values(PROVIDER_TYPE_TO_INT);
     expect(new Set(values).size).toBe(values.length);
+  });
+
+  it('kaydet → GET dönüşü round-trip aynı sağlayıcıyı verir', () => {
+    for (const name of Object.keys(PROVIDER_TYPE_TO_INT) as Array<
+      keyof typeof PROVIDER_TYPE_TO_INT
+    >) {
+      expect(PROVIDER_TYPE_FROM_INT[PROVIDER_TYPE_TO_INT[name]]).toBe(name);
+    }
+  });
+
+  it('tanımsız sağlayıcı sayısı için undefined döner', () => {
+    expect(PROVIDER_TYPE_FROM_INT[0]).toBeUndefined();
   });
 });
 

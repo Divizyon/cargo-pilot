@@ -195,7 +195,7 @@ export const erpUnassignedDataItemSchema = z.object({
 
 export const erpSettingsApiSchema = z.object({
   id: z.string().uuid(),
-  providerType: z.number().int(), // 0=Logo, 1=Netsis
+  providerType: z.number().int(), // ErpProviderType: 1=Logo, 2=Netsis
   companyCode: z.string(),
   username: z.string(),
   serverAddress: z.string(),

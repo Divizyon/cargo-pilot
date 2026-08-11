@@ -22,7 +22,15 @@ import type { ErpConnectionFormValues } from '@/features/platform/erp/schemas/er
 const ERP_BASE = '/api/v1/integrations';
 const ERP_SETTINGS_BASE = '/api/v1/erp-settings';
 
-export const PROVIDER_TYPE_TO_INT: Record<string, number> = { Logo: 0, Netsis: 1 };
+/** Backend sözleşmesi: CargoPilot.Domain/Enums/ErpProviderType → Logo = 1, Netsis = 2 */
+export const PROVIDER_TYPE_TO_INT = { Logo: 1, Netsis: 2 } as const;
+
+export type ErpProviderName = keyof typeof PROVIDER_TYPE_TO_INT;
+
+export const PROVIDER_TYPE_FROM_INT: Record<number, ErpProviderName> = {
+  [PROVIDER_TYPE_TO_INT.Logo]: 'Logo',
+  [PROVIDER_TYPE_TO_INT.Netsis]: 'Netsis',
+};
 
 interface ApiError {
   detail?: string;
@@ -123,7 +131,7 @@ export function useSaveERPSettings() {
   return useMutation<unknown, AxiosError<ApiError>, ErpConnectionFormValues>({
     mutationFn: (values) => {
       const body: Record<string, unknown> = {
-        providerType: PROVIDER_TYPE_TO_INT[values.systemType] ?? 0,
+        providerType: PROVIDER_TYPE_TO_INT[values.systemType],
         companyCode: values.companyCode,
         username: values.username,
         serverAddress: values.serverAddress,
@@ -154,7 +162,7 @@ export function useTestERPSettings() {
   >({
     mutationFn: async (values) => {
       const body: Record<string, unknown> = {
-        providerType: PROVIDER_TYPE_TO_INT[values.systemType] ?? 0,
+        providerType: PROVIDER_TYPE_TO_INT[values.systemType],
         companyCode: values.companyCode,
         username: values.username,
         serverAddress: values.serverAddress,

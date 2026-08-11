@@ -26,13 +26,12 @@ import {
   type ErpConnectionFormValues,
 } from '@/features/platform/erp/schemas/erpConnectionSchema';
 import {
+  PROVIDER_TYPE_FROM_INT,
   useERPConnection,
   useERPSettings,
   useSaveERPSettings,
   useTestERPSettings,
 } from '@/lib/api/useERPIntegration';
-
-const PROVIDER_TYPE_FROM_INT: Record<number, 'Logo' | 'Netsis'> = { 0: 'Logo', 1: 'Netsis' };
 
 type TestResult = { success: boolean; message?: string | null } | null;
 
