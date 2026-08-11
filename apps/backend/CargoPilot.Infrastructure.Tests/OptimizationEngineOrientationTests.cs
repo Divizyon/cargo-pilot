@@ -5,7 +5,7 @@ using CargoPilot.Domain.Enums;
 namespace CargoPilot.Infrastructure.Tests;
 
 /// <summary>
-/// OptimizationEngine.GetOrientations karakterizasyon testleri.
+/// PlacementValidator.GetOrientations karakterizasyon testleri.
 ///
 /// Amaç: Faz 1'de altı yüzey modeli gelmeden önce mevcut altı AllowedRotations
 /// değerinin ürettiği (w, h, d, rotation) permütasyon kümesini testle sabitlemek.
@@ -38,7 +38,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.Fixed);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(
             [(100m, 50m, 30m, LoadingPlanPlacementRotation.NoRotation)],
@@ -50,7 +50,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoVertical);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(
             [
@@ -65,7 +65,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoYaw);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(
             [
@@ -81,7 +81,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.PitchOnly);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(
             [
@@ -96,7 +96,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.RollOnly);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(
             [
@@ -111,7 +111,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.All);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(
             [
@@ -132,7 +132,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.PitchOnly);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.All(orientations, o => Assert.Equal(item.Width, o.w));
     }
@@ -142,7 +142,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.RollOnly);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.All(orientations, o => Assert.Equal(item.Length, o.d));
     }
@@ -152,7 +152,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoVertical);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.All(orientations, o => Assert.Equal(item.Height, o.h));
     }
@@ -164,7 +164,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoYaw);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.DoesNotContain(orientations, o =>
             o.rotation is LoadingPlanPlacementRotation.Yaw
@@ -179,7 +179,7 @@ public class OptimizationEngineOrientationTests
     {
         var item = CreateItem(40m, 40m, 40m, AllowedRotations.All);
 
-        var orientations = OptimizationEngine.GetOrientations(item);
+        var orientations = PlacementValidator.GetOrientations(item);
 
         Assert.Equal(6, orientations.Length);
         Assert.Equal(6, orientations.Select(o => o.rotation).Distinct().Count());

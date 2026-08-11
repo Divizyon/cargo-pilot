@@ -69,18 +69,18 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
             foreach (var (ex, ey, ez) in extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x))
             {
-                foreach (var (w, h, d, rotation) in GetOrientations(item))
+                foreach (var (w, h, d, rotation) in PlacementValidator.GetOrientations(item))
                 {
                     if (ex + w > input.VehicleWidth)  continue;
                     if (ey + h > input.VehicleHeight) continue;
                     if (ez + d > input.VehicleLength) continue;
 
-                    if (HasOverlap(placements, ex, ey, ez, w, h, d)) continue;
-                    if (!HasSupport(placements, ex, ey, ez, w, d))   continue;
-                    if (ViolatesStackability(placements, ex, ey, ez, w, d,
+                    if (PlacementValidator.HasOverlap(placements, ex, ey, ez, w, h, d)) continue;
+                    if (!PlacementValidator.HasSupport(placements, ex, ey, ez, w, d))   continue;
+                    if (PlacementValidator.ViolatesStackability(placements, ex, ey, ez, w, d,
                         input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
-                    if (ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
-                    if (ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
+                    if (PlacementValidator.ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
+                    if (PlacementValidator.ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
 
                     var score = ComputeScore(
                         input.Criteria,
@@ -308,24 +308,24 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             if (k == i || k == j) continue;
             var c = placements[k];
 
-            if (BoxesOverlap(a, c) || BoxesOverlap(b, c)) return false;
+            if (PlacementValidator.BoxesOverlap(a, c) || PlacementValidator.BoxesOverlap(b, c)) return false;
         }
 
         // Destek kontrolü
         var others = placements.Where((_, k) => k != i && k != j).ToList();
-        if (!HasSupportFor(a, others)) return false;
-        if (!HasSupportFor(b, others)) return false;
+        if (!PlacementValidator.HasSupportFor(a, others)) return false;
+        if (!PlacementValidator.HasSupportFor(b, others)) return false;
 
         // Takas sonrası istif kısıtı kontrolü: i ve j kendileri hariç tutularak
         // kontrol edilir (others zaten bu listeyi oluşturmuş durumda).
         // İstiflenebilirlik de burada doğrulanır; aksi hâlde denge iyileştirmesi
         // bir kutuyu istiflenemez kutunun üstüne taşıyabiliyordu.
-        if (ViolatesStackability(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (ViolatesStackability(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (ViolatesStackCount(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (ViolatesStackCount(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
-        if (ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
+        if (PlacementValidator.ViolatesStackability(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
+        if (PlacementValidator.ViolatesStackability(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
+        if (PlacementValidator.ViolatesStackCount(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
+        if (PlacementValidator.ViolatesStackCount(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
+        if (PlacementValidator.ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
+        if (PlacementValidator.ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
 
         // Yükseklikler farklıysa: eski konumların üstündeki kutular havada kalabilir.
         // a, B'nin eski Y'sindedir (a.Y = B_eski.Y); a.H = A'nın yüksekliği → A'nın eski üst yüzeyi = b.Y + a.H
@@ -339,32 +339,11 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             {
                 if (c.Y != oldATopY && c.Y != oldBTopY) continue;
                 var supportersOfC = others.Where(p => p != c).Append(a).Append(b).ToList();
-                if (!HasSupportFor(c, supportersOfC)) return false;
+                if (!PlacementValidator.HasSupportFor(c, supportersOfC)) return false;
             }
         }
 
         return true;
-    }
-
-    private static bool BoxesOverlap(PlacedBox a, PlacedBox b) =>
-        a.X < b.X + b.W && a.X + a.W > b.X &&
-        a.Y < b.Y + b.H && a.Y + a.H > b.Y &&
-        a.Z < b.Z + b.D && a.Z + a.D > b.Z;
-
-    private static bool HasSupportFor(PlacedBox box, List<PlacedBox> others)
-    {
-        if (box.Y == 0m) return true;
-        var footprint = box.W * box.D;
-        if (footprint == 0m) return true;
-        var supportedArea = 0m;
-        foreach (var b in others)
-        {
-            if (b.Y + b.H != box.Y) continue;
-            var ox = Math.Max(0m, Math.Min(box.X + box.W, b.X + b.W) - Math.Max(box.X, b.X));
-            var oz = Math.Max(0m, Math.Min(box.Z + box.D, b.Z + b.D) - Math.Max(box.Z, b.Z));
-            supportedArea += ox * oz;
-        }
-        return supportedArea / footprint >= 0.80m;
     }
 
     private static decimal GlobalBalancePenalty(
@@ -420,168 +399,5 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             _ => // Lifo
                 ey * 1_000_000m + ez * 1_000m + ex + zonePenalty,
         };
-    }
-
-    internal static (decimal w, decimal h, decimal d, LoadingPlanPlacementRotation rotation)[]
-        GetOrientations(OptimizationItemInput item)
-    {
-        var (W, H, L) = (item.Width, item.Height, item.Length);
-
-        return item.AllowedRotations switch
-        {
-            AllowedRotations.Fixed =>
-            [
-                (W, H, L, LoadingPlanPlacementRotation.NoRotation)
-            ],
-            AllowedRotations.NoVertical =>
-            [
-                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
-                (L, H, W, LoadingPlanPlacementRotation.Yaw)
-            ],
-            // Yaw yasak; Roll ve Pitch serbest.
-            AllowedRotations.NoYaw =>
-            [
-                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
-                (H, W, L, LoadingPlanPlacementRotation.Roll),
-                (W, L, H, LoadingPlanPlacementRotation.Pitch)
-            ],
-            // W her zaman X ekseninde — sadece Pitch (H↔L, W sabit).
-            AllowedRotations.PitchOnly =>
-            [
-                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
-                (W, L, H, LoadingPlanPlacementRotation.Pitch)
-            ],
-            // L her zaman Z ekseninde — sadece Roll (H↔W, L sabit).
-            AllowedRotations.RollOnly =>
-            [
-                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
-                (H, W, L, LoadingPlanPlacementRotation.Roll)
-            ],
-            _ =>
-            [
-                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
-                (L, H, W, LoadingPlanPlacementRotation.Yaw),
-                (H, W, L, LoadingPlanPlacementRotation.Roll),
-                (W, L, H, LoadingPlanPlacementRotation.Pitch),
-                (H, L, W, LoadingPlanPlacementRotation.YawPitch),
-                (L, W, H, LoadingPlanPlacementRotation.RollYaw)
-            ]
-        };
-    }
-
-    private static bool HasOverlap(
-        List<PlacedBox> placed,
-        decimal x, decimal y, decimal z,
-        decimal w, decimal h, decimal d)
-    {
-        foreach (var b in placed)
-        {
-            if (x < b.X + b.W && x + w > b.X &&
-                y < b.Y + b.H && y + h > b.Y &&
-                z < b.Z + b.D && z + d > b.Z)
-                return true;
-        }
-        return false;
-    }
-
-    private static bool HasSupport(
-        List<PlacedBox> placed,
-        decimal x, decimal y, decimal z,
-        decimal w, decimal d)
-    {
-        if (y == 0m) return true;
-
-        var footprint = w * d;
-        if (footprint == 0m) return true;
-
-        var supportedArea = 0m;
-        foreach (var b in placed)
-        {
-            if (b.Y + b.H != y) continue;
-            var overlapX = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var overlapZ = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
-            supportedArea += overlapX * overlapZ;
-        }
-
-        return supportedArea / footprint >= 0.80m;
-    }
-
-    private static bool ViolatesStackability(
-        List<PlacedBox> placed,
-        decimal x, decimal y, decimal z,
-        decimal w, decimal d,
-        int? newItemUnloadingOrder = null)
-    {
-        foreach (var b in placed)
-        {
-            if (b.Y + b.H != y) continue;
-            var overlapX = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var overlapZ = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
-            if (overlapX <= 0m || overlapZ <= 0m) continue;
-
-            if (!b.IsStackable) return true;
-
-            // LIFO stack kuralı: daha geç inen ürün, daha erken inenin üstüne konamaz
-            if (newItemUnloadingOrder.HasValue && b.UnloadingOrder.HasValue
-                && newItemUnloadingOrder.Value > b.UnloadingOrder.Value)
-                return true;
-        }
-        return false;
-    }
-
-    // Yerleştirilecek ürünün altındaki her kutu için: o kutunun üzerinde halihazırda
-    // kaç ürün var, +1 (yeni ürün) MaxStackCount'u aşıyor mu?
-    private static bool ViolatesStackCount(
-        List<PlacedBox> placed,
-        decimal x, decimal y, decimal z,
-        decimal w, decimal d)
-    {
-        foreach (var b in placed)
-        {
-            if (b.MaxStackCount <= 0) continue;
-            if (b.Y + b.H > y) continue;
-
-            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
-            if (ox <= 0m || oz <= 0m) continue;
-
-            var countAbove = placed.Count(c =>
-                c.Y >= b.Y + b.H &&
-                Math.Max(0m, Math.Min(c.X + c.W, b.X + b.W) - Math.Max(c.X, b.X)) > 0m &&
-                Math.Max(0m, Math.Min(c.Z + c.D, b.Z + b.D) - Math.Max(c.Z, b.Z)) > 0m);
-
-            if (countAbove + 1 > b.MaxStackCount) return true;
-        }
-        return false;
-    }
-
-    // Yerleştirilecek ürünün altındaki her kutu için: o kutunun üzerindeki mevcut
-    // toplam ağırlık + yeni ürünün ağırlığı MaxWeightOnTop'u aşıyor mu?
-    // Yalnızca bir altındakini değil, altındaki tüm kutuları kontrol eder.
-    private static bool ViolatesStackWeight(
-        List<PlacedBox> placed,
-        decimal x, decimal y, decimal z,
-        decimal w, decimal d,
-        decimal newWeight)
-    {
-        foreach (var b in placed)
-        {
-            if (b.MaxWeightOnTop <= 0m) continue;
-            if (b.Y + b.H > y) continue;
-
-            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
-            if (ox <= 0m || oz <= 0m) continue;
-
-            var weightAbove = placed
-                .Where(c =>
-                    c.Y >= b.Y + b.H &&
-                    Math.Max(0m, Math.Min(c.X + c.W, b.X + b.W) - Math.Max(c.X, b.X)) > 0m &&
-                    Math.Max(0m, Math.Min(c.Z + c.D, b.Z + b.D) - Math.Max(c.Z, b.Z)) > 0m)
-                .Sum(c => c.Weight);
-
-            if (weightAbove + newWeight > b.MaxWeightOnTop) return true;
-        }
-        return false;
     }
 }
