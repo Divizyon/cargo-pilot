@@ -9,7 +9,11 @@ import {
   buildItemImportTemplateWorkbook,
   buildItemsWorkbook,
 } from '@/lib/utils/export/export-utils';
-import { LEGACY_ITEM_SHEET_HEADER } from '@/lib/config/item-import-columns';
+import {
+  ITEM_SHEET_HEADER,
+  LEGACY_ITEM_SHEET_HEADER,
+  LOAD_GROUPS,
+} from '@/lib/config/item-import-columns';
 import {
   validateRow,
   xlsxToRows,
@@ -287,6 +291,33 @@ describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
 
     expect(rows[0].constraintIds).toEqual([3]);
     expect(rows[0].fragility).toBe('3');
+  });
+
+  it('ürün formundaki her yük grubu round-trip sonunda korunur', () => {
+    const items = LOAD_GROUPS.map((group, i) =>
+      makeItem({
+        id: `2222222${i}-1111-4111-8111-111111111111`,
+        sku: `SKU-GRUP-${i}`,
+        stackGroup: group,
+        incompatibleGroups: [],
+      }),
+    );
+
+    const rows = reparse(buildItemsWorkbook(items, new Date('2026-01-01T00:00:00Z')));
+
+    expect(rows.map((r) => r.incompatibleGroups)).toEqual(LOAD_GROUPS.map((g) => [g]));
+  });
+
+  it('kısıt hücresine kod yerine ekranda görünen etiket yazılabilir', () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['SKU', 'Ürün Adı', ITEM_SHEET_HEADER.constraints, ITEM_SHEET_HEADER.loadGroups],
+      ['SKU-ETIKET', 'Etiketli Ürün', 'Yakıcı, Sıvı İçerir, Kuru Tut', 'Kimya'],
+    ]);
+
+    const rows = xlsxToRows(ws);
+
+    expect(rows[0].constraintIds).toEqual([4, 2, 8]);
+    expect(rows[0].fragility).toBe('8');
   });
 
   it('eski başlıklarla doldurulmuş dosya da okunur', () => {

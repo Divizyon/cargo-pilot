@@ -2,7 +2,6 @@ import {
   Droplets,
   Flame,
   FlaskConical,
-  Leaf,
   RotateCcw,
   Sun,
   Utensils,
@@ -117,7 +116,6 @@ const FRAGILITY_DEFS: Record<number, Omit<ConstraintDef, 'icon'> & { icon: Eleme
     label: 'Kimyasal',
     className: 'border-purple-200 bg-purple-50 text-purple-600',
   },
-  10: { icon: Leaf, label: 'Organik', className: 'border-green-200 bg-green-50 text-green-600' },
 };
 
 function buildConstraints({

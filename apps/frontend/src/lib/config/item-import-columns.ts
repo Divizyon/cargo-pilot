@@ -17,18 +17,28 @@ export const LOAD_GROUPS = [
 
 export type LoadGroup = (typeof LOAD_GROUPS)[number];
 
-/** Backend `FragilityType`/kısıt kodları; 0 = kısıtsız olduğu için listede yer almaz. */
+/**
+ * Backend `FragilityType`/kısıt kodları; 0 = kısıtsız olduğu için listede yer almaz.
+ * Etiketler ürün formu ve ürün tablosuyla aynıdır; kullanıcı Excel'e gördüğü adı yazabilir.
+ */
 export const FRAGILITY_OPTIONS = [
   { value: 1, label: 'Kırılgan' },
   { value: 2, label: 'Sıvı' },
   { value: 3, label: 'Yanıcı' },
-  { value: 4, label: 'Oksitleyici' },
+  { value: 4, label: 'Yakıcı' },
   { value: 5, label: 'Aşındırıcı' },
   { value: 6, label: 'Kokuya Hassas' },
   { value: 7, label: 'Gıda Teması' },
-  { value: 8, label: 'Kuru Tut' },
+  { value: 8, label: 'Kuru' },
   { value: 9, label: 'Kimyasal' },
 ] as const;
+
+/** Eski şablonların ve ürün tablosunun eş anlamlı etiketleri de koda çevrilir. */
+const FRAGILITY_LABEL_ALIASES: Record<string, number> = {
+  'sıvı içerir': 2,
+  oksitleyici: 4,
+  'kuru tut': 8,
+};
 
 const FRAGILITY_HEADER_LEGEND = FRAGILITY_OPTIONS.map((o) => `${o.value}=${o.label}`).join('/');
 
@@ -68,15 +78,22 @@ function splitCell(raw: unknown): string[] {
     .filter((part) => part.length > 0);
 }
 
+function normalizeLabel(value: string): string {
+  return value.toLocaleLowerCase('tr').trim();
+}
+
+function fragilityByLabel(part: string): number | undefined {
+  const key = normalizeLabel(part);
+  const option = FRAGILITY_OPTIONS.find((o) => normalizeLabel(o.label) === key);
+  return option?.value ?? FRAGILITY_LABEL_ALIASES[key];
+}
+
 /** Hücrede hem kod ('1, 2') hem etiket ('Kırılgan, Sıvı') kabul edilir. */
 export function parseConstraintCell(raw: unknown): number[] {
   const ids = splitCell(raw).map((part) => {
     const numeric = Number(part);
     if (Number.isInteger(numeric)) return numeric;
-    const byLabel = FRAGILITY_OPTIONS.find(
-      (o) => o.label.toLocaleLowerCase('tr') === part.toLocaleLowerCase('tr'),
-    );
-    return byLabel?.value ?? 0;
+    return fragilityByLabel(part) ?? 0;
   });
   const known = new Set<number>(FRAGILITY_OPTIONS.map((o) => o.value));
   return Array.from(new Set(ids.filter((id) => known.has(id))));
