@@ -12,8 +12,6 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
@@ -25,7 +23,6 @@ import {
 } from '@/lib/api/useERPIntegration';
 import { useERPConnection } from '@/lib/api/useERPIntegration';
 import { ErpSyncInterval, ErpSyncStatus, type ErpSyncFilters } from '@/lib/types/erp';
-import { useErpSettingsStore } from '@/lib/store/useErpSettingsStore';
 
 function formatSyncDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -56,9 +53,6 @@ export function ERPSyncPanel() {
 
   const { mutate: saveSettings, isPending: isSavingSettings } = useSaveERPSyncSettings();
   const { mutate: runNow, isPending: isRunNowPending } = useRunERPSyncNow();
-
-  const autoTriggerOnApproval = useErpSettingsStore((s) => s.autoTriggerOnApproval);
-  const setAutoTriggerOnApproval = useErpSettingsStore((s) => s.setAutoTriggerOnApproval);
 
   const [filters, setFilters] = useState<ErpSyncFilters>({
     categoryId: null,
@@ -182,25 +176,6 @@ export function ERPSyncPanel() {
             <span>Son senkronizasyon: {formatSyncDate(syncSettings.lastSyncedAt)}</span>
           </div>
         )}
-
-        <Separator />
-
-        {/* Plan onayında otomatik aktar */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <Label htmlFor="auto-trigger" className="text-sm font-medium">
-              Plan onayında otomatik aktar
-            </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Bir yükleme planı onaylandığında ERP aktarımı otomatik olarak başlar.
-            </p>
-          </div>
-          <Switch
-            id="auto-trigger"
-            checked={autoTriggerOnApproval}
-            onCheckedChange={setAutoTriggerOnApproval}
-          />
-        </div>
       </div>
 
       {/* Manuel senkronizasyon */}

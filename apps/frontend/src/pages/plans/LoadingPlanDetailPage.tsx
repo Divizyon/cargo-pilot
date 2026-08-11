@@ -50,7 +50,6 @@ import { PlanCanvas } from '@/features/planning/scene/components/PlanCanvas';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { PlanStatus } from '@/lib/types/loadingPlan';
-import { useErpSettingsStore } from '@/lib/store/useErpSettingsStore';
 import type {
   LoadingPlanListItem,
   PlanProductGroup,
@@ -569,8 +568,6 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const [erpStatus, setErpStatus] = useState<ErpExportStatus>('idle');
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const autoTriggerOnApproval = useErpSettingsStore((s) => s.autoTriggerOnApproval);
-
   const { data: plan, isLoading, isError } = useLoadingPlanListItem(id);
   const { data: productGroups = [] } = useLoadingPlanProducts(id);
   const { mutateAsync: approvePlan, isPending: isApproving } = useApprovePlan();
@@ -578,11 +575,11 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
 
   async function handleApprove() {
     try {
-      await approvePlan(id);
-      if (!autoTriggerOnApproval) return;
-      // Onay isteği ERP aktarımını sunucu tarafında kuyruğa alır; ayrı bir tetikleme ucu yoktur.
-      setErpStatus('queued');
-      toast.success('Plan onaylandı, ERP aktarımı kuyruğa alındı.', { position: 'bottom-right' });
+      // ERP aktarımı sunucudaki özellik anahtarına bağlıdır; kuyruğa alındı bilgisi
+      // yalnızca yanıttaki erpExportQueued true iken gösterilir.
+      const outcome = await approvePlan(id);
+      if (outcome.erpExportQueued) setErpStatus('queued');
+      toast.success(outcome.message, { position: 'bottom-right' });
     } catch {
       // approvePlan mutation handles its own error toast
     }

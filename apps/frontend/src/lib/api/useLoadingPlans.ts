@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
+import { z } from 'zod';
 import type { LoadingPlanListItem } from '@/lib/types/loadingPlan';
 import { axiosInstance } from './axiosInstance';
+import { getApiErrorMessage } from './apiError';
 import {
   planDetailApiResponseSchema,
   planListApiResponseSchema,
@@ -268,18 +270,48 @@ export function useRenameLoadingPlan() {
 
 // ─── Approve mutation ─────────────────────────────────────────────────────────
 
+/**
+ * Onay yaniti: ERP aktarimi ozellik anahtari (Erp:ExportEnabled) kapaliyken backend
+ * planin ERP durumuna dokunmaz ve `erpExportQueued: false` doner; arayuz "aktarim
+ * kuyrukta" bilgisini yalnizca bu alan true iken gostermelidir.
+ */
+const approvePlanResponseSchema = z.object({
+  message: z.string().nullish(),
+  data: z
+    .object({
+      planId: z.string(),
+      erpExportQueued: z.boolean(),
+    })
+    .nullish(),
+});
+
+export interface ApprovePlanOutcome {
+  erpExportQueued: boolean;
+  message: string;
+}
+
+const APPROVE_FALLBACK_MESSAGE = 'Plan onaylandı.';
+
 export function useApprovePlan() {
   const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ProblemDetails>, string>({
-    mutationFn: (id) =>
-      axiosInstance.post(`/api/v1/loading-plans/${id}/approve`).then(() => undefined),
+  return useMutation<ApprovePlanOutcome, AxiosError<unknown>, string>({
+    mutationFn: async (id) => {
+      const { data } = await axiosInstance.post<unknown>(`/api/v1/loading-plans/${id}/approve`);
+      const parsed = approvePlanResponseSchema.safeParse(data);
+      if (!parsed.success) {
+        return { erpExportQueued: false, message: APPROVE_FALLBACK_MESSAGE };
+      }
+      return {
+        erpExportQueued: parsed.data.data?.erpExportQueued ?? false,
+        message: parsed.data.message?.trim() || APPROVE_FALLBACK_MESSAGE,
+      };
+    },
     onSuccess: (_data, id) => {
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list'] });
       void queryClient.invalidateQueries({ queryKey: ['loading-plan-list-item', id] });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Plan onaylanamadı.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Plan onaylanamadı.'), { position: 'bottom-right' });
     },
   });
 }
