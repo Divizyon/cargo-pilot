@@ -125,12 +125,17 @@ function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
 
 // ─── Fragility multi-select cell ──────────────────────────────────────────────
 
+/** Yoğun grid'de hücre tetikleyicileri aynı ölçüde kalsın diye tek yerde tutulur. */
+const CELL_TRIGGER_CLASS =
+  'h-7 w-full justify-between gap-1 px-1.5 text-xs font-normal hover:bg-muted/50';
+
 interface FragilityCellProps {
+  rowLabel: string;
   constraintIds: number[];
   onChange: (ids: number[]) => void;
 }
 
-function FragilityCell({ constraintIds, onChange }: FragilityCellProps) {
+function FragilityCell({ rowLabel, constraintIds, onChange }: FragilityCellProps) {
   const selected = new Set(constraintIds);
 
   const label =
@@ -150,17 +155,18 @@ function FragilityCell({ constraintIds, onChange }: FragilityCellProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          aria-label={`${rowLabel} — Kırılganlık: ${label}`}
           className={cn(
-            'flex h-7 w-full items-center justify-between gap-1 rounded border px-1.5 text-xs',
-            'border-border bg-background hover:bg-muted/50',
+            CELL_TRIGGER_CLASS,
             constraintIds.length > 0 ? 'text-foreground' : 'text-muted-foreground',
           )}
         >
           <span className="truncate">{label}</span>
           <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-44 p-2" align="start">
         <div className="space-y-1">
@@ -185,12 +191,13 @@ function FragilityCell({ constraintIds, onChange }: FragilityCellProps) {
 // ─── Load group multi-select cell ─────────────────────────────────────────────
 
 interface LoadGroupCellProps {
+  rowLabel: string;
   selected: string[];
   error?: string;
   onChange: (groups: string[]) => void;
 }
 
-function LoadGroupCell({ selected, error, onChange }: LoadGroupCellProps) {
+function LoadGroupCell({ rowLabel, selected, error, onChange }: LoadGroupCellProps) {
   const set = new Set(selected);
 
   const label =
@@ -211,20 +218,23 @@ function LoadGroupCell({ selected, error, onChange }: LoadGroupCellProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          aria-label={`${rowLabel} — Yük Grubu: ${label}`}
+          aria-invalid={Boolean(error)}
           className={cn(
-            'flex h-7 w-full items-center justify-between gap-1 rounded border px-1.5 text-xs',
+            CELL_TRIGGER_CLASS,
             error
               ? 'border-destructive bg-destructive/5 text-destructive'
               : selected.length > 0
-                ? 'border-border bg-background text-foreground'
-                : 'border-border bg-background text-muted-foreground',
+                ? 'text-foreground'
+                : 'text-muted-foreground',
           )}
         >
           <span className="truncate">{label}</span>
           <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-2" align="start">
         <div className="space-y-1">
@@ -289,14 +299,15 @@ function ColumnBulkFill({ title, options, filledCount, onApply }: ColumnBulkFill
       }}
     >
       <PopoverTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="outline"
           aria-label={`${title} sütununu toplu doldur`}
-          className="flex items-center gap-0.5 rounded border border-border bg-background px-1 py-0.5 text-[9px] font-medium normal-case text-muted-foreground hover:bg-muted"
+          className="h-5 gap-0.5 px-1 py-0 text-[10px] font-medium normal-case text-muted-foreground hover:bg-muted"
         >
           Tümü
           <ChevronDown className="h-2.5 w-2.5" />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">
         <p className="mb-1.5 text-[11px] font-medium normal-case tracking-normal text-muted-foreground">
@@ -716,7 +727,7 @@ export function BulkImportDialog({
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
             <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
-              <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
                 <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
                 <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
@@ -766,6 +777,8 @@ export function BulkImportDialog({
               {rows.map((row, idx) => {
                 const errs = validations.find((v) => v.id === row._id)?.errors ?? {};
                 const hasRowError = Object.keys(errs).length > 0;
+                // Aynı görünen hücre kontrolleri ekran okuyucuda satırla birlikte anılır.
+                const rowLabel = row.name.trim() || `${idx + 1}. satır`;
                 return (
                   <tr
                     key={row._id}
@@ -838,7 +851,7 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Uzunluk */}
+                    {/* Derinlik (Z) */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
                         value={row.length}
@@ -858,9 +871,10 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Kısıtlar */}
+                    {/* Kırılganlık */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <FragilityCell
+                        rowLabel={rowLabel}
                         constraintIds={row.constraintIds}
                         onChange={(ids) =>
                           patchRow(row._id, {
@@ -874,6 +888,7 @@ export function BulkImportDialog({
                     {/* Yük Grubu */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <LoadGroupCell
+                        rowLabel={rowLabel}
                         selected={row.incompatibleGroups}
                         error={errs.incompatibleGroups}
                         onChange={(groups) => patchRow(row._id, { incompatibleGroups: groups })}
@@ -958,6 +973,7 @@ export function BulkImportDialog({
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label={`${rowLabel} satırını sil`}
                         title="Satırı sil"
                         onClick={() => setRows((p) => p.filter((r) => r._id !== row._id))}
                       >

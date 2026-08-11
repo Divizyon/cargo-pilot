@@ -13,7 +13,13 @@ const mocks = vi.hoisted(() => ({
   triggerSync: vi.fn(),
   bulkReject: vi.fn(),
   reinstate: vi.fn(),
-  draftItemsState: { isLoading: false, isEmpty: false, error: null as unknown },
+  draftItemsState: {
+    isLoading: false,
+    isEmpty: false,
+    error: null as unknown,
+    /** Sayfalama gibi yalnızca çok kayıtta çizilen yüzeyleri test etmek için. */
+    extraPending: [] as DraftItem[],
+  },
 }));
 
 vi.mock('@/lib/api/useERPIntegration', async (importOriginal) => {
@@ -52,7 +58,9 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
         params.status === DRAFT_REJECTED
           ? item.status === DRAFT_REJECTED || item.status === DRAFT_UPDATE_DISMISSED
           : item.status === params.status;
-      const items = mocks.draftItemsState.isEmpty ? [] : draftItems.filter(matchesStatus);
+      const items = mocks.draftItemsState.isEmpty
+        ? []
+        : [...draftItems, ...mocks.draftItemsState.extraPending].filter(matchesStatus);
       return {
         data: { items, totalCount: items.length, page: params.page, pageSize: params.pageSize },
         isLoading: false,
@@ -163,6 +171,7 @@ describe('ERPItemsTable', () => {
     mocks.draftItemsState.isLoading = false;
     mocks.draftItemsState.isEmpty = false;
     mocks.draftItemsState.error = null;
+    mocks.draftItemsState.extraPending = [];
     mocks.connection.mockReturnValue({
       id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
       systemName: 'Netsis',
@@ -337,5 +346,23 @@ describe('ERPItemsTable', () => {
 
     await user.click(reinstateButtons[0]);
     expect(mocks.reinstate).toHaveBeenCalledWith(['55555555-5555-4555-8555-555555555555']);
+  });
+
+  it('sayfalama okları dahil her buton erişilebilir bir ad taşır', () => {
+    mocks.draftItemsState.extraPending = Array.from({ length: 30 }, (_, index) =>
+      makeDraft({
+        id: `99999999-9999-4999-8999-${String(index).padStart(12, '0')}`,
+        name: `Sayfalama Urunu ${index}`,
+      }),
+    );
+    renderTable();
+
+    expect(screen.getByRole('button', { name: 'Önceki sayfa' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sonraki sayfa' })).toBeInTheDocument();
+
+    for (const button of screen.getAllByRole('button')) {
+      const accessibleName = button.getAttribute('aria-label') ?? button.textContent?.trim() ?? '';
+      expect(accessibleName, button.outerHTML).not.toBe('');
+    }
   });
 });

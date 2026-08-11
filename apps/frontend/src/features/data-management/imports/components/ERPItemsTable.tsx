@@ -692,6 +692,7 @@ export function ERPItemsTable() {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8 p-0"
+                aria-label="Önceki sayfa"
                 disabled={page <= 1 || showSkeleton}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -706,6 +707,7 @@ export function ERPItemsTable() {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8 p-0"
+                aria-label="Sonraki sayfa"
                 disabled={page >= totalPages || showSkeleton}
                 onClick={() => setPage((p) => p + 1)}
               >
