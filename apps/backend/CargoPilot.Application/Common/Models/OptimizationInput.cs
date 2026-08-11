@@ -74,4 +74,7 @@ public sealed record OptimizationItemInput(
     Guid? GroupId = null,
     int? UnloadingOrder = null,
     string? StackGroup = null,
-    IReadOnlyList<string>? IncompatibleGroups = null);
+    IReadOnlyList<string>? IncompatibleGroups = null,
+    // Kırılganlık sınıfı. Varsayılan NonFragile bugünkü davranışı birebir korur:
+    // alan verilmediğinde hiçbir yeni ret üretilmez
+    FragilityType FragilityType = FragilityType.NonFragile);

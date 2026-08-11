@@ -42,7 +42,8 @@ internal static class EngineScenario
         decimal maxWeightOnTop = 0m,
         AllowedRotations allowedRotations = AllowedRotations.All,
         int? groupIndex = null,
-        int? unloadingOrder = null)
+        int? unloadingOrder = null,
+        FragilityType fragilityType = FragilityType.NonFragile)
         => new(
             ItemId: ItemId(index),
             SKU: $"SKU-{Suffix(index)}",
@@ -58,7 +59,8 @@ internal static class EngineScenario
             AllowedRotations: allowedRotations,
             Quantity: quantity,
             GroupId: groupIndex.HasValue ? GroupId(groupIndex.Value) : null,
-            UnloadingOrder: unloadingOrder);
+            UnloadingOrder: unloadingOrder,
+            FragilityType: fragilityType);
 
     public static OptimizationInput Input(
         IReadOnlyList<OptimizationItemInput> items,

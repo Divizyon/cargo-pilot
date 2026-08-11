@@ -11,6 +11,7 @@ internal sealed record PlacedBox(
     bool IsStackable,
     int MaxStackCount,
     decimal MaxWeightOnTop,
+    FragilityType FragilityType,
     int? UnloadingOrder);
 
 internal sealed record UnplacedBox(Guid ItemId, UnplacedReason Reason);

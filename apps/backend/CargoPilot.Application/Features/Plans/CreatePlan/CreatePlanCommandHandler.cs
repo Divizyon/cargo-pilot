@@ -244,7 +244,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
                     item.AllowedRotations, r.Quantity,
                     group?.Id, group?.UnloadingOrder,
-                    item.StackGroup, item.GetIncompatibleGroups());
+                    item.StackGroup, item.GetIncompatibleGroups(),
+                    item.FragilityType);
             })
             .ToList();
 

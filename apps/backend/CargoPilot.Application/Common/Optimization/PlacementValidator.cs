@@ -4,7 +4,7 @@ using CargoPilot.Domain.Enums;
 namespace CargoPilot.Application.Common.Optimization;
 
 /// <summary>
-/// Yerleştirmenin sert kısıtları: çakışma, zemin desteği ve istif kuralları.
+/// Yerleştirmenin sert kısıtları: çakışma, zemin desteği, istif ve kırılganlık kuralları.
 /// Motordan çıkarılan saf fonksiyonlardır; durum tutmaz, sıra bağımlılığı yoktur.
 ///
 /// Tasarım kararı: hepsi <c>static</c>. Sıcak döngüde milyonlarca kez çağrıldıkları
@@ -167,6 +167,41 @@ internal static class PlacementValidator
                 .Sum(c => c.Weight);
 
             if (weightAbove + newWeight > b.MaxWeightOnTop) return true;
+        }
+        return false;
+    }
+
+    // ── Fragility ─────────────────────────────────────────────────────────────
+    //
+    // Kırılganlık kuralı: kırılgan bir ürünün üstüne hiçbir yük konamaz.
+    //
+    // Yalnızca <c>FragilityType.Fragile</c> mekanik kırılganlığı ifade eder.
+    // Enum'un kalan üyeleri (LiquidChemical, Flammable, Oxidizing, Corrosive,
+    // OdorSensitive, FoodContact, KeepDry, Chemical) sıralı bir şiddet ölçeği
+    // değil, ayrışım/elleçleme sınıflarıdır; onların kuralı stackGroup ve
+    // incompatibleGroups üzerinden ContaminationFilter'da işler. Bu yüzden
+    // burada kırılganlık dereceli bir ağırlık sınırına çevrilmez: dereceli
+    // sınır zaten MaxWeightOnTop alanıdır ve ViolatesStackWeight uygular.
+    // Kırılganlığın eklediği şey kategorik durumdur — üste hiçbir şey konamaz
+
+    /// <summary>Aday pozisyonun altında kalan kutulardan biri kırılgan mı?</summary>
+    internal static bool ViolatesFragility(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal w, decimal d)
+    {
+        foreach (var b in placed)
+        {
+            // En ucuz eleme önce: araçta kırılgan kutu yoksa döngü kutu başına
+            // tek enum karşılaştırmasına iner
+            if (b.FragilityType != FragilityType.Fragile) continue;
+            if (b.Y + b.H > y) continue;
+
+            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
+            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            if (ox <= 0m || oz <= 0m) continue;
+
+            return true;
         }
         return false;
     }

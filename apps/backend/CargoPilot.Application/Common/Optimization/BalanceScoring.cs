@@ -167,6 +167,11 @@ internal static class BalanceScoring
         if (PlacementValidator.ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
         if (PlacementValidator.ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
 
+        // Kırılganlık da sert kısıttır: takas bir kutuyu kırılgan kutunun üstüne
+        // taşıyamaz. Motorun aday taramasındaki kuralın aynısı burada da geçerlidir
+        if (PlacementValidator.ViolatesFragility(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
+        if (PlacementValidator.ViolatesFragility(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
+
         // Yükseklikler farklıysa: eski konumların üstündeki kutular havada kalabilir.
         // a, B'nin eski Y'sindedir (a.Y = B_eski.Y); a.H = A'nın yüksekliği → A'nın eski üst yüzeyi = b.Y + a.H
         // b, A'nın eski Y'sindedir (b.Y = A_eski.Y); b.H = B'nin yüksekliği → B'nin eski üst yüzeyi = a.Y + b.H

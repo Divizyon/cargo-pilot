@@ -169,7 +169,8 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
                     item.AllowedRotations, r.Quantity,
                     group?.Id, group?.UnloadingOrder,
-                    item.StackGroup, item.GetIncompatibleGroups());
+                    item.StackGroup, item.GetIncompatibleGroups(),
+                    item.FragilityType);
             })
             .ToList();
 

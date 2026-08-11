@@ -78,6 +78,11 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             PlacedBox? best = null;
             var bestScore = decimal.MaxValue;
 
+            // Aday yalnızca kırılganlık yüzünden elendiyse ret sebebi "yer yok"
+            // değil, kırılganlık kısıtı olarak raporlanır. Bayrak ancak diğer tüm
+            // sert kısıtları geçmiş bir aday elendiğinde kalkar
+            var blockedByFragility = false;
+
             foreach (var (ex, ey, ez) in extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x))
             {
                 foreach (var (w, h, d, rotation) in PlacementValidator.GetOrientations(item))
@@ -92,6 +97,11 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                         input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                     if (PlacementValidator.ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
                     if (PlacementValidator.ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
+                    if (PlacementValidator.ViolatesFragility(placements, ex, ey, ez, w, d))
+                    {
+                        blockedByFragility = true;
+                        continue;
+                    }
 
                     var score = ComputeScore(
                         input.Criteria,
@@ -105,14 +115,18 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     if (score < bestScore)
                     {
                         bestScore = score;
-                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.UnloadingOrder);
+                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.FragilityType, item.UnloadingOrder);
                     }
                 }
             }
 
             if (best is null)
             {
-                unplaced.Add(new UnplacedBox(item.ItemId, UnplacedReason.InsufficientSpace));
+                unplaced.Add(new UnplacedBox(
+                    item.ItemId,
+                    blockedByFragility
+                        ? UnplacedReason.FragilityOrHandlingConstraint
+                        : UnplacedReason.InsufficientSpace));
                 continue;
             }
 
