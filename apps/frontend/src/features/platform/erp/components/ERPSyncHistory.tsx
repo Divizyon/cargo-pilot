@@ -51,7 +51,8 @@ const PAGE_SIZE = 20;
 
 const DETAIL_COLUMN_COUNT = 6;
 
-const HEADER_CLASS = 'whitespace-nowrap px-4 py-0 text-[11px] font-semibold uppercase tracking-wide';
+const HEADER_CLASS =
+  'whitespace-nowrap px-4 py-0 text-[11px] font-semibold uppercase tracking-wide';
 
 /**
  * Kaynak toplamı ile sayaçlar arasındaki fark; sıfırdan farklıysa muhasebede
@@ -229,7 +230,9 @@ function SyncLogTable({ integrationId }: { integrationId: string }) {
                     <TableCell className="px-4 py-0 text-xs text-foreground">
                       <div className="flex items-center gap-2">
                         <span>{log.sourceTotal}</span>
-                        {log.unaccounted !== 0 && <UnaccountedBadge unaccounted={log.unaccounted} />}
+                        {log.unaccounted !== 0 && (
+                          <UnaccountedBadge unaccounted={log.unaccounted} />
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-0 text-xs text-foreground">

@@ -98,9 +98,8 @@ function renderTable(node: ReactNode = <ERPItemsTable />) {
     </QueryClientProvider>,
   );
 }
-const { DRAFT_PENDING, DRAFT_APPROVED, DRAFT_REJECTED, DRAFT_UPDATE_DISMISSED } = await import(
-  '@/lib/api/useDraftItems'
-);
+const { DRAFT_PENDING, DRAFT_APPROVED, DRAFT_REJECTED, DRAFT_UPDATE_DISMISSED } =
+  await import('@/lib/api/useDraftItems');
 
 function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'>): DraftItem {
   return {

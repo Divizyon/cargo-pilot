@@ -34,14 +34,21 @@ function approveResponse(erpExportQueued: boolean, message: string) {
 }
 
 /** Plan detay ucu: ERP aktarım durumu ve son başarısız denemenin nedeni. */
-function detailResponse(erp: { erpExportStatus?: number | null; erpExportMessage?: string | null }) {
+function detailResponse(erp: {
+  erpExportStatus?: number | null;
+  erpExportMessage?: string | null;
+}) {
   return {
     data: {
       isSuccess: true,
       data: {
         id: PLAN_ID,
         planName: 'Plan 1',
-        vehicle: { id: '11111111-2222-4333-8444-555555555555', vehicleName: 'Tır', maxWeightCapacity: 20000 },
+        vehicle: {
+          id: '11111111-2222-4333-8444-555555555555',
+          vehicleName: 'Tır',
+          maxWeightCapacity: 20000,
+        },
         optimizationStatus: 1,
         createdAtUtc: '2026-08-11T10:00:00Z',
         ...erp,
@@ -94,7 +101,10 @@ describe('useApprovePlan', () => {
 
   it('aktarım kapalıyken kuyruğa alındı bilgisi vermez, backend mesajını döner', async () => {
     mocks.post.mockResolvedValue(
-      approveResponse(false, 'Plan onaylandı. ERP aktarımı şu an kapalı olduğu için aktarım yapılmadı.'),
+      approveResponse(
+        false,
+        'Plan onaylandı. ERP aktarımı şu an kapalı olduğu için aktarım yapılmadı.',
+      ),
     );
 
     const { result } = renderHook(() => useApprovePlan(), { wrapper });
@@ -135,10 +145,10 @@ describe('useApprovePlan', () => {
         status: 422,
         data: {
           isSuccess: false,
-          message: 'Tanımlı bir ERP bağlantısı bulunmadığı için plan ERP\'e aktarılamaz.',
+          message: "Tanımlı bir ERP bağlantısı bulunmadığı için plan ERP'e aktarılamaz.",
           error: {
             code: 'Erp.NoIntegration',
-            description: 'Tanımlı bir ERP bağlantısı bulunmadığı için plan ERP\'e aktarılamaz.',
+            description: "Tanımlı bir ERP bağlantısı bulunmadığı için plan ERP'e aktarılamaz.",
           },
         },
       },
@@ -149,7 +159,7 @@ describe('useApprovePlan', () => {
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
-        'Tanımlı bir ERP bağlantısı bulunmadığı için plan ERP\'e aktarılamaz.',
+        "Tanımlı bir ERP bağlantısı bulunmadığı için plan ERP'e aktarılamaz.",
         { position: 'bottom-right' },
       ),
     );

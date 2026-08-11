@@ -41,7 +41,7 @@ const GUIDANCE: Record<ErpProvider, ErpFieldGuidance> = {
   Netsis: {
     databasePlaceholder: 'NETSIS2024',
     databaseHelp:
-      "Netsis verilerinin tutulduğu SQL Server veritabanının adı (örn. NETSIS2024). Netsis ekranındaki şirket/firma numarası değildir; IT yöneticinizden alın.",
+      'Netsis verilerinin tutulduğu SQL Server veritabanının adı (örn. NETSIS2024). Netsis ekranındaki şirket/firma numarası değildir; IT yöneticinizden alın.',
     usernamePlaceholder: 'netsis_okuyucu',
     usernameHelp:
       'Netsis kullanıcısı değil, veritabanına bağlanan SQL Server kullanıcısıdır. IT yöneticinizden yalnızca okuma yetkili (db_datareader) bir hesap isteyin.',
@@ -53,7 +53,7 @@ const GUIDANCE: Record<ErpProvider, ErpFieldGuidance> = {
   Logo: {
     databasePlaceholder: 'TIGERDB',
     databaseHelp:
-      "Logo verilerinin tutulduğu SQL Server veritabanının adı (örn. TIGERDB). Logo içindeki firma numarası değildir; IT yöneticinizden alın.",
+      'Logo verilerinin tutulduğu SQL Server veritabanının adı (örn. TIGERDB). Logo içindeki firma numarası değildir; IT yöneticinizden alın.',
     usernamePlaceholder: 'logo_okuyucu',
     usernameHelp:
       'Logo kullanıcısı değil, veritabanına bağlanan SQL Server kullanıcısıdır. IT yöneticinizden yalnızca okuma yetkili (db_datareader) bir hesap isteyin.',
