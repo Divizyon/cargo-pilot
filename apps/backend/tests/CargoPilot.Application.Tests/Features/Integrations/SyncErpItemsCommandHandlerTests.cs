@@ -1,6 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Integrations.SyncErpItems;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
@@ -38,12 +39,17 @@ public sealed class SyncErpItemsCommandHandlerTests
             Substitute.For<IValidator<SyncErpItemsCommand>>(),
             NullLogger<SyncErpItemsCommandHandler>.Instance);
 
+    private Integration _integration = TestData.CreateIntegration(IntegrationId, CompanyId);
+
     private void ArrangeHappyPath(params ErpProductDto[] products)
     {
         _currentUserService.CompanyId.Returns(CompanyId);
         _currentUserService.UserId.Returns(Guid.NewGuid());
+        _integration = TestData.CreateIntegration(IntegrationId, CompanyId);
+        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(false);
         _integrationRepository.GetByIdAsync(IntegrationId, CompanyId, Arg.Any<CancellationToken>())
-            .Returns(TestData.CreateIntegration(IntegrationId, CompanyId));
+            .Returns(_integration);
         _erpSettingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>())
             .Returns(TestData.CreateErpSettings(CompanyId));
         _passwordProtector.Unprotect(Arg.Any<string>()).Returns("duz-sifre");
@@ -152,6 +158,82 @@ public sealed class SyncErpItemsCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_SirketBaglamiYokken_AuthNoCompanyDoner()
+    {
+        _currentUserService.CompanyId.Returns((Guid?)null);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Auth.NoCompany");
+        result.Error.Type.Should().Be(ErrorType.Unauthorized);
+        await _integrationRepository.DidNotReceiveWithAnyArgs().GetByIdAsync(Guid.Empty, Guid.Empty);
+    }
+
+    [Fact]
+    public async Task Handle_SirkettteCalisanSyncVarken_ConflictDoner()
+    {
+        _currentUserService.CompanyId.Returns(CompanyId);
+        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Sync.AlreadyRunning");
+        result.Error.Type.Should().Be(ErrorType.Conflict);
+        _integrationRepository.DidNotReceiveWithAnyArgs().AddSyncLog(default!);
+    }
+
+    [Fact]
+    public async Task Handle_SyncBaslarken_RunningKilidiOnceKaydedilirSonundaBirakilir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        ErpSyncStatus? fetchAnindakiDurum = null;
+        _erpProductFetcher.FetchAsync(
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                fetchAnindakiDurum = _integration.SyncStatus;
+                return new[] { TestData.CreateErpProduct() };
+            });
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        fetchAnindakiDurum.Should().Be(ErpSyncStatus.Running);
+        await _integrationRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        _integration.SyncStatus.Should().Be(ErpSyncStatus.Idle);
+        _integration.SyncStartedAtUtc.Should().BeNull();
+        _integration.LastSyncDate.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Handle_AyniErpIdIkiKezGelirse_IkincisiSatirHatasinaDonusur()
+    {
+        ArrangeHappyPath(
+            TestData.CreateErpProduct(),
+            TestData.CreateErpProduct());
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Added.Should().Be(1);
+        result.Data.Skipped.Should().Be(1);
+        result.Data.RowErrors.Should().ContainSingle().Which.ErpId.Should().Be("ERP-1");
+        _draftItemRepository.Received(1).Add(Arg.Any<DraftItem>());
+    }
+
+    [Fact]
     public async Task Handle_EntegrasyonBulunamazsa_NotFoundDoner()
     {
         _currentUserService.CompanyId.Returns(CompanyId);
@@ -202,6 +284,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         kaydedilenLog.Should().NotBeNull();
         kaydedilenLog!.Status.Should().Be(SyncLogStatus.Failed);
         kaydedilenLog.ErrorMessage.Should().Be("baglanti koptu");
+        _integration.SyncStatus.Should().Be(ErpSyncStatus.Failed);
         await _notificationService.Received(1).CreateAsync(
             Arg.Any<Guid>(),
             CompanyId,

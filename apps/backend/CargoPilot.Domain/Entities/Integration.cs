@@ -12,6 +12,10 @@ public sealed class Integration : BaseEntity {
     public SyncFrequency? SyncFrequency { get; private set; }
     public DateTime? NextScheduledSyncAt { get; private set; }
     public ErpSyncStatus SyncStatus { get; private set; } = ErpSyncStatus.Idle;
+
+    /// <summary>Calisan sync'in baslangic ani; Running'de takilan kayitlarin zaman asimi icin kullanilir.</summary>
+    public DateTime? SyncStartedAtUtc { get; private set; }
+
     public string? AuthCredentials { get; private set; }
 
 #pragma warning disable S1144
@@ -53,13 +57,20 @@ public sealed class Integration : BaseEntity {
         NextScheduledSyncAt = nextScheduledSyncAt;
     }
 
-    public void StartSync() => SyncStatus = ErpSyncStatus.Running;
+    public void StartSync(DateTime startedAtUtc) {
+        SyncStatus = ErpSyncStatus.Running;
+        SyncStartedAtUtc = startedAtUtc;
+    }
 
     public void CompleteSync(DateTime lastSyncAt, DateTime? nextScheduledSyncAt) {
         LastSyncDate = lastSyncAt;
         NextScheduledSyncAt = nextScheduledSyncAt;
         SyncStatus = ErpSyncStatus.Idle;
+        SyncStartedAtUtc = null;
     }
 
-    public void FailSync() => SyncStatus = ErpSyncStatus.Failed;
+    public void FailSync() {
+        SyncStatus = ErpSyncStatus.Failed;
+        SyncStartedAtUtc = null;
+    }
 }

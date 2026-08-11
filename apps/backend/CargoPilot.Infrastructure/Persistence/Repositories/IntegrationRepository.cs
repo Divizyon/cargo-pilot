@@ -19,9 +19,15 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         => _dbContext.Integrations
             .FirstOrDefaultAsync(i => i.Id == id && i.CompanyId == companyId, cancellationToken);
 
-    public Task<bool> HasAnyRunningSyncAsync(Guid companyId, CancellationToken cancellationToken = default)
+    public Task<bool> HasAnyRunningSyncAsync(
+        Guid companyId, DateTime staleThresholdUtc, CancellationToken cancellationToken = default)
         => _dbContext.Integrations
-            .AnyAsync(i => i.CompanyId == companyId && i.SyncStatus == ErpSyncStatus.Running, cancellationToken);
+            .AnyAsync(
+                i => i.CompanyId == companyId
+                    && i.SyncStatus == ErpSyncStatus.Running
+                    && i.SyncStartedAtUtc != null
+                    && i.SyncStartedAtUtc > staleThresholdUtc,
+                cancellationToken);
 
     public async Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => await _dbContext.Integrations

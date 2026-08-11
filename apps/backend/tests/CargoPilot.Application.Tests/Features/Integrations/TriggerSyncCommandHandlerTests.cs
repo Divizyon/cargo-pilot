@@ -29,14 +29,14 @@ public sealed class TriggerSyncCommandHandlerTests
         result.IsSuccess.Should().BeFalse();
         result.Error!.Code.Should().Be("Auth.NoCompany");
         result.Error.Type.Should().Be(ErrorType.Unauthorized);
-        await _integrationRepository.DidNotReceiveWithAnyArgs().HasAnyRunningSyncAsync(Guid.Empty, CancellationToken.None);
+        await _integrationRepository.DidNotReceiveWithAnyArgs().HasAnyRunningSyncAsync(Guid.Empty, DateTime.MinValue, CancellationToken.None);
     }
 
     [Fact]
     public async Task Handle_SirkettteCalisanSyncVarken_ConflictDoner()
     {
         _currentUserService.CompanyId.Returns(CompanyId);
-        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(true);
+        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<DateTime>(), Arg.Any<CancellationToken>()).Returns(true);
 
         var result = await CreateSut().Handle(new TriggerSyncCommand(IntegrationId), CancellationToken.None);
 
@@ -50,7 +50,7 @@ public sealed class TriggerSyncCommandHandlerTests
     public async Task Handle_EntegrasyonBulunamazsa_NotFoundDoner()
     {
         _currentUserService.CompanyId.Returns(CompanyId);
-        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(false);
+        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<DateTime>(), Arg.Any<CancellationToken>()).Returns(false);
         _integrationRepository.GetByIdAsync(IntegrationId, CompanyId, Arg.Any<CancellationToken>())
             .Returns((Integration?)null);
 
@@ -69,7 +69,7 @@ public sealed class TriggerSyncCommandHandlerTests
     public async Task Handle_EntegrasyonVarken_SuAnNotImplementedDoner()
     {
         _currentUserService.CompanyId.Returns(CompanyId);
-        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(false);
+        _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<DateTime>(), Arg.Any<CancellationToken>()).Returns(false);
         _integrationRepository.GetByIdAsync(IntegrationId, CompanyId, Arg.Any<CancellationToken>())
             .Returns(TestData.CreateIntegration(IntegrationId, CompanyId));
 

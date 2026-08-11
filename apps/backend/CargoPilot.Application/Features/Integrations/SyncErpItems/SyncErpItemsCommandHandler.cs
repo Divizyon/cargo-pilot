@@ -26,6 +26,12 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
             new EventId(2, "ErpSyncRowFailed"),
             "ERP sync row failed for integration {IntegrationId}, erpId {ErpId}");
 
+    private static readonly Action<ILogger, Guid, Exception?> _logFailureStateNotSaved =
+        LoggerMessage.Define<Guid>(
+            LogLevel.Error,
+            new EventId(3, "ErpSyncFailureStateNotSaved"),
+            "ERP sync failure state could not be persisted for integration {IntegrationId}");
+
     private readonly IIntegrationRepository _integrationRepository;
     private readonly IErpSettingsRepository _erpSettingsRepository;
     private readonly IErpPasswordProtector _passwordProtector;
@@ -61,6 +67,20 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         CancellationToken cancellationToken)
     {
         var companyId = _currentUserService.CompanyId;
+        if (companyId is null)
+        {
+            return Result<SyncErpItemsResult>.Failure(
+                new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
+        }
+
+        var startedAtUtc = DateTime.UtcNow;
+        var hasRunningSync = await _integrationRepository.HasAnyRunningSyncAsync(
+            companyId.Value, ErpSyncPolicy.StaleThreshold(startedAtUtc), cancellationToken);
+        if (hasRunningSync)
+        {
+            return Result<SyncErpItemsResult>.Failure(
+                new Error(ErrorType.Conflict, "Sync.AlreadyRunning", "Şirket için senkronizasyon zaten çalışıyor."));
+        }
 
         var integration = await _integrationRepository.GetByIdAsync(request.IntegrationId, companyId, cancellationToken);
         if (integration is null)
@@ -69,7 +89,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 new Error(ErrorType.NotFound, "Integration.NotFound", "Entegrasyon bulunamadı."));
         }
 
-        var erpSettings = await _erpSettingsRepository.GetByCompanyIdAsync(companyId!.Value, cancellationToken);
+        var erpSettings = await _erpSettingsRepository.GetByCompanyIdAsync(companyId.Value, cancellationToken);
         if (erpSettings is null)
         {
             return Result<SyncErpItemsResult>.Failure(
@@ -87,6 +107,10 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         var syncLog = new SyncLog(Guid.NewGuid(), integration.Id);
         _integrationRepository.AddSyncLog(syncLog);
 
+        // Kilit once yazilir ki eszamanli ikinci istek Running'i gorup 409 alsin.
+        integration.StartSync(startedAtUtc);
+        await _integrationRepository.SaveChangesAsync(cancellationToken);
+
         try
         {
             var erpProducts = await _erpProductFetcher.FetchAsync(
@@ -98,11 +122,21 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
             int added = 0, updated = 0, missingFieldCount = 0;
             var rowErrors = new List<SyncRowError>();
+            var seenErpIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var product in erpProducts)
             {
                 try
                 {
+                    // (IntegrationId, ErpId) DB'de unique; ayni partide tekrar eden kayit
+                    // tum save'i dusurmesin diye satir hatasina cevrilir.
+                    if (!seenErpIds.Add(product.ErpId))
+                    {
+                        rowErrors.Add(new SyncRowError(
+                            product.ErpId, product.Sku, "Aynı ERP kaydı bu senkronizasyonda birden fazla geldi."));
+                        continue;
+                    }
+
                     var missingFields = product.MissingFields ?? [];
                     if (missingFields.Count > 0)
                         missingFieldCount++;
@@ -173,7 +207,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 }
             }
 
-            integration.RecordSync(DateTime.UtcNow);
+            integration.CompleteSync(DateTime.UtcNow, integration.NextScheduledSyncAt);
 
             if (rowErrors.Count > 0)
             {
@@ -203,7 +237,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         {
             _logSyncFailed(_logger, integration.Id, ex);
             syncLog.Fail(ex.Message);
-            await _integrationRepository.SaveChangesAsync(cancellationToken);
+            integration.FailSync();
+            await TrySaveFailureStateAsync(integration.Id, cancellationToken);
 
             if (_currentUserService.UserId is { } userId)
             {
@@ -220,6 +255,24 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
             return Result<SyncErpItemsResult>.Failure(
                 new Error(ErrorType.Unexpected, "Sync.Failed", "ERP senkronizasyonu sırasında bir hata oluştu."));
+        }
+    }
+
+    /// <summary>
+    /// Hata durumunu yazmak da basarisiz olabilir (or. kayit sirasindaki ihlal); bu durumda
+    /// entegrasyon Running'de kalir ve zaman asimi kilidi cozer.
+    /// </summary>
+    private async Task TrySaveFailureStateAsync(Guid integrationId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _integrationRepository.SaveChangesAsync(cancellationToken);
+        }
+#pragma warning disable CA1031 // Asil hata zaten kullaniciya donuyor; ikincil kayit hatasi yutulur.
+        catch (Exception saveEx)
+#pragma warning restore CA1031
+        {
+            _logFailureStateNotSaved(_logger, integrationId, saveEx);
         }
     }
 

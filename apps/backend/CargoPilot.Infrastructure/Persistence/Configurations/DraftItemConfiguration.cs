@@ -103,8 +103,11 @@ internal sealed class DraftItemConfiguration : IEntityTypeConfiguration<DraftIte
         builder.HasIndex(x => x.CompanyId)
             .HasDatabaseName("IX_DraftItems_CompanyId");
 
+        // Ayni ERP kaydi bir entegrasyonda tek taslak uretebilir; silinmis satirlar filtre disi.
         builder.HasIndex(x => new { x.IntegrationId, x.ErpId })
-            .HasDatabaseName("IX_DraftItems_IntegrationId_ErpId");
+            .HasDatabaseName("IX_DraftItems_IntegrationId_ErpId")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         builder.HasIndex(x => x.Status)
             .HasDatabaseName("IX_DraftItems_Status");

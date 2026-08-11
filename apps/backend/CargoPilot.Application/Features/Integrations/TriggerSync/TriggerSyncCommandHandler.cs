@@ -1,4 +1,5 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
@@ -27,7 +28,8 @@ internal sealed class TriggerSyncCommandHandler : IRequestHandler<TriggerSyncCom
                 new Error(ErrorType.Unauthorized, "Auth.NoCompany", "Şirket bağlamı bulunamadı."));
 
         // Şirket genelinde çalışan başka bir sync varsa engelle.
-        var hasRunning = await _integrationRepository.HasAnyRunningSyncAsync(companyId.Value, cancellationToken);
+        var hasRunning = await _integrationRepository.HasAnyRunningSyncAsync(
+            companyId.Value, ErpSyncPolicy.StaleThreshold(DateTime.UtcNow), cancellationToken);
         if (hasRunning)
             return Result<SyncSettingsResponse>.Failure(
                 new Error(ErrorType.Conflict, "Sync.AlreadyRunning", "Şirket için senkronizasyon zaten çalışıyor."));
