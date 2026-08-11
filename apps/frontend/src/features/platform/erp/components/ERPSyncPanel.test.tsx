@@ -21,10 +21,6 @@ const integrationsResponse = {
   },
 };
 
-const syncOptionsResponse = {
-  data: { isSuccess: true, data: { categories: [], warehouses: [] } },
-};
-
 /** Backend ErpSyncStatus: 0 = Idle, 1 = Running, 2 = Failed */
 function syncSettingsResponse(syncStatus: number) {
   return {
@@ -53,7 +49,6 @@ function mockSyncSettings(result: { ok: true; payload: unknown } | { ok: false; 
     if (url.includes('sync-settings')) {
       return result.ok ? Promise.resolve({ data: result.payload }) : Promise.reject(result.error);
     }
-    if (url.includes('sync-options')) return Promise.resolve(syncOptionsResponse);
     return Promise.resolve(integrationsResponse);
   });
 }

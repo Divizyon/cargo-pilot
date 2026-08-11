@@ -19,15 +19,9 @@ import { SubscriptionTab } from '@/features/platform/billing/components/Subscrip
 import { RegionalSettingsTab } from '@/features/platform/settings/components/RegionalSettingsTab';
 import { ReportingSettingsTab } from '@/features/platform/settings/components/ReportingSettingsTab';
 import { ERPConnectionForm } from '@/features/platform/erp/components/ERPConnectionForm';
-import { ERPShipmentOrders } from '@/features/platform/erp/components/ERPShipmentOrders';
 import { ERPSyncHistory } from '@/features/platform/erp/components/ERPSyncHistory';
 import { ERPSyncPanel } from '@/features/platform/erp/components/ERPSyncPanel';
-import {
-  useERPConnection,
-  useERPShipmentOrders,
-  useERPSyncLogs,
-} from '@/lib/api/useERPIntegration';
-import { ErpShipmentStatus } from '@/lib/types/erp';
+import { useERPConnection, useERPSyncLogs } from '@/lib/api/useERPIntegration';
 import { useAuthStore, isCompanyAdminRole } from '@/lib/store/useAuthStore';
 
 type TabId =
@@ -38,7 +32,6 @@ type TabId =
   | 'goruntu-ayarlari'
   | 'raporlama-ayarlari'
   | 'erp-baglanti'
-  | 'erp-sevkiyatlar'
   | 'erp-senkronizasyon'
   | 'erp-gecmis';
 
@@ -83,12 +76,6 @@ const ERP_TABS: TabDef[] = [
     description: 'ERP sistemi bağlantı bilgilerini yapılandırın ve bağlantıyı test edin.',
   },
   {
-    id: 'erp-sevkiyatlar',
-    label: 'Sevkiyat Emirleri',
-    description:
-      "ERP'den gelen bekleyen sevkiyat emirlerini inceleyin ve yükleme planına dönüştürün.",
-  },
-  {
     id: 'erp-senkronizasyon',
     label: 'Senkronizasyon',
     description: 'Otomatik senkronizasyon sıklığını ayarlayın ve manuel senkronizasyon başlatın.',
@@ -111,7 +98,6 @@ const DEFAULT_TAB: TabId = 'bireysel-hesap';
 const ADMIN_ONLY_TABS = new Set<TabId>([
   'kullanicilar',
   'erp-baglanti',
-  'erp-sevkiyatlar',
   'erp-senkronizasyon',
   'erp-gecmis',
 ]);
@@ -140,19 +126,13 @@ export function UnifiedSettingsPage() {
 
   const { data: connection } = useERPConnection();
   const integrationId = connection?.id;
-  const { data: shipmentOrders } = useERPShipmentOrders(integrationId, {
-    status: ErpShipmentStatus.Pending,
-  });
   const { data: syncLogsPage } = useERPSyncLogs(integrationId, { page: 1, pageSize: 20 });
 
-  const pendingShipmentCount = shipmentOrders?.length ?? 0;
   const syncErrorCount =
     syncLogsPage?.items.filter((l) => l.status === 2 || l.status === 3).length ?? 0;
 
   function getErpBadge(tabId: TabId): number {
-    if (tabId === 'erp-sevkiyatlar') return pendingShipmentCount;
-    if (tabId === 'erp-gecmis') return syncErrorCount;
-    return 0;
+    return tabId === 'erp-gecmis' ? syncErrorCount : 0;
   }
 
   const handleDirtyChange = useCallback((tab: TabId, dirty: boolean) => {
@@ -257,7 +237,6 @@ export function UnifiedSettingsPage() {
             )}
             {activeTab === 'raporlama-ayarlari' && <ReportingSettingsTab />}
             {activeTab === 'erp-baglanti' && <ERPConnectionForm />}
-            {activeTab === 'erp-sevkiyatlar' && <ERPShipmentOrders />}
             {activeTab === 'erp-senkronizasyon' && <ERPSyncPanel />}
             {activeTab === 'erp-gecmis' && <ERPSyncHistory />}
           </SettingsTabShell>

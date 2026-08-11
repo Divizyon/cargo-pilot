@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   SyncLogStatus,
-  erpPendingMatchSchema,
-  erpSavedMatchSchema,
   erpSettingsApiSchema,
-  erpSyncFiltersSchema,
   erpSyncSummarySchema,
   syncLogDtoSchema,
 } from './erp';
@@ -86,63 +83,6 @@ describe('syncLogDtoSchema', () => {
   });
 });
 
-describe('erpPendingMatchSchema', () => {
-  const validMatch = {
-    id: '9b7c4d1a-2e56-4f83-8a09-5d1c3b7e6f22',
-    erpProductId: 'STK-000123',
-    erpProductName: 'Palet Kasa 60x40',
-    erpSku: 'PLT-6040',
-    erpWeight: 12.5,
-    erpWidth: 60,
-    erpHeight: 40,
-    erpLength: 80,
-  };
-
-  it('geçerli bekleyen eşleşmeyi ayrıştırır', () => {
-    const parsed = erpPendingMatchSchema.parse(validMatch);
-    expect(parsed.erpSku).toBe('PLT-6040');
-  });
-
-  it('ERP’de ölçü yoksa null değerleri kabul eder', () => {
-    const parsed = erpPendingMatchSchema.parse({
-      ...validMatch,
-      erpSku: null,
-      erpWeight: null,
-      erpWidth: null,
-      erpHeight: null,
-      erpLength: null,
-    });
-    expect(parsed.erpWidth).toBeNull();
-  });
-
-  it('erpProductName eksikse reddeder', () => {
-    const result = erpPendingMatchSchema.safeParse(omit(validMatch, 'erpProductName'));
-    expect(result.success).toBe(false);
-  });
-});
-
-describe('erpSavedMatchSchema', () => {
-  const validSavedMatch = {
-    id: 'c4e7f2a1-6b39-4d08-91ac-7e2f5b0d8c31',
-    erpProductId: 'STK-000123',
-    erpProductName: 'Palet Kasa 60x40',
-    erpSku: 'PLT-6040',
-    cargoItemId: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6',
-    cargoItemName: 'Palet Kasa',
-    cargoItemSku: 'CP-PLT-01',
-  };
-
-  it('kaydedilmiş eşleşmeyi ayrıştırır', () => {
-    const parsed = erpSavedMatchSchema.parse(validSavedMatch);
-    expect(parsed.cargoItemSku).toBe('CP-PLT-01');
-  });
-
-  it('cargoItemId eksikse reddeder', () => {
-    const result = erpSavedMatchSchema.safeParse(omit(validSavedMatch, 'cargoItemId'));
-    expect(result.success).toBe(false);
-  });
-});
-
 describe('erpSyncSummarySchema', () => {
   it('sync özetini opsiyonel alanlarla ayrıştırır', () => {
     const parsed = erpSyncSummarySchema.parse({
@@ -163,18 +103,6 @@ describe('erpSyncSummarySchema', () => {
 
   it('ondalıklı added değerini reddeder', () => {
     const result = erpSyncSummarySchema.safeParse({ added: 1.5, updated: 0, skipped: 0 });
-    expect(result.success).toBe(false);
-  });
-});
-
-describe('erpSyncFiltersSchema', () => {
-  it('filtre seçilmediğinde null değerleri kabul eder', () => {
-    const parsed = erpSyncFiltersSchema.parse({ categoryId: null, warehouseId: null });
-    expect(parsed.categoryId).toBeNull();
-  });
-
-  it('sayısal categoryId’yi reddeder (backend string gönderir)', () => {
-    const result = erpSyncFiltersSchema.safeParse({ categoryId: 7 });
     expect(result.success).toBe(false);
   });
 });

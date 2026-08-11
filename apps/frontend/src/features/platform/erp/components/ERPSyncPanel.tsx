@@ -3,26 +3,18 @@ import { RefreshCw, Loader2, Clock, CalendarClock, AlertTriangle } from 'lucide-
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import {
-  useERPSyncOptions,
   useERPSyncSettings,
   useSaveERPSyncSettings,
   useRunERPSyncNow,
 } from '@/lib/api/useERPIntegration';
 import { useERPConnection } from '@/lib/api/useERPIntegration';
-import { ErpSyncInterval, ErpSyncStatus, type ErpSyncFilters } from '@/lib/types/erp';
+import { ErpSyncInterval, ErpSyncStatus } from '@/lib/types/erp';
 
 function formatSyncDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -39,11 +31,6 @@ export function ERPSyncPanel() {
   const integrationId = connection?.id;
 
   const {
-    data: syncOptions,
-    isLoading: isOptionsLoading,
-    isError: isOptionsError,
-  } = useERPSyncOptions();
-  const {
     data: syncSettings,
     isLoading: isSettingsLoading,
     isError: isSettingsError,
@@ -53,11 +40,6 @@ export function ERPSyncPanel() {
 
   const { mutate: saveSettings, isPending: isSavingSettings } = useSaveERPSyncSettings();
   const { mutate: runNow, isPending: isRunNowPending } = useRunERPSyncNow();
-
-  const [filters, setFilters] = useState<ErpSyncFilters>({
-    categoryId: null,
-    warehouseId: null,
-  });
 
   const [localInterval, setLocalInterval] = useState<string>(
     syncSettings?.syncInterval ?? ErpSyncInterval.Daily,
@@ -187,61 +169,6 @@ export function ERPSyncPanel() {
             bildirim gösterilir.
           </p>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Kategori Filtresi</Label>
-            <Select
-              disabled={isOptionsLoading || isSyncDisabled}
-              value={filters.categoryId ?? 'all'}
-              onValueChange={(v) =>
-                setFilters((f) => ({ ...f, categoryId: v === 'all' ? null : v }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tüm kategoriler" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tüm kategoriler</SelectItem>
-                {syncOptions?.categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Depo Filtresi</Label>
-            <Select
-              disabled={isOptionsLoading || isSyncDisabled}
-              value={filters.warehouseId ?? 'all'}
-              onValueChange={(v) =>
-                setFilters((f) => ({ ...f, warehouseId: v === 'all' ? null : v }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tüm depolar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tüm depolar</SelectItem>
-                {syncOptions?.warehouses.map((wh) => (
-                  <SelectItem key={wh.id} value={wh.id}>
-                    {wh.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {isOptionsError && (
-          <p className="text-xs text-destructive">
-            Kategori ve depo listesi yüklenemedi; filtreler yalnızca &quot;Tümü&quot; seçeneğiyle
-            çalışır.
-          </p>
-        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button onClick={handleRunNow} disabled={isSyncDisabled}>
