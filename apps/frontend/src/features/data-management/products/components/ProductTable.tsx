@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpDown,
-  Box,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Cylinder,
   Download,
   Droplets,
   Flame,
   FlaskConical,
   Layers,
-  Package,
   Plus,
   RotateCcw,
   SlidersHorizontal,
@@ -43,6 +40,7 @@ import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/geometry/calcVolume';
 import { DIMENSION_LABEL } from '@/lib/config/erpTerms';
+import { PRODUCT_TYPE_DISPLAY } from '@/lib/config/productTypeDisplay';
 import {
   formatDimensionDisplay,
   formatVolumeDisplay,
@@ -53,11 +51,7 @@ import { BulkImportDialog } from '@/features/data-management/imports/components/
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from '@/components/shared/SearchInput';
 
-const PRODUCT_TYPE_ICON = {
-  koli: { Icon: Box, label: 'Koli' },
-  varil: { Icon: Cylinder, label: 'Varil' },
-  palet: { Icon: Package, label: 'Paletli Ürün' },
-} as const;
+const PRODUCT_TYPE_ICON = PRODUCT_TYPE_DISPLAY;
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
 

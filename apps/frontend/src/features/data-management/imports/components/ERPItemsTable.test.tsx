@@ -131,15 +131,20 @@ function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'
 }
 
 const draftItems: DraftItem[] = [
+  // ERP çekimi productType alanına sabit "General" yazar; gerçek tip category'dedir.
   makeDraft({
     id: '11111111-1111-4111-8111-111111111111',
     name: 'Palet Kasa 60x40',
     sku: 'PLT-6040',
+    productType: 'General',
+    category: 1,
   }),
   makeDraft({
     id: '22222222-2222-4222-8222-222222222222',
     name: 'Karton Koli 30x20',
     sku: 'KOL-3020',
+    productType: 'General',
+    category: 2,
   }),
   makeDraft({
     id: '33333333-3333-4333-8333-333333333333',
@@ -210,6 +215,16 @@ describe('ERPItemsTable', () => {
     expect(screen.getByText('Palet Kasa 60x40')).toBeInTheDocument();
     expect(screen.getByText('KOL-3020')).toBeInTheDocument();
     expect(screen.queryByText('Aktarilmis Urun')).not.toBeInTheDocument();
+  });
+
+  it('tip sütunu ERP productType alanını değil gerçek kategoriyi gösterir', () => {
+    renderTable();
+
+    // Fixture'da iki bekleyen kayıt var: category 1 (palet) ve category 2 (koli).
+    // Her ikisinin productType alanı "General"; sütun bu değeri basmamalı.
+    expect(screen.getByText('Paletli Ürün')).toBeInTheDocument();
+    expect(screen.getAllByText('Koli').length).toBeGreaterThan(0);
+    expect(screen.queryByText('General')).not.toBeInTheDocument();
   });
 
   it('eksik alanlı taslakta rozet gösterir ve 0 değerini ölçü gibi basmaz', () => {

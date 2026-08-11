@@ -61,6 +61,9 @@ import {
   ERP_SETTINGS_ROUTE,
   ERP_TERM,
 } from '@/lib/config/erpTerms';
+import { draftProductType } from '@/lib/config/productTypeDisplay';
+import { ProductTypeCell } from '@/components/shared/ProductTypeCell';
+import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { ErpSyncRequirementsDialog } from './ErpSyncRequirementsDialog';
 import { collectMissingSyncRequirements } from '@/features/data-management/imports/utils/erpSyncRequirements';
@@ -161,7 +164,7 @@ export function ERPItemsTable() {
   const [importRows, setImportRows] = useState<EditableRow[]>([]);
   const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
+  const [typeFilters, setTypeFilters] = useState<Set<ProductType>>(new Set());
   const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
   const [selectAllMode, setSelectAllMode] = useState(false);
   const [importMode, setImportMode] = useState<'import' | 'update'>('import');
@@ -207,7 +210,7 @@ export function ERPItemsTable() {
   const isSelectableTab = statusFilter === DRAFT_PENDING || isUpdateTab;
 
   const isSearching = searchTerm.trim().length > 0;
-  const hasActiveFilters = categoryFilters.size > 0;
+  const hasActiveFilters = typeFilters.size > 0;
   const queryPage = isSearching ? 1 : page;
   const queryPageSize = isSearching ? 100 : pageSize;
 
@@ -246,12 +249,12 @@ export function ERPItemsTable() {
 
   const allItems = draftPage?.items ?? [];
 
-  const uniqueCategories = Array.from(
-    new Set(allItems.map((i) => i.productType).filter((c): c is string => Boolean(c))),
-  ).sort();
+  // Taslağın gerçek tipi `category` alanındadır; `productType` ERP çekiminde sabit
+  // "General" yazıldığı için ne filtrede ne de hücrede kullanılır.
+  const uniqueTypes = Array.from(new Set(allItems.map((i) => draftProductType(i.category)))).sort();
 
   const filteredItems = allItems.filter((item) => {
-    if (hasActiveFilters && !categoryFilters.has(item.productType ?? '')) return false;
+    if (hasActiveFilters && !typeFilters.has(draftProductType(item.category))) return false;
     if (!isSearching) return true;
     const q = searchTerm.toLowerCase();
     return (
@@ -389,7 +392,7 @@ export function ERPItemsTable() {
             Filtrele
             {hasActiveFilters && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {categoryFilters.size}
+                {typeFilters.size}
               </span>
             )}
             <ChevronDown
@@ -401,27 +404,27 @@ export function ERPItemsTable() {
             <div className="absolute left-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-border bg-background shadow-lg">
               <div className="p-3">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Kategori
+                  Tip
                 </p>
                 <div className="space-y-2">
-                  {uniqueCategories.map((cat) => (
+                  {uniqueTypes.map((type) => (
                     <label
-                      key={cat}
+                      key={type}
                       className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
                     >
                       <Checkbox
-                        checked={categoryFilters.has(cat)}
+                        checked={typeFilters.has(type)}
                         onCheckedChange={() => {
-                          setCategoryFilters((prev) => {
+                          setTypeFilters((prev) => {
                             const next = new Set(prev);
-                            if (next.has(cat)) next.delete(cat);
-                            else next.add(cat);
+                            if (next.has(type)) next.delete(type);
+                            else next.add(type);
                             return next;
                           });
                           setPage(1);
                         }}
                       />
-                      <span className="text-xs">{cat}</span>
+                      <ProductTypeCell productType={type} />
                     </label>
                   ))}
                 </div>
@@ -432,7 +435,7 @@ export function ERPItemsTable() {
                     size="sm"
                     className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
                     onClick={() => {
-                      setCategoryFilters(new Set());
+                      setTypeFilters(new Set());
                       setPage(1);
                     }}
                   >
@@ -499,7 +502,7 @@ export function ERPItemsTable() {
                   Ürün
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
-                  Kategori
+                  Tip
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
                   SKU
@@ -629,8 +632,8 @@ export function ERPItemsTable() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-xs text-muted-foreground">
-                    {row.productType ?? '—'}
+                  <TableCell className="py-0 px-3">
+                    <ProductTypeCell productType={draftProductType(row.category)} />
                   </TableCell>
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
                     {row.sku ?? row.erpId ?? '—'}
