@@ -54,6 +54,12 @@ export function isOrientationAllowed(
   return item[FACE_KEYS[idx]] !== false;
 }
 
+const ALL_INDICES: readonly OrientationIndex[] = [0, 1, 2, 3, 4, 5] as const;
+
+export function allowedOrientations(item: RotateConstraints): OrientationIndex[] {
+  return ALL_INDICES.filter((idx) => isOrientationAllowed(item, idx));
+}
+
 export interface RotatedDimensions {
   width: number;
   height: number;

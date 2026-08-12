@@ -16,9 +16,9 @@
 
 \- When working with Git, first check these files:
 
-\- `cargo-pilot/docs/conventions/BRANCHING.md`
+\- `cargo-pilot/docs/conventions/branching.md`
 
-\- `cargo-pilot/docs/conventions/COMMITS.md`
+\- `cargo-pilot/docs/conventions/commits.md`
 
 \- Git workflow, branch, PR, and commit rules are defined there; do not duplicate or invent them here.
 
@@ -38,7 +38,7 @@
 
 \## Frontend Stack
 
-\- React 18 + Vite + React Router v6.
+\- React 18 + Vite + React Router v7.
 
 \- TypeScript strict mode is required.
 

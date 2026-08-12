@@ -7,6 +7,8 @@
   </Folder>
   <Folder Name="/Infrastructure/">
     <Project Path="CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj" Id="84e3f1c2-5401-4196-8309-a9815dd1c50d" />
+    <Project Path="CargoPilot.Infrastructure.Tests/CargoPilot.Infrastructure.Tests.csproj" Id="a2b8c7d3-6e9f-4b1a-c3d5-e8f9a0b1c2d3" />
+    <Project Path="CargoPilot.Engine.Tests/CargoPilot.Engine.Tests.csproj" Id="8f49d716-01b5-40f6-b794-2ec84adabdff" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

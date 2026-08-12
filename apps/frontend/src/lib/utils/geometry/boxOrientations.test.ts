@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Item } from '@/lib/types/item';
-import { BOX_ORIENTATIONS, isOrientationAllowed, rotatedDimensions } from './boxOrientations';
+import {
+  BOX_ORIENTATIONS,
+  allowedOrientations,
+  isOrientationAllowed,
+  rotatedDimensions,
+} from './boxOrientations';
 
 function makeItem(overrides: Partial<Item> = {}): Item {
   return {
@@ -96,5 +101,65 @@ describe('isOrientationAllowed', () => {
     for (let idx = 0; idx < 6; idx++) {
       expect(isOrientationAllowed(item, idx as 0 | 1 | 2 | 3 | 4 | 5)).toBe(true);
     }
+  });
+
+  it.each([
+    [0, 'allowFaceBottom'],
+    [1, 'allowFaceTop'],
+    [2, 'allowFaceFront'],
+    [3, 'allowFaceBack'],
+    [4, 'allowFaceLeft'],
+    [5, 'allowFaceRight'],
+  ] as const)('idx %i → %s=false o orientation için reddeder', (idx, faceKey) => {
+    const item = makeItem({ [faceKey]: false });
+    expect(isOrientationAllowed(item, idx)).toBe(false);
+  });
+
+  it('allowFace*=false diğer indexleri etkilemez', () => {
+    const item = makeItem({ allowFaceTop: false });
+    expect(isOrientationAllowed(item, 0)).toBe(true);
+    expect(isOrientationAllowed(item, 2)).toBe(true);
+    expect(isOrientationAllowed(item, 3)).toBe(true);
+    expect(isOrientationAllowed(item, 4)).toBe(true);
+    expect(isOrientationAllowed(item, 5)).toBe(true);
+  });
+
+  it('eksen izinli olsa da yüz kısıtı reddederse orientation izinsizdir', () => {
+    const item = makeItem({ allowRotateX: true, allowFaceFront: false });
+    expect(isOrientationAllowed(item, 2)).toBe(false);
+  });
+
+  it('yüz izinli olsa da eksen kısıtı reddederse orientation izinsizdir', () => {
+    const item = makeItem({ allowRotateX: false, allowFaceFront: true });
+    expect(isOrientationAllowed(item, 2)).toBe(false);
+  });
+});
+
+describe('allowedOrientations', () => {
+  it('hepsi açıkken 6 index döner', () => {
+    expect(allowedOrientations(makeItem())).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  it('allowRotateX=false → sadece 0, 4, 5', () => {
+    expect(allowedOrientations(makeItem({ allowRotateX: false }))).toEqual([0, 4, 5]);
+  });
+
+  it('allowRotateZ=false → sadece 0, 1, 2, 3', () => {
+    expect(allowedOrientations(makeItem({ allowRotateZ: false }))).toEqual([0, 1, 2, 3]);
+  });
+
+  it('hepsi kapalı → sadece identity (idx 0)', () => {
+    const item = makeItem({ allowRotateX: false, allowRotateZ: false });
+    expect(allowedOrientations(item)).toEqual([0]);
+  });
+
+  it('allowFaceTop=false → idx 1 hariç tüm eksen-izinli set döner', () => {
+    const item = makeItem({ allowFaceTop: false });
+    expect(allowedOrientations(item)).toEqual([0, 2, 3, 4, 5]);
+  });
+
+  it('allowRotateX=false + allowFaceLeft=false birlikte → sadece 0, 5', () => {
+    const item = makeItem({ allowRotateX: false, allowFaceLeft: false });
+    expect(allowedOrientations(item)).toEqual([0, 5]);
   });
 });

@@ -9,7 +9,7 @@ import { ErpExportStatus } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
-import { VEHICLE_TYPE_FROM_INT, LOADING_TYPE_FROM_INT } from './vehicleMappers';
+import { VEHICLE_TYPE_FROM_INT, resolveLoadingType } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/geometry/boxOrientations';
 import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
@@ -386,7 +386,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     0;
   const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
   const createdAt = normalizeUtcDatetime(rawCreatedAt);
-  const loadingType = v?.loadingType ?? null;
+  const loadingTypeInfo = resolveLoadingType(v?.loadingType);
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
@@ -406,8 +406,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     interiorHeightM: v?.internalHeight ?? 0,
     interiorDepthM: v?.internalLength ?? 0,
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
-    doorDirection: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.direction : undefined,
-    doorSide: loadingType != null ? LOADING_TYPE_FROM_INT[loadingType]?.doorSide : undefined,
+    doorDirection: loadingTypeInfo?.direction,
+    doorSide: loadingTypeInfo?.doorSide,
     thumbnailUrl: (() => {
       const raw = ((api as Record<string, unknown>)['thumbnailUrl'] ??
         (api as Record<string, unknown>)['snapshotUrl'] ??
@@ -571,6 +571,7 @@ function apiVehicleToVehicle(
   v: z.infer<typeof planVehicleApiSchema> & { vehicleId?: string },
 ): Vehicle {
   const id = v.vehicleId ?? v.id ?? '';
+  const loadingTypeInfo = resolveLoadingType(v.loadingType);
   return {
     id,
     name: v.vehicleName ?? v.name ?? '—',
@@ -583,11 +584,8 @@ function apiVehicleToVehicle(
       v.vehicleType != null
         ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
         : VehicleType.Tir,
-    doorDirection:
-      v.loadingType != null
-        ? (LOADING_TYPE_FROM_INT[v.loadingType]?.direction ?? DoorDirection.Rear)
-        : DoorDirection.Rear,
-    doorSide: v.loadingType != null ? LOADING_TYPE_FROM_INT[v.loadingType]?.doorSide : undefined,
+    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
+    doorSide: loadingTypeInfo?.doorSide,
     isFavorite: false,
     isActive: true,
     isDeleted: false,

@@ -1,5 +1,7 @@
 # Branch Stratejisi Önerisi — 5 Kişilik Ekip
 
+**Son güncelleme:** 2026-08-03 · **Durum:** Arşiv
+
 **Tarih:** 2026-08-03 · **Durum:** ⛔ **Yürürlükte değil — aynı gün geri alındı**
 **Ekip:** DevOps · Backend · Algoritma · Frontend (4 rol / 5 kişi)
 
@@ -9,8 +11,8 @@
 > **Neden:** §7'de "bu öneriyi reddetmenin makul nedeni" olarak yazılan koşul gerçekte mevcuttu —
 > test ortamı müşteriye gösterilen yüzey ve ayrı bir QA adımı var. Dondurulabilir bir dal gerekiyor.
 >
-> Yürürlükteki kurallar: [`docs/conventions/BRANCHING.md`](../conventions/BRANCHING.md)
-> Karar geçmişi: [branch-audit.md](branch-audit.md) §8–§9
+> Yürürlükteki kurallar: [`docs/conventions/branching.md`](../conventions/branching.md)
+> Karar geçmişi: [branch-audit.md](../context/branch-audit.md) §8–§9
 >
 > §1'deki ölçümler (2 PR/iş, 10/30 kapatılmış PR) hâlâ geçerli ve yeni modelde
 > **terfi PR'ı** düzeniyle giderildi: iş branch'i yalnızca `dev`'e PR açar.
@@ -64,7 +66,7 @@ branch değil. Ortamlar branch'lerle değil, deploy hedefleriyle ayrılır.
 | `chore/` | Doküman, bağımlılık, temizlik | `chore/branch-temizligi` |
 | `infra/` | CI/CD, compose, monitoring (DevOps) | `infra/prod-deploy-pipeline` |
 
-İsimlendirme kuralları `BRANCHING.md`'den aynen korunur: küçük harf, Türkçe karakter yok, boşluk yok,
+İsimlendirme kuralları `branching.md`'den aynen korunur: küçük harf, Türkçe karakter yok, boşluk yok,
 iş kodu büyük harf.
 
 ### Sürüm
@@ -117,7 +119,7 @@ Koruma zaten **repository ruleset** ile yapılıyor (`main-protection`, `test-pr
 | Stale review dismissal | ✅ zaten açık | Değişiklik yok |
 
 **Squash neden:** `feature/lifo-kapi-zekasi-eklendi` branch'inde 12 commit'in 10'u prettier/TS düzeltmesi.
-`COMMITS.md`'nin "atomic commit + PR öncesi temizlik" hedefini squash otomatik olarak sağlıyor.
+`commits.md`'nin "atomic commit + PR öncesi temizlik" hedefini squash otomatik olarak sağlıyor.
 `main` geçmişi PR başına tek, okunabilir commit olur ve `git bisect` daha da iyi çalışır.
 
 ---
@@ -135,7 +137,7 @@ Koruma zaten **repository ruleset** ile yapılıyor (`main-protection`, `test-pr
 | 5 | Production pipeline'ı ekle | `v*` tag → prod image build + `production` environment ile deploy |
 | 6 | Branch temizliğini uygula | `branch-audit.md` §6 |
 | 7 | `test` ve `dev` branch'lerini arşivle | `git tag archive/test origin/test`, sonra branch'leri sil |
-| 8 | `BRANCHING.md`'yi yeni modelle yeniden yaz | `docs/conventions/BRANCHING.md` |
+| 8 | `branching.md`'yi yeni modelle yeniden yaz | `docs/conventions/branching.md` |
 | 9 | Ekibe 15 dk'lık aktarım | — |
 
 **Sıra önemli:** 4. adım (workflow'lar) 2. adımdan (default branch) önce yapılırsa deploy kırılır.

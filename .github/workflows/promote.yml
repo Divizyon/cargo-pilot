@@ -1,0 +1,170 @@
+# Terfi otomasyonu (INFRA-01): dev → test ve test → main PR'larını
+# elle `gh pr merge` çalıştırmadan, güvenli şekilde merge eder.
+#
+# Neden `gh pr merge` yerine bu workflow?
+# Merge-commit ile terfi eden PR'larda `test`/`main` dalı `dev`/`test`'te
+# olmayan bir merge commit içerir. Bu nedenle terfi PR'ının
+# `mergeStateStatus` değeri kalıcı olarak BEHIND görünür ve `gh pr merge`
+# istemci tarafı "head branch is not up to date with base branch"
+# kontrolüyle merge'i reddeder. BEHIND durumu bir arıza değildir; sorun
+# yalnızca `gh pr merge`'ün istemci tarafı kontrolündedir. GitHub REST
+# API'sinin merge uç noktası aynı kontrolü yapmaz ve PR'ı sorunsuz
+# merge eder — bu workflow tam olarak bunu otomatikleştirir.
+#
+# Tasarım kararı: bu workflow PR AÇMAZ, yalnızca zaten açık olan terfi
+# PR'ını bulur ve merge eder. PR'ı insan `gh pr create` ile açar.
+# Nedeni: GITHUB_TOKEN ile açılan/işlem gören PR'lar GitHub'ın özyineleme
+# koruması nedeniyle CI'ı (pull_request tetiklenen job'lar) çalıştırmaz;
+# workflow PR açsaydı zorunlu kontroller sonsuza kadar pending kalır ve
+# merge asla gerçekleşmezdi. Repoda bu amaca uygun (repo yazma yetkili)
+# bir PAT secret'ı da yoktu (yalnızca GHCR'a özel TEST_GHCR_PAT var, bu
+# repo/PR işlemleri için kullanılmaz) — bu da PR açan bir tasarımı riskli
+# kılardı.
+#
+# İkinci, daha az bilinen tuzak: merge ADIMININ KENDİSİ de aynı koruma
+# kapsamındadır. GitHub REST API üzerinden GITHUB_TOKEN ile yapılan bir
+# merge, hedef dala "push" edilen merge commit'i GITHUB_TOKEN kaynaklı
+# sayar ve bu commit `test`/`main` üzerindeki push-tetiklemeli
+# workflow'ları (test-deploy.yml → test sunucusuna deploy,
+# release-tag.yml → main'de sürüm etiketi) TETİKLEMEZ. Bunu GITHUB_TOKEN
+# ile yapmak, terfiyi "başarılı" gösterip deploy/sürüm otomasyonunu
+# sessizce kırardı. Bu yüzden merge adımı ayrı bir PAT secret'ı
+# (PROMOTION_PAT) gerektirir; bu secret repoda YOKTUR ve oluşturulması
+# gerekir (bkz. PAT kontrolü adımı ve PR açıklaması).
+
+name: Terfi
+
+on:
+  workflow_dispatch:
+    inputs:
+      hedef:
+        description: "Terfi yönü"
+        required: true
+        type: choice
+        options:
+          - dev-test
+          - test-main
+      pr_numarasi:
+        description: "Terfi PR numarası (boş bırakılırsa base/head dal çiftinden otomatik bulunur)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: terfi-otomasyonu
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Terfi Et (${{ github.event.inputs.hedef }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: PAT kontrolü
+        run: |
+          if [ -z "${{ secrets.PROMOTION_PAT }}" ]; then
+            echo "::error::PROMOTION_PAT secret'i tanimli degil. Merge adimi GITHUB_TOKEN ile CALISTIRILAMAZ: GITHUB_TOKEN ile yapilan merge, test/main dallarina push tetikli is akislarini (test-deploy.yml, release-tag.yml) tetiklemez ve deploy/surum otomasyonu sessizce kirilir. contents:write + pull-requests:write yetkili bir PAT (classic: repo scope; fine-grained: Contents RW, Pull requests RW) olusturup PROMOTION_PAT adiyla repo secret'i olarak eklemeden bu workflow calismaz."
+            exit 1
+          fi
+
+      - name: Hedef dalları belirle
+        id: hedef
+        run: |
+          case "${{ github.event.inputs.hedef }}" in
+            dev-test)
+              echo "base=test" >> "$GITHUB_OUTPUT"
+              echo "head=dev" >> "$GITHUB_OUTPUT"
+              ;;
+            test-main)
+              echo "base=main" >> "$GITHUB_OUTPUT"
+              echo "head=test" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Bilinmeyen hedef girdisi: ${{ github.event.inputs.hedef }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Terfi PR'ını bul
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE="${{ steps.hedef.outputs.base }}"
+          HEAD="${{ steps.hedef.outputs.head }}"
+          INPUT_PR="${{ github.event.inputs.pr_numarasi }}"
+
+          if [ -n "$INPUT_PR" ]; then
+            NUMBER="$INPUT_PR"
+            ACTUAL_BASE=$(gh pr view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json baseRefName -q .baseRefName)
+            ACTUAL_HEAD=$(gh pr view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName)
+            if [ "$ACTUAL_BASE" != "$BASE" ] || [ "$ACTUAL_HEAD" != "$HEAD" ]; then
+              echo "::error::PR #$NUMBER, $HEAD -> $BASE terfisine ait degil (bulunan: $ACTUAL_HEAD -> $ACTUAL_BASE)."
+              exit 1
+            fi
+          else
+            NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --base "$BASE" --head "$HEAD" --state open --json number -q '.[].number')
+            COUNT=$(echo "$NUMBERS" | grep -c . || true)
+            if [ "$COUNT" -eq 0 ]; then
+              echo "::error::$HEAD -> $BASE icin acik terfi PR'i bulunamadi. Once 'gh pr create --base $BASE --head $HEAD' ile PR acin, CI'in calismasini bekleyin, sonra bu workflow'u tekrar tetikleyin."
+              exit 1
+            fi
+            if [ "$COUNT" -gt 1 ]; then
+              JOINED=$(echo "$NUMBERS" | tr '\n' ',' | sed 's/,$//')
+              echo "::error::$HEAD -> $BASE icin birden fazla acik PR var (#$JOINED). pr_numarasi girdisiyle hangisinin merge edilecegini belirtin."
+              exit 1
+            fi
+            NUMBER="$NUMBERS"
+          fi
+
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Terfi PR'i: #$NUMBER ($HEAD -> $BASE)"
+
+      - name: Zorunlu kontrollerin geçmesini bekle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr checks "${{ steps.pr.outputs.number }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --watch \
+            --required \
+            --fail-fast \
+            --interval 20
+
+      - name: PR'ı merge commit ile birleştir
+        env:
+          GH_TOKEN: ${{ secrets.PROMOTION_PAT }}
+        run: |
+          NUMBER="${{ steps.pr.outputs.number }}"
+          ATTEMPT=1
+          MAX_ATTEMPTS=3
+
+          until gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMBER/merge" \
+            -X PUT \
+            -f merge_method=merge \
+            --silent; do
+            if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+              echo "::error::PR #$NUMBER merge edilemedi ($MAX_ATTEMPTS denemeden sonra). Ruleset korumaları --admin veya bypass ile ATLANMAZ; hatanın kök nedenini (ör. gerçek bir çakışma) inceleyin."
+              exit 1
+            fi
+            echo "Merge denemesi $ATTEMPT basarisiz, 10 saniye sonra tekrar denenecek..."
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 10
+          done
+
+          echo "PR #$NUMBER merge commit ile birlestirildi."
+
+      - name: Özet
+        if: always()
+        run: |
+          {
+            echo "## Terfi Özeti"
+            echo "- **Yön**: ${{ github.event.inputs.hedef }}"
+            echo "- **PR**: #${{ steps.pr.outputs.number }}"
+            echo "- **Tetikleyen**: ${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"

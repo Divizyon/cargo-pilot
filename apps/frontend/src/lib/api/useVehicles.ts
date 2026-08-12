@@ -15,7 +15,7 @@ import {
   buildCreateVehiclePayload,
   VEHICLE_TYPE_INT,
   VEHICLE_TYPE_FROM_INT,
-  LOADING_TYPE_FROM_INT,
+  resolveLoadingType,
 } from './vehicleMappers';
 
 // ─── List API response schema ─────────────────────────────────────────────────
@@ -50,7 +50,7 @@ const vehicleListApiItemSchema = z.object({
 type VehicleListApiItem = z.infer<typeof vehicleListApiItemSchema>;
 
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
-  const loadingTypeInfo = LOADING_TYPE_FROM_INT[api.loadingType ?? 0];
+  const loadingTypeInfo = resolveLoadingType(api.loadingType);
   const kingpin =
     api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
       ? {
