@@ -45,6 +45,7 @@ import {
   useDraftItems,
   useBulkRejectDraftItems,
   useReinstateDraftItems,
+  type DraftItem,
   DRAFT_FIELD,
   DRAFT_PENDING,
   DRAFT_APPROVED,
@@ -53,15 +54,17 @@ import {
   DRAFT_UPDATE_DISMISSED,
 } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDimensionDisplay } from '@/lib/utils/format/unitConversion';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/format/unitConversion';
 import { draftItemToRow } from '@/features/data-management/imports/utils/draftItemToRow';
 import {
   DIMENSION_LABEL,
   DIMENSION_SHORT_LABEL,
   ERP_SETTINGS_ROUTE,
+  ERP_SOURCE_MISSING,
   ERP_TERM,
 } from '@/lib/config/erpTerms';
 import { draftProductType } from '@/lib/config/productTypeDisplay';
+import { ITEM_CATEGORY } from '@/lib/api/itemMappers';
 import { ProductTypeCell } from '@/components/shared/ProductTypeCell';
 import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
@@ -80,6 +83,22 @@ const MISSING_FIELD_LABEL: Record<string, string> = {
   [DRAFT_FIELD.Length]: DIMENSION_SHORT_LABEL.length,
   [DRAFT_FIELD.Weight]: DIMENSION_SHORT_LABEL.weight,
 };
+
+type TypeFilterKey = ProductType | typeof ERP_SOURCE_MISSING.label;
+
+/**
+ * ERP grup kodundan çözülen kategori (Koli/Varil/Palet) tip için güvenilirdir; yalnızca
+ * grup kodu boş/bilinmeyen satırlar (Package) '?' kovasına düşer. `fromCategory` Package'ı
+ * 'varil'e düşürdüğü için Package burada ayrıca elenir.
+ */
+function hasKnownCategory(item: DraftItem): boolean {
+  return item.category !== ITEM_CATEGORY.Package;
+}
+
+/** Tip filtresinin satır anahtarı; kategorisi bilinmeyen taslak '?' kovasında toplanır. */
+function typeFilterKey(item: DraftItem): TypeFilterKey {
+  return hasKnownCategory(item) ? draftProductType(item.category) : ERP_SOURCE_MISSING.label;
+}
 
 /** Ret kalıcıdır; tam ret de reddedilmiş ERP güncellemesi de 'Reddedilenler' altında listelenir. */
 function isRejectedStatus(status: number): boolean {
@@ -150,6 +169,7 @@ export function ERPItemsTable() {
   const integrationId = connection?.id;
   const missingSyncRequirements = collectMissingSyncRequirements(connection, erpSettings);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const tableCardRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -164,7 +184,7 @@ export function ERPItemsTable() {
   const [importRows, setImportRows] = useState<EditableRow[]>([]);
   const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [typeFilters, setTypeFilters] = useState<Set<ProductType>>(new Set());
+  const [typeFilters, setTypeFilters] = useState<Set<TypeFilterKey>>(new Set());
   const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
   const [selectAllMode, setSelectAllMode] = useState(false);
   const [importMode, setImportMode] = useState<'import' | 'update'>('import');
@@ -249,12 +269,16 @@ export function ERPItemsTable() {
 
   const allItems = draftPage?.items ?? [];
 
-  // Taslağın gerçek tipi `category` alanındadır; `productType` ERP çekiminde sabit
-  // "General" yazıldığı için ne filtrede ne de hücrede kullanılır.
-  const uniqueTypes = Array.from(new Set(allItems.map((i) => draftProductType(i.category)))).sort();
+  // Tip ERP grup kodundan çözülen kategoriden okunur; kategorisi bilinmeyenler '?' seçeneğinde toplanır.
+  const realTypes = Array.from(
+    new Set(allItems.filter(hasKnownCategory).map((i) => draftProductType(i.category))),
+  ).sort();
+  const uniqueTypes: TypeFilterKey[] = allItems.some((i) => !hasKnownCategory(i))
+    ? [...realTypes, ERP_SOURCE_MISSING.label]
+    : realTypes;
 
   const filteredItems = allItems.filter((item) => {
-    if (hasActiveFilters && !typeFilters.has(draftProductType(item.category))) return false;
+    if (hasActiveFilters && !typeFilters.has(typeFilterKey(item))) return false;
     if (!isSearching) return true;
     const q = searchTerm.toLowerCase();
     return (
@@ -424,7 +448,16 @@ export function ERPItemsTable() {
                           setPage(1);
                         }}
                       />
-                      <ProductTypeCell productType={type} />
+                      {type === ERP_SOURCE_MISSING.label ? (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={ERP_SOURCE_MISSING.hint}
+                        >
+                          {ERP_SOURCE_MISSING.label}
+                        </span>
+                      ) : (
+                        <ProductTypeCell productType={type} />
+                      )}
                     </label>
                   ))}
                 </div>
@@ -633,7 +666,16 @@ export function ERPItemsTable() {
                     </div>
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <ProductTypeCell productType={draftProductType(row.category)} />
+                    {hasKnownCategory(row) ? (
+                      <ProductTypeCell productType={draftProductType(row.category)} />
+                    ) : (
+                      <span
+                        className="text-xs text-muted-foreground"
+                        title={ERP_SOURCE_MISSING.hint}
+                      >
+                        {ERP_SOURCE_MISSING.label}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
                     {row.sku ?? row.erpId ?? '—'}
@@ -662,7 +704,7 @@ export function ERPItemsTable() {
                   <TableCell className="py-0 px-3">
                     <DraftValueCell
                       isMissing={row.missingFields.includes(DRAFT_FIELD.Weight)}
-                      value={`${row.weight} kg`}
+                      value={formatWeightDisplay(row.weight, weightUnit)}
                     />
                   </TableCell>
                   {isRejectedTab && (

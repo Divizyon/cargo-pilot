@@ -112,7 +112,9 @@ function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'
     erpId: 'STK-0001',
     sku: 'SKU-0001',
     barcode: null,
-    productType: 'Koli',
+    // ERP çekimi productType alanına sabit "General" yazar; tip grup kodundan çözülen
+    // kategoriden okunur. Varsayılan category 0 (Package) '?' kovasına düşer.
+    productType: 'General',
     category: 0,
     width: 60,
     height: 40,
@@ -131,20 +133,28 @@ function makeDraft(overrides: Partial<DraftItem> & Pick<DraftItem, 'id' | 'name'
 }
 
 const draftItems: DraftItem[] = [
-  // ERP çekimi productType alanına sabit "General" yazar; gerçek tip category'dedir.
+  // Kategorisi ERP grup kodundan çözülen kayıtlar; sütun category'yi basar.
   makeDraft({
     id: '11111111-1111-4111-8111-111111111111',
     name: 'Palet Kasa 60x40',
     sku: 'PLT-6040',
-    productType: 'General',
+    productType: 'palet',
     category: 1,
   }),
   makeDraft({
     id: '22222222-2222-4222-8222-222222222222',
     name: 'Karton Koli 30x20',
     sku: 'KOL-3020',
-    productType: 'General',
+    productType: 'koli',
     category: 2,
+  }),
+  // productType hâlâ ERP placeholder'ı ama grup kodu Drum çözülmüş: tip kategoriden gelir.
+  makeDraft({
+    id: '66666666-6666-4666-8666-666666666666',
+    name: 'Sac Vida Ficisi',
+    sku: 'VRL-0001',
+    productType: 'General',
+    category: 3,
   }),
   makeDraft({
     id: '33333333-3333-4333-8333-333333333333',
@@ -220,11 +230,20 @@ describe('ERPItemsTable', () => {
   it('tip sütunu ERP productType alanını değil gerçek kategoriyi gösterir', () => {
     renderTable();
 
-    // Fixture'da iki bekleyen kayıt var: category 1 (palet) ve category 2 (koli).
-    // Her ikisinin productType alanı "General"; sütun bu değeri basmamalı.
+    // Kategorisi çözülen üç bekleyen kayıt: 1 (palet), 2 (koli) ve 3 (varil).
     expect(screen.getByText('Paletli Ürün')).toBeInTheDocument();
     expect(screen.getAllByText('Koli').length).toBeGreaterThan(0);
+    // productType placeholder ('General') kalsa bile grup kodu çözüldüyse tip basılır.
+    expect(screen.getByText('Varil')).toBeInTheDocument();
     expect(screen.queryByText('General')).not.toBeInTheDocument();
+  });
+
+  it('kategorisi çözülemeyen taslakta uydurma tip yerine soru işareti gösterir', () => {
+    renderTable();
+
+    const missingMarks = screen.getAllByText('?');
+    expect(missingMarks.length).toBeGreaterThan(0);
+    expect(missingMarks[0]).toHaveAttribute('title', 'ERP kaynağında bu alan yok');
   });
 
   it('eksik alanlı taslakta rozet gösterir ve 0 değerini ölçü gibi basmaz', () => {
@@ -233,7 +252,8 @@ describe('ERPItemsTable', () => {
     expect(screen.getByText('Olcusuz Urun')).toBeInTheDocument();
     expect(screen.getByText('Eksik alan')).toBeInTheDocument();
     expect(screen.getAllByText('ERP’de eksik')).toHaveLength(2);
-    expect(screen.queryByText('0 kg')).not.toBeInTheDocument();
+    expect(screen.queryByText('0.0 kg')).not.toBeInTheDocument();
+    expect(screen.getAllByText('12.5 kg').length).toBeGreaterThan(0);
   });
 
   it('seçilen taslak aktarım diyaloğuna taşınır', async () => {
