@@ -50,22 +50,29 @@ export const ITEM_SHEET_HEADER = {
   height: 'Yükseklik(cm)',
   length: 'Derinlik(cm)',
   weight: 'Ağırlık(kg)',
-  constraints: `Kırılganlık (${FRAGILITY_HEADER_LEGEND})`,
+  constraints: `Yük Kısıtları (${FRAGILITY_HEADER_LEGEND})`,
   loadGroups: `Yük Grubu (${LOAD_GROUPS.join('/')})`,
   isStackable: 'İstiflenebilir (true/false)',
-  maxStackCount: 'Maks Kat',
+  maxStackCount: 'Katman Sayısı',
   rotateX: 'X Dönüşümü (true/false)',
   rotateY: 'Y Dönüşümü (true/false)',
   rotateZ: 'Z Dönüşümü (true/false)',
   notes: 'Özel Notlar',
 } as const;
 
-/** Eski şablonla doldurulmuş dosyalar da okunabilsin diye önceki başlıklar korunur. */
+/**
+ * Eski şablonla doldurulmuş dosyalar da okunabilsin diye önceki başlıklar korunur.
+ * Bir alanın birden çok eski adı olabilir; ayrıştırıcı sırayla ilk dolu hücreyi alır.
+ */
 export const LEGACY_ITEM_SHEET_HEADER = {
-  constraints: 'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)',
-  loadGroups: 'Yük Grubu',
+  constraints: [
+    `Kırılganlık (${FRAGILITY_HEADER_LEGEND})`,
+    'Kırılganlık (0=Normal/1=Kırılgan/2=Sıvı)',
+  ],
+  loadGroups: ['Yük Grubu'],
   /** Z kenarı önceki şablonlarda 'Uzunluk' başlığıyla üretiliyordu. */
-  length: 'Uzunluk(cm)',
+  length: ['Uzunluk(cm)'],
+  maxStackCount: ['Maks Kat'],
 } as const;
 
 const CELL_SEPARATOR = ', ';

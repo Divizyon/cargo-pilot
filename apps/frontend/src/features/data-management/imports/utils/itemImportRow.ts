@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
+import { INCOMPATIBLE_BY_GROUP } from '@/lib/api/itemMappers';
 import {
   ITEM_SHEET_HEADER,
   LEGACY_ITEM_SHEET_HEADER,
@@ -20,6 +21,8 @@ export const editableRowSchema = z.object({
   weight: z.string(),
   fragility: z.string(),
   constraintIds: z.array(z.number().int()),
+  /** Ürün formundaki tek seçimli yük grubu; uyumsuz gruplar bundan türetilir. */
+  stackGroup: z.string(),
   incompatibleGroups: z.array(z.string()),
   isStackable: z.boolean(),
   maxStackCount: z.string(),
@@ -34,11 +37,13 @@ export const editableRowSchema = z.object({
 export type EditableRow = z.infer<typeof editableRowSchema>;
 
 export type RowErrors = Partial<
-  Record<
-    'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight' | 'incompatibleGroups',
-    string
-  >
+  Record<'sku' | 'name' | 'tip' | 'width' | 'height' | 'length' | 'weight' | 'stackGroup', string>
 >;
+
+/** Yük grubu seçimi uyumsuz grupları belirler; ürün formuyla aynı harita kullanılır. */
+export function deriveIncompatibleGroups(stackGroup: string): string[] {
+  return INCOMPATIBLE_BY_GROUP[stackGroup] ?? [];
+}
 
 /** ERP'den eksik gelen alan, kullanıcı hatası değildir; mesaj bunu ayırt eder. */
 function numericFieldError(row: EditableRow, field: string, value: string): string | undefined {
@@ -55,7 +60,7 @@ export function validateRow(row: EditableRow): RowErrors {
   e.height = numericFieldError(row, 'height', row.height);
   e.length = numericFieldError(row, 'length', row.length);
   e.weight = numericFieldError(row, 'weight', row.weight);
-  if (row.incompatibleGroups.length === 0) e.incompatibleGroups = 'Zorunlu alan';
+  if (!row.stackGroup) e.stackGroup = 'Zorunlu alan';
   for (const key of Object.keys(e) as Array<keyof RowErrors>) {
     if (e[key] === undefined) delete e[key];
   }
@@ -74,6 +79,7 @@ export function emptyRow(): EditableRow {
     weight: '',
     fragility: '0',
     constraintIds: [],
+    stackGroup: '',
     incompatibleGroups: [],
     isStackable: false,
     maxStackCount: '1',
@@ -95,10 +101,18 @@ function parseBool(v: unknown, fallback = true): boolean {
 }
 
 /** Yeni başlık yoksa eski şablonla doldurulmuş dosya da okunur. */
-function cell(row: Record<string, unknown>, header: string, legacyHeader: string): unknown {
+function cell(
+  row: Record<string, unknown>,
+  header: string,
+  legacyHeaders: readonly string[],
+): unknown {
   const value = row[header];
   if (value !== undefined && value !== '') return value;
-  return row[legacyHeader];
+  for (const legacyHeader of legacyHeaders) {
+    const legacyValue = row[legacyHeader];
+    if (legacyValue !== undefined && legacyValue !== '') return legacyValue;
+  }
+  return undefined;
 }
 
 export function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
@@ -107,6 +121,11 @@ export function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
     const constraintIds = parseConstraintCell(
       cell(r, ITEM_SHEET_HEADER.constraints, LEGACY_ITEM_SHEET_HEADER.constraints),
     );
+    // Hücre eski şablonlarda çok değerli olabilir; ürün modeli tek grup tanır.
+    const groups = parseLoadGroupCell(
+      cell(r, ITEM_SHEET_HEADER.loadGroups, LEGACY_ITEM_SHEET_HEADER.loadGroups),
+    );
+    const stackGroup = groups[0] ?? '';
     return editableRowSchema.parse({
       _id: crypto.randomUUID(),
       sku: String(r[ITEM_SHEET_HEADER.sku] ?? ''),
@@ -121,11 +140,12 @@ export function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       weight: String(r[ITEM_SHEET_HEADER.weight] ?? ''),
       fragility: String(toFragilityValue(constraintIds)),
       constraintIds,
-      incompatibleGroups: parseLoadGroupCell(
-        cell(r, ITEM_SHEET_HEADER.loadGroups, LEGACY_ITEM_SHEET_HEADER.loadGroups),
-      ),
+      stackGroup,
+      incompatibleGroups: deriveIncompatibleGroups(stackGroup),
       isStackable: parseBool(r[ITEM_SHEET_HEADER.isStackable], false),
-      maxStackCount: String(r[ITEM_SHEET_HEADER.maxStackCount] ?? '1'),
+      maxStackCount: String(
+        cell(r, ITEM_SHEET_HEADER.maxStackCount, LEGACY_ITEM_SHEET_HEADER.maxStackCount) ?? '1',
+      ),
       allowRotateX: parseBool(r[ITEM_SHEET_HEADER.rotateX], true),
       allowRotateY: parseBool(r[ITEM_SHEET_HEADER.rotateY], true),
       allowRotateZ: parseBool(r[ITEM_SHEET_HEADER.rotateZ], true),

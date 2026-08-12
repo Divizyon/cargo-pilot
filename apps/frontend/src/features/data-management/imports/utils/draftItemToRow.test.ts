@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { draftItemToRow } from './draftItemToRow';
-import { ALLOWED_ROTATIONS, ITEM_CATEGORY } from '@/lib/api/itemMappers';
+import { ALLOWED_ROTATIONS, ITEM_CATEGORY, PALLET_HEIGHT_CM } from '@/lib/api/itemMappers';
 import type { DraftItem } from '@/lib/api/useDraftItems';
 
 function makeDraft(overrides: Partial<DraftItem> = {}): DraftItem {
@@ -11,7 +11,7 @@ function makeDraft(overrides: Partial<DraftItem> = {}): DraftItem {
     sku: 'SKU-0001',
     barcode: null,
     name: 'Test Ürün',
-    productType: 'Koli',
+    productType: 'koli',
     category: ITEM_CATEGORY.Box,
     width: 60,
     height: 40,
@@ -38,6 +38,15 @@ describe('draftItemToRow', () => {
 
   it.each(categoryCases)('kategori %i → %s', (category, expected) => {
     expect(draftItemToRow(makeDraft({ category })).tip).toBe(expected);
+  });
+
+  // ERP çekimi productType'a 'General' gibi placeholder yazar; tip uydurulmaz.
+  const placeholderTypeCases: Array<[string | null]> = [['General'], ['STANDARD'], [null]];
+
+  it.each(placeholderTypeCases)('ERP tipi %s ise tip boş kalır', (productType) => {
+    expect(draftItemToRow(makeDraft({ productType, category: ITEM_CATEGORY.Package })).tip).toBe(
+      '',
+    );
   });
 
   const rotationCases: Array<[number, boolean, boolean, boolean]> = [
@@ -76,13 +85,32 @@ describe('draftItemToRow', () => {
     expect(draftItemToRow(makeDraft({})).missingFields).toEqual([]);
   });
 
-  it('taslakta kayıtlı yük gruplarını satır modeline taşır', () => {
-    const row = draftItemToRow(makeDraft({ incompatibleGroups: ['Kimya', 'Gıda'] }));
+  it('palet üründe kayıttaki palet tabanı yükseklikten düşülür', () => {
+    const row = draftItemToRow(
+      makeDraft({ productType: 'palet', category: ITEM_CATEGORY.Pallet, height: 154 }),
+    );
 
-    expect(row.incompatibleGroups).toEqual(['Kimya', 'Gıda']);
+    expect(row.height).toBe(String(154 - PALLET_HEIGHT_CM));
+  });
+
+  it('taslağın yük grubunu tek seçime çevirir, uyumsuz grupları türetir', () => {
+    const row = draftItemToRow(makeDraft({ stackGroup: 'Kimya' }));
+
+    expect(row.stackGroup).toBe('Kimya');
+    expect(row.incompatibleGroups).toEqual(['Gıda', 'Elektronik', 'Tekstil']);
+  });
+
+  it('stackGroup yoksa eski taslaklardaki ilk seçim yük grubu sayılır', () => {
+    const row = draftItemToRow(makeDraft({ incompatibleGroups: ['Gıda', 'Kimya'] }));
+
+    expect(row.stackGroup).toBe('Gıda');
+    expect(row.incompatibleGroups).toEqual(['Kimya', 'Tehlikeli Madde']);
   });
 
   it('yük grubu seçilmemiş taslakta boş liste taşır', () => {
-    expect(draftItemToRow(makeDraft({})).incompatibleGroups).toEqual([]);
+    const row = draftItemToRow(makeDraft({}));
+
+    expect(row.stackGroup).toBe('');
+    expect(row.incompatibleGroups).toEqual([]);
   });
 });

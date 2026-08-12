@@ -21,7 +21,7 @@ export const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
   Genel: ['Tehlikeli Madde'],
 };
 
-const PALLET_HEIGHT_CM = 14;
+export const PALLET_HEIGHT_CM = 14;
 
 export const ITEM_CATEGORY = {
   Package: 0,

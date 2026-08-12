@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import type { Item } from '@/lib/types/item';
+import { PALLET_HEIGHT_CM } from '@/lib/api/itemMappers';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate, getExcelDateCellValue } from '@/lib/utils/format/formatDate';
 import {
@@ -142,6 +143,12 @@ function itemLoadGroups(item: Item): string[] {
   return Array.from(new Set(groups));
 }
 
+/** Palet tabanı yalnızca kayıtta yüksekliğe eklenir; dışa aktarımda ürün yüksekliği yazılır. */
+function itemSheetHeight(item: Item): number {
+  if (item.productType !== 'palet') return item.height;
+  return Math.max(item.height - PALLET_HEIGHT_CM, 0);
+}
+
 /** Dışa aktarım, içe aktarım şablonuyla birebir aynı sütunları üretir (round-trip). */
 export function buildItemsWorkbook(items: Item[], exportDate: Date): XLSX.WorkBook {
   const { dateFormat } = useUnitStore.getState();
@@ -151,7 +158,7 @@ export function buildItemsWorkbook(items: Item[], exportDate: Date): XLSX.WorkBo
     [ITEM_SHEET_HEADER.name]: item.name,
     [ITEM_SHEET_HEADER.productType]: item.productType,
     [ITEM_SHEET_HEADER.width]: item.width,
-    [ITEM_SHEET_HEADER.height]: item.height,
+    [ITEM_SHEET_HEADER.height]: itemSheetHeight(item),
     [ITEM_SHEET_HEADER.length]: item.length,
     [ITEM_SHEET_HEADER.weight]: item.weight,
     [ITEM_SHEET_HEADER.constraints]: formatConstraintCell(itemConstraintIds(item)),

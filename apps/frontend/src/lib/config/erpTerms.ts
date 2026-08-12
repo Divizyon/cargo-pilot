@@ -19,6 +19,9 @@ export const ERP_SETTINGS_ROUTE = {
   sync: '/settings?tab=erp-senkronizasyon',
 } as const;
 
+/** ERP kaynağında karşılığı olmayan alan uydurma varsayılanla değil bu işaretle gösterilir. */
+export const ERP_SOURCE_MISSING = { label: '?', hint: 'ERP kaynağında bu alan yok' } as const;
+
 /**
  * Kutu kenarları sahne sözleşmesiyle aynı adla anılır (scene-config: X = genişlik,
  * Y = yükseklik, Z = derinlik); ekranlar ve Excel şablonu bu adlardan beslenir.

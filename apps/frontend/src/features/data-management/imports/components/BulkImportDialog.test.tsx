@@ -15,6 +15,12 @@ import {
   LOAD_GROUPS,
 } from '@/lib/config/item-import-columns';
 import {
+  ALLOWED_ROTATIONS,
+  ITEM_CATEGORY,
+  PALLET_HEIGHT_CM,
+  type CreateItemRequest,
+} from '@/lib/api/itemMappers';
+import {
   validateRow,
   xlsxToRows,
   type EditableRow,
@@ -60,7 +66,8 @@ function makeRow(id: string, overrides: Partial<EditableRow> = {}): EditableRow 
     weight: '8',
     fragility: '0',
     constraintIds: [],
-    incompatibleGroups: ['Genel'],
+    stackGroup: 'Genel',
+    incompatibleGroups: ['Tehlikeli Madde'],
     isStackable: false,
     maxStackCount: '1',
     allowRotateX: true,
@@ -95,6 +102,22 @@ function renderDialog(
     { wrapper },
   );
   return { onOpenChange, draftItemIds };
+}
+
+/** Taslak akışı olmadan render eder; onay `bulk-create` isteğini üretir. */
+function renderCreateDialog(rows: EditableRow[]) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+  render(<BulkImportDialog open onOpenChange={vi.fn()} initialRows={rows} />, { wrapper });
+}
+
+function firstCreatedItem(): CreateItemRequest {
+  const [variables] = mocks.bulkCreate.mock.calls[0] as [{ items: CreateItemRequest[] }];
+  return variables.items[0];
 }
 
 describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
@@ -170,7 +193,7 @@ describe('BulkImportDialog — sütun bazlı toplu doldurma (ERP-33)', () => {
   it('50 satırın yük grubu tek işlemle dolar ve onay butonu aktifleşir', async () => {
     const user = userEvent.setup();
     const rows = Array.from({ length: 50 }, (_, i) =>
-      makeRow(String(i), { incompatibleGroups: [] }),
+      makeRow(String(i), { stackGroup: '', incompatibleGroups: [] }),
     );
     renderDialog(rows);
 
@@ -188,24 +211,40 @@ describe('BulkImportDialog — sütun bazlı toplu doldurma (ERP-33)', () => {
   it('onay olmadan dolu satırın üzerine yazmaz, onaylanınca yazar', async () => {
     const user = userEvent.setup();
     renderDialog([
-      makeRow('a', { incompatibleGroups: ['Kimya'] }),
-      makeRow('b', { incompatibleGroups: [] }),
+      makeRow('a', { stackGroup: 'Kimya', incompatibleGroups: ['Gıda', 'Elektronik', 'Tekstil'] }),
+      makeRow('b', { stackGroup: '', incompatibleGroups: [] }),
     ]);
 
     await user.click(screen.getByRole('button', { name: 'Yük Grubu sütununu toplu doldur' }));
     await user.click(await screen.findByRole('checkbox', { name: 'Gıda' }));
     await user.click(screen.getByRole('button', { name: 'Uygula' }));
 
-    expect(screen.getByText('Kimya')).toBeInTheDocument();
-    expect(screen.getAllByText('Gıda')).toHaveLength(1);
+    expect(screen.getByRole('combobox', { name: 'Urun a — Yük Grubu: Kimya' })).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox', { name: /Yük Grubu: Gıda$/ })).toHaveLength(1);
 
     await user.click(screen.getByRole('button', { name: 'Yük Grubu sütununu toplu doldur' }));
     await user.click(await screen.findByRole('checkbox', { name: 'Gıda' }));
     await user.click(screen.getByRole('checkbox', { name: 'Dolu satırların üzerine yaz' }));
     await user.click(screen.getByRole('button', { name: 'Uygula' }));
 
-    expect(screen.queryByText('Kimya')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Gıda')).toHaveLength(2);
+    expect(
+      screen.queryByRole('combobox', { name: 'Urun a — Yük Grubu: Kimya' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('combobox', { name: /Yük Grubu: Gıda$/ })).toHaveLength(2);
+  });
+
+  it('yük grubu toplu doldurmada yalnızca son işaretlenen grup uygulanır', async () => {
+    const user = userEvent.setup();
+    renderDialog([makeRow('a', { stackGroup: '', incompatibleGroups: [] })]);
+
+    await user.click(screen.getByRole('button', { name: 'Yük Grubu sütununu toplu doldur' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Kimya' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Tekstil' }));
+    await user.click(screen.getByRole('button', { name: 'Uygula' }));
+
+    expect(
+      screen.getByRole('combobox', { name: 'Urun a — Yük Grubu: Tekstil' }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -259,7 +298,8 @@ describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
     const rows = reparse(buildItemImportTemplateWorkbook());
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].incompatibleGroups).toEqual(['Genel']);
+    expect(rows[0].stackGroup).toBe('Genel');
+    expect(rows[0].incompatibleGroups).toEqual(['Tehlikeli Madde']);
     expect(validateRow(rows[0])).toEqual({});
   });
 
@@ -278,8 +318,9 @@ describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
     expect(row.weight).toBe('18');
     expect(row.constraintIds).toEqual([2, 9]);
     expect(row.fragility).toBe('9');
-    // stackGroup ayrıştırıcıda listenin ilk elemanıdır; sırası korunur.
-    expect(row.incompatibleGroups).toEqual(['Kimya', 'Gıda']);
+    // Hücrenin ilk grubu stackGroup olur; uyumsuz gruplar ondan türetilir.
+    expect(row.stackGroup).toBe('Kimya');
+    expect(row.incompatibleGroups).toEqual(['Gıda', 'Elektronik', 'Tekstil']);
     expect(row.isStackable).toBe(true);
     expect(row.maxStackCount).toBe('3');
     expect(row.allowRotateX).toBe(false);
@@ -313,7 +354,8 @@ describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
 
     const rows = reparse(buildItemsWorkbook(items, new Date('2026-01-01T00:00:00Z')));
 
-    expect(rows.map((r) => r.incompatibleGroups)).toEqual(LOAD_GROUPS.map((g) => [g]));
+    expect(rows.map((r) => r.stackGroup)).toEqual([...LOAD_GROUPS]);
+    expect(rows.every((r) => r.incompatibleGroups.length > 0)).toBe(true);
   });
 
   it('kısıt hücresine kod yerine ekranda görünen etiket yazılabilir', () => {
@@ -328,22 +370,93 @@ describe('Ürün şablonu ↔ ayrıştırıcı simetrisi (ERP-19)', () => {
     expect(rows[0].fragility).toBe('8');
   });
 
-  it('eski başlıklarla doldurulmuş dosya da okunur', () => {
-    const ws = XLSX.utils.aoa_to_sheet([
-      [
-        'SKU',
-        'Ürün Adı',
-        LEGACY_ITEM_SHEET_HEADER.constraints,
-        LEGACY_ITEM_SHEET_HEADER.loadGroups,
-      ],
-      ['SKU-ESKI', 'Eski Şablon Ürünü', '2', 'Gıda'],
-    ]);
+  it('eski başlıkların her sürümüyle doldurulmuş dosya da okunur', () => {
+    for (const legacyConstraintHeader of LEGACY_ITEM_SHEET_HEADER.constraints) {
+      const ws = XLSX.utils.aoa_to_sheet([
+        [
+          'SKU',
+          'Ürün Adı',
+          legacyConstraintHeader,
+          LEGACY_ITEM_SHEET_HEADER.loadGroups[0],
+          LEGACY_ITEM_SHEET_HEADER.maxStackCount[0],
+        ],
+        ['SKU-ESKI', 'Eski Şablon Ürünü', '2', 'Gıda', '4'],
+      ]);
 
-    const rows = xlsxToRows(ws);
+      const rows = xlsxToRows(ws);
 
-    expect(rows[0].constraintIds).toEqual([2]);
-    expect(rows[0].fragility).toBe('2');
-    expect(rows[0].incompatibleGroups).toEqual(['Gıda']);
+      expect(rows[0].constraintIds).toEqual([2]);
+      expect(rows[0].fragility).toBe('2');
+      expect(rows[0].stackGroup).toBe('Gıda');
+      expect(rows[0].incompatibleGroups).toEqual(['Kimya', 'Tehlikeli Madde']);
+      expect(rows[0].maxStackCount).toBe('4');
+    }
+  });
+});
+
+// ─── Ürün formu kuralları (onay grid) ─────────────────────────────────────────
+
+describe('BulkImportDialog — ürün formu kuralları', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.fetchAllItems.mockResolvedValue([]);
+  });
+
+  it('varil satırı ürün formuyla aynı kategoriyi, çapı ve derinliği gönderir', async () => {
+    const user = userEvent.setup();
+    renderCreateDialog([makeRow('a', { tip: 'varil', width: '40', length: '55' })]);
+
+    await user.click(await screen.findByRole('button', { name: '1 Ürün Ekle' }));
+
+    const item = firstCreatedItem();
+    expect(item.category).toBe(ITEM_CATEGORY.Drum);
+    expect(item.diameter).toBe(40);
+    expect(item.length).toBe(40);
+    expect(item.allowedRotations).toBe(ALLOWED_ROTATIONS.NoVertical);
+  });
+
+  it('palet ürünü dışa aktarım → içe aktarım → kayıt döngüsünde aynı yükseklikte kalır', async () => {
+    const user = userEvent.setup();
+    const height = 100 + PALLET_HEIGHT_CM;
+    const rows = reparse(
+      buildItemsWorkbook(
+        [
+          makeItem({
+            productType: 'palet',
+            height,
+            constraintIds: [],
+            fragility: 0,
+            allowRotateX: true,
+          }),
+        ],
+        new Date('2026-01-01T00:00:00Z'),
+      ),
+    );
+
+    // Gridde yalnızca ürün yüksekliği düzenlenir; palet tabanı kayıtta eklenir.
+    expect(rows[0].height).toBe('100');
+
+    renderCreateDialog(rows);
+    await user.click(await screen.findByRole('button', { name: '1 Ürün Ekle' }));
+
+    const item = firstCreatedItem();
+    expect(item.height).toBe(height);
+    expect(item.category).toBe(ITEM_CATEGORY.Pallet);
+    expect(item.allowedRotations).toBe(ALLOWED_ROTATIONS.PitchOnly);
+  });
+
+  it('yük kısıtı seçilince Z ekseni kilitlenir', async () => {
+    const user = userEvent.setup();
+    renderCreateDialog([makeRow('a')]);
+
+    expect(screen.getByRole('checkbox', { name: 'Urun a — Z ekseni' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Urun a — Yük Kısıtları: Normal' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Kırılgan' }));
+
+    const rotateZ = screen.getByRole('checkbox', { name: 'Urun a — Z ekseni' });
+    expect(rotateZ).toBeDisabled();
+    expect(rotateZ).toHaveAttribute('aria-checked', 'false');
   });
 });
 

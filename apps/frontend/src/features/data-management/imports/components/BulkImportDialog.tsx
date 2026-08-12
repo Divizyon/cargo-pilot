@@ -19,11 +19,13 @@ import {
 import { cn } from '@/lib/utils';
 import { useBulkCreateItems, fetchAllItems, type BackendError } from '@/lib/api/useItems';
 import {
-  ITEM_CATEGORY,
+  PALLET_HEIGHT_CM,
   toAllowedRotations,
+  toCategory,
   toMaxWeightOnTop,
   type CreateItemRequest,
 } from '@/lib/api/itemMappers';
+import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
 import {
   useUpdateDraftItem,
   useBulkApproveDraftItems,
@@ -33,6 +35,7 @@ import { downloadItemImportTemplate } from '@/lib/utils/export/export-utils';
 import { FRAGILITY_OPTIONS, LOAD_GROUPS, toFragilityValue } from '@/lib/config/item-import-columns';
 import { DIMENSION_LABEL, ERP_TERM } from '@/lib/config/erpTerms';
 import {
+  deriveIncompatibleGroups,
   emptyRow,
   validateRow,
   xlsxToRows,
@@ -65,62 +68,62 @@ const FRAGILITY_FILL_OPTIONS = FRAGILITY_OPTIONS.map((o) => ({
 
 // ─── Validation & mapping ─────────────────────────────────────────────────────
 
-function tipToCategory(tip: string): (typeof ITEM_CATEGORY)[keyof typeof ITEM_CATEGORY] {
-  if (tip === 'palet') return ITEM_CATEGORY.Pallet;
-  if (tip === 'koli') return ITEM_CATEGORY.Box;
-  return ITEM_CATEGORY.Package;
+/** `validateRow` tipi bu üçlüye kısıtlar; geçersiz satır zaten aktarılamaz. */
+function narrowTip(tip: string): ProductType {
+  return tip === 'varil' || tip === 'palet' ? tip : 'koli';
+}
+
+/** Ürün formundaki tip kaynaklı rotasyon kilitleri gridde de uygulanır. */
+function tipPatch(tip: string): Partial<EditableRow> {
+  if (tip === 'varil') return { tip, allowRotateX: false, allowRotateZ: false };
+  if (tip === 'palet') return { tip, allowRotateY: false, allowRotateZ: false };
+  return { tip };
+}
+
+/**
+ * Satırı backend sözleşmesine çevirir. Tip ve kısıt kaynaklı normalizasyon
+ * (varil çapı, palet tabanı, rotasyon kilitleri) ürün formuyla birebir aynıdır.
+ */
+function rowToPayload(row: EditableRow): Omit<CreateItemRequest, 'sku' | 'name'> {
+  const weight = Number(row.weight);
+  const isStackable = row.isStackable;
+  const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
+  const maxStackCount = isStackable ? rawMax : 0;
+  const fragilityType = Number(row.fragility) || 0;
+  const isVaril = row.tip === 'varil';
+  const isPalet = row.tip === 'palet';
+  const width = Number(row.width);
+  return {
+    productType: row.tip,
+    category: toCategory(narrowTip(row.tip)),
+    width,
+    height: isPalet ? Number(row.height) + PALLET_HEIGHT_CM : Number(row.height),
+    // Varilde genişlik hücresi çapı taşır; derinlik ondan türetilir.
+    length: isVaril ? width : Number(row.length),
+    diameter: isVaril ? width : null,
+    weight,
+    fragilityType,
+    isStackable,
+    maxStackCount,
+    maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
+    allowedRotations: toAllowedRotations(
+      row.allowRotateX && !isVaril,
+      row.allowRotateY && !isPalet,
+      row.allowRotateZ && fragilityType < 1 && !isVaril && !isPalet,
+    ),
+    constraintIds: row.constraintIds,
+    stackGroup: row.stackGroup || null,
+    incompatibleGroups: row.incompatibleGroups,
+    specialNotes: row.notes.trim() || null,
+  };
 }
 
 function rowToRequest(row: EditableRow): CreateItemRequest {
-  const weight = Number(row.weight);
-  const isStackable = row.isStackable;
-  const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
-  const maxStackCount = isStackable ? rawMax : 0;
-  const fragilityType = Number(row.fragility) || 0;
-  return {
-    sku: row.sku.trim(),
-    name: row.name.trim(),
-    productType: row.tip,
-    category: tipToCategory(row.tip),
-    width: Number(row.width),
-    height: Number(row.height),
-    length: Number(row.length),
-    weight,
-    fragilityType,
-    isStackable,
-    maxStackCount,
-    maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
-    allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
-    constraintIds: row.constraintIds,
-    stackGroup: row.incompatibleGroups[0] ?? null,
-    incompatibleGroups: row.incompatibleGroups,
-    specialNotes: row.notes.trim() || null,
-  };
+  return { sku: row.sku.trim(), name: row.name.trim(), ...rowToPayload(row) };
 }
 
 function rowToUpdatePayload(row: EditableRow): UpdateDraftItemPayload {
-  const weight = Number(row.weight);
-  const isStackable = row.isStackable;
-  const rawMax = Math.max(Number(row.maxStackCount) || 1, 1);
-  const maxStackCount = isStackable ? rawMax : 0;
-  const fragilityType = Number(row.fragility) || 0;
-  return {
-    productType: row.tip,
-    category: tipToCategory(row.tip),
-    width: Number(row.width),
-    height: Number(row.height),
-    length: Number(row.length),
-    weight,
-    fragilityType,
-    isStackable,
-    maxStackCount,
-    maxWeightOnTop: toMaxWeightOnTop(weight, isStackable, rawMax),
-    allowedRotations: toAllowedRotations(row.allowRotateX, row.allowRotateY, row.allowRotateZ),
-    constraintIds: row.constraintIds,
-    stackGroup: row.incompatibleGroups[0] ?? null,
-    incompatibleGroups: row.incompatibleGroups,
-    specialNotes: row.notes.trim() || null,
-  };
+  return rowToPayload(row);
 }
 
 // ─── Fragility multi-select cell ──────────────────────────────────────────────
@@ -158,7 +161,7 @@ function FragilityCell({ rowLabel, constraintIds, onChange }: FragilityCellProps
         <Button
           type="button"
           variant="outline"
-          aria-label={`${rowLabel} — Kırılganlık: ${label}`}
+          aria-label={`${rowLabel} — Yük Kısıtları: ${label}`}
           className={cn(
             CELL_TRIGGER_CLASS,
             constraintIds.length > 0 ? 'text-foreground' : 'text-muted-foreground',
@@ -176,6 +179,7 @@ function FragilityCell({ rowLabel, constraintIds, onChange }: FragilityCellProps
               className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-muted"
             >
               <Checkbox
+                aria-label={opt.label}
                 checked={selected.has(opt.value)}
                 onCheckedChange={() => toggle(opt.value)}
               />
@@ -188,68 +192,38 @@ function FragilityCell({ rowLabel, constraintIds, onChange }: FragilityCellProps
   );
 }
 
-// ─── Load group multi-select cell ─────────────────────────────────────────────
+// ─── Load group single-select cell ────────────────────────────────────────────
 
 interface LoadGroupCellProps {
   rowLabel: string;
-  selected: string[];
+  selected: string;
   error?: string;
-  onChange: (groups: string[]) => void;
+  onChange: (group: string) => void;
 }
 
+/** Ürün formundaki gibi tek seçim; uyumsuz gruplar seçimden türetilir. */
 function LoadGroupCell({ rowLabel, selected, error, onChange }: LoadGroupCellProps) {
-  const set = new Set(selected);
-
-  const label =
-    selected.length === 0
-      ? 'Seçiniz'
-      : selected.length === 1
-        ? selected[0]
-        : `${selected[0]}, ${selected.slice(1).join(', ')}`.slice(0, 16) +
-          (selected.length > 1 ? '…' : '');
-
-  function toggle(g: string) {
-    const next = new Set(set);
-    if (next.has(g)) next.delete(g);
-    else next.add(g);
-    onChange(Array.from(next));
-  }
-
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          aria-label={`${rowLabel} — Yük Grubu: ${label}`}
-          aria-invalid={Boolean(error)}
-          className={cn(
-            CELL_TRIGGER_CLASS,
-            error
-              ? 'border-destructive bg-destructive/5 text-destructive'
-              : selected.length > 0
-                ? 'text-foreground'
-                : 'text-muted-foreground',
-          )}
-        >
-          <span className="truncate">{label}</span>
-          <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-48 p-2" align="start">
-        <div className="space-y-1">
-          {LOAD_GROUPS.map((g) => (
-            <label
-              key={g}
-              className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-muted"
-            >
-              <Checkbox checked={set.has(g)} onCheckedChange={() => toggle(g)} />
-              {g}
-            </label>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <Select value={selected} onValueChange={onChange}>
+      <SelectTrigger
+        aria-label={`${rowLabel} — Yük Grubu: ${selected || 'Seçiniz'}`}
+        className={cn(
+          'h-7 border px-1 text-xs',
+          error
+            ? 'border-destructive bg-destructive/5 text-destructive'
+            : 'border-border bg-background',
+        )}
+      >
+        <SelectValue placeholder="Seçiniz" />
+      </SelectTrigger>
+      <SelectContent>
+        {LOAD_GROUPS.map((g) => (
+          <SelectItem key={g} value={g}>
+            {g}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -263,20 +237,23 @@ interface BulkFillOption {
 interface ColumnBulkFillProps {
   title: string;
   options: readonly BulkFillOption[];
+  /** Tek seçimli sütunlarda (Yük Grubu) yalnızca son işaretlenen değer uygulanır. */
+  single?: boolean;
   /** Halihazırda dolu satır sayısı; 0'dan büyükse üzerine yazma onayı istenir. */
   filledCount: number;
   onApply: (values: string[], overwrite: boolean) => void;
 }
 
-function ColumnBulkFill({ title, options, filledCount, onApply }: ColumnBulkFillProps) {
+function ColumnBulkFill({ title, options, single, filledCount, onApply }: ColumnBulkFillProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [overwrite, setOverwrite] = useState(false);
 
   function toggle(value: string) {
-    setSelected((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
-    );
+    setSelected((prev) => {
+      if (single) return prev.includes(value) ? [] : [value];
+      return prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value];
+    });
   }
 
   function reset() {
@@ -359,15 +336,17 @@ interface TextCellProps {
   onChange: (v: string) => void;
   error?: string;
   type?: string;
+  disabled?: boolean;
   className?: string;
 }
 
-function TextCell({ value, onChange, error, type = 'text', className }: TextCellProps) {
+function TextCell({ value, onChange, error, type = 'text', disabled, className }: TextCellProps) {
   return (
     <Input
       type={type}
       value={value}
       title={error}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
         'h-7 min-w-0 rounded border px-1.5 text-xs',
@@ -496,7 +475,7 @@ export function BulkImportDialog({
     hasErrorRows: errorRowCount > 0,
     validRowCount,
   });
-  const filledLoadGroupCount = rows.filter((r) => r.incompatibleGroups.length > 0).length;
+  const filledLoadGroupCount = rows.filter((r) => Boolean(r.stackGroup)).length;
   const filledFragilityCount = rows.filter((r) => r.constraintIds.length > 0).length;
 
   function patchRow(id: string, patch: Partial<EditableRow>) {
@@ -505,9 +484,13 @@ export function BulkImportDialog({
 
   /** Sütun başlığından toplu doldurma; dolu satırlar yalnızca 'üzerine yaz' onayıyla değişir. */
   function fillLoadGroups(groups: string[], overwrite: boolean) {
+    const group = groups[0];
+    if (!group) return;
     setRows((prev) =>
       prev.map((r) =>
-        overwrite || r.incompatibleGroups.length === 0 ? { ...r, incompatibleGroups: groups } : r,
+        overwrite || !r.stackGroup
+          ? { ...r, stackGroup: group, incompatibleGroups: deriveIncompatibleGroups(group) }
+          : r,
       ),
     );
   }
@@ -758,9 +741,9 @@ export function BulkImportDialog({
                 <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
                 <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">
                   <div className="flex items-center justify-between gap-1">
-                    Kırılganlık
+                    Yük Kısıtları
                     <ColumnBulkFill
-                      title="Kırılganlık"
+                      title="Yük Kısıtları"
                       options={FRAGILITY_FILL_OPTIONS}
                       filledCount={filledFragilityCount}
                       onApply={(values, overwrite) => fillFragility(values.map(Number), overwrite)}
@@ -773,13 +756,14 @@ export function BulkImportDialog({
                     <ColumnBulkFill
                       title="Yük Grubu"
                       options={LOAD_GROUP_FILL_OPTIONS}
+                      single
                       filledCount={filledLoadGroupCount}
                       onApply={fillLoadGroups}
                     />
                   </div>
                 </th>
                 <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Kat Sayısı</th>
+                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Katman Sayısı</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">Y</th>
                 <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">Z</th>
@@ -826,7 +810,7 @@ export function BulkImportDialog({
 
                     {/* Tip */}
                     <td className="border-b border-border/40 px-2 py-0.5">
-                      <Select value={row.tip} onValueChange={(v) => patchRow(row._id, { tip: v })}>
+                      <Select value={row.tip} onValueChange={(v) => patchRow(row._id, tipPatch(v))}>
                         <SelectTrigger
                           className={cn(
                             'h-7 border px-1 text-xs',
@@ -865,13 +849,14 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Derinlik (Z) */}
+                    {/* Derinlik (Z) — varilde çap genişlikten okunur, hücre düzenlenmez. */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
-                        value={row.length}
+                        value={row.tip === 'varil' ? row.width : row.length}
                         onChange={(v) => patchRow(row._id, { length: v })}
                         error={errs.length}
                         type="number"
+                        disabled={row.tip === 'varil'}
                       />
                     </td>
 
@@ -885,17 +870,20 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Kırılganlık */}
+                    {/* Yük Kısıtları */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <FragilityCell
                         rowLabel={rowLabel}
                         constraintIds={row.constraintIds}
-                        onChange={(ids) =>
+                        onChange={(ids) => {
+                          const fragility = toFragilityValue(ids);
                           patchRow(row._id, {
                             constraintIds: ids,
-                            fragility: String(toFragilityValue(ids)),
-                          })
-                        }
+                            fragility: String(fragility),
+                            // Kısıtlı ürün ters çevrilemez; ürün formuyla aynı kural.
+                            ...(fragility >= 1 ? { allowRotateZ: false } : {}),
+                          });
+                        }}
                       />
                     </td>
 
@@ -903,15 +891,21 @@ export function BulkImportDialog({
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <LoadGroupCell
                         rowLabel={rowLabel}
-                        selected={row.incompatibleGroups}
-                        error={errs.incompatibleGroups}
-                        onChange={(groups) => patchRow(row._id, { incompatibleGroups: groups })}
+                        selected={row.stackGroup}
+                        error={errs.stackGroup}
+                        onChange={(group) =>
+                          patchRow(row._id, {
+                            stackGroup: group,
+                            incompatibleGroups: deriveIncompatibleGroups(group),
+                          })
+                        }
                       />
                     </td>
 
                     {/* İstiflenebilir */}
                     <td className="border-b border-border/40 px-1 py-0.5 text-center">
                       <Checkbox
+                        aria-label={`${rowLabel} — İstiflenebilir`}
                         checked={row.isStackable}
                         onCheckedChange={(checked) =>
                           patchRow(row._id, { isStackable: Boolean(checked) })
@@ -920,7 +914,7 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Kat Sayısı */}
+                    {/* Katman Sayısı */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
                         value={row.maxStackCount}
@@ -929,10 +923,12 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* X/Y/Z rotasyon */}
+                    {/* X/Y/Z rotasyon — tip ve kısıt kaynaklı kilitler ürün formundaki gibidir. */}
                     <td className="border-b border-border/40 px-1 py-0.5 text-center">
                       <Checkbox
+                        aria-label={`${rowLabel} — X ekseni`}
                         checked={row.allowRotateX}
+                        disabled={row.tip === 'varil'}
                         onCheckedChange={(checked) =>
                           patchRow(row._id, { allowRotateX: Boolean(checked) })
                         }
@@ -941,7 +937,9 @@ export function BulkImportDialog({
                     </td>
                     <td className="border-b border-border/40 px-1 py-0.5 text-center">
                       <Checkbox
+                        aria-label={`${rowLabel} — Y ekseni`}
                         checked={row.allowRotateY}
+                        disabled={row.tip === 'palet'}
                         onCheckedChange={(checked) =>
                           patchRow(row._id, { allowRotateY: Boolean(checked) })
                         }
@@ -950,7 +948,11 @@ export function BulkImportDialog({
                     </td>
                     <td className="border-b border-border/40 px-1 py-0.5 text-center">
                       <Checkbox
+                        aria-label={`${rowLabel} — Z ekseni`}
                         checked={row.allowRotateZ}
+                        disabled={
+                          Number(row.fragility) >= 1 || row.tip === 'varil' || row.tip === 'palet'
+                        }
                         onCheckedChange={(checked) =>
                           patchRow(row._id, { allowRotateZ: Boolean(checked) })
                         }
