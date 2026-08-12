@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Koordinat Sistemi Standardı — Cargo Pilot</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --ink: #0f172a;
+        --ink-soft: #475569;
+        --ink-faint: #94a3b8;
+        --line: #cbd5e1;
+        --edge: #334155;
+        --axis-x: #e11d48;
+        --axis-y: #16a34a;
+        --axis-z: #2563eb;
+        --face-top: #e2e8f0;
+        --face-side: #cfd8e3;
+        --face-small-door: #fcd9a4;
+        --face-big-door: #a7e8dd;
+        --halo: #ffffff;
+        --accent: #2563eb;
+        --warn: #b45309;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b1120;
+          --surface: #111827;
+          --ink: #e5e7eb;
+          --ink-soft: #9ca3af;
+          --ink-faint: #6b7280;
+          --line: #334155;
+          --edge: #cbd5e1;
+          --axis-x: #fb7185;
+          --axis-y: #4ade80;
+          --axis-z: #60a5fa;
+          --face-top: #273349;
+          --face-side: #1b2537;
+          --face-small-door: #7c4a10;
+          --face-big-door: #10514a;
+          --halo: #0b1120;
+          --accent: #60a5fa;
+          --warn: #fbbf24;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 2.5rem 1.25rem 4rem;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        max-width: 64rem;
+        margin: 0 auto;
+      }
+
+      header {
+        margin-bottom: 2rem;
+      }
+
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.6rem;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 2.75rem 0 0.75rem;
+        font-size: 1.1rem;
+        letter-spacing: -0.01em;
+      }
+
+      h3 {
+        margin: 0 0 0.6rem;
+        font-size: 0.95rem;
+      }
+
+      .lede {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.95rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 1rem;
+      }
+
+      .card + .card {
+        margin-top: 1rem;
+      }
+
+      .figure-scroll {
+        overflow-x: auto;
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        min-width: 32rem;
+      }
+
+      .caption {
+        margin: 0.75rem 0 0;
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.5rem 0.6rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.85em;
+        background: color-mix(in srgb, var(--ink) 8%, transparent);
+        padding: 0.1em 0.35em;
+        border-radius: 5px;
+      }
+
+      .swatch {
+        display: inline-block;
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 3px;
+        margin-right: 0.4rem;
+        vertical-align: -1px;
+      }
+
+      .note {
+        margin-top: 1rem;
+        border-left: 3px solid var(--accent);
+        padding: 0.15rem 0 0.15rem 0.85rem;
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+      }
+
+      .note.warn {
+        border-left-color: var(--warn);
+      }
+
+      ol.assumptions {
+        margin: 0;
+        padding-left: 1.15rem;
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+      }
+
+      ol.assumptions li {
+        margin-bottom: 0.7rem;
+      }
+
+      ol.assumptions li:last-child {
+        margin-bottom: 0;
+      }
+
+      ol.assumptions strong {
+        color: var(--ink);
+      }
+
+      .pill {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.12rem 0.45rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--warn) 22%, transparent);
+        color: var(--warn);
+        vertical-align: 2px;
+      }
+
+      .svg-label {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        fill: var(--ink);
+        paint-order: stroke;
+        stroke: var(--halo);
+        stroke-width: 4px;
+        stroke-linejoin: round;
+      }
+
+      .svg-label.small {
+        font-size: 11px;
+        font-weight: 500;
+        fill: var(--ink-soft);
+      }
+
+      .svg-label.axis-x {
+        fill: var(--axis-x);
+      }
+      .svg-label.axis-y {
+        fill: var(--axis-y);
+      }
+      .svg-label.axis-z {
+        fill: var(--axis-z);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Koordinat Sistemi Standardı — Cargo Pilot</h1>
+        <p class="lede">
+          TIR konteyneri ve düz konteyner için ortak eksen sistemi, origin kuralı, kapı adlandırması,
+          standart kamera bakışları ve yükleme başlangıcı. Boyut terimleri İngilizce'dir:
+          <strong>width</strong>, <strong>height</strong>, <strong>length</strong>.
+        </p>
+      </header>
+
+      <h2>1. Ortak eksen sistemi</h2>
+
+      <div class="card">
+        <p style="margin: 0 0 0.9rem; font-size: 0.92rem">
+          <strong>Origin kuralı (her iki araç tipinde aynı):</strong> referans kapıdan içeri
+          bakıldığında görülen <strong>uzaktaki sol-alt köşe</strong> <code>(0, 0, 0)</code>'dır.
+          Referans kapı, TIR konteynerinde <strong>back door</strong>, düz konteynerde
+          <strong>small door</strong>'dur.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Eksen</th>
+              <th>Dimension</th>
+              <th>Yön</th>
+              <th>Aralık</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="swatch" style="background: var(--axis-x)"></span><code>x</code></td>
+              <td><strong>width</strong></td>
+              <td>Referans kapıdan bakıldığında <strong>sağa</strong> doğru artar</td>
+              <td><code>0 → width</code></td>
+            </tr>
+            <tr>
+              <td><span class="swatch" style="background: var(--axis-y)"></span><code>y</code></td>
+              <td><strong>height</strong></td>
+              <td>Zeminden <strong>yukarı</strong> doğru artar</td>
+              <td><code>0 → height</code></td>
+            </tr>
+            <tr>
+              <td><span class="swatch" style="background: var(--axis-z)"></span><code>z</code></td>
+              <td><strong>length</strong></td>
+              <td>Uzak yüzden (<code>z = 0</code>) <strong>referans kapıya</strong> doğru artar</td>
+              <td><code>0 → length</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="note">
+          <strong>Right-handed sistem.</strong> <code>y</code> yukarı, <code>z</code> kapıya
+          (gözlemciye) ve <code>x</code> gözlemcinin sağına arttığı için bu sistem
+          <em>right-handed</em>'dır — Three.js / WebGL varsayılanıyla birebir aynıdır. Sahnede
+          herhangi bir eksen aynalaması <strong>gerekmez</strong>; <code>position=[x, y, z]</code>
+          doğrudan kullanılabilir.
+        </p>
+
+        <p class="note">
+          <strong>İki small door'lu konteyner.</strong> Konteynerin iki kısa yüzünde de small door
+          olması kuralı değiştirmez: hangisinden bakılırsa bakılsın "uzaktaki sol-alt köşe" tanımı
+          aynı şekilde işler ve tutarlı bir sistem üretir. Referans kapı, bakılan / yükleme yapılan
+          kapıdır ve her zaman <code>z = length</code> yüzünde kabul edilir.
+        </p>
+      </div>
+
+      <h2>2. Kapı tipleri</h2>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Door</th>
+              <th>Yüz (face)</th>
+              <th>Olabileceği konumlar</th>
+              <th>TIR konteyneri</th>
+              <th>Düz konteyner</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>small door</strong><br />
+                <span style="color: var(--ink-soft)">küçük kapı</span>
+              </td>
+              <td><code>width × height</code></td>
+              <td><code>z = length</code> ve/veya <code>z = 0</code></td>
+              <td>
+                Yalnızca <code>z = length</code> — <strong>back door</strong>.
+                <code>z = 0</code> kabin ucudur, kapı olmaz.
+              </td>
+              <td>İki uçta da olabilir; referans olan <code>z = length</code>'tedir.</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>big door</strong><br />
+                <span style="color: var(--ink-soft)">büyük kapı</span>
+              </td>
+              <td><code>length × height</code></td>
+              <td><code>x = 0</code> ve/veya <code>x = width</code></td>
+              <td>Olabilir — tek tarafta ya da iki tarafta</td>
+              <td>Olabilir — tek tarafta ya da iki tarafta</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="note">
+          <strong>Kapılar liste olarak modellenir.</strong> Bir araçta aynı anda birden fazla kapı
+          bulunabildiği için (ör. back door + iki big door) kapı bilgisi tekil bir enum değeri değil,
+          yüz bilgisiyle birlikte bir liste olmalıdır:<br />
+          <code>doors: [{ type: 'small', face: 'z=length' }, { type: 'big', face: 'x=0' }, { type: 'big', face: 'x=width' }]</code>
+        </p>
+
+        <p class="note">
+          <strong>sağ / sol kapı diye bir kavram yoktur.</strong> "sağ" ve "sol" yalnızca kamera
+          bakışlarını adlandırmak için kullanılır (bkz. bölüm 6) ve her zaman referans kapıdan bakışa
+          göre tanımlanır. Kapılar <code>small</code> / <code>big</code> olarak sınıflanır,
+          konumları eksen değeriyle (<code>x = 0</code>, <code>z = length</code> …) yazılır.
+        </p>
+      </div>
+
+      <h2>3. TIR konteyneri (truck container)</h2>
+
+      <div class="card figure-scroll">
+        <h3>3.1 Isometric — referans kamera: kapı tarafı + sağ + üst</h3>
+        <svg
+          viewBox="-90 40 840 400"
+          role="img"
+          aria-label="TIR konteynerinin izometrik görünümü: sağ üstten bakış, back door solda, sağ yüzde opsiyonel big door, origin gizli köşede"
+        >
+          <defs>
+            <marker id="ah-x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-x)" />
+            </marker>
+            <marker id="ah-y" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-y)" />
+            </marker>
+            <marker id="ah-z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-z)" />
+            </marker>
+          </defs>
+
+          <!-- görünür yüzler: üst · sağ yüz (x = width) · back door (z = length) -->
+          <polygon points="340,53.4 453.9,119.2 182.2,276.1 68.3,210.3" fill="var(--face-top)" />
+          <polygon points="453.9,255.8 453.9,119.2 182.2,276.1 182.2,412.7" fill="var(--face-big-door)" fill-opacity="0.55" />
+          <polygon points="68.3,346.9 182.2,412.7 182.2,276.1 68.3,210.3" fill="var(--face-small-door)" />
+
+          <!-- gizli kenarlar (origin köşesinden çıkanlar) -->
+          <g stroke="var(--ink-faint)" stroke-width="1.4" stroke-dasharray="6 5" fill="none">
+            <line x1="340" y1="190" x2="453.9" y2="255.8" />
+            <line x1="340" y1="190" x2="340" y2="53.4" />
+            <line x1="340" y1="190" x2="68.3" y2="346.9" />
+          </g>
+
+          <!-- görünür kenarlar -->
+          <g stroke="var(--edge)" stroke-width="2" fill="none" stroke-linejoin="round">
+            <polyline points="340,53.4 453.9,119.2 453.9,255.8 182.2,412.7 68.3,346.9 68.3,210.3 340,53.4" />
+            <polyline points="453.9,119.2 182.2,276.1 68.3,210.3" />
+            <line x1="182.2" y1="276.1" x2="182.2" y2="412.7" />
+          </g>
+
+          <!-- yüz etiketleri -->
+          <text class="svg-label" x="125" y="296" text-anchor="middle">BACK DOOR</text>
+          <text class="svg-label small" x="125" y="312" text-anchor="middle">small · z = length</text>
+          <text class="svg-label small" x="125" y="326" text-anchor="middle">REFERANS KAPI</text>
+
+          <text class="svg-label" x="318" y="254" text-anchor="middle">BIG DOOR</text>
+          <text class="svg-label small" x="318" y="270" text-anchor="middle">opsiyonel · x = width</text>
+          <text class="svg-label small" x="318" y="284" text-anchor="middle">(x = 0'da da olabilir)</text>
+
+          <text class="svg-label small" x="261" y="132" text-anchor="middle">üst yüz · y = height</text>
+
+          <!-- gizli sol yüz -->
+          <line x1="204" y1="200" x2="140" y2="140" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <text class="svg-label small" x="132" y="118" text-anchor="end">sol yüz · x = 0 (gizli)</text>
+          <text class="svg-label small" x="132" y="132" text-anchor="end">burada da big door olabilir</text>
+
+          <!-- gizli uzak yüz -->
+          <line x1="400" y1="150" x2="500" y2="92" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <text class="svg-label" x="505" y="74" text-anchor="start">UZAK YÜZ · z = 0</text>
+          <text class="svg-label small" x="505" y="88" text-anchor="start">kabin / çekici ucu — KAPI YOK (gizli)</text>
+
+          <!-- eksen okları — origin gizli köşede olduğu için kesikli -->
+          <g stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="7 4">
+            <line x1="340" y1="190" x2="422" y2="237.4" stroke="var(--axis-x)" marker-end="url(#ah-x)" />
+            <line x1="340" y1="190" x2="340" y2="87.6" stroke="var(--axis-y)" marker-end="url(#ah-y)" />
+            <line x1="340" y1="190" x2="171.5" y2="287.3" stroke="var(--axis-z)" marker-end="url(#ah-z)" />
+          </g>
+          <text class="svg-label axis-x" x="430" y="232" text-anchor="start">x — width</text>
+          <text class="svg-label axis-y" x="352" y="84" text-anchor="start">y — height</text>
+          <text class="svg-label axis-z" x="152" y="262" text-anchor="end">z — length</text>
+
+          <!-- origin (gizli köşe) -->
+          <line x1="348" y1="196" x2="474" y2="262" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <circle cx="340" cy="190" r="7" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="3 2" />
+          <circle cx="340" cy="190" r="2.6" fill="var(--ink)" />
+          <text class="svg-label" x="480" y="254" text-anchor="start">ORIGIN (0,0,0)</text>
+          <text class="svg-label small" x="480" y="270" text-anchor="start">uzak yüz · x = 0 · y = 0 · z = 0</text>
+          <text class="svg-label small" x="480" y="284" text-anchor="start">bu bakışta GİZLİ köşedir</text>
+        </svg>
+        <p class="caption">
+          Referans kamera <strong>kapı tarafı + sağ + üst</strong> yönündedir
+          (<code>+z, +x, +y</code>). Bu bakışta back door, sağ yüz ve üst yüz görünür; uzak yüz
+          (<code>z = 0</code>, kabin ucu) ve sol yüz gizlidir. Origin, uzak-sol-alt köşe olduğu için
+          bu bakışta <strong>kutunun arkasında kalır</strong> — kesikli halka ve kesikli eksen okları
+          bunu gösterir. TIR konteynerinde <strong>ön kapı yoktur</strong>; ancak yan yüzlerde
+          (<code>x = 0</code> ve/veya <code>x = width</code>) <strong>big door</strong> bulunabilir.
+        </p>
+      </div>
+
+      <div class="card figure-scroll">
+        <h3>3.2 Referans kapı görünümü — origin kuralının tanımlandığı bakış</h3>
+        <svg
+          viewBox="-40 0 800 360"
+          role="img"
+          aria-label="Referans kapıdan bakış: x sağa artar, origin uzaktaki sol alt köşededir"
+        >
+          <defs>
+            <marker id="ah-x2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-x)" />
+            </marker>
+            <marker id="ah-y2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-y)" />
+            </marker>
+          </defs>
+
+          <rect x="150" y="40" width="400" height="210" fill="var(--face-small-door)" stroke="var(--edge)" stroke-width="2" rx="3" />
+          <text class="svg-label" x="350" y="132" text-anchor="middle">REFERANS KAPI (z = length)</text>
+          <text class="svg-label small" x="350" y="150" text-anchor="middle">TIR: back door · düz konteyner: small door</text>
+
+          <text class="svg-label small" x="150" y="30" text-anchor="middle">x = 0</text>
+          <text class="svg-label small" x="550" y="30" text-anchor="middle">x = width</text>
+          <text class="svg-label small" x="350" y="268" text-anchor="middle">y = 0 · zemin</text>
+
+          <line x1="160" y1="292" x2="540" y2="292" stroke="var(--axis-x)" stroke-width="3" marker-end="url(#ah-x2)" stroke-linecap="round" />
+          <text class="svg-label axis-x" x="350" y="316" text-anchor="middle">x — width (bu bakışta SAĞA artar)</text>
+
+          <line x1="580" y1="250" x2="580" y2="55" stroke="var(--axis-y)" stroke-width="3" marker-end="url(#ah-y2)" stroke-linecap="round" />
+          <text class="svg-label axis-y" x="590" y="48" text-anchor="start">y — height</text>
+
+          <circle cx="150" cy="250" r="7" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="3 2" />
+          <circle cx="150" cy="250" r="2.6" fill="var(--ink)" />
+          <line x1="142" y1="250" x2="120" y2="228" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <text class="svg-label" x="112" y="200" text-anchor="end">ORIGIN (0,0,0)</text>
+          <text class="svg-label small" x="112" y="216" text-anchor="end">bu köşenin hizasında ama</text>
+          <text class="svg-label small" x="112" y="230" text-anchor="end">gözlemciden length kadar</text>
+          <text class="svg-label small" x="112" y="244" text-anchor="end">uzakta (z = 0 yüzünde)</text>
+        </svg>
+        <p class="caption">
+          Origin bu bakışta <strong>sol-alt</strong> köşe hizasındadır, ancak gözlemciden
+          <code>length</code> kadar uzakta, <code>z = 0</code> yüzü üzerindedir (kesikli halka bunu
+          gösterir). <code>z</code> ekseni gözlemciye doğru artar.
+        </p>
+      </div>
+
+      <h2>4. Düz konteyner (plain container)</h2>
+
+      <div class="card figure-scroll">
+        <h3>4.1 Isometric — small door ve big door bir arada</h3>
+        <svg
+          viewBox="-90 40 840 400"
+          role="img"
+          aria-label="Düz konteynerin izometrik görünümü: sağ üstten bakış, small door solda, big door sağ yüzde, origin gizli köşede"
+        >
+          <defs>
+            <marker id="ah-x3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-x)" />
+            </marker>
+            <marker id="ah-y3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-y)" />
+            </marker>
+            <marker id="ah-z3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-z)" />
+            </marker>
+          </defs>
+
+          <polygon points="340,53.4 453.9,119.2 182.2,276.1 68.3,210.3" fill="var(--face-top)" />
+          <polygon points="453.9,255.8 453.9,119.2 182.2,276.1 182.2,412.7" fill="var(--face-big-door)" />
+          <polygon points="68.3,346.9 182.2,412.7 182.2,276.1 68.3,210.3" fill="var(--face-small-door)" />
+
+          <g stroke="var(--ink-faint)" stroke-width="1.4" stroke-dasharray="6 5" fill="none">
+            <line x1="340" y1="190" x2="453.9" y2="255.8" />
+            <line x1="340" y1="190" x2="340" y2="53.4" />
+            <line x1="340" y1="190" x2="68.3" y2="346.9" />
+          </g>
+
+          <g stroke="var(--edge)" stroke-width="2" fill="none" stroke-linejoin="round">
+            <polyline points="340,53.4 453.9,119.2 453.9,255.8 182.2,412.7 68.3,346.9 68.3,210.3 340,53.4" />
+            <polyline points="453.9,119.2 182.2,276.1 68.3,210.3" />
+            <line x1="182.2" y1="276.1" x2="182.2" y2="412.7" />
+          </g>
+
+          <text class="svg-label" x="125" y="296" text-anchor="middle">SMALL DOOR</text>
+          <text class="svg-label small" x="125" y="312" text-anchor="middle">küçük kapı · z = length</text>
+          <text class="svg-label small" x="125" y="326" text-anchor="middle">REFERANS KAPI</text>
+
+          <text class="svg-label" x="318" y="254" text-anchor="middle">BIG DOOR</text>
+          <text class="svg-label small" x="318" y="270" text-anchor="middle">büyük kapı · x = width</text>
+          <text class="svg-label small" x="318" y="284" text-anchor="middle">(x = 0'da da olabilir)</text>
+
+          <text class="svg-label small" x="261" y="132" text-anchor="middle">üst yüz · y = height</text>
+
+          <line x1="204" y1="200" x2="140" y2="140" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <text class="svg-label small" x="132" y="118" text-anchor="end">sol yüz · x = 0 (gizli)</text>
+          <text class="svg-label small" x="132" y="132" text-anchor="end">burada da big door olabilir</text>
+
+          <line x1="400" y1="150" x2="500" y2="92" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <text class="svg-label" x="505" y="74" text-anchor="start">UZAK KÜÇÜK YÜZ · z = 0</text>
+          <text class="svg-label small" x="505" y="88" text-anchor="start">burada ikinci bir small door olabilir</text>
+
+          <g stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="7 4">
+            <line x1="340" y1="190" x2="422" y2="237.4" stroke="var(--axis-x)" marker-end="url(#ah-x3)" />
+            <line x1="340" y1="190" x2="340" y2="87.6" stroke="var(--axis-y)" marker-end="url(#ah-y3)" />
+            <line x1="340" y1="190" x2="171.5" y2="287.3" stroke="var(--axis-z)" marker-end="url(#ah-z3)" />
+          </g>
+          <text class="svg-label axis-x" x="430" y="232" text-anchor="start">x — width</text>
+          <text class="svg-label axis-y" x="352" y="84" text-anchor="start">y — height</text>
+          <text class="svg-label axis-z" x="152" y="262" text-anchor="end">z — length</text>
+
+          <line x1="348" y1="196" x2="474" y2="262" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <circle cx="340" cy="190" r="7" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="3 2" />
+          <circle cx="340" cy="190" r="2.6" fill="var(--ink)" />
+          <text class="svg-label" x="480" y="254" text-anchor="start">ORIGIN (0,0,0)</text>
+          <text class="svg-label small" x="480" y="270" text-anchor="start">uzak yüz · x = 0 · y = 0 · z = 0</text>
+          <text class="svg-label small" x="480" y="284" text-anchor="start">bu bakışta GİZLİ köşedir</text>
+        </svg>
+        <p class="caption">
+          Düz konteynerde <strong>ön/arka/sağ/sol kapı diye bir sınıflandırma yoktur</strong>;
+          yalnızca <strong>small door</strong> (kısa yüzde, <code>width × height</code>) ve
+          <strong>big door</strong> (uzun yan yüzde, <code>length × height</code>) vardır. İki kısa
+          yüzde de small door, iki uzun yüzde de big door bulunabilir. Referans olan, bakılan /
+          yükleme yapılan small door'dur ve <code>z = length</code> yüzünde kabul edilir.
+        </p>
+      </div>
+
+      <h2>5. Yükleme başlangıcı</h2>
+
+      <div class="card figure-scroll">
+        <h3>5.1 Üstten görünüm — big door origin tarafındayken başlangıç kayması</h3>
+        <svg
+          viewBox="-60 20 840 440"
+          role="img"
+          aria-label="Üstten görünüm: yükleme origin'den başlar, big door x=0 yüzündeyse başlangıç x ekseninde kayar"
+        >
+          <defs>
+            <marker id="ah-x4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-x)" />
+            </marker>
+            <marker id="ah-z4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--axis-z)" />
+            </marker>
+            <marker id="ah-load" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)" />
+            </marker>
+          </defs>
+
+          <rect x="240" y="70" width="220" height="320" fill="var(--face-top)" stroke="var(--edge)" stroke-width="2" />
+
+          <!-- big door açıklık payı -->
+          <rect x="240" y="70" width="32" height="320" fill="var(--axis-x)" fill-opacity="0.13" />
+          <line x1="272" y1="70" x2="272" y2="390" stroke="var(--axis-x)" stroke-width="1.5" stroke-dasharray="5 4" />
+          <text class="svg-label small" x="256" y="372" text-anchor="middle">x₀</text>
+
+          <!-- big door -->
+          <rect x="231" y="110" width="10" height="240" fill="var(--face-big-door)" stroke="var(--edge)" stroke-width="1" />
+          <text class="svg-label" x="222" y="236" text-anchor="end">BIG DOOR</text>
+          <text class="svg-label small" x="222" y="251" text-anchor="end">x = 0 yüzü</text>
+
+          <!-- referans kapı -->
+          <rect x="250" y="386" width="200" height="10" fill="var(--face-small-door)" stroke="var(--edge)" stroke-width="1" />
+          <text class="svg-label" x="350" y="424" text-anchor="middle">REFERANS KAPI · z = length</text>
+          <text class="svg-label small" x="350" y="439" text-anchor="middle">gözlemci / yükleme bu taraftan</text>
+
+          <!-- yükleme yönü -->
+          <line x1="400" y1="110" x2="400" y2="350" stroke="var(--ink-faint)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah-load)" />
+          <text class="svg-label small" x="408" y="230" text-anchor="start">yükleme yönü</text>
+
+          <!-- eksenler -->
+          <line x1="240" y1="48" x2="460" y2="48" stroke="var(--axis-x)" stroke-width="3" marker-end="url(#ah-x4)" stroke-linecap="round" />
+          <text class="svg-label axis-x" x="350" y="38" text-anchor="middle">x — width</text>
+          <line x1="492" y1="70" x2="492" y2="390" stroke="var(--axis-z)" stroke-width="3" marker-end="url(#ah-z4)" stroke-linecap="round" />
+          <text class="svg-label axis-z" x="502" y="200" text-anchor="start">z — length</text>
+          <text class="svg-label small" x="466" y="82" text-anchor="start">z = 0</text>
+
+          <!-- origin -->
+          <circle cx="240" cy="70" r="7" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5" />
+          <circle cx="240" cy="70" r="2.6" fill="var(--ink)" />
+          <text class="svg-label" x="228" y="88" text-anchor="end">ORIGIN (0,0,0)</text>
+          <text class="svg-label small" x="228" y="103" text-anchor="end">uzak sol-alt köşe</text>
+
+          <!-- yükleme başlangıcı -->
+          <rect x="266" y="64" width="12" height="12" fill="var(--axis-x)" stroke="var(--halo)" stroke-width="1.5" />
+          <line x1="278" y1="76" x2="298" y2="104" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <text class="svg-label" x="302" y="112" text-anchor="start">YÜKLEME BAŞLANGICI</text>
+          <text class="svg-label small" x="302" y="127" text-anchor="start">(x₀, 0, 0) — big door x = 0'da</text>
+          <text class="svg-label small" x="302" y="141" text-anchor="start">olduğu için x ekseninde kayar</text>
+        </svg>
+        <p class="caption">
+          Üstten bakış: <code>x</code> sağa, <code>z</code> aşağı (referans kapıya doğru) artar.
+          Yükleme normalde <code>(0, 0, 0)</code>'dan başlar. <strong>Big door origin'in bulunduğu
+          <code>x = 0</code> yüzündeyse</strong> yükleme origin'den değil, <code>x</code> ekseninde
+          <code>x₀</code> kadar kaymış <code>(x₀, 0, 0)</code> noktasından başlar; taralı şerit bu
+          payı gösterir.
+        </p>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Durum</th>
+              <th>Yükleme başlangıç noktası</th>
+              <th>Kullanılabilir <code>x</code> aralığı</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Big door yok</td>
+              <td><code>(0, 0, 0)</code></td>
+              <td><code>0 → width</code></td>
+            </tr>
+            <tr>
+              <td>Big door <code>x = 0</code> yüzünde</td>
+              <td><code>(x₀, 0, 0)</code></td>
+              <td><code>x₀ → width</code></td>
+            </tr>
+            <tr>
+              <td>Big door <code>x = width</code> yüzünde</td>
+              <td><code>(0, 0, 0)</code></td>
+              <td><code>0 → width − x₀</code> <span class="pill">onay bekliyor</span></td>
+            </tr>
+            <tr>
+              <td>Big door iki yüzde de</td>
+              <td><code>(x₀, 0, 0)</code></td>
+              <td><code>x₀ → width − x₀</code> <span class="pill">onay bekliyor</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="note warn">
+          <strong><code>x₀</code> değeri henüz tanımlı değil.</strong> Big door açıklık payının kaç
+          cm olduğu (sabit mi, kapı kanadı kalınlığına mı bağlı, araç kaydından mı gelecek)
+          belirlenmeli. Tabloda <span class="pill">onay bekliyor</span> ile işaretli iki satır,
+          verdiğin kuraldan türetilmiş önerilerdir — <code>x = width</code> tarafındaki big door için
+          aynı payın uygulanıp uygulanmayacağını onaylaman gerekiyor.
+        </p>
+      </div>
+
+      <h2>6. Standart kamera bakışları</h2>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Bakış</th>
+              <th>Kamera yönü</th>
+              <th>Görünen yüz</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kapı görünümü</strong> (referans)</td>
+              <td><code>+z</code> tarafından, <code>−z</code> yönüne bakar</td>
+              <td>referans kapı — <code>z = length</code></td>
+            </tr>
+            <tr>
+              <td><strong>Karşı görünüm</strong></td>
+              <td><code>−z</code> tarafından</td>
+              <td>uzak yüz — <code>z = 0</code></td>
+            </tr>
+            <tr>
+              <td><strong>Sağ görünüm</strong></td>
+              <td><code>+x</code> tarafından</td>
+              <td>sağ yüz — <code>x = width</code></td>
+            </tr>
+            <tr>
+              <td><strong>Sol görünüm</strong></td>
+              <td><code>−x</code> tarafından</td>
+              <td>sol yüz — <code>x = 0</code></td>
+            </tr>
+            <tr>
+              <td><strong>Üst görünüm</strong></td>
+              <td><code>+y</code> tarafından</td>
+              <td>tavan — <code>y = height</code></td>
+            </tr>
+            <tr>
+              <td><strong>İzometrik</strong> (referans)</td>
+              <td><code>+z, +x, +y</code> — kapı + sağ + üst</td>
+              <td>kapı yüzü, sağ yüz, tavan (origin gizli köşede kalır)</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          Sağ/sol, <strong>kapı görünümündeki</strong> gözlemciye göredir: gözlemcinin sağı
+          <code>+x</code>, solu <code>x = 0</code> tarafıdır. Üstten veya karşıdan bakışta ekranda
+          gördüğün sol/sağ ile karıştırılmamalıdır.
+        </p>
+      </div>
+
+      <h2>7. Yerleştirme kuralları</h2>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Konu</th>
+              <th>Kural</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Birim</td>
+              <td>Santimetre (<code>cm</code>). Dönüşüm yalnızca API sınırında yapılır.</td>
+            </tr>
+            <tr>
+              <td>Kutu pozisyonu</td>
+              <td>
+                <code>positionX/Y/Z</code>, kutunun <strong>origin'e en yakın köşesidir</strong>:
+                <code>(min x, min y, min z)</code>. Mesh merkezi değildir.
+              </td>
+            </tr>
+            <tr>
+              <td>Kutu sınırları</td>
+              <td>
+                <code>x … x + width</code> · <code>y … y + height</code> ·
+                <code>z … z + length</code>. Hepsi araç iç ölçüsü içinde kalmalı; big door payı varsa
+                <code>x</code> alt sınırı <code>x₀</code>'dır.
+              </td>
+            </tr>
+            <tr>
+              <td>Yükleme yönü</td>
+              <td>
+                Yükleme referans kapıdan yapılır: <code>z = 0</code> (uzak yüz) tarafındaki kutular
+                önce yerleşir, kapıya en yakın olanlar (<code>z → length</code>) en son.
+              </td>
+            </tr>
+            <tr>
+              <td>Terminoloji</td>
+              <td>
+                Kod, tip, alan adı ve teknik dokümanda yalnızca <code>width</code>,
+                <code>height</code>, <code>length</code>. <code>depth</code>, <code>uzunluk</code>,
+                <code>derinlik</code>, <code>w/h/d/l</code> kullanılmaz.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>8. Beklemedeki konular</h2>
+
+      <div class="card">
+        <ol class="assumptions">
+          <li>
+            <strong>Small door'u olmayan konteyner</strong>
+            <span class="pill">sektör araştırması</span><br />
+            Yalnızca big door'u olan bir konteynerde origin kuralı tanımsız kalıyor. Sektör
+            araştırması sonrasında karara bağlanacak.
+          </li>
+          <li>
+            <strong>Üst kapı (top door)</strong>
+            <span class="pill">sektör araştırması</span><br />
+            Mevcut sistemde <code>top</code> kapı yönü var. Yeni adlandırmada üçüncü bir kapı tipi mi
+            olacağı, yoksa hiç modellenmeyeceği araştırma sonrasında belirlenecek.
+          </li>
+          <li>
+            <strong><code>x₀</code> — big door açıklık payı</strong>
+            <span class="pill">değer gerekli</span><br />
+            Kaç cm olduğu ve nereden geldiği (sabit / araç kaydı / kapı kanadı ölçüsü) tanımlanmalı.
+            Ayrıca <code>x = width</code> tarafındaki big door için aynı payın uygulanıp
+            uygulanmayacağı onaylanmalı (bkz. bölüm 5 tablosu).
+          </li>
+        </ol>
+      </div>
+    </main>
+  </body>
+</html>
