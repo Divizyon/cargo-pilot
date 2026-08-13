@@ -38,10 +38,10 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: .NET 8 SDK kur
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '8.0.x'
 
@@ -87,18 +87,18 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: "Image tag belirle (immutable: test-{short-sha})"
         id: sha
         run: echo "tag=test-$(echo '${{ github.sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - name: Docker Buildx kur
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       # Base image pull + push için GHCR auth; GITHUB_TOKEN her trigger'da geçerli
       - name: GHCR'a giriş yap
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -107,7 +107,7 @@ jobs:
       # push: PR'larda false, test branch push'ta true
       # :test → mutable (latest), :test-{sha} → immutable (rollback için)
       - name: Backend image build ve GHCR push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
@@ -122,7 +122,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend-test
 
       - name: Frontend image build ve GHCR push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
@@ -181,14 +181,14 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Docker Buildx kur
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       # Base image pull için GHCR auth; GITHUB_TOKEN her trigger'da geçerli
       - name: GHCR'a giriş yap
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -199,7 +199,7 @@ jobs:
       # Tag'ler docker-compose.test.yml'deki image: alanlarıyla eşleşmeli.
       # load: true → image'ı local Docker daemon'a yükle (no push)
       - name: Backend image build (deploy için)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
@@ -213,7 +213,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend-test
 
       - name: Frontend image build (deploy için)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
@@ -232,7 +232,7 @@ jobs:
       # Infrastructure image'ları (MSSQL ~490MB, MinIO ~100MB) cache'lenir.
       - name: Infrastructure image cache'i kontrol et
         id: infra-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: /tmp/infra-images
           key: infra-images-mssql2022-minio-release-2022-v1
@@ -306,7 +306,7 @@ jobs:
       # US-D27-I: Sunucu artık build yapmıyor; GHCR'dan pull edilen image'ı kullanıyor.
       # Packages public olduğundan PAT login gerekmez; IMAGE_TAG ile immutable tag kullanılır.
       - name: Sunucuya bağlan ve test stack'ini güncelle
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
         with:
