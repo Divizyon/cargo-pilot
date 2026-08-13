@@ -1,6 +1,6 @@
 # Bilinen Sorunlar
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
 
 Bu doküman açık ve çözülmüş devops sorunlarını, kök nedenlerini ve uygulanan/uygulanacak çözümlerini listeler.
 
@@ -14,30 +14,9 @@ Bu doküman açık ve çözülmüş devops sorunlarını, kök nedenlerini ve uy
 
 ## Açık Sorunlar
 
-### 0 — Sunucuda Bayat GHCR Kimlik Bilgisi (INC-003)
-
-{% hint style="success" %}
-**Durum:** ✅ Çözüldü — doğrulandı (2026-08-03)
-{% endhint %}
-
-2026-08-03'te test sunucusuna deploy `error from registry: denied` ile kırıldı. Son başarılı
-deploy 2026-05-20'ydi.
-
-**Kök neden:** GHCR paketleri 2026-05-10'da public yapıldı ve `TEST_GHCR_PAT` login'i
-`test-deploy.yml`'den kaldırıldı (#483). Ancak sunucudaki `~/.docker/config.json` içinde eski
-PAT kimlik bilgisi kaldı. PAT'in süresi dolunca docker anonim pull'a **düşmedi**; geçersiz
-kimlik bilgisiyle deneyip `denied` aldı.
-
-**Etkisi:** Test ortamı 2026-05-20'den beri yeni image almıyordu.
-
-**Not:** Bu sorun trunk branch geçişinden **önce** de mevcuttu — aynı hata `test` branch'inde de
-alınmıştı (run 30809546247). Geçişten kaynaklanmadı.
-
-**Uygulanan çözüm:** Deploy script'ine pull öncesi `docker logout ghcr.io || true` eklendi.
-
-**Manuel alternatif:** Sunucuda bir kez `docker logout ghcr.io`.
-
----
+Fiilen açık 6 madde: **1, 2, 3, 4, 7, 8**. Çözülen 0, 5 ve 6 numaralı maddeler aşağıdaki
+"Çözülenler" bölümündedir. Madde numaraları diğer dokümanlardan referans verildiği için
+korunmuştur; yeniden numaralandırılmaz.
 
 ### 1 — Resend Domain Doğrulaması Tamamlanmadı
 
@@ -97,50 +76,6 @@ CI pipeline'da Node.js 20 kullanılıyor; deprecation uyarısı alınmaktadır.
 
 ---
 
-### 5 — `docker-compose.prod.yml` Eksiklikleri
-
-{% hint style="success" %}
-**Durum:** ✅ Giderildi (2026-08-03) — sahada doğrulanmadı, prod stack hâlâ kurulmadı
-{% endhint %}
-
-Prod compose, test compose ile karşılaştırıldığında şunlar eksikti:
-
-| Eksik | Etkisi |
-|-------|--------|
-| `Minio__Endpoint/AccessKey/SecretKey/BucketName` | **Dosya yükleme ve PDF hiç çalışmazdı** — backend `MINIO_*` değil `Minio__*` okuyor |
-| `OAuth__Google__*` (4 değişken) | Google ile giriş çalışmazdı |
-| `Cors__AllowedOrigins__0` | Ayrı origin kullanılırsa frontend API'ye ulaşamazdı |
-| `Resend__*`, `PasswordReset__*`, `EmailChange__*` | Şifre sıfırlama ve e-posta değiştirme kırıktı |
-| Backend `healthcheck:` | Deploy "hazır mı" bilemezdi; `depends_on` sağlık koşulu kurulamazdı |
-| `platform: linux/amd64` | Mimari uyuşmazlığı riski |
-
-**Uygulanan çözüm:** Prod compose'un backend servisi test compose ile birebir aynı anahtar
-kümesine getirildi; healthcheck eklendi; frontend `backend`'in sağlıklı olmasını bekliyor.
-MSSQL'de hem `MSSQL_SA_PASSWORD` hem `SA_PASSWORD` set ediliyor (2022 image'ı ilkini bekler),
-healthcheck `MSSQL_SA_PASSWORD` kullanıyor. Bağlantı dizesi artık compose içinde kuruluyor —
-parola `.env.prod`'da tek yerde duruyor. `.env.prod.example` yeni değişkenlerle tamamlandı.
-
-**Kalan iş:** Prod stack hiç ayağa kaldırılmadığı için bu yapılandırma **çalışır hâlde
-görülmedi**. İlk deploy'da doğrulanmalı. Bkz. madde 2 ve [devops-backlog.md](devops-backlog.md) 2.1.
-
----
-
-### 6 — `dev` Branch'inin Test'in Gerisine Düşme Riski
-
-{% hint style="success" %}
-**Durum:** ✅ Yapısal olarak engellendi (2026-08-03)
-{% endhint %}
-
-`US-REP-04` (#482) dev'i atlayarak doğrudan test'e merge edildi. Bu, dev'in test'in gerisinde kalmasına neden oldu. PR #493 ile giderildi.
-
-**Uygulanan çözüm:** `ci.yml`'deki **`Terfi Zinciri Kontrolü`** job'u bunu artık CI seviyesinde engelliyor: `test`'e yalnızca `dev`'den, `main`'e yalnızca `test` veya `hotfix/*` üzerinden PR açılabilir. Ayrıca ruleset terfi PR'larında squash'ı kapatıyor — squash, kaynakta bulunmayan yeni bir commit üreterek aynı ayrışmayı yaratırdı.
-
-**Süreç kuralı:** İş branch'leri yalnızca `dev`'e PR açar. `dev → test` ve `test → main` ayrı terfi PR'larıdır. Test ortamında bulunan bug `test`'te değil, `dev`'den açılan `fix/*` ile düzeltilir.
-
-**Kalan risk:** `hotfix/* → main` sonrası `main → test → dev` geri-merge'ünün unutulması. Bu adım otomatikleştirilmedi — bkz. [branching.md](../conventions/branching.md) "Hotfix".
-
----
-
 ### 7 — Loki / cAdvisor Log Rotation Tanımlı Değil
 
 {% hint style="warning" %}
@@ -187,6 +122,80 @@ Kritik CVE'ler: `zlib1g` (backend), `openssl` + `libxml2` (frontend), `System.Se
 ---
 
 ## Çözülenler
+
+Aşağıdaki üç madde daha önce "Açık Sorunlar" altında listeleniyordu; çözülmüş oldukları için
+buraya taşındı. Numaraları diğer dokümanlardaki referanslar bozulmasın diye korunmuştur.
+
+### 0 — Sunucuda Bayat GHCR Kimlik Bilgisi (INC-003)
+
+{% hint style="success" %}
+**Durum:** ✅ Çözüldü — doğrulandı (2026-08-03)
+{% endhint %}
+
+2026-08-03'te test sunucusuna deploy `error from registry: denied` ile kırıldı. Son başarılı
+deploy 2026-05-20'ydi.
+
+**Kök neden:** GHCR paketleri 2026-05-10'da public yapıldı ve `TEST_GHCR_PAT` login'i
+`test-deploy.yml`'den kaldırıldı (#483). Ancak sunucudaki `~/.docker/config.json` içinde eski
+PAT kimlik bilgisi kaldı. PAT'in süresi dolunca docker anonim pull'a **düşmedi**; geçersiz
+kimlik bilgisiyle deneyip `denied` aldı.
+
+**Etkisi:** Test ortamı 2026-05-20'den beri yeni image almıyordu.
+
+**Not:** Bu sorun trunk branch geçişinden **önce** de mevcuttu — aynı hata `test` branch'inde de
+alınmıştı (run 30809546247). Geçişten kaynaklanmadı.
+
+**Uygulanan çözüm:** Deploy script'ine pull öncesi `docker logout ghcr.io || true` eklendi.
+
+**Manuel alternatif:** Sunucuda bir kez `docker logout ghcr.io`.
+
+---
+
+### 5 — `docker-compose.prod.yml` Eksiklikleri
+
+{% hint style="success" %}
+**Durum:** ✅ Giderildi (2026-08-03) — sahada doğrulanmadı, prod stack hâlâ kurulmadı
+{% endhint %}
+
+Prod compose, test compose ile karşılaştırıldığında şunlar eksikti:
+
+| Eksik | Etkisi |
+|-------|--------|
+| `Minio__Endpoint/AccessKey/SecretKey/BucketName` | **Dosya yükleme ve PDF hiç çalışmazdı** — backend `MINIO_*` değil `Minio__*` okuyor |
+| `OAuth__Google__*` (4 değişken) | Google ile giriş çalışmazdı |
+| `Cors__AllowedOrigins__0` | Ayrı origin kullanılırsa frontend API'ye ulaşamazdı |
+| `Resend__*`, `PasswordReset__*`, `EmailChange__*` | Şifre sıfırlama ve e-posta değiştirme kırıktı |
+| Backend `healthcheck:` | Deploy "hazır mı" bilemezdi; `depends_on` sağlık koşulu kurulamazdı |
+| `platform: linux/amd64` | Mimari uyuşmazlığı riski |
+
+**Uygulanan çözüm:** Prod compose'un backend servisi test compose ile birebir aynı anahtar
+kümesine getirildi; healthcheck eklendi; frontend `backend`'in sağlıklı olmasını bekliyor.
+MSSQL'de hem `MSSQL_SA_PASSWORD` hem `SA_PASSWORD` set ediliyor (2022 image'ı ilkini bekler),
+healthcheck `MSSQL_SA_PASSWORD` kullanıyor. Bağlantı dizesi artık compose içinde kuruluyor —
+parola `.env.prod`'da tek yerde duruyor. `.env.prod.example` yeni değişkenlerle tamamlandı.
+
+**Kalan iş:** Prod stack hiç ayağa kaldırılmadığı için bu yapılandırma **çalışır hâlde
+görülmedi**. İlk deploy'da doğrulanmalı. Bkz. madde 2 ve [devops-backlog.md](devops-backlog.md) 2.1.
+
+---
+
+### 6 — `dev` Branch'inin Test'in Gerisine Düşme Riski
+
+{% hint style="success" %}
+**Durum:** ✅ Yapısal olarak engellendi (2026-08-03)
+{% endhint %}
+
+`US-REP-04` (#482) dev'i atlayarak doğrudan test'e merge edildi. Bu, dev'in test'in gerisinde kalmasına neden oldu. PR #493 ile giderildi.
+
+**Uygulanan çözüm:** `ci.yml`'deki **`Terfi Zinciri Kontrolü`** job'u bunu artık CI seviyesinde engelliyor: `test`'e yalnızca `dev`'den, `main`'e yalnızca `test` veya `hotfix/*` üzerinden PR açılabilir. Ayrıca ruleset terfi PR'larında squash'ı kapatıyor — squash, kaynakta bulunmayan yeni bir commit üreterek aynı ayrışmayı yaratırdı.
+
+**Süreç kuralı:** İş branch'leri yalnızca `dev`'e PR açar. `dev → test` ve `test → main` ayrı terfi PR'larıdır. Test ortamında bulunan bug `test`'te değil, `dev`'den açılan `fix/*` ile düzeltilir.
+
+**Kalan risk:** `hotfix/* → main` sonrası `main → test → dev` geri-merge'ünün unutulması. Bu adım otomatikleştirilmedi — bkz. [branching.md](../conventions/branching.md) "Hotfix".
+
+---
+
+### Kısa Kayıtlar
 
 | Tarih | Sorun | Çözüm |
 |-------|-------|-------|

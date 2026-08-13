@@ -1,12 +1,17 @@
 # Doküman Haritası
 
-**Son güncelleme:** 2026-08-08 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
 
 Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 
 ---
 
-**Toplam 37 dosya / ~8.650 satır.** Son tarama: 2026-08-08.
+**Toplam 41 dosya / 10.125 satır** (`.claude/` hariç, `apps/frontend/.claude/` dahil).
+Son tarama: 2026-08-13.
+
+> **Revizyon 2026-08-13:** indeks yeniden ölçüldü; bayat satır sayıları ve iddialar
+> düzeltildi. Yeni girenler: `docs/COORDINATE_STANDARD.md`, `docs/COORDINATE_AUDIT.md`
+> (2026-08-12), `devops-audit-raporu.md` ve `.github/SECURITY.md` (2026-08-13).
 
 > **Revizyon 2026-08-08:** doküman yapısı yeniden kuruldu (kök sadeleşti, `docs/archive/`
 > açıldı, kebab-case adlandırma, standart şablon). Taşınanlar:
@@ -25,21 +30,30 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
 | `README.md` | 101 | Ürün tanıtımı, hızlı başlangıç (3 komut), stack tablosu, repo ağacı, ortam durumu, "Katkı Sağlama" bölümü | Projeye ilk bakış |
-| `CONTRIBUTING.md` | 61 | Katkı rehberi: kurulum, üç dallı branch modeli, commit kuralları, kod standartları, PR süreci (1 onay + CI kapıları + UI ekran görüntüsü), yeni doküman eklerken güncellenecek dosyalar | Repoya ilk katkıdan önce |
-| `SUMMARY.md` | 51 | GitBook içindekiler tablosu. Bölümler: Başlangıç, Geliştirme Kuralları, DevOps (8), Backend (7), Proje Bağlamı (5), Arşiv (5) | Yeni doküman eklerken (buraya da satır eklenmeli) |
-| `CLAUDE.md` | 248 | **Frontend** geliştirme kuralları (AI asistan talimatı). Kapsam, stack, sınırlar, veri kuralları, 3D invariant'ları, kalite kapıları; Git konusunda `docs/conventions/`e yönlendirir | Frontend'e kod yazmadan önce |
+| `CONTRIBUTING.md` | 63 | Katkı rehberi: kurulum, üç dallı branch modeli, commit kuralları, kod standartları, PR süreci (**zorunlu review yok** — CI kapıları geçen PR merge edilebilir; UI ekran görüntüsü zorunlu), yeni doküman eklerken güncellenecek dosyalar | Repoya ilk katkıdan önce |
+| `SUMMARY.md` | 55 | GitBook içindekiler tablosu. Bölümler: Başlangıç (3), Geliştirme Kuralları (4), DevOps (10), Backend (7), Proje Bağlamı (5), Arşiv (5) | Yeni doküman eklerken (buraya da satır eklenmeli) |
+| `CLAUDE.md` | 135 | **Frontend** geliştirme kuralları (AI asistan talimatı). Kapsam, stack, sınırlar, veri kuralları, 3D invariant'ları, kalite kapıları; Git konusunda `docs/conventions/`e yönlendirir | Frontend'e kod yazmadan önce |
+| `devops-audit-raporu.md` | 393 | **DevOps denetim raporu (2026-08-13)** — 7 paralel ajanla yapılan denetim; sağlık skoru, rollback/tedarik zinciri/güvenlik görünürlüğü bulguları, öncelik matrisi, "denetim anı → bugünkü durum" karşılaştırması | DevOps risk ve öncelik sorularında — en güncel denetim |
 
 ## .github
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
 | `pull_request_template.md` | 32 | Özet / user story / değişiklik tipi / test edildi mi / **Ekran Görüntüleri** / 5 maddelik kontrol listesi | PR açarken |
+| `SECURITY.md` | 55 | Güvenlik açığı bildirim politikası (2026-08-13'te eklendi): desteklenen sürümler, GitHub private vulnerability reporting kanalı, 72 saat yanıt taahhüdü, kapsam ve otomatik taramalar | Güvenlik açığı bildirirken |
+
+## docs (kök)
+
+| Dosya | Satır | Özet | Şu soruda aç |
+|-------|------:|------|--------------|
+| `COORDINATE_STANDARD.md` | 254 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12): eksen/boyut terimleri, cm birimi, X=width / Y=height / Z=depth, kutu origin'i, API sözleşmesi. Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
+| `COORDINATE_AUDIT.md` | 736 | **Yalnızca rapor** (2026-08-12, sürüm 2) — mevcut frontend/backend kodunun standarda göre denetimi, dosya:satır kanıtlı sapma listesi | Koordinat sapması ararken |
 
 ## docs/conventions
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
-| `branching.md` | 274 | **Yürürlükteki** model: üç dallı terfi `dev` → `test` → `main` (2026-08-03'ten itibaren). İş branch'leri `dev`'den açılır, `test`'e yalnızca `dev`'den PR, `main`'e yalnızca `test`/`hotfix`'ten PR; branch türleri ve ≤3 gün ömür kuralı, doğrudan push yasağı (ruleset), PR onay kuralları | Branch/PR açarken. **Tarihsel öneri:** `../archive/branching-proposal-2026-08.md` |
+| `branching.md` | 298 | **Yürürlükteki** model: üç dallı terfi `dev` → `test` → `main` (2026-08-03'ten itibaren). İş branch'leri `dev`'den açılır, `test`'e yalnızca `dev`'den PR, `main`'e yalnızca `test`/`hotfix`'ten PR; branch türleri ve ≤3 gün ömür kuralı, doğrudan push yasağı (ruleset), PR onay kuralları | Branch/PR açarken. **Tarihsel öneri:** `../archive/branching-proposal-2026-08.md` |
 | `commits.md` | 107 | Sade + açıklayıcı mesaj, atomic commit (1 değişiklik = 1 commit), Türkçe tercih, "fix/update/son" gibi mesajlar yasak, PR öncesi geçmiş temizliği | Commit atmadan önce |
 
 ## docs/setup
@@ -52,13 +66,13 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
-| `deployment.md` | 170 | Test/prod servis adresleri, compose başlat-durdur komutları, sunucudaki env yolları, migration'ı SDK container'ı ile çalıştırma, container operasyonları, CI/CD akış tablosu, **Production Durumu** (stack hiç deploy edilmedi, `v*` etiketi tüketilmiyor) | Deploy / sunucu operasyonu |
+| `deployment.md` | 176 | Test/prod servis adresleri, compose başlat-durdur komutları, sunucudaki env yolları, migration'ı SDK container'ı ile çalıştırma, container operasyonları, CI/CD akış tablosu, **Production Durumu** (stack hiç deploy edilmedi, `v*` etiketi tüketilmiyor) | Deploy / sunucu operasyonu |
 | `server-requirements.md` | 99 | Sunucu donanımı (8 vCPU/16 GB/147 GB), bileşen bazlı CPU-RAM-disk gereksinimleri, ortam-port matrisi, aktif servis listesi | Kapasite planlama |
-| `server-access.md` | 241 | SSH erişimi ve yetkili key'ler, UFW port tablosu, fail2ban, nginx reverse proxy path'leri (`/api/`, `/media/`, `/`), ağ diyagramı, monitoring stack başlatma, DIVIZYON ERP DB restore, DB yedekleme cron'ları, GitHub Actions deploy key | Sunucuya bağlanma, ağ/proxy sorunu |
-| `secret-management.md` | 169 | "Repoya secret girmez" kuralı, env dosya tablosu, GHCR public durumu, backend local secret yöntemleri (User Secrets / Local JSON), GitHub Actions secret listesi, Google OAuth + Resend değişkenleri, ihlal prosedürü | Secret ekleme/döndürme |
+| `server-access.md` | 252 | SSH erişimi ve yetkili key'ler, UFW port tablosu, fail2ban, nginx reverse proxy path'leri (`/api/`, `/media/`, `/`), ağ diyagramı, monitoring stack başlatma, DIVIZYON ERP DB restore, DB yedekleme cron'ları, GitHub Actions deploy key | Sunucuya bağlanma, ağ/proxy sorunu |
+| `secret-management.md` | 223 | "Repoya secret girmez" kuralı, env dosya tablosu, GHCR public durumu, backend local secret yöntemleri (User Secrets / Local JSON), GitHub Actions secret listesi, Google OAuth + Resend değişkenleri, ihlal prosedürü | Secret ekleme/döndürme |
 | `monitoring-setup.md` | 248 | Prometheus/Loki/Promtail/Grafana mimarisi, ilk kurulum, toplanan metrikler, alert kuralları, sorun giderme (Loki log şişmesi dahil) | Alert/dashboard işleri |
-| `known-issues.md` | 205 | 9 açık sorun (0–8; bayat GHCR kimliği, Resend domain, prod stack, SA parolası, Node 20, prod compose, `dev` gerileme riski, log rotation, image CVE'leri) + çözülenler tablosu | **Her sprint başında.** Özeti: `project-snapshot.md` §5 |
-| `devops-backlog.md` | 234 | 11 maddelik öncelik matrisi + kategori bazlı detay (uyumsuzluklar, eksikler, güncellenecekler, GHCR, operasyonel) | DevOps planlaması |
+| `known-issues.md` | 214 | 0–8 numaralı 9 madde; 0 (bayat GHCR kimliği), 5 (prod compose) ve 6 (`dev` gerileme riski) ✅ çözüldü → **fiilen 6 açık**: Resend domain, prod stack, SA parolası, Node 20 uyarısı, log rotation, image CVE'leri + çözülenler tablosu | **Her sprint başında.** Özeti: `project-snapshot.md` §5 |
+| `devops-backlog.md` | 245 | 11 maddelik öncelik matrisi + kategori bazlı detay (uyumsuzluklar, eksikler, güncellenecekler, GHCR, operasyonel) | DevOps planlaması |
 | `iyilestirme-analizi-2026-08.md` | 850 | **51 bulguluk** kapsamlı devops analizi (2026-08-03): compose, CI/CD, güvenlik, monitoring, doküman tutarsızlıkları; bazı bulgular "doğrulanmadı" işaretli | DevOps iyileştirme planlarken — en güncel ve en detaylı kaynak |
 
 ## docs/archive
@@ -79,9 +93,9 @@ güncel davranışın kaynağı değildir.
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
 | `README.md` | 39 | Bağlam kütüphanesinin kullanım kuralı, içindekiler tablosu, güncelleme sorumluluğu matrisi | Bu klasöre ilk girişte |
-| `project-snapshot.md` | 169 | Stack, ortamlar, portlar, CI/CD, açık riskler, branch modeli, squad haritası — tek sayfa teknik anlık görüntü | **Her oturum başında** |
-| `doc-map.md` | bu dosya | Repodaki 37 `.md` dosyasının haritası + özeti + doküman sağlığı tablosu | "Bu bilgi nerede yazıyor?" |
-| `kod-taramasi-2026-08.md` | 96 | 6 kategoride kod tabanı taraması (frontend, backend, algoritma, devops, veritabanı, test/kalite): gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde |
+| `project-snapshot.md` | 174 | Stack, ortamlar, portlar, CI/CD, açık riskler, branch modeli, squad haritası — tek sayfa teknik anlık görüntü | **Her oturum başında** |
+| `doc-map.md` | bu dosya | Repodaki 41 `.md` dosyasının haritası + özeti + doküman sağlığı tablosu | "Bu bilgi nerede yazıyor?" |
+| `kod-taramasi-2026-08.md` | 102 | 6 kategoride kod tabanı taraması (frontend, backend, algoritma, devops, veritabanı, test/kalite): gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde |
 | `branch-audit.md` | 308 | 30 remote branch + açık PR analizi ve temizlik kararları. **Durum: uygulandı** — 29 branch → 3, 26 `archive/*` tag'i; §9 yürürlükteki üç dallı modeli anlatır | Branch/PR temizliği yaparken |
 
 ## infra
@@ -95,7 +109,7 @@ güncel davranışın kaynağı değildir.
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
 | `architecture.md` | 203 | Clean Architecture 4 katman + referans yönü, katman içerikleri, **kararlar:** MediatR Command/Query/Handler (2026-08-04'te kod gerçeğine göre düzeltildi), aggregate-specific repository, FluentValidation, `Result<T>`, composition root. Yeni use-case 8 adımı | Backend'e yeni özellik eklemeden önce |
-| `developer-setup.md` | 78 | Visual Studio workload'ları, `global.json` ile SDK pinleme, doğrulama komutları, CI SDK sabitleme | Backend ortam kurulumu |
+| `developer-setup.md` | 87 | Visual Studio workload'ları, `global.json` ile SDK pinleme, doğrulama komutları, CI SDK sabitleme | Backend ortam kurulumu |
 | `environment-variables.md` | 165 | `Section__SubSection__Key` naming standardı ve neden `__`, yapılandırma öncelik sırası, ortam bazlı secret kaynakları, User Secrets kurulumu, prod bağlantı akışı, secret policy, zorunlu/opsiyonel değişken tablosu | Env var eklerken |
 | `database-migrations.md` | 237 | `dotnet-ef` kurulumu, connection string kaynakları, migration üretme/uygulama/geri alma, isimlendirme, ortam bazlı akış, SQL script üretme, 6 yaygın hata | Migration işleri |
 | `user-story-tracker.md` | 530 | 17 story'nin alt iş bazında durum takibi (✅/🟡/⬜) + kanıt dosya listesi. Açık kalanlar: Story 8 "validation hatalarını envelope'a bağla", Story 9 correlation id + exception testleri | Backend ilerleme durumu |

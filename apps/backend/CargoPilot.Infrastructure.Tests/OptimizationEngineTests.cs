@@ -48,7 +48,7 @@ public sealed class OptimizationEngineTests
         // Ağırlık merkezi araç uzunluğunun (300) ortasına (150) yakın olmalı.
         // Fantom ceza varken kutular Z=0'a yığılır ve CoG 100'ün altına düşer.
         Assert.NotNull(result.CenterOfGravityZ);
-        Assert.InRange(result.CenterOfGravityZ!.Value, 100m, 200m);
+        Assert.InRange(result.CenterOfGravityZ.Value, 100m, 200m);
     }
 
     /// <summary>

@@ -1,11 +1,7 @@
 import * as THREE from 'three';
 
 type TrackableResource =
-  | THREE.Object3D
-  | THREE.BufferGeometry
-  | THREE.Material
-  | THREE.Texture
-  | THREE.WebGLRenderTarget;
+  THREE.Object3D | THREE.BufferGeometry | THREE.Material | THREE.Texture | THREE.WebGLRenderTarget;
 
 const TEXTURE_SLOTS: ReadonlyArray<string> = [
   'map',

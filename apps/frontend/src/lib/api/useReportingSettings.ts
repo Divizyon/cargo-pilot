@@ -67,9 +67,9 @@ export function useUploadReportingLogo() {
       const form = new FormData();
       form.append('logo', file);
       return axiosInstance
-        .post<
-          SettingsApiResponse<ReportingSettingsData>
-        >('/api/v1/settings/reporting/logo', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+        .post<SettingsApiResponse<ReportingSettingsData>>('/api/v1/settings/reporting/logo', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
         .then((r) => r.data);
     },
     onSuccess: () => {

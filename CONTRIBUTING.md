@@ -1,5 +1,7 @@
 # Katkı Sağlama
 
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
+
 Bu doküman, Cargo Pilot'a katkı sağlarken izlenecek temel akışı özetler: kurulum, branch modeli, commit kuralları ve PR süreci. Detaylar için her bölümdeki bağlantılı dokümana bakın.
 
 ---
@@ -47,8 +49,8 @@ Detay için bkz. [Commit Kuralları](docs/conventions/commits.md).
 1. PR açarken [PR şablonunu](.github/pull_request_template.md) eksiksiz doldurun (özet, ilgili user story/issue, değişiklik tipi, test durumu, ekran görüntüleri, kontrol listesi).
 2. Zorunlu review yoktur; CI kapıları geçen PR merge edilebilir. Riskli veya geniş kapsamlı değişikliklerde bir ekip arkadaşından review istemek önerilir.
 3. CI kapılarının geçmesi zorunludur:
-   - **Frontend:** `tsc`, `eslint`, `vitest`, `build`
-   - **Backend:** `dotnet build`
+   - **Frontend:** `eslint`, `prettier --check`, `tsc` + Vite `build`, `vitest`
+   - **Backend:** `dotnet build` (Release) **ve** `dotnet test` — `CargoPilot.Engine.Tests` ile `CargoPilot.Infrastructure.Tests` CI'da koşar
 4. UI değişikliği içeren PR'larda öncesi/sonrası ekran görüntüsü zorunludur; 3D/algoritma değişikliklerinde öncesi–sonrası plan karşılaştırması eklenir.
 
 ---
