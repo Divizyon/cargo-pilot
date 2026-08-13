@@ -98,6 +98,7 @@ export function SceneFloor({ y = -1 }: { y?: number }) {
         depthTest: true,
         depthWrite: true,
         side: THREE.FrontSide,
+        extensions: { derivatives: true } as unknown as { derivatives: boolean },
       }),
     [],
   );
