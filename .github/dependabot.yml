@@ -82,6 +82,12 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "System.*"
         update-types: ["version-update:semver-major"]
+      # Serilog.AspNetCore ve Swashbuckle sürümleri ASP.NET Core sürümüne hizalıdır
+      # (Serilog.AspNetCore 10.x -> .NET 10, Swashbuckle 10.x -> .NET 10).
+      - dependency-name: "Serilog.AspNetCore"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Swashbuckle.*"
+        update-types: ["version-update:semver-major"]
 
   # ── Docker ──────────────────────────────────────────────────
   - package-ecosystem: "docker"
