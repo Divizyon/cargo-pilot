@@ -40,5 +40,6 @@ export function draftItemToRow(item: DraftItem): EditableRow {
     incompatibleGroups: deriveIncompatibleGroups(stackGroup),
     notes: item.specialNotes ?? '',
     missingFields: item.missingFields ?? [],
+    barcode: item.barcode ?? null,
   };
 }

@@ -32,6 +32,11 @@ export const editableRowSchema = z.object({
   notes: z.string(),
   /** ERP kaynağında boş/sıfır gelen alan adları; hücre hatası bu satırlarda 'ERP'de eksik' der. */
   missingFields: z.array(z.string()).default([]),
+  /**
+   * ERP'den gelen barkod. Izgarada düzenlenmez, yalnızca taşınır: alan gönderilmezse
+   * taslak güncellemesi barkodu null'a çeker ve ERP'den gelen değer onayda kaybolurdu.
+   */
+  barcode: z.string().nullable().default(null),
 });
 
 export type EditableRow = z.infer<typeof editableRowSchema>;

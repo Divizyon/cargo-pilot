@@ -75,6 +75,7 @@ function makeRow(id: string, overrides: Partial<EditableRow> = {}): EditableRow 
     allowRotateZ: true,
     notes: '',
     missingFields: [],
+    barcode: null,
     ...overrides,
   };
 }
@@ -126,6 +127,18 @@ describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
     mocks.fetchAllItems.mockResolvedValue([]);
     mocks.updateDraft.mockResolvedValue({});
     mocks.approveBulk.mockResolvedValue({ approved: 2, skipped: 0, skippedItems: [] });
+  });
+
+  it('ızgarada düzenlenmeyen ERP barkodunu taslak güncellemesinde korur', async () => {
+    const user = userEvent.setup();
+    renderDialog([makeRow('a', { barcode: '8690000000001' })]);
+
+    await user.click(screen.getByRole('button', { name: /aktar/i }));
+
+    expect(mocks.updateDraft).toHaveBeenCalledTimes(1);
+    expect(mocks.updateDraft.mock.calls[0][0]).toMatchObject({
+      payload: { barcode: '8690000000001' },
+    });
   });
 
   it('hatalı satır varken yalnızca geçerli satırları aktarır, hatalı satır diyalogda kalır', async () => {

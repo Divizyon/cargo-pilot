@@ -112,6 +112,9 @@ function rowToPayload(row: EditableRow): Omit<CreateItemRequest, 'sku' | 'name'>
       row.allowRotateZ && fragilityType < 1 && !isVaril && !isPalet,
     ),
     constraintIds: row.constraintIds,
+    // Izgara barkodu düzenlemez ama göndermek zorunda: alan atlanırsa taslak
+    // güncellemesi mevcut barkodu siler.
+    barcode: row.barcode,
     stackGroup: row.stackGroup || null,
     incompatibleGroups: row.incompatibleGroups,
     specialNotes: row.notes.trim() || null,
