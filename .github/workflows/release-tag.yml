@@ -92,3 +92,12 @@ jobs:
           done
 
           echo "İmaj eşlemesi: **${TAG}** → \`test-${SHA}\` (backend + frontend)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: GitHub Release oluştur
+        if: steps.surum.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.surum.outputs.tag }}
+        run: |
+          gh release create "$TAG" --title "$TAG" --generate-notes
+          echo "GitHub Release oluşturuldu: **${TAG}**" >> "$GITHUB_STEP_SUMMARY"
