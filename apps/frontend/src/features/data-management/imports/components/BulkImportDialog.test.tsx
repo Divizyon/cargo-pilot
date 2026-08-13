@@ -129,6 +129,19 @@ describe('BulkImportDialog — kısmi aktarım (ERP-12)', () => {
     mocks.approveBulk.mockResolvedValue({ approved: 2, skipped: 0, skippedItems: [] });
   });
 
+  it('ERP onay akışında elle satır eklenemez', () => {
+    renderDialog([makeRow('a')]);
+
+    // Elle eklenen satirin karsiligi olan taslak yok; onayda sessizce dusuyordu.
+    expect(screen.queryByRole('button', { name: 'Satır Ekle' })).not.toBeInTheDocument();
+  });
+
+  it('Excel aktarımında satır eklemeye izin verir', () => {
+    renderCreateDialog([makeRow('a')]);
+
+    expect(screen.getByRole('button', { name: 'Satır Ekle' })).toBeInTheDocument();
+  });
+
   it('ızgarada düzenlenmeyen ERP barkodunu taslak güncellemesinde korur', async () => {
     const user = userEvent.setup();
     renderDialog([makeRow('a', { barcode: '8690000000001' })]);

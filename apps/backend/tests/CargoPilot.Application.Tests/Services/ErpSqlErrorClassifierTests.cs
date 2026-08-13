@@ -34,7 +34,12 @@ public sealed class ErpSqlErrorClassifierTests
         message.Should().Contain("veritabanı");
     }
 
+    /// <remarks>
+    /// 0, sunucudan gelmeyen tasima katmani hatasidir (guvenlik duvari, VPN, yanlis adres).
+    /// Genel mesaja dusseydi kullanici kimlik bilgilerini kontrol etmeye yonlendirilirdi.
+    /// </remarks>
     [Theory]
+    [InlineData(0)]
     [InlineData(-2)]
     [InlineData(53)]
     [InlineData(10060)]

@@ -183,3 +183,32 @@ describe('ERPSyncPanel senkronizasyon durumu', () => {
     expect(alert).toHaveTextContent('Sunucu hatası.');
   });
 });
+
+describe('ERPSyncPanel otomatik çekim anahtarı', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('kayıtlı sıklık varken Kapalı seçilince zamanlayıcı boş sıklıkla kapatılır', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, 1).data });
+    mocks.put.mockResolvedValue({ data: { isSuccess: true, data: {} } });
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    await user.click(await screen.findByRole('radio', { name: 'Kapalı' }));
+
+    // Backend SyncFrequency null iken zamanlayici bu entegrasyonu hic tetiklemez;
+    // 0 gonderilseydi 4 saatlik sıklık kaydedilirdi.
+    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(mocks.put.mock.calls[0][1]).toEqual({ syncFrequency: null });
+  });
+
+  it('sıklık kayıtlı değilken Kapalı seçeneği işaretli gelir', async () => {
+    mockSyncSettings({ ok: true, payload: syncSettingsResponse(0, null).data });
+
+    renderWithQueryClient(<ERPSyncPanel />);
+
+    expect(await screen.findByRole('radio', { name: 'Kapalı' })).toBeChecked();
+  });
+});

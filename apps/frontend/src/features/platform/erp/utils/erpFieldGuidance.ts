@@ -19,6 +19,27 @@ export interface ErpFieldGuidance {
   itChecklist: string;
 }
 
+/**
+ * Doğrudan-veritabanı modelinin ağ ön koşulları. Bunlar sağlanmadan bağlantı testi
+ * "sunucuya ulaşılamıyor" der ve kullanıcı nedeni ekranda göremez; ADR'de yazılıydı
+ * ama kurulum ekranında hiç görünmüyordu.
+ * Kaynak: apps/backend/docs/erp-integration/adr-baglanti-mimarisi.md
+ */
+export const ERP_NETWORK_PRECONDITIONS = [
+  'Cargo Pilot sunucusundan ERP SQL sunucusuna TCP 1433 açık olmalı (yön: Cargo Pilot → müşteri).',
+  'Erişim site-to-site VPN ile ya da güvenlik duvarında Cargo Pilot çıkış IP adresine allowlist ile verilir; 1433 doğrudan internete açılmaz.',
+  'Adlandırılmış örnek kullanılıyorsa SQL Server sabit bir port’a alınmalı.',
+  'Bağlantı her zaman şifrelenir; sunucunun geçerli bir sertifikası yoksa formdaki sertifika ayarı açılır.',
+] as const;
+
+/** Salt-okunur SQL login şablonu; yazma yetkisi bilinçli olarak verilmez. */
+export const ERP_READONLY_LOGIN_SCRIPT = [
+  "CREATE LOGIN cargopilot_ro WITH PASSWORD = '<güçlü-parola>', CHECK_POLICY = ON;",
+  'USE [ERP_VERITABANI];',
+  'CREATE USER cargopilot_ro FOR LOGIN cargopilot_ro;',
+  'ALTER ROLE db_datareader ADD MEMBER cargopilot_ro;',
+].join('\n');
+
 const SERVER_HELP =
   'ERP veritabanının çalıştığı SQL Server adresi. Adlandırılmış örnek için SUNUCU\\INSTANCE, ' +
   'özel port için sunucu,1433 biçimini kullanın. Adresi IT yöneticinizden alın.';
@@ -34,6 +55,12 @@ function buildChecklist(providerLabel: string, databaseExample: string): string 
     '3) SQL Server kullanıcı adı — yalnızca okuma yetkili (db_datareader) bir hesap yeterlidir',
     '4) Bu kullanıcının şifresi',
     '5) Sunucunun TLS sertifikası kurum içi (self-signed) mi, yoksa geçerli bir sertifika mı?',
+    '',
+    'Ağ ön koşulları:',
+    ...ERP_NETWORK_PRECONDITIONS.map((line, index) => `${index + 1}) ${line}`),
+    '',
+    'Salt-okunur SQL login şablonu:',
+    ERP_READONLY_LOGIN_SCRIPT,
   ].join('\n');
 }
 

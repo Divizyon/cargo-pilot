@@ -62,7 +62,10 @@ import {
 } from '@/lib/api/useERPIntegration';
 import type { ErpSettings } from '@/lib/types/erp';
 import { getApiErrorMessage } from '@/lib/api/apiError';
-import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuidance';
+import {
+  ERP_NETWORK_PRECONDITIONS,
+  getErpFieldGuidance,
+} from '@/features/platform/erp/utils/erpFieldGuidance';
 
 type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
 
@@ -152,7 +155,9 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   const form = useForm<ErpConnectionFormValues>({
     resolver: zodResolver(erpConnectionFormSchema),
     defaultValues: {
-      systemType: 'Logo',
+      // Varsayilan Netsis: Logo urun cekimi henuz yok, varsayilanla ilerleyen
+      // kullanici senkronda "desteklenmiyor" hatasina carpiyordu.
+      systemType: 'Netsis',
       companyCode: '',
       username: '',
       password: '',
@@ -170,7 +175,7 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
     if (!existing || loadedSettingsIdRef.current === existing.id) return;
     loadedSettingsIdRef.current = existing.id;
     form.reset({
-      systemType: PROVIDER_TYPE_FROM_INT[existing.providerType] ?? 'Logo',
+      systemType: PROVIDER_TYPE_FROM_INT[existing.providerType] ?? 'Netsis',
       companyCode: existing.companyCode,
       username: existing.username,
       password: '',
@@ -182,7 +187,7 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   }, [existing, form]);
 
   const watchedValues = useWatch({ control: form.control });
-  const guidance = getErpFieldGuidance(watchedValues.systemType ?? 'Logo');
+  const guidance = getErpFieldGuidance(watchedValues.systemType ?? 'Netsis');
   // Test sonucu yalnızca test edildiği andaki alanlar hâlâ geçerliyken gösterilir;
   // herhangi bir alan değişince bayat sonuç ekrandan kalkar.
   const formSignature = JSON.stringify(watchedValues);
@@ -250,7 +255,7 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
         setTestResult(null);
         loadedSettingsIdRef.current = null;
         form.reset({
-          systemType: 'Logo',
+          systemType: 'Netsis',
           companyCode: '',
           username: '',
           password: '',
@@ -365,6 +370,23 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
             <ClipboardList className="mr-2 h-4 w-4" />
             IT'nize gönderilecek bilgi listesini kopyala
           </Button>
+        </div>
+
+        {/*
+          Ağ ön koşulları yalnızca ADR dokümanındaydı. Sağlanmadığında bağlantı testi
+          "sunucuya ulaşılamıyor" diyor ve kullanıcı nedenini ekranda göremiyordu.
+        */}
+        <div className="rounded-lg border border-dashed border-border px-4 py-3">
+          <p className="text-sm font-medium text-foreground">Ağ ön koşulları</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Aşağıdakiler sağlanmadan bağlantı kurulamaz; testte &quot;sunucuya ulaşılamıyor&quot;
+            hatası alırsınız.
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+            {ERP_NETWORK_PRECONDITIONS.map((precondition) => (
+              <li key={precondition}>{precondition}</li>
+            ))}
+          </ul>
         </div>
 
         <FormField
@@ -526,11 +548,15 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
           render={({ field }) => (
             <FormItem className="flex items-start justify-between gap-4 rounded-lg border border-border px-4 py-3">
               <div className="space-y-1">
-                <FormLabel>Sunucu sertifikasını doğrulama</FormLabel>
+                {/*
+                  Eski etiket "Sunucu sertifikasını doğrulama" idi ve anahtarın açık olması
+                  doğrulamanın yapıldığı gibi okunabiliyordu; davranışın tersi.
+                */}
+                <FormLabel>Sertifika doğrulamasını atla</FormLabel>
                 <FormDescription>
                   Açıkken ERP sunucusunun TLS sertifikası doğrulanmaz; kurum içi (self-signed)
                   sertifikalı sunucular için gerekir ama bağlantı araya girme saldırılarına açık
-                  hale gelir. Sunucunun geçerli bir sertifikası varsa kapatın.
+                  hale gelir. Sunucunun geçerli bir sertifikası varsa kapalı bırakın.
                 </FormDescription>
               </div>
               <FormControl>

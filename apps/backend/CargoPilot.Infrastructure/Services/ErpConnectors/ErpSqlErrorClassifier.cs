@@ -12,8 +12,13 @@ internal static class ErpSqlErrorClassifier
     /// <summary>Veritabani adiyla veya veritabani erisim yetkisiyle ilgili hatalar.</summary>
     private static readonly HashSet<int> DatabaseErrors = [4060, 4064, 911, 916];
 
-    /// <summary>Sunucuya hic ulasilamadigini gosteren ag/timeout hatalari.</summary>
-    private static readonly HashSet<int> UnreachableErrors = [-2, -1, 2, 53, 40, 121, 233, 258, 1225, 10060, 10061, 11001];
+    /// <summary>
+    /// Sunucuya hic ulasilamadigini gosteren ag/timeout hatalari. 0 da buraya girer:
+    /// sunucudan gelmeyen (tasima katmani) hatalar bu numarayla yuzeye cikar ve pratikte
+    /// guvenlik duvari, VPN veya yanlis adres demektir. Genel mesaja dusseydi kullanici
+    /// kimlik bilgilerini kontrol etmeye yonlendirilirdi.
+    /// </summary>
+    private static readonly HashSet<int> UnreachableErrors = [0, -2, -1, 2, 53, 40, 121, 233, 258, 1225, 10060, 10061, 11001];
 
     /// <summary>Suresi dolmus SQL login kimlik bilgisi.</summary>
     private static readonly HashSet<int> ExpiredLoginErrors = [18487, 18488];
@@ -28,11 +33,12 @@ internal static class ErpSqlErrorClassifier
         "SQL kullanıcısının şifresinin süresi dolmuş. IT yöneticinizden şifreyi yenilemesini isteyin.";
 
     public const string UnreachableMessage =
-        "Sunucuya ulaşılamadı — sunucu adresini ve VPN bağlantınızı kontrol edin.";
+        "Sunucuya ulaşılamadı. Sunucu adresini, VPN bağlantınızı ve ERP sunucusunda 1433 " +
+        "portunun Cargo Pilot sunucusuna açık olduğunu kontrol edin.";
 
     public const string UntrustedCertificateMessage =
         "Sunucunun TLS sertifikası doğrulanamadı. Kurum içi (self-signed) sertifika kullanılıyorsa " +
-        "'Sunucu sertifikasını doğrulama' ayarını açın.";
+        "'Sertifika doğrulamasını atla' ayarını açın.";
 
     public static string Classify(int errorNumber, string database)
     {

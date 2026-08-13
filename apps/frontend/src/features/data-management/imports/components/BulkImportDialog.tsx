@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
@@ -508,9 +508,7 @@ export function BulkImportDialog({
     );
   }
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function readWorkbookFile(file: File) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const wb = XLSX.read(ev.target?.result, { type: 'array' });
@@ -519,7 +517,19 @@ export function BulkImportDialog({
       setRemainingNotice(null);
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) readWorkbookFile(file);
     if (e.target) e.target.value = '';
+  }
+
+  /** Bosluk 'sürükleyip bırakın' diyordu ama birakilan dosya hicbir sey yapmiyordu. */
+  function handleFileDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) readWorkbookFile(file);
   }
 
   /** Aktarılamayan satırlar diyalogda kalır; hepsi geçtiyse diyalog kapanır. */
@@ -626,6 +636,8 @@ export function BulkImportDialog({
             <div
               className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-10 transition-colors hover:bg-muted/50"
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleFileDrop}
             >
               <FileUp className="h-8 w-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Excel veya CSV dosyası seçin</p>
@@ -1005,16 +1017,23 @@ export function BulkImportDialog({
         {/* Footer */}
         <div className="flex flex-none items-center justify-between border-t bg-background px-6 py-3">
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs"
-              type="button"
-              onClick={() => setRows((p) => [...p, emptyRow()])}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Satır Ekle
-            </Button>
+            {/*
+              ERP onay akisinda elle satir eklenemez: satirin karsiligi olan taslak
+              olmadigi icin onayda sessizce dusuyordu. Yeni urun tekil urun formundan
+              ya da Excel aktarimindan eklenir.
+            */}
+            {!draftItemIds && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs"
+                type="button"
+                onClick={() => setRows((p) => [...p, emptyRow()])}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Satır Ekle
+              </Button>
+            )}
             {!draftItemIds && (
               <>
                 <Button

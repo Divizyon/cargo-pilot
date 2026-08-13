@@ -84,8 +84,10 @@ describe('ERPConnectionForm alan rehberliği', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    // Anahtar "doğrulama" (atlama) anlamındadır; kapalı olması sertifikanın doğrulandığını gösterir.
-    const trustSwitch = await screen.findByRole('switch', { name: /sertifikasını doğrulama/i });
+    // Anahtar atlamayı ifade eder; kapalı olması sertifikanın doğrulandığını gösterir.
+    const trustSwitch = await screen.findByRole('switch', {
+      name: /sertifika doğrulamasını atla/i,
+    });
     expect(trustSwitch).toHaveAttribute('aria-checked', 'false');
   });
 
@@ -94,7 +96,9 @@ describe('ERPConnectionForm alan rehberliği', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    const trustSwitch = await screen.findByRole('switch', { name: /sertifikasını doğrulama/i });
+    const trustSwitch = await screen.findByRole('switch', {
+      name: /sertifika doğrulamasını atla/i,
+    });
     expect(trustSwitch).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -125,6 +129,18 @@ describe('ERPConnectionForm alan rehberliği', () => {
     );
   });
 
+  it('ağ ön koşullarını kurulum ekranında listeler', async () => {
+    mockEmptyState();
+
+    renderForm(<ERPConnectionForm />);
+
+    // Ön koşullar yalnızca ADR dokümanındaydı; sağlanmadığında test "sunucuya
+    // ulaşılamıyor" diyor ve kullanıcı nedeni ekranda göremiyordu.
+    expect(await screen.findByText('Ağ ön koşulları')).toBeInTheDocument();
+    expect(screen.getByText(/TCP 1433 açık olmalı/)).toBeInTheDocument();
+    expect(screen.getByText(/allowlist/)).toBeInTheDocument();
+  });
+
   it('sunucu adresi alanında named instance ve port örneği gösterir', async () => {
     mockEmptyState();
 
@@ -135,23 +151,23 @@ describe('ERPConnectionForm alan rehberliği', () => {
     expect(serverInput).toHaveAttribute('placeholder', expect.stringContaining(',1433'));
   });
 
-  it('sistem seçimi Netsis olunca alan örnekleri Netsis metinlerine döner', async () => {
+  it('sistem seçimi Logo olunca alan örnekleri Logo metinlerine döner', async () => {
     mockEmptyState();
     const user = userEvent.setup();
 
     renderForm(<ERPConnectionForm />);
 
-    // Varsayılan Logo; örnekler Logo'ya göre gelir.
+    // Varsayilan Netsis: Logo urun cekimi henuz desteklenmiyor, varsayilanla
+    // ilerleyen kullanici senkronda hataya carpiyordu.
     expect(await screen.findByLabelText('Veritabanı Adı')).toHaveAttribute(
       'placeholder',
-      'TIGERDB',
+      'NETSIS2024',
     );
 
     await user.click(screen.getByRole('combobox', { name: 'ERP Sistemi' }));
-    await user.click(await screen.findByRole('option', { name: 'Netsis' }));
+    await user.click(await screen.findByRole('option', { name: 'Logo' }));
 
-    expect(screen.getByLabelText('Veritabanı Adı')).toHaveAttribute('placeholder', 'NETSIS2024');
-    expect(screen.getByText(/Netsis verilerinin tutulduğu SQL Server/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Veritabanı Adı')).toHaveAttribute('placeholder', 'TIGERDB');
   });
 });
 

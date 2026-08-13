@@ -53,7 +53,11 @@ function ErpSyncSettings({ integrationId }: { integrationId: string }) {
   function handleSaveInterval(value: string) {
     saveSettings({
       integrationId,
-      syncInterval: value as (typeof ErpSyncInterval)[keyof typeof ErpSyncInterval],
+      // Bos deger otomatik cekimi kapatir; kullanicinin geri donebilecegi tek yol budur.
+      syncInterval:
+        value === NO_INTERVAL
+          ? null
+          : (value as (typeof ErpSyncInterval)[keyof typeof ErpSyncInterval]),
     });
   }
 
@@ -101,6 +105,12 @@ function ErpSyncSettings({ integrationId }: { integrationId: string }) {
                 Günlük
               </Label>
             </div>
+            <div className="flex items-center gap-3">
+              <RadioGroupItem value={NO_INTERVAL} id="interval-off" />
+              <Label htmlFor="interval-off" className="cursor-pointer">
+                Kapalı
+              </Label>
+            </div>
           </RadioGroup>
         )}
 
@@ -115,7 +125,7 @@ function ErpSyncSettings({ integrationId }: { integrationId: string }) {
           isScheduleDisabled && (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <CalendarClock className="h-3.5 w-3.5 shrink-0" />
-              Otomatik çekim kapalı; bir sıklık seçtiğinizde başlar.
+              Otomatik çekim kapalı; ürünler yalnızca elle çekildiğinde güncellenir.
             </p>
           )
         )}

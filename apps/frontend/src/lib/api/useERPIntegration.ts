@@ -356,13 +356,15 @@ export function useSaveERPSyncSettings() {
   return useMutation<
     unknown,
     AxiosError<ApiErrorResponse>,
-    { integrationId: string; syncInterval: ErpSyncInterval },
+    { integrationId: string; syncInterval: ErpSyncInterval | null },
     { previous: ErpSyncSettings | undefined }
   >({
     mutationFn: ({ integrationId, syncInterval }) =>
       axiosInstance
         .put(`${ERP_BASE}/${integrationId}/sync-settings`, {
-          syncFrequency: SYNC_FREQUENCY_TO_INT[syncInterval] ?? 0,
+          // null = otomatik cekim kapali; backend SyncFrequency null iken
+          // zamanlayici bu entegrasyonu hic tetiklemez.
+          syncFrequency: syncInterval === null ? null : SYNC_FREQUENCY_TO_INT[syncInterval],
         })
         .then((r) => r.data),
     onMutate: async ({ integrationId, syncInterval }) => {
@@ -376,13 +378,15 @@ export function useSaveERPSyncSettings() {
     },
     onSuccess: (_data, { integrationId }) => {
       queryClient.invalidateQueries({ queryKey: syncSettingsQueryKey(integrationId) });
-      toast.success('Otomatik çekim sıklığı kaydedildi', { position: 'bottom-right' });
+      toast.success('Otomatik çekim ayarı kaydedildi', { position: 'bottom-right' });
     },
     onError: (error, { integrationId }, context) => {
       if (context?.previous) {
         queryClient.setQueryData(syncSettingsQueryKey(integrationId), context.previous);
       }
-      toast.error(getApiErrorMessage(error, 'Sıklık kaydedilemedi'), { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Otomatik çekim ayarı kaydedilemedi'), {
+        position: 'bottom-right',
+      });
     },
   });
 }

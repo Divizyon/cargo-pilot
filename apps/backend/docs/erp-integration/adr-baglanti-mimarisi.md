@@ -80,7 +80,7 @@ bulut → müşteri yönünde kurulur:
 | Yön | Cargo Pilot backend çıkışı → müşteri SQL sunucusu |
 | Erişim modeli | Site-to-site VPN **veya** müşteri güvenlik duvarında Cargo Pilot çıkış IP'sine allowlist |
 | Şifreleme | `Encrypt=true` her zaman açık |
-| Sertifika | Geçerli sertifika varsa "Sunucu sertifikasını doğrulama" ayarı **kapalı** tutulur; self-signed sertifikada açık bırakılır (ErpSettings.TrustServerCertificate) |
+| Sertifika | Geçerli sertifika varsa "Sertifika doğrulamasını atla" ayarı **kapalı** tutulur; self-signed sertifikada açık bırakılır (ErpSettings.TrustServerCertificate) |
 | Zaman aşımı | Bağlantı 15 sn, sorgu 120 sn |
 
 Doğrudan internete açık 1433 portu kabul edilebilir bir kurulum değildir; VPN veya
