@@ -1,6 +1,6 @@
 # Deployment
 
-**Son güncelleme:** 2026-08-08 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
 
 Bu doküman test ve production ortamlarının servis adreslerini, stack yönetimini, env dosyalarını, database migration sürecini, container operasyonlarını ve CI/CD akışını açıklar.
 
@@ -144,12 +144,18 @@ docker restart cargo-pilot-backend-prod
 
 ## CI/CD Akışı
 
-| Branch | Tetikleyici | Sonuç |
-|--------|------------|-------|
-| `feature/*`, `bugfix/*` | Push | Deploy (Test) — inline build + healthcheck |
-| `dev` | PR açılınca | Deploy (Test) — merge öncesi doğrulama |
-| `test` | PR + Push | Image Build → GHCR Push → Deploy (Test) |
-| `main` | Push | _(Production pipeline henüz yok)_ |
+Branch → ortam eşlemesinin tek kaynağı [Branch Modeli](../conventions/branching.md)
+dokümanındaki **"Branch — Ortam İlişkisi"** tablosudur. Çift bakım yapılmaması için tablo
+burada tekrarlanmaz.
+
+{% hint style="warning" %}
+**Sunucuya deploy yalnızca `test` dalına push ile olur** (`test-deploy.yml` →
+`deploy-test-server` job'ı). İş branch'i (`feat/*`, `fix/*`, `hotfix/*`, `chore/*`, `infra/*`)
+push'ları ve `test`'e açılan PR'lar sunucuya dokunmaz; runner içinde ayağa kaldırılan
+**geçici stack** üzerinde doğrulama yapar ve iş bitince `docker compose down -v` ile silinir.
+
+`dev` dalı `test-deploy.yml`'i tetiklemez — `dev`'e açılan PR'larda yalnızca `ci.yml` koşar.
+{% endhint %}
 
 ---
 

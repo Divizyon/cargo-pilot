@@ -10,16 +10,20 @@ on:
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   sync:
     name: .NET Image Sync (MCR → GHCR)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       packages: write
 
     steps:
       - name: GHCR'a giriş yap
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

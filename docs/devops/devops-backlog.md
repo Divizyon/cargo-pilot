@@ -22,6 +22,7 @@ Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini ön
 | 10 | `monitoring-setup.md` — contact point adımları | 🟡 Orta | ⚠️ Açık |
 | 11 | Node.js 20 → 22 geçişi | 🟢 Düşük | ⚠️ Açık |
 | 12 | xlsx → exceljs geçişi (Dependabot izlenebilirliği) | 🟡 Orta | ⚠️ Açık |
+| 13 | three.js r162 → r185 yükseltmesi (3D QA'li) | 🟡 Orta | ⚠️ Açık |
 
 ---
 
@@ -223,6 +224,40 @@ Kalıcı çözüm: 5 dosyadaki ~38 çağrının (`BulkImportDialog`, `VehicleBul
 `export-utils`, `exportVehiclesToExcel`, `useReports`) exceljs'e taşınması. Asıl maliyet kod değil
 QA: Excel export'ları müşteriye giden çıktılar — kolon düzeni/format birebir doğrulanmalı.
 Import/export ekranına dokunulan bir sprint'te ele alınması önerilir.
+
+---
+
+### 5.1 three.js r162 → r185 Yükseltmesi
+
+{% hint style="warning" %}
+**⚠️ Açık — 3D manuel QA zorunlu** · Tespit: 2026-08-13 (Dependabot ilk turu, PR #951)
+{% endhint %}
+
+Mevcut sürüm `three@^0.162.0`; güncel r185. Aradaki 23 sürüm **kırıcı değişiklik içeriyor** ancak
+semver bunu göstermiyor: three 0.x sürümlemesi kullandığı için `0.162 → 0.185` teknik olarak
+*minor* sayılır. Bu yüzden yükseltme, "npm-minor-patch" etiketli bir grup PR'ının içinde
+manuel QA görmeden gelmişti; `dependabot.yml`'de three ailesi için minor da ignore edilerek
+kapatıldı (PR #964).
+
+**Doğrulanmış kırılma:** `apps/frontend/src/features/planning/scene/SceneFloor.tsx:101` —
+r185'te `ShaderMaterialParameters.extensions` içinden `derivatives` kaldırıldı (r163'te WebGL1
+desteği düştüğü için `fwidth` artık GLSL ES 3.0'da core). TypeScript build'i `TS2739` ile kırıldı.
+Bu, **derleyicinin yakalayabildiği tek sorun**; r163→r185 aralığı TypeScript'in doğrulayamayacağı
+çok sayıda runtime davranış değişikliği içeriyor.
+
+**Kapsam ve QA gereksinimi:**
+
+- `scene-config.ts` koordinat/pivot eşlemesi — sahne sözleşmesi (cm, X=width, Y=height, Z=depth)
+  bozulmamalı
+- `InstancedMesh` ile çizilen kutular: konum, rotasyon, renk ve seçim (raycast) davranışı
+- `BoxWrapper` pivot offset'i — backend pozisyonları sol-alt-arka köşe referanslı
+- Zemin ızgarası shader'ı (`fwidth` tabanlı) — kırılmanın tespit edildiği kod yolu
+- Manuel edit akışı: sürükleme, çakışma/violation geri bildirimi
+- Bellek: manuel oluşturulan Three.js kaynaklarının dispose'u (`ResourceTracker`)
+
+**Önerilen yöntem:** tek seferde r185'e atlamak yerine ara sürümlerde (r170, r178) durup sahneyi
+görsel olarak doğrulamak; her adımda bir plan yükleyip 3D görüntüleyicide kontrol etmek.
+3D/canvas değişiklikleri için `CLAUDE.md` snapshot benzeri doğrulama veya manuel QA şart koşuyor.
 
 ---
 

@@ -12,6 +12,8 @@
 
 * [Branch Stratejisi](docs/conventions/branching.md)
 * [Commit Kuralları](docs/conventions/commits.md)
+* [Koordinat Sistemi Standardı](docs/COORDINATE_STANDARD.md)
+* [Koordinat Sistemi Denetimi](docs/COORDINATE_AUDIT.md)
 
 ## 🛠️ DevOps
 
@@ -23,6 +25,8 @@
 * [Bilinen Sorunlar](docs/devops/known-issues.md)
 * [DevOps Backlog](docs/devops/devops-backlog.md)
 * [İyileştirme Analizi — Ağustos 2026](docs/devops/iyilestirme-analizi-2026-08.md)
+* [DevOps Denetim Raporu — 2026-08-13](devops-audit-raporu.md)
+* [Güvenlik Politikası](.github/SECURITY.md)
 
 ## 🧱 Backend
 
