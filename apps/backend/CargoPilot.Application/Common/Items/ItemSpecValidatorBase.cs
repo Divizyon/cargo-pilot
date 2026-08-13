@@ -85,11 +85,6 @@ public abstract class ItemSpecValidatorBase<T> : AbstractValidator<T> where T : 
                 .WithErrorCode("ITEM_VAL_BARCODE_TOO_LONG")
                 .WithMessage("Barcode en fazla 100 karakter olabilir.");
 
-        RuleFor(x => x.ImageUrl)
-            .MaximumLength(500)
-                .WithErrorCode("ITEM_VAL_IMAGEURL_TOO_LONG")
-                .WithMessage("Gorsel linki en fazla 500 karakter olabilir.");
-
         RuleFor(x => x.StackGroup)
             .MaximumLength(100)
                 .WithErrorCode("ITEM_VAL_STACKGROUP_TOO_LONG")

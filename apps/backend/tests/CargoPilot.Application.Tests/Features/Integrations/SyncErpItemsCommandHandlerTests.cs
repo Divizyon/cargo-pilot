@@ -126,6 +126,61 @@ public sealed class SyncErpItemsCommandHandlerTests
 
     /// <remarks>Kalici ret: sync taslagin verisini tazeler ama durumunu Pending'e cevirmez.</remarks>
     [Fact]
+    public async Task Handle_ErpVerisiDegismemis_OnaylanmisTaslakUpdatePendingeGecmez()
+    {
+        var product = TestData.CreateErpProduct();
+        ArrangeHappyPath(product);
+        var mevcut = TestData.CreateDraftItem(
+            CompanyId, IntegrationId, erpRawDataJson: product.RawDataJson);
+        mevcut.Approve();
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns(mevcut);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Unchanged.Should().Be(1);
+        result.Data.Updated.Should().Be(0);
+        result.Data.Added.Should().Be(0);
+        mevcut.Status.Should().Be(DraftItemStatus.Approved);
+        _draftItemRepository.DidNotReceiveWithAnyArgs().Update(default!);
+    }
+
+    [Fact]
+    public async Task Handle_ErpVerisiDegismemis_MutabakatFarkiOlusmaz()
+    {
+        var product = TestData.CreateErpProduct();
+        ArrangeHappyPath(product);
+        var mevcut = TestData.CreateDraftItem(
+            CompanyId, IntegrationId, erpRawDataJson: product.RawDataJson);
+        mevcut.Approve();
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns(mevcut);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.Data!.Unaccounted.Should().Be(0);
+        result.Data.SourceTotal.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ErpVerisiDegismis_OnaylanmisTaslakUpdatePendingeGecer()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct(name: "Degisen Ad"));
+        var mevcut = TestData.CreateDraftItem(
+            CompanyId, IntegrationId, erpRawDataJson: TestData.ErpSnapshot(name: "Eski Ad"));
+        mevcut.Approve();
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns(mevcut);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.Data!.Updated.Should().Be(1);
+        result.Data.Unchanged.Should().Be(0);
+        mevcut.Status.Should().Be(DraftItemStatus.UpdatePending);
+    }
+
+    [Fact]
     public async Task Handle_ReddedilmisTaslak_RejectedKalirVerisiGuncellenir()
     {
         ArrangeHappyPath(TestData.CreateErpProduct(sku: "SKU-YENI", name: "Yeni Ad"));

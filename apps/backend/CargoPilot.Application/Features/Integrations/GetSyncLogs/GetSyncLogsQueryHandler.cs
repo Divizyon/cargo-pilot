@@ -44,6 +44,7 @@ public sealed class GetSyncLogsQueryHandler : IRequestHandler<GetSyncLogsQuery, 
             l.SourceTotal,
             l.FetchedCount,
             ParseDroppedByReason(l.DroppedByReasonJson),
+            l.UnchangedCount,
             l.UnaccountedCount)).ToList();
 
         var failedCount = await _integrationRepository.CountFailedSyncLogsAsync(

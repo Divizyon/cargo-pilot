@@ -207,7 +207,6 @@ export const planDetailApiResponseSchema = z.object({
                   height: z.number().optional(),
                   length: z.number().optional(),
                   weight: z.number().optional(),
-                  imageUrl: z.string().nullable().optional(),
                 })
                 .passthrough()
                 .nullable()
@@ -449,7 +448,6 @@ const planItemDimensionsSchema = z
     height: z.number(),
     length: z.number(),
     weight: z.number().catch(0),
-    imageUrl: z.string().nullable().optional(),
     productType: z.string().nullable().optional(),
     constraintIds: z.array(z.number().int()).optional(),
     stackGroup: z.string().nullable().optional(),
@@ -558,7 +556,6 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
     allowFaceBack: true,
     allowFaceLeft: true,
     allowFaceRight: true,
-    imageUrl: raw.imageUrl ?? undefined,
     constraintIds: raw.constraintIds ?? [],
     stackGroup: raw.stackGroup ?? null,
     incompatibleGroups: raw.incompatibleGroups ?? [],

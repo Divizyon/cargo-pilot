@@ -29,7 +29,7 @@ Cargo Pilot `Item` sync'inin kaynağı.
 | 3 | `STOK_KODU` | varchar(100) | YES | `Item.ErpId` | Benzersiz ürün kodu |
 | 4 | `URETICI_KODU` | varchar(100) | NO | — | Üretici kodu |
 | 5 | `STOK_ADI` | varchar(200) | NO | `Item.Name` | Ürün adı |
-| 6 | `GRUP_KODU` | varchar(100) | NO | — | Ürün grubu |
+| 6 | `GRUP_KODU` | varchar(100) | NO | `DraftItem.StackGroup` | Ürün grubu; anahtar kelime eşleşmesiyle yük grubuna çevrilir (`ErpLoadGroupResolver`), eşleşme yoksa "Genel" |
 | 7 | `KOD_1` | varchar(100) | NO | — | Yedek kod 1 |
 | 8 | `KOD_2` | varchar(100) | NO | — | Yedek kod 2 |
 | 9 | `KOD_3` | varchar(100) | NO | — | Yedek kod 3 |

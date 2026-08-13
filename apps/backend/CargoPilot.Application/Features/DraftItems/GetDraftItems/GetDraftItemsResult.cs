@@ -27,7 +27,6 @@ public sealed record DraftItemDto(
     int MaxStackCount,
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
-    string? ImageUrl,
     string? StackGroup,
     string? SpecialNotes,
     int[] ConstraintIds,

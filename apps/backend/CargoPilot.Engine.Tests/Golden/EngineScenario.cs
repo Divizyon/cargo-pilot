@@ -48,7 +48,6 @@ internal static class EngineScenario
             ItemId: ItemId(index),
             SKU: $"SKU-{Suffix(index)}",
             Name: $"Urun-{Suffix(index)}",
-            ImageUrl: null,
             Width: width,
             Height: height,
             Length: length,

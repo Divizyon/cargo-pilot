@@ -54,7 +54,6 @@ public sealed class DraftItemApprovalValidationTests
             maxWeightOnTop: 5m,
             allowedRotations: AllowedRotations.All,
             barcode: null,
-            imageUrl: null,
             stackGroup: null,
             incompatibleGroups: incompatibleGroups ?? ["Genel"],
             specialNotes: null);
@@ -119,7 +118,7 @@ public sealed class DraftItemApprovalValidationTests
     {
         var draft = CreateEditedDraft(incompatibleGroups: ["Tekstil"]);
         draft.Approve();
-        draft.SetUpdatePending(draft.SKU, "Yeni Ad", "{}");
+        draft.SetUpdatePending(TestData.CreateErpRefresh(draft.SKU, "Yeni Ad"));
         _draftItemRepository.GetByIdAsync(draft.Id, CompanyId, Arg.Any<CancellationToken>()).Returns(draft);
 
         var mevcut = new Item(
@@ -201,7 +200,6 @@ public sealed class DraftItemApprovalValidationTests
                     MaxWeightOnTop: 5m,
                     AllowedRotations: AllowedRotations.All,
                     Barcode: null,
-                    ImageUrl: null,
                     StackGroup: null,
                     IncompatibleGroups: ["Kimya"],
                     SpecialNotes: null,
@@ -237,7 +235,6 @@ public sealed class DraftItemApprovalValidationTests
             MaxWeightOnTop: 0m,
             AllowedRotations: AllowedRotations.All,
             Barcode: null,
-            ImageUrl: null,
             StackGroup: null,
             IncompatibleGroups: ["Genel"],
             SpecialNotes: null,
@@ -259,7 +256,6 @@ public sealed class DraftItemApprovalValidationTests
             MaxStackCount: spec.MaxStackCount,
             MaxWeightOnTop: spec.MaxWeightOnTop,
             AllowedRotations: spec.AllowedRotations,
-            ImageUrl: spec.ImageUrl,
             StackGroup: spec.StackGroup,
             IncompatibleGroups: spec.IncompatibleGroups,
             SpecialNotes: spec.SpecialNotes,

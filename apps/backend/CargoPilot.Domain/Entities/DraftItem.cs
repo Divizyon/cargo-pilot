@@ -27,7 +27,6 @@ public sealed class DraftItem : BaseEntity
     public int MaxStackCount { get; private set; }
     public decimal MaxWeightOnTop { get; private set; }
     public AllowedRotations AllowedRotations { get; private set; }
-    public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
 
     /// <summary>Kullanicinin sectigi yuk gruplari; onayda Item'a birebir tasinir.</summary>
@@ -65,7 +64,9 @@ public sealed class DraftItem : BaseEntity
         AllowedRotations allowedRotations,
         string? barcode = null,
         decimal? diameter = null,
-        IEnumerable<string>? missingFields = null) : base(id)
+        IEnumerable<string>? missingFields = null,
+        string? stackGroup = null,
+        string[]? incompatibleGroups = null) : base(id)
     {
         CompanyId = companyId;
         IntegrationId = integrationId;
@@ -87,20 +88,36 @@ public sealed class DraftItem : BaseEntity
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
+        StackGroup = stackGroup;
+        IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         MissingFieldsJson = SerializeMissingFields(missingFields);
     }
 
-    public void UpdateFromErp(
-        string sku,
-        string name,
-        string erpRawDataJson,
-        IEnumerable<string>? missingFields = null)
-    {
-        SKU = sku;
-        Name = name;
-        ErpRawDataJson = erpRawDataJson;
-        MissingFieldsJson = SerializeMissingFields(missingFields);
-    }
+    /// <summary>ERP tazelemesinde taslaga uygulanacak alanlar.</summary>
+    public sealed record ErpRefresh(
+        string Sku,
+        string Name,
+        string ErpRawDataJson,
+        decimal Width,
+        decimal Height,
+        decimal Length,
+        decimal Weight,
+        string? Barcode,
+        string? StackGroup,
+        string[]? IncompatibleGroups,
+        IEnumerable<string>? MissingFields);
+
+    public void UpdateFromErp(ErpRefresh refresh) => ApplyErpRefresh(refresh);
+
+    /// <summary>
+    /// ERP'den yeni cekilen ham veri, taslakta duran son ERP anlik goruntusuyle ayni mi.
+    /// Netsis satir bazli degisiklik damgasi tasimadigindan her sync tam tablo taramasidir;
+    /// degisiklik yalnizca bu karsilastirmayla anlasilir. Kullanicinin taslak uzerinde
+    /// yaptigi duzenlemeler <see cref="ErpRawDataJson"/>'a dokunmaz, bu yuzden karsilastirma
+    /// "ERP degisti mi" sorusunu sorar, "taslak degisti mi" sorusunu degil.
+    /// </summary>
+    public bool MatchesErpSnapshot(string erpRawDataJson) =>
+        string.Equals(ErpRawDataJson, erpRawDataJson, StringComparison.Ordinal);
 
     public void UpdateUserFields(
         string productType,
@@ -116,7 +133,6 @@ public sealed class DraftItem : BaseEntity
         decimal maxWeightOnTop,
         AllowedRotations allowedRotations,
         string? barcode,
-        string? imageUrl,
         string? stackGroup,
         string[]? incompatibleGroups,
         string? specialNotes,
@@ -135,7 +151,6 @@ public sealed class DraftItem : BaseEntity
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
         Barcode = barcode;
-        ImageUrl = imageUrl;
         StackGroup = stackGroup;
         IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;
@@ -155,17 +170,40 @@ public sealed class DraftItem : BaseEntity
     /// <summary>Reddedilmis ERP guncellemesini tekrar karar bekler duruma alir.</summary>
     public void RestoreUpdatePending() => Status = DraftItemStatus.UpdatePending;
 
-    public void SetUpdatePending(
-        string sku,
-        string name,
-        string erpRawDataJson,
-        IEnumerable<string>? missingFields = null)
+    public void SetUpdatePending(ErpRefresh refresh)
     {
-        SKU = sku;
-        Name = name;
-        ErpRawDataJson = erpRawDataJson;
-        MissingFieldsJson = SerializeMissingFields(missingFields);
+        ApplyErpRefresh(refresh);
         Status = DraftItemStatus.UpdatePending;
+    }
+
+    /// <summary>
+    /// ERP'den gelen guncel veriyi taslaga uygular. ERP'de bilgi tasimayan alan mevcut
+    /// degeri ezmez: olcu/agirlik yalnizca sifirdan buyukse, barkod ve yuk grubu yalnizca
+    /// doluysa yazilir. Aksi halde kullanicinin elle doldurdugu eksik alanlar her
+    /// senkronda silinirdi.
+    /// </summary>
+    private void ApplyErpRefresh(ErpRefresh refresh)
+    {
+        SKU = refresh.Sku;
+        Name = refresh.Name;
+        ErpRawDataJson = refresh.ErpRawDataJson;
+
+        if (refresh.Width > 0) Width = refresh.Width;
+        if (refresh.Height > 0) Height = refresh.Height;
+        if (refresh.Length > 0) Length = refresh.Length;
+        if (refresh.Weight > 0) Weight = refresh.Weight;
+
+        if (!string.IsNullOrWhiteSpace(refresh.Barcode))
+            Barcode = refresh.Barcode;
+
+        if (!string.IsNullOrWhiteSpace(refresh.StackGroup))
+        {
+            StackGroup = refresh.StackGroup;
+            IncompatibleGroupsJson = SerializeStringArray(refresh.IncompatibleGroups);
+        }
+
+        MissingFieldsJson = SerializeMissingFields(refresh.MissingFields);
+        PruneFilledMissingFields();
     }
 
     /// <summary>ERP kaynaginda eksik gelen ve halen doldurulmamis alan adlari.</summary>

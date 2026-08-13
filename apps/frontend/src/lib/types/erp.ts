@@ -48,6 +48,8 @@ export const erpSyncSummarySchema = z.object({
   syncLogId: z.string().uuid().optional(),
   added: z.number().int().min(0),
   updated: z.number().int().min(0),
+  /** ERP verisi değişmediği için taslağa hiç dokunulmayan satır sayısı. */
+  unchanged: z.number().int().min(0).default(0),
   /** Hata nedeniyle yazılamayan satır sayısı. */
   skipped: z.number().int().min(0),
   errorCount: z.number().int().min(0).default(0),
@@ -80,6 +82,8 @@ export const syncLogDtoSchema = z.object({
   /** Kaynaktan uygulamaya çekilen satır sayısı. */
   fetchedCount: z.number().int().min(0).default(0),
   droppedByReason: droppedByReasonSchema.default({}),
+  /** ERP verisi değişmediği için taslağa hiç dokunulmayan satır sayısı. */
+  unchanged: z.number().int().min(0).default(0),
   /** Mutabakat farkı; sıfırdan farklıysa kaynak satırların bir kısmı sayaca düşmemiştir. */
   unaccounted: z.number().int().default(0),
 });

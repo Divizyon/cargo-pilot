@@ -58,11 +58,16 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
         params.status === DRAFT_REJECTED
           ? item.status === DRAFT_REJECTED || item.status === DRAFT_UPDATE_DISMISSED
           : item.status === params.status;
-      const items = mocks.draftItemsState.isEmpty
+      const matching = mocks.draftItemsState.isEmpty
         ? []
         : [...draftItems, ...mocks.draftItemsState.extraPending].filter(matchesStatus);
+      // Sayfalama sunucu tarafindadir: istek yalnizca o sayfanin kayitlarini doner.
+      // Dilimleme olmadan sayfa disi kayitlarin da elde oldugu sanilir ve sayfalar
+      // arasi secim hatalari testten kacar.
+      const start = (params.page - 1) * params.pageSize;
+      const items = matching.slice(start, start + params.pageSize);
       return {
-        data: { items, totalCount: items.length, page: params.page, pageSize: params.pageSize },
+        data: { items, totalCount: matching.length, page: params.page, pageSize: params.pageSize },
         isLoading: false,
         isFetching: false,
       };
@@ -271,6 +276,48 @@ describe('ERPItemsTable', () => {
     expect(screen.getByTestId('dialog-draft-ids')).toHaveTextContent(
       '11111111-1111-4111-8111-111111111111',
     );
+  });
+
+  /** Sayfa boyutunu aşan kayıt üretir; tümünü-seç açık sayfadan fazlasını kapsar. */
+  function seedOffPagePending(count: number) {
+    mocks.draftItemsState.extraPending = Array.from({ length: count }, (_, index) =>
+      makeDraft({
+        id: `aaaaaaaa-0000-4000-8000-${String(index).padStart(12, '0')}`,
+        name: `Sayfa Disi Urun ${index}`,
+        sku: `EXT-${index}`,
+        category: 2,
+      }),
+    );
+  }
+
+  it('tümünü seç sonrası aktarım açık sayfayla sınırlı kalmaz', async () => {
+    seedOffPagePending(20);
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Tümünü seç' }));
+    await user.click(screen.getByRole('button', { name: /Ürünlere Aktar/ }));
+
+    const dialog = await screen.findByTestId('bulk-import-dialog');
+    const names = within(dialog).getByTestId('dialog-row-names').textContent?.split('|') ?? [];
+    // 4 hazır bekleyen + 20 ek kayıt; açık sayfa bunların yalnızca bir kısmını gösterir.
+    expect(names).toHaveLength(24);
+    expect(names).toContain('Sayfa Disi Urun 19');
+  });
+
+  it('başka sayfada seçilen satır aktarıma taşınır', async () => {
+    seedOffPagePending(20);
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Palet Kasa 60x40 satırını seç' }));
+    await user.click(screen.getByRole('button', { name: 'Sonraki sayfa' }));
+    expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Ürünlere Aktar/ }));
+
+    const dialog = await screen.findByTestId('bulk-import-dialog');
+    expect(within(dialog).getByTestId('dialog-row-names')).toHaveTextContent('Palet Kasa 60x40');
   });
 
   it('seçim yapılmadan sync tetiklenir, aktarım diyaloğu açılmaz', async () => {

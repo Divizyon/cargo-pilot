@@ -46,7 +46,6 @@ public sealed class UpdateDraftItemCommandHandler : IRequestHandler<UpdateDraftI
             request.MaxWeightOnTop,
             request.AllowedRotations,
             request.Barcode,
-            request.ImageUrl,
             request.StackGroup,
             request.IncompatibleGroups,
             request.SpecialNotes,

@@ -50,8 +50,6 @@
 | CompletedAt | DateTime? | |
 | Status | Enum | Running, Success, PartialFailure, Failed |
 | SyncedRecordCount | int | |
-| RuleAssignedCount | int | |
-| RuleNotAssignedCount | int | |
 | ErrorMessage | string? | |
 | RowErrorsJson | string? | Satır bazlı hataların JSON listesi; kısmi başarıda dolar |
 | SourceTotal | int | ERP kaynağında eleme öncesi bulunan satır sayısı |

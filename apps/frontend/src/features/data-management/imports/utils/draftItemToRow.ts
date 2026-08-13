@@ -1,5 +1,4 @@
 import { fromAllowedRotations, fromCategory, PALLET_HEIGHT_CM } from '@/lib/api/itemMappers';
-import { PRODUCT_TYPES } from '@/features/data-management/products/schemas/productSchema';
 import { deriveIncompatibleGroups } from '@/features/data-management/imports/utils/itemImportRow';
 import type { DraftItem } from '@/lib/api/useDraftItems';
 import type { EditableRow } from '@/features/data-management/imports/components/BulkImportDialog';
@@ -12,10 +11,8 @@ import type { EditableRow } from '@/features/data-management/imports/components/
  */
 export function draftItemToRow(item: DraftItem): EditableRow {
   const { allowRotateX, allowRotateY, allowRotateZ } = fromAllowedRotations(item.allowedRotations);
-  // ERP çekimi tip bilgisi taşımıyorsa alan boş kalır; kullanıcı gridde seçer.
-  const hasRealType =
-    item.productType != null && (PRODUCT_TYPES as readonly string[]).includes(item.productType);
-  const tip = hasRealType ? fromCategory(item.category) : '';
+  // ERP tip bilgisi taşımaz; backend taslağı sabit "koli" ile açar, kullanıcı gridde değiştirir.
+  const tip = fromCategory(item.category);
   const stackGroup = item.stackGroup ?? item.incompatibleGroups?.[0] ?? '';
   // Kayıtta palet tabanı yüksekliğe eklenir; gridde yalnızca ürün yüksekliği düzenlenir.
   const height =

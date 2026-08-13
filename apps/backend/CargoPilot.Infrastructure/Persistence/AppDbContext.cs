@@ -75,7 +75,8 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
 
     private void ApplyAuditFields() {
         var now = DateTime.UtcNow;
-        var userId = _currentUserService.UserId;
+        // Arka plan isinde HTTP baglami yoktur; kapsam acikken sistem kimligi yazilir.
+        var userId = _currentUserService.UserId ?? SystemActor.CurrentId;
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>()) {
             if (entry.State == EntityState.Added) {

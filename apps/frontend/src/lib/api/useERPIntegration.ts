@@ -231,13 +231,15 @@ export function useERPConnection() {
 
 /**
  * Kaynak toplamından başlayan tam muhasebe cümlesi:
- * "ERP'de X satır bulundu — Y eklendi, U güncellendi, Z filtrelendi, K atlandı".
- * "Filtrelendi" kullanıcının kendi seçtiği filtreleri, "atlandı" hata ve kaynak
- * elemelerini anlatır; ikisi bilerek ayrı sayılır.
+ * "ERP'de X satır bulundu — Y eklendi, U güncellendi, D değişmedi, Z filtrelendi, K atlandı".
+ * "Değişmedi" ERP verisi bir öncekiyle aynı olduğu için dokunulmayan satırları,
+ * "filtrelendi" kullanıcının kendi seçtiği filtreleri, "atlandı" ise hata ve kaynak
+ * elemelerini anlatır; üçü bilerek ayrı sayılır.
  */
 export function buildSyncToastMessage(summary: ErpSyncSummary): string {
   const { filtered, dropped } = summarizeDrops(summary.droppedByReason);
   const parts = [`${summary.added} eklendi`, `${summary.updated} güncellendi`];
+  if (summary.unchanged > 0) parts.push(`${summary.unchanged} değişmedi`);
   if (filtered > 0) parts.push(`${filtered} filtrelendi`);
 
   const skippedTotal = summary.skipped + dropped;

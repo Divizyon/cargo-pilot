@@ -1,3 +1,4 @@
+using System.Globalization;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
@@ -21,7 +22,9 @@ internal static class TestData
         string name = "Test Urun",
         decimal width = 10m,
         decimal weight = 5m,
-        IReadOnlyList<string>? missingFields = null) =>
+        IReadOnlyList<string>? missingFields = null,
+        string? groupCode = null,
+        string? rawDataJson = null) =>
         new(
             ErpId: erpId,
             Sku: sku,
@@ -31,13 +34,25 @@ internal static class TestData
             Height: 20m,
             Length: 30m,
             Weight: weight,
-            Category: "Package",
+            GroupCode: groupCode,
             Warehouse: null,
             Barcode: null,
             Diameter: null,
             ErpConstraints: new Dictionary<string, string?>(),
-            RawDataJson: "{}",
+            // Gercekte oldugu gibi anlik goruntu satirin icerigini yansitir; boylece
+            // farkli bir urun farkli bir JSON uretir ve degisiklik tespiti calisir.
+            RawDataJson: rawDataJson ?? ErpSnapshot(sku, name, width, weight),
             MissingFields: missingFields);
+
+    /// <summary>ERP ham veri anlik goruntusu; DraftItem.MatchesErpSnapshot bunu karsilastirir.</summary>
+    public static string ErpSnapshot(
+        string sku = "SKU-1",
+        string name = "Test Urun",
+        decimal width = 10m,
+        decimal weight = 5m) =>
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $$"""{"Sku":"{{sku}}","Name":"{{name}}","En":{{width}},"BirimAgirlik":{{weight}}}""");
 
     /// <summary>Elemesiz cekim sonucu; kaynak toplami cekilen satir sayisina esittir.</summary>
     public static ErpFetchResult CreateFetchResult(params ErpProductDto[] products) =>
@@ -60,13 +75,15 @@ internal static class TestData
         decimal weight = 5m,
         bool isStackable = true,
         int maxStackCount = 1,
-        decimal maxWeightOnTop = 5m) =>
+        decimal maxWeightOnTop = 5m,
+        string? stackGroup = null,
+        string erpRawDataJson = "{}") =>
         new(
             Guid.NewGuid(),
             companyId,
             integrationId,
             erpId,
-            "{}",
+            erpRawDataJson,
             sku,
             "Eski Ad",
             "STANDARD",
@@ -82,7 +99,22 @@ internal static class TestData
             AllowedRotations.All,
             barcode: null,
             diameter: null,
-            missingFields: missingFields);
+            missingFields: missingFields,
+            stackGroup: stackGroup);
+
+    /// <summary>ERP tazelemesi; olcu alanlari varsayilan olarak sifir, yani mevcut degeri ezmez.</summary>
+    public static DraftItem.ErpRefresh CreateErpRefresh(
+        string sku = "SKU-1",
+        string name = "Yeni Ad",
+        decimal width = 0m,
+        decimal height = 0m,
+        decimal length = 0m,
+        decimal weight = 0m,
+        string? barcode = null,
+        string? stackGroup = null,
+        string[]? incompatibleGroups = null,
+        IEnumerable<string>? missingFields = null) =>
+        new(sku, name, "{}", width, height, length, weight, barcode, stackGroup, incompatibleGroups, missingFields);
 
     public static LoadingPlan CreateCalculatedPlan(Guid id, Guid companyId)
     {

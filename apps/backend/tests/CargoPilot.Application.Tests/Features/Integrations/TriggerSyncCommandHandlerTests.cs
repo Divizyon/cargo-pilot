@@ -30,6 +30,7 @@ public sealed class TriggerSyncCommandHandlerTests
                 Guid.NewGuid(),
                 Added: 2,
                 Updated: 1,
+                Unchanged: 0,
                 Skipped: 0,
                 ErrorCount: 0,
                 MissingFieldCount: 0,

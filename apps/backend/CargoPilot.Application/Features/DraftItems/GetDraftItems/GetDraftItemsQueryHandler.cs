@@ -53,7 +53,6 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
             x.MaxStackCount,
             x.MaxWeightOnTop,
             x.AllowedRotations,
-            x.ImageUrl,
             x.StackGroup,
             x.SpecialNotes,
             x.GetConstraintIds(),

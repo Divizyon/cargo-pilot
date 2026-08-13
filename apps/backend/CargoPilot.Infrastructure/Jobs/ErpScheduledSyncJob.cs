@@ -1,3 +1,4 @@
+using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Features.Integrations.SyncErpItems;
@@ -42,6 +43,10 @@ public sealed partial class ErpScheduledSyncJob
     /// <summary>Vadesi gelen tum entegrasyonlari sirayla senkronize eder.</summary>
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
+        // HTTP baglami olmadigindan audit alanlari aksi halde NULL kalirdi; bu kapsam
+        // olusan/guncellenen taslaklari "sistem yazdi" olarak isaretler.
+        using var systemActorScope = SystemActor.BeginScope();
+
         var scanStartedAtUtc = DateTime.UtcNow;
         var dueIntegrations = await _integrationRepository.ListDueForScheduledSyncAsync(
             scanStartedAtUtc, cancellationToken);

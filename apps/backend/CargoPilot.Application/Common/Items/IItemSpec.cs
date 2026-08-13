@@ -21,7 +21,6 @@ public interface IItemSpec
     decimal MaxWeightOnTop { get; }
     AllowedRotations AllowedRotations { get; }
     string? Barcode { get; }
-    string? ImageUrl { get; }
     string? StackGroup { get; }
     string[]? IncompatibleGroups { get; }
     string? SpecialNotes { get; }

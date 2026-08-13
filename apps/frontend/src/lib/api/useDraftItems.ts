@@ -37,7 +37,6 @@ export const draftItemSchema = z.object({
   maxStackCount: z.number().int(),
   maxWeightOnTop: z.number(),
   allowedRotations: z.number().int(),
-  imageUrl: z.string().nullable().optional(),
   stackGroup: z.string().nullable().optional(),
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()),
@@ -105,7 +104,6 @@ export interface UpdateDraftItemPayload {
   maxWeightOnTop?: number;
   allowedRotations?: number;
   barcode?: string | null;
-  imageUrl?: string | null;
   stackGroup?: string | null;
   /** Zorunlu iş kuralı: boş gönderilen taslak onay adımında reddedilir. */
   incompatibleGroups?: string[];

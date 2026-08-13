@@ -74,6 +74,9 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
                 : reader.GetInt32(7).ToString(CultureInfo.InvariantCulture);
             var barkod = await reader.IsDBNullAsync(8, cancellationToken) ? null : reader.GetString(8);
 
+            // Cekilen her kolon anlik goruntuye girer: taslagin ERP tarafinda degisip
+            // degismedigi bu JSON karsilastirilarak anlasilir (DraftItem.MatchesErpSnapshot),
+            // eksik birakilan kolonun degisimi fark edilmezdi.
             var rawData = new
             {
                 StokKodu = stokKodu,
@@ -83,7 +86,8 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
                 Genislik = height,
                 BirimAgirlik = weight,
                 GrupKodu = grupKodu,
-                DepoKodu = depoKodu
+                DepoKodu = depoKodu,
+                Barkod = barkod
             };
 
             results.Add(new ErpProductDto(
@@ -95,7 +99,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
                 Height: height,
                 Length: depth,
                 Weight: weight,
-                Category: grupKodu,
+                GroupCode: grupKodu,
                 Warehouse: depoKodu,
                 Barcode: barkod,
                 Diameter: null,

@@ -150,7 +150,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
             var erpProducts = fetchResult.Products;
 
-            int added = 0, updated = 0, missingFieldCount = 0;
+            int added = 0, updated = 0, unchanged = 0, missingFieldCount = 0;
             var rowErrors = new List<SyncRowError>();
             var seenErpIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var dropped = new Dictionary<ErpDropReason, int>(fetchResult.DroppedAtSource);
@@ -169,17 +169,31 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     }
 
                     var missingFields = product.MissingFields ?? [];
-                    if (missingFields.Count > 0)
-                        missingFieldCount++;
 
                     var existing = await _draftItemRepository.GetByErpIdAsync(
                         product.ErpId, integration.Id, companyId.Value, cancellationToken);
 
+                    // ERP tarafinda hicbir sey degismediyse taslaga dokunulmaz. Aksi halde
+                    // onaylanmis her urun her taramada "guncellendi" isaretlenir ve kullanici
+                    // karar bekleyen bos bildirim yiginiyla karsilasir.
+                    if (existing is not null && existing.MatchesErpSnapshot(product.RawDataJson))
+                    {
+                        unchanged++;
+                        continue;
+                    }
+
+                    // Yalnizca gercekten yazilan satirlar sayilir; atlanan satirin eksik alani
+                    // kullanici tarafindan coktan doldurulmus olabilir.
+                    if (missingFields.Count > 0)
+                        missingFieldCount++;
+
                     if (existing is not null)
                     {
+                        var refresh = BuildErpRefresh(product, missingFields);
+
                         if (existing.Status == DraftItemStatus.Approved)
                         {
-                            existing.SetUpdatePending(product.Sku, product.Name, product.RawDataJson, missingFields);
+                            existing.SetUpdatePending(refresh);
                             _draftItemRepository.Update(existing);
                             updated++;
                             continue;
@@ -187,7 +201,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
                         // Ret kalicidir: Rejected/UpdateDismissed taslagin ERP verisi tazelenir
                         // ama durumu sync ile Pending'e donmez; geri alma yalnizca kullanicidadir.
-                        existing.UpdateFromErp(product.Sku, product.Name, product.RawDataJson, missingFields);
+                        existing.UpdateFromErp(refresh);
                         _draftItemRepository.Update(existing);
                         updated++;
                     }
@@ -201,6 +215,10 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             maxWeightOnTop: 0m,
                             product.Weight);
 
+                        // ERP grup kodu isin kategorisidir, urunun fiziksel kabi degil. Tip
+                        // sabit Koli baslar ve kullanici aktarim izgarasinda degistirir.
+                        var stackGroup = ErpLoadGroupResolver.Resolve(product.GroupCode);
+
                         var draft = new DraftItem(
                             Guid.NewGuid(),
                             companyId.Value,
@@ -210,7 +228,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             product.Sku,
                             product.Name,
                             string.IsNullOrWhiteSpace(product.ProductType) ? "STANDARD" : product.ProductType,
-                            ParseCategory(product.Category),
+                            ItemCategory.Box,
                             product.Width,
                             product.Height,
                             product.Length,
@@ -222,7 +240,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             AllowedRotations.All,
                             product.Barcode,
                             product.Diameter,
-                            missingFields);
+                            missingFields,
+                            stackGroup,
+                            LoadGroups.IncompatibleWith(stackGroup));
 
                         _draftItemRepository.Add(draft);
                         added++;
@@ -246,7 +266,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
             var droppedByReason = dropped.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
             var unaccounted = CalculateUnaccounted(
-                fetchResult.SourceTotalCount, added, updated, rowErrors.Count, dropped);
+                fetchResult.SourceTotalCount, added, updated, unchanged, rowErrors.Count, dropped);
             if (unaccounted != 0)
                 _logUnaccountedRows(_logger, integration.Id, fetchResult.SourceTotalCount, unaccounted, null);
 
@@ -254,6 +274,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 fetchResult.SourceTotalCount,
                 erpProducts.Count,
                 droppedByReason.Count > 0 ? JsonSerializer.Serialize(droppedByReason) : null,
+                unchanged,
                 unaccounted);
 
             if (rowErrors.Count > 0)
@@ -276,6 +297,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     syncLog.Id,
                     added,
                     updated,
+                    unchanged,
                     rowErrors.Count,
                     rowErrors.Count,
                     missingFieldCount,
@@ -341,7 +363,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
     }
 
     /// <summary>
-    /// Mutabakat invariantı: SourceTotal == added + updated + skipped + ΣDropped.
+    /// Mutabakat invariantı: SourceTotal == added + updated + unchanged + skipped + ΣDropped.
     /// Fark sifir degilse kaynaktaki satirlarin bir kismi hicbir sayaca dusmemistir;
     /// deger gizlenmeden 'unaccounted' olarak kaydedilir.
     /// </summary>
@@ -349,19 +371,38 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         int sourceTotal,
         int added,
         int updated,
+        int unchanged,
         int skipped,
         IReadOnlyDictionary<ErpDropReason, int> dropped) =>
-        sourceTotal - (added + updated + skipped + dropped.Values.Sum());
+        sourceTotal - (added + updated + unchanged + skipped + dropped.Values.Sum());
 
     private static string BuildPartialFailMessage(int failedCount, int totalCount) =>
         $"{totalCount} satırdan {failedCount} tanesi işlenemedi; diğer satırlar kaydedildi.";
 
-    private static ItemCategory ParseCategory(string? category)
+    /// <summary>
+    /// Var olan taslaga uygulanacak ERP tazelemesi. Tip (<c>Category</c>) tazelemeye girmez:
+    /// ERP urunun fiziksel kabini tasimaz, sabit varsayilanin her senkronda yeniden yazilmasi
+    /// kullanicinin izgaradaki secimini silerdi. Yuk grubu da yalnizca grup kodu gercekten bir
+    /// gruba isaret ediyorsa tasinir; varsayilana dusen kod mevcut secimi ezmez.
+    /// </summary>
+    private static DraftItem.ErpRefresh BuildErpRefresh(
+        ErpProductDto product,
+        IReadOnlyList<string> missingFields)
     {
-        if (string.IsNullOrWhiteSpace(category))
-            return ItemCategory.Package;
+        var carriesGroupInfo = ErpLoadGroupResolver.CarriesGroupInfo(product.GroupCode);
+        var stackGroup = carriesGroupInfo ? ErpLoadGroupResolver.Resolve(product.GroupCode) : null;
 
-        return Enum.TryParse<ItemCategory>(category, ignoreCase: true, out var parsed)
-            ? parsed : ItemCategory.Package;
+        return new DraftItem.ErpRefresh(
+            product.Sku,
+            product.Name,
+            product.RawDataJson,
+            product.Width,
+            product.Height,
+            product.Length,
+            product.Weight,
+            product.Barcode,
+            stackGroup,
+            LoadGroups.IncompatibleWith(stackGroup),
+            missingFields);
     }
 }

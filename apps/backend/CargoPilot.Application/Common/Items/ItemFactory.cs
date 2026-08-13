@@ -30,7 +30,6 @@ public static class ItemFactory
             allowedRotations: spec.AllowedRotations,
             barcode: spec.Barcode,
             diameter: spec.Diameter,
-            imageUrl: spec.ImageUrl,
             stackGroup: spec.StackGroup,
             incompatibleGroups: spec.IncompatibleGroups,
             specialNotes: spec.SpecialNotes,
@@ -43,7 +42,6 @@ public static class ItemFactory
     {
         var item = Create(draft.SKU, draft.Name, ItemSpec.FromDraft(draft), companyId);
         item.SetErpSource(draft.ErpId, draft.IntegrationId);
-        item.SetRuleAssigned(true);
         return item;
     }
 
@@ -70,7 +68,6 @@ public static class ItemFactory
             maxStackCount: maxStackCount,
             maxWeightOnTop: maxWeightOnTop,
             allowedRotations: spec.AllowedRotations,
-            imageUrl: spec.ImageUrl,
             stackGroup: spec.StackGroup,
             incompatibleGroups: spec.IncompatibleGroups,
             specialNotes: spec.SpecialNotes,

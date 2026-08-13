@@ -40,13 +40,11 @@ describe('draftItemToRow', () => {
     expect(draftItemToRow(makeDraft({ category })).tip).toBe(expected);
   });
 
-  // ERP çekimi productType'a 'General' gibi placeholder yazar; tip uydurulmaz.
+  // ERP çekimi productType'a 'General' gibi placeholder yazar; tip yalnızca kategoriden okunur.
   const placeholderTypeCases: Array<[string | null]> = [['General'], ['STANDARD'], [null]];
 
-  it.each(placeholderTypeCases)('ERP tipi %s ise tip boş kalır', (productType) => {
-    expect(draftItemToRow(makeDraft({ productType, category: ITEM_CATEGORY.Package })).tip).toBe(
-      '',
-    );
+  it.each(placeholderTypeCases)('ERP tipi %s olsa da tip kategoriden okunur', (productType) => {
+    expect(draftItemToRow(makeDraft({ productType, category: ITEM_CATEGORY.Box })).tip).toBe('koli');
   });
 
   const rotationCases: Array<[number, boolean, boolean, boolean]> = [

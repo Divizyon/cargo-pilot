@@ -48,7 +48,7 @@ public sealed class DraftItemRejectionTests
     [Fact]
     public async Task Reject_GuncellemeReddi_ApprovedYerineUpdateDismissedOlur()
     {
-        var draft = Arrange(d => d.SetUpdatePending("SKU-YENI", "Yeni Ad", "{}"));
+        var draft = Arrange(d => d.SetUpdatePending(TestData.CreateErpRefresh("SKU-YENI", "Yeni Ad")));
 
         var result = await CreateRejectSut().Handle(new RejectDraftItemCommand(draft.Id), CancellationToken.None);
 

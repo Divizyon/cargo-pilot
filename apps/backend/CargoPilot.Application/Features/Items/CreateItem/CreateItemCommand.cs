@@ -21,7 +21,6 @@ public sealed record CreateItemCommand(
     int MaxStackCount,
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
-    string? ImageUrl,
     string? StackGroup,
     string[]? IncompatibleGroups,
     string? SpecialNotes,

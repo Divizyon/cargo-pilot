@@ -243,10 +243,16 @@ export function ERPItemsTable() {
     refetch: refetchDrafts,
   } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
 
+  const pageItemIds = new Set((draftPage?.items ?? []).map((i) => i.id));
+  // Seçim sayfa değişince korunur; bu yüzden seçili kayıtların bir kısmı açık sayfada
+  // olmayabilir. Aktarıma giden satırlar kayıt nesnesini gerektirdiğinden, o durumda
+  // tüm seçilebilir kümenin de çekilmesi gerekir.
+  const hasOffPageSelection = Array.from(selectedIds).some((id) => !pageItemIds.has(id));
+
   // Tümünü-seç kümesi aktif sekmeye bağlıdır; aksi halde görünmeyen kayıtlar toplu işleme girer.
   const { data: allSelectablePage } = useDraftItems(
     { page: 1, pageSize: 9999, status: statusFilter },
-    { enabled: selectAllMode && isSelectableTab },
+    { enabled: isSelectableTab && (selectAllMode || hasOffPageSelection) },
   );
 
   // Reddedilenler sekmesi rozeti; kayitlarin kaybolmadigini sekme uzerinden gorunur kilar.
@@ -260,6 +266,12 @@ export function ERPItemsTable() {
     selectAllMode && allSelectablePage
       ? new Set(allSelectablePage.items.map((i) => i.id))
       : selectedIds;
+
+  // Kimlikten kayda çözüm tablosu: açık sayfa ile seçilebilir kümenin birleşimi.
+  // Açık sayfa sonra yazılır ki en taze kopya kazansın.
+  const knownItemsById = new Map<string, DraftItem>();
+  for (const item of allSelectablePage?.items ?? []) knownItemsById.set(item.id, item);
+  for (const item of draftPage?.items ?? []) knownItemsById.set(item.id, item);
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
   const bulkReject = useBulkRejectDraftItems();
@@ -347,7 +359,11 @@ export function ERPItemsTable() {
   }
 
   function handleOpenImport() {
-    const selected = filteredItems.filter((item) => effectiveSelectedIds.has(item.id));
+    // Seçim açık sayfayla sınırlı değildir; satırlar tüm bilinen kayıtlardan çözülür,
+    // aksi halde yalnızca o an ekranda duran kadarı aktarım ekranına giderdi.
+    const selected = Array.from(effectiveSelectedIds)
+      .map((id) => knownItemsById.get(id))
+      .filter((item): item is DraftItem => item !== undefined);
     const rows = selected.map(draftItemToRow);
     const draftIds: Record<string, string> = {};
     rows.forEach((row, i) => {

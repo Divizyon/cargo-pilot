@@ -76,7 +76,6 @@ internal sealed class DraftItemConfiguration : IEntityTypeConfiguration<DraftIte
 
         builder.Property(x => x.AllowedRotations).IsRequired();
 
-        builder.Property(x => x.ImageUrl).HasMaxLength(500);
         builder.Property(x => x.StackGroup).HasMaxLength(100);
         builder.Property(x => x.SpecialNotes).HasMaxLength(1000);
 

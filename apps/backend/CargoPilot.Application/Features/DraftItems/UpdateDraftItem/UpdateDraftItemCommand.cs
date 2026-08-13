@@ -20,7 +20,6 @@ public sealed record UpdateDraftItemCommand(
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
     string? Barcode,
-    string? ImageUrl,
     string? StackGroup,
     string[]? IncompatibleGroups,
     string? SpecialNotes,

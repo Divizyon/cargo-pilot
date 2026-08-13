@@ -22,7 +22,6 @@ public class OptimizationEngineRotationPlacementTests
             ItemId: Guid.NewGuid(),
             SKU: "SKU-1",
             Name: "Test Item",
-            ImageUrl: null,
             Width: width,
             Height: height,
             Length: length,

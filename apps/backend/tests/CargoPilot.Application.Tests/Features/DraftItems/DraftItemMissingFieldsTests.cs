@@ -24,7 +24,6 @@ public sealed class DraftItemMissingFieldsTests
             maxWeightOnTop: 0m,
             AllowedRotations.All,
             barcode: null,
-            imageUrl: null,
             stackGroup: null,
             incompatibleGroups: null,
             specialNotes: null);
@@ -64,15 +63,60 @@ public sealed class DraftItemMissingFieldsTests
     }
 
     [Fact]
-    public void ErpGuncellemesi_EksikAlanListesiniYeniler()
+    public void ErpGuncellemesi_HalenEksikOlanAlaniIsaretler()
     {
         var draft = TestData.CreateDraftItem(
             CompanyId,
             IntegrationId,
+            width: 0m,
             missingFields: [DraftItemField.Width]);
 
-        draft.UpdateFromErp("SKU-1", "Yeni Ad", "{}", [DraftItemField.Height]);
+        draft.UpdateFromErp(TestData.CreateErpRefresh(missingFields: [DraftItemField.Width]));
 
-        draft.GetMissingFields().Should().Equal(DraftItemField.Height);
+        draft.GetMissingFields().Should().Equal(DraftItemField.Width);
+    }
+
+    [Fact]
+    public void ErpGuncellemesi_TaslaktaDoluOlanAlaniEksikIsaretlemez()
+    {
+        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId, width: 12m);
+
+        draft.UpdateFromErp(TestData.CreateErpRefresh(missingFields: [DraftItemField.Width]));
+
+        draft.GetMissingFields().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ErpGuncellemesi_SifirGelenOlcuyuEzmez()
+    {
+        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId, width: 12m, weight: 7m);
+
+        draft.UpdateFromErp(TestData.CreateErpRefresh(width: 0m, weight: 0m));
+
+        draft.Width.Should().Be(12m);
+        draft.Weight.Should().Be(7m);
+    }
+
+    [Fact]
+    public void ErpGuncellemesi_DoluGelenOlcuyuYazar()
+    {
+        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId, width: 12m, weight: 7m);
+
+        draft.UpdateFromErp(TestData.CreateErpRefresh(width: 40m, height: 50m, length: 60m, weight: 9m));
+
+        draft.Width.Should().Be(40m);
+        draft.Height.Should().Be(50m);
+        draft.Length.Should().Be(60m);
+        draft.Weight.Should().Be(9m);
+    }
+
+    [Fact]
+    public void ErpGuncellemesi_YukGrubuBossaMevcutSecimiKorur()
+    {
+        var draft = TestData.CreateDraftItem(CompanyId, IntegrationId, stackGroup: "Tekstil");
+
+        draft.UpdateFromErp(TestData.CreateErpRefresh(stackGroup: null));
+
+        draft.StackGroup.Should().Be("Tekstil");
     }
 }

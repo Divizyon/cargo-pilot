@@ -14,7 +14,8 @@ public sealed record ErpProductDto(
     decimal Height,
     decimal Length,
     decimal Weight,
-    string? Category,
+    // ERP is grubu kodu (Netsis: GRUP_KODU). Yuk grubuna cevrilir, Tip'e degil.
+    string? GroupCode,
     string? Warehouse,
     string? Barcode,
     decimal? Diameter,

@@ -70,6 +70,7 @@ describe('buildSyncToastMessage', () => {
   const emptySummary = {
     added: 0,
     updated: 0,
+    unchanged: 0,
     skipped: 0,
     errorCount: 0,
     missingFieldCount: 0,
@@ -78,6 +79,18 @@ describe('buildSyncToastMessage', () => {
     droppedByReason: {},
     unaccounted: 0,
   } satisfies ErpSyncSummary;
+
+  it('değişmeyen satırlar güncellenenlerden ayrı raporlanır', () => {
+    expect(
+      buildSyncToastMessage({ ...emptySummary, added: 0, updated: 1, unchanged: 26, sourceTotal: 27 }),
+    ).toBe("ERP'de 27 satır bulundu — 0 eklendi, 1 güncellendi, 26 değişmedi");
+  });
+
+  it('değişmeyen satır yoksa cümlede o parça hiç geçmez', () => {
+    expect(buildSyncToastMessage({ ...emptySummary, added: 5, updated: 0, sourceTotal: 5 })).not.toContain(
+      'değişmedi',
+    );
+  });
 
   it('kaynak toplamı biliniyorsa cümleye ERP satır sayısıyla başlar', () => {
     expect(buildSyncToastMessage({ ...emptySummary, added: 12, updated: 3, sourceTotal: 15 })).toBe(

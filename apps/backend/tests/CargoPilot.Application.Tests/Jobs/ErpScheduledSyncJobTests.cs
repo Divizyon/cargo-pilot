@@ -158,6 +158,7 @@ public sealed class ErpScheduledSyncJobTests
             Guid.NewGuid(),
             Added: 0,
             Updated: 0,
+            Unchanged: 0,
             Skipped: 0,
             ErrorCount: 0,
             MissingFieldCount: 0,
