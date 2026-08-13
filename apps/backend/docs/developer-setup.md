@@ -1,6 +1,6 @@
 # CargoPilot Developer Setup
 
-**Son güncelleme:** 2026-04-17 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
 
 Bu dokümanın amacı, tüm geliştiricilerin projeyi aynı araç seti ile sorunsuz derlemesini sağlamaktır.
 
@@ -26,7 +26,8 @@ Ek olarak şu individual componentlerin kurulu olduğunu doğrulayın:
 
 ## 3) SDK standardı
 
-Bu repository, kök dizindeki `global.json` dosyası ile SDK sürümünü sabitler:
+Bu repository, `apps/backend/global.json` dosyası ile SDK sürümünü sabitler (repo kökünde
+`global.json` **yoktur**):
 
 - `version`: `8.0.419`
 - `rollForward`: `latestPatch`
@@ -38,9 +39,11 @@ Anlamları:
 
 ## 4) Kurulum sonrası doğrulama
 
-Repository kök dizininde şu komutları çalıştırın:
+`global.json` `apps/backend/` altında olduğundan komutları **bu dizinden** çalıştırın:
 
 ```powershell
+cd apps\backend
+
 dotnet --info
 dotnet --list-sdks
 dotnet --version
@@ -53,9 +56,13 @@ Beklenen durum:
 - `dotnet --version` çıktı değeri `8.0.419` olmalı (veya aynı bandda `latestPatch` ile seçilen patch).
 - Restore ve build adımları hata vermeden tamamlanmalı.
 
+> **Not:** Repo kökünden çalıştırırsanız `global.json` devreye girmez ve `dotnet --version`
+> makinedeki en güncel SDK'yı gösterir. Bu bir hata değildir, ancak sürüm doğrulaması anlamını
+> yitirir.
+
 ## 5) Sıklıkla karşılaşılan sorunlar
 
-- **SDK uyuşmazlığı:** `global.json` bulunan klasörde komut çalıştırdığınızdan emin olun.
+- **SDK uyuşmazlığı:** `global.json` bulunan klasörde (`apps/backend`) komut çalıştırdığınızdan emin olun.
 - **.NET 8 bulunamadı hatası:** Visual Studio Installer veya .NET installer ile .NET 8 SDK kurun.
 - **NuGet restore sorunu:** Internet/proxy ayarlarınızı ve kurum sertifika politikasını kontrol edin.
 
@@ -65,14 +72,16 @@ Beklenen durum:
 - SDK değişiklikleri chapter lead onayı ile yapılır.
 - Yeni sürüme geçişte önce local doğrulama, sonra CI doğrulaması yapılır.
 
-## 7) CI tarafında SDK sabitleme
+## 7) CI tarafında SDK
 
-CI tarafında da aynı SDK sürümü kullanılır. Bu repository'de GitHub Actions pipeline dosyası:
+GitHub Actions pipeline dosyası: `.github/workflows/ci.yml`
 
-- `.github/workflows/ci.yml`
+`backend-ci` job'ı `actions/setup-dotnet@v4` ile SDK'yı **feature band** düzeyinde seçer:
 
-Bu dosyada `actions/setup-dotnet@v4` ile şu sürüm pinlenmiştir:
+- `dotnet-version: '8.0.x'`
 
-- `.NET SDK 8.0.419`
+Yani CI'da tam patch sürümü **pinlenmez**; 8.0 bandındaki en güncel patch kurulur. `8.0.419`
+pini yalnızca `apps/backend/global.json` içindedir ve yerel SDK seçimi içindir.
 
-Böylece local (`global.json`) ve CI aynı SDK sürümü ile build alır.
+Pratikte ikisi de aynı feature band'de kaldığı için local ve CI uyumlu build alır; ancak
+tam patch sürümlerinin birebir aynı olacağı garanti değildir.
