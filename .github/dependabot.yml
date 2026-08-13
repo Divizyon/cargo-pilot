@@ -20,13 +20,17 @@ updates:
         applies-to: version-updates
         update-types: ["minor", "patch"]
     ignore:
-      # 3D sahne ve routing major'ları manuel QA istiyor
+      # 3D sahne değişiklikleri manuel QA istiyor (CLAUDE.md).
+      # three 0.x sürümlemesi kullanıyor: 0.162 → 0.185 semver'e göre MINOR sayılır
+      # ama fiilen kırıcıdır (r185'te ShaderMaterial.extensions.derivatives kaldırıldı,
+      # r163'te WebGL1 desteği düştü). Bu yüzden three ailesinde minor da ignore edilir;
+      # sürüm atlaması planlı ve 3D QA'li bir iş olarak yapılır.
       - dependency-name: "three"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@types/three"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@react-three/*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "react-router*"
         update-types: ["version-update:semver-major"]
       # Framework major'ları planlı geçiş işidir; CLAUDE.md React 18'i sabitliyor.
