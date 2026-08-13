@@ -21,7 +21,7 @@ cp infra/env/.env.test.example infra/env/.env.test
 docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.env.test up -d
 ```
 
-**Default login:** `admin@cargopilot.com` / `Admin@CargoPilot1!`
+**Default login:** `admin@cargopilot.com` — parola için `docs/setup/local-setup.md`'ye bakın. Test sunucusunda parola `SEED_DEFAULT_ADMIN_PASSWORD` secret'ından gelir.
 
 ---
 
