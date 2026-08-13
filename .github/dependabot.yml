@@ -29,6 +29,18 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-router*"
         update-types: ["version-update:semver-major"]
+      # Framework major'ları planlı geçiş işidir; CLAUDE.md React 18'i sabitliyor.
+      # Tekil PR olarak gelirse her hafta yeniden açılır — planlandığında bu kural kaldırılır.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # ── NuGet / backend ─────────────────────────────────────────
   - package-ecosystem: "nuget"
@@ -47,6 +59,14 @@ updates:
       nuget-minor-patch:
         applies-to: version-updates
         update-types: ["minor", "patch"]
+    ignore:
+      # Tüm projeler net8.0 hedefliyor. Microsoft.* paketlerinin major sürümü
+      # .NET sürümüyle hizalıdır; 9.x/10.x paketleri net8.0 ile eşleşmez.
+      # .NET yükseltmesi yapıldığında bu kural kaldırılır.
+      - dependency-name: "Microsoft.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "System.*"
+        update-types: ["version-update:semver-major"]
 
   # ── Docker ──────────────────────────────────────────────────
   - package-ecosystem: "docker"
@@ -57,6 +77,11 @@ updates:
       day: "monday"
     open-pull-requests-limit: 5
     labels: ["dependencies", "docker"]
+    ignore:
+      # Node major'ı tek başına yükseltilemez: ci.yml'deki node-version ile
+      # birlikte gitmeli, yoksa CI ve imaj farklı sürümde kalır.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/apps/backend"
