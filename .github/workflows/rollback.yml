@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -52,7 +52,7 @@ jobs:
 
       - name: Test sunucusuna rollback yap
         if: github.event.inputs.environment == 'test'
-        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: root
@@ -64,7 +64,7 @@ jobs:
 
       - name: Prod sunucusuna rollback yap
         if: github.event.inputs.environment == 'prod'
-        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: root
