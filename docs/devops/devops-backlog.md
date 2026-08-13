@@ -1,6 +1,6 @@
 # DevOps Backlog
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
 
 Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini önceliklendirilmiş şekilde takip eder.
 
@@ -21,6 +21,7 @@ Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini ön
 | 9 | `deployment.md` güncelle | 🟡 Orta | ⚠️ Açık |
 | 10 | `monitoring-setup.md` — contact point adımları | 🟡 Orta | ⚠️ Açık |
 | 11 | Node.js 20 → 22 geçişi | 🟢 Düşük | ⚠️ Açık |
+| 12 | xlsx → exceljs geçişi (Dependabot izlenebilirliği) | 🟡 Orta | ⚠️ Açık |
 
 ---
 
@@ -212,6 +213,16 @@ Self-signed sertifika kullanılıyor. Cloudflare Full SSL modu ile şimdilik ça
 |-------|-------|-----|
 | GHA cache cleanup workflow eklendi (PR kapanınca + haftalık temizlik) | ✅ | #489/#492 |
 | `dev` branch test ile hizalandı (`sync/test-to-dev`) | ✅ | #493 |
+| xlsx → exceljs geçişi | ⚠️ Açık | — |
+
+**xlsx → exceljs bağlamı (2026-08-13):** xlsx, npm registry'de 0.18.5'te takılı kaldığı için
+(2 high advisory, fix yalnız SheetJS CDN'inde) bağımlılık CDN tarball'ına taşındı
+(`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`) — açıklar kapandı ancak URL bağımlılığını
+Dependabot izleyemez; gelecekteki xlsx CVE'leri SheetJS changelog'undan elle takip edilmeli.
+Kalıcı çözüm: 5 dosyadaki ~38 çağrının (`BulkImportDialog`, `VehicleBulkImportDialog`,
+`export-utils`, `exportVehiclesToExcel`, `useReports`) exceljs'e taşınması. Asıl maliyet kod değil
+QA: Excel export'ları müşteriye giden çıktılar — kolon düzeni/format birebir doğrulanmalı.
+Import/export ekranına dokunulan bir sprint'te ele alınması önerilir.
 
 ---
 
