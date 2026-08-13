@@ -23,6 +23,7 @@ Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini ön
 | 11 | Node.js 20 → 22 geçişi | 🟢 Düşük | ⚠️ Açık |
 | 12 | xlsx → exceljs geçişi (Dependabot izlenebilirliği) | 🟡 Orta | ⚠️ Açık |
 | 13 | three.js r162 → r185 yükseltmesi (3D QA'li) | 🟡 Orta | ⚠️ Açık |
+| 14 | CORS `AllowAnyOrigin()` geri dönüş yolu — fail-fast'e çevrilmeli | 🟠 Güvenlik | ⚠️ Açık |
 
 ---
 
@@ -258,6 +259,43 @@ Bu, **derleyicinin yakalayabildiği tek sorun**; r163→r185 aralığı TypeScri
 **Önerilen yöntem:** tek seferde r185'e atlamak yerine ara sürümlerde (r170, r178) durup sahneyi
 görsel olarak doğrulamak; her adımda bir plan yükleyip 3D görüntüleyicide kontrol etmek.
 3D/canvas değişiklikleri için `CLAUDE.md` snapshot benzeri doğrulama veya manuel QA şart koşuyor.
+
+---
+
+### 5.2 CORS `AllowAnyOrigin()` Geri Dönüş Yolu
+
+{% hint style="danger" %}
+**⚠️ Açık — Güvenlik** · Tespit: 2026-08-13 (SonarAnalyzer 10.32 yükseltmesi, PR #955)
+{% endhint %}
+
+`apps/backend/CargoPilot.WebAPI/DependencyInjection.cs` içinde CORS yapılandırması şu şekilde:
+
+```csharp
+if (corsOrigins.Length > 0)
+    builder.WithOrigins(corsOrigins!).AllowCredentials();
+else
+    builder.AllowAnyOrigin();   // S5122 — pragma ile susturuldu
+```
+
+`CORS_ALLOWED_ORIGIN_*` değişkenleri tanımlı değilse API **tüm origin'lere açılır**. Analyzer
+yükseltmesi bunu S5122 olarak yakaladı; bağımlılık PR'ında çalışma zamanı davranışı
+değiştirilmemesi için `#pragma warning disable` ile susturuldu ve buraya taşındı.
+
+**Risk:** Kuralın güvenliği bir *varsayıma* dayanıyor — "dağıtım ortamlarında origin listesi her
+zaman verilir". Bu bir garanti değil; prod stack kurulurken (madde 1-2) env dosyası eksik
+hazırlanırsa API sessizce herkese açık başlar ve hiçbir uyarı üretmez.
+
+**Önerilen çözüm:** Geri dönüş yolunu ortama duyarlı hale getir — `Development` dışında origin
+listesi boşsa uygulama **başlatmayı reddetsin** (fail-fast), yalnızca development'ta
+`AllowAnyOrigin()` kalsın. Böylece pragma da kaldırılabilir.
+
+**Aynı PR'da susturulan, incelenmiş ve kabul edilmiş diğer kurallar** (bunlar için aksiyon
+gerekmiyor, kayıt amaçlı):
+
+- `AuthController` S2092 ×3 — `Secure = !_env.IsDevelopment()`; kod zaten doğru, analyzer
+  ifadeyi statik olarak çözemiyor. Sabit `true` yazmak lokal HTTP geliştirmeyi kırardı.
+- `MinioHealthCheck` S5332 — küme içi ağda MinIO sağlık ucuna düz HTTP; istek konteyner
+  ağından dışarı çıkmıyor.
 
 ---
 
