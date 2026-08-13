@@ -395,7 +395,7 @@ Eksik standart dosyalar: ~~SECURITY.md~~ ✅ eklendi · **LICENSE** ⏸ bilinçl
 |---|---|---|
 | Workflow izinleri + zaman aşımları | ✅ [PR #961](https://github.com/Divizyon/cargo-pilot/pull/961) | 8 dosyaya top-level `contents: read`; 15/15 job'a `timeout-minutes` (önce 2/15) |
 | Backend test guard | ✅ PR #961 | `find` boş dönerse artık `::error::` + `exit 1` — "yeşil ama boş CI" riski kapandı; `2>/dev/null` de kaldırıldı |
-| GitHub Release + changelog | ✅ PR #961 | `release-tag.yml`'e `gh release create --generate-notes`; 11 tag / 0 release durumu bir sonraki sürümde kapanacak |
+| GitHub Release + changelog | ✅ PR #961 | `release-tag.yml`'e `gh release create --generate-notes`; "11 tag / 0 release" durumu **v0.12.0 ve v0.13.0** ile kapandı |
 | `promote.yml` bayat yorumları | ✅ PR #961 | Silinmiş `TEST_GHCR_PAT` atfı ve "PROMOTION_PAT YOKTUR" iddiası düzeltildi |
 | SECURITY.md | ✅ [PR #962](https://github.com/Divizyon/cargo-pilot/pull/962) | Kanal: **GitHub private vulnerability reporting** (repo ayarından açıldı); e-posta yayınlanmadı |
 | Ölü secret temizliği | ✅ Repo ayarı | `TEST_GHCR_PAT` + `TEST_GHCR_USER` silindi (8 → 6 secret) |
@@ -404,6 +404,16 @@ Eksik standart dosyalar: ~~SECURITY.md~~ ✅ eklendi · **LICENSE** ⏸ bilinçl
 | LICENSE | ⏸ Ertelendi | Repo taahhüdü netleşene kadar — bilinçli karar |
 | `server-access.md` IP/port ifşası | ⏸ Karar | Dosyadan silmek git geçmişinden kaldırmıyor; ayrı bir karar konusu |
 | Koordinat terminolojisi çelişkisi | ⏸ Bağımlı | `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor |
+
+**Dependabot ikinci turu — 2026-08-13 (dördüncü tur):**
+
+| Kalem | Durum | Not |
+|---|---|---|
+| framer-motion + @types/node minor'ları | ✅ [PR #977](https://github.com/Divizyon/cargo-pilot/pull/977) | Ignore kurallarının doğru çalıştığının kanıtı: major'lar süzüldü, minor'lar geçti |
+| xunit.runner 2.8.2 → 3.1.5 | ✅ [PR #981](https://github.com/Divizyon/cargo-pilot/pull/981) | Runner major'ı; test sayısı CI log'undan doğrulandı (20 + 33 = 53) — "0 test ile sessizce yeşil" riski gerçekleşmedi |
+| `Serilog.*` + `Swashbuckle.*` ignore | ✅ [PR #982](https://github.com/Divizyon/cargo-pilot/pull/982) | Sürümlemeleri ASP.NET Core'a hizalı; `Swashbuckle` kuralı, `Microsoft.OpenApi`'yi yanında sürükleyen çok-paketli PR kapısını da kapatıyor |
+| Serilog 10.x, Swashbuckle 10.x + OpenApi 2.x | ❌ Kapatıldı | #979/#980 **CI'ı fiilen kırdı**: `Microsoft.OpenApi.Models` namespace'i kalkmış, `IOperationFilter.Apply` imzası değişmiş — `AuthorizeOperationFilter.cs` ve `DependencyInjection.cs` yeniden yazılmalı (planlı iş) |
+| #938 (takım arkadaşının PR'ı) | 💬 Bilgi notu | 254 dosya / +32K satır, `CONFLICTING`; dev 19 commit ilerledi. Yeşil check'leri bayat (çakışan PR'da CI koşmaz). `dev` merge'ü ve etkilenecek 5 değişiklik PR'da not edildi — **dokunulmadı** |
 
 ---
 
