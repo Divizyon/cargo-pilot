@@ -155,7 +155,7 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
       username: '',
       password: '',
       serverAddress: '',
-      trustServerCertificate: true,
+      trustServerCertificate: false,
     },
   });
 
@@ -249,7 +249,7 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
           username: '',
           password: '',
           serverAddress: '',
-          trustServerCertificate: true,
+          trustServerCertificate: false,
         });
       },
     });

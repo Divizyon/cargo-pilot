@@ -139,6 +139,20 @@ public static class DependencyInjection {
                         QueueLimit        = 0,
                     }));
 
+            // ERP bağlantı testi: 10 istek / 1 dk / IP.
+            // Uç, istekte verilen adrese dışarı bağlantı açar; sınırsız çağrı hem
+            // müşteri ağına yönelik tarama hem de şifre deneme aracı olurdu.
+            options.AddPolicy("erp-test-connection", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 10,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
+
             // Anonim paylaşım görüntüleme: 60 istek / 1 dk / IP.
             // Kimlik doğrulaması yoktur; geçerli token'ı olan biri sunucuyu yormamalı.
             options.AddPolicy("share-public", httpContext =>

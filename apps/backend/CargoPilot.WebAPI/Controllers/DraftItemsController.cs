@@ -16,7 +16,8 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/draft-items")]
 [Tags("DraftItems")]
-[Authorize(Policy = "CompanyMember")]
+// ERP taslaklari sirketin urun master'ina yazar; diger ERP uclariyla ayni yetkiye baglidir.
+[Authorize(Policy = "CompanyAdmin")]
 public sealed class DraftItemsController : BaseController
 {
     private readonly IMediator _mediator;

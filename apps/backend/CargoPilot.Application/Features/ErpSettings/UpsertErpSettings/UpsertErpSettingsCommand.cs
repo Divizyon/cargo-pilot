@@ -6,7 +6,7 @@ namespace CargoPilot.Application.Features.ErpSettings.UpsertErpSettings;
 
 /// <summary>
 /// <paramref name="TrustServerCertificate"/> false ise ERP sunucusunun TLS sertifikasi
-/// dogrulanir; alan gonderilmezse mevcut varsayilan (true) korunur.
+/// dogrulanir; alan gonderilmezse guvenli taraf (false) secilir.
 /// </summary>
 public record UpsertErpSettingsCommand(
     ErpProviderType ProviderType,
@@ -14,4 +14,4 @@ public record UpsertErpSettingsCommand(
     string Username,
     string ServerAddress,
     string? Password,
-    bool TrustServerCertificate = true) : IRequest<Result<ErpSettingsResponse>>;
+    bool TrustServerCertificate = false) : IRequest<Result<ErpSettingsResponse>>;

@@ -6,8 +6,9 @@ namespace CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 
 /// <summary>
 /// <paramref name="TrustServerCertificate"/> false ise sunucu sertifikasi dogrulanir;
-/// eski istemciler alani gondermezse varsayilan davranis (true) korunur.
-/// <paramref name="Password"/> bos gonderilirse kayitli baglantinin sifresiyle test edilir.
+/// alan gonderilmezse guvenli taraf (false) secilir.
+/// <paramref name="Password"/> bos gonderilirse yalnizca istek kayitli baglantinin
+/// aynisini hedefliyorsa kayitli sifreyle test edilir.
 /// </summary>
 public record TestErpConnectionCommand(
     ErpProviderType ProviderType,
@@ -15,4 +16,4 @@ public record TestErpConnectionCommand(
     string CompanyCode,
     string Username,
     string? Password,
-    bool TrustServerCertificate = true) : IRequest<Result<ErpConnectionTestResponse>>;
+    bool TrustServerCertificate = false) : IRequest<Result<ErpConnectionTestResponse>>;

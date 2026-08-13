@@ -5,6 +5,7 @@ using CargoPilot.Application.Features.ErpSettings.UpsertErpSettings;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CargoPilot.WebAPI.Controllers;
 
@@ -82,6 +83,7 @@ public sealed class ErpSettingsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     [HttpPost("test-connection")]
     [Authorize(Policy = "CompanyAdmin")]
+    [EnableRateLimiting("erp-test-connection")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

@@ -77,6 +77,25 @@ describe('ERPConnectionForm alan rehberliği', () => {
     expect(screen.queryByLabelText('Şirket Kodu')).not.toBeInTheDocument();
   });
 
+  it('yeni bağlantıda sertifika doğrulaması açık gelir', async () => {
+    mockEmptyState();
+
+    renderForm(<ERPConnectionForm />);
+
+    // Anahtar "doğrulama" (atlama) anlamındadır; kapalı olması sertifikanın doğrulandığını gösterir.
+    const trustSwitch = await screen.findByRole('switch', { name: /sertifikasını doğrulama/i });
+    expect(trustSwitch).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('kayıtlı ayardaki sertifika tercihi forma aynen yansır', async () => {
+    mockSavedSettings({ trustServerCertificate: true });
+
+    renderForm(<ERPConnectionForm />);
+
+    const trustSwitch = await screen.findByRole('switch', { name: /sertifikasını doğrulama/i });
+    expect(trustSwitch).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('sunucu adresi alanında named instance ve port örneği gösterir', async () => {
     mockEmptyState();
 

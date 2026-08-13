@@ -14,10 +14,11 @@ public sealed class ErpSettings : BaseEntity
     public string ServerAddress { get; private set; } = null!;
 
     /// <summary>
-    /// false ise ERP sunucusunun TLS sertifikasi dogrulanir. Varsayilan true; musteri
-    /// sunucularinda cogunlukla self-signed sertifika bulundugu icin kurulum bozulmasin.
+    /// false ise ERP sunucusunun TLS sertifikasi dogrulanir. Varsayilan false: WAN uzerinden
+    /// giden baglanti araya girme saldirisina acik kalmamali. Self-signed sertifikali
+    /// sunucularda kullanici bunu bilerek acar.
     /// </summary>
-    public bool TrustServerCertificate { get; private set; } = true;
+    public bool TrustServerCertificate { get; private set; }
 
     /// <summary>Son bağlantı testinin anı; hiç test edilmediyse null.</summary>
     public DateTime? LastTestedAtUtc { get; private set; }

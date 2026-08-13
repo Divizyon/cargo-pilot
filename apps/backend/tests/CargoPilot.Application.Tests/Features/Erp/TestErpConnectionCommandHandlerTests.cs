@@ -187,4 +187,51 @@ public sealed class TestErpConnectionCommandHandlerTests
         settings.LastTestSucceeded.Should().BeTrue();
         settings.HasCurrentConnectionTest().Should().BeFalse();
     }
+
+    /// <summary>
+    /// Kayitli sifre, istek kayitli baglantidan sapiyorsa cozulmez: aksi halde sifre
+    /// istekle secilen keyfi bir sunucuya gonderilebilirdi.
+    /// </summary>
+    [Theory]
+    [InlineData("ServerAddress")]
+    [InlineData("Username")]
+    [InlineData("CompanyCode")]
+    public async Task Handle_SifreYokVeIstekKayitliBaglantidanFarkli_SifreCozulmez(string degisenAlan)
+    {
+        var settings = ExistingSettings();
+        _settingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(settings);
+        _passwordProtector.Unprotect(Arg.Any<string>()).Returns("kayitli-sifre");
+
+        var command = Command(password: null);
+        command = degisenAlan switch
+        {
+            "ServerAddress" => command with { ServerAddress = "saldirgan.example.com" },
+            "Username" => command with { Username = "baska_kullanici" },
+            _ => command with { CompanyCode = "BASKA_DB" },
+        };
+
+        var result = await CreateSut().Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("ErpSettings.PasswordRequiredForNewConfig");
+        _passwordProtector.DidNotReceive().Unprotect(Arg.Any<string>());
+        await _connector.DidNotReceive().TestConnectionAsync(
+            Arg.Any<string>(), Arg.Any<ErpCredentials>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_SifreVerildi_FarkliSunucuTestEdilebilir()
+    {
+        var settings = ExistingSettings();
+        _settingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>()).Returns(settings);
+        _connector.TestConnectionAsync(
+                Arg.Any<string>(), Arg.Any<ErpCredentials>(), Arg.Any<CancellationToken>())
+            .Returns(new ErpConnectionResult(true, null));
+
+        var result = await CreateSut().Handle(
+            Command() with { ServerAddress = "yeni-sunucu,1433" }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _passwordProtector.DidNotReceive().Unprotect(Arg.Any<string>());
+    }
 }

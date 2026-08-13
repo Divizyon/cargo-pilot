@@ -10,6 +10,8 @@ namespace CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 
 /// <summary>
 /// Sifre gonderilmediyse kayitli sifreyle test eder; sifreyi bilmeyen kullanici bloklanmaz.
+/// Kayitli sifre yalnizca istek kayitli baglantinin aynisini hedefliyorsa kullanilir:
+/// aksi halde sifre, istekle belirlenen keyfi bir sunucuya gonderilebilirdi.
 /// Test sonucu, test edilen yapilandirmanin imzasiyla birlikte kayitli ayarlara islenir.
 /// </summary>
 internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpConnectionCommand, Result<ErpConnectionTestResponse>>
@@ -43,7 +45,7 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
             ? null
             : await _settingsRepository.GetByCompanyIdAsync(companyId.Value, cancellationToken);
 
-        var passwordResult = ResolvePassword(request.Password, settings);
+        var passwordResult = ResolvePassword(request, settings);
         if (passwordResult.Error is not null)
             return Result<ErpConnectionTestResponse>.Failure(passwordResult.Error);
 
@@ -71,16 +73,27 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
             new ErpConnectionTestResponse(result.IsSuccess, message, result.Warning));
     }
 
-    private (string? Password, Error? Error) ResolvePassword(string? requestPassword, ErpSettingsEntity? settings)
+    private (string? Password, Error? Error) ResolvePassword(TestErpConnectionCommand request, ErpSettingsEntity? settings)
     {
-        if (!string.IsNullOrWhiteSpace(requestPassword))
-            return (requestPassword, null);
+        if (!string.IsNullOrWhiteSpace(request.Password))
+            return (request.Password, null);
 
         if (settings is null)
             return (null, new Error(
                 ErrorType.Validation,
                 "ErpSettings.PasswordRequired",
                 "Kayıtlı bağlantı olmadığı için şifre zorunludur."));
+
+        // Kayitli sifre yalnizca kayitli baglantinin aynisi test edilirken cozulur; sunucu,
+        // kullanici, sirket kodu veya saglayicidan biri farkliysa sifre baska bir hedefe gider.
+        var requestedConfigHash = ErpSettingsEntity.BuildConfigHash(
+            request.ProviderType, request.CompanyCode, request.Username, request.ServerAddress);
+
+        if (requestedConfigHash != settings.BuildCurrentConfigHash())
+            return (null, new Error(
+                ErrorType.Validation,
+                "ErpSettings.PasswordRequiredForNewConfig",
+                "Bağlantı bilgileri kayıtlı ayarlardan farklı. Bu ayarları test etmek için şifreyi girin."));
 
         try
         {
