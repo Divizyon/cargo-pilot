@@ -18,10 +18,14 @@ on:
         type: string
         default: ''
 
+permissions:
+  contents: read
+
 jobs:
   rollback:
     name: Rollback (${{ github.event.inputs.environment }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: ${{ github.event.inputs.environment }}
 
     steps:

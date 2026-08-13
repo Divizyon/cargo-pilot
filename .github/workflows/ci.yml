@@ -19,6 +19,9 @@ on:
       - test
       - main
 
+permissions:
+  contents: read
+
 jobs:
   # ─── Terfi zinciri denetimi ──────────────────────────────────────────────────
   # Akış: feat/* → dev → test → main. Sıra atlanırsa dallar ayrışır.
@@ -26,6 +29,7 @@ jobs:
   enforce-promotion:
     name: Terfi Zinciri Kontrolü
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: |
       github.event_name == 'pull_request' &&
       (github.base_ref == 'test' || github.base_ref == 'main')
@@ -57,6 +61,7 @@ jobs:
   frontend-ci:
     name: Frontend CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -101,6 +106,7 @@ jobs:
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Kodu al
@@ -119,17 +125,18 @@ jobs:
 
       - name: Testleri çalıştır
         run: |
-          TEST_PROJECTS=$(find apps/backend -name "*.Tests.csproj" -o -name "*.Test.csproj" 2>/dev/null)
+          TEST_PROJECTS=$(find apps/backend -name "*.Tests.csproj" -o -name "*.Test.csproj")
           if [ -z "$TEST_PROJECTS" ]; then
-            echo "Test projesi bulunamadı, adım atlanıyor."
-          else
-            dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
+            echo "::error::Backend test projesi bulunamadı — CI'ın yanlış yeşil dönmemesi için hata veriliyor."
+            exit 1
           fi
+          dotnet test cargo-pilot.sln --no-build --configuration Release --verbosity normal
 
   # ─── Docker Image Build (main'e giden PR ve iş branch'i push'ları) ───────────
   docker-build:
     name: Docker Image Build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [frontend-ci, backend-ci]
     permissions:
       contents: read
