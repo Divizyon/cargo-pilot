@@ -16,10 +16,10 @@
 # Nedeni: GITHUB_TOKEN ile açılan/işlem gören PR'lar GitHub'ın özyineleme
 # koruması nedeniyle CI'ı (pull_request tetiklenen job'lar) çalıştırmaz;
 # workflow PR açsaydı zorunlu kontroller sonsuza kadar pending kalır ve
-# merge asla gerçekleşmezdi. Repoda bu amaca uygun (repo yazma yetkili)
-# bir PAT secret'ı da yoktu (yalnızca GHCR'a özel TEST_GHCR_PAT var, bu
-# repo/PR işlemleri için kullanılmaz) — bu da PR açan bir tasarımı riskli
-# kılardı.
+# merge asla gerçekleşmezdi. Tasarım kararı alındığında repoda bu amaca
+# uygun (repo yazma yetkili) bir PAT secret'ı da yoktu — bu da PR açan bir
+# tasarımı riskli kılardı. Sonradan eklenen PROMOTION_PAT yalnızca merge
+# adımı içindir; PR açma tasarımı yukarıdaki CI gerekçesiyle geçerlidir.
 #
 # İkinci, daha az bilinen tuzak: merge ADIMININ KENDİSİ de aynı koruma
 # kapsamındadır. GitHub REST API üzerinden GITHUB_TOKEN ile yapılan bir
@@ -29,8 +29,9 @@
 # release-tag.yml → main'de sürüm etiketi) TETİKLEMEZ. Bunu GITHUB_TOKEN
 # ile yapmak, terfiyi "başarılı" gösterip deploy/sürüm otomasyonunu
 # sessizce kırardı. Bu yüzden merge adımı ayrı bir PAT secret'ı
-# (PROMOTION_PAT) gerektirir; bu secret repoda YOKTUR ve oluşturulması
-# gerekir (bkz. PAT kontrolü adımı ve PR açıklaması).
+# (PROMOTION_PAT) gerektirir; bu secret repo secret'ı olarak tanımlıdır.
+# Süresi dolar veya silinirse ilk adımdaki PAT kontrolü hata verir
+# (bkz. PAT kontrolü adımı).
 
 name: Terfi
 

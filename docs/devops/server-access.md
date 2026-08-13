@@ -1,6 +1,6 @@
 # Sunucu Erişim & Ağ Yapılandırması
 
-**Son güncelleme:** 2026-05-17 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
 
 Bu doküman sunucuya SSH erişimini, güvenlik duvarı/fail2ban yapılandırmasını, nginx reverse proxy kurallarını ve monitoring stack başlatma adımlarını açıklar.
 
@@ -237,5 +237,16 @@ GitHub repository → Settings → Secrets:
 
 | Secret | Değer |
 |--------|-------|
-| `SSH_HOST` | `104.247.163.42` |
-| `SSH_PRIVATE_KEY` | github-actions key'inin private kısmı |
+| `TEST_SSH_HOST` | `104.247.163.42` |
+| `TEST_SSH_PRIVATE_KEY` | github-actions key'inin private kısmı |
+
+Bu adlar `test-deploy.yml` ve `rollback.yml` içinde birebir bu şekilde kullanılır. Secret'ların
+tam listesi için bkz. [Secret Yönetimi](secret-management.md).
+
+{% hint style="info" %}
+**2026-08-13 denetimi:** Repoda `test` ve `prod` GitHub Environment'ları oluşturuldu; `prod`
+required-reviewer koruması altındadır. SSH secret'larının repo seviyesinden environment
+seviyesine taşınması önerilir — böylece `prod` erişimi onay kapısının arkasına alınır. **Bu
+taşıma henüz yapılmadı;** secret değerleri okunamadığı için environment'a yeniden girilmesi
+gerekiyor.
+{% endhint %}
