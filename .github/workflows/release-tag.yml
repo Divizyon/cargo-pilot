@@ -18,6 +18,7 @@ jobs:
 
     permissions:
       contents: write
+      packages: write
 
     steps:
       - name: Kodu al
@@ -26,6 +27,7 @@ jobs:
           fetch-depth: 0
 
       - name: Sıradaki sürümü belirle ve etiketle
+        id: surum
         run: |
           set -e
           # Annotated tag committer kimliği ister; runner'da tanımlı değil.
@@ -44,10 +46,45 @@ jobs:
 
           if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
             echo "Etiket zaten var, atlanıyor: ${TAG}"
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git tag -a "$TAG" -m "Sürüm ${TAG} — $(git log -1 --pretty=%s)"
           git push origin "$TAG"
 
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "created=true" >> "$GITHUB_OUTPUT"
           echo "Etiket oluşturuldu: **${TAG}** (önceki: ${LAST:-yok})" >> "$GITHUB_STEP_SUMMARY"
+
+      # Sürüm tag'i tek başına geri dönüş noktası değildir: rollback.sh test
+      # ortamında GHCR'dan test-<sha7> imajı çeker. main'deki merge commit'in
+      # SHA'sı için imaj üretilmediğinden, tag'i test head'inin (^2) mevcut
+      # imajıyla eşleyip vX.Y.0 etiketi olarak GHCR'a da yazıyoruz.
+      - name: GHCR'a giriş yap
+        if: steps.surum.outputs.created == 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Imajlara sürüm etiketi ekle
+        if: steps.surum.outputs.created == 'true'
+        env:
+          TAG: ${{ steps.surum.outputs.tag }}
+        run: |
+          set -e
+          # Merge commit'te ^2 = test head; hotfix gibi tek-parent push'ta commit'in kendisi.
+          SHA=$(git rev-parse --short=7 "${GITHUB_SHA}^2" 2>/dev/null || git rev-parse --short=7 "$GITHUB_SHA")
+
+          for IMG in cargo-pilot-backend cargo-pilot-frontend; do
+            if ! docker buildx imagetools create \
+              --tag "ghcr.io/divizyon/${IMG}:${TAG}" \
+              "ghcr.io/divizyon/${IMG}:test-${SHA}"; then
+              echo "::error::ghcr.io/divizyon/${IMG}:test-${SHA} bulunamadı — ${TAG} bu imajla eşlenemedi. Rollback bu sürüme tag ile yapılamaz; kaynak SHA'yı doğrulayın."
+              exit 1
+            fi
+          done
+
+          echo "İmaj eşlemesi: **${TAG}** → \`test-${SHA}\` (backend + frontend)" >> "$GITHUB_STEP_SUMMARY"
