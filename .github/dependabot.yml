@@ -45,6 +45,17 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # Tailwind v4 yapılandırma modelini tümden değiştiriyor (CSS-first config,
+      # PostCSS eklentisi ayrıldı); CLAUDE.md stack'i Tailwind v3 olarak sabitliyor.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      # framer-motion major'ları animasyon API'sini değiştiriyor; 3D ve panel
+      # geçişleri manuel QA istiyor.
+      - dependency-name: "framer-motion"
+        update-types: ["version-update:semver-major"]
+      # @types/node major'ı Node major'ını takip eder; CI ve Dockerfile Node 20'de.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # ── NuGet / backend ─────────────────────────────────────────
   - package-ecosystem: "nuget"
