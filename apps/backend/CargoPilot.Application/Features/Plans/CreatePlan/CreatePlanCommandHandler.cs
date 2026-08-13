@@ -102,7 +102,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             .ToHashSet() ?? [];
 
         var requestedGroupIds = request.Items
-            .Where(i => i.GroupId.HasValue && !inlineClientIds.Contains(i.GroupId!.Value))
+            .Where(i => i.GroupId.HasValue && !inlineClientIds.Contains(i.GroupId.Value))
             .Select(i => i.GroupId!.Value)
             .Distinct()
             .ToList();

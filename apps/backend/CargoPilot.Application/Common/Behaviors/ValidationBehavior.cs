@@ -19,7 +19,7 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
         var failures = await CollectFailuresAsync(request, cancellationToken);
         if (failures.Count == 0)
         {
-            return await next();
+            return await next(cancellationToken);
         }
 
         var error = new Error(ErrorType.Validation, "Validation.Failed", "Doğrulama hatası.", failures);
