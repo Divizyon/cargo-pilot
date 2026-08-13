@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.30" />
 
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.30" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.19" />
 
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.22.0" />
 
