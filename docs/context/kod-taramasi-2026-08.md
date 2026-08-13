@@ -1,6 +1,6 @@
 # Kod Taraması — Ağustos 2026
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif (tarama tarihi 2026-08-04; sonradan geçersizleşen bulgular yerinde işaretlendi)
 
 Kod tabanının 6 kategoride taranmasından çıkan gerçek durum: stack, algoritma, devops, veritabanı ve test bulguları.
 
@@ -21,7 +21,7 @@ Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR
 | # | Bulgu | Kategori | Etki |
 |---|-------|----------|------|
 | 1 | **MediatR fiilen kullanılıyor** — `architecture.md` ve eski snapshot "MediatR yok, service-based" diyor; oysa Application katmanı ~150+ dosyada Command/Query/Handler (`IRequestHandler<>`) deseniyle MediatR 12.4.1 kullanıyor, controller'lar `IMediator.Send()` çağırıyor | Backend | `architecture.md` yeni geliştiriciyi yanlış yönlendiriyor |
-| 2 | **Backend test projesi hiç yok, E2E yok** — CI'daki `dotnet test` adımı `*.Tests.csproj` bulamadığı için sessizce atlanıyor; Playwright ve React Testing Library paketleri repoda kurulu bile değil; kök `tests/` klasörü boş placeholder | Test | Kalite kapıları (CLAUDE.md) araçsal olarak sağlanamıyor; algoritmanın hiç testi yok |
+| 2 | **Backend test projesi hiç yok, E2E yok** — CI'daki `dotnet test` adımı `*.Tests.csproj` bulamadığı için sessizce atlanıyor; Playwright ve React Testing Library paketleri repoda kurulu bile değil; kök `tests/` klasörü boş placeholder<br>**2026-08-13 itibarıyla geçerli değil:** `CargoPilot.Engine.Tests` (7 dosya: determinizm, LIFO/volume-first/weight-balance golden master, performans taban çizgisi, kırılganlık, modül bayrakları) ve `CargoPilot.Infrastructure.Tests` (4 dosya) eklendi, ikisi de `cargo-pilot.sln`'de kayıtlı; CI `dotnet test cargo-pilot.sln --no-build` koşturuyor. **E2E ve RTL hâlâ yok.** | Test | Kalite kapıları (CLAUDE.md) araçsal olarak sağlanamıyor; algoritmanın hiç testi yok → algoritma testleri 2026-08-13 itibarıyla var, E2E boşluğu açık |
 | 3 | **Kırılganlık (fragility) optimizasyona hiç girmiyor** — `Item.FragilityType` entity'de var ama `OptimizationItemInput`'a taşınmıyor; `UnplacedReason.FragilityOrHandlingConstraint` hiçbir yerde üretilmiyor. Yüzey/rotasyon kısıtı yalnızca frontend'de | Algoritma | 3D invariant "kırılganlık zayıflatılmaz" backend'de karşılıksız |
 | 4 | **Manuel 3D düzenlemeler kalıcı değil** — hiçbir endpoint placement pozisyonu kabul etmiyor; `updatePlacementPosition`/`setOrientation` sadece Zustand'a yazıyor, kaydetmenin tek yolu re-optimize (manuel düzen kaybolur) | Algoritma/FE | Kullanıcının el emeği sessizce kayboluyor |
 | 5 | **Frontend sürümleri dokümanlardan ileride** — Vite **8**, React Router **7**, Zustand **5**, zod **4** kurulu; dokümanlar v5/v6/v4/v3 diyor. i18next + react-i18next aktif kullanımda ama hiçbir dokümanda geçmiyor | Frontend | Snapshot güncellendi (bu taramayla) |
@@ -78,6 +78,12 @@ Detaylı 51 bulgu: `docs/devops/iyilestirme-analizi-2026-08.md`. Bu taramanın e
 
 - **Toplam 13 test dosyası**, tamamı frontend (utils 7, hook 1, store 1, three 1, schema/type 2, +1). Backend 0, E2E 0, kök `tests/` boş.
 - **CI:** frontend `vitest run` çalışıyor; backend `dotnet test` koşullu ve fiilen **atlanıyor**; E2E adımı yok.
+
+> **2026-08-13 güncellemesi (bu iki madde için):** backend artık test içeriyor —
+> `apps/backend/CargoPilot.Engine.Tests` (7 dosya) + `apps/backend/CargoPilot.Infrastructure.Tests`
+> (4 dosya), xUnit 2.5, ikisi de `cargo-pilot.sln`'de kayıtlı. `ci.yml`'deki koşullu adım artık
+> proje bulduğu için `dotnet test cargo-pilot.sln --no-build --configuration Release` gerçekten
+> koşuyor. E2E (Playwright) ve React Testing Library durumu değişmedi — hâlâ yok.
 - **Zincir:** ESLint 10 (any=error, 3D sahnede çıplak `<mesh>` yasak kuralı dahil) + Prettier + husky/lint-staged aktif. Backend'de format/analyzer adımı yok.
 - **En kritik boşluklar:** optimizasyon motoru, 3D koordinat/pivot eşlemesi, auth akışı, API entegrasyonu.
 
