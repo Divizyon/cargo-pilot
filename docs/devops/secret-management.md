@@ -1,6 +1,6 @@
 # Secret Yönetimi
 
-**Son güncelleme:** 2026-04-25 · **Durum:** Aktif · **Görev:** US-D23-S
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif · **Görev:** US-D23-S
 
 Bu doküman repoya girmemesi gereken secret'ları, ortam dosyalarının konumunu, GHCR/CI-CD secret'larını ve bir secret ihlali durumunda izlenecek adımları açıklar.
 
@@ -101,18 +101,72 @@ ASP.NET Core ortam değişkenlerini `appsettings.json` üstüne otomatik uygular
 
 GitHub → Settings → Secrets and variables → Actions
 
-| Secret | Kullanım |
-|--------|---------|
-| `TEST_SSH_HOST` | Sunucu IP |
-| `TEST_SSH_PRIVATE_KEY` | SSH deploy key |
-| `JWT_SECRET` | JWT imzalama anahtarı |
-| `TEST_GHCR_PAT` | GHCR image pull (classic PAT, `read:packages`) |
-| `TEST_GHCR_USER` | PAT sahibi GitHub kullanıcı adı |
-| `VITE_API_BASE_URL` | Frontend build-time API URL |
-| `VITE_OAUTH_GOOGLE_URL` | Frontend build-time Google OAuth URL |
+### Sunucu erişimi
+
+| Secret | Nerede kullanılıyor | Ne işe yarar |
+|--------|---------------------|--------------|
+| `TEST_SSH_HOST` | `test-deploy.yml` (deploy + health check), `rollback.yml` | Test sunucusunun IP'si |
+| `TEST_SSH_PRIVATE_KEY` | `test-deploy.yml`, `rollback.yml` | Test sunucusuna SSH deploy key'i |
+| `PROD_SSH_HOST` | `rollback.yml` | Prod sunucusu IP'si — **henüz tanımlı değil**, prod stack kurulmadı |
+| `PROD_SSH_PRIVATE_KEY` | `rollback.yml` | Prod SSH deploy key'i — **henüz tanımlı değil** |
+
+### Geçici stack (runner içi doğrulama)
+
+Bu değerler `test-deploy.yml`'in `deploy` job'unda runner üzerinde ayağa kaldırılan geçici
+stack'e verilir. Hepsinin workflow'da CI fallback'i vardır; secret tanımlı değilse doğrulama
+yine de koşar.
+
+| Secret | Nerede kullanılıyor | Ne işe yarar |
+|--------|---------------------|--------------|
+| `TEST_MSSQL_SA_PASSWORD` | `test-deploy.yml` → `MSSQL_SA_PASSWORD` | Geçici MSSQL container'ının `sa` parolası |
+| `TEST_MINIO_ROOT_USER` | `test-deploy.yml` → `MINIO_ROOT_USER` | Geçici MinIO root kullanıcısı |
+| `TEST_MINIO_ROOT_PASSWORD` | `test-deploy.yml` → `MINIO_ROOT_PASSWORD` | Geçici MinIO root parolası |
+| `SEED_DEFAULT_ADMIN_PASSWORD` | `test-deploy.yml` → `Seed__DefaultAdminPassword` | Seed edilen varsayılan admin kullanıcısının parolası |
+| `JWT_SECRET` | `test-deploy.yml` | JWT imzalama anahtarı (en az 32 karakter) |
+| `RESEND_API_KEY` | `test-deploy.yml` | Resend e-posta API anahtarı |
+| `RESEND_FROM_EMAIL` | `test-deploy.yml` | Gönderici e-posta adresi |
+| `RESEND_FROM_NAME` | `test-deploy.yml` | Gönderici adı |
+| `PASSWORD_RESET_FRONTEND_URL` | `test-deploy.yml` | Şifre sıfırlama linkinin frontend adresi |
+| `EMAIL_CHANGE_FRONTEND_CONFIRM_URL` | `test-deploy.yml` | E-posta değişikliği onay linkinin frontend adresi |
 
 {% hint style="info" %}
-`TEST_GHCR_PAT` classic PAT olmalıdır. Fine-grained token GHCR ile çalışmaz.
+Sunucudaki gerçek çalışma değerleri bu secret'lardan değil,
+`/opt/cargo-pilot/infra/env/.env.test` dosyasından gelir. CI secret'ları yalnızca geçici
+doğrulama stack'ini besler.
+{% endhint %}
+
+### Frontend build-time (VITE)
+
+| Secret | Nerede kullanılıyor | Ne işe yarar |
+|--------|---------------------|--------------|
+| `VITE_API_BASE_URL` | `test-deploy.yml` (`build` + `deploy` job'larının frontend build-arg'ı) | Frontend'in çağıracağı API kök adresi |
+| `VITE_OAUTH_GOOGLE_URL` | `test-deploy.yml` frontend build-arg | Google OAuth başlatma URL'si |
+| `VITE_OAUTH_MICROSOFT_URL` | `test-deploy.yml` frontend build-arg | Microsoft OAuth başlatma URL'si |
+
+{% hint style="warning" %}
+`VITE_*` değerleri **secret sınıfı değildir.** Vite bunları build sırasında bundle'a gömer;
+değerler hem tarayıcıya inen JS'te hem de public GHCR imajının içinde görünür. Bunları repo
+**variable**'ına taşımak önerilir — secret olarak tutmak yanlış bir gizlilik beklentisi yaratır.
+{% endhint %}
+
+### Otomasyon
+
+| Secret | Nerede kullanılıyor | Ne işe yarar |
+|--------|---------------------|--------------|
+| `PROMOTION_PAT` | `promote.yml` (Terfi workflow'u) | Terfi PR'ını merge eder. `GITHUB_TOKEN` ile yapılan merge hedef daldaki push-tetiklemeli workflow'ları (deploy, sürüm etiketi) tetiklemediği için ayrı bir PAT zorunludur |
+| `GITHUB_TOKEN` | `test-deploy.yml`, `ci.yml`, `promote.yml`, `release-tag.yml`, `cache-cleanup.yml`, `sync-base-images.yml` | GitHub tarafından otomatik sağlanır; GHCR login ve API çağrıları için kullanılır. Manuel tanımlanmaz |
+
+### Kaldırılan secret'lar
+
+| Secret | Durum |
+|--------|-------|
+| `TEST_GHCR_PAT` | ❌ Kaldırıldı. Package'lar public yapıldığında PAT login `test-deploy.yml`'den çıkarıldı (#483, 2026-05-10); workflow artık GHCR'a `secrets.GITHUB_TOKEN` ile giriyor. Secret 2026-08-13'te repodan silindi |
+| `TEST_GHCR_USER` | ❌ Kaldırıldı — aynı gerekçe, 2026-08-13'te repodan silindi |
+
+{% hint style="info" %}
+**GitHub Environment'ları (2026-08-13):** Repoda `test` ve `prod` environment'ları oluşturuldu;
+`prod` required-reviewer onayı ile korunuyor. SSH secret'larının repo seviyesinden ilgili
+environment seviyesine taşınması önerilir — **henüz yapılmadı**, secret'lar hâlâ repo seviyesinde.
 {% endhint %}
 
 ---

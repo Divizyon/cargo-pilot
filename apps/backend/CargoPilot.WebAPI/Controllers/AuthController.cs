@@ -114,6 +114,9 @@ public sealed class AuthController : BaseController
     public IActionResult GoogleOAuthRedirect()
     {
         var state = Guid.NewGuid().ToString("N");
+        // S2092: Secure bayragi Development disindaki tum ortamlarda acik. Lokal gelistirme
+        // HTTP uzerinden calistigi icin sabit 'true' cerezleri kullanilamaz hale getirir.
+#pragma warning disable S2092
         Response.Cookies.Append(OAuthStateCookie, state, new CookieOptions
         {
             HttpOnly = true,
@@ -121,6 +124,7 @@ public sealed class AuthController : BaseController
             SameSite = SameSiteMode.Lax,
             MaxAge   = TimeSpan.FromMinutes(10),
         });
+#pragma warning restore S2092
         return Redirect(_googleOAuthService.BuildAuthorizationUrl(state));
     }
 
@@ -329,6 +333,9 @@ public sealed class AuthController : BaseController
         return HandleResult(result);
     }
 
+    // S2092: Secure bayragi Development disindaki tum ortamlarda acik. Lokal gelistirme
+    // HTTP uzerinden calistigi icin sabit 'true' cerezleri kullanilamaz hale getirir.
+#pragma warning disable S2092
     private void SetRefreshTokenCookie(string token, DateTime expiresAt)
     {
         Response.Cookies.Append("refreshToken", token, new CookieOptions
@@ -348,4 +355,5 @@ public sealed class AuthController : BaseController
         Secure   = !_env.IsDevelopment(),
         SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
     };
+#pragma warning restore S2092
 }

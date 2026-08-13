@@ -24,9 +24,13 @@ public sealed class MinioHealthCheck : IHealthCheck
         try
         {
             var client = _httpClientFactory.CreateClient("minio-health");
+            // S5332: MinIO saglik ucu kume ici agda duz HTTP ile dinler. Istek konteyner
+            // agindan disari cikmaz; TLS sonlandirmasi reverse proxy katmaninda yapilir.
+#pragma warning disable S5332
             var response = await client.GetAsync(
                 $"http://{_endpoint}/minio/health/live",
                 cancellationToken);
+#pragma warning restore S5332
 
             return response.IsSuccessStatusCode
                 ? HealthCheckResult.Healthy("MinIO erişilebilir.")
