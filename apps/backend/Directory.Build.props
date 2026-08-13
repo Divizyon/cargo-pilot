@@ -40,16 +40,16 @@
 
   <!-- CVE-2026-26127: transitive override, fix mevcut >= 9.0.14 -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.14" />
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.19" />
   </ItemGroup>
 
   <!-- Ortak Statik Analiz Paketleri -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.201">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.400">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.22.0.136894">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.32.0.713">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
