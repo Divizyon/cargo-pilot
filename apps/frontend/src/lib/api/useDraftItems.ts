@@ -65,6 +65,8 @@ const draftItemsPageResponseSchema = z.object({
     totalCount: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
+    /** Tip filtresinin seçenekleri; kategori filtresinden bağımsız, tüm durum kümesinden. */
+    availableCategories: z.array(z.number().int()).default([]),
   }),
 });
 
@@ -72,6 +74,10 @@ export interface DraftItemsParams {
   page: number;
   pageSize: number;
   status?: number;
+  /** Ad, SKU, ERP kimliği ve barkodda aranır; sunucuda uygulanır. */
+  search?: string;
+  /** ItemCategory değerleri; boş bırakılırsa tip filtresi uygulanmaz. */
+  categories?: number[];
 }
 
 export function useDraftItems(params: DraftItemsParams, options?: { enabled?: boolean }) {
@@ -83,6 +89,8 @@ export function useDraftItems(params: DraftItemsParams, options?: { enabled?: bo
       p.set('page', String(params.page));
       p.set('pageSize', String(params.pageSize));
       if (params.status !== undefined) p.set('status', String(params.status));
+      if (params.search) p.set('search', params.search);
+      for (const category of params.categories ?? []) p.append('categories', String(category));
       const { data } = await axiosInstance.get<unknown>(`${DRAFT_BASE}?${p.toString()}`);
       // Parse/HTTP hatasi yutulmaz; cagiran bilesen isError dalini render eder.
       return draftItemsPageResponseSchema.parse(data).data;

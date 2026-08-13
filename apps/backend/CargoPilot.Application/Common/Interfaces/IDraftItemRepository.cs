@@ -8,7 +8,19 @@ public interface IDraftItemRepository
 {
     Task<DraftItem?> GetByIdAsync(Guid id, Guid companyId, CancellationToken cancellationToken = default);
     Task<DraftItem?> GetByErpIdAsync(string erpId, Guid integrationId, Guid companyId, CancellationToken cancellationToken = default);
-    Task<(IReadOnlyList<DraftItem> Items, int TotalCount)> ListByCompanyAsync(Guid companyId, IReadOnlyList<DraftItemStatus>? statuses, int page, int pageSize, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Durum, serbest metin aramasi ve kategori filtresi veritabaninda uygulanir.
+    /// <c>AvailableCategories</c> kategori filtresinden once hesaplanir; filtre secenekleri
+    /// kendi filtresiyle daralmaz.
+    /// </summary>
+    Task<(IReadOnlyList<DraftItem> Items, int TotalCount, IReadOnlyList<ItemCategory> AvailableCategories)> ListByCompanyAsync(
+        Guid companyId,
+        IReadOnlyList<DraftItemStatus>? statuses,
+        string? search,
+        IReadOnlyList<ItemCategory>? categories,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DraftItem>> GetByIdsAsync(IEnumerable<Guid> ids, Guid companyId, CancellationToken cancellationToken = default);
     void Add(DraftItem draftItem);
     void Update(DraftItem draftItem);

@@ -64,6 +64,7 @@ import {
   ERP_TERM,
 } from '@/lib/config/erpTerms';
 import { draftProductType } from '@/lib/config/productTypeDisplay';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 import { ITEM_CATEGORY } from '@/lib/api/itemMappers';
 import { ProductTypeCell } from '@/components/shared/ProductTypeCell';
 import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
@@ -96,8 +97,24 @@ function hasKnownCategory(item: DraftItem): boolean {
 }
 
 /** Tip filtresinin satır anahtarı; kategorisi bilinmeyen taslak '?' kovasında toplanır. */
-function typeFilterKey(item: DraftItem): TypeFilterKey {
-  return hasKnownCategory(item) ? draftProductType(item.category) : ERP_SOURCE_MISSING.label;
+function categoryFilterKey(category: number): TypeFilterKey {
+  return category === ITEM_CATEGORY.Package ? ERP_SOURCE_MISSING.label : draftProductType(category);
+}
+
+/** Filtre anahtarından kategoriye geri dönüş; eşleme birebirdir. */
+const CATEGORY_BY_FILTER_KEY = new Map<TypeFilterKey, number>(
+  Object.values(ITEM_CATEGORY).map((category) => [categoryFilterKey(category), category]),
+);
+
+/**
+ * Filtre seçeneklerini sunucudan gelen kategori kümesinden kurar. Açık sayfadan
+ * türetilseydi seçenekler sayfa değiştikçe kaybolurdu.
+ */
+function toTypeOptions(categories: readonly number[]): TypeFilterKey[] {
+  const known = Array.from(
+    new Set(categories.filter((c) => c !== ITEM_CATEGORY.Package).map(draftProductType)),
+  ).sort();
+  return categories.includes(ITEM_CATEGORY.Package) ? [...known, ERP_SOURCE_MISSING.label] : known;
 }
 
 /** Ret kalıcıdır; tam ret de reddedilmiş ERP güncellemesi de 'Reddedilenler' altında listelenir. */
@@ -231,8 +248,12 @@ export function ERPItemsTable() {
 
   const isSearching = searchTerm.trim().length > 0;
   const hasActiveFilters = typeFilters.size > 0;
-  const queryPage = isSearching ? 1 : page;
-  const queryPageSize = isSearching ? 100 : pageSize;
+  // Arama ve tip filtresi sunucuda uygulanir; istemcide filtrelemek yalnizca acik
+  // sayfayi kapsar ve "Toplam" sayacini filtreden habersiz birakirdi.
+  const debouncedSearch = useDebounce(searchTerm.trim());
+  const selectedCategories = Array.from(typeFilters)
+    .map((key) => CATEGORY_BY_FILTER_KEY.get(key))
+    .filter((category): category is number => category !== undefined);
 
   const {
     data: draftPage,
@@ -241,7 +262,13 @@ export function ERPItemsTable() {
     isError: isDraftError,
     error: draftError,
     refetch: refetchDrafts,
-  } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
+  } = useDraftItems({
+    page,
+    pageSize,
+    status: statusFilter,
+    search: debouncedSearch || undefined,
+    categories: selectedCategories,
+  });
 
   const pageItemIds = new Set((draftPage?.items ?? []).map((i) => i.id));
   // Seçim sayfa değişince korunur; bu yüzden seçili kayıtların bir kısmı açık sayfada
@@ -249,9 +276,16 @@ export function ERPItemsTable() {
   // tüm seçilebilir kümenin de çekilmesi gerekir.
   const hasOffPageSelection = Array.from(selectedIds).some((id) => !pageItemIds.has(id));
 
-  // Tümünü-seç kümesi aktif sekmeye bağlıdır; aksi halde görünmeyen kayıtlar toplu işleme girer.
+  // Tümünü-seç kümesi aktif sekmeye ve açık filtreye bağlıdır; aksi halde ekranda
+  // görünmeyen kayıtlar toplu işleme girer.
   const { data: allSelectablePage } = useDraftItems(
-    { page: 1, pageSize: 9999, status: statusFilter },
+    {
+      page: 1,
+      pageSize: 9999,
+      status: statusFilter,
+      search: debouncedSearch || undefined,
+      categories: selectedCategories,
+    },
     { enabled: isSelectableTab && (selectAllMode || hasOffPageSelection) },
   );
 
@@ -282,36 +316,20 @@ export function ERPItemsTable() {
   const allItems = draftPage?.items ?? [];
 
   // Tip ERP grup kodundan çözülen kategoriden okunur; kategorisi bilinmeyenler '?' seçeneğinde toplanır.
-  const realTypes = Array.from(
-    new Set(allItems.filter(hasKnownCategory).map((i) => draftProductType(i.category))),
-  ).sort();
-  const uniqueTypes: TypeFilterKey[] = allItems.some((i) => !hasKnownCategory(i))
-    ? [...realTypes, ERP_SOURCE_MISSING.label]
-    : realTypes;
+  const uniqueTypes = toTypeOptions(draftPage?.availableCategories ?? []);
 
-  const filteredItems = allItems.filter((item) => {
-    if (hasActiveFilters && !typeFilters.has(typeFilterKey(item))) return false;
-    if (!isSearching) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(q) ||
-      (item.sku ?? '').toLowerCase().includes(q) ||
-      (item.erpId ?? '').toLowerCase().includes(q) ||
-      (item.barcode ?? '').toLowerCase().includes(q)
-    );
-  });
-
-  const totalCount = isSearching ? filteredItems.length : (draftPage?.totalCount ?? 0);
+  // Eleme sunucuda bittiği için sayfa doğrudan gösterilir; toplam da filtreli sayıdır.
+  const totalCount = draftPage?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const displayedItems = isSearching
-    ? filteredItems.slice((page - 1) * pageSize, page * pageSize)
-    : filteredItems;
+  const displayedItems = allItems;
 
   const showSkeleton = (isLoading || isFetching) && !isDraftError;
-  const isEmpty = !showSkeleton && !isDraftError && displayedItems.length === 0 && !isSearching;
-  const noResults = !showSkeleton && !isDraftError && displayedItems.length === 0 && isSearching;
+  const hasNarrowedView = isSearching || hasActiveFilters;
+  const isEmpty = !showSkeleton && !isDraftError && displayedItems.length === 0 && !hasNarrowedView;
+  const noResults =
+    !showSkeleton && !isDraftError && displayedItems.length === 0 && hasNarrowedView;
 
-  const selectableItems = filteredItems.filter((i) =>
+  const selectableItems = displayedItems.filter((i) =>
     isUpdateTab ? i.status === DRAFT_UPDATE_PENDING : i.status === DRAFT_PENDING,
   );
   const allSelected =

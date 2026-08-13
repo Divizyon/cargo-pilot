@@ -28,8 +28,14 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
         if (companyId is null)
             return Result<GetDraftItemsResult>.Failure(new Error(ErrorType.Unauthorized, "Auth.Unauthorized", "Yetkisiz erişim."));
 
-        var (items, totalCount) = await _draftItemRepository.ListByCompanyAsync(
-            companyId.Value, ResolveStatuses(request.Status), request.Page, request.PageSize, cancellationToken);
+        var (items, totalCount, availableCategories) = await _draftItemRepository.ListByCompanyAsync(
+            companyId.Value,
+            ResolveStatuses(request.Status),
+            request.Search,
+            request.Categories,
+            request.Page,
+            request.PageSize,
+            cancellationToken);
 
         var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);
         var integrationNames = integrations.ToDictionary(i => i.Id, i => i.SystemName);
@@ -62,7 +68,8 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
             x.GetMissingFields()))
             .ToList();
 
-        return Result<GetDraftItemsResult>.Success(new GetDraftItemsResult(dtos, totalCount, request.Page, request.PageSize));
+        return Result<GetDraftItemsResult>.Success(
+            new GetDraftItemsResult(dtos, totalCount, request.Page, request.PageSize, availableCategories));
     }
 
     /// <summary>

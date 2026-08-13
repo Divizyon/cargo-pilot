@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -58,16 +58,38 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
         params.status === DRAFT_REJECTED
           ? item.status === DRAFT_REJECTED || item.status === DRAFT_UPDATE_DISMISSED
           : item.status === params.status;
-      const matching = mocks.draftItemsState.isEmpty
+      const inStatus = mocks.draftItemsState.isEmpty
         ? []
         : [...draftItems, ...mocks.draftItemsState.extraPending].filter(matchesStatus);
+
+      // Arama ve tip filtresi sunucuda uygulanir; istemcide filtrelemek yalnizca acik
+      // sayfayi kapsardi. Sahte uc bu sozlesmeyi taklit eder.
+      const term = params.search?.toLowerCase() ?? '';
+      const matching = inStatus
+        .filter(
+          (item) =>
+            !term ||
+            item.name.toLowerCase().includes(term) ||
+            (item.sku ?? '').toLowerCase().includes(term) ||
+            (item.erpId ?? '').toLowerCase().includes(term) ||
+            (item.barcode ?? '').toLowerCase().includes(term),
+        )
+        .filter((item) => !params.categories?.length || params.categories.includes(item.category));
+
       // Sayfalama sunucu tarafindadir: istek yalnizca o sayfanin kayitlarini doner.
       // Dilimleme olmadan sayfa disi kayitlarin da elde oldugu sanilir ve sayfalar
       // arasi secim hatalari testten kacar.
       const start = (params.page - 1) * params.pageSize;
       const items = matching.slice(start, start + params.pageSize);
       return {
-        data: { items, totalCount: matching.length, page: params.page, pageSize: params.pageSize },
+        data: {
+          items,
+          totalCount: matching.length,
+          page: params.page,
+          pageSize: params.pageSize,
+          // Secenekler kategori filtresinden once cikarilir; filtre kendini daraltmaz.
+          availableCategories: Array.from(new Set(inStatus.map((item) => item.category))),
+        },
         isLoading: false,
         isFetching: false,
       };
@@ -303,6 +325,36 @@ describe('ERPItemsTable', () => {
     // 4 hazır bekleyen + 20 ek kayıt; açık sayfa bunların yalnızca bir kısmını gösterir.
     expect(names).toHaveLength(24);
     expect(names).toContain('Sayfa Disi Urun 19');
+  });
+
+  it('arama sunucuda uygulanır; açık sayfada olmayan kayıt da bulunur', async () => {
+    seedOffPagePending(150);
+    const user = userEvent.setup();
+    renderTable();
+
+    // Ilk sayfada gorunmuyor: eleme istemcide olsaydi hic bulunamazdi.
+    expect(screen.queryByText('Sayfa Disi Urun 149')).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText('Ürün adı, SKU, ERP ID veya barkod ile ara...'),
+      'Sayfa Disi Urun 149',
+    );
+
+    expect(await screen.findByText('Sayfa Disi Urun 149')).toBeInTheDocument();
+  });
+
+  it('tip filtresi sunucuya gider ve toplam sayaç filtreli sayıyı gösterir', async () => {
+    seedOffPagePending(30);
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('button', { name: /filtrele/i }));
+    // Secenekler sunucudan gelen kategori kumesinden kurulur; acik sayfaya bagli degil.
+    await user.click(await screen.findByRole('checkbox', { name: 'Koli' }));
+
+    // Ek kayitlarin tamami category=2 (Koli); hazir bekleyenlerin digerleri disarida kalir.
+    await waitFor(() => expect(screen.queryByText('Palet Kasa 60x40')).not.toBeInTheDocument());
+    expect(screen.getByText('Sayfa Disi Urun 0')).toBeInTheDocument();
   });
 
   it('başka sayfada seçilen satır aktarıma taşınır', async () => {

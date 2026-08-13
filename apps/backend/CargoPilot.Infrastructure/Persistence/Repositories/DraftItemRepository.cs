@@ -11,6 +11,8 @@ internal sealed class DraftItemRepository : IDraftItemRepository
     /// <summary>Izole edilemeyen bir hatada sonsuz donguye girmemek icin deneme siniri.</summary>
     private const int MaxIsolationAttempts = 50;
 
+    private const string LikeEscapeCharacter = "\\";
+
     private readonly AppDbContext _context;
 
     public DraftItemRepository(AppDbContext context)
@@ -26,9 +28,11 @@ internal sealed class DraftItemRepository : IDraftItemRepository
         await _context.DraftItems
             .FirstOrDefaultAsync(x => x.ErpId == erpId && x.IntegrationId == integrationId && x.CompanyId == companyId, cancellationToken);
 
-    public async Task<(IReadOnlyList<DraftItem> Items, int TotalCount)> ListByCompanyAsync(
+    public async Task<(IReadOnlyList<DraftItem> Items, int TotalCount, IReadOnlyList<ItemCategory> AvailableCategories)> ListByCompanyAsync(
         Guid companyId,
         IReadOnlyList<DraftItemStatus>? statuses,
+        string? search,
+        IReadOnlyList<ItemCategory>? categories,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -39,6 +43,26 @@ internal sealed class DraftItemRepository : IDraftItemRepository
         if (statuses is { Count: > 0 })
             query = query.Where(x => statuses.Contains(x.Status));
 
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{EscapeLikePattern(search.Trim())}%";
+            query = query.Where(x =>
+                EF.Functions.Like(x.Name, pattern, LikeEscapeCharacter)
+                || EF.Functions.Like(x.SKU, pattern, LikeEscapeCharacter)
+                || EF.Functions.Like(x.ErpId, pattern, LikeEscapeCharacter)
+                || (x.Barcode != null && EF.Functions.Like(x.Barcode, pattern, LikeEscapeCharacter)));
+        }
+
+        // Secenekler kategori filtresi uygulanmadan cikarilir; aksi halde kullanici bir
+        // tipi sectiginde digerleri listeden kaybolur ve secimi geri alamaz.
+        var availableCategories = await query
+            .Select(x => x.Category)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (categories is { Count: > 0 })
+            query = query.Where(x => categories.Contains(x.Category));
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
@@ -47,8 +71,18 @@ internal sealed class DraftItemRepository : IDraftItemRepository
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return (items, totalCount);
+        return (items, totalCount, availableCategories);
     }
+
+    /// <summary>
+    /// LIKE joker karakterlerini kacisir; aksi halde kullanicinin yazdigi '%' tum kayitlari
+    /// dondurur ve '[' desenleri sorguyu beklenmedik sekilde daraltir.
+    /// </summary>
+    private static string EscapeLikePattern(string value) => value
+        .Replace(LikeEscapeCharacter, LikeEscapeCharacter + LikeEscapeCharacter, StringComparison.Ordinal)
+        .Replace("%", LikeEscapeCharacter + "%", StringComparison.Ordinal)
+        .Replace("_", LikeEscapeCharacter + "_", StringComparison.Ordinal)
+        .Replace("[", LikeEscapeCharacter + "[", StringComparison.Ordinal);
 
     public async Task<IReadOnlyList<DraftItem>> GetByIdsAsync(
         IEnumerable<Guid> ids,

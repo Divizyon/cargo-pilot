@@ -36,9 +36,13 @@ public sealed class DraftItemsController : BaseController
         [FromQuery] DraftItemStatus? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] ItemCategory[]? categories = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetDraftItemsQuery(status, page, pageSize), cancellationToken);
+        var result = await _mediator.Send(
+            new GetDraftItemsQuery(status, page, pageSize, search, categories),
+            cancellationToken);
         return HandleResult(result);
     }
 
