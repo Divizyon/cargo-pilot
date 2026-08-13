@@ -132,10 +132,27 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 new Error(ErrorType.Validation, "Sync.ErpConfigurationInvalid", ex.Message));
         }
 
+        // Kilit tek UPDATE ile alinir. Once okuyup sonra yazan iki adimda es zamanli iki
+        // istek de bosluktan gecebiliyor, ikinci yaris unique index ihlaliyle Failed'a
+        // dusuyordu; artik satiri yalnizca biri degistirir.
+        var lockAcquired = await _integrationRepository.TryStartSyncAsync(
+            integration.Id,
+            companyId.Value,
+            startedAtUtc,
+            ErpSyncPolicy.StaleThreshold(startedAtUtc),
+            cancellationToken);
+        if (!lockAcquired)
+        {
+            return Result<SyncErpItemsResult>.Failure(
+                new Error(ErrorType.Conflict, "Sync.AlreadyRunning", "Şirket için senkronizasyon zaten çalışıyor."));
+        }
+
         var syncLog = new SyncLog(Guid.NewGuid(), integration.Id);
         _integrationRepository.AddSyncLog(syncLog);
 
-        // Kilit once yazilir ki eszamanli ikinci istek Running'i gorup 409 alsin.
+        // Ayni degerler izlenen varliga da yazilir: ExecuteUpdate degisiklik izleyicisini
+        // atladigi icin anlik goruntu Idle'da kalir, CompleteSync'in Idle atamasi
+        // "degisiklik yok" sayilir ve entegrasyon Running'de takili kalirdi.
         integration.StartSync(startedAtUtc);
         await _integrationRepository.SaveChangesAsync(cancellationToken);
 
@@ -152,21 +169,17 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
             int added = 0, updated = 0, unchanged = 0, missingFieldCount = 0;
             var rowErrors = new List<SyncRowError>();
-            var seenErpIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var dropped = new Dictionary<ErpDropReason, int>(fetchResult.DroppedAtSource);
+            var screening = new RowScreeningPolicy(fetchResult.DroppedAtSource);
 
             foreach (var product in erpProducts)
             {
+                // Satir patlarsa yarim kalan degisiklik partiyle birlikte kaydedilmemeli.
+                // Dokunulan taslak burada tutulur, hata halinde izlemeden cikarilir.
+                DraftItem? touchedDraft = null;
                 try
                 {
-                    // (IntegrationId, ErpId) DB'de unique; ayni partide tekrar eden kayit
-                    // hata degil eleme sayilir ve muhasebede DuplicateErpId olarak gorunur.
-                    if (!seenErpIds.Add(product.ErpId))
-                    {
-                        dropped[ErpDropReason.DuplicateErpId] =
-                            dropped.GetValueOrDefault(ErpDropReason.DuplicateErpId) + 1;
+                    if (screening.ShouldSkip(product.ErpId))
                         continue;
-                    }
 
                     var missingFields = product.MissingFields ?? [];
 
@@ -189,6 +202,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
 
                     if (existing is not null)
                     {
+                        touchedDraft = existing;
                         var refresh = BuildErpRefresh(product, missingFields);
 
                         if (existing.Status == DraftItemStatus.Approved)
@@ -244,6 +258,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             stackGroup,
                             LoadGroups.IncompatibleWith(stackGroup));
 
+                        touchedDraft = draft;
                         _draftItemRepository.Add(draft);
                         added++;
                     }
@@ -252,9 +267,26 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 catch (Exception rowEx)
 #pragma warning restore CA1031
                 {
+                    if (touchedDraft is not null)
+                        _draftItemRepository.Discard(touchedDraft);
+
                     _logRowFailed(_logger, integration.Id, product.ErpId, rowEx);
                     rowErrors.Add(new SyncRowError(product.ErpId, product.Sku, rowEx.Message));
                 }
+            }
+
+            // Taslaklar once yazilir. Veritabani tek satiri reddederse (or. unique index
+            // ihlali) o satir izole edilip digerleri kaydedilir; muhasebe ve SyncLog
+            // boylece gercekten kalicilasan sonuca gore kurulur.
+            var saveFailures = await _draftItemRepository.SaveChangesIsolatingFailuresAsync(cancellationToken);
+            foreach (var failure in saveFailures)
+            {
+                if (failure.WasNew)
+                    added--;
+                else
+                    updated--;
+
+                rowErrors.Add(new SyncRowError(failure.ErpId, failure.Sku, failure.Message));
             }
 
             // Vade her calismada ileri alinir; aksi halde zamanlayici gecmis bir vadeyi
@@ -264,9 +296,9 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 completedAtUtc,
                 ErpSyncPolicy.NextScheduledSyncAt(integration.SyncFrequency, completedAtUtc));
 
-            var droppedByReason = dropped.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
+            var droppedByReason = screening.ToReasonBreakdown();
             var unaccounted = CalculateUnaccounted(
-                fetchResult.SourceTotalCount, added, updated, unchanged, rowErrors.Count, dropped);
+                fetchResult.SourceTotalCount, added, updated, unchanged, rowErrors.Count, screening.TotalDropped);
             if (unaccounted != 0)
                 _logUnaccountedRows(_logger, integration.Id, fetchResult.SourceTotalCount, unaccounted, null);
 
@@ -290,7 +322,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                 syncLog.Complete(added + updated, accounting);
             }
 
-            await _draftItemRepository.SaveChangesAsync(cancellationToken);
+            await _integrationRepository.SaveChangesAsync(cancellationToken);
 
             return Result<SyncErpItemsResult>.Success(
                 new SyncErpItemsResult(
@@ -373,8 +405,8 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         int updated,
         int unchanged,
         int skipped,
-        IReadOnlyDictionary<ErpDropReason, int> dropped) =>
-        sourceTotal - (added + updated + unchanged + skipped + dropped.Values.Sum());
+        int totalDropped) =>
+        sourceTotal - (added + updated + unchanged + skipped + totalDropped);
 
     private static string BuildPartialFailMessage(int failedCount, int totalCount) =>
         $"{totalCount} satırdan {failedCount} tanesi işlenemedi; diğer satırlar kaydedildi.";

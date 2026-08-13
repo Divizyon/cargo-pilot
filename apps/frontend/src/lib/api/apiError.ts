@@ -56,3 +56,16 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
     firstNonEmpty([validationMessage, envelope?.description, message, detail, title]) ?? fallback
   );
 }
+
+/**
+ * Alan bazli dogrulama hatalarini "alan: mesaj" satirlarina cevirir. Toplu aktarimda
+ * hangi satirin neden reddedildigi bu listeden okunur; tek mesaj yeterli degildir.
+ */
+export function getApiValidationErrors(error: unknown): string[] {
+  const parsed = apiErrorResponseSchema.safeParse(readResponseData(error));
+  if (!parsed.success) return [];
+
+  return (parsed.data.error?.validationErrors ?? [])
+    .map((failure) => [failure.field, failure.message].filter(Boolean).join(': '))
+    .filter((line) => line.length > 0);
+}

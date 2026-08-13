@@ -30,6 +30,31 @@ internal sealed class IntegrationRepository : IIntegrationRepository
                     && i.SyncStartedAtUtc > staleThresholdUtc,
                 cancellationToken);
 
+    public async Task<bool> TryStartSyncAsync(
+        Guid integrationId,
+        Guid companyId,
+        DateTime startedAtUtc,
+        DateTime staleThresholdUtc,
+        CancellationToken cancellationToken = default)
+    {
+        // Kosul UPDATE'in WHERE'i icinde kalir; boylece kontrol ile yazma arasinda
+        // baska bir istegin kilidi kapabilecegi bir aralik olusmaz.
+        var affected = await _dbContext.Integrations
+            .Where(i => i.Id == integrationId && i.CompanyId == companyId)
+            .Where(i => !_dbContext.Integrations.Any(other =>
+                other.CompanyId == companyId
+                && other.SyncStatus == ErpSyncStatus.Running
+                && other.SyncStartedAtUtc != null
+                && other.SyncStartedAtUtc > staleThresholdUtc))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(i => i.SyncStatus, ErpSyncStatus.Running)
+                    .SetProperty(i => i.SyncStartedAtUtc, startedAtUtc),
+                cancellationToken);
+
+        return affected > 0;
+    }
+
     public async Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => await _dbContext.Integrations
             .AsNoTracking()

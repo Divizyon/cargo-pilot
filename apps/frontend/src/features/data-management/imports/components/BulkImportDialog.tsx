@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
-import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -17,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useBulkCreateItems, fetchAllItems, type BackendError } from '@/lib/api/useItems';
+import { useBulkCreateItems, fetchAllItems } from '@/lib/api/useItems';
+import { getApiErrorMessage, getApiValidationErrors } from '@/lib/api/apiError';
 import {
   PALLET_HEIGHT_CM,
   toAllowedRotations,
@@ -568,16 +568,12 @@ export function BulkImportDialog({
       {
         onSuccess: () => finishImport(invalidRows),
         onError: (err) => {
-          const errData = (err as AxiosError<BackendError>).response?.data?.error;
-          const failures = errData?.validationFailures;
-          const message = errData?.message;
-          if (failures?.length) {
-            setApiErrors(
-              failures.map((f) => [f.propertyName, f.errorMessage].filter(Boolean).join(': ')),
-            );
-          } else if (message) {
-            setApiErrors([message]);
-          }
+          // Alan bazli hatalar backend zarfinda validationErrors icinde gelir; liste
+          // bosalirsa tek satirlik genel mesaja duseriz.
+          const failures = getApiValidationErrors(err);
+          setApiErrors(
+            failures.length > 0 ? failures : [getApiErrorMessage(err, 'Ürünler eklenemedi.')],
+          );
         },
       },
     );

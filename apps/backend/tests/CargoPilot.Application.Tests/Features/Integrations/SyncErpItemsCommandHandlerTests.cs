@@ -52,8 +52,13 @@ public sealed class SyncErpItemsCommandHandlerTests
         _integration = TestData.CreateIntegration(IntegrationId, CompanyId);
         _integrationRepository.HasAnyRunningSyncAsync(CompanyId, Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(false);
+        _integrationRepository.TryStartSyncAsync(
+                IntegrationId, CompanyId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(true);
         _integrationRepository.GetByIdAsync(IntegrationId, CompanyId, Arg.Any<CancellationToken>())
             .Returns(_integration);
+        _draftItemRepository.SaveChangesIsolatingFailuresAsync(Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<DraftSaveFailure>());
         _erpSettingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>())
             .Returns(TestData.CreateErpSettings(CompanyId));
         _passwordProtector.Unprotect(Arg.Any<string>()).Returns("duz-sifre");
@@ -281,7 +286,11 @@ public sealed class SyncErpItemsCommandHandlerTests
 
         result.IsSuccess.Should().BeTrue();
         fetchAnindakiDurum.Should().Be(ErpSyncStatus.Running);
-        await _integrationRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        // Kilit atomik olarak alinir, sonra izlenen varlikla birlikte kaydedilir; kapanis
+        // durumu ikinci kayitla yazilir.
+        await _integrationRepository.Received(1).TryStartSyncAsync(
+            IntegrationId, CompanyId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await _integrationRepository.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
         _integration.SyncStatus.Should().Be(ErpSyncStatus.Idle);
         _integration.SyncStartedAtUtc.Should().BeNull();
         _integration.LastSyncDate.Should().NotBeNull();
@@ -557,7 +566,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         kaydedilenLog!.Status.Should().Be(SyncLogStatus.PartialFailure);
         kaydedilenLog.SyncedRecordCount.Should().Be(2);
         kaydedilenLog.RowErrorsJson.Should().Contain("ERP-2").And.Contain("satir bozuk");
-        await _draftItemRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _draftItemRepository.Received(1).SaveChangesIsolatingFailuresAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -580,7 +589,7 @@ public sealed class SyncErpItemsCommandHandlerTests
         result.Data.Skipped.Should().Be(0);
         result.Data.RowErrors.Should().BeEmpty();
         result.Data.SyncLogId.Should().Be(kaydedilenLog.Id);
-        await _draftItemRepository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _draftItemRepository.Received(1).SaveChangesIsolatingFailuresAsync(Arg.Any<CancellationToken>());
     }
 
     /// <remarks>Vade ilerlemezse zamanlayici ayni entegrasyonu her taramada yeniden tetiklerdi.</remarks>
@@ -627,5 +636,78 @@ public sealed class SyncErpItemsCommandHandlerTests
         await CreateSut().Handle(Command, CancellationToken.None);
 
         _integration.NextScheduledSyncAt.Should().BeNull();
+    }
+
+    /// <remarks>
+    /// Kilit tek UPDATE ile alinir; kontrol ile yazma arasinda baska bir istek araya
+    /// girerse ikinci calisma sync'i baslatmadan 409 almalidir.
+    /// </remarks>
+    [Fact]
+    public async Task Handle_KilitBaskasindaysa_SyncBaslamadanCakismaDoner()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        _integrationRepository.TryStartSyncAsync(
+                IntegrationId, CompanyId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Type.Should().Be(ErrorType.Conflict);
+        result.Error.Code.Should().Be("Sync.AlreadyRunning");
+        await _erpProductFetcher.DidNotReceive().FetchAsync(
+            Arg.Any<string>(),
+            Arg.Any<ErpCredentials>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <remarks>
+    /// Yarim kalan degisiklik izleyicide kalirsa partinin geri kalaniyla birlikte
+    /// kaydedilir; hatali satirin taslagi izlemeden cikarilmalidir.
+    /// </remarks>
+    [Fact]
+    public async Task Handle_SatirIslenirkenHata_DokunulanTaslakIzlemedenCikarilir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct());
+        var mevcut = TestData.CreateDraftItem(CompanyId, IntegrationId);
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns(mevcut);
+        _draftItemRepository.When(r => r.Update(Arg.Any<DraftItem>()))
+            .Do(_ => throw new InvalidOperationException("satir bozuk"));
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ErrorCount.Should().Be(1);
+        _draftItemRepository.Received(1).Discard(mevcut);
+    }
+
+    /// <remarks>
+    /// Veritabani tek satiri reddettiginde (or. unique index ihlali) parti dusmez:
+    /// satir hata listesine gecer ve sayaci geri alinir.
+    /// </remarks>
+    [Fact]
+    public async Task Handle_VeritabaniSatiriReddederse_SayacGeriAlinirVeHataRaporlanir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct(), TestData.CreateErpProduct("ERP-2", "SKU-2", "Ikinci Urun"));
+        _draftItemRepository.GetByErpIdAsync(Arg.Any<string>(), IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+        _draftItemRepository.SaveChangesIsolatingFailuresAsync(Arg.Any<CancellationToken>())
+            .Returns(new[] { new DraftSaveFailure("ERP-2", "SKU-2", "unique index ihlali", WasNew: true) });
+
+        SyncLog? kaydedilenLog = null;
+        _integrationRepository.When(r => r.AddSyncLog(Arg.Any<SyncLog>())).Do(c => kaydedilenLog = c.Arg<SyncLog>());
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Added.Should().Be(1);
+        result.Data.ErrorCount.Should().Be(1);
+        result.Data.RowErrors.Should().ContainSingle()
+            .Which.ErpId.Should().Be("ERP-2");
+        kaydedilenLog!.Status.Should().Be(SyncLogStatus.PartialFailure);
+        result.Data.Unaccounted.Should().Be(0);
     }
 }

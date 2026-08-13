@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getApiErrorMessage } from './apiError';
+import { getApiErrorMessage, getApiValidationErrors } from './apiError';
 
 const FALLBACK = 'İşlem başarısız';
 
@@ -75,5 +75,40 @@ describe('getApiErrorMessage', () => {
     };
 
     expect(getApiErrorMessage(error, FALLBACK)).toBe(FALLBACK);
+  });
+});
+
+describe('getApiValidationErrors', () => {
+  it('backend zarfındaki alan bazlı hataları "alan: mesaj" satırlarına çevirir', () => {
+    const error = {
+      response: {
+        status: 422,
+        data: {
+          isSuccess: false,
+          data: null,
+          error: {
+            code: 'Validation.Failed',
+            description: 'Doğrulama hatası.',
+            validationErrors: [
+              { field: 'Width', message: 'Genişlik sıfırdan büyük olmalı.' },
+              { field: 'Weight', message: 'Ağırlık zorunludur.' },
+            ],
+          },
+        },
+      },
+    };
+
+    expect(getApiValidationErrors(error)).toEqual([
+      'Width: Genişlik sıfırdan büyük olmalı.',
+      'Weight: Ağırlık zorunludur.',
+    ]);
+  });
+
+  it('alan bazlı hata yoksa boş liste döner', () => {
+    const error = {
+      response: { status: 500, data: { isSuccess: false, error: { code: 'Unexpected' } } },
+    };
+
+    expect(getApiValidationErrors(error)).toEqual([]);
   });
 });

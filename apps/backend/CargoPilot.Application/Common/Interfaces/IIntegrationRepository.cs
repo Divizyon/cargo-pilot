@@ -12,6 +12,13 @@ public interface IIntegrationRepository
     /// </summary>
     Task<bool> HasAnyRunningSyncAsync(Guid companyId, DateTime staleThresholdUtc, CancellationToken cancellationToken = default);
     /// <summary>
+    /// Sync kilidini tek ifadede alir: hedef entegrasyonu yalnizca sirkette taze bir Running
+    /// kayit yokken Running'e cevirir ve kilidi alip almadigini doner. Once okuyup sonra yazan
+    /// iki adimda es zamanli iki istek de bosluktan gecebiliyordu; tek UPDATE'te yalnizca biri
+    /// satiri degistirir.
+    /// </summary>
+    Task<bool> TryStartSyncAsync(Guid integrationId, Guid companyId, DateTime startedAtUtc, DateTime staleThresholdUtc, CancellationToken cancellationToken = default);
+    /// <summary>
     /// Zamanlanmis sync vadesi gelmis (frekansi olan ve planlanan ani gecmis) tum sirketlerin
     /// entegrasyonlari. Arka plan zamanlayicisi kullanir; kayitlar izlenir ki vade guncellenebilsin.
     /// </summary>

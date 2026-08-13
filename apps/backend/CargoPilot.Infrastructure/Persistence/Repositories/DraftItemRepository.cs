@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
@@ -7,6 +8,9 @@ namespace CargoPilot.Infrastructure.Persistence.Repositories;
 
 internal sealed class DraftItemRepository : IDraftItemRepository
 {
+    /// <summary>Izole edilemeyen bir hatada sonsuz donguye girmemek icin deneme siniri.</summary>
+    private const int MaxIsolationAttempts = 50;
+
     private readonly AppDbContext _context;
 
     public DraftItemRepository(AppDbContext context)
@@ -58,6 +62,46 @@ internal sealed class DraftItemRepository : IDraftItemRepository
 
     public void Update(DraftItem draftItem) => _context.DraftItems.Update(draftItem);
 
+    public void Discard(DraftItem draftItem) =>
+        _context.Entry(draftItem).State = EntityState.Detached;
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _context.SaveChangesAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<DraftSaveFailure>> SaveChangesIsolatingFailuresAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var failures = new List<DraftSaveFailure>();
+
+        for (var attempt = 0; attempt < MaxIsolationAttempts; attempt++)
+        {
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return failures;
+            }
+            catch (DbUpdateException ex)
+            {
+                var draftEntries = ex.Entries.Where(e => e.Entity is DraftItem).ToList();
+
+                // Hatanin kaynagi taslak degilse (or. SyncLog) o kaydi atarak ilerlemek
+                // veri kaybi olurdu; hata cagirana birakilir. Karisik partide de hangi
+                // kaydin suclu oldugu belirsizdir, ayni sekilde yukseltilir.
+                if (draftEntries.Count == 0 || draftEntries.Count != ex.Entries.Count)
+                    throw;
+
+                var reason = ex.InnerException?.Message ?? ex.Message;
+                foreach (var entry in draftEntries)
+                {
+                    var draft = (DraftItem)entry.Entity;
+                    failures.Add(new DraftSaveFailure(
+                        draft.ErpId, draft.SKU, reason, entry.State == EntityState.Added));
+                    entry.State = EntityState.Detached;
+                }
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Taslak kaydi {MaxIsolationAttempts} denemede tamamlanamadi.");
+    }
 }

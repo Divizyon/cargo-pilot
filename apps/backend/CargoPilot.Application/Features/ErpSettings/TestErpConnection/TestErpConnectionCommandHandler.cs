@@ -3,6 +3,7 @@ using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using ErpSettingsEntity = CargoPilot.Domain.Entities.ErpSettings;
 
@@ -16,21 +17,30 @@ namespace CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 /// </summary>
 internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpConnectionCommand, Result<ErpConnectionTestResponse>>
 {
+    private static readonly Action<ILogger, string, Exception?> _logStoredPasswordWithheld =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(1, "ErpStoredPasswordWithheld"),
+            "Kayitli ERP sifresi cozulmedi: istek {ServerAddress} adresini hedefliyor, kayitli baglantidan farkli");
+
     private readonly IEnumerable<IErpConnector> _connectors;
     private readonly IErpSettingsRepository _settingsRepository;
     private readonly IErpPasswordProtector _passwordProtector;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILogger<TestErpConnectionCommandHandler> _logger;
 
     public TestErpConnectionCommandHandler(
         IEnumerable<IErpConnector> connectors,
         IErpSettingsRepository settingsRepository,
         IErpPasswordProtector passwordProtector,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ILogger<TestErpConnectionCommandHandler> logger)
     {
         _connectors = connectors;
         _settingsRepository = settingsRepository;
         _passwordProtector = passwordProtector;
         _currentUserService = currentUserService;
+        _logger = logger;
     }
 
     public async Task<Result<ErpConnectionTestResponse>> Handle(TestErpConnectionCommand request, CancellationToken cancellationToken)
@@ -90,10 +100,13 @@ internal sealed class TestErpConnectionCommandHandler : IRequestHandler<TestErpC
             request.ProviderType, request.CompanyCode, request.Username, request.ServerAddress);
 
         if (requestedConfigHash != settings.BuildCurrentConfigHash())
+        {
+            _logStoredPasswordWithheld(_logger, request.ServerAddress, null);
             return (null, new Error(
                 ErrorType.Validation,
                 "ErpSettings.PasswordRequiredForNewConfig",
                 "Bağlantı bilgileri kayıtlı ayarlardan farklı. Bu ayarları test etmek için şifreyi girin."));
+        }
 
         try
         {

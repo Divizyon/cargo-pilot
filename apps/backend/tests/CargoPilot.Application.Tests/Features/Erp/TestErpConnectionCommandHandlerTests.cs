@@ -5,6 +5,7 @@ using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 using CargoPilot.Domain.Enums;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ErpSettingsEntity = CargoPilot.Domain.Entities.ErpSettings;
 
@@ -44,7 +45,8 @@ public sealed class TestErpConnectionCommandHandlerTests
         _connector.ProviderType.Returns(ErpProviderType.Netsis);
         _currentUserService.CompanyId.Returns(CompanyId);
         return new TestErpConnectionCommandHandler(
-            [_connector], _settingsRepository, _passwordProtector, _currentUserService);
+            [_connector], _settingsRepository, _passwordProtector, _currentUserService,
+            NullLogger<TestErpConnectionCommandHandler>.Instance);
     }
 
     [Fact]
@@ -97,7 +99,8 @@ public sealed class TestErpConnectionCommandHandlerTests
     {
         _connector.ProviderType.Returns(ErpProviderType.Netsis);
         var sut = new TestErpConnectionCommandHandler(
-            [_connector], _settingsRepository, _passwordProtector, _currentUserService);
+            [_connector], _settingsRepository, _passwordProtector, _currentUserService,
+            NullLogger<TestErpConnectionCommandHandler>.Instance);
 
         var command = Command() with { ProviderType = ErpProviderType.Logo };
         var result = await sut.Handle(command, CancellationToken.None);
