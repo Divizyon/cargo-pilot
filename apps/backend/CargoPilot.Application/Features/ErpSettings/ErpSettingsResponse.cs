@@ -16,6 +16,8 @@ public record ErpSettingsResponse(
     string ServerAddress,
     bool HasPassword,
     bool TrustServerCertificate,
+    ErpDimensionUnit DimensionUnit,
+    ErpWeightUnit WeightUnit,
     bool? LastTestSucceeded,
     DateTime? LastTestedAt)
 {
@@ -30,6 +32,8 @@ public record ErpSettingsResponse(
             settings.ServerAddress,
             HasPassword: !string.IsNullOrEmpty(settings.PasswordEncrypted),
             settings.TrustServerCertificate,
+            settings.DimensionUnit,
+            settings.WeightUnit,
             isCurrent ? settings.LastTestSucceeded : null,
             isCurrent ? settings.LastTestedAtUtc : null);
     }

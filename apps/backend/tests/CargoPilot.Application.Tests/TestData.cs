@@ -13,8 +13,20 @@ internal static class TestData
 
     public static ErpSettings CreateErpSettings(
         Guid companyId,
-        ErpProviderType providerType = ErpProviderType.Netsis) =>
-        new(Guid.NewGuid(), companyId, providerType, "MUSTERI_DB", "erp_okuyucu", "sifreli", "localhost");
+        ErpProviderType providerType = ErpProviderType.Netsis,
+        ErpDimensionUnit dimensionUnit = ErpDimensionUnit.Centimeter,
+        ErpWeightUnit weightUnit = ErpWeightUnit.Kilogram) =>
+        new(
+            Guid.NewGuid(),
+            companyId,
+            providerType,
+            "MUSTERI_DB",
+            "erp_okuyucu",
+            "sifreli",
+            "localhost",
+            trustServerCertificate: true,
+            dimensionUnit,
+            weightUnit);
 
     public static ErpProductDto CreateErpProduct(
         string erpId = "ERP-1",

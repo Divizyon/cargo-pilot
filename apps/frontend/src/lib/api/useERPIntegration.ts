@@ -130,6 +130,8 @@ function buildErpSettingsBody(values: ErpConnectionFormValues): Record<string, u
     username: values.username,
     serverAddress: values.serverAddress,
     trustServerCertificate: values.trustServerCertificate,
+    dimensionUnit: values.dimensionUnit,
+    weightUnit: values.weightUnit,
   };
   if (values.password) {
     body.password = values.password;

@@ -101,6 +101,10 @@ export const erpSettingsApiSchema = z.object({
   hasPassword: z.boolean(),
   /** false ise ERP sunucusunun TLS sertifikası doğrulanır. Eski kayıtlarda alan gelmeyebilir. */
   trustServerCertificate: z.boolean().default(true),
+  /** ErpDimensionUnit: 0=cm, 1=mm, 2=m, 3=inç. Eski kayıtlarda alan gelmeyebilir. */
+  dimensionUnit: z.number().int().default(0),
+  /** ErpWeightUnit: 0=kg, 1=g, 2=lb. */
+  weightUnit: z.number().int().default(0),
   /**
    * Son bağlantı testinin sonucu. Backend bu alanı yalnızca test edilen yapılandırma
    * kayıtlı ayarlarla aynıysa doldurur; null = güncel bir test yok.

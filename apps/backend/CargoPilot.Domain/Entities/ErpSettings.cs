@@ -20,6 +20,15 @@ public sealed class ErpSettings : BaseEntity
     /// </summary>
     public bool TrustServerCertificate { get; private set; }
 
+    /// <summary>
+    /// ERP'deki EN/BOY/GENISLIK kolonlarinin birimi. Netsis bu bilgiyi tasimadigi icin
+    /// kurulumda musteri bildirir; varsayilan santimetredir.
+    /// </summary>
+    public ErpDimensionUnit DimensionUnit { get; private set; }
+
+    /// <summary>ERP'deki birim agirlik kolonunun birimi; varsayilan kilogram.</summary>
+    public ErpWeightUnit WeightUnit { get; private set; }
+
     /// <summary>Son bağlantı testinin anı; hiç test edilmediyse null.</summary>
     public DateTime? LastTestedAtUtc { get; private set; }
 
@@ -46,7 +55,9 @@ public sealed class ErpSettings : BaseEntity
         string username,
         string passwordEncrypted,
         string serverAddress,
-        bool trustServerCertificate = true) : base(id)
+        bool trustServerCertificate = true,
+        ErpDimensionUnit dimensionUnit = ErpDimensionUnit.Centimeter,
+        ErpWeightUnit weightUnit = ErpWeightUnit.Kilogram) : base(id)
     {
         CompanyId = companyId;
         ProviderType = providerType;
@@ -55,6 +66,8 @@ public sealed class ErpSettings : BaseEntity
         PasswordEncrypted = passwordEncrypted;
         ServerAddress = serverAddress;
         TrustServerCertificate = trustServerCertificate;
+        DimensionUnit = dimensionUnit;
+        WeightUnit = weightUnit;
     }
 
     public void Update(
@@ -63,6 +76,8 @@ public sealed class ErpSettings : BaseEntity
         string username,
         string serverAddress,
         bool trustServerCertificate,
+        ErpDimensionUnit dimensionUnit,
+        ErpWeightUnit weightUnit,
         string? newPasswordEncrypted = null)
     {
         ProviderType = providerType;
@@ -70,6 +85,8 @@ public sealed class ErpSettings : BaseEntity
         Username = username;
         ServerAddress = serverAddress;
         TrustServerCertificate = trustServerCertificate;
+        DimensionUnit = dimensionUnit;
+        WeightUnit = weightUnit;
         if (newPasswordEncrypted is not null)
         {
             PasswordEncrypted = newPasswordEncrypted;

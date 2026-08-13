@@ -47,6 +47,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import {
+  ERP_DIMENSION_UNITS,
+  ERP_WEIGHT_UNITS,
   erpConnectionFormSchema,
   type ErpConnectionFormValues,
 } from '@/features/platform/erp/schemas/erpConnectionSchema';
@@ -156,6 +158,8 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
       password: '',
       serverAddress: '',
       trustServerCertificate: false,
+      dimensionUnit: 0,
+      weightUnit: 0,
     },
   });
 
@@ -172,6 +176,8 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
       password: '',
       serverAddress: existing.serverAddress,
       trustServerCertificate: existing.trustServerCertificate,
+      dimensionUnit: existing.dimensionUnit,
+      weightUnit: existing.weightUnit,
     });
   }, [existing, form]);
 
@@ -250,6 +256,8 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
           password: '',
           serverAddress: '',
           trustServerCertificate: false,
+          dimensionUnit: 0,
+          weightUnit: 0,
         });
       },
     });
@@ -448,6 +456,69 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="dimensionUnit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>ERP ölçü birimi</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={String(field.value)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Birim seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {ERP_DIMENSION_UNITS.map((unit) => (
+                      <SelectItem key={unit.value} value={String(unit.value)}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  ERP&apos;deki en / boy / yükseklik kolonlarının birimi. ERP bu bilgiyi taşımadığı
+                  için burada bildirilir; yanlış seçim ölçüleri sessizce 10 veya 100 kat kaydırır.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="weightUnit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>ERP ağırlık birimi</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={String(field.value)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Birim seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {ERP_WEIGHT_UNITS.map((unit) => (
+                      <SelectItem key={unit.value} value={String(unit.value)}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>ERP&apos;deki birim ağırlık kolonunun birimi.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

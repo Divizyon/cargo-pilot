@@ -50,7 +50,9 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
                 request.Username,
                 encrypted,
                 request.ServerAddress,
-                request.TrustServerCertificate);
+                request.TrustServerCertificate,
+                request.DimensionUnit,
+                request.WeightUnit);
 
             _repository.Add(newSettings);
 
@@ -81,6 +83,8 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
             request.Username,
             request.ServerAddress,
             request.TrustServerCertificate,
+            request.DimensionUnit,
+            request.WeightUnit,
             newEncryptedPassword);
 
         var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);

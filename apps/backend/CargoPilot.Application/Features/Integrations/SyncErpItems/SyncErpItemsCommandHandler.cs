@@ -9,6 +9,7 @@ using CargoPilot.Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ErpSettingsEntity = CargoPilot.Domain.Entities.ErpSettings;
 
 namespace CargoPilot.Application.Features.Integrations.SyncErpItems;
 
@@ -203,7 +204,7 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                     if (existing is not null)
                     {
                         touchedDraft = existing;
-                        var refresh = BuildErpRefresh(product, missingFields);
+                        var refresh = BuildErpRefresh(product, missingFields, erpSettings);
 
                         if (existing.Status == DraftItemStatus.Approved)
                         {
@@ -227,11 +228,13 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             isStackable: true,
                             maxStackCount: 1,
                             maxWeightOnTop: 0m,
-                            product.Weight);
+                            ErpMeasures.From(product, erpSettings).Weight);
 
                         // ERP grup kodu isin kategorisidir, urunun fiziksel kabi degil. Tip
                         // sabit Koli baslar ve kullanici aktarim izgarasinda degistirir.
                         var stackGroup = ErpLoadGroupResolver.Resolve(product.GroupCode);
+
+                        var measures = ErpMeasures.From(product, erpSettings);
 
                         var draft = new DraftItem(
                             Guid.NewGuid(),
@@ -243,10 +246,10 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
                             product.Name,
                             string.IsNullOrWhiteSpace(product.ProductType) ? "STANDARD" : product.ProductType,
                             ItemCategory.Box,
-                            product.Width,
-                            product.Height,
-                            product.Length,
-                            product.Weight,
+                            measures.Width,
+                            measures.Height,
+                            measures.Length,
+                            measures.Weight,
                             FragilityType.NonFragile,
                             isStackable,
                             maxStackCount,
@@ -369,6 +372,20 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
         }
     }
 
+    /// <summary>
+    /// ERP olculeri uygulamanin ic birimlerine (cm/kg) cevrilmis hali. Ham degerler
+    /// <c>ErpRawDataJson</c> anlik goruntusunde oldugu gibi kalir; degisiklik tespiti
+    /// ERP tarafina bakar, cevrilmis degere degil.
+    /// </summary>
+    private readonly record struct ErpMeasures(decimal Width, decimal Height, decimal Length, decimal Weight)
+    {
+        public static ErpMeasures From(ErpProductDto product, ErpSettingsEntity settings) => new(
+            ErpUnitConverter.ToCentimeters(product.Width, settings.DimensionUnit),
+            ErpUnitConverter.ToCentimeters(product.Height, settings.DimensionUnit),
+            ErpUnitConverter.ToCentimeters(product.Length, settings.DimensionUnit),
+            ErpUnitConverter.ToKilograms(product.Weight, settings.WeightUnit));
+    }
+
     private static string ProviderDisplayName(ErpProviderType providerType) => providerType switch
     {
         ErpProviderType.Logo => "Logo",
@@ -419,19 +436,21 @@ public sealed class SyncErpItemsCommandHandler : IRequestHandler<SyncErpItemsCom
     /// </summary>
     private static DraftItem.ErpRefresh BuildErpRefresh(
         ErpProductDto product,
-        IReadOnlyList<string> missingFields)
+        IReadOnlyList<string> missingFields,
+        ErpSettingsEntity erpSettings)
     {
         var carriesGroupInfo = ErpLoadGroupResolver.CarriesGroupInfo(product.GroupCode);
         var stackGroup = carriesGroupInfo ? ErpLoadGroupResolver.Resolve(product.GroupCode) : null;
+        var measures = ErpMeasures.From(product, erpSettings);
 
         return new DraftItem.ErpRefresh(
             product.Sku,
             product.Name,
             product.RawDataJson,
-            product.Width,
-            product.Height,
-            product.Length,
-            product.Weight,
+            measures.Width,
+            measures.Height,
+            measures.Length,
+            measures.Weight,
             product.Barcode,
             stackGroup,
             LoadGroups.IncompatibleWith(stackGroup),

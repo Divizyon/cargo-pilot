@@ -37,6 +37,8 @@ const SAVED_SETTINGS = {
   serverAddress: '10.0.0.5',
   hasPassword: true,
   trustServerCertificate: true,
+  dimensionUnit: 0,
+  weightUnit: 0,
   lastTestSucceeded: null as boolean | null,
   lastTestedAt: null as string | null,
 };
@@ -94,6 +96,33 @@ describe('ERPConnectionForm alan rehberliği', () => {
 
     const trustSwitch = await screen.findByRole('switch', { name: /sertifikasını doğrulama/i });
     expect(trustSwitch).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('yeni bağlantıda ölçü birimi santimetre ile açılır', async () => {
+    mockEmptyState();
+
+    renderForm(<ERPConnectionForm />);
+
+    // Bugunku davranis cm/kg; varsayilan degisirse mevcut kurulumlarin olculeri kayar.
+    expect(await screen.findByRole('combobox', { name: 'ERP ölçü birimi' })).toHaveTextContent(
+      'Santimetre (cm)',
+    );
+    expect(screen.getByRole('combobox', { name: 'ERP ağırlık birimi' })).toHaveTextContent(
+      'Kilogram (kg)',
+    );
+  });
+
+  it('kayıtlı ayardaki ölçü birimi forma yansır', async () => {
+    mockSavedSettings({ dimensionUnit: 1, weightUnit: 1 });
+
+    renderForm(<ERPConnectionForm />);
+
+    expect(await screen.findByRole('combobox', { name: 'ERP ölçü birimi' })).toHaveTextContent(
+      'Milimetre (mm)',
+    );
+    expect(screen.getByRole('combobox', { name: 'ERP ağırlık birimi' })).toHaveTextContent(
+      'Gram (g)',
+    );
   });
 
   it('sunucu adresi alanında named instance ve port örneği gösterir', async () => {

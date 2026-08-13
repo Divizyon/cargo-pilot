@@ -710,4 +710,30 @@ public sealed class SyncErpItemsCommandHandlerTests
         kaydedilenLog!.Status.Should().Be(SyncLogStatus.PartialFailure);
         result.Data.Unaccounted.Should().Be(0);
     }
+
+    /// <remarks>
+    /// ERP olcu kolonlarinin birimi kaynakta yazili degildir; kurulumda milimetre
+    /// bildirildiyse taslak santimetreye cevrilmis deger tasimalidir.
+    /// </remarks>
+    [Fact]
+    public async Task Handle_KaynakBirimiMilimetre_TaslagaSantimetreYazilir()
+    {
+        ArrangeHappyPath(TestData.CreateErpProduct(width: 400m, weight: 8000m));
+        _erpSettingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>())
+            .Returns(TestData.CreateErpSettings(
+                CompanyId,
+                dimensionUnit: ErpDimensionUnit.Millimeter,
+                weightUnit: ErpWeightUnit.Gram));
+        _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
+            .Returns((DraftItem?)null);
+
+        DraftItem? eklenen = null;
+        _draftItemRepository.When(r => r.Add(Arg.Any<DraftItem>())).Do(c => eklenen = c.Arg<DraftItem>());
+
+        var result = await CreateSut().Handle(Command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        eklenen!.Width.Should().Be(40m);
+        eklenen.Weight.Should().Be(8m);
+    }
 }
