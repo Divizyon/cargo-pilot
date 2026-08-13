@@ -17,11 +17,15 @@ on:
     - cron: '0 3 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # ─── PR kapanınca o PR'ın cache'lerini sil ───────────────────────────────────
   cleanup-on-pr-close:
     name: PR Cache Temizliği
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Fork PR'larında GITHUB_TOKEN write yetkisi olmaz; sadece aynı repo PR'larında çalış
     if: |
       github.event_name == 'pull_request' &&
@@ -64,6 +68,7 @@ jobs:
   cleanup-stale:
     name: Haftalık Stale Cache Temizliği
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     permissions:
       actions: write

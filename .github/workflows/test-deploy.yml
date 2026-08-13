@@ -26,12 +26,16 @@ on:
       - test
       - main
 
+permissions:
+  contents: read
+
 jobs:
   # ─── Migration kontrolü: model değişmiş ama migration oluşturulmamışsa fail ──
   # test/main PR'larında ve test push'ta çalışır (iş branch'i push'larında gereksiz)
   migration-check:
     name: Pending Migration Kontrolü
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: |
       (github.event_name == 'pull_request' && (github.base_ref == 'test' || github.base_ref == 'main')) ||
       (github.event_name == 'push' && github.ref == 'refs/heads/test')
@@ -73,6 +77,7 @@ jobs:
   build:
     name: Image Build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: |
       (github.event_name == 'pull_request' && github.base_ref == 'test') ||
       (github.event_name == 'push' && github.ref == 'refs/heads/test')
@@ -143,6 +148,7 @@ jobs:
   deploy:
     name: Deploy (Test)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [migration-check]
     permissions:
       contents: read
@@ -294,6 +300,7 @@ jobs:
   deploy-test-server:
     name: Deploy (Test Server)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [migration-check, build]
     if: |
       always() &&

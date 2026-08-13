@@ -11,10 +11,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   tag:
     name: Sürüm Etiketi Oluştur
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     permissions:
       contents: write

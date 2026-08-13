@@ -19,6 +19,9 @@ on:
       - test
       - main
 
+permissions:
+  contents: read
+
 jobs:
   # ─── Terfi zinciri denetimi ──────────────────────────────────────────────────
   # Akış: feat/* → dev → test → main. Sıra atlanırsa dallar ayrışır.
@@ -26,6 +29,7 @@ jobs:
   enforce-promotion:
     name: Terfi Zinciri Kontrolü
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: |
       github.event_name == 'pull_request' &&
       (github.base_ref == 'test' || github.base_ref == 'main')
@@ -57,6 +61,7 @@ jobs:
   frontend-ci:
     name: Frontend CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -101,6 +106,7 @@ jobs:
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Kodu al
@@ -130,6 +136,7 @@ jobs:
   docker-build:
     name: Docker Image Build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [frontend-ci, backend-ci]
     permissions:
       contents: read
