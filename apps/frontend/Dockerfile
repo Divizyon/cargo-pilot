@@ -1,10 +1,10 @@
-FROM node:20-slim AS deps
+FROM node:26-slim AS deps
 WORKDIR /app
 RUN npm install -g npm@11.6.1
 COPY package*.json ./
 RUN npm install --ignore-scripts --no-audit --no-fund
 
-FROM node:20-slim AS build
+FROM node:26-slim AS build
 WORKDIR /app
 ARG VITE_API_BASE_URL
 ARG VITE_APP_VERSION=dev
