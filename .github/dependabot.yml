@@ -1,0 +1,81 @@
+version: 2
+updates:
+  # ── npm / frontend ──────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/apps/frontend"
+    # enforce-promotion (ci.yml) main'e yalnızca test/hotfix'ten PR kabul eder;
+    # varsayılan davranış (main'e PR) her Dependabot PR'ını kırar.
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "npm"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # 3D sahne ve routing major'ları manuel QA istiyor
+      - dependency-name: "three"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/three"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@react-three/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-router*"
+        update-types: ["version-update:semver-major"]
+
+  # ── NuGet / backend ─────────────────────────────────────────
+  - package-ecosystem: "nuget"
+    directory: "/apps/backend"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "nuget"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      nuget-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+
+  # ── Docker ──────────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/apps/frontend"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/backend"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+
+  # ── GitHub Actions ──────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]
+    groups:
+      actions-all:
+        patterns: ["*"]
