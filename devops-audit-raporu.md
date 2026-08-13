@@ -8,7 +8,7 @@
 
 > ### Genel sağlık skoru: **75 / 100** — denetim günü **36** idi *(OpenSSF Scorecard kriterlerine göre tahmin, ±10; sıçramanın kaynağı: Dependency-Update-Tool 0→10, SAST 0→10, Vulnerabilities 0→10, Security-Policy 0→10, Pinned 3→8, Token-Permissions 4→9)*
 
-1. **🔴→🟢 Rollback güvencesi onarıldı.** Denetimde: 10 sürüm tag'inin hiçbirinin GHCR'da image'ı yoktu, `rollback.yml` hiç koşmamıştı, boş hedef arşiv tag'ine çözülüyordu. Şimdi: `release-tag.yml` her yeni tag'i `test-<sha7>` imajıyla eşliyor (#943), `rollback.sh` yalnız `v*` tag'lerine çözülüyor (#942). **Kalan:** gerçek bir tatbikat hâlâ yapılmadı — mekanizma ilk kez canlıda v0.11.0 ile doğrulanacak.
+1. **🔴→🟢 Rollback güvencesi onarıldı ve üç kez canlıda doğrulandı.** Denetimde: 10 sürüm tag'inin hiçbirinin GHCR'da image'ı yoktu, `rollback.yml` hiç koşmamıştı, boş hedef arşiv tag'ine çözülüyordu. Şimdi: `release-tag.yml` her yeni tag'i `test-<sha7>` imajıyla eşliyor (#943), `rollback.sh` yalnız `v*` tag'lerine çözülüyor (#942). **v0.11.0, v0.12.0 ve v0.13.0** GHCR'da imajlarıyla mevcut. **Kalan:** gerçek bir rollback tatbikatı hâlâ yapılmadı — artık `target_ref=v0.13.0` ile denenebilir.
 2. **🟠→🟢 Tedarik zinciri kapatıldı.** 28 action referansının tamamı commit SHA'sına pinli (#942), Dependabot `github-actions` ekosistemi pinleri güncel tutacak. **Kalan:** dispatch input'larının root SSH script'ine interpolasyonu ve Dockerfile digest'leri (orta öncelik).
 3. **🟠→🟢 Güvenlik görünürlüğü kuruldu.** Dependabot alerts + secret scanning + push protection + **private vulnerability reporting** açık; CodeQL iki dilde PR kapısında (ölçülen: C# 2:13, TS 1:13); npm açıkları **10 → 0** (#944 + xlsx→SheetJS CDN 0.20.3 #945). NuGet ilk taramada temiz. `.github/SECURITY.md` eklendi (#962). **Kalan:** LICENSE bilinçli ertelendi; server-access.md hâlâ IP/port yayınlıyor (silmek geçmişten kaldırmadığı için ayrı karar).
 4. **🟢 CI hattı sağlam, hijyeni de tamamlandı.** %98,9 koşum başarısı; terfi zinciri 3 ruleset + `enforce-promotion` ile zorlanıyor. Buna ek olarak (#961): 8/8 workflow'da top-level `contents: read`, 15/15 job'da `timeout-minutes`, backend test guard artık sessizce geçmiyor, sürüm etiketine otomatik changelog'lu GitHub Release bağlandı. **Kalan:** 0/20 merge review'lu — 1-onay/CODEOWNERS kararı bekliyor; her işe ~1,5 terfi PR'ı yükü sürüyor.
@@ -20,16 +20,17 @@
 
 | Metrik | Denetim | Bugün | Metrik | Denetim | Bugün |
 |---|---|---|---|---|---|
-| SHA-pinned action | 0/28 | **28/28** ✅ | npm açığı | 9 high + 1 low | **0** ✅ |
+| SHA-pinned action | 0/28 | **32/32** ✅ (codeql dahil) | npm açığı | 9 high + 1 low | **0** ✅ |
 | Dependabot / CodeQL | Yok / Yok | **Kurulu** ✅ | Secret scanning + push prot. | Kapalı | **Açık** ✅ |
 | NuGet taraması | Yok | **Temiz (0 alert)** ✅ | Sürüm↔imaj eşleme | Yok (10/10 kopuk) | **Otomatik** (yeni tag'ler) ✅ |
 | GitHub environment | Yok (rollback kırık) | **test + prod** (prod onaylı) ✅ | README'de parola | Var | **Kaldırıldı** ✅ |
-| Dependabot alert (main) | — (kapalıydı) | **36 → 0** (terfi #946/#947 ile) ✅ | Eşlenen sürüm | 0/10 | **v0.11.0 canlıda eşlendi** ✅ |
+| Dependabot alert (main) | — (kapalıydı) | **36 → 0** ✅ | Eşlenen sürüm | 0/10 | **v0.11.0 + v0.12.0 + v0.13.0** ✅ |
 | SECURITY.md | Yok | **Var** ✅ | Bayat doküman | 12 | **0** ✅ |
 | Top-level `permissions` | 1/7 workflow | **8/8** ✅ | `timeout-minutes` | 2/15 job | **15/15** ✅ |
 | Backend test guard | Sessizce atlıyor | **`exit 1`** ✅ | Ölü secret (TEST_GHCR_*) | 2 | **0** ✅ |
 | Review'lu merge PR (son 20) | 0/20 | 0/20 ⏸ | rollback.yml koşumu | 0 | 0 ⏸ (tatbikat bekliyor) |
-| LICENSE | Yok | Yok ⏸ (ertelendi) | Otomatik changelog | Yok | **Bağlandı** ✅ (sonraki sürümde) |
+| LICENSE | Yok | Yok ⏸ (ertelendi) | GitHub Release | 0/11 sürüm | **v0.12.0 + v0.13.0** ✅ (otomatik changelog) |
+| Dependabot ignore kuralı (main) | — | 4 → **17** ✅ | İşlenen Dependabot PR | — | **17** (8 merge / 9 kapatma) |
 | Workflow / job | 7 / 14 | 8 / 15 (codeql) | CI başarı / ort. süre | %98,9 / 4,5 dk | değişmedi |
 
 ---
@@ -404,11 +405,53 @@ Eksik standart dosyalar: ~~SECURITY.md~~ ✅ eklendi · **LICENSE** ⏸ bilinçl
 | `server-access.md` IP/port ifşası | ⏸ Karar | Dosyadan silmek git geçmişinden kaldırmıyor; ayrı bir karar konusu |
 | Koordinat terminolojisi çelişkisi | ⏸ Bağımlı | `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor |
 
-**Dependabot ilk taraması (2026-08-13):** 12 PR açıldı, **tamamı `dev` hedefli** — `target-branch` kısıtı doğrulandı. Tahmin edilen aralık 10-15 idi. İçlerinde TypeScript 7, React, Node 26, lint-staged 17 gibi major'lar var; bunlar ilk hafta merge edilmemeli (yalnız grup PR'ları + güvenlik içeren minor'lar).
+---
+
+## 11. Dependabot İlk İşletim Turu — 2026-08-13
+
+İlk tarama **12 PR** açtı (tahmin: 10-15), **tamamı `dev` hedefli** — `target-branch` kısıtı sahada doğrulandı. İkinci turla birlikte toplam **17 PR** işlendi: 8 merge, 9 gerekçeli kapatma. Bu tur, config'in üç ayrı eksiğini ortaya çıkardı ve dördü de düzeltildi (#963, #964, #974, #982).
+
+**Merge edilenler:** nginx 1.31 · actions-all (10 güncelleme — Dependabot SHA pinlerini **doğru koruyup güncelledi**, format bozulmadı) · lint-staged 17 · coverlet 10 · FluentValidation 12.1.1 · npm grubu (42 paket) · nuget grubu (31 paket) · xunit.runner 3.1.5 · framer-motion/types-node minor'ları.
+
+**Kapatılanlar ve gerekçeleri** — hepsi hedef sürümle uyumsuz:
+
+| Paket | Öneri | Gerekçe |
+|---|---|---|
+| `node` | 20 → 26 | CI `node-version: '20'`; ikisi birlikte yükseltilmeli |
+| `react`, `react-dom` | 18 → 19 | `CLAUDE.md` React 18'i sabitliyor; react-dom 19 + react 18 desteklenmiyor |
+| `typescript` | 5.9 → 7.0 | Tip hatalarını topluca değiştirir; planlı geçiş |
+| `Microsoft.*`, `System.*` | 8.x/9.x → 10.x | Altı proje de `net8.0` hedefliyor |
+| `tailwindcss` | 3.4 → 4.3 | v4 CSS-first config; `CLAUDE.md` v3'ü sabitliyor |
+| `framer-motion` | 12 → 13 | Animasyon API'si değişiyor, manuel QA |
+| `Serilog.AspNetCore` | 8.0.3 → 10.0.0 | Sürümleme ASP.NET Core'a hizalı |
+| `Swashbuckle.*` + `Microsoft.OpenApi` | 7.3 → 10.2 / 1.6 → 2.7 | **CI'ı fiilen kırdı** — `Microsoft.OpenApi.Models` namespace'i kalktı, `IOperationFilter.Apply` imzası değişti |
+
+### Ortaya çıkan üç tuzak *(hepsi sessiz — hiçbiri kırmızı check üretmiyor)*
+
+**1. Dependabot config'i varsayılan daldan (`main`) okunur.** `target-branch: dev` yalnızca PR'ların *nereye açılacağını* belirler; kuralların kendisi main'den gelir. Üç dallı terfi modelinde bu, `dev`'e merge edilen ignore kurallarının **terfi edilene kadar etkisiz kalması** demek. `react-dom` 19'un kurala rağmen iki kez gelmesinin (#968, #971) sebebi buydu; v0.12.0 terfisiyle `main`'deki kural sayısı 4 → 15'e çıktı ve kurallar yürürlüğe girdi.
+
+**2. Çakışan PR'da CI hiç başlamaz — "fail" değil, "hiç koşmadı".** GitHub `pull_request` koşumlarını merge ref'inden kurar; PR `CONFLICTING` ise o ref üretilemez ve **hiç koşum oluşmaz**. Ekranda kırmızı check yoktur, yalnızca boşluk vardır. #951 ve #955'te ayrı ayrı yaşandı; ayrıca açık duran #938'in yeşil check'leri de bu yüzden bayat.
+
+**3. 0.x paketlerde semver minor fiilen kırıcıdır.** `three` r162 → **r185** (23 sürüm) "minor-patch" etiketli grubun içinde geldi; major hanesi `0` sabit olduğu için semver bunu *minor* sayıyor, ignore kuralımız ise yalnızca major'ı yakalıyordu. Fiilen kırıcı olduğu kanıtlandı: `SceneFloor.tsx:101`, `TS2739` — r185'te `ShaderMaterialParameters.extensions.derivatives` kaldırılmış. Grup PR'ından çıkarıldı, `semver-minor` ignore'a eklendi (#964), yükseltme backlog madde 13'e yazıldı.
+
+**Ek olarak:** eski base'e göre hesaplanan grup PR'ı **downgrade önerebilir** — #966, `dev`'de zaten 12.1.1 olan FluentValidation için 11.12.0 öneriyordu.
+
+### Bu turdan doğan iki backlog maddesi
+
+- **Madde 13 — three r162→r185** (3D QA kapsamı: koordinat/pivot eşlemesi, `InstancedMesh`, `BoxWrapper`, zemin ızgarası shader'ı, dispose)
+- **Madde 14 — CORS `AllowAnyOrigin()` geri dönüş yolu** (🟠 Güvenlik): analyzer yükseltmesi S5122'yi yakaladı, bağımlılık PR'ında davranış değiştirmemek için pragma ile susturuldu. `CORS_ALLOWED_ORIGIN_*` tanımsızsa API tüm origin'lere açılıyor; `Development` dışında fail-fast'e çevrilmeli.
+
+### v0.12.0 — üç mekanizmanın canlı doğrulaması
+
+| Mekanizma | Kanıt |
+|---|---|
+| Otomatik changelog (#961) | `gh release create --generate-notes` ilk kez koştu; **14 PR** isim + yazar + link ile listelendi. Repo 11 sürüm boyunca 0 Release'e sahipti |
+| Sürüm↔imaj eşlemesi (#943) | GHCR'da `v0.11.0`, `v0.12.0` **ve** `v0.13.0` — denetimin kritik bulgusu üç kez üst üste doğrulandı |
+| Ignore kuralları | `main`'deki `dependabot.yml` 4 → **17** kural; `semver-minor` girdileri yerinde |
 
 ---
 
-## 11. Metodoloji ve Sınırlar
+## 12. Metodoloji ve Sınırlar
 
 7 paralel keşif ajanı (dokümantasyon, CI/CD, secrets, release, branch, standartlar, Dependabot/CodeQL) yapılandırılmış bulgu+kanıt üretti; orta ve üzeri önemdeki **38 iddia**, dosyaları yeniden açan ve komutları yeniden koşan bağımsız şüpheci doğrulayıcılara verildi: **37 doğrulandı**, 1'i düzeltmeyle işlendi (main ruleset'inde bypass 2 değil 1 takım). Doğrulanamayanlar rapora alınmadı.
 
