@@ -148,8 +148,8 @@ describe('ERPConnectionForm alan rehberliği', () => {
 
     // Kurulu baglanti olmadan ikisi de anlamsiz; ekranda durunca yaniltiyordu.
     expect(await screen.findByLabelText('Veritabanı Adı')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Test Et' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Kaldır' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bağlantıyı test et' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bağlantıyı kaldır' })).not.toBeInTheDocument();
   });
 
   it('form değişmeden Bağlan çubuğu görünmez; zorunlu alan eksikken pasiftir', async () => {
@@ -241,7 +241,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
+    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı test et' }));
 
     await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
     const [, body] = mocks.post.mock.calls[0];
@@ -255,7 +255,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
+    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı test et' }));
 
     await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledTimes(1));
     expect(mocks.toastSuccess.mock.calls[0][0]).toBe('Bağlantı başarılı.');
@@ -270,7 +270,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
+    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı test et' }));
 
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1));
     expect(mocks.toastError.mock.calls[0][0]).toBe('Kullanıcı adı veya şifre hatalı.');
@@ -283,7 +283,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
+    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı test et' }));
 
     // Uyarı test başarılıyken de çıkabilir; başarı mesajının içinde eriyip kaybolmamalı.
     await waitFor(() => expect(mocks.toastWarning).toHaveBeenCalledTimes(1));
@@ -360,7 +360,7 @@ describe('ERPConnectionForm riskli değişiklik korumaları', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Kaldır' }));
+    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı kaldır' }));
 
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('Bağlantı kaldırılsın mı?');
     expect(mocks.delete).not.toHaveBeenCalled();

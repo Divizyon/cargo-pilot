@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   ErpSetupHelpContent,
   ErpSetupHelpPopover,
@@ -77,6 +78,46 @@ function buildConnectionStatus(
   };
 }
 
+interface IconActionProps {
+  label: string;
+  icon: typeof CheckCircle2;
+  isBusy: boolean;
+  className: string;
+  onClick: () => void;
+}
+
+/**
+ * Simge tek başına ne yaptığını söylemez: erişilebilir ad `aria-label` ile verilir,
+ * gören kullanıcıya da ipucu balonuyla yazılır. Dokunma hedefi 32 piksel; kartın
+ * yoğunluğunu bozmadan parmakla vurulabilecek en küçük ölçü.
+ */
+function IconAction({ label, icon: Icon, isBusy, className, onClick }: IconActionProps) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={label}
+            className={cn('h-8 w-8', className)}
+            disabled={isBusy}
+            onClick={onClick}
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 interface ErpConnectionStatusCardProps {
   /** null iken kurulum yardımı gösterilir; kart aynı kabuğu korur. */
   settings: ErpSettings | null;
@@ -146,36 +187,20 @@ export function ErpConnectionStatusCard({
         </div>
 
         <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs"
-            disabled={isTesting}
+          <IconAction
+            label="Bağlantıyı test et"
+            icon={PlugZap}
+            isBusy={isTesting}
+            className="text-primary hover:bg-primary/10 hover:text-primary"
             onClick={onTest}
-          >
-            {isTesting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <PlugZap className="h-3.5 w-3.5" />
-            )}
-            Test Et
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-            disabled={isDeleting}
+          />
+          <IconAction
+            label="Bağlantıyı kaldır"
+            icon={Trash2}
+            isBusy={isDeleting}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={onRemove}
-          >
-            {isDeleting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
-            Kaldır
-          </Button>
+          />
           <ErpSetupHelpPopover onCopyChecklist={onCopyChecklist} />
         </div>
       </div>
