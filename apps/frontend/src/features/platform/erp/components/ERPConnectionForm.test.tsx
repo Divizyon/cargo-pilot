@@ -9,10 +9,22 @@ const mocks = vi.hoisted(() => ({
   put: vi.fn(),
   post: vi.fn(),
   delete: vi.fn(),
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+  toastWarning: vi.fn(),
 }));
 
 vi.mock('@/lib/api/axiosInstance', () => ({
   axiosInstance: { get: mocks.get, put: mocks.put, post: mocks.post, delete: mocks.delete },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: mocks.toastSuccess,
+    error: mocks.toastError,
+    warning: mocks.toastWarning,
+    info: vi.fn(),
+  },
 }));
 
 const { ERPConnectionForm } = await import('./ERPConnectionForm');
@@ -54,8 +66,10 @@ function mockSavedSettings(overrides: Partial<typeof SAVED_SETTINGS> = {}) {
   });
 }
 
-function mockTestConnection(isSuccess: boolean, message: string) {
-  mocks.post.mockResolvedValue({ data: { isSuccess: true, data: { isSuccess, message } } });
+function mockTestConnection(isSuccess: boolean, message: string, warning: string | null = null) {
+  mocks.post.mockResolvedValue({
+    data: { isSuccess: true, data: { isSuccess, message, warning } },
+  });
 }
 
 function renderForm(node: ReactNode) {
@@ -234,7 +248,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
     expect(body).not.toHaveProperty('password');
   });
 
-  it('başarılı test için ayrı bir yeşil kutu çıkmaz', async () => {
+  it('başarılı test sonucu toast ile bildirilir, forma kutu eklenmez', async () => {
     mockSavedSettings();
     mockTestConnection(true, 'Bağlantı başarılı.');
     const user = userEvent.setup();
@@ -243,13 +257,13 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Test Et' }));
 
-    // Durum kartı zaten yeşile dönüp son test tarihini yazıyor; aynı bilgiyi ikinci
-    // kez göstermek ekranı şişiriyordu.
-    await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledTimes(1));
+    expect(mocks.toastSuccess.mock.calls[0][0]).toBe('Bağlantı başarılı.');
+    // Sonuç formun içinde yer kaplamaz; durum kartı zaten son test tarihini yazıyor.
     expect(screen.queryByText('Bağlantı başarılı.')).not.toBeInTheDocument();
   });
 
-  it('alan değişince bayat test sonucu ekrandan kalkar', async () => {
+  it('başarısız test sonucu hata toastı ile bildirilir', async () => {
     mockSavedSettings();
     mockTestConnection(false, 'Kullanıcı adı veya şifre hatalı.');
     const user = userEvent.setup();
@@ -257,11 +271,24 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
     renderForm(<ERPConnectionForm />);
 
     await user.click(await screen.findByRole('button', { name: 'Test Et' }));
-    expect(await screen.findByText('Kullanıcı adı veya şifre hatalı.')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Sunucu Adresi'), '0');
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1));
+    expect(mocks.toastError.mock.calls[0][0]).toBe('Kullanıcı adı veya şifre hatalı.');
+  });
 
-    expect(screen.queryByText('Kullanıcı adı veya şifre hatalı.')).not.toBeInTheDocument();
+  it('sertifika uyarısı sonuçtan ayrı bir toast olarak çıkar', async () => {
+    mockSavedSettings();
+    mockTestConnection(true, 'Bağlantı başarılı.', 'Sunucu sertifikası doğrulanmadı.');
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
+
+    // Uyarı test başarılıyken de çıkabilir; başarı mesajının içinde eriyip kaybolmamalı.
+    await waitFor(() => expect(mocks.toastWarning).toHaveBeenCalledTimes(1));
+    expect(mocks.toastWarning.mock.calls[0][0]).toBe('Sunucu sertifikası doğrulanmadı.');
+    expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
   });
 
   it('kaydetmeden önce test eder; test başarısızsa teyit ister', async () => {

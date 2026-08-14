@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, XCircle, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -51,7 +51,19 @@ import type { ErpSettings } from '@/lib/types/erp';
 import { getApiErrorMessage } from '@/lib/api/apiError';
 import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuidance';
 
-type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
+type TestResult = { success: boolean; message?: string | null; warning?: string | null };
+
+const TOAST_OPTIONS = { position: 'bottom-right' } as const;
+
+/**
+ * Sertifika uyarısı test başarılı olsa da çıkabilir; ayrı bir bildirim olarak ve daha
+ * uzun süreyle gösterilir, sonucun içinde eriyip kaybolmamalı.
+ */
+function notifyCertificateWarning(warning: string | null | undefined) {
+  if (warning) {
+    toast.warning(warning, { ...TOAST_OPTIONS, duration: 8000 });
+  }
+}
 
 /** Sağlayıcı, veritabanı veya sunucu değiştiyse senkronizasyonun kaynağı değişiyor demektir. */
 function isDataSourceChanged(values: ErpConnectionFormValues, existing: ErpSettings): boolean {
@@ -69,12 +81,9 @@ interface ERPConnectionFormProps {
 
 export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [testResult, setTestResult] = useState<TestResult>(null);
   const [saveDespiteFailure, setSaveDespiteFailure] = useState<ErpConnectionFormValues | null>(
     null,
   );
-  /** Test sonucunun hangi form içeriğine ait olduğunu tutar. */
-  const [testedSignature, setTestedSignature] = useState<string | null>(null);
   const [pendingOverwrite, setPendingOverwrite] = useState<ErpConnectionFormValues | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -126,10 +135,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
 
   const watchedValues = useWatch({ control: form.control });
   const guidance = getErpFieldGuidance(watchedValues.systemType ?? 'Netsis');
-  // Test sonucu yalnızca test edildiği andaki alanlar hâlâ geçerliyken gösterilir;
-  // herhangi bir alan değişince bayat sonuç ekrandan kalkar.
-  const formSignature = JSON.stringify(watchedValues);
-  const isTestResultFresh = testResult !== null && testedSignature === formSignature;
 
   const { isDirty } = form.formState;
 
@@ -143,7 +148,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
 
   /** Iptal formu kayitli hale dondurur; kayit yoksa bos forma. */
   function handleCancelEdits() {
-    setTestResult(null);
     form.reset(
       existing
         ? {
@@ -210,26 +214,23 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
     testThenSave(values);
   }
 
+  /**
+   * Kaydetmeden önceki test. Sonucu ayrıca bildirmez: başarılıysa kaydetme bildirimi,
+   * başarısızsa teyit diyaloğu zaten çıkıyor; üzerine bir de toast eklemek aynı olayı
+   * iki kez anlatırdı.
+   */
   function testThenSave(input: ErpConnectionFormValues) {
     const values = withSavedUnits(input);
-    setTestResult(null);
-    setTestedSignature(formSignature);
     testConnection(values, {
       onSuccess: (result) => {
-        setTestResult(result);
+        notifyCertificateWarning(result.warning);
         if (result.success) {
           persistSettings(values);
           return;
         }
         setSaveDespiteFailure(values);
       },
-      onError: (error) => {
-        setTestResult({
-          success: false,
-          message: getApiErrorMessage(error, 'Bağlantı test edilemedi.'),
-        });
-        setSaveDespiteFailure(values);
-      },
+      onError: () => setSaveDespiteFailure(values),
     });
   }
 
@@ -237,7 +238,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
     removeConnection(undefined, {
       onSuccess: () => {
         setShowDeleteConfirm(false);
-        setTestResult(null);
         loadedSettingsIdRef.current = null;
         form.reset({
           systemType: 'Netsis',
@@ -253,18 +253,25 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
     });
   }
 
+  /** Kullanıcının kendi başlattığı test; tek geri bildirimi toast. */
   function handleTestConnection() {
     form.trigger().then((valid) => {
       if (!valid) return;
-      setTestResult(null);
-      setTestedSignature(formSignature);
       testConnection(withSavedUnits(form.getValues()), {
-        onSuccess: (result) => setTestResult(result),
+        onSuccess: (result: TestResult) => {
+          if (result.success) {
+            toast.success(result.message ?? 'Bağlantı başarılı.', TOAST_OPTIONS);
+          } else {
+            toast.error(
+              result.message ??
+                'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.',
+              TOAST_OPTIONS,
+            );
+          }
+          notifyCertificateWarning(result.warning);
+        },
         onError: (error) => {
-          setTestResult({
-            success: false,
-            message: getApiErrorMessage(error, 'Bağlantı test edilemedi.'),
-          });
+          toast.error(getApiErrorMessage(error, 'Bağlantı test edilemedi.'), TOAST_OPTIONS);
         },
       });
     });
@@ -454,28 +461,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
           />
 
         </div>
-
-        {/*
-          Başarılı testin yeşil kutusu kaldırıldı: durum kartı zaten yeşile dönüp son
-          test tarihini yazıyor, aynı bilgiyi iki kez göstermek ekranı şişiriyordu.
-          Başarısızlık geri bildirimi kalır — hata sessizce geçilemez.
-        */}
-        {isTestResultFresh && testResult !== null && !testResult.success && (
-          <div className="flex items-start gap-2.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              {testResult.message ??
-                'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.'}
-            </span>
-          </div>
-        )}
-
-        {isTestResultFresh && testResult?.warning && (
-          <div className="flex items-start gap-2.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{testResult.warning}</span>
-          </div>
-        )}
 
         {/*
           Kaydet dugmesi formun icinden kaldirildi. Degisiklik yapilir yapilmaz alttan
