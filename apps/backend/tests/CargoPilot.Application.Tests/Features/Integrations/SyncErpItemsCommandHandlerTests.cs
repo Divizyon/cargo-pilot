@@ -718,12 +718,12 @@ public sealed class SyncErpItemsCommandHandlerTests
     [Fact]
     public async Task Handle_KaynakBirimiMilimetre_TaslagaSantimetreYazilir()
     {
-        ArrangeHappyPath(TestData.CreateErpProduct(width: 400m, weight: 8000m));
+        ArrangeHappyPath(TestData.CreateErpProduct(width: 400m, weight: 8m));
         _erpSettingsRepository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>())
             .Returns(TestData.CreateErpSettings(
                 CompanyId,
                 dimensionUnit: ErpDimensionUnit.Millimeter,
-                weightUnit: ErpWeightUnit.Gram));
+                weightUnit: ErpWeightUnit.Ton));
         _draftItemRepository.GetByErpIdAsync("ERP-1", IntegrationId, CompanyId, Arg.Any<CancellationToken>())
             .Returns((DraftItem?)null);
 
@@ -734,6 +734,6 @@ public sealed class SyncErpItemsCommandHandlerTests
 
         result.IsSuccess.Should().BeTrue();
         eklenen!.Width.Should().Be(40m);
-        eklenen.Weight.Should().Be(8m);
+        eklenen.Weight.Should().Be(8000m);
     }
 }

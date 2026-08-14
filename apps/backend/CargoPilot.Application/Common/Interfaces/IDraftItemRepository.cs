@@ -22,6 +22,11 @@ public interface IDraftItemRepository
         int pageSize,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DraftItem>> GetByIdsAsync(IEnumerable<Guid> ids, Guid companyId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Sirketin tum taslaklari, izlenen halde. ERP birim ayari degistiginde olculer
+    /// topluca yeniden yorumlanir; kaydetmede kalicilasir.
+    /// </summary>
+    Task<IReadOnlyList<DraftItem>> ListTrackedByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     void Add(DraftItem draftItem);
     void Update(DraftItem draftItem);
 

@@ -158,6 +158,30 @@ public sealed class DraftItem : BaseEntity
         PruneFilledMissingFields();
     }
 
+    /// <summary>
+    /// ERP birim ayari degistiginde olculeri yeniden yorumlar. Ayni ham ERP degeri artik
+    /// baska bir birim sayildigi icin oran uygulanir. Bunu senkronizasyona birakmak
+    /// mumkun degil: ERP tarafinda hicbir sey degismedigi icin
+    /// <see cref="MatchesErpSnapshot"/> esit doner ve satir atlanir.
+    /// Sifir ve negatif degerler 'eksik alan' isaretidir, oranla carpilmaz.
+    /// </summary>
+    public void RescaleMeasures(decimal dimensionRatio, decimal weightRatio)
+    {
+        if (dimensionRatio != 1m)
+        {
+            Width = Rescale(Width, dimensionRatio);
+            Height = Rescale(Height, dimensionRatio);
+            Length = Rescale(Length, dimensionRatio);
+            if (Diameter.HasValue)
+                Diameter = Rescale(Diameter.Value, dimensionRatio);
+        }
+
+        if (weightRatio != 1m)
+            Weight = Rescale(Weight, weightRatio);
+    }
+
+    private static decimal Rescale(decimal value, decimal ratio) => value > 0 ? value * ratio : value;
+
     public void Approve() => Status = DraftItemStatus.Approved;
 
     public void Reject() => Status = DraftItemStatus.Rejected;

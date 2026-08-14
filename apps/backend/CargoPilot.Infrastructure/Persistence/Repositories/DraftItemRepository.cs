@@ -92,6 +92,12 @@ internal sealed class DraftItemRepository : IDraftItemRepository
             .Where(x => ids.Contains(x.Id) && x.CompanyId == companyId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<DraftItem>> ListTrackedByCompanyAsync(
+        Guid companyId, CancellationToken cancellationToken = default)
+        => await _context.DraftItems
+            .Where(d => d.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+
     public void Add(DraftItem draftItem) => _context.DraftItems.Add(draftItem);
 
     public void Update(DraftItem draftItem) => _context.DraftItems.Update(draftItem);

@@ -17,19 +17,19 @@ export const erpConnectionFormSchema = z.object({
   weightUnit: z.number().int(),
 });
 
-/** Backend `ErpDimensionUnit` sözleşmesi. */
+/**
+ * Backend `ErpDimensionUnit` sözleşmesi. Seçenekler Bölgesel Ayarlar'daki ölçü
+ * birimleriyle aynı tutulur; sahada metre veya inç kullanan bir ERP kurulumu yok.
+ */
 export const ERP_DIMENSION_UNITS = [
   { value: 0, label: 'Santimetre (cm)' },
   { value: 1, label: 'Milimetre (mm)' },
-  { value: 2, label: 'Metre (m)' },
-  { value: 3, label: 'İnç (in)' },
 ] as const;
 
-/** Backend `ErpWeightUnit` sözleşmesi. */
+/** Backend `ErpWeightUnit` sözleşmesi; Bölgesel Ayarlar'daki ağırlık birimleriyle aynı. */
 export const ERP_WEIGHT_UNITS = [
   { value: 0, label: 'Kilogram (kg)' },
-  { value: 1, label: 'Gram (g)' },
-  { value: 2, label: 'Pound (lb)' },
+  { value: 1, label: 'Ton (ton)' },
 ] as const;
 
 export type ErpConnectionFormValues = z.infer<typeof erpConnectionFormSchema>;

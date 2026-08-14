@@ -125,7 +125,7 @@ describe('ERPConnectionForm alan rehberliği', () => {
       'Milimetre (mm)',
     );
     expect(screen.getByRole('combobox', { name: 'ERP ağırlık birimi' })).toHaveTextContent(
-      'Gram (g)',
+      'Ton (ton)',
     );
   });
 

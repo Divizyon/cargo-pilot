@@ -20,6 +20,7 @@ public sealed class UpsertErpSettingsIntegrationReuseTests
 
     private readonly IErpSettingsRepository _repository = Substitute.For<IErpSettingsRepository>();
     private readonly IIntegrationRepository _integrationRepository = Substitute.For<IIntegrationRepository>();
+    private readonly IDraftItemRepository _draftItemRepository = Substitute.For<IDraftItemRepository>();
     private readonly IErpPasswordProtector _passwordProtector = Substitute.For<IErpPasswordProtector>();
     private readonly ICurrentUserService _currentUserService = Substitute.For<ICurrentUserService>();
 
@@ -33,7 +34,7 @@ public sealed class UpsertErpSettingsIntegrationReuseTests
         _repository.GetByCompanyIdAsync(CompanyId, Arg.Any<CancellationToken>())
             .Returns((ErpSettingsEntity?)null);
         return new UpsertErpSettingsCommandHandler(
-            _repository, _integrationRepository, _passwordProtector, _currentUserService);
+            _repository, _integrationRepository, _draftItemRepository, _passwordProtector, _currentUserService);
     }
 
     private static Integration RemovedIntegration()
