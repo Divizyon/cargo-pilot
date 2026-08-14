@@ -192,20 +192,7 @@ export function UnifiedSettingsPage() {
         <div className="w-full shrink-0 rounded-xl bg-card p-3 sm:w-52">
           <nav className="flex gap-1 overflow-x-auto pb-1 sm:flex-col sm:overflow-x-visible sm:pb-0">
             {visibleGeneralTabs.map((tab) => renderNavButton(tab))}
-
-            {visibleErpTabs.length > 0 && (
-              <>
-                {/* ERP grup ayırıcı */}
-                <div className="my-1 hidden sm:block">
-                  <div className="border-t" />
-                  <p className="mt-2 px-3 text-xs font-medium text-muted-foreground">
-                    ERP Entegrasyonu
-                  </p>
-                </div>
-
-                {visibleErpTabs.map((tab) => renderNavButton(tab, getErpBadge(tab.id)))}
-              </>
-            )}
+            {visibleErpTabs.map((tab) => renderNavButton(tab, getErpBadge(tab.id)))}
           </nav>
         </div>
 
