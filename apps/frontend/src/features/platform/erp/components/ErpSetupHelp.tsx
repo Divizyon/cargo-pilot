@@ -1,4 +1,4 @@
-import { ClipboardList, HelpCircle, Info } from 'lucide-react';
+import { ClipboardList, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ERP_NETWORK_PRECONDITIONS } from '@/features/platform/erp/utils/erpFieldGuidance';
@@ -27,36 +27,32 @@ function CopyChecklistButton({ onCopyChecklist }: ErpSetupHelpProps) {
 }
 
 /**
- * İlk kurulumda görünen bilgi kartı. Bağlantı yokken kullanıcı bu ekranda ne yapacağını
+ * İlk kurulumda görünen yardım içeriği. Bağlantı yokken kullanıcı bu ekranda ne yapacağını
  * bilmiyor; yardım bir düğmenin arkasında dururken bulunması kullanıcıya kalıyordu.
- * Bağlantı kurulduktan sonra aynı içerik <see cref="ErpSetupHelpPopover"/> ile
- * düğmenin arkasına çekilir.
+ * Kabuğu <c>ErpConnectionStatusCard</c> verir ki bağlantılı ve bağlantısız hâl aynı kartta
+ * dursun. Bağlantı kurulduktan sonra aynı içerik <c>ErpSetupHelpPopover</c> ile düğmenin
+ * arkasına çekilir.
  */
-export function ErpSetupHelpCard({ onCopyChecklist }: ErpSetupHelpProps) {
+export function ErpSetupHelpContent({ onCopyChecklist }: ErpSetupHelpProps) {
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
-      <div className="flex gap-2.5">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Henüz bir ERP bağlantınız yok</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Aşağıdaki alanları doldurduğunuzda ERP&apos;nizdeki ürünler Cargo Pilot&apos;a
-            çekilebilir hale gelir. Bu bilgiler sizde değil, ERP sunucunuzu yöneten IT ekibinde
-            bulunur — listeyi kopyalayıp onlara iletebilirsiniz.
-          </p>
-        </div>
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">Henüz bir ERP bağlantınız yok</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Aşağıdaki alanları doldurduğunuzda ERP&apos;nizdeki ürünler Cargo Pilot&apos;a
+          çekilebilir hale gelir. Bu bilgiler sizde değil, ERP sunucunuzu yöneten IT ekibinde
+          bulunur — listeyi kopyalayıp onlara iletebilirsiniz.
+        </p>
       </div>
 
-      <div className="space-y-1.5 pl-6">
+      <div className="space-y-1.5">
         <p className="text-xs font-medium text-foreground">
           IT ekibinizin ayrıca şunları açması gerekir:
         </p>
         <PreconditionList />
       </div>
 
-      <div className="pl-6">
-        <CopyChecklistButton onCopyChecklist={onCopyChecklist} />
-      </div>
+      <CopyChecklistButton onCopyChecklist={onCopyChecklist} />
     </div>
   );
 }

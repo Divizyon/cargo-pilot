@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -100,33 +100,6 @@ describe('ERPConnectionForm alan rehberliği', () => {
       name: /sertifika doğrulamasını atla/i,
     });
     expect(trustSwitch).toHaveAttribute('aria-checked', 'true');
-  });
-
-  it('yeni bağlantıda ölçü birimi santimetre ile açılır', async () => {
-    mockEmptyState();
-
-    renderForm(<ERPConnectionForm />);
-
-    // Bugunku davranis cm/kg; varsayilan degisirse mevcut kurulumlarin olculeri kayar.
-    expect(await screen.findByRole('combobox', { name: 'ERP ölçü birimi' })).toHaveTextContent(
-      'Santimetre (cm)',
-    );
-    expect(screen.getByRole('combobox', { name: 'ERP ağırlık birimi' })).toHaveTextContent(
-      'Kilogram (kg)',
-    );
-  });
-
-  it('kayıtlı ayardaki ölçü birimi forma yansır', async () => {
-    mockSavedSettings({ dimensionUnit: 1, weightUnit: 1 });
-
-    renderForm(<ERPConnectionForm />);
-
-    expect(await screen.findByRole('combobox', { name: 'ERP ölçü birimi' })).toHaveTextContent(
-      'Milimetre (mm)',
-    );
-    expect(screen.getByRole('combobox', { name: 'ERP ağırlık birimi' })).toHaveTextContent(
-      'Ton (ton)',
-    );
   });
 
   it('bağlantı yokken kurulum yardımını kart olarak gösterir', async () => {
@@ -256,12 +229,12 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Test Et' }));
 
-    expect(await screen.findByText('Bağlantı başarılı.')).toBeInTheDocument();
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
     const [, body] = mocks.post.mock.calls[0];
     expect(body).not.toHaveProperty('password');
   });
 
-  it('alan değişince bayat test sonucu ekrandan kalkar', async () => {
+  it('başarılı test için ayrı bir yeşil kutu çıkmaz', async () => {
     mockSavedSettings();
     mockTestConnection(true, 'Bağlantı başarılı.');
     const user = userEvent.setup();
@@ -269,11 +242,26 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
     renderForm(<ERPConnectionForm />);
 
     await user.click(await screen.findByRole('button', { name: 'Test Et' }));
-    expect(await screen.findByText('Bağlantı başarılı.')).toBeInTheDocument();
+
+    // Durum kartı zaten yeşile dönüp son test tarihini yazıyor; aynı bilgiyi ikinci
+    // kez göstermek ekranı şişiriyordu.
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Bağlantı başarılı.')).not.toBeInTheDocument();
+  });
+
+  it('alan değişince bayat test sonucu ekrandan kalkar', async () => {
+    mockSavedSettings();
+    mockTestConnection(false, 'Kullanıcı adı veya şifre hatalı.');
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
+    expect(await screen.findByText('Kullanıcı adı veya şifre hatalı.')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Sunucu Adresi'), '0');
 
-    expect(screen.queryByText('Bağlantı başarılı.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kullanıcı adı veya şifre hatalı.')).not.toBeInTheDocument();
   });
 
   it('kaydetmeden önce test eder; test başarısızsa teyit ister', async () => {

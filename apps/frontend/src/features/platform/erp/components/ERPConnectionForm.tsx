@@ -2,18 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import {
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  EyeOff,
-  ShieldAlert,
-  Trash2,
-  PlugZap,
-} from 'lucide-react';
+import { Loader2, XCircle, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -45,13 +34,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
 import { FieldLabelRow } from '@/features/platform/erp/components/FieldHint';
+import { ErpConnectionStatusCard } from '@/features/platform/erp/components/ErpConnectionStatusCard';
 import {
-  ErpSetupHelpCard,
-  ErpSetupHelpPopover,
-} from '@/features/platform/erp/components/ErpSetupHelp';
-import {
-  ERP_DIMENSION_UNITS,
-  ERP_WEIGHT_UNITS,
   erpConnectionFormSchema,
   type ErpConnectionFormValues,
 } from '@/features/platform/erp/schemas/erpConnectionSchema';
@@ -68,52 +52,6 @@ import { getApiErrorMessage } from '@/lib/api/apiError';
 import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuidance';
 
 type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
-
-/** Kayıtlı bağlantının kullanıcıya gösterilen durumu; 'Bağlı' yalnızca güncel başarılı testle verilir. */
-type ConnectionStatus = {
-  label: string;
-  detail: string;
-  badgeClass: string;
-  icon: typeof CheckCircle2;
-  iconClass: string;
-};
-
-function buildConnectionStatus(
-  lastTestSucceeded: boolean | null,
-  lastTestedAt: string | null,
-): ConnectionStatus {
-  if (lastTestSucceeded === true) {
-    return {
-      label: 'Bağlı',
-      detail: `Son başarılı test: ${formatTestDate(lastTestedAt)}`,
-      badgeClass: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40',
-      icon: CheckCircle2,
-      iconClass: 'text-green-600',
-    };
-  }
-  if (lastTestSucceeded === false) {
-    return {
-      label: 'Test başarısız',
-      detail: `Son deneme: ${formatTestDate(lastTestedAt)} — bu ayarlarla ERP'ye bağlanılamıyor.`,
-      badgeClass: 'text-destructive bg-destructive/10',
-      icon: XCircle,
-      iconClass: 'text-destructive',
-    };
-  }
-  return {
-    label: 'Kayıtlı (test edilmedi)',
-    detail: 'Bu ayarlarla henüz başarılı bir bağlantı testi yapılmadı.',
-    badgeClass: 'text-muted-foreground bg-muted',
-    icon: ShieldAlert,
-    iconClass: 'text-muted-foreground',
-  };
-}
-
-function formatTestDate(iso: string | null): string {
-  if (!iso) return '—';
-  const parsed = new Date(iso);
-  return Number.isNaN(parsed.getTime()) ? '—' : format(parsed, 'dd.MM.yyyy HH:mm', { locale: tr });
-}
 
 /** Sağlayıcı, veritabanı veya sunucu değiştiyse senkronizasyonun kaynağı değişiyor demektir. */
 function isDataSourceChanged(values: ErpConnectionFormValues, existing: ErpSettings): boolean {
@@ -192,10 +130,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   // herhangi bir alan değişince bayat sonuç ekrandan kalkar.
   const formSignature = JSON.stringify(watchedValues);
   const isTestResultFresh = testResult !== null && testedSignature === formSignature;
-  const status = buildConnectionStatus(
-    existing?.lastTestSucceeded ?? null,
-    existing?.lastTestedAt ?? null,
-  );
 
   const { isDirty } = form.formState;
 
@@ -243,6 +177,20 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
     toast.success('Bilgi listesi panoya kopyalandı.', { position: 'bottom-right' });
   }
 
+  /**
+   * Birimler artık ayrı bölümden yönetiliyor ama aynı kaydın parçası. Formdaki kopya
+   * bağlantı kaydedilirken bayat kalabileceği için kayıtlı değer geri yazılır; aksi
+   * halde bağlantıyı kaydetmek birim değişikliğini sessizce geri alırdı.
+   */
+  function withSavedUnits(values: ErpConnectionFormValues): ErpConnectionFormValues {
+    if (!existing) return values;
+    return {
+      ...values,
+      dimensionUnit: existing.dimensionUnit,
+      weightUnit: existing.weightUnit,
+    };
+  }
+
   function persistSettings(values: ErpConnectionFormValues) {
     save(values, {
       // Kayıt sonrası form temiz sayılır; şifre alanı yeniden boşaltılır.
@@ -262,7 +210,8 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
     testThenSave(values);
   }
 
-  function testThenSave(values: ErpConnectionFormValues) {
+  function testThenSave(input: ErpConnectionFormValues) {
+    const values = withSavedUnits(input);
     setTestResult(null);
     setTestedSignature(formSignature);
     testConnection(values, {
@@ -309,7 +258,7 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
       if (!valid) return;
       setTestResult(null);
       setTestedSignature(formSignature);
-      testConnection(form.getValues(), {
+      testConnection(withSavedUnits(form.getValues()), {
         onSuccess: (result) => setTestResult(result),
         onError: (error) => {
           setTestResult({
@@ -345,70 +294,15 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {existing ? (
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <status.icon className={cn('h-4 w-4 shrink-0', status.iconClass)} />
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                <span className="text-sm font-medium text-foreground">
-                  {connection?.systemName ?? PROVIDER_TYPE_FROM_INT[existing.providerType]}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {existing.serverAddress}
-                </span>
-                {/* Son test bilgisi metin olarak kalir; title icine gomulseydi
-                    ekran okuyucuya ve dokunmatik cihaza ulasmazdi. */}
-                <span className="text-xs text-muted-foreground">{status.detail}</span>
-              </div>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
-                  status.badgeClass,
-                )}
-              >
-                {status.label}
-              </span>
-            </div>
-
-            {/* Test ve kaldirma yalnizca kurulu baglantida anlamli; kurulum sirasinda
-                ekranda durup kullaniciyi yaniltiyordu. */}
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 px-2 text-xs"
-                disabled={isTesting}
-                onClick={handleTestConnection}
-              >
-                {isTesting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <PlugZap className="h-3.5 w-3.5" />
-                )}
-                Test Et
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                disabled={isDeleting}
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                {isDeleting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Kaldır
-              </Button>
-              <ErpSetupHelpPopover onCopyChecklist={handleCopyChecklist} />
-            </div>
-          </div>
-        ) : (
-          <ErpSetupHelpCard onCopyChecklist={handleCopyChecklist} />
-        )}
+        <ErpConnectionStatusCard
+          settings={existing ?? null}
+          systemName={connection?.systemName}
+          isTesting={isTesting}
+          isDeleting={isDeleting}
+          onTest={handleTestConnection}
+          onRemove={() => setShowDeleteConfirm(true)}
+          onCopyChecklist={handleCopyChecklist}
+        />
 
         {/*
           Alan aciklamalari etiketin yanindaki ipucuna tasindi. Paragraf olarak dururken
@@ -559,92 +453,19 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="dimensionUnit"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <FieldLabelRow
-                  hintLabel="Ölçü birimi hakkında bilgi"
-                  hint="ERP tarafındaki en / boy / yükseklik kolonlarının birimi. ERP bu bilgiyi taşımadığı için burada bildirilir; yanlış seçim ölçüleri sessizce 10 veya 100 kat kaydırır."
-                >
-                  <FormLabel>ERP ölçü birimi</FormLabel>
-                </FieldLabelRow>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  value={String(field.value)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Birim seçin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ERP_DIMENSION_UNITS.map((unit) => (
-                      <SelectItem key={unit.value} value={String(unit.value)}>
-                        {unit.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="weightUnit"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <FieldLabelRow
-                  hintLabel="Ağırlık birimi hakkında bilgi"
-                  hint="ERP tarafındaki birim ağırlık kolonunun birimi."
-                >
-                  <FormLabel>ERP ağırlık birimi</FormLabel>
-                </FieldLabelRow>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  value={String(field.value)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Birim seçin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ERP_WEIGHT_UNITS.map((unit) => (
-                      <SelectItem key={unit.value} value={String(unit.value)}>
-                        {unit.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
-        {isTestResultFresh && testResult !== null && (
-          <div
-            className={cn(
-              'flex items-start gap-2.5 rounded-md border px-3 py-2 text-sm',
-              testResult.success
-                ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300'
-                : 'border-destructive/40 bg-destructive/10 text-destructive',
-            )}
-          >
-            {testResult.success ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
-            ) : (
-              <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            )}
+        {/*
+          Başarılı testin yeşil kutusu kaldırıldı: durum kartı zaten yeşile dönüp son
+          test tarihini yazıyor, aynı bilgiyi iki kez göstermek ekranı şişiriyordu.
+          Başarısızlık geri bildirimi kalır — hata sessizce geçilemez.
+        */}
+        {isTestResultFresh && testResult !== null && !testResult.success && (
+          <div className="flex items-start gap-2.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              {testResult.success
-                ? (testResult.message ?? 'Bağlantı başarılı.')
-                : (testResult.message ??
-                  'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.')}
+              {testResult.message ??
+                'Sunucuya ulaşılamadı. Sunucu adresini ve kimlik bilgilerini kontrol edin.'}
             </span>
           </div>
         )}

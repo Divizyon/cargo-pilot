@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { ERPConnectionForm } from '@/features/platform/erp/components/ERPConnectionForm';
 import { ERPSyncHistory } from '@/features/platform/erp/components/ERPSyncHistory';
+import { ErpSyncSettingsSection } from '@/features/platform/erp/components/ErpSyncSettingsSection';
 
 interface ERPIntegrationPanelProps {
   onDirtyChange?: (dirty: boolean) => void;
@@ -24,17 +25,23 @@ function Section({ title, children }: SectionProps) {
 }
 
 /**
- * ERP entegrasyonu ayarları tek ekranda: bağlantı ve geçmiş.
+ * ERP entegrasyonu ayarları tek ekranda: bağlantı, birimler ve senkronizasyon, geçmiş.
  *
  * Ayrı sekmelerdeyken kullanıcı bağlantıyı kurup sonucunu görmek için sekme değiştirmek
- * zorundaydı. Çekim ve sıklık ayarı buraya değil, ERP Ürünleri ekranındaki çekim
- * diyaloğuna taşındı: ikisi de aynı işin parçası ve aksiyonun yanında duruyor.
+ * zorundaydı. Birim ve sıklık ayarları ERP Ürünleri ekranındaki senkronizasyon
+ * diyaloğunda da duruyor; ikisi de sunucudaki aynı kaydı yazar.
  */
 export function ERPIntegrationPanel({ onDirtyChange }: ERPIntegrationPanelProps) {
   return (
     <div className="space-y-6">
       <Section title="Bağlantı">
         <ERPConnectionForm onDirtyChange={onDirtyChange} />
+      </Section>
+
+      <Separator />
+
+      <Section title="Birimler ve Senkronizasyon">
+        <ErpSyncSettingsSection />
       </Section>
 
       <Separator />
