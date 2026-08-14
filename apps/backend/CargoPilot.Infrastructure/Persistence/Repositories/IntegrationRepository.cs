@@ -55,15 +55,19 @@ internal sealed class IntegrationRepository : IIntegrationRepository
         return affected > 0;
     }
 
+    // Cagiranlar ilk kaydi "sirketin entegrasyonu" olarak kullaniyor; siralamasiz liste
+    // bunu veritabaninin dondurme sirasina birakirdi.
     public async Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => await _dbContext.Integrations
             .AsNoTracking()
             .Where(i => i.CompanyId == companyId)
+            .OrderBy(i => i.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Integration>> ListTrackedByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => await _dbContext.Integrations
             .Where(i => i.CompanyId == companyId)
+            .OrderBy(i => i.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Integration>> ListDueForScheduledSyncAsync(
@@ -75,6 +79,14 @@ internal sealed class IntegrationRepository : IIntegrationRepository
 
     public Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
         => _dbContext.Integrations.AnyAsync(i => i.CompanyId == companyId, cancellationToken);
+
+    public Task<Integration?> GetLatestDeletedByCompanyAsync(
+        Guid companyId, CancellationToken cancellationToken = default)
+        => _dbContext.Integrations
+            .IgnoreQueryFilters()
+            .Where(i => i.CompanyId == companyId && i.IsDeleted)
+            .OrderByDescending(i => i.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
 
     public async Task<PagedResult<SyncLog>> ListSyncLogsAsync(
         Guid integrationId, int page, int pageSize, CancellationToken cancellationToken = default)

@@ -24,6 +24,11 @@ public interface IIntegrationRepository
     /// </summary>
     Task<IReadOnlyList<Integration>> ListDueForScheduledSyncAsync(DateTime utcNow, CancellationToken cancellationToken = default);
     Task<bool> ExistsByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Sirketin kaldirilmis entegrasyonlarindan en yenisi; baglanti yeniden kurulurken
+    /// canlandirilir. Izlenen kayit doner, kaydetmede kalicilasir.
+    /// </summary>
+    Task<Integration?> GetLatestDeletedByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Integration>> ListByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
     /// <summary>Degistirilecek kayitlar icin izlenen (tracked) liste; kaydetmede kalicilasir.</summary>
     Task<IReadOnlyList<Integration>> ListTrackedByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);

@@ -56,17 +56,7 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
 
             _repository.Add(newSettings);
 
-            var integrationExists = await _integrationRepository.ExistsByCompanyAsync(companyId.Value, cancellationToken);
-            if (!integrationExists)
-            {
-                _integrationRepository.Add(new Integration(
-                    Guid.NewGuid(),
-                    companyId.Value,
-                    systemName: request.ProviderType.ToString(),
-                    apiEndpoint: request.ServerAddress,
-                    mappingTable: null,
-                    syncInterval: null));
-            }
+            await EnsureIntegrationAsync(companyId.Value, request, cancellationToken);
 
             await _repository.SaveChangesAsync(cancellationToken);
 
@@ -95,5 +85,34 @@ internal sealed class UpsertErpSettingsCommandHandler : IRequestHandler<UpsertEr
         await _repository.SaveChangesAsync(cancellationToken);
 
         return Result<ErpSettingsResponse>.Success(ErpSettingsResponse.FromEntity(existing));
+    }
+
+    /// <summary>
+    /// Sirkete tek bir entegrasyon kaydi birakir. Baglanti daha once kaldirilmissa eski
+    /// kayit canlandirilir; her kurulumda yenisi acilsaydi ayni ERP urunu her entegrasyon
+    /// icin bir taslak daha uretir ve bekleyenler listesi kopyalarla dolardi.
+    /// </summary>
+    private async Task EnsureIntegrationAsync(
+        Guid companyId, UpsertErpSettingsCommand request, CancellationToken cancellationToken)
+    {
+        if (await _integrationRepository.ExistsByCompanyAsync(companyId, cancellationToken))
+            return;
+
+        var systemName = request.ProviderType.ToString();
+
+        var removed = await _integrationRepository.GetLatestDeletedByCompanyAsync(companyId, cancellationToken);
+        if (removed is not null)
+        {
+            removed.Reactivate(systemName, request.ServerAddress);
+            return;
+        }
+
+        _integrationRepository.Add(new Integration(
+            Guid.NewGuid(),
+            companyId,
+            systemName: systemName,
+            apiEndpoint: request.ServerAddress,
+            mappingTable: null,
+            syncInterval: null));
     }
 }

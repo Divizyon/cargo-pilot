@@ -44,6 +44,22 @@ public sealed class Integration : BaseEntity {
         SyncInterval = syncInterval;
     }
 
+    /// <summary>
+    /// Kaldirilmis baglanti yeniden kurulurken ayni kayit canlandirilir. Yerine yeni kayit
+    /// acilsaydi eski taslaklar olu bir entegrasyonda kalir ve ayni urun her baglanista
+    /// listede bir kez daha gorunurdu; taslaklarin tekilligi (IntegrationId, ErpId) uzerinde.
+    /// Zamanlama sifirlanir: kullanici acisindan bu yeni bir kurulum, eski otomatik
+    /// senkronizasyon tercihi habersiz devam etmemeli.
+    /// </summary>
+    public void Reactivate(string systemName, string apiEndpoint) {
+        Restore();
+        Update(systemName, apiEndpoint, MappingTable, SyncInterval);
+        SyncFrequency = null;
+        NextScheduledSyncAt = null;
+        SyncStatus = ErpSyncStatus.Idle;
+        SyncStartedAtUtc = null;
+    }
+
     public void RecordSync(DateTime syncDate) => LastSyncDate = syncDate;
 
     public void UpdateSyncSettings(SyncFrequency? frequency, DateTime? nextScheduledSyncAt) {
