@@ -48,6 +48,19 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
         return base.SaveChanges();
     }
 
+    /// <summary>
+    /// Veritabanindan okunan her tarih UTC olarak isaretlenir.
+    /// SQL Server datetime2 bolge bilgisi tasimaz; EF degeri Kind=Unspecified olarak
+    /// dondurdugu icin JSON'a sonu 'Z' olmadan yaziliyordu. Istemci bunu yerel saat
+    /// sanip UTC degerini oldugu gibi basiyor, saat UTC farki kadar geride gorunuyordu.
+    /// Yazma yonu degistirilmez: tum tarihler zaten DateTime.UtcNow'dan uretiliyor,
+    /// ToUniversalTime cagirmak Unspecified degeri ikinci kez kaydirirdi.
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
         modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         modelBuilder.ApplyConfiguration(new AppUserConfiguration());
