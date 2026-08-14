@@ -43,7 +43,10 @@ export async function getAccessToken(
   if (cached) return cached;
 
   const response = await request.post('/api/v1/auth/login', { data: { email, password } });
-  expect(response.ok(), 'Giriş isteği başarısız').toBeTruthy();
+  expect(
+    response.ok(),
+    `Giriş isteği başarısız (HTTP ${response.status()}): ${(await response.text()).slice(0, 200)}`,
+  ).toBeTruthy();
 
   const body = (await response.json()) as LoginApiResponse;
   const token = body.data?.accessToken;

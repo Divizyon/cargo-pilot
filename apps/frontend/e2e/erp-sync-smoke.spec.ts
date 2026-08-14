@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getAccessToken, loginAsAdmin } from './helpers/auth';
-import { deleteErpConnection, saveErpConnection, syncButton, toast } from './helpers/erp';
+import { deleteErpConnection, runSyncNow, saveErpConnection, toast } from './helpers/erp';
 import { FAKE_ERP, FAKE_ERP_ROWS } from './helpers/testConfig';
 
 /**
@@ -24,7 +24,7 @@ test.describe('ERP çekim zinciri (smoke)', () => {
     });
 
     await page.goto('/erp');
-    await syncButton(page).click();
+    await runSyncNow(page);
 
     // Sahte kaynakta eksik ölçülü ve satışa kapalı satırlar da var; özet uyarı tonunda gelir.
     const summary = toast(page, 'warning');

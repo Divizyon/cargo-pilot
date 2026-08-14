@@ -5,7 +5,7 @@ interface ErpConnectionSummary {
 }
 
 /**
- * Çekim için gereken ama eksik kalan ayarlar. Buton sessizce disabled kalmaz;
+ * Senkronizasyon için gereken ama eksik kalan ayarlar. Buton sessizce disabled kalmaz;
  * kullanıcı eksiği diyalogda görür ve ayarlar ekranına yönlendirilir.
  */
 export function collectMissingSyncRequirements(

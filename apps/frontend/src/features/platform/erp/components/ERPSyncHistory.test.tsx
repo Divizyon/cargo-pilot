@@ -217,7 +217,7 @@ describe('ERPSyncHistory hata durumu', () => {
     expect(screen.queryByText('Henüz senkronizasyon geçmişi yok.')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'ERP Bağlantısı Kur' })).toHaveAttribute(
       'href',
-      '/settings?tab=erp-baglanti',
+      '/settings?tab=erp',
     );
   });
 

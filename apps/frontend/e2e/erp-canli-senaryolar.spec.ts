@@ -6,6 +6,7 @@ import {
   fetchIntegrationId,
   saveErpConnection,
   setSyncFrequency,
+  runSyncNow,
   syncButton,
   toast,
   triggerRunNow,
@@ -45,7 +46,7 @@ test.describe('ERP canlı senaryoları', () => {
     await withUnreachableConnection(page);
 
     await page.goto('/erp');
-    await syncButton(page).click();
+    await runSyncNow(page);
 
     const error = toast(page, 'error');
     await expect(error).toBeVisible({ timeout: 60_000 });
@@ -69,7 +70,7 @@ test.describe('ERP canlı senaryoları', () => {
     await withWorkingConnection(page);
 
     await page.goto('/erp');
-    await syncButton(page).click();
+    await runSyncNow(page);
     await expect(toast(page, 'warning')).toBeVisible({ timeout: 60_000 });
 
     await page
@@ -84,8 +85,8 @@ test.describe('ERP canlı senaryoları', () => {
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    // Aktarım tablosunda tek satır var; oradaki tek açılır liste ürün tipidir.
-    await expect(dialog.getByRole('combobox')).toHaveText('Koli');
+    // Satırda iki açılır liste var (Tip ve Yük Grubu); tip ilk sıradadır.
+    await expect(dialog.getByRole('combobox').first()).toHaveText('Koli');
   });
 
   // (4) Sunucuda FourHours kayıtlıysa senkronizasyon sekmesi Günlük göstermez.
@@ -96,9 +97,14 @@ test.describe('ERP canlı senaryoları', () => {
     const integrationId = await fetchIntegrationId(page.request, token);
     await setSyncFrequency(page.request, token, integrationId, SYNC_FREQUENCY.FourHours);
 
-    await page.goto('/settings?tab=erp-senkronizasyon');
-    await expect(page.getByRole('radio', { name: '4 saatte bir' })).toBeChecked();
-    await expect(page.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
+    // Sıklık ayarı Ayarlar'dan çekim diyaloğuna taşındı; aksiyonun yanında duruyor.
+    await page.goto('/erp');
+    await syncButton(page).click();
+
+    const syncDialog = page.getByRole('dialog');
+    await expect(syncDialog).toBeVisible();
+    await expect(syncDialog.getByRole('radio', { name: '4 saatte bir' })).toBeChecked();
+    await expect(syncDialog.getByRole('radio', { name: 'Günlük' })).not.toBeChecked();
   });
 
   // (5) Geçmiş sekmesinin rozeti: bağlantı yokken sessiz, hata varken sayılı.
@@ -109,11 +115,12 @@ test.describe('ERP canlı senaryoları', () => {
     await deleteErpConnection(page.request, token);
     await loginAsAdmin(page);
 
-    await page.goto('/settings?tab=erp-gecmis');
+    await page.goto('/settings?tab=erp');
     // Bağlantı yokken "kayıt yok" değil, bağlantı kurma yönlendirmesi gösterilir.
     await expect(page.getByText('Önce ERP bağlantısını kaydedin')).toBeVisible();
-    const historyTab = page.getByRole('button', { name: /Senkronizasyon Geçmişi/ });
-    await expect(historyTab.getByText(/^\d+$/)).toHaveCount(0);
+    // Üç sekme tek "ERP Entegrasyonu" sekmesinde birleşti; hata rozeti de oraya taşındı.
+    const erpTab = page.getByRole('button', { name: /ERP Entegrasyonu/ });
+    await expect(erpTab.getByText(/^\d+$/)).toHaveCount(0);
 
     // Başarısız bir çekim hata kaydı üretir; rozet bu sayıdan beslenir.
     await saveErpConnection(page, {
@@ -121,11 +128,11 @@ test.describe('ERP canlı senaryoları', () => {
       expectTestSuccess: false,
     });
     await page.goto('/erp');
-    await syncButton(page).click();
+    await runSyncNow(page);
     await expect(toast(page, 'error')).toBeVisible({ timeout: 60_000 });
 
-    await page.goto('/settings?tab=erp-gecmis');
-    await expect(historyTab.getByText(/^\d+$/)).toBeVisible();
+    await page.goto('/settings?tab=erp');
+    await expect(erpTab.getByText(/^\d+$/)).toBeVisible();
   });
 
   // (6) Şirket yöneticisi olmayan kullanıcı /erp adresine doğrudan girerse.
@@ -133,12 +140,14 @@ test.describe('ERP canlı senaryoları', () => {
     const user = await registerIndividualUser(page.request);
     await loginViaUi(page, user.email, user.password);
 
+    // Faz 1'de /erp rotasına rol koruması eklendi: yetkisiz kullanıcı sayfaya hiç
+    // ulaşmaz, sayfa içi kilitli görünüm yerine erişim reddi ekranına düşer.
     await page.goto('/erp');
-    await expect(page.getByText('ERP ürünleri yalnızca şirket yöneticilerine açık')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Erişim Reddedildi' })).toBeVisible();
     await expect(syncButton(page)).toHaveCount(0);
 
     // ERP ayar sekmesine URL ile gelinirse varsayılan sekmeye düşülür.
-    await page.goto('/settings?tab=erp-baglanti');
+    await page.goto('/settings?tab=erp');
     await expect(page.getByRole('heading', { name: 'Bireysel Hesap' })).toBeVisible();
   });
 });

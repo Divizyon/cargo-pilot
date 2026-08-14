@@ -129,16 +129,60 @@ describe('ERPConnectionForm alan rehberliği', () => {
     );
   });
 
-  it('ağ ön koşullarını kurulum ekranında listeler', async () => {
+  it('bağlantı yokken kurulum yardımını kart olarak gösterir', async () => {
     mockEmptyState();
 
     renderForm(<ERPConnectionForm />);
 
-    // Ön koşullar yalnızca ADR dokümanındaydı; sağlanmadığında test "sunucuya
-    // ulaşılamıyor" diyor ve kullanıcı nedeni ekranda göremiyordu.
-    expect(await screen.findByText('Ağ ön koşulları')).toBeInTheDocument();
+    // İlk kurulumda kullanıcı ne yapacağını bilmiyor; yardım düğme arkasında
+    // dururken bulunması kullanıcıya kalıyordu.
+    expect(await screen.findByText('Henüz bir ERP bağlantınız yok')).toBeInTheDocument();
     expect(screen.getByText(/TCP 1433 açık olmalı/)).toBeInTheDocument();
     expect(screen.getByText(/allowlist/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /kurulum yardımı/i })).not.toBeInTheDocument();
+  });
+
+  it('bağlantı varken kurulum yardımı düğmenin arkasına çekilir', async () => {
+    mockSavedSettings();
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    expect(screen.queryByText('Henüz bir ERP bağlantınız yok')).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /kurulum yardımı/i }));
+
+    expect(await screen.findByText('Ağ ön koşulları')).toBeInTheDocument();
+  });
+
+  it('bağlantı yokken test ve kaldırma aksiyonları gösterilmez', async () => {
+    mockEmptyState();
+
+    renderForm(<ERPConnectionForm />);
+
+    // Kurulu baglanti olmadan ikisi de anlamsiz; ekranda durunca yaniltiyordu.
+    expect(await screen.findByLabelText('Veritabanı Adı')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Test Et' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kaldır' })).not.toBeInTheDocument();
+  });
+
+  it('form değişmeden Bağlan çubuğu görünmez; zorunlu alan eksikken pasiftir', async () => {
+    mockEmptyState();
+    const user = userEvent.setup();
+
+    renderForm(<ERPConnectionForm />);
+
+    expect(screen.queryByRole('button', { name: 'Bağlan' })).not.toBeInTheDocument();
+
+    await user.type(await screen.findByLabelText('Veritabanı Adı'), 'NETSIS2024');
+
+    // Cubuk cikti ama sunucu adresi, kullanici ve sifre hala bos.
+    expect(screen.getByRole('button', { name: 'Bağlan' })).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Sunucu Adresi'), '10.0.0.5');
+    await user.type(screen.getByLabelText('Kullanıcı Adı'), 'erp_okuyucu');
+    await user.type(screen.getByLabelText('Şifre'), 'gizli');
+
+    expect(screen.getByRole('button', { name: 'Bağlan' })).toBeEnabled();
   });
 
   it('sunucu adresi alanında named instance ve port örneği gösterir', async () => {
@@ -210,7 +254,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı Test Et' }));
+    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
 
     expect(await screen.findByText('Bağlantı başarılı.')).toBeInTheDocument();
     const [, body] = mocks.post.mock.calls[0];
@@ -224,7 +268,7 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Bağlantıyı Test Et' }));
+    await user.click(await screen.findByRole('button', { name: 'Test Et' }));
     expect(await screen.findByText('Bağlantı başarılı.')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Sunucu Adresi'), '0');
@@ -240,7 +284,10 @@ describe('ERPConnectionForm bağlantı durumu ve test akışı', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: 'Kaydet' }));
+    // Cubuk yalnizca degisiklik yapilinca cikar. Sunucu adresi degistirilseydi
+    // once 'veri kaynagi degisiyor' teyidi cikardi; burada test edilen o degil.
+    await user.type(await screen.findByLabelText('Kullanıcı Adı'), '2');
+    await user.click(screen.getByRole('button', { name: 'Bağlan' }));
 
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('Bağlantı testi başarısız');
     expect(mocks.put).not.toHaveBeenCalled();
@@ -265,7 +312,7 @@ describe('ERPConnectionForm riskli değişiklik korumaları', () => {
     renderForm(<ERPConnectionForm />);
 
     await user.type(await screen.findByLabelText('Sunucu Adresi'), '9');
-    await user.click(screen.getByRole('button', { name: 'Kaydet' }));
+    await user.click(screen.getByRole('button', { name: 'Bağlan' }));
 
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('Veri kaynağı değişiyor');
     expect(mocks.post).not.toHaveBeenCalled();
@@ -285,7 +332,7 @@ describe('ERPConnectionForm riskli değişiklik korumaları', () => {
     renderForm(<ERPConnectionForm />);
 
     await user.type(await screen.findByLabelText('Kullanıcı Adı'), '2');
-    await user.click(screen.getByRole('button', { name: 'Kaydet' }));
+    await user.click(screen.getByRole('button', { name: 'Bağlan' }));
 
     expect(mocks.put).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('Veri kaynağı değişiyor')).not.toBeInTheDocument();
@@ -298,7 +345,7 @@ describe('ERPConnectionForm riskli değişiklik korumaları', () => {
 
     renderForm(<ERPConnectionForm />);
 
-    await user.click(await screen.findByRole('button', { name: /Bağlantıyı kaldır/ }));
+    await user.click(await screen.findByRole('button', { name: 'Kaldır' }));
 
     expect(await screen.findByRole('alertdialog')).toHaveTextContent('Bağlantı kaldırılsın mı?');
     expect(mocks.delete).not.toHaveBeenCalled();

@@ -41,18 +41,34 @@ export async function saveErpConnection(
   page: Page,
   { serverAddress, expectTestSuccess }: SaveErpConnectionOptions,
 ): Promise<void> {
-  await page.goto('/settings?tab=erp-baglanti');
-  await expect(page.getByLabel('Veritabanı Adı')).toBeVisible();
+  await page.goto('/settings?tab=erp');
+  // exact: true zorunlu — her alanın yanında "<alan> hakkında bilgi" adlı ipucu
+  // düğmesi var ve varsayılan alt dize eşleşmesi ikisini birden buluyor.
+  await expect(page.getByLabel('Veritabanı Adı', { exact: true })).toBeVisible();
 
-  await page.getByLabel('ERP Sistemi').click();
+  await page.getByLabel('ERP Sistemi', { exact: true }).click();
   await page.getByRole('option', { name: 'Netsis' }).click();
-  await page.getByLabel('Veritabanı Adı').fill(FAKE_ERP.database);
-  await page.getByLabel('Kullanıcı Adı').fill(FAKE_ERP.username);
-  // Şifre alanı saran div içinde olduğu için etiketle bulunamıyor; autocomplete sabit.
-  await page.locator('input[autocomplete="current-password"]').fill(FAKE_ERP.password);
-  await page.getByLabel('Sunucu Adresi').fill(serverAddress);
+  await page.getByLabel('Veritabanı Adı', { exact: true }).fill(FAKE_ERP.database);
+  await page.getByLabel('Kullanıcı Adı', { exact: true }).fill(FAKE_ERP.username);
+  await page.getByLabel('Şifre', { exact: true }).fill(FAKE_ERP.password);
+  await page.getByLabel('Sunucu Adresi', { exact: true }).fill(serverAddress);
 
-  await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  // Sahte Netsis self-signed sertifika kullanıyor. Sertifika doğrulaması Faz 1'de
+  // varsayılan olarak açıldığı için, kurum içi sertifikalı sunucuya bağlanan gerçek
+  // müşteri gibi bu anahtar açılmadan test bağlantısı başarısız oluyor.
+  const skipCertificateCheck = page.getByRole('switch', {
+    name: 'Sertifika doğrulamasını atla',
+    exact: true,
+  });
+  if ((await skipCertificateCheck.getAttribute('aria-checked')) === 'false') {
+    await skipCertificateCheck.click();
+  }
+
+  // Kaydet düğmesi formdan kaldırıldı; değişiklik yapılınca alttan çıkan çubukta
+  // "Bağlan" belirir ve zorunlu alanlar dolana kadar pasif kalır.
+  const connectButton = page.getByRole('button', { name: 'Bağlan', exact: true });
+  await expect(connectButton).toBeEnabled();
+  await connectButton.click();
 
   // Kayıtlı bağlantının kaynağı değişiyorsa önce teyit istenir.
   await clickIfVisible(page.getByRole('button', { name: 'Üzerine yaz' }), 3_000);
@@ -113,9 +129,20 @@ export async function triggerRunNow(
   return response.status();
 }
 
-/** ERP Ürünleri ekranındaki elle çekim butonu. */
+/** ERP Ürünleri ekranındaki senkronizasyon butonu. */
 export function syncButton(page: Page): Locator {
-  return page.getByRole('button', { name: "ERP'den Ürün Çek" }).first();
+  return page.getByRole('button', { name: 'ERP ile Senkronize Et' }).first();
+}
+
+/**
+ * Elle senkronizasyon iki adımlı: buton diyaloğu açar, çalışma oradaki düğmeyle
+ * başlar. Sıklık ayarı da aynı diyalogda; ikisi de aynı işin parçası.
+ */
+export async function runSyncNow(page: Page): Promise<void> {
+  await syncButton(page).click();
+  const dialog = page.getByRole(`dialog`);
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole(`button`, { name: /Şimdi senkronize et/ }).click();
 }
 
 /** Sonner bildirimi; tür (success/warning/error) veri özniteliğinden okunur. */

@@ -1,22 +1,21 @@
 /**
  * ERP akışının tek sözlüğü. Zincir her yüzeyde aynı üç terimle anlatılır:
- * "ERP'den Ürün Çek" → "Bekleyen Ürünler" → "Ürünlere Aktar".
- * Yeni eşanlamlı ("sync", "senkronize et", "içe aktar") arayüze girmez.
+ * "ERP ile Senkronize Et" → "Bekleyen Ürünler" → "Ürünlere Aktar".
+ * Yeni eşanlamlı ("sync", "çek", "içe aktar") arayüze girmez.
  */
 export const ERP_TERM = {
-  sync: "ERP'den Ürün Çek",
-  syncRunning: 'Ürünler çekiliyor…',
+  sync: 'ERP ile Senkronize Et',
+  syncRunning: 'Senkronize ediliyor…',
   pending: 'Bekleyen Ürünler',
   approve: 'Ürünlere Aktar',
   clearSelection: 'Seçimi Temizle',
   connect: 'ERP Bağlantısı Kur',
-  syncSettings: 'Senkronizasyon Ayarları',
+  settings: 'ERP Ayarları',
 } as const;
 
-/** ERP yüzeylerinin ayarlar sekmelerine köprüsü; rota dizesi tek yerde tutulur. */
+/** ERP ayar ekranına köprü; üç sekme tek sekmede birleştiği için tek rota kaldı. */
 export const ERP_SETTINGS_ROUTE = {
-  connection: '/settings?tab=erp-baglanti',
-  sync: '/settings?tab=erp-senkronizasyon',
+  connection: '/settings?tab=erp',
 } as const;
 
 /** ERP kaynağında karşılığı olmayan alan uydurma varsayılanla değil bu işaretle gösterilir. */

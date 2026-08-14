@@ -29,6 +29,18 @@ vi.mock('@/lib/api/useERPIntegration', async (importOriginal) => {
     useERPConnection: () => ({ data: mocks.connection() }),
     useERPSettings: () => ({ data: mocks.erpSettings() }),
     useTriggerERPSync: () => ({ mutate: mocks.triggerSync, isPending: false }),
+    // Cekim diyalogu siklik ayarini okur; gercek istek atilmasin.
+    useERPSyncSettings: () => ({
+      data: {
+        syncInterval: 'Daily',
+        syncStatus: 'Idle',
+        nextScheduledSyncAt: null,
+        lastSyncedAt: null,
+      },
+      isLoading: false,
+      isError: false,
+    }),
+    useSaveERPSyncSettings: () => ({ mutate: vi.fn(), isPending: false }),
   };
 });
 
@@ -372,14 +384,20 @@ describe('ERPItemsTable', () => {
     expect(within(dialog).getByTestId('dialog-row-names')).toHaveTextContent('Palet Kasa 60x40');
   });
 
-  it('seçim yapılmadan sync tetiklenir, aktarım diyaloğu açılmaz', async () => {
+  it('senkronizasyon butonu önce senkronizasyon diyaloğunu açar, aktarım diyaloğunu değil', async () => {
     const user = userEvent.setup();
     renderTable();
 
-    await user.click(screen.getByRole('button', { name: /ERP'den Ürün Çek/ }));
+    await user.click(screen.getByRole('button', { name: /ERP ile Senkronize Et/ }));
+
+    // Senkronizasyon ve sıklık ayarı aynı diyalogda; buton doğrudan başlatmaz.
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(mocks.triggerSync).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('bulk-import-dialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /şimdi senkronize et/i }));
 
     expect(mocks.triggerSync).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId('bulk-import-dialog')).not.toBeInTheDocument();
   });
 
   it('yükleme sırasında satır yerine iskelet gösterir', () => {
@@ -417,7 +435,7 @@ describe('ERPItemsTable', () => {
     expect(screen.getByText('Henüz ERP bağlantınız yok')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'ERP Bağlantısı Kur' })).toHaveAttribute(
       'href',
-      '/settings?tab=erp-baglanti',
+      '/settings?tab=erp',
     );
   });
 
@@ -428,10 +446,11 @@ describe('ERPItemsTable', () => {
     renderTable();
 
     expect(screen.getByText('Bekleyen ERP ürünü yok.')).toBeInTheDocument();
-    const syncButtons = screen.getAllByRole('button', { name: /ERP'den Ürün Çek/ });
+    const syncButtons = screen.getAllByRole('button', { name: /ERP ile Senkronize Et/ });
     expect(syncButtons).toHaveLength(2);
 
     await user.click(syncButtons[1]);
+    await user.click(await screen.findByRole('button', { name: /şimdi senkronize et/i }));
     expect(mocks.triggerSync).toHaveBeenCalledTimes(1);
   });
 
@@ -443,12 +462,12 @@ describe('ERPItemsTable', () => {
 
     renderTable();
 
-    const syncButton = screen.getByRole('button', { name: /ERP'den Ürün Çek/ });
+    const syncButton = screen.getByRole('button', { name: /ERP ile Senkronize Et/ });
     expect(syncButton).toBeEnabled();
 
     await user.click(syncButton);
 
-    expect(await screen.findByText('Çekim için ERP ayarları eksik')).toBeInTheDocument();
+    expect(await screen.findByText('Senkronizasyon için ERP ayarları eksik')).toBeInTheDocument();
     expect(mocks.triggerSync).not.toHaveBeenCalled();
   });
 

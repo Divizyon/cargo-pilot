@@ -11,8 +11,8 @@ import {
   Eye,
   EyeOff,
   ShieldAlert,
-  ClipboardList,
   Trash2,
+  PlugZap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,7 +29,6 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -43,9 +42,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { QueryErrorState } from '@/components/shared/QueryErrorState';
+import { FieldLabelRow } from '@/features/platform/erp/components/FieldHint';
+import {
+  ErpSetupHelpCard,
+  ErpSetupHelpPopover,
+} from '@/features/platform/erp/components/ErpSetupHelp';
 import {
   ERP_DIMENSION_UNITS,
   ERP_WEIGHT_UNITS,
@@ -62,10 +65,7 @@ import {
 } from '@/lib/api/useERPIntegration';
 import type { ErpSettings } from '@/lib/types/erp';
 import { getApiErrorMessage } from '@/lib/api/apiError';
-import {
-  ERP_NETWORK_PRECONDITIONS,
-  getErpFieldGuidance,
-} from '@/features/platform/erp/utils/erpFieldGuidance';
+import { getErpFieldGuidance } from '@/features/platform/erp/utils/erpFieldGuidance';
 
 type TestResult = { success: boolean; message?: string | null; warning?: string | null } | null;
 
@@ -198,6 +198,42 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
   );
 
   const { isDirty } = form.formState;
+
+  // Baglan yalnizca zorunlu alanlarin tamami dolduysa etkinlesir. Sifre kayitliysa
+  // tekrar istenmez; kullanici yalnizca degistirmek isterse doldurur.
+  const hasRequiredFields =
+    Boolean(watchedValues.companyCode?.trim()) &&
+    Boolean(watchedValues.username?.trim()) &&
+    Boolean(watchedValues.serverAddress?.trim()) &&
+    (Boolean(existing?.hasPassword) || Boolean(watchedValues.password?.trim()));
+
+  /** Iptal formu kayitli hale dondurur; kayit yoksa bos forma. */
+  function handleCancelEdits() {
+    setTestResult(null);
+    form.reset(
+      existing
+        ? {
+            systemType: PROVIDER_TYPE_FROM_INT[existing.providerType] ?? 'Netsis',
+            companyCode: existing.companyCode,
+            username: existing.username,
+            password: '',
+            serverAddress: existing.serverAddress,
+            trustServerCertificate: existing.trustServerCertificate,
+            dimensionUnit: existing.dimensionUnit,
+            weightUnit: existing.weightUnit,
+          }
+        : {
+            systemType: 'Netsis',
+            companyCode: '',
+            username: '',
+            password: '',
+            serverAddress: '',
+            trustServerCertificate: false,
+            dimensionUnit: 0,
+            weightUnit: 0,
+          },
+    );
+  }
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
@@ -308,136 +344,184 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        {existing && (
-          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 flex items-center gap-3">
-            <status.icon className={cn('h-4 w-4 shrink-0', status.iconClass)} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {connection?.systemName ?? PROVIDER_TYPE_FROM_INT[existing.providerType]}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">{existing.serverAddress}</p>
-              <p className="text-xs text-muted-foreground">{status.detail}</p>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {existing ? (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <status.icon className={cn('h-4 w-4 shrink-0', status.iconClass)} />
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                <span className="text-sm font-medium text-foreground">
+                  {connection?.systemName ?? PROVIDER_TYPE_FROM_INT[existing.providerType]}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {existing.serverAddress}
+                </span>
+                {/* Son test bilgisi metin olarak kalir; title icine gomulseydi
+                    ekran okuyucuya ve dokunmatik cihaza ulasmazdi. */}
+                <span className="text-xs text-muted-foreground">{status.detail}</span>
+              </div>
+              <span
+                className={cn(
+                  'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                  status.badgeClass,
+                )}
+              >
+                {status.label}
+              </span>
             </div>
-            <span
-              className={cn(
-                'text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0',
-                status.badgeClass,
-              )}
-            >
-              {status.label}
-            </span>
-          </div>
-        )}
-        <FormField
-          control={form.control}
-          name="systemType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>ERP Sistemi</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sistem seçin" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Logo">Logo</SelectItem>
-                  <SelectItem value="Netsis">Netsis</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Seçtiğiniz sisteme göre aşağıdaki alanların örnekleri ve açıklamaları değişir.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        <div className="rounded-lg border border-dashed border-border px-4 py-3">
-          <p className="text-sm font-medium text-foreground">Bu bilgileri nereden bulacaksınız?</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Aşağıdaki alanların tamamı ERP sunucunuzu yöneten IT ekibinde bulunur. Listeyi
-            kopyalayıp IT yöneticinize iletebilirsiniz.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={handleCopyChecklist}
-          >
-            <ClipboardList className="mr-2 h-4 w-4" />
-            IT'nize gönderilecek bilgi listesini kopyala
-          </Button>
-        </div>
+            {/* Test ve kaldirma yalnizca kurulu baglantida anlamli; kurulum sirasinda
+                ekranda durup kullaniciyi yaniltiyordu. */}
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs"
+                disabled={isTesting}
+                onClick={handleTestConnection}
+              >
+                {isTesting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <PlugZap className="h-3.5 w-3.5" />
+                )}
+                Test Et
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Kaldır
+              </Button>
+              <ErpSetupHelpPopover onCopyChecklist={handleCopyChecklist} />
+            </div>
+          </div>
+        ) : (
+          <ErpSetupHelpCard onCopyChecklist={handleCopyChecklist} />
+        )}
 
         {/*
-          Ağ ön koşulları yalnızca ADR dokümanındaydı. Sağlanmadığında bağlantı testi
-          "sunucuya ulaşılamıyor" diyor ve kullanıcı nedenini ekranda göremiyordu.
+          Alan aciklamalari etiketin yanindaki ipucuna tasindi. Paragraf olarak dururken
+          form ekrana sigmiyor, alanlar arasindaki olu alan okumayi zorlastiriyordu.
         */}
-        <div className="rounded-lg border border-dashed border-border px-4 py-3">
-          <p className="text-sm font-medium text-foreground">Ağ ön koşulları</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Aşağıdakiler sağlanmadan bağlantı kurulamaz; testte &quot;sunucuya ulaşılamıyor&quot;
-            hatası alırsınız.
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
-            {ERP_NETWORK_PRECONDITIONS.map((precondition) => (
-              <li key={precondition}>{precondition}</li>
-            ))}
-          </ul>
-        </div>
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="systemType"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow
+                  hintLabel="ERP sistemi hakkında bilgi"
+                  hint="Seçtiğiniz sisteme göre alanların örnekleri ve açıklamaları değişir."
+                >
+                  <FormLabel>ERP Sistemi</FormLabel>
+                </FieldLabelRow>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sistem seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Netsis">Netsis</SelectItem>
+                    <SelectItem value="Logo">Logo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="companyCode"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Veritabanı Adı</FormLabel>
-              <FormControl>
-                <Input placeholder={guidance.databasePlaceholder} {...field} />
-              </FormControl>
-              <FormDescription>{guidance.databaseHelp}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="serverAddress"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow hintLabel="Sunucu adresi hakkında bilgi" hint={guidance.serverHelp}>
+                  <FormLabel>Sunucu Adresi</FormLabel>
+                </FieldLabelRow>
+                <FormControl>
+                  <Input placeholder={guidance.serverPlaceholder} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Kullanıcı Adı</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder={guidance.usernamePlaceholder}
-                  autoComplete="username"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>{guidance.usernameHelp}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="companyCode"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow
+                  hintLabel="Veritabanı adı hakkında bilgi"
+                  hint={guidance.databaseHelp}
+                >
+                  <FormLabel>Veritabanı Adı</FormLabel>
+                </FieldLabelRow>
+                <FormControl>
+                  <Input placeholder={guidance.databasePlaceholder} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Şifre</FormLabel>
-              <FormControl>
-                <div className="relative">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow
+                  hintLabel="Kullanıcı adı hakkında bilgi"
+                  hint={guidance.usernameHelp}
+                >
+                  <FormLabel>Kullanıcı Adı</FormLabel>
+                </FieldLabelRow>
+                <FormControl>
                   <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={existing ? '••••••••' : 'ERP şifrenizi girin'}
-                    autoComplete="current-password"
-                    className="pr-10"
+                    placeholder={guidance.usernamePlaceholder}
+                    autoComplete="username"
                     {...field}
                   />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow hintLabel="Şifre hakkında bilgi" hint={guidance.passwordHelp}>
+                  <FormLabel>Şifre</FormLabel>
+                </FieldLabelRow>
+                {/* FormControl yalnizca Input'u sarar; div'i sardiginda etiket
+                    input yerine div'e baglaniyor ve iliski kopuyordu. */}
+                <div className="relative">
+                  <FormControl>
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={
+                        existing?.hasPassword ? 'Kayıtlı şifre korunuyor' : 'ERP şifrenizi girin'
+                      }
+                      autoComplete="current-password"
+                      className="pr-10"
+                      {...field}
+                    />
+                  </FormControl>
                   <Button
                     type="button"
                     variant="ghost"
@@ -450,42 +534,42 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-              </FormControl>
-              {existing?.hasPassword && !field.value ? (
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />
-                  Kayıtlı şifre korunuyor — değiştirmek için yeni şifre girin.
-                </p>
-              ) : (
-                <FormDescription>{guidance.passwordHelp}</FormDescription>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="serverAddress"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sunucu Adresi</FormLabel>
-              <FormControl>
-                <Input placeholder={guidance.serverPlaceholder} {...field} />
-              </FormControl>
-              <FormDescription>{guidance.serverHelp}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="trustServerCertificate"
+            render={({ field }) => (
+              <FormItem className="flex h-10 items-center justify-between gap-3 space-y-0 self-end rounded-md border border-border px-3">
+                <FieldLabelRow
+                  hintLabel="Sertifika doğrulaması hakkında bilgi"
+                  hint="Açıkken ERP sunucusunun TLS sertifikası doğrulanmaz. Kurum içi (self-signed) sertifikalı sunucular için gerekir ama bağlantı araya girme saldırılarına açık hale gelir. Sunucunun geçerli bir sertifikası varsa kapalı bırakın."
+                >
+                  <FormLabel className="cursor-pointer text-sm font-normal">
+                    Sertifika doğrulamasını atla
+                  </FormLabel>
+                </FieldLabelRow>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-        <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="dimensionUnit"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>ERP ölçü birimi</FormLabel>
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow
+                  hintLabel="Ölçü birimi hakkında bilgi"
+                  hint="ERP tarafındaki en / boy / yükseklik kolonlarının birimi. ERP bu bilgiyi taşımadığı için burada bildirilir; yanlış seçim ölçüleri sessizce 10 veya 100 kat kaydırır."
+                >
+                  <FormLabel>ERP ölçü birimi</FormLabel>
+                </FieldLabelRow>
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={String(field.value)}
@@ -503,10 +587,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription>
-                  ERP&apos;deki en / boy / yükseklik kolonlarının birimi. ERP bu bilgiyi taşımadığı
-                  için burada bildirilir; yanlış seçim ölçüleri sessizce 10 veya 100 kat kaydırır.
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -516,8 +596,13 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
             control={form.control}
             name="weightUnit"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>ERP ağırlık birimi</FormLabel>
+              <FormItem className="space-y-1.5">
+                <FieldLabelRow
+                  hintLabel="Ağırlık birimi hakkında bilgi"
+                  hint="ERP tarafındaki birim ağırlık kolonunun birimi."
+                >
+                  <FormLabel>ERP ağırlık birimi</FormLabel>
+                </FieldLabelRow>
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={String(field.value)}
@@ -535,41 +620,16 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription>ERP&apos;deki birim ağırlık kolonunun birimi.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="trustServerCertificate"
-          render={({ field }) => (
-            <FormItem className="flex items-start justify-between gap-4 rounded-lg border border-border px-4 py-3">
-              <div className="space-y-1">
-                {/*
-                  Eski etiket "Sunucu sertifikasını doğrulama" idi ve anahtarın açık olması
-                  doğrulamanın yapıldığı gibi okunabiliyordu; davranışın tersi.
-                */}
-                <FormLabel>Sertifika doğrulamasını atla</FormLabel>
-                <FormDescription>
-                  Açıkken ERP sunucusunun TLS sertifikası doğrulanmaz; kurum içi (self-signed)
-                  sertifikalı sunucular için gerekir ama bağlantı araya girme saldırılarına açık
-                  hale gelir. Sunucunun geçerli bir sertifikası varsa kapalı bırakın.
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
         {isTestResultFresh && testResult !== null && (
           <div
             className={cn(
-              'flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm',
+              'flex items-start gap-2.5 rounded-md border px-3 py-2 text-sm',
               testResult.success
                 ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300'
                 : 'border-destructive/40 bg-destructive/10 text-destructive',
@@ -590,55 +650,42 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
         )}
 
         {isTestResultFresh && testResult?.warning && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="flex items-start gap-2.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{testResult.warning}</span>
           </div>
         )}
 
-        <Separator />
-
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isTesting}
-            onClick={handleTestConnection}
-          >
-            {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Bağlantıyı Test Et
-          </Button>
-          <Button type="submit" disabled={isSaving || isTesting}>
-            {(isSaving || isTesting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Kaydet
-          </Button>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          Kaydetmeden önce bağlantı otomatik olarak test edilir.
-        </p>
-
-        {existing && (
-          <div className="rounded-lg border border-destructive/40 px-4 py-3">
-            <p className="text-sm font-medium text-foreground">Bağlantıyı kaldır</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Kimlik bilgileri silinir ve otomatik çekim durur. Senkronizasyon geçmişi korunur;
-              bağlantıyı sonradan yeniden kurabilirsiniz.
-            </p>
+        {/*
+          Kaydet dugmesi formun icinden kaldirildi. Degisiklik yapilir yapilmaz alttan
+          cikan cubuk, urun ekranlarindaki kaydetme deseninin aynisi; kullanici formun
+          sonuna kadar inmeden aksiyona ulasiyor.
+        */}
+        <div
+          className={cn(
+            'fixed bottom-6 left-1/2 z-40 -translate-x-1/2 transition-all duration-300 ease-out',
+            isDirty ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
+          )}
+        >
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
             <Button
               type="button"
-              variant="destructive"
-              size="sm"
-              className="mt-3"
-              disabled={isDeleting}
-              onClick={() => setShowDeleteConfirm(true)}
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={handleCancelEdits}
             >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Trash2 className="mr-2 h-4 w-4" />
-              Bağlantıyı kaldır
+              İptal
+            </Button>
+            <Button
+              type="submit"
+              className="gap-1.5"
+              disabled={!hasRequiredFields || isSaving || isTesting}
+            >
+              {(isSaving || isTesting) && <Loader2 className="h-4 w-4 animate-spin" />}
+              Bağlan
             </Button>
           </div>
-        )}
+        </div>
       </form>
 
       <AlertDialog
@@ -704,8 +751,8 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Bağlantı kaldırılsın mı?</AlertDialogTitle>
             <AlertDialogDescription>
-              ERP kimlik bilgileri silinecek ve otomatik çekim duracak. ERP&apos;den yeni ürün
-              çekilemeyecek; mevcut ürünler ve senkronizasyon geçmişi silinmez.
+              ERP kimlik bilgileri silinecek ve otomatik senkronizasyon duracak. ERP ile
+              senkronizasyon yapılamayacak; mevcut ürünler ve geçmiş silinmez.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -250,7 +250,7 @@ export function buildSyncToastMessage(summary: ErpSyncSummary): string {
   const prefix =
     summary.sourceTotal > 0
       ? `ERP'de ${summary.sourceTotal} satır bulundu`
-      : 'ERP ürün çekimi tamamlandı';
+      : 'ERP senkronizasyonu tamamlandı';
 
   let message = `${prefix} — ${parts.join(', ')}`;
   if (summary.missingFieldCount > 0) {
@@ -298,7 +298,7 @@ export function useTriggerERPSync() {
       toast.success(message, { position: 'bottom-right', duration: 6000 });
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "ERP'den ürün çekilemedi"), {
+      toast.error(getApiErrorMessage(error, 'ERP senkronizasyonu yapılamadı'), {
         position: 'bottom-right',
       });
     },
@@ -306,7 +306,7 @@ export function useTriggerERPSync() {
 }
 
 export interface ErpSyncSettings {
-  /** null = sunucuda sıklık kayıtlı değil; otomatik çekim çalışmaz. */
+  /** null = sunucuda sıklık kayıtlı değil; otomatik senkronizasyon çalışmaz. */
   syncInterval: ErpSyncInterval | null;
   syncStatus: ErpSyncStatus;
   nextScheduledSyncAt: string | null;
@@ -362,7 +362,7 @@ export function useSaveERPSyncSettings() {
     mutationFn: ({ integrationId, syncInterval }) =>
       axiosInstance
         .put(`${ERP_BASE}/${integrationId}/sync-settings`, {
-          // null = otomatik cekim kapali; backend SyncFrequency null iken
+          // null = otomatik senkronizasyon kapali; backend SyncFrequency null iken
           // zamanlayici bu entegrasyonu hic tetiklemez.
           syncFrequency: syncInterval === null ? null : SYNC_FREQUENCY_TO_INT[syncInterval],
         })
@@ -378,13 +378,15 @@ export function useSaveERPSyncSettings() {
     },
     onSuccess: (_data, { integrationId }) => {
       queryClient.invalidateQueries({ queryKey: syncSettingsQueryKey(integrationId) });
-      toast.success('Otomatik çekim ayarı kaydedildi', { position: 'bottom-right' });
+      toast.success('Otomatik senkronizasyon ayarı kaydedildi', {
+        position: 'bottom-right',
+      });
     },
     onError: (error, { integrationId }, context) => {
       if (context?.previous) {
         queryClient.setQueryData(syncSettingsQueryKey(integrationId), context.previous);
       }
-      toast.error(getApiErrorMessage(error, 'Otomatik çekim ayarı kaydedilemedi'), {
+      toast.error(getApiErrorMessage(error, 'Otomatik senkronizasyon ayarı kaydedilemedi'), {
         position: 'bottom-right',
       });
     },

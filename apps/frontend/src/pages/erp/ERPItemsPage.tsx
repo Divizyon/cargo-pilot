@@ -37,15 +37,15 @@ export function ERPItemsPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">ERP Ürünleri</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            ERP'den çektiğiniz ürünleri inceleyin ve Cargo Pilot ürünlerine aktarın.
+            ERP ile senkronize ettiğiniz ürünleri inceleyin ve Cargo Pilot ürünlerine aktarın.
           </p>
         </div>
         {canManageErp && (
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link to={ERP_SETTINGS_ROUTE.sync}>
+              <Link to={ERP_SETTINGS_ROUTE.connection}>
                 <Settings2 className="mr-1.5 h-3.5 w-3.5" />
-                {ERP_TERM.syncSettings}
+                {ERP_TERM.settings}
               </Link>
             </Button>
           </div>

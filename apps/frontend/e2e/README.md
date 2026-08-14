@@ -30,15 +30,15 @@ npm run test:e2e:ui       # etkileşimli koşucu
 
 ## Ortam değişkenleri
 
-| Değişken            | Varsayılan             | Açıklama                                        |
-| ------------------- | ---------------------- | ----------------------------------------------- |
-| `E2E_BASE_URL`      | `http://localhost:3001`| Frontend adresi                                 |
-| `E2E_ADMIN_EMAIL`   | `admin@cargopilot.com` | Seed edilen şirket yöneticisi                   |
-| `E2E_ADMIN_PASSWORD`| `Admin@CargoPilot1!`   | `Seed__DefaultAdminPassword` ile aynı olmalı     |
-| `E2E_ERP_SERVER`    | `erp-mssql,1433`       | Backend konteynerinden görülen ERP adresi        |
-| `E2E_ERP_DATABASE`  | `ERPTEST`              | Sahte ERP veritabanı adı                        |
-| `E2E_ERP_USER`      | `sa`                   | Sahte ERP kullanıcısı                           |
-| `E2E_ERP_PASSWORD`  | `ErpFake_Pass123!`     | `ERP_MSSQL_SA_PASSWORD` ile aynı olmalı          |
+| Değişken             | Varsayılan              | Açıklama                                     |
+| -------------------- | ----------------------- | -------------------------------------------- |
+| `E2E_BASE_URL`       | `http://localhost:3001` | Frontend adresi                              |
+| `E2E_ADMIN_EMAIL`    | `admin@cargopilot.com`  | Seed edilen şirket yöneticisi                |
+| `E2E_ADMIN_PASSWORD` | `Admin@CargoPilot1!`    | `Seed__DefaultAdminPassword` ile aynı olmalı |
+| `E2E_ERP_SERVER`     | `erp-mssql,1433`        | Backend konteynerinden görülen ERP adresi    |
+| `E2E_ERP_DATABASE`   | `ERPTEST`               | Sahte ERP veritabanı adı                     |
+| `E2E_ERP_USER`       | `sa`                    | Sahte ERP kullanıcısı                        |
+| `E2E_ERP_PASSWORD`   | `ErpFake_Pass123!`      | `ERP_MSSQL_SA_PASSWORD` ile aynı olmalı      |
 
 ## Kapsam
 

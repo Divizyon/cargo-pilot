@@ -25,7 +25,7 @@ export function ErpSyncRequirementsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Çekim için ERP ayarları eksik</DialogTitle>
+          <DialogTitle>Senkronizasyon için ERP ayarları eksik</DialogTitle>
           <DialogDescription>
             "{ERP_TERM.sync}" işlemi için aşağıdaki bilgiler gerekiyor. Ayarlar ekranında
             tamamladıktan sonra bu ekrana dönüp tekrar deneyin.

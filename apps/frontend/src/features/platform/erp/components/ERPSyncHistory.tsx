@@ -185,7 +185,7 @@ function SyncLogTable({ integrationId }: { integrationId: string }) {
       <EmptyState
         icon={History}
         title="Henüz senkronizasyon geçmişi yok."
-        description="ERP'den ürün çektiğinizde her çalışmanın satır kırılımı burada listelenir."
+        description="ERP ile senkronize ettiğinizde her çalışmanın satır kırılımı burada listelenir."
       />
     );
   }

@@ -70,6 +70,7 @@ import { ProductTypeCell } from '@/components/shared/ProductTypeCell';
 import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
 import { ErpSyncRequirementsDialog } from './ErpSyncRequirementsDialog';
+import { ErpSyncDialog } from '@/features/platform/erp/components/ErpSyncDialog';
 import { collectMissingSyncRequirements } from '@/features/data-management/imports/utils/erpSyncRequirements';
 import { ErpProviderMark } from '@/components/shared/ErpProviderMark';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -206,6 +207,7 @@ export function ERPItemsTable() {
   const [selectAllMode, setSelectAllMode] = useState(false);
   const [importMode, setImportMode] = useState<'import' | 'update'>('import');
   const [requirementsOpen, setRequirementsOpen] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -373,7 +375,12 @@ export function ERPItemsTable() {
       setRequirementsOpen(true);
       return;
     }
-    triggerSync({ integrationId });
+    // Çekim ve sıklık ayarı aynı diyalogda; kullanıcı zamanlama için Ayarlar'a gitmez.
+    setSyncDialogOpen(true);
+  }
+
+  function handleSyncNow() {
+    if (integrationId) triggerSync({ integrationId });
   }
 
   function handleOpenImport() {
@@ -878,6 +885,16 @@ export function ERPItemsTable() {
         onOpenChange={setRequirementsOpen}
         missing={missingSyncRequirements}
       />
+
+      {integrationId && (
+        <ErpSyncDialog
+          open={syncDialogOpen}
+          onOpenChange={setSyncDialogOpen}
+          integrationId={integrationId}
+          onSyncNow={handleSyncNow}
+          isSyncing={isSyncing}
+        />
+      )}
 
       {/* Transfer modal */}
       <BulkImportDialog

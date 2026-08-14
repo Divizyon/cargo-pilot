@@ -285,7 +285,7 @@ export const router = createBrowserRouter([
               },
             ],
           },
-          { path: '/integrations', element: <Navigate to="/settings?tab=erp-baglanti" replace /> },
+          { path: '/integrations', element: <Navigate to="/settings?tab=erp" replace /> },
           {
             path: '/notifications',
             element: (
