@@ -1,6 +1,6 @@
 # CargoPilot Backend Mimari Rehberi
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-15 · **Durum:** Aktif
 
 Bu doküman, backend projesinin katmanlı yapısını ve temel mimari kararlarını özetler. Amaç; ekip içinde tek bir referans nokta tanımlamak ve yeni geliştirmelerin aynı standartla yapılmasını sağlamaktır.
 
@@ -145,15 +145,19 @@ Not: Ortak API response envelope'u US-Story 8 kapsamında olgunlaştırılacakt�
 Her katman kendi `DependencyInjection.cs` dosyasını sunar; `Program.cs` yalnızca orkestrasyon yapar.
 
 ```csharp
+// Program.cs:23-28 (gerçek kod, 2026-08-15)
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
+
 builder.Services
     .AddApplication()
-    .AddInfrastructure(builder.Configuration, useInMemoryRepository: builder.Environment.IsDevelopment())
-    .AddPresentation();
+    .AddInfrastructure(builder.Configuration, useInMemoryRepository: useInMemory)
+    .AddPresentation(builder.Configuration, useInMemoryRepository: useInMemory);
 ```
 
 Kurallar:
 - `Program.cs` concrete tip veya EF Core referansı içermez.
-- Ortam bazlı kararlar (`IsDevelopment`) `Program.cs`'de alınır; Infrastructure, Hosting soyutlamasına bağımlı olmaz.
+- Ortam bazlı kararlar `Program.cs`'de alınır; Infrastructure, Hosting soyutlamasına bağımlı olmaz.
+- ⚠️ *2026-08-15 düzeltmesi:* örnek kod önce `useInMemoryRepository: builder.Environment.IsDevelopment()` yazıyordu. Gerçek kod bayrağı **`UseInMemoryDatabase` konfigürasyon anahtarından** okur ve varsayılanı **`false`**'tur (`Infrastructure/DependencyInjection.cs:28`). Ayrıca §3.6'da anlatıldığı gibi bu bayrak fiilen çalışmaz.
 - Middleware zinciri `UsePresentation()` üzerinden kurulur.
 
 ### 3.6 ~~Development'ta Veritabansız Çalışma~~ (çalışmıyor — kullanmayın)
