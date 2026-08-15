@@ -2,11 +2,17 @@ using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Features.DraftItems.GetDraftItems;
 
+/// <summary>
+/// <paramref name="AvailableCategories"/> tip filtresinin secenekleridir: kategori
+/// filtresinden bagimsiz, durum kumesinin tamamindan cikarilir. Acik sayfadan
+/// turetilseydi filtre uygulandikca secenekler kaybolurdu.
+/// </summary>
 public sealed record GetDraftItemsResult(
     IReadOnlyList<DraftItemDto> Items,
     int TotalCount,
     int Page,
-    int PageSize);
+    int PageSize,
+    IReadOnlyList<ItemCategory> AvailableCategories);
 
 public sealed record DraftItemDto(
     Guid Id,
@@ -27,9 +33,10 @@ public sealed record DraftItemDto(
     int MaxStackCount,
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
-    string? ImageUrl,
     string? StackGroup,
     string? SpecialNotes,
     int[] ConstraintIds,
+    string[] IncompatibleGroups,
     DateTime CreatedAtUtc,
-    string? IntegrationSystemName);
+    string? IntegrationSystemName,
+    IReadOnlyList<string> MissingFields);

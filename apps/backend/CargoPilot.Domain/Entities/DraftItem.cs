@@ -27,9 +27,14 @@ public sealed class DraftItem : BaseEntity
     public int MaxStackCount { get; private set; }
     public decimal MaxWeightOnTop { get; private set; }
     public AllowedRotations AllowedRotations { get; private set; }
-    public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
+
+    /// <summary>Kullanicinin sectigi yuk gruplari; onayda Item'a birebir tasinir.</summary>
+    public string IncompatibleGroupsJson { get; private set; } = "[]";
     public string? SpecialNotes { get; private set; }
+
+    /// <summary>ERP kaynaginda eksik/sifir gelen alan adlarinin JSON listesi.</summary>
+    public string MissingFieldsJson { get; private set; } = "[]";
 
 #pragma warning disable S1144
     public Company? Company { get; private set; }
@@ -58,7 +63,10 @@ public sealed class DraftItem : BaseEntity
         decimal maxWeightOnTop,
         AllowedRotations allowedRotations,
         string? barcode = null,
-        decimal? diameter = null) : base(id)
+        decimal? diameter = null,
+        IEnumerable<string>? missingFields = null,
+        string? stackGroup = null,
+        string[]? incompatibleGroups = null) : base(id)
     {
         CompanyId = companyId;
         IntegrationId = integrationId;
@@ -80,14 +88,36 @@ public sealed class DraftItem : BaseEntity
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
+        StackGroup = stackGroup;
+        IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
+        MissingFieldsJson = SerializeMissingFields(missingFields);
     }
 
-    public void UpdateFromErp(string sku, string name, string erpRawDataJson)
-    {
-        SKU = sku;
-        Name = name;
-        ErpRawDataJson = erpRawDataJson;
-    }
+    /// <summary>ERP tazelemesinde taslaga uygulanacak alanlar.</summary>
+    public sealed record ErpRefresh(
+        string Sku,
+        string Name,
+        string ErpRawDataJson,
+        decimal Width,
+        decimal Height,
+        decimal Length,
+        decimal Weight,
+        string? Barcode,
+        string? StackGroup,
+        string[]? IncompatibleGroups,
+        IEnumerable<string>? MissingFields);
+
+    public void UpdateFromErp(ErpRefresh refresh) => ApplyErpRefresh(refresh);
+
+    /// <summary>
+    /// ERP'den yeni cekilen ham veri, taslakta duran son ERP anlik goruntusuyle ayni mi.
+    /// Netsis satir bazli degisiklik damgasi tasimadigindan her sync tam tablo taramasidir;
+    /// degisiklik yalnizca bu karsilastirmayla anlasilir. Kullanicinin taslak uzerinde
+    /// yaptigi duzenlemeler <see cref="ErpRawDataJson"/>'a dokunmaz, bu yuzden karsilastirma
+    /// "ERP degisti mi" sorusunu sorar, "taslak degisti mi" sorusunu degil.
+    /// </summary>
+    public bool MatchesErpSnapshot(string erpRawDataJson) =>
+        string.Equals(ErpRawDataJson, erpRawDataJson, StringComparison.Ordinal);
 
     public void UpdateUserFields(
         string productType,
@@ -103,8 +133,8 @@ public sealed class DraftItem : BaseEntity
         decimal maxWeightOnTop,
         AllowedRotations allowedRotations,
         string? barcode,
-        string? imageUrl,
         string? stackGroup,
+        string[]? incompatibleGroups,
         string? specialNotes,
         int[]? constraintIds = null)
     {
@@ -121,24 +151,147 @@ public sealed class DraftItem : BaseEntity
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
         Barcode = barcode;
-        ImageUrl = imageUrl;
         StackGroup = stackGroup;
+        IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;
         ConstraintIdsJson = SerializeConstraintIds(constraintIds);
+        PruneFilledMissingFields();
     }
+
+    /// <summary>
+    /// ERP birim ayari degistiginde olculeri yeniden yorumlar. Ayni ham ERP degeri artik
+    /// baska bir birim sayildigi icin oran uygulanir. Bunu senkronizasyona birakmak
+    /// mumkun degil: ERP tarafinda hicbir sey degismedigi icin
+    /// <see cref="MatchesErpSnapshot"/> esit doner ve satir atlanir.
+    /// Sifir ve negatif degerler 'eksik alan' isaretidir, oranla carpilmaz.
+    /// </summary>
+    public void RescaleMeasures(decimal dimensionRatio, decimal weightRatio)
+    {
+        if (dimensionRatio != 1m)
+        {
+            Width = Rescale(Width, dimensionRatio);
+            Height = Rescale(Height, dimensionRatio);
+            Length = Rescale(Length, dimensionRatio);
+            if (Diameter.HasValue)
+                Diameter = Rescale(Diameter.Value, dimensionRatio);
+        }
+
+        if (weightRatio != 1m)
+            Weight = Rescale(Weight, weightRatio);
+    }
+
+    private static decimal Rescale(decimal value, decimal ratio) => value > 0 ? value * ratio : value;
 
     public void Approve() => Status = DraftItemStatus.Approved;
 
     public void Reject() => Status = DraftItemStatus.Rejected;
 
+    /// <summary>ERP guncellemesi reddedilir; urun onaylanmis verisiyle kalir, taslak Approved sayilmaz.</summary>
+    public void DismissUpdate() => Status = DraftItemStatus.UpdateDismissed;
+
     public void ResetToPending() => Status = DraftItemStatus.Pending;
 
-    public void SetUpdatePending(string sku, string name, string erpRawDataJson)
+    /// <summary>Reddedilmis ERP guncellemesini tekrar karar bekler duruma alir.</summary>
+    public void RestoreUpdatePending() => Status = DraftItemStatus.UpdatePending;
+
+    public void SetUpdatePending(ErpRefresh refresh)
     {
-        SKU = sku;
-        Name = name;
-        ErpRawDataJson = erpRawDataJson;
+        ApplyErpRefresh(refresh);
         Status = DraftItemStatus.UpdatePending;
+    }
+
+    /// <summary>
+    /// ERP'den gelen guncel veriyi taslaga uygular. ERP'de bilgi tasimayan alan mevcut
+    /// degeri ezmez: olcu/agirlik yalnizca sifirdan buyukse, barkod ve yuk grubu yalnizca
+    /// doluysa yazilir. Aksi halde kullanicinin elle doldurdugu eksik alanlar her
+    /// senkronda silinirdi.
+    /// </summary>
+    private void ApplyErpRefresh(ErpRefresh refresh)
+    {
+        SKU = refresh.Sku;
+        Name = refresh.Name;
+        ErpRawDataJson = refresh.ErpRawDataJson;
+
+        if (refresh.Width > 0) Width = refresh.Width;
+        if (refresh.Height > 0) Height = refresh.Height;
+        if (refresh.Length > 0) Length = refresh.Length;
+        if (refresh.Weight > 0) Weight = refresh.Weight;
+
+        if (!string.IsNullOrWhiteSpace(refresh.Barcode))
+            Barcode = refresh.Barcode;
+
+        if (!string.IsNullOrWhiteSpace(refresh.StackGroup))
+        {
+            StackGroup = refresh.StackGroup;
+            IncompatibleGroupsJson = SerializeStringArray(refresh.IncompatibleGroups);
+        }
+
+        MissingFieldsJson = SerializeMissingFields(refresh.MissingFields);
+        PruneFilledMissingFields();
+    }
+
+    /// <summary>ERP kaynaginda eksik gelen ve halen doldurulmamis alan adlari.</summary>
+    public IReadOnlyList<string> GetMissingFields()
+    {
+        if (string.IsNullOrEmpty(MissingFieldsJson) || MissingFieldsJson == "[]")
+            return [];
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(MissingFieldsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Kullanici eksik alani doldurdugunda isareti kaldirir; bayrak bayatlamaz.</summary>
+    private void PruneFilledMissingFields()
+    {
+        var missing = GetMissingFields();
+        if (missing.Count == 0)
+            return;
+
+        var remaining = missing.Where(IsStillMissing).ToArray();
+        if (remaining.Length != missing.Count)
+            MissingFieldsJson = SerializeMissingFields(remaining);
+    }
+
+    private bool IsStillMissing(string field) => field switch
+    {
+        DraftItemField.Width => Width <= 0,
+        DraftItemField.Height => Height <= 0,
+        DraftItemField.Length => Length <= 0,
+        DraftItemField.Weight => Weight <= 0,
+        _ => true
+    };
+
+    private static string SerializeMissingFields(IEnumerable<string>? missingFields)
+    {
+        var values = missingFields?.Distinct().ToArray() ?? [];
+        return values.Length == 0 ? "[]" : JsonSerializer.Serialize(values);
+    }
+
+    /// <summary>Kullanicinin sectigi yuk gruplari; hic secilmediyse bos dizi.</summary>
+    public string[] GetIncompatibleGroups()
+    {
+        if (string.IsNullOrEmpty(IncompatibleGroupsJson) || IncompatibleGroupsJson == "[]")
+            return [];
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(IncompatibleGroupsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static string SerializeStringArray(string[]? values)
+    {
+        if (values is null or { Length: 0 })
+            return "[]";
+        return JsonSerializer.Serialize(values);
     }
 
     public int[] GetConstraintIds()

@@ -1,35 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { AxiosError } from 'axios';
+import { isAxiosError, type AxiosError } from 'axios';
 import { z } from 'zod';
 import { axiosInstance } from './axiosInstance';
+import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
+import { ErpSyncStatus } from '@/lib/types/erp';
+import { summarizeDrops } from '@/lib/config/erpDropReasons';
 import {
-  erpPendingMatchSchema,
-  erpRemoteUserSchema,
-  erpRoleConflictLogSchema,
   erpSettingsApiSchema,
-  erpShipmentOrderSchema,
-  erpSyncOptionsSchema,
   erpSyncSummarySchema,
-  erpUnassignedDataItemSchema,
-  erpUserMappingSchema,
   syncLogDtoSchema,
-  type ErpShipmentOrderFilters,
   type ErpSyncInterval,
+  type ErpSyncSummary,
 } from '@/lib/types/erp';
 import type { ErpConnectionFormValues } from '@/features/platform/erp/schemas/erpConnectionSchema';
 
 const ERP_BASE = '/api/v1/integrations';
 const ERP_SETTINGS_BASE = '/api/v1/erp-settings';
 
-const PROVIDER_TYPE_TO_INT: Record<string, number> = { Logo: 0, Netsis: 1 };
+/** Backend sözleşmesi: CargoPilot.Domain/Enums/ErpProviderType → Logo = 1, Netsis = 2 */
+export const PROVIDER_TYPE_TO_INT = { Logo: 1, Netsis: 2 } as const;
 
-interface ApiError {
-  detail?: string;
-  title?: string;
-}
+export type ErpProviderName = keyof typeof PROVIDER_TYPE_TO_INT;
 
-const SYNC_FREQUENCY_TO_INT: Record<string, number> = {
+export const PROVIDER_TYPE_FROM_INT: Record<number, ErpProviderName> = {
+  [PROVIDER_TYPE_TO_INT.Logo]: 'Logo',
+  [PROVIDER_TYPE_TO_INT.Netsis]: 'Netsis',
+};
+
+export const SYNC_FREQUENCY_TO_INT: Record<string, number> = {
   FourHours: 0,
   Daily: 1,
 };
@@ -39,18 +38,22 @@ const SYNC_FREQUENCY_FROM_INT: Record<number, ErpSyncInterval> = {
   1: 'Daily',
 };
 
-// Raw API schema for pending-item-mappings (covers both status=0 and status=1)
-const pendingItemMappingApiSchema = erpPendingMatchSchema.extend({
-  status: z.number().int().optional(),
-  cargoPilotItemId: z.string().nullable().optional(),
-  cargoPilotItemName: z.string().nullable().optional(),
-  cargoPilotItemSku: z.string().nullable().optional(),
-});
+/** Backend sözleşmesi: ErpSyncStatus → Idle = 0, Running = 1, Failed = 2 */
+const SYNC_STATUS_FROM_INT: Record<number, ErpSyncStatus> = {
+  0: ErpSyncStatus.Idle,
+  1: ErpSyncStatus.Running,
+  2: ErpSyncStatus.Failed,
+};
 
-const pendingItemMappingListResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(pendingItemMappingApiSchema),
-});
+/**
+ * Backend UTC zamanları bölge damgası olmadan gönderiyor ("2026-08-11T22:16:40.09").
+ * Damgayı zorunlu tutmak, ilk çekimden sonra panelin tamamen hata durumuna
+ * düşmesine yol açıyordu; değer kabul edilip UTC olarak işaretlenir.
+ */
+export const utcDateTimeSchema = z
+  .string()
+  .datetime({ offset: true, local: true })
+  .transform((value) => (/(Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`));
 
 // Raw API sync settings schema
 // syncFrequency: nullable int, syncStatus: int (0=Idle,1=Running), lastSyncAt (not lastSyncedAt)
@@ -58,8 +61,8 @@ const erpSyncSettingsApiSchema = z.object({
   integrationId: z.string().uuid().optional(),
   syncFrequency: z.number().int().nullable(),
   syncStatus: z.number().int(),
-  nextScheduledSyncAt: z.string().datetime({ offset: true }).nullable(),
-  lastSyncAt: z.string().datetime({ offset: true }).nullable(),
+  nextScheduledSyncAt: utcDateTimeSchema.nullable(),
+  lastSyncAt: utcDateTimeSchema.nullable(),
 });
 
 const erpSyncSettingsApiResponseSchema = z.object({
@@ -67,19 +70,9 @@ const erpSyncSettingsApiResponseSchema = z.object({
   data: erpSyncSettingsApiSchema,
 });
 
-const erpSyncOptionsResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: erpSyncOptionsSchema,
-});
-
 const erpSyncSummaryResponseSchema = z.object({
   isSuccess: z.boolean(),
   data: erpSyncSummarySchema,
-});
-
-const erpShipmentOrdersResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(erpShipmentOrderSchema),
 });
 
 const syncLogsPageResponseSchema = z.object({
@@ -89,12 +82,19 @@ const syncLogsPageResponseSchema = z.object({
     totalCount: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
+    /** Entegrasyonun tamamındaki başarısız/kısmi kayıt sayısı; sayfa boyutundan bağımsızdır. */
+    failedCount: z.number().int().min(0).default(0),
   }),
 });
 
 const testConnectionResponseSchema = z.object({
   isSuccess: z.boolean(),
-  data: z.object({ isSuccess: z.boolean(), message: z.string().nullable().optional() }),
+  data: z.object({
+    isSuccess: z.boolean(),
+    message: z.string().nullable().optional(),
+    /** Bağlantı kurulsa da dikkat gerektiren durum (ör. hesabın yazma yetkisi olması). */
+    warning: z.string().nullable().optional(),
+  }),
 });
 
 const erpSettingsApiResponseSchema = z.object({
@@ -102,36 +102,48 @@ const erpSettingsApiResponseSchema = z.object({
   data: erpSettingsApiSchema,
 });
 
+/**
+ * 404 "ayar yok" anlamına gelir ve hata değildir (ilk kurulumda form boş açılır).
+ * Diğer HTTP ve parse hatalari yutulmaz; cagiran bilesen isError dalini render eder.
+ */
 export function useERPSettings() {
   return useQuery({
     queryKey: ['erp', 'settings'] as const,
     queryFn: async () => {
       try {
         const { data } = await axiosInstance.get<unknown>(ERP_SETTINGS_BASE);
-        const parsed = erpSettingsApiResponseSchema.parse(data);
-        return parsed.data;
-      } catch {
-        return null;
+        return erpSettingsApiResponseSchema.parse(data).data;
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) return null;
+        throw error;
       }
     },
     retry: false,
   });
 }
 
+/** Kaydetme ve test uçları aynı bağlantı gövdesini kullanır; şifre yalnızca girildiyse gönderilir. */
+function buildErpSettingsBody(values: ErpConnectionFormValues): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    providerType: PROVIDER_TYPE_TO_INT[values.systemType],
+    companyCode: values.companyCode,
+    username: values.username,
+    serverAddress: values.serverAddress,
+    trustServerCertificate: values.trustServerCertificate,
+    dimensionUnit: values.dimensionUnit,
+    weightUnit: values.weightUnit,
+  };
+  if (values.password) {
+    body.password = values.password;
+  }
+  return body;
+}
+
 export function useSaveERPSettings() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, ErpConnectionFormValues>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, ErpConnectionFormValues>({
     mutationFn: (values) => {
-      const body: Record<string, unknown> = {
-        providerType: PROVIDER_TYPE_TO_INT[values.systemType] ?? 0,
-        companyCode: values.companyCode,
-        username: values.username,
-        serverAddress: values.serverAddress,
-      };
-      if (values.password) {
-        body.password = values.password;
-      }
-      return axiosInstance.put(ERP_SETTINGS_BASE, body).then((r) => r.data);
+      return axiosInstance.put(ERP_SETTINGS_BASE, buildErpSettingsBody(values)).then((r) => r.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
@@ -140,34 +152,58 @@ export function useSaveERPSettings() {
       toast.success('ERP bağlantı ayarları kaydedildi', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Bağlantı ayarları kaydedilemedi', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Bağlantı ayarları kaydedilemedi'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
+/**
+ * Bağlantıyı kaldırır: kimlik bilgileri silinir, entegrasyon kaydı pasifleşir.
+ * Senkronizasyon geçmişi sunucuda korunur.
+ */
+export function useDeleteERPSettings() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, void>({
+    mutationFn: () => axiosInstance.delete(ERP_SETTINGS_BASE).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['erp'] });
+      toast.success('ERP bağlantısı kaldırıldı', { position: 'bottom-right' });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'ERP bağlantısı kaldırılamadı'), {
+        position: 'bottom-right',
+      });
+    },
+  });
+}
+
+/**
+ * Şifre boş bırakılırsa backend kayıtlı şifreyle test eder. Test sonucu sunucuda
+ * saklandığı için başarılı/başarısız sonuç sonrası kayıtlı ayarlar tazelenir.
+ */
 export function useTestERPSettings() {
+  const queryClient = useQueryClient();
   return useMutation<
-    { success: boolean; message?: string | null },
-    AxiosError<ApiError>,
+    { success: boolean; message?: string | null; warning?: string | null },
+    AxiosError<ApiErrorResponse>,
     ErpConnectionFormValues
   >({
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['erp', 'settings'] });
+    },
     mutationFn: async (values) => {
-      const body: Record<string, unknown> = {
-        providerType: PROVIDER_TYPE_TO_INT[values.systemType] ?? 0,
-        companyCode: values.companyCode,
-        username: values.username,
-        serverAddress: values.serverAddress,
-      };
-      if (values.password) {
-        body.password = values.password;
-      }
       const { data } = await axiosInstance.post<unknown>(
         `${ERP_SETTINGS_BASE}/test-connection`,
-        body,
+        buildErpSettingsBody(values),
       );
       const parsed = testConnectionResponseSchema.parse(data);
-      return { success: parsed.data.isSuccess, message: parsed.data.message };
+      return {
+        success: parsed.data.isSuccess,
+        message: parsed.data.message,
+        warning: parsed.data.warning,
+      };
     },
   });
 }
@@ -188,121 +224,49 @@ export function useERPConnection() {
     queryKey: ['erp', 'connection'] as const,
     queryFn: async () => {
       const { data } = await axiosInstance.get<unknown>(ERP_BASE);
-      const parsed = integrationsListResponseSchema.safeParse(data);
-      if (!parsed.success || parsed.data.data.length === 0) return null;
-      return parsed.data.data[0];
+      const parsed = integrationsListResponseSchema.parse(data);
+      return parsed.data[0] ?? null;
     },
     retry: false,
   });
 }
-
-export function useERPPendingMatches(integrationId?: string) {
-  return useQuery({
-    queryKey: ['erp', 'pending-matches', integrationId] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `${ERP_BASE}/${integrationId}/pending-item-mappings`,
-        { params: { status: 0, page: 1, pageSize: 100 } },
-      );
-      const parsed = pendingItemMappingListResponseSchema.parse(data);
-      return parsed.data;
-    },
-    enabled: Boolean(integrationId),
-  });
-}
-
-export function useERPSavedMatches(integrationId?: string) {
-  return useQuery({
-    queryKey: ['erp', 'saved-matches', integrationId] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(
-        `${ERP_BASE}/${integrationId}/pending-item-mappings`,
-        { params: { status: 1, page: 1, pageSize: 100 } },
-      );
-      const parsed = pendingItemMappingListResponseSchema.parse(data);
-      return parsed.data.map((item) => ({
-        id: item.id,
-        erpProductId: item.erpProductId,
-        erpProductName: item.erpProductName,
-        erpSku: item.erpSku,
-        cargoItemId: item.cargoPilotItemId ?? '',
-        cargoItemName: item.cargoPilotItemName ?? '',
-        cargoItemSku: item.cargoPilotItemSku ?? '',
-      }));
-    },
-    enabled: Boolean(integrationId),
-  });
-}
-
-export type ErpMatchMode = 'create' | 'update';
 
 /**
- * Eşleştirme kaydetme ve güncelleme ayni PUT isteğidir; yalnızca kullanıcıya
- * gösterilen metin değişir. Iki ayrı hook yerine tek hook mode alir.
+ * Kaynak toplamından başlayan tam muhasebe cümlesi:
+ * "ERP'de X satır bulundu — Y eklendi, U güncellendi, D değişmedi, Z filtrelendi, K atlandı".
+ * "Değişmedi" ERP verisi bir öncekiyle aynı olduğu için dokunulmayan satırları,
+ * "filtrelendi" kullanıcının kendi seçtiği filtreleri, "atlandı" ise hata ve kaynak
+ * elemelerini anlatır; üçü bilerek ayrı sayılır.
  */
-export function useSaveERPMatch(mode: ErpMatchMode) {
-  const queryClient = useQueryClient();
-  const verb = mode === 'create' ? 'kaydedildi' : 'güncellendi';
-  const failVerb = mode === 'create' ? 'kaydedilemedi' : 'güncellenemedi';
-  return useMutation<
-    unknown,
-    AxiosError<ApiError>,
-    { integrationId: string; mappingId: string; cargoPilotItemId: string }
-  >({
-    mutationFn: ({ integrationId, mappingId, cargoPilotItemId }) =>
-      axiosInstance
-        .put(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`, {
-          cargoPilotItemId,
-        })
-        .then((r) => r.data),
-    onSuccess: (_data, { integrationId }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'saved-matches', integrationId] });
-      toast.success(`Eşleştirme ${verb}`, { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? `Eşleştirme ${failVerb}`, { position: 'bottom-right' });
-    },
-  });
-}
+export function buildSyncToastMessage(summary: ErpSyncSummary): string {
+  const { filtered, dropped } = summarizeDrops(summary.droppedByReason);
+  const parts = [`${summary.added} eklendi`, `${summary.updated} güncellendi`];
+  if (summary.unchanged > 0) parts.push(`${summary.unchanged} değişmedi`);
+  if (filtered > 0) parts.push(`${filtered} filtrelendi`);
 
-export function useDeleteERPMatch() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { integrationId: string; mappingId: string }>({
-    mutationFn: ({ integrationId, mappingId }) =>
-      axiosInstance
-        .delete(`${ERP_BASE}/${integrationId}/pending-item-mappings/${mappingId}`)
-        .then(() => undefined),
-    onSuccess: (_data, { integrationId }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'saved-matches', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
-      toast.success('Eşleştirme silindi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme silinemedi', { position: 'bottom-right' });
-    },
-  });
-}
+  const skippedTotal = summary.skipped + dropped;
+  if (skippedTotal > 0) parts.push(`${skippedTotal} atlandı`);
 
-export function useERPSyncOptions() {
-  return useQuery({
-    queryKey: ['erp', 'sync-options'] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/sync-options`);
-      const parsed = erpSyncOptionsResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : { categories: [], warehouses: [] };
-    },
-    retry: false,
-  });
+  const prefix =
+    summary.sourceTotal > 0
+      ? `ERP'de ${summary.sourceTotal} satır bulundu`
+      : 'ERP senkronizasyonu tamamlandı';
+
+  let message = `${prefix} — ${parts.join(', ')}`;
+  if (summary.missingFieldCount > 0) {
+    message += `. ${summary.missingFieldCount} satırda eksik alan var, tamamlanmadan aktarılamaz.`;
+  }
+  if (summary.unaccounted !== 0) {
+    message += `. ${Math.abs(summary.unaccounted)} satır hiçbir sayaca düşmedi (mutabakat farkı).`;
+  }
+  return message;
 }
 
 export function useTriggerERPSync() {
   const queryClient = useQueryClient();
   return useMutation<
-    { added: number; updated: number; skipped: number; syncedAt?: string; syncLogId?: string },
-    AxiosError<ApiError>,
+    ErpSyncSummary,
+    AxiosError<ApiErrorResponse>,
     { integrationId: string; categoryFilter?: string | null; warehouseFilter?: string | null }
   >({
     mutationFn: async ({ integrationId, categoryFilter, warehouseFilter }) => {
@@ -316,37 +280,63 @@ export function useTriggerERPSync() {
       const parsed = erpSyncSummaryResponseSchema.parse(data);
       return parsed.data;
     },
-    onSuccess: (summary, { integrationId }) => {
+    onSuccess: (summary) => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['draft-items'] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches', integrationId] });
-      // "Atlanan" sayısı backend akışında hiç üretilmiyor; gösterilmesi yanıltıcı olur.
-      toast.success(
-        `Senkronizasyon tamamlandı — ${summary.added} eklendi, ${summary.updated} güncellendi`,
-        { position: 'bottom-right', duration: 6000 },
-      );
+      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-logs'] });
+      const message = buildSyncToastMessage(summary);
+      // Filtre kaynaklı eleme kullanıcının kendi seçimidir; uyarı sayılmaz.
+      const needsAttention =
+        summary.skipped > 0 ||
+        summary.missingFieldCount > 0 ||
+        summary.unaccounted !== 0 ||
+        summarizeDrops(summary.droppedByReason).dropped > 0;
+      if (needsAttention) {
+        toast.warning(message, { position: 'bottom-right', duration: 8000 });
+        return;
+      }
+      toast.success(message, { position: 'bottom-right', duration: 6000 });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Senkronizasyon başarısız', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'ERP senkronizasyonu yapılamadı'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
+export interface ErpSyncSettings {
+  /** null = sunucuda sıklık kayıtlı değil; otomatik senkronizasyon çalışmaz. */
+  syncInterval: ErpSyncInterval | null;
+  syncStatus: ErpSyncStatus;
+  nextScheduledSyncAt: string | null;
+  lastSyncedAt: string | null;
+}
+
+function syncSettingsQueryKey(integrationId: string | undefined) {
+  return ['erp', 'sync-settings', integrationId] as const;
+}
+
 export function useERPSyncSettings(integrationId: string | undefined) {
   return useQuery({
-    queryKey: ['erp', 'sync-settings', integrationId] as const,
-    queryFn: async () => {
+    queryKey: syncSettingsQueryKey(integrationId),
+    queryFn: async (): Promise<ErpSyncSettings> => {
       const { data } = await axiosInstance.get<unknown>(
         `${ERP_BASE}/${integrationId}/sync-settings`,
       );
       const parsed = erpSyncSettingsApiResponseSchema.parse(data);
+      const syncStatus = SYNC_STATUS_FROM_INT[parsed.data.syncStatus];
+      if (!syncStatus) {
+        throw new Error(`Bilinmeyen ERP senkronizasyon durumu: ${parsed.data.syncStatus}`);
+      }
       return {
+        // Sıklık yoksa varsayılan uydurulmaz: zamanlayıcı frekansı olmayan
+        // entegrasyonu hiç tetiklemez, arayüz de seçili bir sıklık göstermemelidir.
         syncInterval:
-          (parsed.data.syncFrequency !== null
-            ? SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency]
-            : undefined) ?? ('Daily' as ErpSyncInterval),
-        syncStatus: parsed.data.syncStatus === 1 ? 'Running' : 'Idle',
+          parsed.data.syncFrequency !== null
+            ? (SYNC_FREQUENCY_FROM_INT[parsed.data.syncFrequency] ?? null)
+            : null,
+        syncStatus,
         nextScheduledSyncAt: parsed.data.nextScheduledSyncAt,
         lastSyncedAt: parsed.data.lastSyncAt,
       };
@@ -357,49 +347,48 @@ export function useERPSyncSettings(integrationId: string | undefined) {
   });
 }
 
+/**
+ * Sıklık seçimi sunucu verisinden okunur; yerel kopya tutulmaz. Optimistic update
+ * seçimi anında cache'e yazar, istek başarısızsa önceki değer geri alınır.
+ */
 export function useSaveERPSyncSettings() {
   const queryClient = useQueryClient();
   return useMutation<
     unknown,
-    AxiosError<ApiError>,
-    { integrationId: string; syncInterval: ErpSyncInterval }
+    AxiosError<ApiErrorResponse>,
+    { integrationId: string; syncInterval: ErpSyncInterval | null },
+    { previous: ErpSyncSettings | undefined }
   >({
     mutationFn: ({ integrationId, syncInterval }) =>
       axiosInstance
         .put(`${ERP_BASE}/${integrationId}/sync-settings`, {
-          syncFrequency: SYNC_FREQUENCY_TO_INT[syncInterval] ?? 0,
+          // null = otomatik senkronizasyon kapali; backend SyncFrequency null iken
+          // zamanlayici bu entegrasyonu hic tetiklemez.
+          syncFrequency: syncInterval === null ? null : SYNC_FREQUENCY_TO_INT[syncInterval],
         })
         .then((r) => r.data),
-    onSuccess: (_data, { integrationId }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-settings', integrationId] });
-      toast.success('Senkronizasyon sıklığı kaydedildi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Sıklık kaydedilemedi', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useRunERPSyncNow() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
-    mutationFn: (integrationId) =>
-      axiosInstance.post(`${ERP_BASE}/${integrationId}/sync/run-now`).then((r) => r.data),
-    onSuccess: (_data, integrationId) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'sync-settings', integrationId] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'pending-matches'] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'shipment-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-    },
-    onError: (error) => {
-      const status = error.response?.status;
-      const detail = error.response?.data?.detail;
-      if (status === 409) {
-        toast.error('Senkronizasyon zaten devam ediyor.', { position: 'bottom-right' });
-        return;
+    onMutate: async ({ integrationId, syncInterval }) => {
+      const queryKey = syncSettingsQueryKey(integrationId);
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ErpSyncSettings>(queryKey);
+      if (previous) {
+        queryClient.setQueryData<ErpSyncSettings>(queryKey, { ...previous, syncInterval });
       }
-      toast.error(detail ?? 'Senkronizasyon başlatılamadı', { position: 'bottom-right' });
+      return { previous };
+    },
+    onSuccess: (_data, { integrationId }) => {
+      queryClient.invalidateQueries({ queryKey: syncSettingsQueryKey(integrationId) });
+      toast.success('Otomatik senkronizasyon ayarı kaydedildi', {
+        position: 'bottom-right',
+      });
+    },
+    onError: (error, { integrationId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(syncSettingsQueryKey(integrationId), context.previous);
+      }
+      toast.error(getApiErrorMessage(error, 'Otomatik senkronizasyon ayarı kaydedilemedi'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
@@ -419,190 +408,9 @@ export function useERPSyncLogs(integrationId: string | undefined, params: SyncLo
       const { data } = await axiosInstance.get<unknown>(
         `${ERP_BASE}/${integrationId}/sync-logs?${p.toString()}`,
       );
-      const parsed = syncLogsPageResponseSchema.safeParse(data);
-      if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
-      return parsed.data.data;
+      return syncLogsPageResponseSchema.parse(data).data;
     },
     enabled: Boolean(integrationId),
     retry: false,
   });
 }
-
-export function useERPShipmentOrders(
-  integrationId: string | undefined,
-  filters?: ErpShipmentOrderFilters,
-) {
-  return useQuery({
-    queryKey: ['erp', 'shipment-orders', integrationId, filters] as const,
-    queryFn: async () => {
-      try {
-        const params = new URLSearchParams();
-        if (filters?.status) params.set('status', filters.status);
-        const qs = params.toString();
-        const { data } = await axiosInstance.get<unknown>(
-          `${ERP_BASE}/${integrationId}/shipment-orders${qs ? `?${qs}` : ''}`,
-        );
-        const parsed = erpShipmentOrdersResponseSchema.safeParse(data);
-        return parsed.success ? parsed.data.data : [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: Boolean(integrationId),
-    retry: false,
-  });
-}
-
-// ─── User Mapping hooks ────────────────────────────────────────────────────────
-
-const erpRemoteUsersResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(erpRemoteUserSchema),
-});
-
-const erpUserMappingsResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(erpUserMappingSchema),
-});
-
-const erpUnassignedDataResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(erpUnassignedDataItemSchema),
-});
-
-const erpRoleConflictLogResponseSchema = z.object({
-  isSuccess: z.boolean(),
-  data: z.array(erpRoleConflictLogSchema),
-});
-
-export function useERPRemoteUsers() {
-  return useQuery({
-    queryKey: ['erp', 'remote-users'] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/erp-users`);
-      const parsed = erpRemoteUsersResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
-    },
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-  });
-}
-
-export function useERPUserMappings() {
-  return useQuery({
-    queryKey: ['erp', 'user-mappings'] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/user-mappings`);
-      const parsed = erpUserMappingsResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
-    },
-    staleTime: 2 * 60 * 1000,
-    retry: false,
-  });
-}
-
-export function useCreateERPUserMapping() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    unknown,
-    AxiosError<ApiError>,
-    { erpUserId: string; cargoUserId: string; hasRoleConflict?: boolean }
-  >({
-    mutationFn: (payload) =>
-      axiosInstance.post(`${ERP_BASE}/user-mappings`, payload).then((r) => r.data),
-    onSuccess: (_data, { hasRoleConflict }) => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'user-mappings'] });
-      if (hasRoleConflict) {
-        queryClient.invalidateQueries({ queryKey: ['erp', 'role-conflict-log'] });
-      }
-      toast.success('Kullanıcı eşleştirmesi kaydedildi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme kaydedilemedi', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useERPRoleConflictLog() {
-  return useQuery({
-    queryKey: ['erp', 'role-conflict-log'] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/role-conflict-log`);
-      const parsed = erpRoleConflictLogResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
-    },
-    staleTime: 2 * 60 * 1000,
-    retry: false,
-  });
-}
-
-export function useUpdateERPUserMapping() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { mappingId: string; erpUserId: string }>({
-    mutationFn: ({ mappingId, erpUserId }) =>
-      axiosInstance
-        .patch(`${ERP_BASE}/user-mappings/${mappingId}`, { erpUserId })
-        .then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'user-mappings'] });
-      toast.success('Eşleştirme güncellendi', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme güncellenemedi', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useDeleteERPUserMapping() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
-    mutationFn: (mappingId) =>
-      axiosInstance.delete(`${ERP_BASE}/user-mappings/${mappingId}`).then(() => undefined),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'user-mappings'] });
-      queryClient.invalidateQueries({ queryKey: ['erp', 'unassigned-data'] });
-      toast.success('Eşleştirme silindi. Veriler atanmamış kayıtlara taşındı.', {
-        position: 'bottom-right',
-      });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Eşleştirme silinemedi', { position: 'bottom-right' });
-    },
-  });
-}
-
-export function useERPUnassignedData() {
-  return useQuery({
-    queryKey: ['erp', 'unassigned-data'] as const,
-    queryFn: async () => {
-      const { data } = await axiosInstance.get<unknown>(`${ERP_BASE}/unassigned-data`);
-      const parsed = erpUnassignedDataResponseSchema.safeParse(data);
-      return parsed.success ? parsed.data.data : [];
-    },
-    staleTime: 2 * 60 * 1000,
-    retry: false,
-  });
-}
-
-export function useAssignUnassignedData() {
-  const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, { dataId: string; cargoUserId: string }>({
-    mutationFn: ({ dataId, cargoUserId }) =>
-      axiosInstance
-        .post(`${ERP_BASE}/unassigned-data/${dataId}/assign`, { cargoUserId })
-        .then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['erp', 'unassigned-data'] });
-      toast.success('Veri kullanıcıya atandı', { position: 'bottom-right' });
-    },
-    onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Atama başarısız', { position: 'bottom-right' });
-    },
-  });
-}
-
-// ─── ERP Items Page hooks ─────────────────────────────────────────────────────

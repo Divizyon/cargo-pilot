@@ -22,13 +22,6 @@ export const placementSchema = z.object({
   isViolation: z.boolean(),
 });
 
-export const loadingPlanSchema = z.object({
-  id: z.string().uuid(),
-  vehicleId: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  placementDetails: z.array(placementSchema),
-});
-
 export const placementWithDimensionsSchema = placementSchema.extend({
   vehicleId: z.string().optional(),
   width: z.number().positive(),
@@ -74,6 +67,17 @@ export const PlanStatus = {
 
 export type PlanStatus = (typeof PlanStatus)[keyof typeof PlanStatus];
 
+/** Backend sözleşmesi: CargoPilot.Domain/Enums/ErpExportStatus → Pending = 0, Sent = 1, Failed = 2 */
+export const ErpExportStatus = {
+  Pending: 0,
+  Sent: 1,
+  Failed: 2,
+} as const;
+
+export type ErpExportStatus = (typeof ErpExportStatus)[keyof typeof ErpExportStatus];
+
+export const erpExportStatusSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+
 export const loadingPlanListItemSchema = z.object({
   id: z.string().uuid(),
   planCode: z.string(),
@@ -96,6 +100,9 @@ export const loadingPlanListItemSchema = z.object({
   doorDirection: z.enum(['front', 'rear', 'side', 'top', 'rearAndSide']).optional(),
   doorSide: z.enum(['right', 'left']).optional(),
   thumbnailUrl: z.string().nullable().optional(),
+  // ERP aktarım durumu yalnızca plan detay ucundan gelir; liste ucunda alan yoktur.
+  erpExportStatus: erpExportStatusSchema.nullable().optional(),
+  erpExportMessage: z.string().nullable().optional(),
 });
 
 export type LoadingPlanListItem = z.infer<typeof loadingPlanListItemSchema>;

@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -19,7 +20,7 @@ public sealed record UpdateDraftItemCommand(
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
     string? Barcode,
-    string? ImageUrl,
     string? StackGroup,
+    string[]? IncompatibleGroups,
     string? SpecialNotes,
-    int[]? ConstraintIds) : IRequest<Result<Unit>>;
+    int[]? ConstraintIds) : IItemSpec, IRequest<Result<Unit>>;

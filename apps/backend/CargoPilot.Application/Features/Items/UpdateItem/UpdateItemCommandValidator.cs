@@ -97,11 +97,6 @@ public sealed class UpdateItemCommandValidator : AbstractValidator<UpdateItemCom
                 .WithErrorCode("ITEM_VAL_ALLOWEDROTATIONS_INVALID")
                 .WithMessage("Geçersiz dönüş tipi.");
 
-        RuleFor(x => x.ImageUrl)
-            .MaximumLength(500)
-                .WithErrorCode("ITEM_VAL_IMAGEURL_TOO_LONG")
-                .WithMessage("Görsel linki en fazla 500 karakter olabilir.");
-
         RuleFor(x => x.StackGroup)
             .MaximumLength(100)
                 .WithErrorCode("ITEM_VAL_STACKGROUP_TOO_LONG")

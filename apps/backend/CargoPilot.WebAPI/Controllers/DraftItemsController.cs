@@ -1,6 +1,7 @@
 using CargoPilot.Application.Features.DraftItems.ApproveDraftItem;
 using CargoPilot.Application.Features.DraftItems.ApproveDraftItems;
 using CargoPilot.Application.Features.DraftItems.GetDraftItems;
+using CargoPilot.Application.Features.DraftItems.ReinstateDraftItem;
 using CargoPilot.Application.Features.DraftItems.RejectDraftItem;
 using CargoPilot.Application.Features.DraftItems.UpdateDraftItem;
 using CargoPilot.Domain.Enums;
@@ -15,7 +16,8 @@ namespace CargoPilot.WebAPI.Controllers;
 /// </summary>
 [Route("api/v1/draft-items")]
 [Tags("DraftItems")]
-[Authorize(Policy = "CompanyMember")]
+// ERP taslaklari sirketin urun master'ina yazar; diger ERP uclariyla ayni yetkiye baglidir.
+[Authorize(Policy = "CompanyAdmin")]
 public sealed class DraftItemsController : BaseController
 {
     private readonly IMediator _mediator;
@@ -34,9 +36,13 @@ public sealed class DraftItemsController : BaseController
         [FromQuery] DraftItemStatus? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] ItemCategory[]? categories = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetDraftItemsQuery(status, page, pageSize), cancellationToken);
+        var result = await _mediator.Send(
+            new GetDraftItemsQuery(status, page, pageSize, search, categories),
+            cancellationToken);
         return HandleResult(result);
     }
 
@@ -67,8 +73,8 @@ public sealed class DraftItemsController : BaseController
             request.MaxWeightOnTop,
             request.AllowedRotations,
             request.Barcode,
-            request.ImageUrl,
             request.StackGroup,
+            request.IncompatibleGroups,
             request.SpecialNotes,
             request.ConstraintIds);
         var result = await _mediator.Send(command, cancellationToken);
@@ -113,6 +119,19 @@ public sealed class DraftItemsController : BaseController
         var result = await _mediator.Send(new RejectDraftItemCommand(id), cancellationToken);
         return HandleResult(result);
     }
+
+    /// <summary>
+    /// Reddedilmiş taslağı tekrar beklemeye alır (ret kalıcıdır, geri alma yalnızca buradan yapılır).
+    /// </summary>
+    [HttpPost("{id:guid}/reinstate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reinstate(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new ReinstateDraftItemCommand(id), cancellationToken);
+        return HandleResult(result);
+    }
 }
 
 public sealed record UpdateDraftItemRequest(
@@ -129,8 +148,8 @@ public sealed record UpdateDraftItemRequest(
     [property: System.Text.Json.Serialization.JsonRequired] decimal MaxWeightOnTop,
     [property: System.Text.Json.Serialization.JsonRequired] AllowedRotations AllowedRotations,
     string? Barcode,
-    string? ImageUrl,
     string? StackGroup,
+    string[]? IncompatibleGroups,
     string? SpecialNotes,
     int[]? ConstraintIds);
 

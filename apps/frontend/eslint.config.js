@@ -26,6 +26,22 @@ export default [
     },
   },
 
+  /* Playwright e2e senaryoları: Node ortamı, JSX yok */
+  {
+    files: ['e2e/**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+      globals: { ...globals.node },
+    },
+    plugins: { '@typescript-eslint': tsPlugin },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+
   /* Uygulama kaynak dosyaları */
   {
     files: ['src/**/*.{ts,tsx}'],

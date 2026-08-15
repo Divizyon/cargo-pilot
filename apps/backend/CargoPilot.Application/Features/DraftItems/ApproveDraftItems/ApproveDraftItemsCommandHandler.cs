@@ -1,8 +1,10 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
+using FluentValidation;
 using MediatR;
 
 namespace CargoPilot.Application.Features.DraftItems.ApproveDraftItems;
@@ -12,15 +14,18 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
     private readonly IDraftItemRepository _draftItemRepository;
     private readonly IItemRepository _itemRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IValidator<ItemSpec> _specValidator;
 
     public ApproveDraftItemsCommandHandler(
         IDraftItemRepository draftItemRepository,
         IItemRepository itemRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IValidator<ItemSpec> specValidator)
     {
         _draftItemRepository = draftItemRepository;
         _itemRepository = itemRepository;
         _currentUserService = currentUserService;
+        _specValidator = specValidator;
     }
 
     public async Task<Result<ApproveDraftItemsResult>> Handle(ApproveDraftItemsCommand request, CancellationToken cancellationToken)
@@ -31,13 +36,21 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
 
         var drafts = await _draftItemRepository.GetByIdsAsync(request.Ids, companyId.Value, cancellationToken);
 
-        int approved = 0, skipped = 0;
+        int approved = 0;
+        var skippedItems = new List<SkippedDraftItem>();
 
         foreach (var draft in drafts)
         {
             if (draft.Status == DraftItemStatus.Approved)
             {
-                skipped++;
+                skippedItems.Add(Skip(draft, "Bu taslak zaten onaylanmış."));
+                continue;
+            }
+
+            var validation = await _specValidator.ValidateAsync(ItemSpec.FromDraft(draft), cancellationToken);
+            if (!validation.IsValid)
+            {
+                skippedItems.Add(Skip(draft, string.Join(" ", validation.Errors.Select(e => e.ErrorMessage).Distinct())));
                 continue;
             }
 
@@ -46,14 +59,11 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
                 var existingItem = await _itemRepository.GetByErpIdAsync(draft.ErpId, draft.IntegrationId, companyId.Value, cancellationToken);
                 if (existingItem is null)
                 {
-                    skipped++;
+                    skippedItems.Add(Skip(draft, "Güncellenecek ürün bulunamadı."));
                     continue;
                 }
 
-                existingItem.Update(draft.SKU, draft.Barcode, draft.Name, draft.ProductType, draft.Category,
-                    draft.Width, draft.Height, draft.Length, draft.Diameter, draft.Weight, draft.FragilityType,
-                    draft.IsStackable, draft.MaxStackCount, draft.MaxWeightOnTop, draft.AllowedRotations,
-                    draft.ImageUrl, draft.StackGroup, null, draft.SpecialNotes, draft.GetConstraintIds());
+                ItemFactory.ApplyDraft(existingItem, draft);
 
                 draft.Approve();
 
@@ -66,36 +76,11 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
             var skuExists = await _itemRepository.ExistsBySkuAsync(draft.SKU, companyId.Value, cancellationToken);
             if (skuExists)
             {
-                skipped++;
+                skippedItems.Add(Skip(draft, "Bu SKU ile kayıtlı bir ürün zaten mevcut."));
                 continue;
             }
 
-            var item = new Item(
-                Guid.NewGuid(),
-                draft.SKU,
-                draft.Name,
-                draft.ProductType,
-                draft.Category,
-                draft.Width,
-                draft.Height,
-                draft.Length,
-                draft.Weight,
-                draft.FragilityType,
-                draft.IsStackable,
-                draft.MaxStackCount,
-                draft.MaxWeightOnTop,
-                draft.AllowedRotations,
-                draft.Barcode,
-                draft.Diameter,
-                draft.ImageUrl,
-                draft.StackGroup,
-                null,
-                draft.SpecialNotes,
-                draft.GetConstraintIds(),
-                companyId);
-
-            item.SetErpSource(draft.ErpId, draft.IntegrationId);
-            item.SetRuleAssigned(true);
+            var item = ItemFactory.CreateFromDraft(draft, companyId.Value);
 
             draft.Approve();
 
@@ -106,6 +91,10 @@ public sealed class ApproveDraftItemsCommandHandler : IRequestHandler<ApproveDra
 
         await _draftItemRepository.SaveChangesAsync(cancellationToken);
 
-        return Result<ApproveDraftItemsResult>.Success(new ApproveDraftItemsResult(approved, skipped));
+        return Result<ApproveDraftItemsResult>.Success(
+            new ApproveDraftItemsResult(approved, skippedItems.Count, skippedItems));
     }
+
+    private static SkippedDraftItem Skip(DraftItem draft, string reason) =>
+        new(draft.Id, draft.SKU, reason);
 }

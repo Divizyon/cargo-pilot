@@ -44,16 +44,28 @@ internal sealed class SyncLogConfiguration : IEntityTypeConfiguration<SyncLog> {
             .IsRequired()
             .HasDefaultValue(0);
 
-        builder.Property(s => s.RuleAssignedCount)
-            .IsRequired()
-            .HasDefaultValue(0);
-
-        builder.Property(s => s.RuleNotAssignedCount)
-            .IsRequired()
-            .HasDefaultValue(0);
-
         builder.Property(s => s.ErrorMessage)
             .HasMaxLength(2000);
+
+        builder.Property(s => s.RowErrorsJson);
+
+        builder.Property(s => s.SourceTotal)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.FetchedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.DroppedByReasonJson);
+
+        builder.Property(s => s.UnchangedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.UnaccountedCount)
+            .IsRequired()
+            .HasDefaultValue(0);
 
         builder.HasOne(s => s.Integration)
             .WithMany(i => i.SyncLogs)

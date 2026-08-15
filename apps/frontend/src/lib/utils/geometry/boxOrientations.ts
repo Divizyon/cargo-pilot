@@ -23,8 +23,6 @@ export const BOX_ORIENTATIONS: readonly OrientationDef[] = [
   { idx: 5, label: 'Sağ yüz altta', euler: [0, 0, -HALF_PI], requiredAxis: 'z' },
 ] as const;
 
-const ALL_INDICES: readonly OrientationIndex[] = [0, 1, 2, 3, 4, 5] as const;
-
 type RotateConstraints = Pick<Item, 'allowRotateX' | 'allowRotateZ'>;
 
 // allowFace* alanları opsiyonel — mevcut eski item'larda olmayabilir, yoksa true kabul edilir.
@@ -55,6 +53,8 @@ export function isOrientationAllowed(
   if (def.requiredAxis === 'z' && !item.allowRotateZ) return false;
   return item[FACE_KEYS[idx]] !== false;
 }
+
+const ALL_INDICES: readonly OrientationIndex[] = [0, 1, 2, 3, 4, 5] as const;
 
 export function allowedOrientations(item: RotateConstraints): OrientationIndex[] {
   return ALL_INDICES.filter((idx) => isOrientationAllowed(item, idx));

@@ -156,7 +156,6 @@ public sealed class BulkUpdateItemsCommandHandler
                 maxStackCount: cmd.MaxStackCount,
                 maxWeightOnTop: cmd.MaxWeightOnTop,
                 allowedRotations: cmd.AllowedRotations,
-                imageUrl: cmd.ImageUrl,
                 stackGroup: cmd.StackGroup,
                 incompatibleGroups: cmd.IncompatibleGroups,
                 specialNotes: cmd.SpecialNotes,

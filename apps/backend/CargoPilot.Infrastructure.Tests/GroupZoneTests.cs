@@ -81,7 +81,6 @@ public sealed class GroupZoneTests
             ItemId: Guid.NewGuid(),
             SKU: $"SKU-{unloadingOrder}",
             Name: $"Urun {unloadingOrder}",
-            ImageUrl: null,
             Width: VehicleWidth,
             Height: VehicleHeight,
             Length: BoxLength,

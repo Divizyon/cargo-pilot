@@ -9,6 +9,7 @@ using CargoPilot.Infrastructure.Persistence.Repositories;
 using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.Infrastructure.Security;
 using CargoPilot.Infrastructure.Services;
+using CargoPilot.Infrastructure.Services.Erp;
 using CargoPilot.Infrastructure.Services.ErpConnectors;
 using Hangfire;
 using Hangfire.SqlServer;
@@ -67,6 +68,10 @@ public static class DependencyInjection {
             .Bind(configuration.GetSection("SubscriptionPlans"))
             .ValidateOnStart();
 
+        // Bolum yoksa varsayilan (ExportEnabled=false) gecerli olur.
+        services.AddOptions<ErpExportSettings>()
+            .Bind(configuration.GetSection("Erp"));
+
         services.AddOptions<MinioSettings>()
             .Bind(configuration.GetSection("Minio"))
             .Validate(s => !string.IsNullOrWhiteSpace(s.Endpoint), "Minio:Endpoint is required.")
@@ -101,8 +106,10 @@ public static class DependencyInjection {
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();       
         services.AddScoped<IEmailChangeTokenRepository, EmailChangeTokenRepository>();
-        services.AddScoped<IPendingItemMappingRepository, PendingItemMappingRepository>();
-        services.AddScoped<IErpProductFetcher, SqlServerErpProductFetcher>();
+        // Saglayici-basina fetcher: Logo icin kayit yok, sync acik hata dondurur (ERP-21).
+        services.AddScoped<IErpProductFetcher, NetsisProductFetcher>();
+        // Saglayici-basina siparis yazici; Logo icin kayit yok, aktarim acik hata dondurur.
+        services.AddScoped<IErpOrderWriter, NetsisOrderWriter>();
         services.AddDataProtection()
             .PersistKeysToDbContext<AppDbContext>();
         services.AddScoped<IErpPasswordProtector, DataProtectionErpPasswordProtector>();
@@ -147,6 +154,7 @@ public static class DependencyInjection {
                 }));
 
             services.AddTransient<ErpExportJob>();
+            services.AddTransient<ErpScheduledSyncJob>();
             services.AddScoped<IErpExportJobScheduler, HangfireErpExportJobScheduler>();
         } else {
             services.AddScoped<IErpExportJobScheduler, NoOpErpExportJobScheduler>();

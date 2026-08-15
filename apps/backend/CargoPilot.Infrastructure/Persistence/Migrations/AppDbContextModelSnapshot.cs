@@ -252,9 +252,12 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("IncompatibleGroupsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(500)")
+                        .HasDefaultValue("[]");
 
                     b.Property<Guid>("IntegrationId")
                         .HasColumnType("uniqueidentifier");
@@ -282,6 +285,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("MaxWeightOnTop")
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
+
+                    b.Property<string>("MissingFieldsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasDefaultValue("[]");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -334,7 +344,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_DraftItems_Status");
 
                     b.HasIndex("IntegrationId", "ErpId")
-                        .HasDatabaseName("IX_DraftItems_IntegrationId_ErpId");
+                        .IsUnique()
+                        .HasDatabaseName("IX_DraftItems_IntegrationId_ErpId")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("DraftItems", (string)null);
                 });
@@ -403,11 +415,28 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DimensionUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Centimeter");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<bool?>("LastTestSucceeded")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastTestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastTestedConfigHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("PasswordEncrypted")
                         .IsRequired()
@@ -423,6 +452,11 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("TrustServerCertificate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -434,89 +468,19 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("WeightUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Kilogram");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId")
                         .IsUnique();
 
                     b.ToTable("ErpSettings", (string)null);
-                });
-
-            modelBuilder.Entity("CargoPilot.Domain.Entities.ErpUserMapping", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CargoPilotUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ErpUserEmail")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("ErpUserId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("IntegrationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("InvalidatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("InvalidationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Active");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CargoPilotUserId");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_ErpUserMappings_Status");
-
-                    b.HasIndex("IntegrationId", "CargoPilotUserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ErpUserMappings_IntegrationId_CargoPilotUserId")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("ErpUserMappings", (string)null);
                 });
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.Integration", b =>
@@ -529,9 +493,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("AuthCredentials")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
@@ -571,6 +532,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("SyncInterval")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("SyncStartedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("SyncStatus")
                         .ValueGeneratedOnAdd()
@@ -650,10 +614,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
 
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<string>("IncompatibleGroupsJson")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -672,11 +632,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
-
-                    b.Property<bool>("IsRuleAssigned")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsStackable")
                         .HasColumnType("bit");
@@ -1295,82 +1250,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.ToTable("PasswordResetTokens", (string)null);
                 });
 
-            modelBuilder.Entity("CargoPilot.Domain.Entities.PendingItemMapping", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CargoPilotItemId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ErpId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ErpProductName")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("ErpRawDataJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ErpSku")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("IntegrationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CargoPilotItemId");
-
-                    b.HasIndex("IntegrationId")
-                        .HasDatabaseName("IX_PendingItemMappings_IntegrationId");
-
-                    b.HasIndex("IntegrationId", "ErpId")
-                        .HasDatabaseName("IX_PendingItemMappings_IntegrationId_ErpId");
-
-                    b.ToTable("PendingItemMappings", (string)null);
-                });
-
             modelBuilder.Entity("CargoPilot.Domain.Entities.ShareLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1438,9 +1317,17 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DroppedByReasonJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("FetchedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<Guid>("IntegrationId")
                         .HasColumnType("uniqueidentifier");
@@ -1458,12 +1345,10 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("LoadingPlanId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("RuleAssignedCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                    b.Property<string>("RowErrorsJson")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RuleNotAssignedCount")
+                    b.Property<int>("SourceTotal")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
@@ -1477,6 +1362,16 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("SyncedRecordCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("UnaccountedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("UnchangedCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
@@ -1902,25 +1797,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("Company");
                 });
 
-            modelBuilder.Entity("CargoPilot.Domain.Entities.ErpUserMapping", b =>
-                {
-                    b.HasOne("CargoPilot.Domain.Entities.AppUser", "CargoPilotUser")
-                        .WithMany()
-                        .HasForeignKey("CargoPilotUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CargoPilot.Domain.Entities.Integration", "Integration")
-                        .WithMany("ErpUserMappings")
-                        .HasForeignKey("IntegrationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CargoPilotUser");
-
-                    b.Navigation("Integration");
-                });
-
             modelBuilder.Entity("CargoPilot.Domain.Entities.Integration", b =>
                 {
                     b.HasOne("CargoPilot.Domain.Entities.Company", "Company")
@@ -2079,24 +1955,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CargoPilot.Domain.Entities.PendingItemMapping", b =>
-                {
-                    b.HasOne("CargoPilot.Domain.Entities.Item", "CargoPilotItem")
-                        .WithMany()
-                        .HasForeignKey("CargoPilotItemId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CargoPilot.Domain.Entities.Integration", "Integration")
-                        .WithMany()
-                        .HasForeignKey("IntegrationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CargoPilotItem");
-
-                    b.Navigation("Integration");
-                });
-
             modelBuilder.Entity("CargoPilot.Domain.Entities.ShareLink", b =>
                 {
                     b.HasOne("CargoPilot.Domain.Entities.LoadingPlan", "Plan")
@@ -2209,8 +2067,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CargoPilot.Domain.Entities.Integration", b =>
                 {
-                    b.Navigation("ErpUserMappings");
-
                     b.Navigation("SyncLogs");
                 });
 #pragma warning restore 612, 618

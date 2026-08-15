@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpDown,
-  Box,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Cylinder,
   Download,
   Droplets,
   Flame,
   FlaskConical,
   Layers,
-  Package,
   Plus,
   RotateCcw,
   SlidersHorizontal,
@@ -24,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ErpProviderMark } from '@/components/shared/ErpProviderMark';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -41,6 +39,8 @@ import { useDeleteItem, useItems, fetchAllItems } from '@/lib/api/useItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { Item } from '@/lib/types/item';
 import { calcVolume } from '@/lib/utils/geometry/calcVolume';
+import { DIMENSION_LABEL } from '@/lib/config/erpTerms';
+import { PRODUCT_TYPE_DISPLAY } from '@/lib/config/productTypeDisplay';
 import {
   formatDimensionDisplay,
   formatVolumeDisplay,
@@ -51,11 +51,7 @@ import { BulkImportDialog } from '@/features/data-management/imports/components/
 import { ConstraintIcons } from './ConstraintIcons';
 import { SearchInput } from '@/components/shared/SearchInput';
 
-const PRODUCT_TYPE_ICON = {
-  koli: { Icon: Box, label: 'Koli' },
-  varil: { Icon: Cylinder, label: 'Varil' },
-  palet: { Icon: Package, label: 'Paletli Ürün' },
-} as const;
+const PRODUCT_TYPE_ICON = PRODUCT_TYPE_DISPLAY;
 
 // ─── Constraint filter types ──────────────────────────────────────────────────
 
@@ -67,7 +63,6 @@ type ConstraintFilter =
   | 'food'
   | 'dry'
   | 'chemical'
-  | 'organic'
   | 'stackable'
   | 'rotationLocked';
 
@@ -79,7 +74,6 @@ const FRAGILITY_FILTER_VALUE: Partial<Record<ConstraintFilter, number>> = {
   food: 7,
   dry: 8,
   chemical: 9,
-  organic: 10,
 };
 
 import type { LucideIcon } from 'lucide-react';
@@ -91,7 +85,7 @@ const CONSTRAINT_FILTER_OPTIONS: {
   className: string;
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
-  { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
+  { value: 'liquid', label: 'Sıvı', Icon: Droplets, className: 'text-blue-600' },
   { value: 'corrosive', label: 'Aşındırıcı', Icon: Flame, className: 'text-orange-600' },
   { value: 'odor', label: 'Kokuya Hassas', Icon: Wind, className: 'text-green-600' },
   { value: 'food', label: 'Gıda Teması', Icon: Utensils, className: 'text-green-600' },
@@ -244,13 +238,7 @@ function ProductRow({ item, searchTerm, onRowClick, onDelete }: ProductRowProps)
     <TableRow className="h-12 cursor-pointer" onClick={() => onRowClick?.(item)}>
       <TableCell className={cn(cell, 'max-w-[176px]')}>
         <div className="flex items-center gap-1.5 min-w-0">
-          {item.erpProviderName?.toLowerCase().includes('logo') && (
-            <img
-              src="/icons/erp-logo.png"
-              alt="Logo"
-              className="h-6 w-auto shrink-0 object-contain"
-            />
-          )}
+          <ErpProviderMark systemName={item.erpProviderName} />
           <span className="block truncate text-xs text-muted-foreground" title={item.name}>
             <HighlightText text={item.name} query={searchTerm} />
           </span>
@@ -744,13 +732,13 @@ export function ProductTable({ onRowClick, onCreateClick }: ProductTableProps) {
                   SKU
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk/Çap (X)
+                  {DIMENSION_LABEL.width}
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik (Y)
+                  {DIMENSION_LABEL.height}
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik (Z)
+                  {DIMENSION_LABEL.length}
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Hacim (m³)

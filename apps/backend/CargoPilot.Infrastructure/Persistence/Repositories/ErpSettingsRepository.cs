@@ -15,6 +15,8 @@ internal sealed class ErpSettingsRepository : IErpSettingsRepository
 
     public void Add(ErpSettings settings) => _context.ErpSettings.Add(settings);
 
+    public void Remove(ErpSettings settings) => _context.ErpSettings.Remove(settings);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
 }
