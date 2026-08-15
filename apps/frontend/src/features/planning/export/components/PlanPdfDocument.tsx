@@ -334,7 +334,7 @@ export function PlanPdfDocument({
   const fillRate = (() => {
     if (!vehicle) return 0;
     const vehicleVolume = vehicle.width * vehicle.height * vehicle.length;
-    const placedVolume = placements.reduce((sum, p) => sum + p.width * p.height * p.depth, 0);
+    const placedVolume = placements.reduce((sum, p) => sum + p.width * p.height * p.length, 0);
     return vehicleVolume > 0 ? (placedVolume / vehicleVolume) * 100 : 0;
   })();
 
@@ -358,7 +358,7 @@ export function PlanPdfDocument({
         count: 1,
         weight: item?.weight ?? 0,
         violations: p.isViolation ? 1 : 0,
-        dims: `${p.width}×${p.height}×${p.depth}`,
+        dims: `${p.width}×${p.height}×${p.length}`,
       });
     }
     return acc;

@@ -87,7 +87,7 @@ internal sealed record SnapshotPlacement(
     decimal Z,
     decimal Width,
     decimal Height,
-    decimal Depth,
+    decimal Length,
     string Rotation,
     decimal Weight)
 {
@@ -100,7 +100,7 @@ internal sealed record SnapshotPlacement(
             placement.Z,
             placement.Width,
             placement.Height,
-            placement.Depth,
+            placement.Length,
             placement.Rotation.ToString(),
             placement.Weight);
 }

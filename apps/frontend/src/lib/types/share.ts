@@ -57,7 +57,7 @@ export const sharePlanSchema = z.object({
         positionZ: z.number(),
         width: z.number(),
         height: z.number(),
-        depth: z.number(),
+        length: z.number(),
         orientationIndex: z.number().int().min(0).max(5),
         layer: z.number().int().min(0),
         isViolation: z.boolean(),

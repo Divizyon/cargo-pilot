@@ -63,7 +63,7 @@ export function allowedOrientations(item: RotateConstraints): OrientationIndex[]
 export interface RotatedDimensions {
   width: number;
   height: number;
-  depth: number;
+  length: number;
 }
 
 // Rotasyon sonrası kutunun world eksenlerinde kapladığı boyut.
@@ -71,19 +71,19 @@ export interface RotatedDimensions {
 export function rotatedDimensions(
   baseWidth: number,
   baseHeight: number,
-  baseDepth: number,
+  baseLength: number,
   idx: OrientationIndex,
 ): RotatedDimensions {
   switch (idx) {
     case 0:
     case 1:
-      return { width: baseWidth, height: baseHeight, depth: baseDepth };
+      return { width: baseWidth, height: baseHeight, length: baseLength };
     case 2:
     case 3:
-      return { width: baseWidth, height: baseDepth, depth: baseHeight };
+      return { width: baseWidth, height: baseLength, length: baseHeight };
     case 4:
     case 5:
-      return { width: baseHeight, height: baseWidth, depth: baseDepth };
+      return { width: baseHeight, height: baseWidth, length: baseLength };
   }
 }
 

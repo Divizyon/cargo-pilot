@@ -61,7 +61,7 @@ export function useLoadingAnimation(
   setPosition: (globalIdx: number, x: number, y: number, z: number) => void,
   onFrameUpdate: () => void,
   /** Araç Z derinliği (cm) — kapı Z konumu için */
-  vehicleDepth?: number,
+  vehicleLength?: number,
   /** Araç X genişliği (cm) — kapı merkezi için */
   vehicleWidth?: number,
   /** Araç Y yüksekliği (cm) — üst kapı için */
@@ -87,7 +87,7 @@ export function useLoadingAnimation(
 
     const { staggerMs, flightMs } = computeScheduleParams(loadOrder.length);
 
-    const depth = vehicleDepth ?? 0;
+    const length = vehicleLength ?? 0;
     const width = vehicleWidth ?? 0;
     const height = vehicleHeight ?? 0;
     const OFFSET = SCENE.ANIM_DOOR_OFFSET_CM;
@@ -99,7 +99,7 @@ export function useLoadingAnimation(
 
       const cx = p.positionX + p.width / 2;
       const cy = p.positionY + p.height / 2;
-      const cz = p.positionZ + p.depth / 2;
+      const cz = p.positionZ + p.length / 2;
 
       // Her kutu kapı ekseninde dışarıdan başlar, diğer eksenlerde hedef pozisyonunda.
       // Böylece kutular kapı açıklığından düz çizgi halinde içeri kayar.
@@ -126,7 +126,7 @@ export function useLoadingAnimation(
           // uzak yüzdür (TIR'da kabin ucu), oradan giriş fiziksel olarak imkânsız.
           fromX = cx;
           fromY = cy;
-          fromZ = depth + OFFSET;
+          fromZ = length + OFFSET;
       }
 
       schedule.set(globalIdx, {
@@ -143,7 +143,7 @@ export function useLoadingAnimation(
     animationMode,
     loadOrder,
     placements,
-    vehicleDepth,
+    vehicleLength,
     vehicleWidth,
     vehicleHeight,
     doorDirection,
@@ -159,7 +159,7 @@ export function useLoadingAnimation(
           globalIdx,
           p.positionX + p.width / 2,
           p.positionY + p.height / 2,
-          p.positionZ + p.depth / 2,
+          p.positionZ + p.length / 2,
         );
       });
       onFrameUpdate();

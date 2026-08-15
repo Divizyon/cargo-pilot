@@ -21,11 +21,11 @@ const UV_SCALE = 0.008;
 function DoorPanel({
   width,
   height,
-  depth = 0.1,
+  length = 0.1,
 }: {
   width: number;
   height: number;
-  depth?: number;
+  length?: number;
 }) {
   const [normalMap, roughnessMap, aoMap] = useTexture([normalUrl, roughnessUrl, aoUrl]);
 
@@ -40,7 +40,7 @@ function DoorPanel({
 
   return (
     <mesh position={[width / 2, height / 2, 0]}>
-      <boxGeometry args={[width, height, depth]} />
+      <boxGeometry args={[width, height, length]} />
       <meshStandardMaterial
         normalMap={normalMap}
         roughnessMap={roughnessMap}

@@ -85,19 +85,19 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
             foreach (var (ex, ey, ez) in extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x))
             {
-                foreach (var (w, h, d, rotation) in PlacementValidator.GetOrientations(item))
+                foreach (var (width, height, length, rotation) in PlacementValidator.GetOrientations(item))
                 {
-                    if (ex + w > input.VehicleWidth)  continue;
-                    if (ey + h > input.VehicleHeight) continue;
-                    if (ez + d > input.VehicleLength) continue;
+                    if (ex + width > input.VehicleWidth)  continue;
+                    if (ey + height > input.VehicleHeight) continue;
+                    if (ez + length > input.VehicleLength) continue;
 
-                    if (PlacementValidator.HasOverlap(placements, ex, ey, ez, w, h, d)) continue;
-                    if (!PlacementValidator.HasSupport(placements, ex, ey, ez, w, d))   continue;
-                    if (PlacementValidator.ViolatesStackability(placements, ex, ey, ez, w, d,
+                    if (PlacementValidator.HasOverlap(placements, ex, ey, ez, width, height, length)) continue;
+                    if (!PlacementValidator.HasSupport(placements, ex, ey, ez, width, length))   continue;
+                    if (PlacementValidator.ViolatesStackability(placements, ex, ey, ez, width, length,
                         input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
-                    if (PlacementValidator.ViolatesStackCount(placements, ex, ey, ez, w, d)) continue;
-                    if (PlacementValidator.ViolatesStackWeight(placements, ex, ey, ez, w, d, item.Weight)) continue;
-                    if (PlacementValidator.ViolatesFragility(placements, ex, ey, ez, w, d))
+                    if (PlacementValidator.ViolatesStackCount(placements, ex, ey, ez, width, length)) continue;
+                    if (PlacementValidator.ViolatesStackWeight(placements, ex, ey, ez, width, length, item.Weight)) continue;
+                    if (PlacementValidator.ViolatesFragility(placements, ex, ey, ez, width, length))
                     {
                         blockedByFragility = true;
                         continue;
@@ -106,7 +106,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     var score = ComputeScore(
                         input.Criteria,
                         useVolume, useWeightBalance,
-                        ex, ey, ez, w, d,
+                        ex, ey, ez, width, length,
                         item.Weight, totalWeight,
                         momentX, momentZ,
                         halfW, halfL,
@@ -115,7 +115,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     if (score < bestScore)
                     {
                         bestScore = score;
-                        best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.FragilityType, item.UnloadingOrder);
+                        best = new PlacedBox(item.ItemId, ex, ey, ez, width, height, length, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.FragilityType, item.UnloadingOrder);
                     }
                 }
             }
@@ -132,12 +132,12 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
             placements.Add(best);
             totalWeight += best.Weight;
-            momentX += best.Weight * (best.X + best.W / 2m);
-            momentZ += best.Weight * (best.Z + best.D / 2m);
+            momentX += best.Weight * (best.X + best.Width / 2m);
+            momentZ += best.Weight * (best.Z + best.Length / 2m);
 
-            extremePoints.Add((best.X + best.W, best.Y, best.Z));
-            extremePoints.Add((best.X, best.Y + best.H, best.Z));
-            extremePoints.Add((best.X, best.Y, best.Z + best.D));
+            extremePoints.Add((best.X + best.Width, best.Y, best.Z));
+            extremePoints.Add((best.X, best.Y + best.Height, best.Z));
+            extremePoints.Add((best.X, best.Y, best.Z + best.Length));
 
             extremePoints.RemoveWhere(p =>
                 p.x >= input.VehicleWidth  ||
@@ -159,16 +159,16 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         totalWeight = placements.Sum(p => p.Weight);
 
         var vehicleVolume = input.VehicleWidth * input.VehicleHeight * input.VehicleLength;
-        var placedVolume  = placements.Sum(p => p.W * p.H * p.D);
+        var placedVolume  = placements.Sum(p => p.Width * p.Height * p.Length);
         var fillRate      = vehicleVolume > 0 ? placedVolume / vehicleVolume : 0m;
 
         decimal? cogX = null, cogY = null, cogZ = null;
         decimal? balanceOffsetX = null, balanceOffsetZ = null;
         if (totalWeight > 0)
         {
-            cogX = placements.Sum(p => p.Weight * (p.X + p.W / 2)) / totalWeight;
-            cogY = placements.Sum(p => p.Weight * (p.Y + p.H / 2)) / totalWeight;
-            cogZ = placements.Sum(p => p.Weight * (p.Z + p.D / 2)) / totalWeight;
+            cogX = placements.Sum(p => p.Weight * (p.X + p.Width / 2)) / totalWeight;
+            cogY = placements.Sum(p => p.Weight * (p.Y + p.Height / 2)) / totalWeight;
+            cogZ = placements.Sum(p => p.Weight * (p.Z + p.Length / 2)) / totalWeight;
 
             if (halfW > 0)
                 balanceOffsetX = Math.Round(Math.Abs(cogX.Value - halfW) / halfW * 100, 1);
@@ -177,7 +177,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         }
 
         var placedResults = placements
-            .Select(p => new PlacedItemResult(Guid.NewGuid(), p.ItemId, p.X, p.Y, p.Z, p.W, p.H, p.D, p.Rotation, p.Weight))
+            .Select(p => new PlacedItemResult(Guid.NewGuid(), p.ItemId, p.X, p.Y, p.Z, p.Width, p.Height, p.Length, p.Rotation, p.Weight))
             .ToList();
 
         var unplacedResults = unplaced
@@ -211,7 +211,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         LoadingPlanOptimizationCriteria criteria,
         bool useVolume, bool useWeightBalance,
         decimal ex, decimal ey, decimal ez,
-        decimal w,  decimal d,
+        decimal width,  decimal length,
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL,
@@ -221,20 +221,20 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // her zaman baskın tercihtir.
         var gravityTerm = ey * GravityCoefficient;
 
-        var depthTerm = VolumeScoring.DepthTerm(useVolume, ez);
+        var lengthTerm = VolumeScoring.LengthTerm(useVolume, ez);
 
         var balanceTerm = BalanceScoring.Term(
             useWeightBalance,
             criteria,
-            ex, ez, w, d,
+            ex, ez, width, length,
             itemWeight, totalWeight,
             momentX, momentZ,
             halfW, halfL);
 
         var widthTerm = VolumeScoring.WidthTerm(useVolume, ex);
 
-        var zoneTerm = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, d);
+        var zoneTerm = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, length);
 
-        return gravityTerm + depthTerm + balanceTerm + widthTerm + zoneTerm;
+        return gravityTerm + lengthTerm + balanceTerm + widthTerm + zoneTerm;
     }
 }

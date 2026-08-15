@@ -5,7 +5,7 @@ namespace CargoPilot.Application.Common.Optimization;
 internal sealed record PlacedBox(
     Guid ItemId,
     decimal X, decimal Y, decimal Z,
-    decimal W, decimal H, decimal D,
+    decimal Width, decimal Height, decimal Length,
     LoadingPlanPlacementRotation Rotation,
     decimal Weight,
     bool IsStackable,

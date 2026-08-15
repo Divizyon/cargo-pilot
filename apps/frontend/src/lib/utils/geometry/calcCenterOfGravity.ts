@@ -6,7 +6,7 @@ export interface CogInput {
   positionZ: number;
   width: number;
   height: number;
-  depth: number;
+  length: number;
   weight: number;
 }
 
@@ -63,7 +63,7 @@ export function calcCenterOfGravity(inputs: CogInput[]): CogResult | null {
     totalWeight += w;
     sumX += (p.positionX + p.width / 2) * w;
     sumY += (p.positionY + p.height / 2) * w;
-    sumZ += (p.positionZ + p.depth / 2) * w;
+    sumZ += (p.positionZ + p.length / 2) * w;
   }
 
   if (totalWeight === 0) return null;
@@ -90,7 +90,7 @@ export function buildCogInputs(
     positionZ: p.positionZ,
     width: p.width,
     height: p.height,
-    depth: p.depth,
+    length: p.length,
     weight: weightByItemId[p.itemId] ?? 0,
   }));
 }

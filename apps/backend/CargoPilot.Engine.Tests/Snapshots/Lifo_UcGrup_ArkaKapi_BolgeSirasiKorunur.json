@@ -73,7 +73,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -85,7 +85,7 @@
         "Z": 40,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -97,7 +97,7 @@
         "Z": 100,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -109,7 +109,7 @@
         "Z": 140,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -121,7 +121,7 @@
         "Z": 200,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -133,7 +133,7 @@
         "Z": 240,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       }

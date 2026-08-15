@@ -13,7 +13,7 @@ function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): Placem
     isViolation: false,
     width: 50,
     height: 50,
-    depth: 50,
+    length: 50,
     weight: 10,
     ...overrides,
   };

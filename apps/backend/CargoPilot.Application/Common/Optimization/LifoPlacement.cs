@@ -80,13 +80,13 @@ internal static class LifoPlacement
     /// Aday pozisyonun kendi grubuna ayrılmış bölgeden taşma cezası. Bölge
     /// tanımlı değilse ceza yoktur; taşma iki uçta ayrı ayrı ölçülür.
     /// </summary>
-    internal static decimal ZonePenalty(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal d)
+    internal static decimal ZonePenalty(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal length)
     {
         var zonePenalty = 0m;
         if (zoneStart.HasValue && zoneEnd.HasValue)
         {
             var overLeft  = Math.Max(0m, zoneStart.Value - ez);
-            var overRight = Math.Max(0m, (ez + d) - zoneEnd.Value);
+            var overRight = Math.Max(0m, (ez + length) - zoneEnd.Value);
             zonePenalty = (overLeft + overRight) * 2_000m;
         }
 

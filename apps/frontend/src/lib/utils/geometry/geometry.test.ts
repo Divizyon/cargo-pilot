@@ -8,7 +8,7 @@ function box(
   positionZ: number,
   width: number,
   height: number,
-  depth: number,
+  length: number,
 ): PlacementWithDimensions {
   return {
     itemId: '00000000-0000-0000-0000-000000000001',
@@ -17,7 +17,7 @@ function box(
     positionZ,
     width,
     height,
-    depth,
+    length,
     orientationIndex: 0,
     layer: 1,
     isViolation: false,

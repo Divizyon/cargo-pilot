@@ -46,9 +46,9 @@ public sealed class GroupZoneTests
             var zoneEnd = VehicleLength - (unloadingOrder - 1) * ZoneSize;
             var placement = SinglePlacement(result, itemId);
 
-            Assert.True(placement.Z >= zoneStart && placement.Z + placement.Depth <= zoneEnd,
+            Assert.True(placement.Z >= zoneStart && placement.Z + placement.Length <= zoneEnd,
                 $"unloadingOrder={unloadingOrder} bolgesi [{zoneStart},{zoneEnd}] disinda: " +
-                $"Z={placement.Z}, derinlik={placement.Depth}");
+                $"Z={placement.Z}, uzunluk={placement.Length}");
         }
     }
 

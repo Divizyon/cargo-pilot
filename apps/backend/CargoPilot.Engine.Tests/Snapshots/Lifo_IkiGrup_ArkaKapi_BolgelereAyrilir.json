@@ -58,7 +58,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 50,
+        "Length": 50,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -70,7 +70,7 @@
         "Z": 50,
         "Width": 100,
         "Height": 100,
-        "Depth": 50,
+        "Length": 50,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -82,7 +82,7 @@
         "Z": 150,
         "Width": 100,
         "Height": 100,
-        "Depth": 50,
+        "Length": 50,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -94,7 +94,7 @@
         "Z": 100,
         "Width": 100,
         "Height": 100,
-        "Depth": 50,
+        "Length": 50,
         "Rotation": "NoRotation",
         "Weight": 100
       }
