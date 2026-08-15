@@ -122,9 +122,12 @@ public sealed class ModulBayraklariTests
             GoldenMaster.Serialize(scenario, lifoOff, disabled));
 
         Assert.Equal(enabled.Placements.Count, disabled.Placements.Count);
+        // Bölge ayrımı açıkken gruplar araç boyunca dağılır ve yükün bir ucu kapıya
+        // (z = length) kadar uzanır. Ceza kalkınca kutular uzak yüzde (z = 0)
+        // sıkışır, dolayısıyla en büyük Z küçülür.
         Assert.True(
             disabled.Placements.Max(p => p.Z) < enabled.Placements.Max(p => p.Z),
-            $"Bölge cezası kalkınca yük kapıya yaklaşmalıydı: açık={enabled.Placements.Max(p => p.Z)}, kapalı={disabled.Placements.Max(p => p.Z)}");
+            $"Bölge cezası kalkınca yük uzak yüzde toplanmalıydı: açık={enabled.Placements.Max(p => p.Z)}, kapalı={disabled.Placements.Max(p => p.Z)}");
     }
 
     private static decimal TotalBalanceOffset(OptimizationResult result)

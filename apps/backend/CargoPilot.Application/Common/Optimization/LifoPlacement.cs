@@ -22,25 +22,27 @@ namespace CargoPilot.Application.Common.Optimization;
 internal static class LifoPlacement
 {
     /// <summary>
-    /// Yükleme sırası karşılaştırması. Yüksek UnloadingOrder = önce yüklenir =
-    /// araç arkası (kapıdan en uzak bölge).
+    /// Yükleme sırası karşılaştırması. Yüksek UnloadingOrder = en son inecek grup =
+    /// önce yüklenir = uzak yüz (z = 0) tarafı.
     ///
     /// Aynı yön semantiğini paylaşan üç nokta:
     /// (1) OptimizationEngine.SortForGroupPlacement — grup sıralaması (DESC),
-    /// (2) <see cref="ComputeGroupZones"/> — bölge sıralaması (ASC sıra, ilk inen kapıya en yakın),
+    /// (2) <see cref="ComputeGroupZones"/> — bölge sıralaması (ilk inen kapıya en yakın),
     /// (3) PlacementValidator.ViolatesStackability — dikey istif kuralı.
     /// </summary>
     internal static int CompareUnloadingOrder(int a, int b) => a.CompareTo(b);
 
     // ── Grup zone hesaplama ───────────────────────────────────────────────────
-    // Arka kapı Z=0'dadır. UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya
-    // en yakın (en küçük Z) bölgeye düşer. Distinct UnloadingOrder değerleri ASC
-    // sıralanır ve kamyon uzunluğu eşit bölümlere ayrılır; sıradaki her grup bir
-    // sonraki bölgeye, yani kapıdan daha uzağa yerleşir. 0-1 grup varsa zone
-    // uygulanmaz.
+    // Referans kapı z = length'tedir (docs/COORDINATE_STANDARD.md §2-3).
+    // UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya en yakın (en büyük Z)
+    // bölgeye düşer. Distinct UnloadingOrder değerleri ASC sıralanır, kamyon
+    // uzunluğu eşit bölümlere ayrılır ve bölgeler kapıdan geriye doğru dağıtılır;
+    // sıradaki her grup uzak yüze (z = 0) bir adım daha yaklaşır. 0-1 grup varsa
+    // zone uygulanmaz.
     //
-    // Buradaki ASC sıra, SortForGroupPlacement'taki DESC grup sırasının ayna
-    // görüntüsüdür: en son inecek grup önce yüklenir ve en uzak bölgeye düşer.
+    // Bu dağıtım, SortForGroupPlacement'taki DESC grup sırasının ayna görüntüsüdür:
+    // en son inecek grup önce yüklenir ve uzak yüzdeki (z = 0) bölgeye düşer —
+    // yükleme yönü de z = 0'dan kapıya doğrudur.
     internal static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
@@ -66,8 +68,10 @@ internal static class LifoPlacement
         var zoneSize = vehicleLength / orders.Count;
         var zones = new Dictionary<int, (decimal ZStart, decimal ZEnd)>();
 
+        // i = 0 (ilk inecek grup) kapı ucundaki bölgeyi alır; indeks büyüdükçe
+        // bölge uzak yüze kayar.
         for (int i = 0; i < orders.Count; i++)
-            zones[orders[i]] = (i * zoneSize, (i + 1) * zoneSize);
+            zones[orders[i]] = (vehicleLength - (i + 1) * zoneSize, vehicleLength - i * zoneSize);
 
         return zones;
     }

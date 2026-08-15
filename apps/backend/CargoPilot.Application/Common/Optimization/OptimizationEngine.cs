@@ -49,9 +49,9 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, modules.UseLifo);
 
         // LIFO bölgeleri de aynı nedenle tohumlanır: aday noktalar yalnızca
-        // yerleştirilmiş kutulara komşu doğduğu için ilk yüklenen grup her zaman
-        // Z=0'a, yani kapının önüne düşüyordu. Her bölgenin başlangıcı aday
-        // yapılınca grup kendi bölgesinden başlayarak dolar.
+        // yerleştirilmiş kutulara komşu doğduğu için her grup Z=0'a, yani uzak
+        // yüze yığılıyordu. Her bölgenin başlangıcı aday yapılınca grup kendi
+        // bölgesinden başlayarak dolar.
         foreach (var zoneStart in groupZones.Values.Select(z => z.ZStart).Where(z => z > 0m))
             extremePoints.Add((0m, 0m, zoneStart));
 
