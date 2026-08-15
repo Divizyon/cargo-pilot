@@ -55,7 +55,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 | `CONTRIBUTING.md` | 63 | Katkı rehberi: kurulum, üç dallı branch modeli, commit kuralları, kod standartları, PR süreci (**zorunlu review yok** — CI kapıları geçen PR merge edilebilir; UI ekran görüntüsü zorunlu), yeni doküman eklerken güncellenecek dosyalar | Repoya ilk katkıdan önce |
 | `SUMMARY.md` | 55 | GitBook içindekiler tablosu. Bölümler: Başlangıç (3), Geliştirme Kuralları (4), DevOps (10), Backend (7), Proje Bağlamı (5), Arşiv (5) | Yeni doküman eklerken (buraya da satır eklenmeli) |
 | `CLAUDE.md` | 147 | **Frontend** geliştirme kuralları (AI asistan talimatı). Kapsam, stack, sınırlar, veri kuralları, 3D invariant'ları, kalite kapıları; Git konusunda `docs/conventions/`e yönlendirir | Frontend'e kod yazmadan önce |
-| `devops-audit-raporu.md` | 497 | **DevOps denetim raporu (2026-08-13)** — 7 paralel ajanla yapılan denetim; sağlık skoru, rollback/tedarik zinciri/güvenlik görünürlüğü bulguları, öncelik matrisi, "denetim anı → bugünkü durum" karşılaştırması | DevOps risk ve öncelik sorularında — en güncel denetim |
+| `devops-audit-raporu.md` | 522 | **DevOps denetim raporu (2026-08-13)** — 7 paralel ajanla yapılan denetim; sağlık skoru, rollback/tedarik zinciri/güvenlik görünürlüğü bulguları, öncelik matrisi, "denetim anı → bugünkü durum" karşılaştırması | DevOps risk ve öncelik sorularında — en güncel denetim |
 
 ## .github
 
