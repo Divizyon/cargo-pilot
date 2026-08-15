@@ -48,7 +48,7 @@ export const ITEM_SHEET_HEADER = {
   productType: 'Tip (koli/varil/palet)',
   width: 'Genişlik(cm)',
   height: 'Yükseklik(cm)',
-  length: 'Derinlik(cm)',
+  length: 'Uzunluk(cm)',
   weight: 'Ağırlık(kg)',
   constraints: `Yük Kısıtları (${FRAGILITY_HEADER_LEGEND})`,
   loadGroups: `Yük Grubu (${LOAD_GROUPS.join('/')})`,

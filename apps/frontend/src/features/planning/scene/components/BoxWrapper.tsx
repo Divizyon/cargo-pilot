@@ -89,7 +89,7 @@ function PaletContent({
   const xUnit = width / 23;
   const slatW = 3 * xUnit;
 
-  // Derinlik: 3 stringer
+  // Uzunluk ekseni: 3 stringer
   const yUnit = length / 3.5;
   const crossD = 0.5 * yUnit;
 
