@@ -21,7 +21,7 @@ export const INCOMPATIBLE_BY_GROUP: Record<string, string[]> = {
   Genel: ['Tehlikeli Madde'],
 };
 
-const PALLET_HEIGHT_CM = 14;
+export const PALLET_HEIGHT_CM = 14;
 
 export const ITEM_CATEGORY = {
   Package: 0,
@@ -58,7 +58,6 @@ export interface CreateItemRequest {
   maxStackCount: number;
   maxWeightOnTop: number;
   allowedRotations: AllowedRotationsValue;
-  imageUrl?: string | null;
   stackGroup?: string | null;
   specialNotes?: string | null;
   constraintIds?: number[];
@@ -121,7 +120,6 @@ export const itemApiSchema = z.object({
   barcode: z.string().nullable().optional(),
   diameter: z.number().nullable().optional(),
   maxWeightOnTop: z.number().nullable().optional(),
-  imageUrl: z.string().nullable().optional(),
   stackGroup: z.string().nullable().optional(),
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()).optional(),
@@ -169,6 +167,8 @@ export function fromAllowedRotations(v: number): {
       return { allowRotateX: true, allowRotateY: false, allowRotateZ: false };
     case ALLOWED_ROTATIONS.RollOnly:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: true };
+    case ALLOWED_ROTATIONS.AllLocked:
+      return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
     default:
       return { allowRotateX: false, allowRotateY: false, allowRotateZ: false };
   }

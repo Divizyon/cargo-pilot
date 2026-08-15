@@ -21,6 +21,8 @@ public sealed record PlanDetailDto(
     decimal? WeightBalanceOffsetZ,
     DateTime CreatedAtUtc,
     ErpExportStatus? ErpExportStatus,
+    // Son ERP aktarim denemesinin hata nedeni; basarili ya da hic denenmemis aktarimda null.
+    string? ErpExportMessage,
     string? ThumbnailUrl,
     VehicleInPlanDto Vehicle,
     IReadOnlyList<PlacementDto> Placements,

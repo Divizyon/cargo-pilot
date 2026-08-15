@@ -21,7 +21,6 @@ public sealed record UpdateItemCommand(
     int MaxStackCount,
     decimal MaxWeightOnTop,
     AllowedRotations AllowedRotations,
-    string? ImageUrl,
     string? StackGroup,
     string[]? IncompatibleGroups,
     string? SpecialNotes,

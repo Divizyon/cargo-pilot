@@ -31,12 +31,6 @@ internal sealed class GetErpSettingsQueryHandler : IRequestHandler<GetErpSetting
             return Result<ErpSettingsResponse>.Failure(
                 new Error(ErrorType.NotFound, "ErpSettings.NotFound", "ERP bağlantı ayarları bulunamadı."));
 
-        return Result<ErpSettingsResponse>.Success(new ErpSettingsResponse(
-            settings.Id,
-            settings.ProviderType,
-            settings.CompanyCode,
-            settings.Username,
-            settings.ServerAddress,
-            !string.IsNullOrEmpty(settings.PasswordEncrypted)));
+        return Result<ErpSettingsResponse>.Success(ErpSettingsResponse.FromEntity(settings));
     }
 }

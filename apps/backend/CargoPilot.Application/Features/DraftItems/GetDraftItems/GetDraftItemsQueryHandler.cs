@@ -1,6 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Enums;
 using MediatR;
 
 namespace CargoPilot.Application.Features.DraftItems.GetDraftItems;
@@ -27,8 +28,14 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
         if (companyId is null)
             return Result<GetDraftItemsResult>.Failure(new Error(ErrorType.Unauthorized, "Auth.Unauthorized", "Yetkisiz erişim."));
 
-        var (items, totalCount) = await _draftItemRepository.ListByCompanyAsync(
-            companyId.Value, request.Status, request.Page, request.PageSize, cancellationToken);
+        var (items, totalCount, availableCategories) = await _draftItemRepository.ListByCompanyAsync(
+            companyId.Value,
+            ResolveStatuses(request.Status),
+            request.Search,
+            request.Categories,
+            request.Page,
+            request.PageSize,
+            cancellationToken);
 
         var integrations = await _integrationRepository.ListByCompanyAsync(companyId.Value, cancellationToken);
         var integrationNames = integrations.ToDictionary(i => i.Id, i => i.SystemName);
@@ -52,14 +59,26 @@ public sealed class GetDraftItemsQueryHandler : IRequestHandler<GetDraftItemsQue
             x.MaxStackCount,
             x.MaxWeightOnTop,
             x.AllowedRotations,
-            x.ImageUrl,
             x.StackGroup,
             x.SpecialNotes,
             x.GetConstraintIds(),
+            x.GetIncompatibleGroups(),
             x.CreatedAtUtc,
-            integrationNames.GetValueOrDefault(x.IntegrationId)))
+            integrationNames.GetValueOrDefault(x.IntegrationId),
+            x.GetMissingFields()))
             .ToList();
 
-        return Result<GetDraftItemsResult>.Success(new GetDraftItemsResult(dtos, totalCount, request.Page, request.PageSize));
+        return Result<GetDraftItemsResult>.Success(
+            new GetDraftItemsResult(dtos, totalCount, request.Page, request.PageSize, availableCategories));
     }
+
+    /// <summary>
+    /// 'Reddedilenler' gorunumu iki ret bicimini de kapsar: tam ret ve reddedilmis ERP guncellemesi.
+    /// </summary>
+    private static IReadOnlyList<DraftItemStatus>? ResolveStatuses(DraftItemStatus? status) => status switch
+    {
+        null => null,
+        DraftItemStatus.Rejected => [DraftItemStatus.Rejected, DraftItemStatus.UpdateDismissed],
+        _ => [status.Value]
+    };
 }

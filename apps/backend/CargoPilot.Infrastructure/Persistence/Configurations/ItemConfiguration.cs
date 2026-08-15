@@ -82,9 +82,6 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
         builder.Property(item => item.AllowedRotations)
             .IsRequired();
 
-        builder.Property(item => item.ImageUrl)
-            .HasMaxLength(500);
-
         builder.Property(item => item.StackGroup)
             .HasMaxLength(100);
 
@@ -101,10 +98,6 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item> {
             .HasMaxLength(200);
 
         builder.Property(item => item.IntegrationId);
-
-        builder.Property(item => item.IsRuleAssigned)
-            .IsRequired()
-            .HasDefaultValue(true);
 
         builder.HasOne(item => item.Company)
             .WithMany(company => company.Items)

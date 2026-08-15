@@ -230,17 +230,20 @@ public sealed class PlansController : BaseController
     }
 
     /// <summary>
-    /// Hesaplanmış bir yükleme planını onaylar ve ERP aktarımını tetikler.
+    /// Hesaplanmış bir yükleme planını onaylar; ERP aktarımı özellik anahtarı (Erp:ExportEnabled)
+    /// açıksa aktarım kuyruğa alınır, kapalıysa plan ERP durumuna dokunulmaz.
     /// </summary>
     /// <param name="id">Onaylanacak planın ID'si.</param>
     /// <param name="cancellationToken">İptal token'ı.</param>
-    /// <response code="200">Plan onaylandı, ERP aktarımı kuyruğa alındı.</response>
+    /// <response code="200">Plan onaylandı; yanıttaki erpExportQueued alanı aktarımın kuyruğa alınıp alınmadığını bildirir.</response>
     /// <response code="400">Plan hesaplanmış durumda değil.</response>
     /// <response code="404">Plan bulunamadı.</response>
+    /// <response code="422">Plan zaten aktarılmış veya tanımlı ERP bağlantısı yok.</response>
     [HttpPost("{id:guid}/approve")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> ApprovePlan(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)

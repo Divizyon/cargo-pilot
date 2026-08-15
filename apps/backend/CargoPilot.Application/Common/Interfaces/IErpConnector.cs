@@ -9,8 +9,6 @@ public interface IErpConnector
 
     Task<ErpConnectionResult> TestConnectionAsync(
         string serverAddress,
-        string companyCode,
-        string username,
-        string password,
+        ErpCredentials credentials,
         CancellationToken cancellationToken = default);
 }

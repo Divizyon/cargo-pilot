@@ -164,7 +164,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
                 var item = itemMap[r.ItemId];
                 var group = r.GroupId.HasValue && groupMap.TryGetValue(r.GroupId.Value, out var g) ? g : null;
                 return new OptimizationItemInput(
-                    item.Id, item.SKU, item.Name, item.ImageUrl,
+                    item.Id, item.SKU, item.Name,
                     item.Width, item.Height, item.Length, item.Weight,
                     item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
                     item.AllowedRotations, r.Quantity,

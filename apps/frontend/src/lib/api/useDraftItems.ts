@@ -1,20 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { axiosInstance } from './axiosInstance';
+import { getApiErrorMessage, type ApiErrorResponse } from './apiError';
 
 const DRAFT_BASE = '/api/v1/draft-items';
+
+/** Onaylanan taslakların gittiği ekran; toast aksiyonu buraya götürür. */
+const PRODUCTS_ROUTE = '/products';
 
 export const DRAFT_PENDING = 0;
 export const DRAFT_APPROVED = 1;
 export const DRAFT_REJECTED = 2;
 export const DRAFT_UPDATE_PENDING = 3;
-
-interface ApiError {
-  detail?: string;
-  title?: string;
-}
+/** ERP güncellemesi reddedildi; ürün onaylanmış haliyle kalır (backend: UpdateDismissed). */
+export const DRAFT_UPDATE_DISMISSED = 4;
 
 export const draftItemSchema = z.object({
   id: z.string().uuid(),
@@ -35,13 +37,24 @@ export const draftItemSchema = z.object({
   maxStackCount: z.number().int(),
   maxWeightOnTop: z.number(),
   allowedRotations: z.number().int(),
-  imageUrl: z.string().nullable().optional(),
   stackGroup: z.string().nullable().optional(),
   specialNotes: z.string().nullable().optional(),
   constraintIds: z.array(z.number().int()),
+  /** Kullanıcının taslakta seçtiği yük grupları; onayda ürüne birebir taşınır. */
+  incompatibleGroups: z.array(z.string()).default([]),
   createdAtUtc: z.string(),
   integrationSystemName: z.string().nullable().optional(),
+  /** ERP kaynağında boş/sıfır gelen alan adları (backend: DraftItemField). */
+  missingFields: z.array(z.string()).default([]),
 });
+
+/** Backend sözleşmesi: CargoPilot.Domain/Entities/DraftItemField */
+export const DRAFT_FIELD = {
+  Width: 'width',
+  Height: 'height',
+  Length: 'length',
+  Weight: 'weight',
+} as const;
 
 export type DraftItem = z.infer<typeof draftItemSchema>;
 
@@ -52,6 +65,8 @@ const draftItemsPageResponseSchema = z.object({
     totalCount: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
+    /** Tip filtresinin seçenekleri; kategori filtresinden bağımsız, tüm durum kümesinden. */
+    availableCategories: z.array(z.number().int()).default([]),
   }),
 });
 
@@ -59,6 +74,10 @@ export interface DraftItemsParams {
   page: number;
   pageSize: number;
   status?: number;
+  /** Ad, SKU, ERP kimliği ve barkodda aranır; sunucuda uygulanır. */
+  search?: string;
+  /** ItemCategory değerleri; boş bırakılırsa tip filtresi uygulanmaz. */
+  categories?: number[];
 }
 
 export function useDraftItems(params: DraftItemsParams, options?: { enabled?: boolean }) {
@@ -70,10 +89,11 @@ export function useDraftItems(params: DraftItemsParams, options?: { enabled?: bo
       p.set('page', String(params.page));
       p.set('pageSize', String(params.pageSize));
       if (params.status !== undefined) p.set('status', String(params.status));
+      if (params.search) p.set('search', params.search);
+      for (const category of params.categories ?? []) p.append('categories', String(category));
       const { data } = await axiosInstance.get<unknown>(`${DRAFT_BASE}?${p.toString()}`);
-      const parsed = draftItemsPageResponseSchema.safeParse(data);
-      if (!parsed.success) return { items: [], totalCount: 0, page: 1, pageSize: params.pageSize };
-      return parsed.data.data;
+      // Parse/HTTP hatasi yutulmaz; cagiran bilesen isError dalini render eder.
+      return draftItemsPageResponseSchema.parse(data).data;
     },
   });
 }
@@ -92,8 +112,9 @@ export interface UpdateDraftItemPayload {
   maxWeightOnTop?: number;
   allowedRotations?: number;
   barcode?: string | null;
-  imageUrl?: string | null;
   stackGroup?: string | null;
+  /** Zorunlu iş kuralı: boş gönderilen taslak onay adımında reddedilir. */
+  incompatibleGroups?: string[];
   specialNotes?: string | null;
   constraintIds?: number[];
 }
@@ -102,7 +123,7 @@ export function useUpdateDraftItem() {
   const queryClient = useQueryClient();
   return useMutation<
     unknown,
-    AxiosError<ApiError>,
+    AxiosError<ApiErrorResponse>,
     { id: string; payload: UpdateDraftItemPayload }
   >({
     mutationFn: ({ id, payload }) =>
@@ -111,76 +132,131 @@ export function useUpdateDraftItem() {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Taslak ürün güncellenemedi.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Taslak ürün güncellenemedi.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
+const skippedDraftItemSchema = z.object({
+  id: z.string(),
+  sku: z.string().nullable().optional(),
+  reason: z.string(),
+});
+
+/** Backend sözleşmesi: ApproveDraftItemsResult (approved / skipped / skippedItems). */
+export const approveDraftItemsResultSchema = z.object({
+  approved: z.number().int(),
+  skipped: z.number().int(),
+  skippedItems: z.array(skippedDraftItemSchema).default([]),
+});
+
+export type ApproveDraftItemsResult = z.infer<typeof approveDraftItemsResultSchema>;
+
+const approveDraftItemsResponseSchema = z.object({
+  isSuccess: z.boolean(),
+  data: approveDraftItemsResultSchema,
+});
+
+const MAX_SUMMARY_REASONS = 2;
+
+/** Toplu onayın kısmi sonucunu kullanıcı diline çevirir; sayılar backend'den gelir. */
+export function formatApproveSummary(result: ApproveDraftItemsResult): string {
+  if (result.skipped === 0) return `${result.approved} ürün aktarıldı.`;
+  const reasons = Array.from(new Set(result.skippedItems.map((s) => s.reason)))
+    .slice(0, MAX_SUMMARY_REASONS)
+    .join(' · ');
+  const detail = reasons ? ` (${reasons})` : '';
+  return `${result.approved} ürün aktarıldı, ${result.skipped} ürün atlandı${detail}`;
+}
+
 export function useBulkApproveDraftItems() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string[]>({
-    mutationFn: (ids) =>
-      axiosInstance.post(`${DRAFT_BASE}/approve-bulk`, { ids }).then((r) => r.data),
-    onSuccess: (_data, ids) => {
+  const navigate = useNavigate();
+  return useMutation<ApproveDraftItemsResult, AxiosError<ApiErrorResponse>, string[]>({
+    mutationFn: async (ids) => {
+      const { data } = await axiosInstance.post<unknown>(`${DRAFT_BASE}/approve-bulk`, { ids });
+      return approveDraftItemsResponseSchema.parse(data).data;
+    },
+    onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
+      const summary = formatApproveSummary(result);
+      if (result.approved === 0 && result.skipped > 0) {
+        toast.warning(summary, { position: 'bottom-right' });
+        return;
+      }
+      // Aktarılan ürünlerin nereye gittiği toast üzerinden görünür kılınır.
+      toast.success(summary, {
+        position: 'bottom-right',
+        action: { label: 'Ürünlere git', onClick: () => navigate(PRODUCTS_ROUTE) },
+      });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Toplu onaylama başarısız.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Toplu onaylama başarısız.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useRejectDraftItem() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, AxiosError<ApiError>, string>({
+  return useMutation<unknown, AxiosError<ApiErrorResponse>, string>({
     mutationFn: (id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`).then((r) => r.data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       toast.success('Ürün reddedildi.', { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Ürün reddedilemedi.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Ürün reddedilemedi.'), { position: 'bottom-right' });
     },
   });
 }
 
-export function useBulkApproveItemsIndividual() {
+/**
+ * Reddedilen taslağı tekrar karar bekler duruma alır. Ret kalıcı olduğu için
+ * sonraki sync taslağı geri getirmez; geri alma yalnızca bu uçtan yapılır.
+ */
+export function useReinstateDraftItems() {
   const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ApiError>, string[]>({
+  return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: (ids) =>
-      Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/approve`))).then(
+      Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reinstate`))).then(
         () => {},
       ),
     onSuccess: (_data, ids) => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
-      void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success(`${ids.length} ürün onaylandı.`, { position: 'bottom-right' });
+      toast.success(`${ids.length} ürün tekrar beklemeye alındı.`, { position: 'bottom-right' });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Toplu onaylama başarısız.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Tekrar beklemeye alma başarısız.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }
 
 export function useBulkRejectDraftItems() {
   const queryClient = useQueryClient();
-  return useMutation<void, AxiosError<ApiError>, string[]>({
+  const reinstate = useReinstateDraftItems();
+  return useMutation<void, AxiosError<ApiErrorResponse>, string[]>({
     mutationFn: (ids) =>
       Promise.all(ids.map((id) => axiosInstance.post(`${DRAFT_BASE}/${id}/reject`))).then(() => {}),
     onSuccess: (_data, ids) => {
       void queryClient.invalidateQueries({ queryKey: ['draft-items'] });
       void queryClient.invalidateQueries({ queryKey: ['items'] });
-      toast.success(`${ids.length} güncelleme reddedildi.`, { position: 'bottom-right' });
+      toast.success(`${ids.length} ürün reddedildi.`, {
+        position: 'bottom-right',
+        description: 'Reddedilenler sekmesinden geri alabilirsiniz.',
+        action: { label: 'Geri Al', onClick: () => reinstate.mutate(ids) },
+      });
     },
     onError: (error) => {
-      const detail = error.response?.data?.detail;
-      toast.error(detail ?? 'Reddetme işlemi başarısız.', { position: 'bottom-right' });
+      toast.error(getApiErrorMessage(error, 'Reddetme işlemi başarısız.'), {
+        position: 'bottom-right',
+      });
     },
   });
 }

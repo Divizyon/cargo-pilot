@@ -20,6 +20,12 @@ using Prometheus;
 namespace CargoPilot.WebAPI;
 
 public static class DependencyInjection {
+    private static readonly Action<ILogger, string, string, Exception?> _logRateLimitRejected =
+        LoggerMessage.Define<string, string>(
+            LogLevel.Warning,
+            new EventId(1, "RateLimitRejected"),
+            "Hiz siniri asildi: {Path} yolu {ClientAddress} adresinden reddedildi");
+
     private static readonly JsonSerializerOptions _healthJsonOptions = new()
     {
         PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
@@ -37,6 +43,17 @@ public static class DependencyInjection {
 
             options.OnRejected = async (context, ct) =>
             {
+                // Reddedilen istek sessiz kalmamali: hiz siniri asilmasi cogu zaman
+                // otomatik deneme veya tarama girisiminin ilk isaretidir.
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("CargoPilot.RateLimiter");
+                _logRateLimitRejected(
+                    logger,
+                    context.HttpContext.Request.Path,
+                    context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "bilinmiyor",
+                    null);
+
                 context.HttpContext.Response.ContentType = "application/json";
                 await context.HttpContext.Response.WriteAsync(
                     """{"isSuccess":false,"data":null,"error":{"code":"AUTH_RATE_LIMIT_EXCEEDED","description":"Çok fazla istek gönderildi. Lütfen bekleyin."}}""",
@@ -134,6 +151,20 @@ public static class DependencyInjection {
                     _ => new SlidingWindowRateLimiterOptions
                     {
                         PermitLimit       = 20,
+                        Window            = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 2,
+                        QueueLimit        = 0,
+                    }));
+
+            // ERP bağlantı testi: 10 istek / 1 dk / IP.
+            // Uç, istekte verilen adrese dışarı bağlantı açar; sınırsız çağrı hem
+            // müşteri ağına yönelik tarama hem de şifre deneme aracı olurdu.
+            options.AddPolicy("erp-test-connection", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit       = 10,
                         Window            = TimeSpan.FromMinutes(1),
                         SegmentsPerWindow = 2,
                         QueueLimit        = 0,

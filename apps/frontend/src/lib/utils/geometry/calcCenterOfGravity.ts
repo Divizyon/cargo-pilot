@@ -26,9 +26,6 @@ export const COG_THRESHOLDS = {
   KRITIK: 0.15,
 } as const;
 
-/** Backward-compat alias — equals the kritik threshold */
-export const COG_BALANCE_THRESHOLD = COG_THRESHOLDS.KRITIK;
-
 export interface BalanceResult {
   cog: CogResult;
   /** CoG X offset from container center, as fraction of container width (−1..1) */

@@ -49,6 +49,12 @@ if (!useInMemory)
         "notification-cleanup",
         job => job.RunAsync(),
         Cron.Daily);
+
+    // Vadesi gelen ERP entegrasyonlarini tarar; kullanicinin sectigi sync frekansini tuketen tek is budur.
+    RecurringJob.AddOrUpdate<ErpScheduledSyncJob>(
+        "erp-scheduled-sync",
+        job => job.RunAsync(CancellationToken.None),
+        ErpScheduledSyncJob.CronExpression);
 }
 
 await app.RunAsync();
