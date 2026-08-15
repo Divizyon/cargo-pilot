@@ -30,7 +30,7 @@ export const productSchema = z
 
 ## Bağımlı Alan
 
-`fragility>=1` → Z ekseni kilitlenir. `useEffect` değil `onChange` içinde:
+`fragility>=1` → Z (length) ekseni kilitlenir. `useEffect` değil `onChange` içinde:
 
 ```ts
 onValueChange={(value)=>{
@@ -47,3 +47,7 @@ Sayfa yapısı: `UrunYonetimi`, `AracYonetimi` — tablo + filtre + modal form p
 Ürün tipleri: `"Koli"|"Varil"` · Hassasiyet: `"Kırılabilir"|"Sıvı İçerir"|"Ters Çevrilemez"`
 
 Tablo satırı: `bg-white border border-zinc-200 rounded-2xl` · Aksiyon butonları: `ghost` variant.
+
+## Boyut Terimleri
+
+Form/tablo alanlarında `width`/`height`/`length` kullanılır; kullanıcıya gösterilen etiketler Genişlik (X) / Yükseklik (Y) / Uzunluk (Z). "Derinlik" ve "Uzunluk (X)" gibi eski etiketler yasak. Bağlayıcı: `docs/COORDINATE_STANDARD.md`.

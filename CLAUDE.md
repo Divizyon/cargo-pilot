@@ -88,14 +88,26 @@
 
 - Loading-plan correctness is more important than visual flourish.
 - Do not weaken frontend handling of capacity, weight balance, center of gravity, stacking, fragility, rotation limits, layer count, or loading direction.
-- Scene contract: centimeters; X = width, Y = height/up, Z = depth.
-- Backend box positions are bottom-left-rear, not mesh center.
+- Scene contract: centimeters; X = width, Y = height/up, Z = length (far face `z = 0` toward the reference door `z = length`).
+- Backend box positions are the corner nearest the origin (min x, min y, min z), not mesh center.
 - Keep coordinate mapping centralized in `lib/config/scene-config.ts`.
 - Apply pivot offset correctly; do not reimplement mapping ad hoc across components.
 - Use `InstancedMesh` for large box counts instead of one mesh per item.
 - Dispose manually created Three.js resources on cleanup.
 - Use R3F state/events instead of manual DOM mutation or custom Raycaster plumbing unless clearly necessary.
 - Manual 3D edits must preserve the same validation and violation feedback.
+
+## Koordinat Standardı (bağlayıcı)
+
+- Origin: referans kapıdan içeri bakıldığında görülen uzaktaki sol-alt köşe `(0, 0, 0)`; uzak yüz (`z = 0`) üzerindedir.
+- Eksen eşlemesi: `x` = width (kapıdan bakışta sağa artar), `y` = height (zeminden yukarı artar), `z` = length (uzak yüzden referans kapıya doğru artar; kapı yüzü `z = length`).
+- Sistem right-handed'dır ve Three.js/WebGL varsayılanıyla birebir aynıdır; sahnede eksen aynalaması veya gizli telafi dönüşümü (`scale.x = -1`, `rotation.y = Math.PI`, `length - z` vb.) yasaktır.
+- Terim dili: yalnızca `width` / `height` / `length`. `depth`, `derinlik`, `w`, `h`, `d`, `l` kullanılmaz; Türkçe karşılıklar yalnızca son kullanıcıya gösterilen arayüz metninde.
+- Kapı modeli: kapılar `small` / `big` tipinde ve yüz (face) bilgisiyle **liste** olarak modellenir (ör. `{ type: 'small', face: 'z=length' }`); "front/rear kapı" veya "sağ/sol kapı" kavramı yoktur.
+- Kutu pozisyonu (`positionX/Y/Z`) kutunun origin'e en yakın **köşesidir** `(min x, min y, min z)`; mesh merkezi değildir.
+- Yükleme yönü: yükleme referans kapıdan yapılır; `z = 0` tarafındaki kutular önce yerleşir, kapıya en yakın olanlar (`z → length`) en son.
+- Birim santimetredir (`cm`); dönüşüm yalnızca API sınırında yapılır.
+- Çelişki hâlinde docs/COORDINATE_STANDARD.md kazanır.
 
 ## Working Style
 
