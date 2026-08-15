@@ -1,6 +1,6 @@
 # Kod Taraması — Ağustos 2026
 
-**Son güncelleme:** 2026-08-13 · **Durum:** Aktif (tarama tarihi 2026-08-04; sonradan geçersizleşen bulgular yerinde işaretlendi)
+**Son güncelleme:** 2026-08-15 · **Durum:** Aktif (tarama tarihi 2026-08-04; sonradan geçersizleşen bulgular yerinde işaretlendi)
 
 Kod tabanının 6 kategoride taranmasından çıkan gerçek durum: stack, algoritma, devops, veritabanı ve test bulguları.
 
@@ -48,8 +48,51 @@ Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR
 
 ## 4. Algoritma
 
-- **Motor:** `apps/backend/CargoPilot.Application/Common/Optimization/` — **7 dosya** (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`) — tek geçiş greedy **extreme-point + skor (argmin)**; yalnızca `WeightBalance` kriterinde 3 turlu greedy-swap denge iyileştirici. Ön filtre: `ContaminationFilter` (BFS, en yüksek hacimli grup kazanır).
+- **Motor:** `apps/backend/CargoPilot.Application/Common/Optimization/` — **7 dosya / 915 satır**
+  *(ölçüm 2026-08-15, `dev` dalı: `wc -l apps/backend/CargoPilot.Application/Common/Optimization/*.cs`.
+  `fix/OPT-01-denge-takas-destek-dogrulamasi` ve `fix/OPT-02-lifo-bolge-sert-kisiti` dalları henüz
+  `dev`'e alınmadı; onlarla birlikte satır sayısı artacaktır. Birleşik bir durum bugün mevcut değildir.)* (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`) — tek geçiş greedy **extreme-point + skor (argmin)**; yalnızca `WeightBalance` kriterinde 3 turlu greedy-swap denge iyileştirici. Ön filtre: `ContaminationFilter` (BFS, en yüksek hacimli grup kazanır).
 - **Kısıtlar (backend):** sınır, AABB çakışma, %80 taban desteği, `IsStackable`+LIFO, `MaxStackCount`, `MaxWeightOnTop` (tüm alt kutular), `AllowedRotations` (1/2/3/6 varyant), ağırlık kapasitesi. CoG **yalnızca soft ceza** (hard eşik yok). Yükleme yönü sadece `Lifo`+`Rear`'da etkili. **Kırılganlık modellenmemiş.**
+
+### 4.1 LIFO bölge kısıtı — yumuşaktan iki kademeli sert kısıta (OPT-02, 2026-08-15)
+
+**Eski davranış (bu taramanın yazıldığı hâl):** boşaltma grubu bölgesi (`LifoPlacement.cs`) yalnızca
+skor cezasıyla caydırılıyordu; ceza katsayısı **2 000**, yerçekimi terimi ise **1 000 000** —
+yani bölge cezası 500× zayıftı. Sonuç: zeminde yer olduğu sürece bölge kısıtı **daima** ihlal ediliyordu.
+
+**Yeni davranış:** aday seçimi **iki kademelidir**. Bölge içinde geçerli en az bir aday varsa seçim
+**yalnız** o adaylar arasından yapılır (sert kısıt); bölge içinde hiç aday yoksa mevcut skorlamaya
+düşülür (yedek kademe). **Ceza katsayısı 2 000'de bırakıldı** — artık yalnızca yedek kademedeki
+adayları sıralamak için kullanılıyor. Düzeltme katsayı büyütmekle değil, seçim mantığını
+ikiye ayırmakla yapıldı.
+
+| Ölçüm | Önce | Sonra |
+|---|---|---|
+| P1 senaryosu bölge ihlali | 4/8 kutu | **0/8** |
+| P2 senaryosu bölge ihlali | 2/5 kutu | **0/5** |
+| P1 yerleşen kutu / FillRate | 8 / 1,0 | 8 / 1,0 (değişmedi) |
+| P2 yerleşen kutu / FillRate | 5 / 0,2125 | 5 / 0,2125 (değişmedi) |
+| `CargoPilot.Engine.Tests` | 35 test / 2 kırmızı | **35/35 yeşil**, 39 sn |
+| Golden snapshot kayması | — | **0 bayt** |
+| LIFO performansı (500 kutu) | 9 777 ms | **8 107 ms** |
+
+**Kapasite kaybı yok:** FillRate paritesi teste `assert` olarak konuldu.
+Dal: `fix/OPT-02-lifo-bolge-sert-kisiti`, commit `3d074d2c` (test) → `af6ac08f` (düzeltme),
+`git diff --stat dev..HEAD` = 3 dosya / +185/−1, yeni test dosyası `LifoBolgeKisitiTests.cs`.
+**⚠️ Bu dal 2026-08-15 itibarıyla `dev`'e alınmamıştır** — `dev`'deki kod hâlâ eski (yumuşak) davranıştadır.
+
+### 4.2 Bilinen algoritma borcu (2026-08-15)
+
+OPT-01 ve OPT-02 kararlarının **bilinçli olarak kapsam dışı** bıraktıkları:
+
+| # | Konum | Borç |
+|---|---|---|
+| OPT-14 | `OptimizationEngine.cs:72` | `item.UnloadingOrder ?? -1` sentinel'i `GroupId` kontrolü yapmıyor — grubu olmayan ama boşaltma sırası olan kutu yanlış bölgeye eşlenebilir |
+| OPT-10 | `LifoPlacement.cs:53` | Bölge kısıtı yalnız `LoadingType.Rear`'ı kapsıyor; 5 yükleme tipinin **4'ünde bölge hiç oluşmuyor** |
+| — | `LifoPlacement.cs:66` | Eşit bölge bölme kusuru: bölge dar kaldığında yedek kademe devreye giriyor ve ihlal **raporlanmadan** sürüyor |
+| — | (çıktı katmanı) | Yedek kademeye düşen yerleşim hiçbir yere yazılmıyor; bir uyarı mekanizması gerekiyor. **Yeni `UnplacedReason` değil** — kutu yerleşiyor, yalnız bölge dışına düşüyor (bilinçli karar) |
+| OPT-01 | `CargoPilot.Engine.Tests` | `ViolatesLoadAbove` için kırılganlık / `MaxWeightOnTop` odaklı **doğrudan takas testi yok**; mevcut kapsam dolaylı |
+
 - **Kayıp çıktılar:** `LoadingPlanWarnings` tablosu var ama hiçbir yazıcı yok; `WeightBalanceOffsetX/Z` hesaplanıyor ama DB'ye yazılmıyor (API'de hep null). Unplaced sebeplerinden 3'ü (`StackingNotAllowed`, `FragilityOrHandlingConstraint`, `RotationOrGeometryConstraint`) hiç üretilmiyor.
 - **Çift mantık:** frontend `buildPlacements` (shelf/row) tamamen ayrı bir heuristik — ön izleme/staging için. Manuel drag doğrulaması backend kurallarının **alt kümesi**: %80 destek, MaxStackCount, MaxWeightOnTop, LIFO, drag sonrası ağırlık kontrolü frontend'de yok; tek violation mesajı sınır/çakışma. Yüzey (face) kısıtı ise **sadece** frontend'de var.
 - **Sözleşme:** eksen eşlemesi ve sol-alt-arka pivot backend'de tutarlı ama yazılı değil; cm birimi hiçbir yerde zorlanmıyor (konvansiyon). Pivot offset `scene-config.ts`'te değil, `BoxWrapper`/`CargoMeshInstanced` içine dağılmış (CLAUDE.md kuralının kısmi ihlali). Rotasyon→boyut eşlemesi FE/BE birebir uyumlu doğrulandı; ancak FE `ALLOWED_ROTATIONS.YawOnly=6`'nın backend enum karşılığı yok (latent uyumsuzluk). `allowContamination` FE'den gönderiliyor, BE komutlarında alan yok → sessizce yok sayılıyor.

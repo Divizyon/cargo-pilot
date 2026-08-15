@@ -66,7 +66,15 @@ Kurallar:
   `VolumeScoring.cs`, `PlacedBox.cs`. `caab495d` (2026-08-11) ile Infrastructure katmanından
   buraya taşındı ve tek dosyadan 7 dosyaya bölündü.
   *Ölçüm 2026-08-15, `dev` dalı: `wc -l apps/backend/CargoPilot.Application/Common/Optimization/*.cs`
-  → toplam **915 satır**. Satır sayısı hareketlidir; OPT-01 çalışması sırasında 981'e kadar çıktı.*
+  → toplam **915 satır**. `fix/OPT-01-denge-takas-destek-dogrulamasi` ve
+  `fix/OPT-02-lifo-bolge-sert-kisiti` dalları henüz `dev`'e alınmamıştır; birleşik bir durum
+  bugün mevcut değildir. Satır sayısı yeniden ölçülmeden alıntılanmamalıdır.*
+- **LIFO boşaltma bölgesi kısıtı** (`LifoPlacement.cs`) `dev` üzerinde hâlâ **yumuşaktır** —
+  bölge dışına çıkma yalnız skor cezasıyla (katsayı 2 000) caydırılır ve yerçekimi terimi
+  (1 000 000) yanında 500× zayıf kaldığı için pratikte bağlamaz.
+  `fix/OPT-02-lifo-bolge-sert-kisiti` dalı bunu **iki kademeli sert kısıta** çevirir: bölge içinde
+  geçerli aday varsa yalnız onlardan seçilir, hiç yoksa mevcut skorlamaya düşülür.
+  Ayrıntı ve ölçümler: `docs/context/kod-taramasi-2026-08.md` §4.1.
 
 Örnek klasör (gerçek koddan):
 ```
