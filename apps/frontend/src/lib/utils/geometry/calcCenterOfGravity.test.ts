@@ -10,17 +10,17 @@ const box = (
   x: number,
   y: number,
   z: number,
-  w: number,
-  h: number,
-  d: number,
+  width: number,
+  height: number,
+  length: number,
   weight: number,
 ): CogInput => ({
   positionX: x,
   positionY: y,
   positionZ: z,
-  width: w,
-  height: h,
-  depth: d,
+  width: width,
+  height: height,
+  length: length,
   weight,
 });
 
@@ -73,6 +73,31 @@ describe('calcBalance', () => {
     expect(result.isLongitudinalWarning).toBe(false);
     expect(result.frontAxleShare).toBeCloseTo(0.5);
     expect(result.rearAxleShare).toBeCloseTo(0.5);
+    expect(result.leftShare).toBeCloseTo(0.5);
+    expect(result.rightShare).toBeCloseTo(0.5);
+  });
+
+  // z=0 kabin/ön uçtur, z=length referans kapıdır (docs/COORDINATE_STANDARD.md).
+  // Yön ters yazıldığında arayüz kabine yığılmış yükü "arka aks yüklü" diye
+  // raporluyordu; testler o zamana kadar yalnızca simetrik durumu kontrol ediyordu.
+  it('kabine yakın yük ön aksa biner', () => {
+    const nearCab = calcBalance({ x: 100, y: 50, z: 40, totalWeight: 100 }, 200, 400);
+    expect(nearCab.frontAxleShare).toBeCloseTo(0.9);
+    expect(nearCab.rearAxleShare).toBeCloseTo(0.1);
+  });
+
+  it('kapıya yakın yük arka aksa biner', () => {
+    const nearDoor = calcBalance({ x: 100, y: 50, z: 360, totalWeight: 100 }, 200, 400);
+    expect(nearDoor.frontAxleShare).toBeCloseTo(0.1);
+    expect(nearDoor.rearAxleShare).toBeCloseTo(0.9);
+  });
+
+  // Sağ/sol yalnızca x ekseninden okunur; z tabanlı aks payıyla karıştırılmamalı.
+  it('sağ/sol dağılım x ekseninden okunur ve aks payından bağımsızdır', () => {
+    const rightHeavy = calcBalance({ x: 160, y: 50, z: 200, totalWeight: 100 }, 200, 400);
+    expect(rightHeavy.rightShare).toBeCloseTo(0.8);
+    expect(rightHeavy.leftShare).toBeCloseTo(0.2);
+    expect(rightHeavy.frontAxleShare).toBeCloseTo(0.5);
   });
 
   it('issues lateral warning when bias exceeds dikkat threshold', () => {
@@ -155,7 +180,7 @@ describe('buildCogInputs', () => {
         positionZ: 0,
         width: 10,
         height: 10,
-        depth: 10,
+        length: 10,
         orientationIndex: 0 as const,
         layer: 1,
         isViolation: false,
@@ -175,7 +200,7 @@ describe('buildCogInputs', () => {
         positionZ: 0,
         width: 10,
         height: 10,
-        depth: 10,
+        length: 10,
         orientationIndex: 0 as const,
         layer: 1,
         isViolation: false,

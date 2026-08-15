@@ -2,18 +2,17 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 import type { DoorDirection } from '@/lib/types/vehicle';
 
 /**
- * Yükleme sırası — kapı yönüne göre "kapıya en uzak" kutular önce girilir.
+ * Yükleme sırası — kapıya en uzak kutular önce girer.
  *
- * rear  (Z=0):       Z büyük→küçük, sonra Y küçük→büyük (alt kat önce), X küçük→büyük
- * front (Z=length):  Z küçük→büyük, sonra Y küçük→büyük, X küçük→büyük
- * side  right (X=W): X küçük→büyük (sol duvar önce), sonra Y küçük→büyük, Z küçük→büyük
- * side  left  (X=0): X büyük→küçük (sağ duvar önce), sonra Y küçük→büyük, Z küçük→büyük
- * top   (Y=H):       Y küçük→büyük (alt kat önce), sonra Z büyük→küçük, X küçük→büyük
+ * Referans kapı z = length'tedir (docs/COORDINATE_STANDARD.md §2-3), bu yüzden
+ * yükleme her zaman uzak yüzden (z = 0) kapıya doğru ilerler: Z küçük→büyük.
+ * Bu yön kapı tipinden bağımsızdır; kapı yalnızca hangi eksenin "katman" ekseni
+ * olduğunu belirler.
  *
- * Her yön için "katman" tanımı:
- *   rear/front → Z katmanı  (kutunun kapıya olan Z mesafesi)
- *   side       → X katmanı
- *   top        → Y katmanı
+ * small door (z = length): Z küçük→büyük, sonra Y küçük→büyük (alt kat önce), X küçük→büyük
+ * big door   (x = width):  X küçük→büyük (x = 0 duvarı önce), sonra Y, sonra Z küçük→büyük
+ * big door   (x = 0):      X büyük→küçük (x = width duvarı önce), sonra Y, sonra Z küçük→büyük
+ * top        (y = height): Y küçük→büyük (alt kat önce), sonra Z küçük→büyük, X küçük→büyük
  *
  * Aynı katmandaki kutular Y küçük→büyük (alt önce), ardından diğer eksen küçük→büyük.
  */
@@ -29,12 +28,6 @@ export function buildLoadOrder(
       const pb = b.p;
 
       switch (doorDirection) {
-        case 'rear':
-          // Kapı Z=0 — Z büyükten küçüğe (arka duvar son, kapı önce)
-          if (pa.positionZ !== pb.positionZ) return pb.positionZ - pa.positionZ;
-          if (pa.positionY !== pb.positionY) return pa.positionY - pb.positionY;
-          return pa.positionX - pb.positionX;
-
         case 'side': {
           // Sağ kapı X=width → X küçük→büyük (sol duvar önce girer)
           // Sol kapı X=0    → X büyük→küçük (sağ duvar önce girer)
@@ -46,20 +39,16 @@ export function buildLoadOrder(
         }
 
         case 'top':
-          // Kapı Y=height — Y küçük→büyük (zemin katı önce girer)
+          // Kapı y = height — Y küçük→büyük (zemin katı önce girer), ardından
+          // yükleme yönü: Z küçük→büyük.
           if (pa.positionY !== pb.positionY) return pa.positionY - pb.positionY;
-          if (pa.positionZ !== pb.positionZ) return pb.positionZ - pa.positionZ;
+          if (pa.positionZ !== pb.positionZ) return pa.positionZ - pb.positionZ;
           return pa.positionX - pb.positionX;
-
-        case 'rearAndSide': {
-          // Hem arka hem yan kapı — rear öncelikli
-          if (pa.positionZ !== pb.positionZ) return pb.positionZ - pa.positionZ;
-          if (pa.positionY !== pb.positionY) return pa.positionY - pb.positionY;
-          return pa.positionX - pb.positionX;
-        }
 
         default:
-          // 'front' veya undefined — kapı Z=length, Z küçük→büyük (arka duvar önce, kapıya yakın son)
+          // Referans kapı z = length: uzak yüzdeki (z = 0) kutular önce girer,
+          // kapıya en yakın olanlar en son. 'rear', 'rearAndSide' ve tanımsız
+          // değer aynı yönü paylaşır.
           if (pa.positionZ !== pb.positionZ) return pa.positionZ - pb.positionZ;
           if (pa.positionY !== pb.positionY) return pa.positionY - pb.positionY;
           return pa.positionX - pb.positionX;

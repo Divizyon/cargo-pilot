@@ -339,7 +339,7 @@ function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
         </span>
       </TableCell>
 
-      {/* Derinlik (Z) */}
+      {/* Genişlik (X) */}
       <TableCell className={cell}>
         <span className="text-xs text-foreground">
           {formatDimensionDisplay(vehicle.width, dimensionUnit)}
@@ -755,13 +755,13 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                   Plaka/Seri No
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk/Çap (X)
+                  Uzunluk/Çap (Z)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Yükseklik (Y)
                 </TableHead>
                 <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik (Z)
+                  Genişlik (X)
                 </TableHead>
                 <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Maks Yük

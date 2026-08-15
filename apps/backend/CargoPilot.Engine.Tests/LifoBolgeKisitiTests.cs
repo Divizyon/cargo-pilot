@@ -127,8 +127,8 @@ public sealed class LifoBolgeKisitiTests
         {
             var zone = zones[orderByItemId[p.ItemId]];
 
-            if (!LifoPlacement.IsInsideZone(zone.ZStart, zone.ZEnd, p.Z, p.Depth))
-                ihlaller.Add($"Z={p.Z} D={p.Depth} bölge=[{zone.ZStart},{zone.ZEnd})");
+            if (!LifoPlacement.IsInsideZone(zone.ZStart, zone.ZEnd, p.Z, p.Length))
+                ihlaller.Add($"Z={p.Z} L={p.Length} bölge=[{zone.ZStart},{zone.ZEnd})");
         }
 
         Assert.True(

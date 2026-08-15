@@ -52,7 +52,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
 
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
 
-  // ── Derinlik filtresi (X-Ray popover) ──────────────────────────────────────
+  // ── Uzunluk filtresi (X-Ray popover) ───────────────────────────────────────
   const [sliderValue, setSliderValue] = useState(0);
   const debouncedSlider = useDebounce(sliderValue, 80);
   const sliderMax = vehicle?.length ?? 100;
@@ -117,8 +117,8 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
           <button
             type="button"
             onClick={() => togglePanel('xray')}
-            title="X-Ray / Derinlik Filtresi"
-            aria-label="X-Ray / Derinlik Filtresi"
+            title="X-Ray / Uzunluk Filtresi"
+            aria-label="X-Ray / Uzunluk Filtresi"
             aria-pressed={openPanel === 'xray'}
             className={cn(
               'h-8 w-8 shrink-0 flex items-center justify-center rounded-md transition-colors',
@@ -134,7 +134,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Layers className="h-3.5 w-3.5" />
-              <span>Derinlik Filtresi</span>
+              <span>Uzunluk Filtresi</span>
             </div>
             <span className="text-xs tabular-nums text-muted-foreground">
               {sliderPct > 0 ? `${sliderPct}%` : 'Hepsi'}
@@ -211,13 +211,24 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
                   : '✓ Denge ihlali yok'}
               </p>
               <div className="border-t border-border pt-2 flex flex-col gap-1">
+                {/*
+                  Her satır kendi ekseninden okunur: sağ/sol yalnızca x, ön/arka
+                  yalnızca z. Önceden iki satır da z tabanlı aks payını gösteriyordu,
+                  yani lateral denge hiç görünmüyordu.
+                */}
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Sağ-Sol Yük Dağılımı</span>
-                  <span className="tabular-nums">{(balance.frontAxleShare * 100).toFixed(1)}%</span>
+                  <span className="text-muted-foreground">Sol / Sağ Yük Dağılımı</span>
+                  <span className="tabular-nums">
+                    {(balance.leftShare * 100).toFixed(1)}% /{' '}
+                    {(balance.rightShare * 100).toFixed(1)}%
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Ön-Arka Yük Dağılımı</span>
-                  <span className="tabular-nums">{(balance.rearAxleShare * 100).toFixed(1)}%</span>
+                  <span className="text-muted-foreground">Ön / Arka Aks Yükü</span>
+                  <span className="tabular-nums">
+                    {(balance.frontAxleShare * 100).toFixed(1)}% /{' '}
+                    {(balance.rearAxleShare * 100).toFixed(1)}%
+                  </span>
                 </div>
               </div>
             </div>

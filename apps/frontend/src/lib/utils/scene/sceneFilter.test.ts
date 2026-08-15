@@ -13,7 +13,7 @@ function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): Placem
     isViolation: false,
     width: 50,
     height: 50,
-    depth: 50,
+    length: 50,
     weight: 10,
     ...overrides,
   };
@@ -27,29 +27,29 @@ const EMPTY_STATE = {
 
 describe('isGhosted', () => {
   it('activeLayer = 0 (default) → hiçbir kutu ghost değil', () => {
-    expect(isGhosted({ positionZ: 0, depth: 50 }, 0)).toBe(false);
-    expect(isGhosted({ positionZ: 500, depth: 50 }, 0)).toBe(false);
+    expect(isGhosted({ positionZ: 0, length: 50 }, 0)).toBe(false);
+    expect(isGhosted({ positionZ: 500, length: 50 }, 0)).toBe(false);
   });
 
   it('positionZ < activeLayer → ghost', () => {
-    expect(isGhosted({ positionZ: 100, depth: 50 }, 200)).toBe(true);
+    expect(isGhosted({ positionZ: 100, length: 50 }, 200)).toBe(true);
   });
 
   it('positionZ === activeLayer → ghost değil (tam sınırda normal)', () => {
-    expect(isGhosted({ positionZ: 200, depth: 50 }, 200)).toBe(false);
+    expect(isGhosted({ positionZ: 200, length: 50 }, 200)).toBe(false);
   });
 
   it('positionZ > activeLayer → ghost değil', () => {
-    expect(isGhosted({ positionZ: 300, depth: 50 }, 200)).toBe(false);
+    expect(isGhosted({ positionZ: 300, length: 50 }, 200)).toBe(false);
   });
 
   it('negatif activeLayer → hiçbir kutu ghost değil', () => {
-    expect(isGhosted({ positionZ: 0, depth: 50 }, -1)).toBe(false);
+    expect(isGhosted({ positionZ: 0, length: 50 }, -1)).toBe(false);
   });
 
   it('slider max (vehicle.length) → tüm kutular ghost', () => {
-    expect(isGhosted({ positionZ: 0, depth: 50 }, 600)).toBe(true);
-    expect(isGhosted({ positionZ: 550, depth: 50 }, 600)).toBe(true);
+    expect(isGhosted({ positionZ: 0, length: 50 }, 600)).toBe(true);
+    expect(isGhosted({ positionZ: 550, length: 50 }, 600)).toBe(true);
   });
 });
 
@@ -94,7 +94,7 @@ describe('isPlacementVisible', () => {
   });
 
   it('activeLayer ghost mode isPlacementVisible etkilemez — ghost ayrı mesh, gizleme değil', () => {
-    const p = makePlacement({ positionZ: 0, depth: 50 });
+    const p = makePlacement({ positionZ: 0, length: 50 });
     expect(isPlacementVisible(p, 0, EMPTY_STATE)).toBe(true);
   });
 });

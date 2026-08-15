@@ -32,7 +32,7 @@ internal static class BalanceScoring
     internal static decimal Term(
         bool enabled,
         LoadingPlanOptimizationCriteria criteria,
-        decimal ex, decimal ez, decimal w, decimal d,
+        decimal ex, decimal ez, decimal width, decimal length,
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL)
@@ -50,7 +50,7 @@ internal static class BalanceScoring
         if (coefficient == 0m)
             return 0m;
 
-        return BalancePenalty(ex, ez, w, d, itemWeight, totalWeight, momentX, momentZ, halfW, halfL)
+        return BalancePenalty(ex, ez, width, length, itemWeight, totalWeight, momentX, momentZ, halfW, halfL)
              * coefficient;
     }
 
@@ -60,7 +60,7 @@ internal static class BalanceScoring
     /// (Y) dengeye katılmaz.
     /// </summary>
     internal static decimal BalancePenalty(
-        decimal ex, decimal ez, decimal w, decimal d,
+        decimal ex, decimal ez, decimal width, decimal length,
         decimal itemWeight, decimal totalWeight, decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL)
     {
@@ -69,8 +69,8 @@ internal static class BalanceScoring
         decimal normDevX = 0m, normDevZ = 0m;
         if (newTotal > 0m && halfW > 0m && halfL > 0m)
         {
-            var newCogX = (momentX + itemWeight * (ex + w / 2m)) / newTotal;
-            var newCogZ = (momentZ + itemWeight * (ez + d / 2m)) / newTotal;
+            var newCogX = (momentX + itemWeight * (ex + width / 2m)) / newTotal;
+            var newCogZ = (momentZ + itemWeight * (ez + length / 2m)) / newTotal;
             normDevX = Math.Abs(newCogX - halfW) / halfW;
             normDevZ = Math.Abs(newCogZ - halfL) / halfL;
         }
@@ -109,9 +109,9 @@ internal static class BalanceScoring
                     var b = current[j];
 
                     // Sınır kontrolü: a, b'nin yerine sığıyor mu?
-                    if (b.X + a.W > vW || b.Y + a.H > vH || b.Z + a.D > vL) continue;
+                    if (b.X + a.Width > vW || b.Y + a.Height > vH || b.Z + a.Length > vL) continue;
                     // Sınır kontrolü: b, a'nın yerine sığıyor mu?
-                    if (a.X + b.W > vW || a.Y + b.H > vH || a.Z + b.D > vL) continue;
+                    if (a.X + b.Width > vW || a.Y + b.Height > vH || a.Z + b.Length > vL) continue;
 
                     var swapped = current.ToList();
                     swapped[i] = a with { X = b.X, Y = b.Y, Z = b.Z };
@@ -164,17 +164,17 @@ internal static class BalanceScoring
         // Takas sonrası istif kısıtı kontrolü. İstiflenebilirlik de burada
         // doğrulanır; aksi hâlde denge iyileştirmesi bir kutuyu istiflenemez
         // kutunun üstüne taşıyabiliyordu.
-        if (PlacementValidator.ViolatesStackability(othersA, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesStackability(othersB, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (PlacementValidator.ViolatesStackCount(othersA, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesStackCount(othersB, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (PlacementValidator.ViolatesStackWeight(othersA, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
-        if (PlacementValidator.ViolatesStackWeight(othersB, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
+        if (PlacementValidator.ViolatesStackability(othersA, a.X, a.Y, a.Z, a.Width, a.Length)) return false;
+        if (PlacementValidator.ViolatesStackability(othersB, b.X, b.Y, b.Z, b.Width, b.Length)) return false;
+        if (PlacementValidator.ViolatesStackCount(othersA, a.X, a.Y, a.Z, a.Width, a.Length)) return false;
+        if (PlacementValidator.ViolatesStackCount(othersB, b.X, b.Y, b.Z, b.Width, b.Length)) return false;
+        if (PlacementValidator.ViolatesStackWeight(othersA, a.X, a.Y, a.Z, a.Width, a.Length, a.Weight)) return false;
+        if (PlacementValidator.ViolatesStackWeight(othersB, b.X, b.Y, b.Z, b.Width, b.Length, b.Weight)) return false;
 
         // Kırılganlık da sert kısıttır: takas bir kutuyu kırılgan kutunun üstüne
         // taşıyamaz. Motorun aday taramasındaki kuralın aynısı burada da geçerlidir
-        if (PlacementValidator.ViolatesFragility(othersA, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesFragility(othersB, b.X, b.Y, b.Z, b.W, b.D)) return false;
+        if (PlacementValidator.ViolatesFragility(othersA, a.X, a.Y, a.Z, a.Width, a.Length)) return false;
+        if (PlacementValidator.ViolatesFragility(othersB, b.X, b.Y, b.Z, b.Width, b.Length)) return false;
 
         // Yukarıdaki dört kısıt yalnızca AŞAĞI bakar (bkz. PlacementValidator
         // satır 100/128/156/198). Takas bir kutuyu var olan bir yığının ALTINA
@@ -188,8 +188,8 @@ internal static class BalanceScoring
         // yüzeyleridir, simetrik olarak b için de aynısı geçerlidir. Bu iki
         // seviyelik küme tamdır, ama yükseklikler eşit olsa bile kontrol
         // atlanamaz çünkü kutuların taban ALANI birbirinden farklı olabilir.
-        var oldATopY = b.Y + a.H;
-        var oldBTopY = a.Y + b.H;
+        var oldATopY = b.Y + a.Height;
+        var oldBTopY = a.Y + b.Height;
 
         for (int k = 0; k < placements.Count; k++)
         {
@@ -213,8 +213,8 @@ internal static class BalanceScoring
         decimal halfW, decimal halfL)
     {
         if (totalWeight == 0m || halfW == 0m || halfL == 0m) return 0m;
-        var cogX = placements.Sum(p => p.Weight * (p.X + p.W / 2m)) / totalWeight;
-        var cogZ = placements.Sum(p => p.Weight * (p.Z + p.D / 2m)) / totalWeight;
+        var cogX = placements.Sum(p => p.Weight * (p.X + p.Width / 2m)) / totalWeight;
+        var cogZ = placements.Sum(p => p.Weight * (p.Z + p.Length / 2m)) / totalWeight;
         return Math.Abs(cogX - halfW) / halfW + Math.Abs(cogZ - halfL) / halfL;
     }
 }

@@ -30,25 +30,27 @@ internal static class LifoPlacement
     private const decimal ZoneOverflowPenaltyPerCm = 2_000m;
 
     /// <summary>
-    /// Yükleme sırası karşılaştırması. Yüksek UnloadingOrder = önce yüklenir =
-    /// araç arkası (kapıdan en uzak bölge).
+    /// Yükleme sırası karşılaştırması. Yüksek UnloadingOrder = en son inecek grup =
+    /// önce yüklenir = uzak yüz (z = 0) tarafı.
     ///
     /// Aynı yön semantiğini paylaşan üç nokta:
     /// (1) OptimizationEngine.SortForGroupPlacement — grup sıralaması (DESC),
-    /// (2) <see cref="ComputeGroupZones"/> — bölge sıralaması (ASC sıra, ilk inen kapıya en yakın),
+    /// (2) <see cref="ComputeGroupZones"/> — bölge sıralaması (ilk inen kapıya en yakın),
     /// (3) PlacementValidator.ViolatesStackability — dikey istif kuralı.
     /// </summary>
     internal static int CompareUnloadingOrder(int a, int b) => a.CompareTo(b);
 
     // ── Grup zone hesaplama ───────────────────────────────────────────────────
-    // Arka kapı Z=0'dadır. UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya
-    // en yakın (en küçük Z) bölgeye düşer. Distinct UnloadingOrder değerleri ASC
-    // sıralanır ve kamyon uzunluğu eşit bölümlere ayrılır; sıradaki her grup bir
-    // sonraki bölgeye, yani kapıdan daha uzağa yerleşir. 0-1 grup varsa zone
-    // uygulanmaz.
+    // Referans kapı z = length'tedir (docs/COORDINATE_STANDARD.md §2-3).
+    // UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya en yakın (en büyük Z)
+    // bölgeye düşer. Distinct UnloadingOrder değerleri ASC sıralanır, kamyon
+    // uzunluğu eşit bölümlere ayrılır ve bölgeler kapıdan geriye doğru dağıtılır;
+    // sıradaki her grup uzak yüze (z = 0) bir adım daha yaklaşır. 0-1 grup varsa
+    // zone uygulanmaz.
     //
-    // Buradaki ASC sıra, SortForGroupPlacement'taki DESC grup sırasının ayna
-    // görüntüsüdür: en son inecek grup önce yüklenir ve en uzak bölgeye düşer.
+    // Bu dağıtım, SortForGroupPlacement'taki DESC grup sırasının ayna görüntüsüdür:
+    // en son inecek grup önce yüklenir ve uzak yüzdeki (z = 0) bölgeye düşer —
+    // yükleme yönü de z = 0'dan kapıya doğrudur.
     internal static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
@@ -74,8 +76,10 @@ internal static class LifoPlacement
         var zoneSize = vehicleLength / orders.Count;
         var zones = new Dictionary<int, (decimal ZStart, decimal ZEnd)>();
 
+        // i = 0 (ilk inecek grup) kapı ucundaki bölgeyi alır; indeks büyüdükçe
+        // bölge uzak yüze kayar.
         for (int i = 0; i < orders.Count; i++)
-            zones[orders[i]] = (i * zoneSize, (i + 1) * zoneSize);
+            zones[orders[i]] = (vehicleLength - (i + 1) * zoneSize, vehicleLength - i * zoneSize);
 
         return zones;
     }
@@ -84,13 +88,13 @@ internal static class LifoPlacement
     /// Aday pozisyonun kendi grubuna ayrılmış bölgeden taşma cezası. Bölge
     /// tanımlı değilse ceza yoktur; taşma iki uçta ayrı ayrı ölçülür.
     /// </summary>
-    internal static decimal ZonePenalty(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal d)
+    internal static decimal ZonePenalty(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal length)
     {
         var zonePenalty = 0m;
         if (zoneStart.HasValue && zoneEnd.HasValue)
         {
             var overLeft  = Math.Max(0m, zoneStart.Value - ez);
-            var overRight = Math.Max(0m, (ez + d) - zoneEnd.Value);
+            var overRight = Math.Max(0m, (ez + length) - zoneEnd.Value);
             zonePenalty = (overLeft + overRight) * ZoneOverflowPenaltyPerCm;
         }
 
@@ -107,8 +111,8 @@ internal static class LifoPlacement
     /// skorlamaya düşer. Böylece bölge sert kısıt olur ama hiçbir kutu yalnızca
     /// bölgesi dar kaldığı için düşmez.
     /// </summary>
-    internal static bool IsInsideZone(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal d)
+    internal static bool IsInsideZone(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal length)
         => !zoneStart.HasValue
            || !zoneEnd.HasValue
-           || (ez >= zoneStart.Value && ez + d <= zoneEnd.Value);
+           || (ez >= zoneStart.Value && ez + length <= zoneEnd.Value);
 }

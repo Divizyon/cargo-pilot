@@ -14,14 +14,14 @@ import * as THREE from 'three';
 export function LandingWireframe({ placement: p, meshRefCallback }: LandingWireframeProps) {
   const color = p.isViolation ? SCENE.COLORS.VIOLATION_STR : SCENE.COLORS.SELECTED_STR;
   const isVaril = p.productType === 'varil';
-  const radius = Math.min(p.width, p.depth) / 2;
+  const radius = Math.min(p.width, p.length) / 2;
 
   return (
     <mesh ref={meshRefCallback} castShadow={false}>
       {isVaril ? (
         <cylinderGeometry args={[radius, radius, p.height, CYLINDER_SEGMENTS]} />
       ) : (
-        <boxGeometry args={[p.width, p.height, p.depth]} />
+        <boxGeometry args={[p.width, p.height, p.length]} />
       )}
       <meshBasicMaterial
         color={color}

@@ -45,7 +45,7 @@ export function useLandingAnimation(
         meshRef.position.set(
           p.positionX + p.width / 2,
           startY + p.height / 2,
-          p.positionZ + p.depth / 2,
+          p.positionZ + p.length / 2,
         );
 
         map.set(key, { placement: p, targetY });
@@ -93,7 +93,7 @@ export function useLandingAnimation(
       _v3.set(
         entry.placement.positionX + entry.placement.width / 2,
         nextY + entry.placement.height / 2,
-        entry.placement.positionZ + entry.placement.depth / 2,
+        entry.placement.positionZ + entry.placement.length / 2,
       );
       meshRef.position.copy(_v3);
     }

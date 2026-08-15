@@ -7,7 +7,8 @@ namespace CargoPilot.Engine.Tests;
 /// <summary>
 /// LIFO kriterinin mevcut davranışını kilitler: ComputeGroupZones bölge ayrımı,
 /// bölge tohumlaması ve "geç inen, erken inenin üstüne konamaz" istif kuralı.
-/// Sahne sözleşmesi: arka kapı Z=0, araç önü Z=Length.
+/// Koordinat sözleşmesi (docs/COORDINATE_STANDARD.md): uzak yüz Z=0, referans
+/// kapı (TIR'da back door) Z=Length. İlk inecek grup kapıya en yakın bölgededir.
 /// </summary>
 public sealed class LifoGoldenMasterTests
 {

@@ -136,10 +136,13 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle> {
 
         builder.Property(vehicle => vehicle.IntegrationId);
 
+        // Ic olculer santimetredir (docs/COORDINATE_STANDARD.md §8), dolayisiyla
+        // carpim cm^3 verir ve m^3 icin 1e6'ya bolunur. Onceki 1e9 bolen mm^3
+        // varsayimindan geliyordu ve hacmi 1000 kat kucuk yaziyordu.
         builder.Property(vehicle => vehicle.Volume)
             .HasPrecision(18, 4)
             .HasComputedColumnSql(
-                "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000000.0",
+                "(CAST([InternalWidth] AS decimal(18,4)) * CAST([InternalHeight] AS decimal(18,4)) * CAST([InternalLength] AS decimal(18,4))) / 1000000.0",
                 stored: true);
 
         builder.HasOne(vehicle => vehicle.Company)

@@ -14,7 +14,7 @@ public sealed record SharePlacementDetailDto(
     decimal PositionZ,
     decimal Width,
     decimal Height,
-    decimal Depth,
+    decimal Length,
     int OrientationIndex,
     int Layer,
     bool IsViolation,

@@ -13,7 +13,7 @@ public sealed class PlacementValidatorSupportTests
 {
     /// <summary>Aday kutunun taban ölçüleri; alan 10.000 cm² olduğu için yüzde okuması kolaydır.</summary>
     private const decimal CandidateWidth = 100m;
-    private const decimal CandidateDepth = 100m;
+    private const decimal CandidateLength = 100m;
 
     /// <summary>Destekleyen kutuların yüksekliği; aday bu seviyeye oturur.</summary>
     private const decimal SupportHeight = 50m;
@@ -56,8 +56,8 @@ public sealed class PlacementValidatorSupportTests
             x: 0m,
             y: 0m,
             z: 0m,
-            w: CandidateWidth,
-            d: CandidateDepth));
+            width: CandidateWidth,
+            length: CandidateLength));
     }
 
     /// <summary>
@@ -85,19 +85,19 @@ public sealed class PlacementValidatorSupportTests
             x: 0m,
             y: SupportHeight,
             z: 0m,
-            w: CandidateWidth,
-            d: CandidateDepth);
+            width: CandidateWidth,
+            length: CandidateLength);
 
-    /// <summary>Zemine oturan, aday kutunun derinliğini tam kaplayan destek kutusu.</summary>
+    /// <summary>Zemine oturan, aday kutunun uzunluğunu tam kaplayan destek kutusu.</summary>
     private static PlacedBox SupportBox(decimal x, decimal width)
         => new(
             ItemId: Guid.Empty,
             X: x,
             Y: 0m,
             Z: 0m,
-            W: width,
-            H: SupportHeight,
-            D: CandidateDepth,
+            Width: width,
+            Height: SupportHeight,
+            Length: CandidateLength,
             Rotation: LoadingPlanPlacementRotation.NoRotation,
             Weight: 10m,
             IsStackable: true,

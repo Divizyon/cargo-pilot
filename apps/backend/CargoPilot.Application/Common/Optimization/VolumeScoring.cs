@@ -16,11 +16,11 @@ internal static class VolumeScoring
 {
     // Kalibre edilmiş katsayı: derinlik, genişlikten 1000 kat baskındır; böylece
     // aynı kattaki adaylar önce Z'ye, eşitlikte X'e göre seçilir.
-    private const decimal DepthCoefficient = 1_000m;
+    private const decimal LengthCoefficient = 1_000m;
 
     /// <summary>Derinlik terimi: küçük Z (kapıya yakın) tercih edilir.</summary>
-    internal static decimal DepthTerm(bool enabled, decimal ez)
-        => enabled ? ez * DepthCoefficient : 0m;
+    internal static decimal LengthTerm(bool enabled, decimal ez)
+        => enabled ? ez * LengthCoefficient : 0m;
 
     /// <summary>Genişlik terimi: eşit puanlı adaylar arasında küçük X tercih edilir.</summary>
     internal static decimal WidthTerm(bool enabled, decimal ex)

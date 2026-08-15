@@ -860,7 +860,7 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Derinlik (Z) — varilde çap genişlikten okunur, hücre düzenlenmez. */}
+                    {/* Uzunluk (Z) — varilde çap genişlikten okunur, hücre düzenlenmez. */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
                         value={row.tip === 'varil' ? row.width : row.length}

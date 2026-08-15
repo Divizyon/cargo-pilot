@@ -12,8 +12,8 @@ export function boxesIntersect(a: PlacementWithDimensions, b: PlacementWithDimen
     b.positionX < a.positionX + a.width &&
     a.positionY < b.positionY + b.height &&
     b.positionY < a.positionY + a.height &&
-    a.positionZ < b.positionZ + b.depth &&
-    b.positionZ < a.positionZ + a.depth
+    a.positionZ < b.positionZ + b.length &&
+    b.positionZ < a.positionZ + a.length
   );
 }
 

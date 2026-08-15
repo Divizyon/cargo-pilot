@@ -31,7 +31,7 @@ internal static class PhysicalInvariants
     public static bool Overlaps(PlacedItemResult a, PlacedItemResult b) =>
         a.X < b.X + b.Width && a.X + a.Width > b.X &&
         a.Y < b.Y + b.Height && a.Y + a.Height > b.Y &&
-        a.Z < b.Z + b.Depth && a.Z + a.Depth > b.Z;
+        a.Z < b.Z + b.Length && a.Z + a.Length > b.Z;
 
     /// <summary>
     /// Kutunun altındaki destek oranı. Zemindeki kutu (Y=0) ve sıfır taban alanı
@@ -45,7 +45,7 @@ internal static class PhysicalInvariants
             return 1m;
         }
 
-        var footprint = box.Width * box.Depth;
+        var footprint = box.Width * box.Length;
         if (footprint == 0m)
         {
             return 1m;
@@ -103,7 +103,7 @@ internal static class PhysicalInvariants
             var inside = box.X >= 0m && box.Y >= 0m && box.Z >= 0m
                          && box.X + box.Width <= input.VehicleWidth
                          && box.Y + box.Height <= input.VehicleHeight
-                         && box.Z + box.Depth <= input.VehicleLength;
+                         && box.Z + box.Length <= input.VehicleLength;
 
             Assert.True(
                 inside,
@@ -204,12 +204,12 @@ internal static class PhysicalInvariants
     private static decimal OverlapArea(PlacedItemResult a, PlacedItemResult b)
     {
         var overlapX = Math.Max(0m, Math.Min(a.X + a.Width, b.X + b.Width) - Math.Max(a.X, b.X));
-        var overlapZ = Math.Max(0m, Math.Min(a.Z + a.Depth, b.Z + b.Depth) - Math.Max(a.Z, b.Z));
+        var overlapZ = Math.Max(0m, Math.Min(a.Z + a.Length, b.Z + b.Length) - Math.Max(a.Z, b.Z));
 
         return overlapX * overlapZ;
     }
 
     private static string Describe(PlacedItemResult box)
         => string.Create(CultureInfo.InvariantCulture,
-            $"{box.ItemId} @({box.X},{box.Y},{box.Z}) {box.Width}x{box.Height}x{box.Depth}");
+            $"{box.ItemId} @({box.X},{box.Y},{box.Z}) {box.Width}x{box.Height}x{box.Length}");
 }

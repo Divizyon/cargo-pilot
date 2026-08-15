@@ -58,16 +58,17 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
         var placementDtos = placements
             .Select(p =>
             {
-                var (w, h, d) = ApplyRotation(p.Item.Width, p.Item.Height, p.Item.Length, p.Rotation);
+                var (width, height, length) = ApplyRotation(
+                    p.Item.Width, p.Item.Height, p.Item.Length, p.Rotation);
                 colorByItemId.TryGetValue(p.ItemId, out var color);
                 return new SharePlacementDetailDto(
                     p.ItemId,
                     p.PositionX,
                     p.PositionY,
                     p.PositionZ,
-                    w,
-                    h,
-                    d,
+                    width,
+                    height,
+                    length,
                     (int)p.Rotation,
                     1,
                     false,
@@ -159,7 +160,7 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);
 
-    private static (decimal w, decimal h, decimal d) ApplyRotation(
+    private static (decimal Width, decimal Height, decimal Length) ApplyRotation(
         decimal width, decimal height, decimal length, LoadingPlanPlacementRotation rotation)
         => rotation switch
         {
