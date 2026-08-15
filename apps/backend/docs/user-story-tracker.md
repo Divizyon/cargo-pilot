@@ -18,12 +18,13 @@ Durum göstergeleri:
 **Genel Durum:** `✅ Tamamlandı`
 
 ### Kabul Kriterleri
-- Repo kökünde, proje hedef frameworku ile uyumlu .NET SDK sürümünü sabitleyen bir `global.json` bulunmalıdır.
+- Proje hedef frameworku ile uyumlu .NET SDK sürümünü sabitleyen bir `global.json` bulunmalıdır.
+  *(⚠️ 2026-08-15 düzeltmesi: kriter önce "repo kökünde" diyordu. Dosya **repo kökünde değil**, `apps/backend/global.json` konumundadır — `find . -maxdepth 1 -iname global.json` → 0 sonuç. `developer-setup.md` doğru konumu yazıyor.)*
 - Gerekli Visual Studio workload'larını, kurulum adımlarını ve doğrulama komutlarını açıklayan bir `docs/developer-setup.md` dokümanı bulunmalıdır.
 - Temiz bir geliştirici ortamında, dokümanda tanımlanan `dotnet restore` ve `dotnet build` komutları başarıyla çalıştırılabilmelidir.
 
 ### Alt İşler
-- `✅` Repo kökünde `global.json` ile SDK sürümünü sabitle
+- `✅` `apps/backend/global.json` ile SDK sürümünü sabitle *(2026-08-15: kökte değil, backend klasöründe)*
 - `✅` Proje hedef framework ile uyumlu SDK seçimi yap (`net8.0` için `.NET 8`)
 - `✅` Developer setup dokümanı hazırla (`docs/developer-setup.md`)
 - `✅` Gerekli Visual Studio workload listesi dokümanda yazsın
@@ -32,7 +33,7 @@ Durum göstergeleri:
 - `✅` CI tarafında aynı SDK bandının pinlendiği bilgisini dokümana bağla
 
 **Kanıtlar:**
-- `global.json`
+- `apps/backend/global.json` *(2026-08-15: repo kökünde değil)*
 - `docs/developer-setup.md`
 - `.github/workflows/ci.yml`
 
@@ -42,6 +43,16 @@ Durum göstergeleri:
 **Story:** Backend Chapter Lead olarak, projenin ve dizin yapısının sürdürülebilir, test edilebilir ve modüler olması için Clean Architecture standartlarında oluşturulmasını isterim.
 
 **Genel Durum:** `✅ Tamamlandı`
+
+> **⚠️ Kanıt uyarısı — 2026-08-15.** Bu story'nin alt işlerinde ve "Kanıtlar" listesinde geçen
+> `Cargo`, `TrackingNumber`, `CargoStatus`, `ICargoRepository`, `CargoRepository`,
+> `Features/Cargos/CreateCargo/*` adları **kod tabanında yoktur** — `grep -rln "class Cargo\b" apps/backend`
+> yalnızca doküman dosyalarını döndürür, tek bir `.cs` dosyası bile eşleşmez.
+> Bunlar story yazıldığı sırada kullanılan **kurgusal/örnek** adlardır; gerçek entity'ler `Item`,
+> `Vehicle`, `LoadingPlan` vb.'dir ve `architecture.md` bu değişimi zaten açıklıyor.
+> Story'nin kendisi (katmanlı yapı, repository pattern, FluentValidation, composition root)
+> gerçekten tamamlanmıştır; yanlış olan yalnız örnek sınıf adlarının "kanıt" gibi listelenmesidir.
+> Tarihsel kayıt olduğu için metin silinmedi, uyarı eklendi.
 
 **Bu story için teknik kararlar (netleştirildi):**
 - `Application` katmanında servis bazlı yaklaşım kullanılacak.
