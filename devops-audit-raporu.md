@@ -18,7 +18,7 @@ sütunda verilmiştir — bir sonraki okuyucu aynı komutu koşarak bayatlığı
 | "SAST 10/10 · CodeQL PR kapısında" | CodeQL **hiçbir ruleset'te zorunlu check değil**, merge'ü bloke etmiyor (advisory) | `gh api /repos/Divizyon/cargo-pilot/rulesets/{id}` × 4 |
 | "Rollback onarıldı, üç kez canlıda doğrulandı" | Yalnız `release-tag.yml` tarafı. `rollback.sh:69` **hâlâ** hatalı SHA türetiyor | `grep -n "TARGET_SHA=" infra/scripts/rollback.sh` |
 | "10 eski tag eşlenmemiş" | Git'te **14** sürüm tag'i, GHCR'de yalnız **4**'ünün imajı (v0.11–v0.14) → v0.1–v0.10'a rollback imkânsız | `git tag -l 'v*'` (14) + GHCR `tags/list` (4 adet `v*`) |
-| "41 md / 10.125 satır" | **45 md / 11.056 satır** (`dev` dalı) | `git ls-files '*.md' \| wc -l` ve `xargs wc -l` |
+| "41 md / 10.125 satır" | **45 md / 11.315 satır** (tazeleme sonrası) | `git ls-files '*.md' \| wc -l` ve `xargs wc -l` |
 | "166 test yeşil" (frontend) | **16 dosya / ~151 test-case** — bu bir **alt sınır**, `it.each`/`describe.each` kalıpları regex sayımını kaçırabilir | `grep -oE '^\s*(it\|test)\(' apps/frontend/**/*.test.ts*` |
 
 **Sağlık skoru bu düzeltmelerle düşer:** SAST 10/10 → **6/10** (CodeQL koşuyor ama merge kapısı
@@ -39,7 +39,7 @@ değil), Token-Permissions 9/10 → **8/10** (7/8). Yeni tahmini toplam **≈71 
 2. **🟠→🟢 Tedarik zinciri kapatıldı.** 28 action referansının tamamı commit SHA'sına pinli (#942), Dependabot `github-actions` ekosistemi pinleri güncel tutacak. **Kalan:** dispatch input'larının root SSH script'ine interpolasyonu ve Dockerfile digest'leri (orta öncelik).
 3. **🟠→🟢 Güvenlik görünürlüğü kuruldu.** Dependabot alerts + secret scanning + push protection + **private vulnerability reporting** açık; CodeQL iki dilde PR'larda koşuyor (ölçülen: C# 2:13, TS 1:13) — **ancak 2026-08-15 doğrulaması: CodeQL hiçbir ruleset'in `required_status_checks` listesinde değil, yani merge'ü bloke etmiyor; advisory seviyede** (`gh api /repos/Divizyon/cargo-pilot/rulesets/{id}` × 4); npm açıkları **10 → 0** (#944 + xlsx→SheetJS CDN 0.20.3 #945). NuGet ilk taramada temiz. `.github/SECURITY.md` eklendi (#962). **Kalan:** LICENSE bilinçli ertelendi; server-access.md hâlâ IP/port yayınlıyor (silmek geçmişten kaldırmadığı için ayrı karar).
 4. **🟡 CI hattı ayakta ama başarı oranı düşük.** **⚠️ 2026-08-15 düzeltmesi:** "%98,9 koşum başarısı" yanlıştı — ana CI workflow'u (`CI — Kod Kalite ve Build Kontrolü`) örneklem penceresine göre **%58,8 – %81** arasında. Son 100 koşumun 34'ü bu workflow ve 20'si yeşil (%58,8); `--workflow=ci.yml --limit 100` ile daha geniş pencerede 81/100 (%81). En uzun kırmızı seri: 12 ardışık başarısızlık (`feat/ERP-toplu-iyilestirme`, `Frontend CI` job'u, 2026-08-13 → 08-14). Terfi zinciri 3 ruleset + `enforce-promotion` ile zorlanıyor. Buna ek olarak (#961): **7/8** workflow'da top-level `contents: read` (`promote.yml:55` bilerek `contents: write` — terfi merge'i için), 15/15 job'da `timeout-minutes`, backend test guard artık sessizce geçmiyor, sürüm etiketine otomatik changelog'lu GitHub Release bağlandı. **Kalan:** 0/20 merge review'lu — 1-onay/CODEOWNERS kararı bekliyor; her işe ~1,5 terfi PR'ı yükü sürüyor.
-5. **🟡 Dokümantasyon bayatlığı ilk turda kapatıldı, ikinci turda yeniden açıldı.** Denetimde 12 bayat dosya vardı; hepsi düzeltildi (#942, #962): README parolası, escape'li kök CLAUDE.md (111 escape, içerik birebir korundu), snapshot/kod-taraması yanlışları, secret envanteri, doc-map yeniden ölçümü. **⚠️ 2026-08-15 yeniden taraması 45 md dosyasının 20'sinde bayat/çelişkili içerik buldu** (ölü motor yolu ×8, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity "kanıtı", sayı hataları); bunlar `docs/dokuman-tazeleme` turunda düzeltildi. Güncel hacim: **45 md / 11.056 satır** (`git ls-files '*.md'`, `dev`, 2026-08-15) — rapordaki eski "41 / 10.125" değeri bayat. **Kalan:** koordinat terminolojisi çelişkisi — `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor.
+5. **🟡 Dokümantasyon bayatlığı ilk turda kapatıldı, ikinci turda yeniden açıldı.** Denetimde 12 bayat dosya vardı; hepsi düzeltildi (#942, #962): README parolası, escape'li kök CLAUDE.md (111 escape, içerik birebir korundu), snapshot/kod-taraması yanlışları, secret envanteri, doc-map yeniden ölçümü. **⚠️ 2026-08-15 yeniden taraması 45 md dosyasının 20'sinde bayat/çelişkili içerik buldu** (ölü motor yolu ×8, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity "kanıtı", sayı hataları); bunlar `docs/dokuman-tazeleme` turunda düzeltildi. Güncel hacim: **45 md / 11.315 satır** (`git ls-files '*.md'`, 2026-08-15, tazeleme sonrası) — rapordaki eski "41 / 10.125" değeri bayat. **Kalan:** koordinat terminolojisi çelişkisi — `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor.
 
 ---
 
@@ -59,7 +59,7 @@ değil), Token-Permissions 9/10 → **8/10** (7/8). Yeni tahmini toplam **≈71 
 | LICENSE | Yok | Yok ⏸ (ertelendi) | GitHub Release | 0/11 sürüm | **v0.12.0 + v0.13.0** ✅ (otomatik changelog) |
 | Dependabot ignore kuralı (main) | — | 4 → **17** ✅ | İşlenen Dependabot PR | — | **17** (8 merge / 9 kapatma) |
 | Workflow / job | 7 / 14 | 8 / 15 (codeql) | CI başarı (ana workflow) | %98,9 ❌ bayat | **%58,8 – %81** ⚠️ (2026-08-15) |
-| CodeQL zorunlu check | — | **Hayır** ⚠️ (advisory) | md dosya / satır | 41 / 10.125 ❌ bayat | **45 / 11.056** (2026-08-15) |
+| CodeQL zorunlu check | — | **Hayır** ⚠️ (advisory) | md dosya / satır | 41 / 10.125 ❌ bayat | **45 / 11.315** (2026-08-15) |
 
 *Tablo 2026-08-15'te tazelendi; ❌ bayat işaretli hücreler denetim günü (2026-08-13) yazılmış, yeniden ölçümde yanlış çıkmış değerlerdir.*
 
@@ -351,7 +351,7 @@ jobs:
 
 Denetimde **12 dosyada bayatlık/çelişki** vardı ve 12'sinin tamamı kapatıldı (#942, #962).
 
-**⚠️ 2026-08-15 tazelemesi:** "41 md / 10.125 satır" değeri bayattır. Güncel hacim **45 md / 11.056 satır**
+**⚠️ 2026-08-15 tazelemesi:** "41 md / 10.125 satır" değeri bayattır. Güncel hacim **45 md / 11.315 satır**
 (`git ls-files '*.md' | wc -l` = 45, `git ls-files '*.md' | xargs wc -l` = 11.056; `dev` dalı, 2026-08-15).
 Ayrıca bağımsız bir yeniden tarama 45 dosyanın **20'sinde** yeni bayat/çelişkili iddia buldu
 (ölü motor yolu 8 yerde, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity
@@ -439,7 +439,7 @@ Eksik standart dosyalar: ~~SECURITY.md~~ ✅ eklendi · **LICENSE** ⏸ bilinçl
 | SECURITY.md | ✅ [PR #962](https://github.com/Divizyon/cargo-pilot/pull/962) | Kanal: **GitHub private vulnerability reporting** (repo ayarından açıldı); e-posta yayınlanmadı |
 | Ölü secret temizliği | ✅ Repo ayarı | `TEST_GHCR_PAT` + `TEST_GHCR_USER` silindi (8 → 6 secret) |
 | Kök `CLAUDE.md` escape'leri | ✅ PR #962 | 111 escape, 248→135 satır; içerik birebir korundu (kelime sayısı 1037=1037) |
-| 12 bayat dokümanın tamamı | ✅ PR #962 | Bağlam + DevOps dokümanları workflow gerçeğiyle hizalandı; doc-map o gün 41 dosya / 10.125 satır ölçülmüştü. ⚠️ 2026-08-15: **45 dosya / 11.056 satır**, 20 dosyada yeni bayatlık (bkz. §8) |
+| 12 bayat dokümanın tamamı | ✅ PR #962 | Bağlam + DevOps dokümanları workflow gerçeğiyle hizalandı; doc-map o gün 41 dosya / 10.125 satır ölçülmüştü. ⚠️ 2026-08-15: **45 dosya / 11.315 satır**, 20 dosyada yeni bayatlık (bkz. §8) |
 | LICENSE | ⏸ Ertelendi | Repo taahhüdü netleşene kadar — bilinçli karar |
 | `server-access.md` IP/port ifşası | ⏸ Karar | Dosyadan silmek git geçmişinden kaldırmıyor; ayrı bir karar konusu |
 | Koordinat terminolojisi çelişkisi | ⏸ Bağımlı | `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor |

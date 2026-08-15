@@ -6,15 +6,16 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 
 ---
 
-**Toplam 45 dosya / 11.056 satır** (git ile izlenen tüm `.md` dosyaları, `dev` dalı).
+**Toplam 45 dosya / 11.315 satır** (git ile izlenen tüm `.md` dosyaları, `docs/dokuman-tazeleme` dalı).
 Son tarama: **2026-08-15**. Ölçüm komutu — bir sonraki okuyucu bayatlığı böyle kontrol eder:
 
 ```bash
 git ls-files '*.md' | wc -l                 # → 45
-git ls-files '*.md' | xargs wc -l | tail -1 # → 11056
+git ls-files '*.md' | xargs wc -l | tail -1 # → 11315
 ```
 
-> **Revizyon 2026-08-15:** sayım tazelendi (41 → 45 dosya, 10.125 → 11.056 satır). İndekse
+> **Revizyon 2026-08-15:** sayım tazelendi (41 → 45 dosya, 10.125 → 11.315 satır; satır sayısı bu tazeleme turunun
+> eklediği düzeltme notlarını da içerir). İndekse
 > girmemiş 3 ERP dokümanı (`adr-baglanti-mimarisi.md`, `erp-export-kontrati.md`,
 > `logo-schema-referans.md`) eklendi. `apps/frontend/e2e/README.md` (Playwright e2e notu)
 > bilinçli olarak indeks dışıdır — test klasörü içi teknik not.
