@@ -206,6 +206,59 @@ internal static class PlacementValidator
         return false;
     }
 
+    // ── Load above (taşıyıcı rolü) ────────────────────────────────────────────
+    //
+    // Yukarıdaki dört kural (istiflenebilirlik, istif adedi, üst ağırlık,
+    // kırılganlık) yalnızca AŞAĞI bakar: aday pozisyonun ALTINDA ne olduğunu
+    // sorar. Aday taraması için bu yeterlidir, çünkü yeni kutu daima mevcut
+    // yığının en üstüne konur; üstünde hiçbir şey yoktur. Denge takası ise bir
+    // kutuyu var olan bir yığının ALTINA taşıyabilir — o durumda kutunun KENDİ
+    // IsStackable / FragilityType / MaxStackCount / MaxWeightOnTop kısıtları
+    // hiçbir yerde değerlendirilmez. Bu fonksiyon o kör noktayı kapatır:
+    // kutunun ÜSTÜNDEKİ yükü kutunun kendi kısıtlarına karşı sorar.
+    //
+    // Semantik, aşağı bakan aynalarıyla birebir hizalıdır: istiflenebilirlik tam
+    // temas (satır 100+105), kırılganlık sütun geneli (satır 197-198), istif adedi
+    // ve üst ağırlık sütun geneli (satır 128/156). Kutu zaten yerleşik olduğu için
+    // adet karşılaştırmasında satır 139'daki "+1" yoktur.
+
+    /// <summary>Yerleştirilmiş bir kutunun üstündeki yük, kutunun kendi istif ve kırılganlık kısıtlarını aşıyor mu?</summary>
+    internal static bool ViolatesLoadAbove(List<PlacedBox> others, PlacedBox box)
+    {
+        // Kısıtsız kutuda hiçbir kural üst yükle ilgilenmez: maliyet sıfır.
+        if (box.IsStackable
+            && box.FragilityType != FragilityType.Fragile
+            && box.MaxStackCount <= 0
+            && box.MaxWeightOnTop <= 0m)
+            return false;
+
+        var top = box.Y + box.Height;
+
+        var countAbove = 0;
+        var weightAbove = 0m;
+        var restsDirectlyOn = false;
+
+        foreach (var c in others)
+        {
+            if (c.Y < top) continue;
+
+            var ox = Math.Max(0m, Math.Min(box.X + box.Width, c.X + c.Width) - Math.Max(box.X, c.X));
+            var oz = Math.Max(0m, Math.Min(box.Z + box.Length, c.Z + c.Length) - Math.Max(box.Z, c.Z));
+            if (ox <= 0m || oz <= 0m) continue;
+
+            countAbove++;
+            weightAbove += c.Weight;
+            if (c.Y == top) restsDirectlyOn = true;
+        }
+
+        if (!box.IsStackable && restsDirectlyOn) return true;
+        if (box.FragilityType == FragilityType.Fragile && countAbove > 0) return true;
+        if (box.MaxStackCount > 0 && countAbove > box.MaxStackCount) return true;
+        if (box.MaxWeightOnTop > 0m && weightAbove > box.MaxWeightOnTop) return true;
+
+        return false;
+    }
+
     // ── Orientation ───────────────────────────────────────────────────────────
     //
     // Rotasyon üretimi de bir yerleştirme kısıtıdır: hangi yönlerin denenebileceğini

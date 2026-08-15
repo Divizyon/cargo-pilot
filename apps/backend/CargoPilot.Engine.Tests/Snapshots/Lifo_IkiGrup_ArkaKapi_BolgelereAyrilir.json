@@ -46,9 +46,9 @@
     "FillRate": 0.6666666666666666666666666667,
     "CenterOfGravityX": 50,
     "CenterOfGravityY": 50,
-    "CenterOfGravityZ": 100,
+    "CenterOfGravityZ": 125,
     "WeightBalanceOffsetX": 0,
-    "WeightBalanceOffsetZ": 33.3,
+    "WeightBalanceOffsetZ": 16.7,
     "Placements": [
       {
         "Order": 0,
@@ -91,7 +91,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 100,
+        "Z": 200,
         "Width": 100,
         "Height": 100,
         "Length": 50,

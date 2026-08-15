@@ -63,7 +63,7 @@ services:
       - ../docker/prometheus/prometheus.test.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data_test:/prometheus
     ports:
-      - "9091:9090"
+      - "127.0.0.1:9091:9090"
     restart: unless-stopped
     networks:
       - cargo-pilot-test

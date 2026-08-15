@@ -177,10 +177,21 @@ Sonra dosyayı `remove` ile kaldır.
 
 ### 7.1 Development
 
-- Default konfigürasyon `useInMemoryRepository: true` ile çalışır (bkz. `Program.cs`).
-- Bu modda `DbContext` runtime'da kaydedilmez; uygulama DB'siz ayağa kalkar.
+> **⚠️ Düzeltme — 2026-08-15.** Bu bölüm daha önce "default konfigürasyon `useInMemoryRepository: true`
+> ile çalışır, uygulama DB'siz ayağa kalkar" diyordu. **Bu artık doğru değil ve aynı klasördeki
+> `architecture.md` §"Development" bölümüyle çelişiyordu.** Doğru olan `architecture.md`'dir.
+> Kanıt (2026-08-15):
+> - `CargoPilot.Infrastructure/DependencyInjection.cs:28` → `bool useInMemoryRepository = false` (varsayılan **false**)
+> - `CargoPilot.WebAPI/Program.cs:23` → değer `UseInMemoryDatabase` konfigürasyon anahtarından okunur; tanımlı değilse `false`
+> - `find apps/backend -iname "InMemory*Repository*.cs"` → **0 sonuç**; yani bayrak `true` yapılsa
+>   bile devreye girecek bir InMemory repository implementasyonu **yoktur**, DI çözümlemesi patlar.
+
+- Default konfigürasyon `useInMemoryRepository: **false**` ile çalışır (`Program.cs:23` →
+  `Infrastructure/DependencyInjection.cs:28`). **Development'ta da gerçek bir SQL Server bağlantısı gerekir.**
+- `UseInMemoryDatabase` bayrağı konfigürasyondan `true` yapılabilir ama karşılığında bir
+  `InMemory*Repository` implementasyonu bulunmadığı için **çalışmaz** — bu bayrak fiilen ölüdür.
 - Migration komutları `AppDbContextFactory` aracılığıyla bağımsız çalışır; runtime DI'ya ihtiyaç duymaz.
-- Gerçek DB üzerinde çalışmak için `Program.cs`'teki flag `false`'a çekilir veya ortam değişkeni üzerinden override edilir (Story 5 kapsamı).
+- Yerel DB'yi ayağa kaldırma adımları için `docs/setup/local-setup.md`.
 
 ### 7.2 Staging / Production
 

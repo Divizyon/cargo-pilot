@@ -60,7 +60,22 @@ Sunucuda `.env.prod` dosyası ve production stack hiç kurulmamıştır.
 
 **Etkisi:** Geçmişe erişimi olan biri eski parolayı görebilir.
 
-**Kalıcı çözüm:** Sunucudaki SA parolasını döndür (rotate). Geçmiş temizliği için `git filter-repo` kullanılabilir; ancak tüm klonların güncellenmesi gerekir. **Minimum aksyon: parolayı döndür.**
+`appsettings.Development.json` **ve** `PRODUCTION_DEPLOYMENT_INFO.md` — parola iki ayrı dosyada commit edilmişti.
+
+**Yeniden doğrulama — 2026-08-15.** Bu uyarının "çürütüldü / yalnız `.env.dev.example`'daydı"
+şeklinde kapatıldığı bir not dolaşıyordu; **o not yanlıştır.** Bağımsız `git log --all -S <parola>`
+taraması parolanın gerçekten commit edildiğini gösterdi:
+
+| Commit | Dosya |
+|---|---|
+| `fe4c7a65` (ekleyen) → `998e04ba` (kaldıran) | `apps/backend/CargoPilot.WebAPI/appsettings.Development.json` |
+| `e46dde04` (ekleyen) → `520da7ae` (kaldıran) | `PRODUCTION_DEPLOYMENT_INFO.md` |
+
+Yani parola **iki ayrı dosyada** geçmişte duruyor; dosyaların bugünkü hâli temiz olsa da
+`git log -p` ile hâlâ okunabilir. **Parola rotasyonu HÂLÂ GEREKLİ — bu madde kapatılmamıştır.**
+*(Parolanın kendisi bilinçli olarak hiçbir dokümana yazılmadı.)*
+
+**Kalıcı çözüm:** Sunucudaki SA parolasını döndür (rotate). Geçmiş temizliği için `git filter-repo` kullanılabilir; ancak tüm klonların güncellenmesi gerekir. **Minimum aksiyon: parolayı döndür.**
 
 ---
 

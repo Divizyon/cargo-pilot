@@ -1,14 +1,25 @@
 # Doküman Haritası
 
-**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-15 · **Durum:** Aktif
 
 Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 
 ---
 
-**Toplam 41 dosya / 10.125 satır** (`.claude/` hariç, `apps/frontend/.claude/` dahil).
-Son tarama: 2026-08-13.
+**Toplam 45 dosya / 11.315 satır** (git ile izlenen tüm `.md` dosyaları, `docs/dokuman-tazeleme` dalı).
+Son tarama: **2026-08-15**. Ölçüm komutu — bir sonraki okuyucu bayatlığı böyle kontrol eder:
 
+```bash
+git ls-files '*.md' | wc -l                 # → 45
+git ls-files '*.md' | xargs wc -l | tail -1 # → 11315
+```
+
+> **Revizyon 2026-08-15:** sayım tazelendi (41 → 45 dosya, 10.125 → 11.315 satır; satır sayısı bu tazeleme turunun
+> eklediği düzeltme notlarını da içerir). İndekse
+> girmemiş 3 ERP dokümanı (`adr-baglanti-mimarisi.md`, `erp-export-kontrati.md`,
+> `logo-schema-referans.md`) eklendi. `apps/frontend/e2e/README.md` (Playwright e2e notu)
+> bilinçli olarak indeks dışıdır — test klasörü içi teknik not.
+>
 > **Revizyon 2026-08-13:** indeks yeniden ölçüldü; bayat satır sayıları ve iddialar
 > düzeltildi. Yeni girenler: `docs/COORDINATE_STANDARD.md`, `docs/COORDINATE_AUDIT.md`
 > (2026-08-12), `devops-audit-raporu.md` ve `.github/SECURITY.md` (2026-08-13).
@@ -94,7 +105,7 @@ güncel davranışın kaynağı değildir.
 |-------|------:|------|--------------|
 | `README.md` | 39 | Bağlam kütüphanesinin kullanım kuralı, içindekiler tablosu, güncelleme sorumluluğu matrisi | Bu klasöre ilk girişte |
 | `project-snapshot.md` | 174 | Stack, ortamlar, portlar, CI/CD, açık riskler, branch modeli, squad haritası — tek sayfa teknik anlık görüntü | **Her oturum başında** |
-| `doc-map.md` | bu dosya | Repodaki 41 `.md` dosyasının haritası + özeti + doküman sağlığı tablosu | "Bu bilgi nerede yazıyor?" |
+| `doc-map.md` | bu dosya | Repodaki 45 `.md` dosyasının haritası + özeti + doküman sağlığı tablosu | "Bu bilgi nerede yazıyor?" |
 | `kod-taramasi-2026-08.md` | 102 | 6 kategoride kod tabanı taraması (frontend, backend, algoritma, devops, veritabanı, test/kalite): gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde |
 | `branch-audit.md` | 308 | 30 remote branch + açık PR analizi ve temizlik kararları. **Durum: uygulandı** — 29 branch → 3, 26 `archive/*` tag'i; §9 yürürlükteki üç dallı modeli anlatır | Branch/PR temizliği yaparken |
 
@@ -113,6 +124,9 @@ güncel davranışın kaynağı değildir.
 | `environment-variables.md` | 165 | `Section__SubSection__Key` naming standardı ve neden `__`, yapılandırma öncelik sırası, ortam bazlı secret kaynakları, User Secrets kurulumu, prod bağlantı akışı, secret policy, zorunlu/opsiyonel değişken tablosu | Env var eklerken |
 | `database-migrations.md` | 237 | `dotnet-ef` kurulumu, connection string kaynakları, migration üretme/uygulama/geri alma, isimlendirme, ortam bazlı akış, SQL script üretme, 6 yaygın hata | Migration işleri |
 | `user-story-tracker.md` | 530 | 17 story'nin alt iş bazında durum takibi (✅/🟡/⬜) + kanıt dosya listesi. Açık kalanlar: Story 8 "validation hatalarını envelope'a bağla", Story 9 correlation id + exception testleri | Backend ilerleme durumu |
+| `erp-integration/adr-baglanti-mimarisi.md` | 133 | ERP bağlantı mimarisi kararı (ADR) | ERP bağlantı yaklaşımı sorgulanınca |
+| `erp-integration/erp-export-kontrati.md` | 91 | ERP'ye dışa aktarım sözleşmesi (alanlar, format) | ERP export uçlarında |
+| `erp-integration/logo-schema-referans.md` | 455 | Logo ERP şema referansı (tablo/kolon envanteri) | Logo alan eşlemesi yaparken |
 | `erp-integration/data-model.md` | 59 | `Integration`, `SyncLog`, `ErpUserMapping` entity'leri + `Item`/`Vehicle`'a eklenecek alanlar | ERP entegrasyonu |
 | `erp-integration/erp-schema-divizyon.md` | 459 | Müşteri ERP şeması: `TBLSTSABIT` (stok, 134 kolon), `TBLSIPAMAS` (sipariş başlığı, 106), `TBLSIPATRA` (satırlar, 97), boyut birimi notu, sync ve delta-sync sorguları | ERP alan eşlemesi |
 

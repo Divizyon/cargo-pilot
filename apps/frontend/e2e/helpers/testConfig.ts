@@ -24,14 +24,22 @@ export const FAKE_ERP = {
 /** Hiçbir zaman çözülmeyen adres; "ERP ayakta değil" senaryosu için. */
 export const UNREACHABLE_ERP_SERVER = 'erp-yok.invalid,1433';
 
-/** Sahte ERP'de kayıtlı örnek satırlar (infra/docker/erp-mssql/init/01-netsis-seed.sql). */
+/**
+ * Sahte ERP'de kayıtlı örnek satırlar (infra/docker/erp-mssql/init/01-netsis-seed.sql).
+ * Seed gerçek Netsis stok kodlarını taklit eder; buradaki değerler oradaki satırlarla
+ * birebir aynı olmalıdır. Kullanılmayan satır burada tutulmaz: seed değiştiğinde
+ * sessizce bayatlayıp CI'da "satır bulunamadı" olarak patlıyordu.
+ *
+ * ERP kaynaklı taslakların tipi GRUP_KODU'ndan türetilmez; hepsi sabit "Koli" (Box)
+ * ile açılır ve kullanıcı aktarım ızgarasında değiştirir.
+ */
 export const FAKE_ERP_ROWS = {
-  /** GRUP_KODU = 'Box' → ItemCategory.Box(2) → arayüzde "Koli". */
-  box: { sku: 'E2E-BOX-001', name: 'E2E Koli - LED TV' },
-  /** GRUP_KODU = 'Drum' → ItemCategory.Drum(3) → arayüzde "Varil". */
-  drum: { sku: 'E2E-DRUM-001', name: 'E2E Varil - Kimyasal' },
-  /** EN/BOY/GENISLIK/BIRIM_AGIRLIK = 0 → "Eksik alan" rozeti. */
-  missing: { sku: 'E2E-MISSING-001', name: 'E2E Olcusu Eksik Parca' },
-  /** SATISKILIT = 'E' → hiç çekilmez. */
-  salesLocked: { sku: 'E2E-LOCKED-001', name: 'E2E Satisa Kapali Urun' },
+  /** Aktarım senaryosu bunu Ürünler'e taşır; taslak "Aktarılanlar" durumuna geçer. */
+  transferred: { sku: '600.02.0004', name: 'Buzdolabı No-Frost 480 L' },
+  /**
+   * Smoke senaryosu ayrı bir satır kullanır. Bağlantı kaldırılıp yeniden kurulduğunda
+   * aynı entegrasyon canlandığı için senkronizasyon mevcut taslağı "değişmedi" sayıp
+   * atlar; aktarılan satır bir daha "Bekleyenler" sekmesine dönmez.
+   */
+  pending: { sku: '153.01.0001' },
 } as const;
