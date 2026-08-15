@@ -34,10 +34,11 @@ test.describe('ERP çekim zinciri (smoke)', () => {
 
     await page
       .getByPlaceholder('Ürün adı, SKU, ERP ID veya barkod ile ara...')
-      .fill(FAKE_ERP_ROWS.box.sku);
+      .fill(FAKE_ERP_ROWS.pending.sku);
 
-    // Bağlantı her senaryoda yeniden kurulduğu için aynı ERP kodu birden fazla
-    // taslak kaydına karşılık gelebilir; varlık kontrolü ilk satır üzerinden yapılır.
-    await expect(page.getByRole('cell', { name: FAKE_ERP_ROWS.box.sku }).first()).toBeVisible();
+    // Stok kodu hem SKU hem ERP ID sütununda görünür; ilk hücre üzerinden bakılır.
+    await expect(
+      page.getByRole('cell', { name: FAKE_ERP_ROWS.pending.sku }).first(),
+    ).toBeVisible();
   });
 });
