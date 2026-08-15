@@ -410,7 +410,9 @@ const fragility = useWatch({ control: form.control, name: "fragility" });
 | Rotasyon | Derece (0, 90, 180, 270)                                               |
 
 
-> **Terminoloji çapraz-referansı (2026-08-15):** Yukarıdaki adlandırma **mevcut kodu** anlatır (`PlacedBox.cs` → `W,H,D`; `scene-config.ts` → `STAGING_DEPTH_CM`; `BoxWrapper.tsx` 31 satırda `depth`). `docs/COORDINATE_STANDARD.md` (2026-08-12) hedef standardı tanımlar ve `depth` terimini `length` ile, "front/rear" dilini yüz-tabanlı tanımla değiştirmeyi öngörür. **Bu standart henüz hiçbir yerde uygulanmamıştır** — kendi §10'unda üç maddesi onay beklediği için kod değişikliği başlatılmadığını yazar. Yani buradaki terminoloji bugün doğrudur; hedef için bkz. `COORDINATE_STANDARD.md` §9–§10.
+> **Uygulama durumu (2026-08-15, ikinci ölçüm):** Yukarıdaki tablo hem standardı hem **kodun bugünkü hâlini** anlatır. `docs/COORDINATE_STANDARD.md`'nin eksen/terim kısmı PR #997 ve #1004 ile fiilen uygulandı: `PlacedBox.cs` artık `Width, Height, Length` taşıyor (`W,H,D` kalmadı), `BoxWrapper.tsx`'te boyut anlamında `depth` yok (`grep -rn -i depth apps/frontend/src` → kalanların tamamı Three.js malzeme özelliği `depthWrite`/`depthTest`, `scene-config.ts:95` `STAGING_DEPTH_CM` sabiti ve `usePlanStore.ts` içindeki yerel `rowDepth` değişkenleridir). Backend'de kalan tek yer `NetsisProductFetcher.cs`'teki yerel `depth` değişkeni — hedef alan adı zaten `Length`.
+>
+> Henüz uygulanmayan tek kısım kapı modelidir: `doors` listesi, `top door` ve `clearanceCm` kodda yok — bkz. `COORDINATE_STANDARD.md` §10 "Kodun bugünkü hâli" tablosu. Bir önceki turun (PR #993) buraya koyduğu "standart henüz hiçbir yerde uygulanmamıştır" notu **artık geçersizdi**, bu satırla değiştirildi.
 
 Koordinat mapping'i `lib/config/scene-config.ts` dosyasında merkezi olarak tanımlanır.
 

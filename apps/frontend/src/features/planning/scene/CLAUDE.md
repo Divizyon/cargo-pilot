@@ -85,7 +85,7 @@ X=width (kapıdan bakışta sağa) · Y=height (yukarı) · Z=length (uzak yüz 
 
 Right-handed (Three.js varsayılanı) — aynalama/telafi dönüşümü yasak. Kapılar small/big + face listesidir ("ön/sağ/sol kapı" yoktur). Bağlayıcı: `docs/COORDINATE_STANDARD.md`.
 
-> **Terminoloji çapraz-referansı (2026-08-15):** Yukarıdaki adlandırma **mevcut kodu** anlatır (`PlacedBox.cs` → `W,H,D`; `scene-config.ts` → `STAGING_DEPTH_CM`; `BoxWrapper.tsx` 31 satırda `depth`). `docs/COORDINATE_STANDARD.md` (2026-08-12) hedef standardı tanımlar ve `depth` terimini `length` ile, "front/rear" dilini yüz-tabanlı tanımla değiştirmeyi öngörür. **Bu standart henüz hiçbir yerde uygulanmamıştır** — kendi §10'unda üç maddesi onay beklediği için kod değişikliği başlatılmadığını yazar. Yani buradaki terminoloji bugün doğrudur; hedef için bkz. `COORDINATE_STANDARD.md` §9–§10.
+> **Uygulama durumu (2026-08-15, ikinci ölçüm):** Yukarıdaki satır hem standardı hem kodun bugünkü hâlini anlatır — eksen yönü ve `depth`→`length` adlandırması PR #997/#1004 ile uygulandı. Sahnede boyut anlamında `depth` kalmadı; `grep -rn -i depth apps/frontend/src` çıktısındaki isabetlerin tamamı Three.js malzeme özelliği (`depthWrite`/`depthTest`), `scene-config.ts:95` `STAGING_DEPTH_CM` sabiti veya `usePlanStore.ts` yerel değişkenleridir. Uygulanmayan tek kısım kapı modelidir (`doors` listesi, `top door`, `clearanceCm`) — bkz. `COORDINATE_STANDARD.md` §10. Bir önceki turun (PR #993) buraya koyduğu "standart henüz hiçbir yerde uygulanmamıştır" notu artık geçersizdi, bu satırla değiştirildi.
 
 
 `<mesh position={[p.x,p.y,p.z]}>` yasak — `BoxWrapper` zorunlu:

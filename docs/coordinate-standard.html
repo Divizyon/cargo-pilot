@@ -342,14 +342,25 @@
               <td>Olabilir — tek tarafta ya da iki tarafta</td>
               <td>Olabilir — tek tarafta ya da iki tarafta</td>
             </tr>
+            <tr>
+              <td>
+                <strong>top door</strong><br />
+                <span style="color: var(--ink-soft)">üst kapı</span><br />
+                <span class="pill">kodda yok</span>
+              </td>
+              <td><code>width × length</code></td>
+              <td><code>y = height</code></td>
+              <td>Olabilir</td>
+              <td>Olabilir</td>
+            </tr>
           </tbody>
         </table>
 
         <p class="note">
-          <strong>Kapılar liste olarak modellenir.</strong> Bir araçta aynı anda birden fazla kapı
+          <span class="pill">kodda yok</span> <strong>Kapılar liste olarak modellenir.</strong> Bir araçta aynı anda birden fazla kapı
           bulunabildiği için (ör. back door + iki big door) kapı bilgisi tekil bir enum değeri değil,
           yüz bilgisiyle birlikte bir liste olmalıdır:<br />
-          <code>doors: [{ type: 'small', face: 'z=length' }, { type: 'big', face: 'x=0' }, { type: 'big', face: 'x=width' }]</code>
+          <code>doors: [{ type: 'small', face: 'z=length' }, { type: 'big', face: 'x=0', clearanceCm: 12 }, { type: 'top', face: 'y=height' }]</code>
         </p>
 
         <p class="note">
@@ -662,28 +673,28 @@
             </tr>
             <tr>
               <td>Big door <code>x = 0</code> yüzünde</td>
-              <td><code>(x₀, 0, 0)</code></td>
-              <td><code>x₀ → width</code></td>
+              <td><code>(x₀ˡ, 0, 0)</code></td>
+              <td><code>x₀ˡ → width</code></td>
             </tr>
             <tr>
               <td>Big door <code>x = width</code> yüzünde</td>
               <td><code>(0, 0, 0)</code></td>
-              <td><code>0 → width − x₀</code> <span class="pill">onay bekliyor</span></td>
+              <td><code>0 → width − x₀ʳ</code></td>
             </tr>
             <tr>
               <td>Big door iki yüzde de</td>
               <td><code>(x₀, 0, 0)</code></td>
-              <td><code>x₀ → width − x₀</code> <span class="pill">onay bekliyor</span></td>
+              <td><code>x₀ˡ → width − x₀ʳ</code></td>
             </tr>
           </tbody>
         </table>
 
-        <p class="note warn">
-          <strong><code>x₀</code> değeri henüz tanımlı değil.</strong> Big door açıklık payının kaç
-          cm olduğu (sabit mi, kapı kanadı kalınlığına mı bağlı, araç kaydından mı gelecek)
-          belirlenmeli. Tabloda <span class="pill">onay bekliyor</span> ile işaretli iki satır,
-          verdiğin kuraldan türetilmiş önerilerdir — <code>x = width</code> tarafındaki big door için
-          aynı payın uygulanıp uygulanmayacağını onaylaman gerekiyor.
+        <p class="note">
+          <span class="pill">kodda yok</span> <strong><code>x₀</code> araç kaydından gelir.</strong> Sistem sabiti değildir; her big
+          door kendi açıklık payını (<code>clearanceCm</code>) taşır, çünkü kanat kalınlığı araca
+          göre değişir. <code>x₀ˡ</code> = <code>x = 0</code> yüzündeki kapının payı,
+          <code>x₀ʳ</code> = <code>x = width</code> yüzündekinin payı. Kapı tanımlıysa payı da
+          tanımlıdır; girilmemişse 0 kabul edilir.
         </p>
       </div>
 
@@ -787,31 +798,42 @@
         </table>
       </div>
 
-      <h2>8. Beklemedeki konular</h2>
+      <h2>8. Karara bağlanan konular</h2>
 
       <div class="card">
+        <p class="note warn">
+          <strong>Bu belge standardı tanımlar, kodun bugünkü hâlini değil.</strong> Aşağıdaki 2 ve
+          3 numaralı kararlar <strong>kodda henüz uygulanmamıştır</strong>; bölüm 2 ve 5'teki
+          <span class="pill">kodda yok</span> işaretli tanımlar hedefi anlatır.
+        </p>
+
         <ol class="assumptions">
           <li>
             <strong>Small door'u olmayan konteyner</strong>
             <span class="pill">sektör araştırması</span><br />
-            Yalnızca big door'u olan bir konteynerde origin kuralı tanımsız kalıyor. Sektör
-            araştırması sonrasında karara bağlanacak.
+            Yalnızca big door'u olan bir konteynerde origin kuralı hâlâ tanımsız. Açık olan tek
+            konu budur; yalnızca buna bağlı kod değişiklikleri başlatılmaz.
           </li>
           <li>
-            <strong>Üst kapı (top door)</strong>
-            <span class="pill">sektör araştırması</span><br />
-            Mevcut sistemde <code>top</code> kapı yönü var. Yeni adlandırmada üçüncü bir kapı tipi mi
-            olacağı, yoksa hiç modellenmeyeceği araştırma sonrasında belirlenecek.
+            <strong>Üst kapı (top door)</strong> — karara bağlandı, <strong>kodda yok</strong><br />
+            Üçüncü kapı tipi olarak modellenir: <code>{ type: 'top', face: 'y=height' }</code>.
+            Motorda üstten yükleme mantığı bulunmuyor; bölge kısıtı yalnızca
+            <code>LoadingType.Rear</code>'ı kapsıyor (OPT-10).
           </li>
           <li>
-            <strong><code>x₀</code> — big door açıklık payı</strong>
-            <span class="pill">değer gerekli</span><br />
-            Kaç cm olduğu ve nereden geldiği (sabit / araç kaydı / kapı kanadı ölçüsü) tanımlanmalı.
-            Ayrıca <code>x = width</code> tarafındaki big door için aynı payın uygulanıp
-            uygulanmayacağı onaylanmalı (bkz. bölüm 5 tablosu).
+            <strong><code>x₀</code> — big door açıklık payı</strong> — karara bağlandı,
+            <strong>kodda yok</strong><br />
+            Araç kaydındaki kapı alanıdır (<code>clearanceCm</code>). Bu alan henüz tanımlı değil;
+            bugün yükleme her koşulda <code>x = 0</code>'dan başlıyor.
           </li>
         </ol>
+
+        <p class="note">
+          Kapı modeli geçişi (<code>doors</code> listesi + <code>clearanceCm</code>)
+          tamamlandığında bu bölüm ve yukarıdaki işaretler güncellenir.
+        </p>
       </div>
+
     </main>
   </body>
 </html>
