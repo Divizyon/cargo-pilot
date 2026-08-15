@@ -7,6 +7,33 @@
 
 ---
 
+## 0. Uygulama durumu — 2026-08-15 ikinci ölçüm (rapor sonrası)
+
+> Bu rapor **denetim anının** fotoğrafıdır ve içeriği değiştirilmemiştir. Rapor yazıldıktan
+> sonra `dev`'e giren PR **#997** (Z ekseni yönü) ve **#1004** (bekleyen kararlar) bulguların
+> bir kısmını kapattı. Aşağıdaki durum, `dev` @ `96e9fd8b` üzerinde `grep`/dosya okumasıyla
+> tek tek doğrulanmıştır; **dosya:satır numaraları o PR'lardan sonra kaymıştır.**
+
+| Bulgu | Durum (2026-08-15, `dev` @ `96e9fd8b`) | Kanıt |
+|---|---|---|
+| H-01, H-02 | ✅ **kapandı** — bölge ataması ters çevrildi | `LifoPlacement.cs:82` → `zones[orders[i]] = (length-(i+1)*zoneSize, length-i*zoneSize)`; `:44-53` yorumu "referans kapı z = length" diyor |
+| H-03, H-19, H-20, H-21 | ✅ **kapandı** — test sözleşmeleri ve assert yönleri çevrildi | `LifoGoldenMasterTests.cs:10-11`; `GroupZoneTests.cs:29` `Assert.True(zByOrder[1] > zByOrder[2], …)`; `ModulBayraklariTests.cs:129` `disabled.Max(Z) < enabled.Max(Z)` |
+| H-09, H-13, H-15 | ✅ **kapandı** — `buildLoadOrder` artık daima Z artan sıralıyor | `loadOrder.ts:49-56` `default:` dalı; `loadOrder.test.ts:52` `expect(order).toEqual([1, 0])` |
+| H-10, H-14 | ✅ **kapandı** | `useLoadingAnimation.ts:129` `fromZ = length + OFFSET` |
+| H-16 | ✅ **kapandı** | `calcCenterOfGravity.ts:129` `frontAxleShare = 1 - cog.z / containerLength` |
+| H-11, H-12, H-17, H-18 | ✅ **kapandı** (sahne/UI tarafı) | `ContainerMesh.tsx:336` ve `VehiclePreview3D.tsx:281` yorumları `z = 0` uzak yüz sözleşmesine göre yeniden yazıldı; `CameraPresetButtons.tsx:217` lateral denge ayrımını anlatıyor |
+| H-04 … H-08 | ⚠️ **açık** — kapı modeli geçişi yapılmadı | `vehicle.ts:11` hâlâ `DoorDirection = front\|rear\|side\|top\|…`; `doors: [{type, face, clearanceCm}]` listesi hiçbir katmanda yok (`COORDINATE_STANDARD.md` §10 "Kodun bugünkü hâli") |
+| H-22, H-23, H-24 | ⚠️ **açık** — prototip HTML, üretim dışı, öncelik düşük | değişmedi |
+| M-/L- bulguları | ⏸ **bu turda yeniden taranmadı** — durumları doğrulanamadı, tabloları olduğu gibi bırakıldı | — |
+
+**`depth` terimi:** boyut anlamında kaldırıldı. `grep -rn -i depth apps/frontend/src` (2026-08-15)
+çıktısındaki 29 isabetin tamamı Three.js malzeme özelliği (`depthWrite`/`depthTest`),
+`scene-config.ts:95` `STAGING_DEPTH_CM` sabiti veya `usePlanStore.ts` yerel değişkenidir
+(`rowDepth`, `rowMaxDepth`). Backend'de `PlacedBox.cs` `Width, Height, Length` taşıyor;
+kalan tek isabet `NetsisProductFetcher.cs`'teki yerel `depth` değişkenidir ve hedef alanı `Length`.
+
+---
+
 ## 1. Özet
 
 - Ham bulgu: 199 → doğrulama sonrası kalan: **189**
