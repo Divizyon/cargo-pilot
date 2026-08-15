@@ -389,7 +389,7 @@ function ThreeDPlannerContent({
   function handlePlay() {
     startAnimation();
   }
-  const totalVolume = plan.interiorWidthM * plan.interiorHeightM * plan.interiorDepthM;
+  const totalVolume = plan.interiorWidthCm * plan.interiorHeightCm * plan.interiorLengthCm;
   const loadedVolume = (plan.volumeFillPercentage / 100) * totalVolume;
   const remainingVolume = totalVolume - loadedVolume;
   const remainingWeight = plan.vehicleCapacityKg - plan.totalWeightKg;

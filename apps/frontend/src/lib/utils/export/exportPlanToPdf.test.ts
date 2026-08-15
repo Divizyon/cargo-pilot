@@ -61,7 +61,7 @@ describe('exportPlanToPdf', () => {
     isViolation: false,
     width: 10,
     height: 20,
-    depth: 30,
+    length: 30,
   };
 
   const mockData: PdfExportData = {

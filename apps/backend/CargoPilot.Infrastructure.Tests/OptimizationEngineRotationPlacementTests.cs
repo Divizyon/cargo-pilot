@@ -67,10 +67,10 @@ public class OptimizationEngineRotationPlacementTests
         Assert.Empty(result.UnplacedItems);
         var placed = Assert.Single(result.Placements);
         Assert.Equal(LoadingPlanPlacementRotation.Yaw, placed.Rotation);
-        // Yaw: (L, H, W) — item'ın W'si (60) Z eksenine (Depth) taşınır.
+        // Yaw: (Length, Height, Width) — item'ın genişliği (60) Z eksenine taşınır.
         Assert.Equal(20m, placed.Width);
         Assert.Equal(20m, placed.Height);
-        Assert.Equal(60m, placed.Depth);
+        Assert.Equal(60m, placed.Length);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class OptimizationEngineRotationPlacementTests
         var placed = Assert.Single(rollResult.Placements);
         Assert.Equal(LoadingPlanPlacementRotation.Roll, placed.Rotation);
         // RollOnly değişmezi: L her zaman Z eksenindedir (kilitli).
-        Assert.Equal(rollItem.Length, placed.Depth);
+        Assert.Equal(rollItem.Length, placed.Length);
 
         var fixedItem = rollItem with { AllowedRotations = AllowedRotations.Fixed };
         var fixedInput = CreateInput(vehicleWidth: 50m, vehicleHeight: 80m, vehicleLength: 50m, fixedItem);

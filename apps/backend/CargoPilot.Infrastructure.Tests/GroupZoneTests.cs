@@ -6,8 +6,9 @@ namespace CargoPilot.Infrastructure.Tests;
 
 /// <summary>
 /// LIFO grup bolgelerinin kapi yonune gore dogru eslendigini sabitler.
-/// Sahne sozlesmesi: arka kapi Z=0, arac onu Z=Length.
-/// UnloadingOrder=1 ilk inecek gruptur, bu yuzden kapiya en yakin olmalidir.
+/// Koordinat sozlesmesi (docs/COORDINATE_STANDARD.md): uzak yuz z=0, referans
+/// kapi z=length. UnloadingOrder=1 ilk inecek gruptur, bu yuzden kapiya en
+/// yakin — yani en buyuk Z'deki — bolgede olmalidir.
 /// </summary>
 public sealed class GroupZoneTests
 {
@@ -26,9 +27,9 @@ public sealed class GroupZoneTests
             pair => pair.Key,
             pair => SinglePlacement(result, pair.Value).Z);
 
-        Assert.True(zByOrder[1] < zByOrder[2],
-            $"unloadingOrder=1 kapiya daha yakin olmali. Z: 1={zByOrder[1]}, 2={zByOrder[2]}");
-        Assert.True(zByOrder[2] < zByOrder[3],
+        Assert.True(zByOrder[1] > zByOrder[2],
+            $"unloadingOrder=1 kapiya (z=length) daha yakin olmali. Z: 1={zByOrder[1]}, 2={zByOrder[2]}");
+        Assert.True(zByOrder[2] > zByOrder[3],
             $"unloadingOrder=2, 3'ten kapiya daha yakin olmali. Z: 2={zByOrder[2]}, 3={zByOrder[3]}");
     }
 
@@ -39,13 +40,15 @@ public sealed class GroupZoneTests
 
         foreach (var (unloadingOrder, itemId) in itemsByOrder)
         {
-            var zoneStart = (unloadingOrder - 1) * ZoneSize;
-            var zoneEnd = unloadingOrder * ZoneSize;
+            // Bolgeler kapidan geriye dagitilir: ilk inecek grup (order=1) kapi
+            // ucundaki [length-zoneSize, length] bolgesini alir.
+            var zoneStart = VehicleLength - unloadingOrder * ZoneSize;
+            var zoneEnd = VehicleLength - (unloadingOrder - 1) * ZoneSize;
             var placement = SinglePlacement(result, itemId);
 
-            Assert.True(placement.Z >= zoneStart && placement.Z + placement.Depth <= zoneEnd,
+            Assert.True(placement.Z >= zoneStart && placement.Z + placement.Length <= zoneEnd,
                 $"unloadingOrder={unloadingOrder} bolgesi [{zoneStart},{zoneEnd}] disinda: " +
-                $"Z={placement.Z}, derinlik={placement.Depth}");
+                $"Z={placement.Z}, uzunluk={placement.Length}");
         }
     }
 

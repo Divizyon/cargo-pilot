@@ -43,7 +43,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 50
       },
@@ -55,7 +55,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 50
       }

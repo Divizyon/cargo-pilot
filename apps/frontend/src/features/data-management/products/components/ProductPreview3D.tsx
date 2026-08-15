@@ -10,7 +10,7 @@ import { buildBoxLabel, loadIcons } from '@/lib/utils/scene/buildBoxLabel';
 interface Props {
   widthCm: number;
   heightCm: number;
-  depthCm: number;
+  lengthCm: number;
   productType?: ProductType;
   color?: string;
   sku?: string;
@@ -78,7 +78,7 @@ function SceneSetup({
 interface ShapeProps {
   widthCm: number;
   heightCm: number;
-  depthCm: number;
+  lengthCm: number;
   color: string;
   sku?: string;
   name?: string;
@@ -88,13 +88,13 @@ interface ShapeProps {
 function KoliScene({
   widthCm,
   heightCm,
-  depthCm,
+  lengthCm,
   color,
   sku,
   name,
   constraintIconUrls,
 }: ShapeProps) {
-  const maxDim = Math.max(widthCm, heightCm, depthCm);
+  const maxDim = Math.max(widthCm, heightCm, lengthCm);
   const label = sku || name || '—';
 
   const [iconImgs, setIconImgs] = useState<HTMLImageElement[]>([]);
@@ -122,11 +122,11 @@ function KoliScene({
   );
 
   const edgesGeo = useMemo(() => {
-    const box = new THREE.BoxGeometry(widthCm, heightCm, depthCm);
+    const box = new THREE.BoxGeometry(widthCm, heightCm, lengthCm);
     const edges = new THREE.EdgesGeometry(box);
     box.dispose();
     return edges;
-  }, [widthCm, heightCm, depthCm]);
+  }, [widthCm, heightCm, lengthCm]);
 
   useEffect(
     () => () => {
@@ -140,7 +140,7 @@ function KoliScene({
       <SceneSetup maxDim={maxDim} />
       <group>
         <mesh>
-          <boxGeometry args={[widthCm, heightCm, depthCm]} />
+          <boxGeometry args={[widthCm, heightCm, lengthCm]} />
           {/* BoxGeometry yüz sırası: +X(0), -X(1), +Y(2), -Y(3/taban), +Z(4), -Z(5) */}
           {[0, 1, 2, 3, 4, 5].map((face) =>
             face === 3 ? (
@@ -220,7 +220,7 @@ const PALLET_WOOD_COLOR = '#c8a96e';
 function PaletScene({
   widthCm,
   heightCm,
-  depthCm,
+  lengthCm,
   color,
   sku,
   name,
@@ -230,7 +230,7 @@ function PaletScene({
   const paletH = Math.min(PALLET_HEIGHT_CM, heightCm);
   const cargoH = Math.max(0, heightCm - paletH);
   const totalH = paletH + cargoH;
-  const maxDim = Math.max(widthCm, totalH, depthCm);
+  const maxDim = Math.max(widthCm, totalH, lengthCm);
   const label = sku || name || '—';
 
   const [iconImgs, setIconImgs] = useState<HTMLImageElement[]>([]);
@@ -260,7 +260,7 @@ function PaletScene({
   const slatW = 3 * xUnit;
   const slatGapW = xUnit;
 
-  const yUnit = depthCm / 3.5;
+  const yUnit = lengthCm / 3.5;
   const crossD = 0.5 * yUnit;
   const crossGapD = yUnit;
 
@@ -269,21 +269,21 @@ function PaletScene({
   const crossH = paletH;
 
   const [slatGeo, slatEdges, carrierGeo, carrierEdges, crossGeo, crossEdges] = useMemo(() => {
-    const sg = new THREE.BoxGeometry(slatW, slatH, depthCm);
+    const sg = new THREE.BoxGeometry(slatW, slatH, lengthCm);
     const se = new THREE.EdgesGeometry(sg);
-    const cg = new THREE.BoxGeometry(slatW, carrierH, depthCm);
+    const cg = new THREE.BoxGeometry(slatW, carrierH, lengthCm);
     const ce = new THREE.EdgesGeometry(cg);
     const xg = new THREE.BoxGeometry(widthCm, crossH, crossD);
     const xe = new THREE.EdgesGeometry(xg);
     return [sg, se, cg, ce, xg, xe] as const;
-  }, [slatW, slatH, carrierH, crossH, depthCm, widthCm, crossD]);
+  }, [slatW, slatH, carrierH, crossH, lengthCm, widthCm, crossD]);
 
   const [cargoGeo, cargoEdges] = useMemo(() => {
     if (cargoH <= 0) return [null, null] as const;
-    const cg = new THREE.BoxGeometry(widthCm, cargoH, depthCm);
+    const cg = new THREE.BoxGeometry(widthCm, cargoH, lengthCm);
     const ce = new THREE.EdgesGeometry(cg);
     return [cg, ce] as const;
-  }, [widthCm, cargoH, depthCm]);
+  }, [widthCm, cargoH, lengthCm]);
 
   useEffect(
     () => () => {
@@ -308,7 +308,7 @@ function PaletScene({
   // Kargo kutusunun merkezi: palet üstünden başlayıp cargoH kadar yukarda
   const cargoCenterY = paletH + cargoH / 2;
 
-  const sceneCenter: [number, number, number] = [widthCm / 2, totalH / 2, depthCm / 2];
+  const sceneCenter: [number, number, number] = [widthCm / 2, totalH / 2, lengthCm / 2];
 
   return (
     <>
@@ -316,7 +316,7 @@ function PaletScene({
       <group>
         {/* Üst tahtalar */}
         {slatCentersX.map((cx, i) => (
-          <group key={`top-${i}`} position={[cx, topCenterY, depthCm / 2]}>
+          <group key={`top-${i}`} position={[cx, topCenterY, lengthCm / 2]}>
             <mesh geometry={slatGeo}>
               <meshStandardMaterial color={PALLET_WOOD_COLOR} transparent opacity={MESH_OPACITY} />
             </mesh>
@@ -328,7 +328,7 @@ function PaletScene({
 
         {/* Alt taşıyıcı tahtalar */}
         {slatCentersX.map((cx, i) => (
-          <group key={`carrier-${i}`} position={[cx, carrierCenterY, depthCm / 2]}>
+          <group key={`carrier-${i}`} position={[cx, carrierCenterY, lengthCm / 2]}>
             <mesh geometry={carrierGeo}>
               <meshStandardMaterial color={PALLET_WOOD_COLOR} transparent opacity={MESH_OPACITY} />
             </mesh>
@@ -352,7 +352,7 @@ function PaletScene({
 
         {/* Kargo kutusu (palet üstünde) */}
         {cargoGeo && cargoEdges && cargoH > 0 && (
-          <group position={[widthCm / 2, cargoCenterY, depthCm / 2]}>
+          <group position={[widthCm / 2, cargoCenterY, lengthCm / 2]}>
             <mesh geometry={cargoGeo}>
               {[0, 1, 2, 3, 4, 5].map((face) =>
                 face === 3 ? (
@@ -390,7 +390,7 @@ function PaletScene({
 export function ProductPreview3D({
   widthCm,
   heightCm,
-  depthCm,
+  lengthCm,
   productType = 'koli',
   color,
   sku,
@@ -412,7 +412,7 @@ export function ProductPreview3D({
       <SceneComponent
         widthCm={widthCm}
         heightCm={heightCm}
-        depthCm={depthCm}
+        lengthCm={lengthCm}
         color={resolvedColor}
         sku={sku}
         name={name}

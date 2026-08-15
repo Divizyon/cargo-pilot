@@ -28,13 +28,13 @@ export const ERP_SOURCE_MISSING = { label: '?', hint: 'ERP kaynağında bu alan 
 export const DIMENSION_LABEL = {
   width: 'Genişlik (X)',
   height: 'Yükseklik (Y)',
-  length: 'Derinlik (Z)',
+  length: 'Uzunluk (Z)',
 } as const;
 
 /** Ölçü adının eksen harfsiz hâli; rozet ve hata metinlerinde kullanılır. */
 export const DIMENSION_SHORT_LABEL = {
   width: 'Genişlik',
   height: 'Yükseklik',
-  length: 'Derinlik',
+  length: 'Uzunluk',
   weight: 'Ağırlık',
 } as const;

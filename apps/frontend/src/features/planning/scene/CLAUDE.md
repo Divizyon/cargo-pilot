@@ -81,7 +81,9 @@ export const SCENE = {
 
 ## Koordinat & BoxWrapper
 
-X=Genişlik · Y=Yükseklik · Z=Derinlik · Origin=Sol-Alt-Arka · Rotasyon=Derece
+X=width (kapıdan bakışta sağa) · Y=height (yukarı) · Z=length (uzak yüz `z=0` → referans kapı `z=length`) · Origin=uzak-sol-alt köşe `(0,0,0)` · Kutu pozisyonu=origin'e en yakın köşe · Rotasyon=Derece
+
+Right-handed (Three.js varsayılanı) — aynalama/telafi dönüşümü yasak. Kapılar small/big + face listesidir ("ön/sağ/sol kapı" yoktur). Bağlayıcı: `docs/COORDINATE_STANDARD.md`.
 
 > **Terminoloji çapraz-referansı (2026-08-15):** Yukarıdaki adlandırma **mevcut kodu** anlatır (`PlacedBox.cs` → `W,H,D`; `scene-config.ts` → `STAGING_DEPTH_CM`; `BoxWrapper.tsx` 31 satırda `depth`). `docs/COORDINATE_STANDARD.md` (2026-08-12) hedef standardı tanımlar ve `depth` terimini `length` ile, "front/rear" dilini yüz-tabanlı tanımla değiştirmeyi öngörür. **Bu standart henüz hiçbir yerde uygulanmamıştır** — kendi §10'unda üç maddesi onay beklediği için kod değişikliği başlatılmadığını yazar. Yani buradaki terminoloji bugün doğrudur; hedef için bkz. `COORDINATE_STANDARD.md` §9–§10.
 
@@ -89,7 +91,7 @@ X=Genişlik · Y=Yükseklik · Z=Derinlik · Origin=Sol-Alt-Arka · Rotasyon=Der
 `<mesh position={[p.x,p.y,p.z]}>` yasak — `BoxWrapper` zorunlu:
 
 ```tsx
-<mesh position={[positionX+width/2, positionY+height/2, positionZ+depth/2]}>
+<mesh position={[positionX+width/2, positionY+height/2, positionZ+length/2]}>
 ```
 
 Animasyonda başlangıç ve hedefe offset uygulanır. 50+ kutuda `InstancedMesh` kullan, offset `setMatrixAt()` içinde.

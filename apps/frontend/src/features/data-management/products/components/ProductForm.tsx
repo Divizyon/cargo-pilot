@@ -812,7 +812,7 @@ export function ProductForm({
                 form={form}
                 name="length"
                 dimensionUnit={dimensionUnit}
-                label={`${t('forms.product.depth')} (Z)`}
+                label={`${t('forms.product.length')} (Z)`}
                 placeholder="100"
               />
             </>
@@ -1238,12 +1238,12 @@ function PreviewPanel(props: PreviewPanelProps) {
     Number.isFinite(width) && width !== undefined ? toCentimeters(width, dimensionUnit) : 0;
   const heightCm =
     Number.isFinite(height) && height !== undefined ? toCentimeters(height, dimensionUnit) : 0;
-  const depthCm =
+  const lengthCm =
     Number.isFinite(length) && length !== undefined ? toCentimeters(length, dimensionUnit) : 0;
   const hasDimensions =
     productType === 'varil'
       ? widthCm > 0 && heightCm > 0
-      : widthCm > 0 && heightCm > 0 && depthCm > 0;
+      : widthCm > 0 && heightCm > 0 && lengthCm > 0;
 
   const PALLET_H = 14;
   const summaryRows = [
@@ -1289,7 +1289,7 @@ function PreviewPanel(props: PreviewPanelProps) {
           <ProductPreview3D
             widthCm={widthCm}
             heightCm={heightCm}
-            depthCm={depthCm}
+            lengthCm={lengthCm}
             productType={productType}
             color={resolveProductColor(productType, stackGroup)}
             sku={sku}

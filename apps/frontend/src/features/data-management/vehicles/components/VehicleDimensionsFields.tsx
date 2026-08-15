@@ -34,13 +34,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-3">
-        {/* X — Uzunluk */}
+        {/* Z — Uzunluk */}
         <FormField
           control={form.control}
           name="length"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Uzunluk/Çap (X)</FormLabel>
+              <FormLabel>Uzunluk/Çap (Z)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -104,13 +104,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
             </FormItem>
           )}
         />
-        {/* Z — Derinlik */}
+        {/* X — Genişlik */}
         <FormField
           control={form.control}
           name="width"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Derinlik (Z)</FormLabel>
+              <FormLabel>Genişlik (X)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input

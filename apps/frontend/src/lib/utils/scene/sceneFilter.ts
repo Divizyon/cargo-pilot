@@ -2,7 +2,7 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
 interface PositionedBox {
   positionZ: number;
-  depth: number;
+  length: number;
   itemId: string;
 }
 

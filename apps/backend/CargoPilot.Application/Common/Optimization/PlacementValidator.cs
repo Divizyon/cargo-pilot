@@ -21,11 +21,11 @@ internal static class PlacementValidator
 
     private static bool Intersects(
         decimal x, decimal y, decimal z,
-        decimal w, decimal h, decimal d,
+        decimal width, decimal height, decimal length,
         PlacedBox b) =>
-        x < b.X + b.W && x + w > b.X &&
-        y < b.Y + b.H && y + h > b.Y &&
-        z < b.Z + b.D && z + d > b.Z;
+        x < b.X + b.Width && x + width > b.X &&
+        y < b.Y + b.Height && y + height > b.Y &&
+        z < b.Z + b.Length && z + length > b.Z;
 
     /// <summary>Aday pozisyon yerleştirilmiş kutulardan herhangi biriyle çakışıyor mu?</summary>
     // S3267: Sonar bu döngü için LINQ (Any/Where) önerir. Burası motorun en sıcak
@@ -35,11 +35,11 @@ internal static class PlacementValidator
     internal static bool HasOverlap(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal h, decimal d)
+        decimal width, decimal height, decimal length)
     {
         foreach (var b in placed)
         {
-            if (Intersects(x, y, z, w, h, d, b))
+            if (Intersects(x, y, z, width, height, length, b))
                 return true;
         }
         return false;
@@ -48,7 +48,7 @@ internal static class PlacementValidator
 
     /// <summary>Yerleştirilmiş iki kutu birbiriyle çakışıyor mu?</summary>
     internal static bool BoxesOverlap(PlacedBox a, PlacedBox b) =>
-        Intersects(a.X, a.Y, a.Z, a.W, a.H, a.D, b);
+        Intersects(a.X, a.Y, a.Z, a.Width, a.Height, a.Length, b);
 
     // ── Support ───────────────────────────────────────────────────────────────
     //
@@ -60,19 +60,19 @@ internal static class PlacementValidator
     internal static bool HasSupport(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal d)
+        decimal width, decimal length)
     {
         if (y == 0m) return true;
 
-        var footprint = w * d;
+        var footprint = width * length;
         if (footprint == 0m) return true;
 
         var supportedArea = 0m;
         foreach (var b in placed)
         {
-            if (b.Y + b.H != y) continue;
-            var overlapX = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var overlapZ = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            if (b.Y + b.Height != y) continue;
+            var overlapX = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
+            var overlapZ = Math.Max(0m, Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z));
             supportedArea += overlapX * overlapZ;
         }
 
@@ -81,7 +81,7 @@ internal static class PlacementValidator
 
     /// <summary>Yerleştirilmiş bir kutunun, kendisi hariç diğerlerinden destek alma kontrolü.</summary>
     internal static bool HasSupportFor(PlacedBox box, List<PlacedBox> others) =>
-        HasSupport(others, box.X, box.Y, box.Z, box.W, box.D);
+        HasSupport(others, box.X, box.Y, box.Z, box.Width, box.Length);
 
     // ── Stack ─────────────────────────────────────────────────────────────────
     //
@@ -92,14 +92,14 @@ internal static class PlacementValidator
     internal static bool ViolatesStackability(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal d,
+        decimal width, decimal length,
         int? newItemUnloadingOrder = null)
     {
         foreach (var b in placed)
         {
-            if (b.Y + b.H != y) continue;
-            var overlapX = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var overlapZ = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            if (b.Y + b.Height != y) continue;
+            var overlapX = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
+            var overlapZ = Math.Max(0m, Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z));
             if (overlapX <= 0m || overlapZ <= 0m) continue;
 
             if (!b.IsStackable) return true;
@@ -120,21 +120,21 @@ internal static class PlacementValidator
     internal static bool ViolatesStackCount(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal d)
+        decimal width, decimal length)
     {
         foreach (var b in placed)
         {
             if (b.MaxStackCount <= 0) continue;
-            if (b.Y + b.H > y) continue;
+            if (b.Y + b.Height > y) continue;
 
-            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            var ox = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
+            var oz = Math.Max(0m, Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z));
             if (ox <= 0m || oz <= 0m) continue;
 
             var countAbove = placed.Count(c =>
-                c.Y >= b.Y + b.H &&
-                Math.Max(0m, Math.Min(c.X + c.W, b.X + b.W) - Math.Max(c.X, b.X)) > 0m &&
-                Math.Max(0m, Math.Min(c.Z + c.D, b.Z + b.D) - Math.Max(c.Z, b.Z)) > 0m);
+                c.Y >= b.Y + b.Height &&
+                Math.Max(0m, Math.Min(c.X + c.Width, b.X + b.Width) - Math.Max(c.X, b.X)) > 0m &&
+                Math.Max(0m, Math.Min(c.Z + c.Length, b.Z + b.Length) - Math.Max(c.Z, b.Z)) > 0m);
 
             if (countAbove + 1 > b.MaxStackCount) return true;
         }
@@ -147,23 +147,23 @@ internal static class PlacementValidator
     internal static bool ViolatesStackWeight(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal d,
+        decimal width, decimal length,
         decimal newWeight)
     {
         foreach (var b in placed)
         {
             if (b.MaxWeightOnTop <= 0m) continue;
-            if (b.Y + b.H > y) continue;
+            if (b.Y + b.Height > y) continue;
 
-            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            var ox = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
+            var oz = Math.Max(0m, Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z));
             if (ox <= 0m || oz <= 0m) continue;
 
             var weightAbove = placed
                 .Where(c =>
-                    c.Y >= b.Y + b.H &&
-                    Math.Max(0m, Math.Min(c.X + c.W, b.X + b.W) - Math.Max(c.X, b.X)) > 0m &&
-                    Math.Max(0m, Math.Min(c.Z + c.D, b.Z + b.D) - Math.Max(c.Z, b.Z)) > 0m)
+                    c.Y >= b.Y + b.Height &&
+                    Math.Max(0m, Math.Min(c.X + c.Width, b.X + b.Width) - Math.Max(c.X, b.X)) > 0m &&
+                    Math.Max(0m, Math.Min(c.Z + c.Length, b.Z + b.Length) - Math.Max(c.Z, b.Z)) > 0m)
                 .Sum(c => c.Weight);
 
             if (weightAbove + newWeight > b.MaxWeightOnTop) return true;
@@ -188,17 +188,17 @@ internal static class PlacementValidator
     internal static bool ViolatesFragility(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal w, decimal d)
+        decimal width, decimal length)
     {
         foreach (var b in placed)
         {
             // En ucuz eleme önce: araçta kırılgan kutu yoksa döngü kutu başına
             // tek enum karşılaştırmasına iner
             if (b.FragilityType != FragilityType.Fragile) continue;
-            if (b.Y + b.H > y) continue;
+            if (b.Y + b.Height > y) continue;
 
-            var ox = Math.Max(0m, Math.Min(x + w, b.X + b.W) - Math.Max(x, b.X));
-            var oz = Math.Max(0m, Math.Min(z + d, b.Z + b.D) - Math.Max(z, b.Z));
+            var ox = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
+            var oz = Math.Max(0m, Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z));
             if (ox <= 0m || oz <= 0m) continue;
 
             return true;
@@ -232,7 +232,7 @@ internal static class PlacementValidator
             && box.MaxWeightOnTop <= 0m)
             return false;
 
-        var top = box.Y + box.H;
+        var top = box.Y + box.Height;
 
         var countAbove = 0;
         var weightAbove = 0m;
@@ -242,8 +242,8 @@ internal static class PlacementValidator
         {
             if (c.Y < top) continue;
 
-            var ox = Math.Max(0m, Math.Min(box.X + box.W, c.X + c.W) - Math.Max(box.X, c.X));
-            var oz = Math.Max(0m, Math.Min(box.Z + box.D, c.Z + c.D) - Math.Max(box.Z, c.Z));
+            var ox = Math.Max(0m, Math.Min(box.X + box.Width, c.X + c.Width) - Math.Max(box.X, c.X));
+            var oz = Math.Max(0m, Math.Min(box.Z + box.Length, c.Z + c.Length) - Math.Max(box.Z, c.Z));
             if (ox <= 0m || oz <= 0m) continue;
 
             countAbove++;
@@ -265,7 +265,7 @@ internal static class PlacementValidator
     // belirler. Motorun içinde örtük kalmaması için validator'a taşınmıştır.
 
     /// <summary>Ürünün izin verilen rotasyonlarına göre denenecek (w, h, d) yönelimleri.</summary>
-    internal static (decimal w, decimal h, decimal d, LoadingPlanPlacementRotation rotation)[]
+    internal static (decimal width, decimal height, decimal length, LoadingPlanPlacementRotation rotation)[]
         GetOrientations(OptimizationItemInput item)
     {
         var (W, H, L) = (item.Width, item.Height, item.Length);

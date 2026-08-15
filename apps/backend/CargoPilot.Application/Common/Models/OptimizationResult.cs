@@ -21,7 +21,7 @@ public sealed record PlacedItemResult(
     decimal Z,
     decimal Width,
     decimal Height,
-    decimal Depth,
+    decimal Length,
     LoadingPlanPlacementRotation Rotation,
     decimal Weight);
 

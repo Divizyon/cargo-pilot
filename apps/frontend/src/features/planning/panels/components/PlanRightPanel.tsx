@@ -318,7 +318,7 @@ function PlanSummaryPanel() {
     const insidePlacements = debouncedPlacements.filter((p) => !p.isStagingArea);
     const weightMap = new Map(selectedItems.map(({ item }) => [item.id, item.weight]));
 
-    const cargoVolCm3 = insidePlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
+    const cargoVolCm3 = insidePlacements.reduce((s, p) => s + p.width * p.height * p.length, 0);
     const totalWeight = insidePlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
 
     const volumePct =

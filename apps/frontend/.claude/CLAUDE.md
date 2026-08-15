@@ -401,34 +401,36 @@ const fragility = useWatch({ control: form.control, name: "fragility" });
 
 ### Koordinat Sistemi
 
-| Eksen    | Anlam                                          |
-| -------- | ---------------------------------------------- |
-| X        | Genişlik — Width (sol-sağ)                     |
-| Y        | Yükseklik — Height (yukarı-aşağı)              |
-| Z        | Derinlik — Depth / Length (öne-arkaya)         |
-| Origin   | Kutunun Sol-Alt-Arka (Bottom-Left-Rear) köşesi |
-| Rotasyon | Derece (0, 90, 180, 270)                       |
+| Eksen    | Anlam                                                                  |
+| -------- | ---------------------------------------------------------------------- |
+| X        | Genişlik — width (kapıdan bakışta sağa artar)                          |
+| Y        | Yükseklik — height (zeminden yukarı artar)                             |
+| Z        | Uzunluk — length (uzak yüzden `z = 0` referans kapıya `z = length` doğru artar) |
+| Origin   | Uzak-sol-alt köşe `(min x, min y, min z)` — referans kapıdan bakınca uzaktaki sol-alt köşe |
+| Rotasyon | Derece (0, 90, 180, 270)                                               |
 
 
 > **Terminoloji çapraz-referansı (2026-08-15):** Yukarıdaki adlandırma **mevcut kodu** anlatır (`PlacedBox.cs` → `W,H,D`; `scene-config.ts` → `STAGING_DEPTH_CM`; `BoxWrapper.tsx` 31 satırda `depth`). `docs/COORDINATE_STANDARD.md` (2026-08-12) hedef standardı tanımlar ve `depth` terimini `length` ile, "front/rear" dilini yüz-tabanlı tanımla değiştirmeyi öngörür. **Bu standart henüz hiçbir yerde uygulanmamıştır** — kendi §10'unda üç maddesi onay beklediği için kod değişikliği başlatılmadığını yazar. Yani buradaki terminoloji bugün doğrudur; hedef için bkz. `COORDINATE_STANDARD.md` §9–§10.
 
 Koordinat mapping'i `lib/config/scene-config.ts` dosyasında merkezi olarak tanımlanır.
 
+> Bağlayıcı tanım: `docs/COORDINATE_STANDARD.md` — çelişki hâlinde o belge kazanır. Terimler yalnızca `width`/`height`/`length`; `depth` kullanılmaz.
+
 ### BoxWrapper Zorunluluğu
 
-Three.js'in pivot'u merkezde, backend'in pivot'u Sol-Alt-Arka köşededir. Bu fark `BoxWrapper` ile çözülür.
+Three.js'in pivot'u merkezde, backend'in pivot'u origin'e en yakın (uzak-sol-alt) köşededir. Bu fark `BoxWrapper` ile çözülür.
 
 ```typescript
 // features/planning/scene/components/BoxWrapper.tsx
-export function BoxWrapper({ width, height, depth, positionX, positionY, positionZ, color = "#2563EB", opacity = 0.85, onClick, itemId }: BoxWrapperProps) {
+export function BoxWrapper({ width, height, length, positionX, positionY, positionZ, color = "#2563EB", opacity = 0.85, onClick, itemId }: BoxWrapperProps) {
   // Pivot offset: her eksende boyutun yarısı kadar kaydır
   const cx = positionX + width  / 2;
   const cy = positionY + height / 2;
-  const cz = positionZ + depth  / 2;
+  const cz = positionZ + length / 2;
 
   return (
     <mesh position={[cx, cy, cz]} onClick={(e) => { e.stopPropagation(); onClick?.(itemId!); }}>
-      <boxGeometry args={[width, height, depth]} />
+      <boxGeometry args={[width, height, length]} />
       <meshStandardMaterial color={color} transparent opacity={opacity} />
     </mesh>
   );
