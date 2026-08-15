@@ -25,7 +25,20 @@ public sealed class Vehicle : BaseEntity {
 
 #pragma warning restore S1144
     public int LayerCount { get; private set; }
+
+    /// <summary>
+    /// Tekil kapi yonu. <see cref="Doors"/> listesine gecis tamamlanana kadar
+    /// korunuyor; motor ve API hala bu alani okuyor.
+    /// </summary>
     public LoadingType LoadingType { get; private set; }
+
+    /// <summary>
+    /// Aracin kapilari (docs/COORDINATE_STANDARD.md §4). Bir aracta ayni anda small
+    /// door ve iki big door bulunabildigi icin kapi bilgisi listedir; tekil
+    /// <see cref="LoadingType"/> bunu ifade edemiyor ve SideBoth gibi degerlerde
+    /// bilgi kaybediyordu.
+    /// </summary>
+    public ICollection<VehicleDoor> Doors { get; } = [];
     public Guid? CompanyId { get; private set; }
     public string? ErpId { get; private set; }
     public Guid? IntegrationId { get; private set; }

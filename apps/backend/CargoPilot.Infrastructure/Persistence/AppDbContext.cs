@@ -23,6 +23,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
     public DbSet<UserPasswordHistory> UserPasswordHistory => Set<UserPasswordHistory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<VehicleDoor> VehicleDoors => Set<VehicleDoor>();
     public DbSet<UserVehicleFavorite> UserVehicleFavorites => Set<UserVehicleFavorite>();
     public DbSet<LoadingPlan> LoadingPlans => Set<LoadingPlan>();
     public DbSet<LoadingPlanItemGroup> LoadingPlanItemGroups => Set<LoadingPlanItemGroup>();
@@ -71,6 +72,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
         modelBuilder.ApplyConfiguration(new UserPasswordHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new VehicleConfiguration());
+        modelBuilder.ApplyConfiguration(new VehicleDoorConfiguration());
         modelBuilder.ApplyConfiguration(new UserVehicleFavoriteConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanConfiguration());
         modelBuilder.ApplyConfiguration(new LoadingPlanItemGroupConfiguration());
