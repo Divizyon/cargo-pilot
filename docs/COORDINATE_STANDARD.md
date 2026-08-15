@@ -62,6 +62,7 @@ dönüşüm görülürse hatadır.
 | -------------- | ----------------- | ----------------------------- | ----------------------------------------------- | -------------------------------------- |
 | **small door** | `width × height`  | `z = length` ve/veya `z = 0`  | Yalnızca `z = length` (**back door**). `z = 0` kabin ucudur, kapı olmaz. | İki uçta da olabilir; referans `z = length`'tedir. |
 | **big door**   | `length × height` | `x = 0` ve/veya `x = width`   | Olabilir — tek tarafta ya da iki tarafta          | Olabilir — tek tarafta ya da iki tarafta |
+| **top door**   | `width × length`  | `y = height`                  | Olabilir                                          | Olabilir                                |
 
 Kurallar:
 
@@ -72,8 +73,9 @@ Kurallar:
   ```ts
   doors: [
     { type: 'small', face: 'z=length' },
-    { type: 'big',   face: 'x=0' },
-    { type: 'big',   face: 'x=width' },
+    { type: 'big',   face: 'x=0',     clearanceCm: 12 },
+    { type: 'big',   face: 'x=width', clearanceCm: 12 },
+    { type: 'top',   face: 'y=height' },
   ]
   ```
 
@@ -82,6 +84,9 @@ Kurallar:
   bakışlarını adlandırmak için kullanılır (bkz. bölüm 6).
 - **"ön kapı" / "front door" diye bir kavram yoktur.** TIR'da `z = 0` kabin ucudur;
   düz konteynerde `z = 0` yalnızca karşı küçük yüzdür.
+- **top door** üçüncü bir kapı tipidir ve `y = height` yüzünde bulunur. Yükleme
+  yukarıdan yapıldığı için katman ekseni `y`'dir; aynı kattaki sıralama yine
+  yükleme yönünü (`z` küçük→büyük) izler.
 
 ---
 
@@ -197,15 +202,20 @@ tarafıdır. Üstten veya karşıdan bakışta ekranda görünen sol/sağ ile ka
 Yükleme normalde **origin'den** başlar. **Big door origin'in bulunduğu `x = 0`
 yüzündeyse** yükleme origin'den değil, `x` ekseninde `x₀` kadar kaymış noktadan başlar.
 
+`x₀`, **her big door'un kendi açıklık payıdır** ve araç kaydında o kapının alanı olarak
+tutulur (`clearanceCm`). Sabit bir sistem değeri değildir: kanat kalınlığı araca göre
+değişir. Kapı listesinin parçası olduğu için `x = width` tarafındaki big door da kendi
+payını taşır — soru kendiliğinden yanıtlanır.
+
 | Durum | Yükleme başlangıç noktası | Kullanılabilir `x` aralığı |
 | ----- | ------------------------- | -------------------------- |
 | Big door yok | `(0, 0, 0)` | `0 → width` |
-| Big door `x = 0` yüzünde | `(x₀, 0, 0)` | `x₀ → width` |
-| Big door `x = width` yüzünde | `(0, 0, 0)` | `0 → width − x₀` ⚠️ onay bekliyor |
-| Big door iki yüzde de | `(x₀, 0, 0)` | `x₀ → width − x₀` ⚠️ onay bekliyor |
+| Big door `x = 0` yüzünde | `(x₀ˡ, 0, 0)` | `x₀ˡ → width` |
+| Big door `x = width` yüzünde | `(0, 0, 0)` | `0 → width − x₀ʳ` |
+| Big door iki yüzde de | `(x₀ˡ, 0, 0)` | `x₀ˡ → width − x₀ʳ` |
 
-⚠️ **`x₀` değeri henüz tanımlı değildir** (bkz. bölüm 10). Son iki satır verilen kuraldan
-türetilmiş önerilerdir, onay bekliyor.
+`x₀ˡ` = `x = 0` yüzündeki kapının payı, `x₀ʳ` = `x = width` yüzündekinin payı. Kapı
+tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme duvardan başlar.
 
 ---
 
@@ -243,12 +253,12 @@ türetilmiş önerilerdir, onay bekliyor.
 
 ---
 
-## 10. Beklemedeki konular
+## 10. Karara bağlanan konular
 
-| # | Konu | Durum |
+| # | Konu | Karar |
 |---|------|-------|
-| 1 | **Small door'u olmayan konteyner** — yalnızca big door'u olan konteynerde origin kuralı tanımsız | Sektör araştırması bekliyor |
-| 2 | **Üst kapı (top door)** — mevcut sistemde `top` kapı yönü var; yeni adlandırmada karşılığı belirsiz | Sektör araştırması bekliyor |
-| 3 | **`x₀` — big door açıklık payı** — kaç cm, nereden geliyor (sabit / araç kaydı / kanat ölçüsü); `x = width` tarafına da uygulanacak mı | Değer ve onay bekliyor |
+| 1 | **Small door'u olmayan konteyner** | Açık. Yalnızca big door'u olan konteynerde origin kuralının hangi yüzden türetileceği hâlâ tanımsız; sektör araştırması bekliyor. |
+| 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4'e işlendi. |
+| 3 | **`x₀` — big door açıklık payı** | Sistem sabiti değil, **araç kaydındaki kapı alanı** (`clearanceCm`). Her big door kendi payını taşır; `x = width` tarafına da kendi payı uygulanır. Bölüm 7'ye işlendi. |
 
-Bu üç konu netleşene kadar ilgili kod değişiklikleri başlatılmaz.
+1 numaralı konu netleşene kadar yalnızca ona bağlı kod değişiklikleri başlatılmaz.
