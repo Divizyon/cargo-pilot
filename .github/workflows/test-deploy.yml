@@ -439,11 +439,12 @@ jobs:
     name: Deploy (Test Server)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [migration-check, build]
+    needs: [migration-check, build, deploy]
     if: |
       always() &&
       (needs.migration-check.result == 'success') &&
       (needs.build.result == 'success') &&
+      (needs.deploy.result == 'success') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/test'
 
