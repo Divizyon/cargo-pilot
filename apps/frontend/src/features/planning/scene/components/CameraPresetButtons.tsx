@@ -211,13 +211,23 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
                   : '✓ Denge ihlali yok'}
               </p>
               <div className="border-t border-border pt-2 flex flex-col gap-1">
+                {/*
+                  Her satır kendi ekseninden okunur: sağ/sol yalnızca x, ön/arka
+                  yalnızca z. Önceden iki satır da z tabanlı aks payını gösteriyordu,
+                  yani lateral denge hiç görünmüyordu.
+                */}
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Sağ-Sol Yük Dağılımı</span>
-                  <span className="tabular-nums">{(balance.frontAxleShare * 100).toFixed(1)}%</span>
+                  <span className="text-muted-foreground">Sol / Sağ Yük Dağılımı</span>
+                  <span className="tabular-nums">
+                    {(balance.leftShare * 100).toFixed(1)}% / {(balance.rightShare * 100).toFixed(1)}%
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Ön-Arka Yük Dağılımı</span>
-                  <span className="tabular-nums">{(balance.rearAxleShare * 100).toFixed(1)}%</span>
+                  <span className="text-muted-foreground">Ön / Arka Aks Yükü</span>
+                  <span className="tabular-nums">
+                    {(balance.frontAxleShare * 100).toFixed(1)}% /{' '}
+                    {(balance.rearAxleShare * 100).toFixed(1)}%
+                  </span>
                 </div>
               </div>
             </div>
