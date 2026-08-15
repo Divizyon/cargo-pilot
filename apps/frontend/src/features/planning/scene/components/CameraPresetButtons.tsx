@@ -219,7 +219,8 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Sol / Sağ Yük Dağılımı</span>
                   <span className="tabular-nums">
-                    {(balance.leftShare * 100).toFixed(1)}% / {(balance.rightShare * 100).toFixed(1)}%
+                    {(balance.leftShare * 100).toFixed(1)}% /{' '}
+                    {(balance.rightShare * 100).toFixed(1)}%
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">

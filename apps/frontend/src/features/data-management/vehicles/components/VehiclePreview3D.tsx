@@ -346,9 +346,7 @@ function DoorFaceIndicator({
   // 'front' standartta bir kapı değil; eski veriyle gelen bu değer de referans
   // kapıya (z = length) düşer. Böylece iki dal aynı yüzü çizer.
   const isReferenceDoor =
-    doorDirection === 'front' ||
-    doorDirection === 'rear' ||
-    doorDirection === 'rearAndSide';
+    doorDirection === 'front' || doorDirection === 'rear' || doorDirection === 'rearAndSide';
   const isSide = doorDirection === 'side' || doorDirection === 'rearAndSide';
   const isTop = doorDirection === 'top';
 
@@ -510,9 +508,7 @@ function VehicleScene({
 
       <CargoBody width={width} height={height} length={length} />
 
-      {hasCab && (
-        <CabMesh width={width} height={height} cabLength={cabLength} gapLength={cabGap} />
-      )}
+      {hasCab && <CabMesh width={width} height={height} cabLength={cabLength} gapLength={cabGap} />}
 
       {doorDirection && (
         <DoorFaceIndicator
