@@ -496,17 +496,10 @@ jobs:
             echo "==> Kullanılmayan eski image'lar temizleniyor..."
             docker image prune -f
 
-      - name: Test backend health check
-        run: |
-          echo "Test backend'in ayağa kalkması bekleniyor..."
-          sleep 20
-          for i in $(seq 1 10); do
-            if curl -sf http://${{ secrets.TEST_SSH_HOST }}:8081/health; then
-              echo "Test backend hazır."
-              exit 0
-            fi
-            echo "Deneme $i/10..."
-            sleep 10
-          done
-          echo "::error::Test backend health check başarısız oldu."
-          exit 1
+            echo "==> Backend health (loopback) bekleniyor..."
+            for i in $(seq 1 20); do
+              curl -sf http://127.0.0.1:8081/health >/dev/null && break
+              if [ "$i" = "20" ]; then echo "Backend loopback health basarisiz"; exit 1; fi
+              sleep 5
+            done
+            echo "Backend loopback health OK."
