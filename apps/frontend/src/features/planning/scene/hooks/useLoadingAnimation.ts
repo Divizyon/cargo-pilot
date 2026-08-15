@@ -120,19 +120,10 @@ export function useLoadingAnimation(
           fromY = height + OFFSET;
           fromZ = cz;
           break;
-        case 'rear':
-          // Arka kapı: Z=0 önünden girer
-          fromX = cx;
-          fromY = cy;
-          fromZ = -OFFSET;
-          break;
-        case 'rearAndSide':
-          fromX = cx;
-          fromY = cy;
-          fromZ = -OFFSET;
-          break;
         default:
-          // 'front' veya undefined — Z=depth önünden girer
+          // Referans kapı z = length yüzündedir; kutular kapının önünden girer.
+          // 'rear', 'rearAndSide' ve tanımsız değer aynı yüzü paylaşır — z = 0
+          // uzak yüzdür (TIR'da kabin ucu), oradan giriş fiziksel olarak imkânsız.
           fromX = cx;
           fromY = cy;
           fromZ = depth + OFFSET;

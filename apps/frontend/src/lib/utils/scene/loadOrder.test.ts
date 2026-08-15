@@ -44,18 +44,31 @@ describe('buildLoadOrder — yan kapı (side) sağ/sol dalı', () => {
   });
 });
 
-describe('buildLoadOrder — rear ve top dalları (referans, regresyon koruması)', () => {
-  it('rear: Z büyükten küçüğe sıralanır (kapıya en uzak önce)', () => {
-    const near = makePlacement({ positionZ: 0 });
-    const far = makePlacement({ positionZ: 200 });
-    const order = buildLoadOrder([near, far], 'rear');
+describe('buildLoadOrder — referans kapı ve üst kapı dalları', () => {
+  // Referans kapı z = length'te; uzak yüzdeki (z = 0) kutu önce girer.
+  const farFaceBox = makePlacement({ positionZ: 0 });
+  const doorSideBox = makePlacement({ positionZ: 200 });
+
+  it('rear: Z küçükten büyüğe sıralanır (uzak yüz önce, kapıya yakın son)', () => {
+    const order = buildLoadOrder([doorSideBox, farFaceBox], 'rear');
     expect(order).toEqual([1, 0]);
+  });
+
+  it('rearAndSide ve tanımsız kapı aynı yükleme yönünü paylaşır', () => {
+    const rear = buildLoadOrder([doorSideBox, farFaceBox], 'rear');
+    expect(buildLoadOrder([doorSideBox, farFaceBox], 'rearAndSide')).toEqual(rear);
+    expect(buildLoadOrder([doorSideBox, farFaceBox], undefined)).toEqual(rear);
   });
 
   it('top: Y küçükten büyüğe sıralanır (zemin katı önce)', () => {
     const bottom = makePlacement({ positionY: 0 });
     const top = makePlacement({ positionY: 100 });
     const order = buildLoadOrder([top, bottom], 'top');
+    expect(order).toEqual([1, 0]);
+  });
+
+  it('top: aynı katta yükleme yönü korunur (Z küçük→büyük)', () => {
+    const order = buildLoadOrder([doorSideBox, farFaceBox], 'top');
     expect(order).toEqual([1, 0]);
   });
 });

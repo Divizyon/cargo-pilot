@@ -89,7 +89,8 @@ function SceneSetup({
 
 // ─── Cargo Body ────────────────────────────────────────────────────────────────
 
-// Origin = sol-alt-arka. Kargo: x∈[0,w], y∈[0,h], z∈[0,l]. Rear kapı Z=0 yüzündedir.
+// Origin = uzak-sol-alt köşe (min x, min y, min z). Kargo: x∈[0,w], y∈[0,h],
+// z∈[0,l]. Referans kapı z = length yüzündedir; z = 0 uzak yüzdür.
 function CargoBody({ width, height, length }: { width: number; height: number; length: number }) {
   const edgesGeo = useMemo(() => {
     const box = new THREE.BoxGeometry(width, height, length);
@@ -130,13 +131,11 @@ function CargoBody({ width, height, length }: { width: number; height: number; l
 function CabMesh({
   width,
   height,
-  cargoLength,
   cabLength,
   gapLength = 0,
 }: {
   width: number;
   height: number;
-  cargoLength: number;
   cabLength: number;
   gapLength?: number;
 }) {
@@ -279,8 +278,11 @@ function CabMesh({
   const winOffsetY = (3 * d) / slopeNorm;
   const winOffsetZ = (3 * cabH) / slopeNorm;
 
+  // Kabin uzak yüz (z = 0) tarafındadır: TIR'da z = 0 kabin ucudur, referans kapı
+  // z = length'tedir. Geometri yerelde +z'ye uzandığı için grup y ekseninde 180°
+  // döndürülür — aynalama (scale = -1) değil, gerçek bir dönüş.
   return (
-    <group position={[0, 0, cargoLength + gapLength]}>
+    <group position={[width, 0, -gapLength]} rotation={[0, Math.PI, 0]}>
       <mesh castShadow geometry={cabGeo}>
         <meshStandardMaterial color={CAB_COLOR} metalness={0.2} roughness={0.7} />
       </mesh>
@@ -341,8 +343,12 @@ function DoorFaceIndicator({
   doorDirection: DoorDirection;
   doorSide?: 'left' | 'right';
 }) {
-  const isFront = doorDirection === 'front';
-  const isRear = doorDirection === 'rear' || doorDirection === 'rearAndSide';
+  // 'front' standartta bir kapı değil; eski veriyle gelen bu değer de referans
+  // kapıya (z = length) düşer. Böylece iki dal aynı yüzü çizer.
+  const isReferenceDoor =
+    doorDirection === 'front' ||
+    doorDirection === 'rear' ||
+    doorDirection === 'rearAndSide';
   const isSide = doorDirection === 'side' || doorDirection === 'rearAndSide';
   const isTop = doorDirection === 'top';
 
@@ -351,16 +357,9 @@ function DoorFaceIndicator({
 
   return (
     <>
-      {/* Ön kapı — Z=length yüzü */}
-      {isFront && (
+      {/* Referans kapı — z = length yüzü */}
+      {isReferenceDoor && (
         <mesh position={[width / 2, height / 2, length + DOOR_PANEL_T / 2]}>
-          <boxGeometry args={[width, height, DOOR_PANEL_T]} />
-          <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
-        </mesh>
-      )}
-      {/* Arka kapı — Z=0 yüzü (eski veri uyumluluğu) */}
-      {isRear && (
-        <mesh position={[width / 2, height / 2, -DOOR_PANEL_T / 2]}>
           <boxGeometry args={[width, height, DOOR_PANEL_T]} />
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
@@ -479,20 +478,22 @@ function VehicleScene({
   const kingpinHeight = isTir
     ? height * CAB_HEIGHT_RATIO * KINGPIN_HEIGHT_RATIO
     : height * KINGPIN_HEIGHT_RATIO;
-  // Tır ve Römork: king pimi her zaman gösterilir; mesafe girilmemişse ön yüze (Z=length) yerleşir
+  // Tır ve Römork: king pimi her zaman gösterilir; aracın ön ucu z = 0 tarafıdır
   const hasKingpin = isTir || isKamposet;
   const hasAxleVehicle = isTir || vehicleType === VehicleType.Kamyon || isKamposet;
 
-  const totalLength = hasCab ? length + cabGap + cabLength : length;
+  // Kabin negatif z tarafına uzanır; sahne merkezi bu aralığın ortasıdır.
+  const cabExtent = hasCab ? cabGap + cabLength : 0;
+  const totalLength = length + cabExtent;
   const cx = width / 2;
   const cy = height / 2;
-  const cz = totalLength / 2;
+  const cz = (length - cabExtent) / 2;
   const effectiveHeight = hasCab ? height * CAB_HEIGHT_RATIO : height;
   const maxDim = Math.max(totalLength, width, effectiveHeight);
 
-  // Tır: king pimi boşluğun ortasına (length + gap/2); kargo gövdesiyle çakışmaz → kesinlikle görünür.
-  // Römork: ön yüzden kingpinHeight*KINGPIN_RADIUS_RATIO kadar öteye; zemin yüzeyi örtmez.
-  const kingpinZ = isTir ? length + cabGap / 2 : length + kingpinHeight * KINGPIN_RADIUS_RATIO;
+  // Tır: king pimi kabin boşluğunun ortasına (-gap/2); kargo gövdesiyle çakışmaz.
+  // Römork: ön yüzden (z = 0) kingpinHeight*KINGPIN_RADIUS_RATIO kadar öteye.
+  const kingpinZ = isTir ? -cabGap / 2 : -kingpinHeight * KINGPIN_RADIUS_RATIO;
 
   const wheelRadius = height * 0.2;
   const hasRenderedAxles =
@@ -500,7 +501,7 @@ function VehicleScene({
     ((axleBDistance !== undefined && axleBDistance > 0 && axleBDistance <= length) ||
       (axleDistances ?? []).some((d) => d > 0 && d <= length));
   // Kabin olan araçlarda ön dingil her zaman görünür; gölge buna göre ayarlanır
-  const cabFrontAxleZ = hasCab ? length + cabGap + cabLength * CAB_FRONT_AXLE_RATIO : 0;
+  const cabFrontAxleZ = hasCab ? -(cabGap + cabLength * CAB_FRONT_AXLE_RATIO) : 0;
   const shadowY = hasRenderedAxles || hasCab ? -wheelRadius * 2 - 2 : -0.5;
 
   return (
@@ -510,13 +511,7 @@ function VehicleScene({
       <CargoBody width={width} height={height} length={length} />
 
       {hasCab && (
-        <CabMesh
-          width={width}
-          height={height}
-          cargoLength={length}
-          cabLength={cabLength}
-          gapLength={cabGap}
-        />
+        <CabMesh width={width} height={height} cabLength={cabLength} gapLength={cabGap} />
       )}
 
       {doorDirection && (
