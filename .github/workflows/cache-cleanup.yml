@@ -5,8 +5,8 @@ name: Cache Cleanup
 #   1. PR kapandığında (merge veya close) → o PR'a ait tüm cache'ler anında silinir.
 #      PR cache'leri refs/pull/<number>/merge ve refs/pull/<number>/head ref'leri altında oluşur.
 #      Not: fork PR'larında GITHUB_TOKEN write yetkisi olmadığından sadece aynı repo PR'ları işlenir.
-#   2. Her Pazartesi 03:00 UTC (schedule) → artık var olmayan branch'lere ait
-#      ve 7 günden eski cache'ler taranıp silinir.
+#   2. Her gün 04:35 UTC (schedule) → önce yaş/orphan kriteriyle, sonra (hâlâ 8 GiB üzerindeyse)
+#      en eski erişilen buildkit-blob'lar test/main/dev korunarak boyut eşiğine inene kadar silinir.
 #
 # Amaç: 10 GB limiti dolmadan önce gereksiz cache'leri proaktif olarak temizlemek.
 
@@ -14,7 +14,7 @@ on:
   pull_request:
     types: [closed]
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: '35 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -140,3 +140,23 @@ jobs:
 
           echo ""
           echo "==> Temizlik tamamlandı: ${DELETED} silindi, ${SKIPPED} korundu."
+
+      - name: Boyut eşiği üzerindeyse en eski cache'leri sil
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SIZE_LIMIT_BYTES: '8589934592' # 8 GiB
+        run: |
+          CURRENT_SIZE=$(gh api "/repos/${REPO}/actions/cache/usage" --jq '.active_caches_size_in_bytes')
+          echo "==> Toplam cache boyutu: ${CURRENT_SIZE} bayt (eşik: ${SIZE_LIMIT_BYTES})"
+          [[ "${CURRENT_SIZE}" -lt "${SIZE_LIMIT_BYTES}" ]] && { echo "==> Eşiğin altında."; exit 0; }
+          # korunan ref'ler: test, main, dev; en eski erişilen buildkit-blob'dan başlanarak silinir
+          SORTED_BLOBS=$(gh api --paginate -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/caches?per_page=100" --jq '.actions_caches[] | select(.key|startswith("buildkit-blob")) | [(.id|tostring), (.ref // "__NO_REF__"), .last_accessed_at, (.size_in_bytes|tostring)] | join("\t")' 2>/dev/null | awk -F'\t' '$2 !~ /^refs\/heads\/(test|main|dev)$/' | sort -t $'\t' -k3,3)
+          REMAINING=${CURRENT_SIZE}; DELETED=0
+          while IFS=$'\t' read -r CACHE_ID CACHE_REF CACHE_DATE CACHE_SIZE; do
+            [[ -z "${CACHE_ID}" ]] && continue
+            [[ "${REMAINING}" -lt "${SIZE_LIMIT_BYTES}" ]] && break
+            gh api --method DELETE -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/caches/${CACHE_ID}" > /dev/null 2>&1 \
+              && { echo "Silindi: #${CACHE_ID} (${CACHE_REF/__NO_REF__/no-ref}, ${CACHE_SIZE}B)"; REMAINING=$((REMAINING - CACHE_SIZE)); DELETED=$((DELETED + 1)); }
+          done <<< "${SORTED_BLOBS}"
+          echo "==> Boyut temizliği tamamlandı: ${DELETED} blob silindi, kalan tahmini ${REMAINING} bayt."

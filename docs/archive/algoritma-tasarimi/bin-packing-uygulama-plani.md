@@ -3,7 +3,9 @@
 **Son güncelleme:** 2026-08-04 · **Durum:** Arşiv
 
 {% hint style="warning" %}
-Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir. `feature/3D_Packing_Algorithm` branch'inde (2026-05-05) üretildi; `test` branch'teki `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` tarafından geride bırakıldı.
+Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir. `feature/3D_Packing_Algorithm` branch'inde (2026-05-05) üretildi; güncel implementasyon tarafından geride bırakıldı.
+
+> **Yönlendirme düzeltmesi (2026-08-15):** bu satır önce okuyucuyu `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` yoluna gönderiyordu; o yol `caab495d` (2026-08-11) refactor'ünden beri **yoktur**. Güncel motor: `apps/backend/CargoPilot.Application/Common/Optimization/` — 7 dosya (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`). Dosyanın geri kalanı tarihsel kayıttır, değiştirilmedi.
 
 **Bilinen farklar:**
 - Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik, Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`, `lib/config/scene-config.ts`).

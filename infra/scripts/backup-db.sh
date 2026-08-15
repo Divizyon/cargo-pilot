@@ -40,6 +40,11 @@ if [[ -z "${SA_PASSWORD}" ]]; then
     exit 1
 fi
 
+# Parolayı sqlcmd'e ortam değişkeniyle geçiyoruz; -P bayrağı komut satırında
+# kalsaydı parola host'ta ve container'da `ps` çıktısında görünürdü.
+# `docker exec -e SQLCMDPASSWORD` (değersiz form) değeri bu kabuktan devralır.
+export SQLCMDPASSWORD="${SA_PASSWORD}"
+
 mkdir -p "${BACKUP_DIR}"
 
 BACKUP_FILE="${BACKUP_DIR}/${DATABASE}_${TIMESTAMP}.bak"
@@ -49,10 +54,11 @@ echo "[$(date)] Yedek başlatılıyor: ${DATABASE} → ${BACKUP_FILE}"
 # Container içinde yedek klasörü oluştur ve BACKUP al
 docker exec "${CONTAINER}" mkdir -p /var/opt/mssql/backup
 
-docker exec "${CONTAINER}" \
+# CHECKSUM: yedeğe sayfa checksum'ları yazar; verify-backup.sh bozulmayı bununla yakalar.
+docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
     /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "${SA_PASSWORD}" -C \
-    -Q "BACKUP DATABASE [${DATABASE}] TO DISK = N'/var/opt/mssql/backup/${DATABASE}_${TIMESTAMP}.bak' WITH NOFORMAT, INIT, STATS=10"
+    -S localhost -U sa -C \
+    -Q "BACKUP DATABASE [${DATABASE}] TO DISK = N'/var/opt/mssql/backup/${DATABASE}_${TIMESTAMP}.bak' WITH NOFORMAT, INIT, CHECKSUM, STATS=10"
 
 # Container'dan host'a kopyala
 docker cp "${CONTAINER}:/var/opt/mssql/backup/${DATABASE}_${TIMESTAMP}.bak" "${BACKUP_FILE}"

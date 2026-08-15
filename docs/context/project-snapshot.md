@@ -34,11 +34,11 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 | Backend | .NET 8, Clean Architecture + **MediatR 12** (Command/Query/Handler) | Domain ← Application ← Infrastructure/WebAPI. *(Eski "MediatR yok, service-based" iddiası kodla çelişiyordu — architecture.md hâlâ eski modeli anlatıyor)* |
 | Backend hata | `Result<T>` + `Error` + `ErrorType` | Exception ile akış kontrolü yapılmaz (kodda doğrulandı) |
 | Background job | **Hangfire 1.8** (SQL storage) | Trial expiry, notification cleanup, ERP export job'ları; dashboard SuperAdmin'e kısıtlı |
-| Optimizasyon | `OptimizationEngine` (Infrastructure, extreme-point greedy) | Kırılganlık modelde **yok**; CoG sadece soft ceza; detay: kod-taramasi §4 |
+| Optimizasyon | `OptimizationEngine` (**Application/Common/Optimization**, extreme-point greedy) | `caab495d` (2026-08-11) ile Infrastructure'dan taşındı ve 7 dosyaya bölündü. Kırılganlık modelde **yok**; CoG sadece soft ceza. LIFO bölge kısıtı `dev`'de hâlâ yumuşak; iki kademeli sert kısıt `fix/OPT-02-lifo-bolge-sert-kisiti` dalında bekliyor. Detay: kod-taramasi §4, §4.1, §4.2 (bilinen borç) |
 | Validation | FluentValidation 11 (BE) / Zod (FE) | — |
 | DB | SQL Server 2022 + EF Core 8.0.25 (**43 migration**) | Soft delete global query filter (18/25 entity), `BaseEntity` audit alanları |
 | Storage | MinIO | Bucket policy public, nginx `/media/` proxy |
-| Test | Vitest 4 (FE, 16 dosya / 166 test) + **xUnit 2.5 (BE, 2 proje / 11 test sınıfı)** | RTL/Playwright paketleri kurulu değil; `CargoPilot.Engine.Tests` (golden-master, determinizm, kırılganlık, performans taban çizgisi, modül bayrakları) + `CargoPilot.Infrastructure.Tests` ikisi de `cargo-pilot.sln`'de kayıtlı, CI `dotnet test cargo-pilot.sln --no-build` koşturuyor |
+| Test | Vitest 4 (FE, **16 dosya / ~151 test-case — alt sınır**) + **xUnit 2.5 (BE, 2 proje / 11 test sınıfı)** | RTL/Playwright paketleri kurulu değil; `CargoPilot.Engine.Tests` (golden-master, determinizm, kırılganlık, performans taban çizgisi, modül bayrakları) + `CargoPilot.Infrastructure.Tests` ikisi de `cargo-pilot.sln`'de kayıtlı, CI `dotnet test cargo-pilot.sln --no-build` koşturuyor. *Frontend sayısı 2026-08-15'te yeniden ölçüldü: 16 test dosyası, `grep -oE '^\s*(it|test)\('` ile 151 test-case satırı. Bu bir **alt sınırdır** — `it.each`/`describe.each` gibi data-driven kalıplar regex sayımına girmez. Önceki "166 test" değeri doğrulanamadı.* |
 | Paket | npm (pnpm/yarn yasak) | — |
 
 **3D pivot farkı:** Three.js pivot merkezde, backend pivot sol-alt-arka köşede.

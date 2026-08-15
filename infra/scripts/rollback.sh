@@ -66,7 +66,11 @@ docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
 
 if [[ "${ENVIRONMENT}" == "test" ]]; then
     # Test ortamı: GHCR'dan immutable tag ile çek (--build yapılmaz)
-    TARGET_SHA=$(git rev-parse --short=7 "${TARGET_REF}" 2>/dev/null || echo "")
+    # Türetme release-tag.yml ile birebir aynı olmalı: sürüm tag'i main'deki merge
+    # commit'ini gösterir, imaj ise test head'i (^2) için üretilir. Tek-parent
+    # push'ta (hotfix) commit'in kendisine düşülür.
+    TARGET_SHA=$(git rev-parse --short=7 "${TARGET_REF}^2" 2>/dev/null \
+        || git rev-parse --short=7 "${TARGET_REF}" 2>/dev/null || echo "")
     if [[ -z "${TARGET_SHA}" ]]; then
         echo "[ERROR] '${TARGET_REF}' için SHA türetilemedi."
         exit 1

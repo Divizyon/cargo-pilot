@@ -146,10 +146,9 @@ jobs:
       contents: read
       packages: read
     # PR → test/main'de image build test-deploy.yml'deki "Image Build" job'u ile yapılır;
-    # burada yalnızca ilk kapıda (dev) ve iş branch'i push'larında koşar.
-    if: |
-      (github.event_name == 'pull_request' && github.base_ref == 'dev') ||
-      (github.event_name == 'push')
+    # burada yalnızca ilk kapıda (dev PR'ı) koşar; iş branch'i push'ları test-deploy.yml'in
+    # Deploy (Test) job'unda zaten build edildiği için burada tekrar edilmiyor.
+    if: github.event_name == 'pull_request' && github.base_ref == 'dev'
 
     steps:
       - name: Kodu al
@@ -175,7 +174,7 @@ jobs:
             DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
             DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
           cache-from: type=gha,scope=cargo-pilot-backend-ci
-          cache-to: type=gha,mode=max,scope=cargo-pilot-backend-ci
+          cache-to: type=gha,mode=min,scope=cargo-pilot-backend-ci
 
       - name: Frontend Docker image build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
