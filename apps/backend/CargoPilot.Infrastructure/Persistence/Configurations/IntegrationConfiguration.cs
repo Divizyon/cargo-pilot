@@ -52,8 +52,7 @@ internal sealed class IntegrationConfiguration : IEntityTypeConfiguration<Integr
             .IsRequired()
             .HasDefaultValue(ErpSyncStatus.Idle);
 
-        builder.Property(i => i.AuthCredentials)
-            .HasColumnType("nvarchar(max)");
+        builder.Property(i => i.SyncStartedAtUtc);
 
         builder.HasOne(i => i.Company)
             .WithMany(c => c.Integrations)

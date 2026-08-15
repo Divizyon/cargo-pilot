@@ -23,7 +23,7 @@ import {
 import { CargoPilotLogoAnimated } from '@/components/shared/CargoPilotLogoAnimated';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/lib/store/useAuthStore';
+import { isCompanyAdminRole, useAuthStore } from '@/lib/store/useAuthStore';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { useLogout } from '@/lib/api/useAuth';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
@@ -53,6 +53,8 @@ interface NavItemDef {
   end: boolean;
   badge?: number;
 }
+
+const ERP_PATH = '/erp';
 
 const MAIN_NAV: NavItemDef[] = [
   { icon: LayoutDashboard, label: 'Genel Bakış', path: '/dashboard', end: true },
@@ -160,6 +162,10 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
   const planLimitReached = quota ? isQuotaExceeded(quota.plans) : false;
   const { data: unreadCount = 0 } = useNotificationUnreadCount();
 
+  // ERP ekranı ayarlardaki ERP sekmeleriyle aynı yetkiye bağlıdır.
+  const canManageErp = isCompanyAdminRole(user?.role);
+  const mainNav = MAIN_NAV.filter((item) => item.path !== ERP_PATH || canManageErp);
+
   const bottomNav = BOTTOM_NAV_BASE.map((item) =>
     item.path === '/notifications' && unreadCount > 0 ? { ...item, badge: unreadCount } : item,
   );
@@ -254,7 +260,7 @@ function Sidebar({ isCollapsed, onCollapsedChange, toggleLocked = false, onClose
 
         {/* Main nav */}
         <div className="space-y-0.5">
-          {MAIN_NAV.map((item) => (
+          {mainNav.map((item) => (
             <NavItem key={item.path} item={item} isCollapsed={isCollapsed} />
           ))}
         </div>

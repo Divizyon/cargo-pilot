@@ -1,8 +1,14 @@
 # ERP Veritabanı Şeması — DIVIZYON
 
-**Son güncelleme:** 2026-05-15 · **Durum:** Aktif
-
-Bu doküman, DIVIZYON ERP sisteminin veritabanı şemasını ve Cargo Pilot alan eşleştirmelerini tanımlar.
+> **Bu bir Netsis şemasıdır.** Buradaki tablo/kolon adları yalnızca Netsis sağlayıcısı
+> için geçerlidir ve `NetsisProductFetcher` bu şemayı sorgular. Logo sağlayıcısının
+> şeması farklıdır (`LG_` önekli tablolar); Logo şema dokümanı gelene kadar Logo
+> entegrasyonunda ürün senkronizasyonu açık hata döndürür, Netsis SQL'i çalıştırılmaz.
+>
+> Veritabanı adı müşteriye göre değişir; `DIVIZYON` yalnızca bu örnek yedeğin adıdır ve
+> kodda varsayılan olarak kullanılmaz — ERP ayarlarındaki "Veritabanı Adı" alanı esastır.
+> Bağlantı için salt-okunur (`db_datareader`) bir SQL login'i önerilir; ağ ön koşulları ve
+> login şablonu için [adr-baglanti-mimarisi.md](./adr-baglanti-mimarisi.md).
 
 Kaynak: `DIVIZYON.bak` (SQL Server 2019, 4.35 MB)  
 Restore: `erp-schema-inspect` Docker container, port 1435  
@@ -23,7 +29,7 @@ Cargo Pilot `Item` sync'inin kaynağı.
 | 3 | `STOK_KODU` | varchar(100) | YES | `Item.ErpId` | Benzersiz ürün kodu |
 | 4 | `URETICI_KODU` | varchar(100) | NO | — | Üretici kodu |
 | 5 | `STOK_ADI` | varchar(200) | NO | `Item.Name` | Ürün adı |
-| 6 | `GRUP_KODU` | varchar(100) | NO | — | Ürün grubu |
+| 6 | `GRUP_KODU` | varchar(100) | NO | `DraftItem.StackGroup` | Ürün grubu; anahtar kelime eşleşmesiyle yük grubuna çevrilir (`ErpLoadGroupResolver`), eşleşme yoksa "Genel" |
 | 7 | `KOD_1` | varchar(100) | NO | — | Yedek kod 1 |
 | 8 | `KOD_2` | varchar(100) | NO | — | Yedek kod 2 |
 | 9 | `KOD_3` | varchar(100) | NO | — | Yedek kod 3 |
@@ -171,6 +177,22 @@ SELECT STOK_KODU, STOK_ADI, BIRIM_AGIRLIK, EN, BOY, GENISLIK
 FROM TBLSTSABIT
 WHERE SATISKILIT IS NULL OR SATISKILIT != 'E'
 ```
+
+### Ürün sync'inde delta yok — tam tarama ve satır limiti
+
+Sipariş tablolarının aksine `TBLSTSABIT`'te delta sorgusuna dayanak olacak bir değişiklik
+damgası (`KAYITTARIHI` / `DUZELTMETARIHI` karşılığı) yoktur; tablodaki datetime kolonları
+yedek alanlardır ve müşteri kurulumunda doldurulacağı garanti değildir. Bu yüzden ürün sync'i
+her çalışmada tam tarama yapar. Maliyet iki yerden sınırlanır:
+
+- Sorgu `SELECT TOP (@MaxRowCount)` ile çalışır (`NetsisProductFetcher.MaxRowCount` = 20.000).
+  Limit dolarsa uyarı loglanır, alınmayan satırlar mutabakat kırılımında görünür ve bir sonraki
+  çalışmaya kalır.
+- Zamanlanmış sync (`ErpScheduledSyncJob`) 15 dakikada bir tarar ama yalnızca vadesi gelen
+  entegrasyonları çalıştırır; şirket başına eşzamanlı tek sync kuralı korunur.
+
+Müşteri şemasında güvenilir bir güncelleme damgası doğrulanırsa delta sorgusu buraya eklenir ve
+tam tarama yalnızca ilk yüklemede kullanılır.
 
 ---
 

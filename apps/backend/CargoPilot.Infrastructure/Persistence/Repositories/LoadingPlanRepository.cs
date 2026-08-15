@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
@@ -224,7 +225,17 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             .Where(g => g.LoadingPlanId == id)
             .ToListAsync(cancellationToken);
 
-        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems, groups);
+        // Aktarim basarisizsa nedeni plan detayinda gorunsun diye son deneme kaydi okunur.
+        var erpExportMessage = plan.ErpExportStatus == ErpExportStatus.Failed
+            ? await _context.SyncLogs
+                .AsNoTracking()
+                .Where(l => l.LoadingPlanId == id)
+                .OrderByDescending(l => l.StartedAt)
+                .Select(l => l.ErrorMessage)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        return MapToDetailDto(plan, placements, unplacedItems, warnings, inputItems, groups, erpExportMessage);
     }
 
     private static PlanDetailDto MapToDetailDto(
@@ -233,7 +244,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         List<LoadingPlanUnplacedItem> unplacedItems,
         List<LoadingPlanWarning> warnings,
         List<LoadingPlanInputItem> inputItems,
-        List<LoadingPlanItemGroup> groups)
+        List<LoadingPlanItemGroup> groups,
+        string? erpExportMessage)
     {
         var vehicleDto = new VehicleInPlanDto(
             plan.Vehicle.Id,
@@ -318,6 +330,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             CalcBalanceOffset(plan.CenterOfGravityZ, plan.Vehicle.InternalLength),
             plan.CreatedAtUtc,
             plan.ErpExportStatus,
+            erpExportMessage,
             plan.ThumbnailUrl,
             vehicleDto,
             placementDtos,
@@ -340,6 +353,20 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     public async Task<LoadingPlanInputItem?> GetInputItemByIdAsync(Guid inputItemId, Guid planId, CancellationToken cancellationToken = default)
         => await _context.LoadingPlanInputItems
             .FirstOrDefaultAsync(i => i.Id == inputItemId && i.LoadingPlanId == planId, cancellationToken);
+
+    /// <summary>
+    /// Yerlesim kayitlari urun basina gruplanir: bir yerlesim satiri araca konulan bir
+    /// kolidir, dolayisiyla adet = o urunun yerlesim sayisidir.
+    /// </summary>
+    public async Task<IReadOnlyList<PlanErpExportLine>> GetErpExportLinesAsync(
+        Guid planId,
+        CancellationToken cancellationToken = default)
+        => await _context.LoadingPlanPlacements
+            .AsNoTracking()
+            .Where(p => p.LoadingPlanId == planId)
+            .GroupBy(p => new { p.Item.ErpId, p.Item.SKU, p.Item.Name })
+            .Select(g => new PlanErpExportLine(g.Key.ErpId, g.Key.SKU, g.Key.Name, g.Count()))
+            .ToListAsync(cancellationToken);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
@@ -438,7 +465,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
     }
 
     private static ItemInPlanDto ToItemInPlanDto(Item item) =>
-        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ImageUrl, item.ProductType);
+        new(item.Id, item.SKU, item.Name, item.Width, item.Height, item.Length, item.Weight, item.ProductType);
 
     private static decimal? CalcBalanceOffset(decimal? cog, decimal? dimension)
     {

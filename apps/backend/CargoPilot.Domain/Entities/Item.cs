@@ -20,14 +20,12 @@ public sealed class Item : BaseEntity {
     public int MaxStackCount { get; private set; }
     public decimal MaxWeightOnTop { get; private set; }
     public AllowedRotations AllowedRotations { get; private set; }
-    public string? ImageUrl { get; private set; }
     public string? StackGroup { get; private set; }
     public string IncompatibleGroupsJson { get; private set; } = "[]";
     public string? SpecialNotes { get; private set; }
     public Guid? CompanyId { get; private set; }
     public string? ErpId { get; private set; }
     public Guid? IntegrationId { get; private set; }
-    public bool IsRuleAssigned { get; private set; } = true;
 #pragma warning disable S1144
     public Company? Company { get; private set; }
     public Integration? Integration { get; private set; }
@@ -52,7 +50,6 @@ public sealed class Item : BaseEntity {
         AllowedRotations allowedRotations,
         string? barcode = null,
         decimal? diameter = null,
-        string? imageUrl = null,
         string? stackGroup = null,
         string[]? incompatibleGroups = null,
         string? specialNotes = null,
@@ -74,7 +71,6 @@ public sealed class Item : BaseEntity {
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
-        ImageUrl = imageUrl;
         StackGroup = stackGroup;
         IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;
@@ -90,8 +86,6 @@ public sealed class Item : BaseEntity {
         ErpId = null;
         IntegrationId = null;
     }
-
-    public void SetRuleAssigned(bool isRuleAssigned) => IsRuleAssigned = isRuleAssigned;
 
     public void Update(
         string sku,
@@ -109,7 +103,6 @@ public sealed class Item : BaseEntity {
         int maxStackCount,
         decimal maxWeightOnTop,
         AllowedRotations allowedRotations,
-        string? imageUrl,
         string? stackGroup,
         string[]? incompatibleGroups,
         string? specialNotes,
@@ -130,7 +123,6 @@ public sealed class Item : BaseEntity {
         MaxStackCount = maxStackCount;
         MaxWeightOnTop = maxWeightOnTop;
         AllowedRotations = allowedRotations;
-        ImageUrl = imageUrl;
         StackGroup = stackGroup;
         IncompatibleGroupsJson = SerializeStringArray(incompatibleGroups);
         SpecialNotes = specialNotes;

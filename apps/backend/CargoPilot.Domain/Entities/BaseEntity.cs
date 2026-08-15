@@ -29,6 +29,15 @@ public abstract class BaseEntity {
         IsActive = false;
     }
 
+    /// <summary>
+    /// Soft-delete'i geri alir. DeletedAtUtc'yi AppDbContext temizler. Kaydin yeniden
+    /// kullanilmasi anlamli olan varliklara acilir; genel bir "sil-geri al" yolu degildir.
+    /// </summary>
+    protected void Restore() {
+        IsDeleted = false;
+        IsActive = true;
+    }
+
     public void SetIsActive(bool isActive) {
         IsActive = isActive;
     }

@@ -121,7 +121,6 @@ public sealed class OptimizationEngineTests
             ItemId: Guid.NewGuid(),
             SKU: $"SKU-{Guid.NewGuid():N}",
             Name: "Test Ürünü",
-            ImageUrl: null,
             Width: 50m,
             Height: 50m,
             Length: 50m,

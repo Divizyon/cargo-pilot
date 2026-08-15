@@ -13,7 +13,6 @@ import {
   FlaskConical,
   FolderPlus,
   Layers,
-  Leaf,
   Lightbulb,
   Loader2,
   Minus,
@@ -111,7 +110,6 @@ type ConstraintFilter =
   | 'food'
   | 'dry'
   | 'chemical'
-  | 'organic'
   | 'stackable'
   | 'rotationLocked';
 
@@ -123,7 +121,6 @@ const FRAGILITY_FILTER_VALUE: Partial<Record<ConstraintFilter, number>> = {
   food: 7,
   dry: 8,
   chemical: 9,
-  organic: 10,
 };
 
 const CONSTRAINT_FILTER_OPTIONS: {
@@ -133,13 +130,12 @@ const CONSTRAINT_FILTER_OPTIONS: {
   className: string;
 }[] = [
   { value: 'fragile', label: 'Kırılgan', Icon: Wine, className: 'text-amber-600' },
-  { value: 'liquid', label: 'Sıvı İçerir', Icon: Droplets, className: 'text-blue-600' },
+  { value: 'liquid', label: 'Sıvı', Icon: Droplets, className: 'text-blue-600' },
   { value: 'corrosive', label: 'Aşındırıcı', Icon: Flame, className: 'text-orange-600' },
   { value: 'odor', label: 'Kokuya Hassas', Icon: Wind, className: 'text-green-600' },
   { value: 'food', label: 'Gıda Teması', Icon: Utensils, className: 'text-green-600' },
   { value: 'dry', label: 'Kuru', Icon: Sun, className: 'text-muted-foreground' },
   { value: 'chemical', label: 'Kimyasal', Icon: FlaskConical, className: 'text-purple-600' },
-  { value: 'organic', label: 'Organik', Icon: Leaf, className: 'text-green-600' },
   { value: 'stackable', label: 'İstiflenebilir', Icon: Layers, className: 'text-muted-foreground' },
   {
     value: 'rotationLocked',

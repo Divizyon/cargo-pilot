@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
+import { USER_ROLES } from '@/lib/store/useAuthStore';
 import { DashboardLayout } from '@/components/shared/layouts/DashboardLayout';
 import { PageSuspense } from '@/components/shared/PageSuspense';
 import {
@@ -34,6 +35,9 @@ import {
   VehicleEditPage,
   VehiclesPage,
 } from '@/pages/lazyPages';
+
+/** ERP ekranı şirket yönetimi yetkisi ister; kenar menüsüyle aynı kural. */
+const ERP_ROLES = [USER_ROLES.SuperAdmin, USER_ROLES.CompanyAdmin] as const;
 
 export const router = createBrowserRouter([
   {
@@ -267,14 +271,21 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: '/erp',
-            element: (
-              <PageSuspense>
-                <ERPItemsPage />
-              </PageSuspense>
-            ),
+            // Menüde yalnızca şirket yöneticisine görünür; adres elle yazıldığında da
+            // aynı kısıt uygulanır. Backend tarafında ERP uçları CompanyAdmin ister.
+            element: <ProtectedRoute requiredRoles={ERP_ROLES} />,
+            children: [
+              {
+                path: '/erp',
+                element: (
+                  <PageSuspense>
+                    <ERPItemsPage />
+                  </PageSuspense>
+                ),
+              },
+            ],
           },
-          { path: '/integrations', element: <Navigate to="/settings?tab=erp-baglanti" replace /> },
+          { path: '/integrations', element: <Navigate to="/settings?tab=erp" replace /> },
           {
             path: '/notifications',
             element: (

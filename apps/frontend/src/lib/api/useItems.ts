@@ -4,6 +4,7 @@ import type { AxiosError } from 'axios';
 import type { ProductFormValues } from '@/features/data-management/products/schemas/productSchema';
 import type { Item } from '@/lib/types/item';
 import { axiosInstance } from './axiosInstance';
+import { getApiErrorMessage, getApiValidationErrors } from './apiError';
 import {
   buildCreateItemPayload,
   buildUpdateItemPayload,
@@ -23,17 +24,17 @@ interface ProblemDetails {
   instance?: string;
 }
 
-interface BackendValidationFailure {
-  propertyName?: string;
-  errorMessage?: string;
-}
-
+/**
+ * Backend Result zarfi. Alan bazli hatalar `error.validationErrors[{field,message}]`
+ * icindedir; okumak icin `getApiValidationErrors` kullanilir.
+ */
 export interface BackendError {
   isSuccess?: boolean;
+  message?: string;
   error?: {
     code?: string;
-    message?: string;
-    validationFailures?: BackendValidationFailure[];
+    description?: string;
+    validationErrors?: Array<{ field?: string; message?: string }>;
   };
 }
 
@@ -218,27 +219,22 @@ export function useBulkCreateItems() {
     },
     onError: (error) => {
       const status = error.response?.status;
-      const errData = error.response?.data?.error;
-      const message = errData?.message;
-      const failures = errData?.validationFailures;
 
-      if (status === 400) {
-        if (failures?.length) {
-          const detail = failures
-            .map((f) => f.errorMessage ?? f.propertyName)
-            .filter(Boolean)
-            .join('; ');
-          toast.error(detail, { position: 'bottom-right' });
-        } else {
-          toast.error(message ?? 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.', {
-            position: 'bottom-right',
-          });
-        }
+      if (status === 400 || status === 422) {
+        const failures = getApiValidationErrors(error);
+        toast.error(
+          failures.length > 0
+            ? failures.join('; ')
+            : getApiErrorMessage(error, 'Doğrulama hatası. Lütfen dosya içeriğini kontrol edin.'),
+          { position: 'bottom-right' },
+        );
         return;
       }
 
       if (status && status !== 401 && status < 500) {
-        toast.error(message ?? 'Toplu ürün eklenemedi.', { position: 'bottom-right' });
+        toast.error(getApiErrorMessage(error, 'Toplu ürün eklenemedi.'), {
+          position: 'bottom-right',
+        });
       }
     },
   });

@@ -54,7 +54,6 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
             maxStackCount: request.MaxStackCount,
             maxWeightOnTop: request.MaxWeightOnTop,
             allowedRotations: request.AllowedRotations,
-            imageUrl: request.ImageUrl,
             stackGroup: request.StackGroup,
             incompatibleGroups: request.IncompatibleGroups,
             specialNotes: request.SpecialNotes,

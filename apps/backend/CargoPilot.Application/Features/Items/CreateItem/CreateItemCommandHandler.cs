@@ -1,8 +1,8 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
-using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using MediatR;
 
@@ -68,29 +68,7 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
                 new Error(ErrorType.Conflict, "Item.SkuAlreadyExists", "Bu SKU zaten kullanımda."));
         }
 
-        var item = new Item(
-            id: Guid.NewGuid(),
-            sku: request.SKU,
-            name: request.Name,
-            productType: request.ProductType,
-            category: request.Category,
-            width: request.Width,
-            height: request.Height,
-            length: request.Length,
-            weight: request.Weight,
-            fragilityType: request.FragilityType,
-            isStackable: request.IsStackable,
-            maxStackCount: request.MaxStackCount,
-            maxWeightOnTop: request.MaxWeightOnTop,
-            allowedRotations: request.AllowedRotations,
-            barcode: request.Barcode,
-            diameter: request.Diameter,
-            imageUrl: request.ImageUrl,
-            stackGroup: request.StackGroup,
-            incompatibleGroups: request.IncompatibleGroups,
-            specialNotes: request.SpecialNotes,
-            constraintIds: request.ConstraintIds,
-            companyId: companyId);
+        var item = ItemFactory.Create(request.SKU, request.Name, request, companyId);
 
         _itemRepository.Add(item);
         await _itemRepository.SaveChangesAsync(cancellationToken);

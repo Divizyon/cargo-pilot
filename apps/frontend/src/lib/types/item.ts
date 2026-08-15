@@ -21,7 +21,7 @@ export const itemSchema = z.object({
   isStackable: z.boolean(),
   maxStackCount: z.number().int().min(1),
   maxWeightOnTop: z.number().nonnegative().nullable(),
-  // 0 = normal, 1 = kırılgan, 2 = sıvı içerir
+  // 0 = kısıtsız; 1–9 backend FragilityType kodları (bkz. lib/config/item-import-columns)
   fragility: z.number().int().min(0).default(0),
   allowRotateX: z.boolean().default(true),
   allowRotateY: z.boolean().default(true),

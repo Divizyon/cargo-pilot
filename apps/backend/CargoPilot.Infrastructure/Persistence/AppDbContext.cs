@@ -32,9 +32,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
     public DbSet<LoadingPlanWarning> LoadingPlanWarnings => Set<LoadingPlanWarning>();
     public DbSet<Integration> Integrations => Set<Integration>();
     public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
-    public DbSet<ErpUserMapping> ErpUserMappings => Set<ErpUserMapping>();
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<PendingItemMapping> PendingItemMappings => Set<PendingItemMapping>();
     public DbSet<ErpSettings> ErpSettings => Set<ErpSettings>();
     public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
     public DbSet<DraftItem> DraftItems => Set<DraftItem>();
@@ -48,6 +46,19 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
     public override int SaveChanges() {
         ApplyAuditFields();
         return base.SaveChanges();
+    }
+
+    /// <summary>
+    /// Veritabanindan okunan her tarih UTC olarak isaretlenir.
+    /// SQL Server datetime2 bolge bilgisi tasimaz; EF degeri Kind=Unspecified olarak
+    /// dondurdugu icin JSON'a sonu 'Z' olmadan yaziliyordu. Istemci bunu yerel saat
+    /// sanip UTC degerini oldugu gibi basiyor, saat UTC farki kadar geride gorunuyordu.
+    /// Yazma yonu degistirilmez: tum tarihler zaten DateTime.UtcNow'dan uretiliyor,
+    /// ToUniversalTime cagirmak Unspecified degeri ikinci kez kaydirirdi.
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
@@ -69,9 +80,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
         modelBuilder.ApplyConfiguration(new LoadingPlanWarningConfiguration());
         modelBuilder.ApplyConfiguration(new IntegrationConfiguration());
         modelBuilder.ApplyConfiguration(new SyncLogConfiguration());
-        modelBuilder.ApplyConfiguration(new ErpUserMappingConfiguration());
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
-        modelBuilder.ApplyConfiguration(new PendingItemMappingConfiguration());
         modelBuilder.ApplyConfiguration(new ErpSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new ShareLinkConfiguration());
         modelBuilder.ApplyConfiguration(new DraftItemConfiguration());
@@ -79,7 +88,8 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext {
 
     private void ApplyAuditFields() {
         var now = DateTime.UtcNow;
-        var userId = _currentUserService.UserId;
+        // Arka plan isinde HTTP baglami yoktur; kapsam acikken sistem kimligi yazilir.
+        var userId = _currentUserService.UserId ?? SystemActor.CurrentId;
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>()) {
             if (entry.State == EntityState.Added) {

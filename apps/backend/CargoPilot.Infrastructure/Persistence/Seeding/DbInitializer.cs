@@ -53,8 +53,7 @@ public sealed class DbInitializer {
                 systemName: "TestERP",
                 apiEndpoint: "https://erp.test",
                 mappingTable: null,
-                syncInterval: null,
-                authCredentials: null);
+                syncInterval: null);
 
             await _context.Integrations.AddAsync(integration, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);

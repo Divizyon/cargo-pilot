@@ -5,6 +5,7 @@ import type {
   PlanProductItem,
   PlacementWithDimensions,
 } from '@/lib/types/loadingPlan';
+import { ErpExportStatus } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
@@ -54,6 +55,9 @@ export const planListApiItemSchema = z
     plannedAt: z.string().nullable().optional(),
     planCode: z.string().nullable().optional(),
     status: z.string().nullable().optional(),
+    // Plan detay ucundan gelir: ERP aktarım durumu ve son başarısız denemenin nedeni.
+    erpExportStatus: z.number().int().nullable().optional(),
+    erpExportMessage: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -163,6 +167,8 @@ export const planDetailApiResponseSchema = z.object({
       plannedAt: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string().nullable().optional(),
+      erpExportStatus: z.number().int().nullable().optional(),
+      erpExportMessage: z.string().nullable().optional(),
       placements: z.array(placementItemApiSchema).optional(),
       placementDetails: z.array(placementItemApiSchema).optional(),
       items: z.array(placementItemApiSchema).optional(),
@@ -201,7 +207,6 @@ export const planDetailApiResponseSchema = z.object({
                   height: z.number().optional(),
                   length: z.number().optional(),
                   weight: z.number().optional(),
-                  imageUrl: z.string().nullable().optional(),
                 })
                 .passthrough()
                 .nullable()
@@ -340,57 +345,6 @@ function placedDimensions(
   }
 }
 
-export function fromApiPlacementsToScene(
-  rawPlacements: PlacementItemApi[],
-  colorMap?: Record<string, string>,
-): PlacementWithDimensions[] {
-  return rawPlacements.flatMap((p) => {
-    const raw = p as Record<string, unknown>;
-    const itemId = (raw.itemId as string | undefined) ?? (raw.id as string | undefined) ?? '';
-    if (!itemId) return [];
-
-    const posX = Number(raw.positionX ?? 0);
-    const posY = Number(raw.positionY ?? 0);
-    const posZ = Number(raw.positionZ ?? 0);
-    const rotation = Number(raw.rotation ?? 0);
-
-    const item = (raw.item ?? {}) as Record<string, unknown>;
-    const origW = Number(item.width ?? 0);
-    const origH = Number(item.height ?? 0);
-    const origL = Number(item.length ?? 0);
-    const weight = Number(item.weight ?? item.unitWeight ?? 0);
-    const sku = String(item.sku ?? item.sKU ?? item.SKU ?? itemId);
-
-    if (origW <= 0 || origH <= 0 || origL <= 0) return [];
-
-    const { pw, ph, pd } = placedDimensions(origW, origH, origL, rotation);
-
-    const rawType = (item.productType as string | undefined)?.toLowerCase();
-    const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
-
-    const groupName = (item.groupName ?? item.categoryName ?? item.category) as string | undefined;
-    const color = colorMap?.[sku] ?? resolveProductColor(productType, groupName);
-
-    return [
-      {
-        itemId,
-        positionX: posX,
-        positionY: posY,
-        positionZ: posZ,
-        orientationIndex: 0,
-        layer: posY === 0 ? 1 : Math.ceil(posY / ph) + 1,
-        isViolation: false,
-        width: pw,
-        height: ph,
-        depth: pd,
-        weight,
-        color,
-        productType,
-      } satisfies PlacementWithDimensions,
-    ];
-  });
-}
-
 // Backend bazen timezone bilgisi olmadan UTC datetime döndürür (örn: "2026-05-18T21:41:00").
 // JavaScript bunu yerel saat olarak parse eder ve hatalı görüntüler. 'Z' ekleyerek UTC garantiliyoruz.
 function normalizeUtcDatetime(s: string): string {
@@ -401,6 +355,18 @@ function normalizeUtcDatetime(s: string): string {
 }
 
 // ─── Mapper: API item → LoadingPlanListItem ───────────────────────────────────
+
+/** Bilinmeyen bir durum kodu geldiğinde aktarım durumu gösterilmez (uydurma rozet çıkmaz). */
+function mapErpExportStatus(raw: number | null | undefined): ErpExportStatus | undefined {
+  switch (raw) {
+    case ErpExportStatus.Pending:
+    case ErpExportStatus.Sent:
+    case ErpExportStatus.Failed:
+      return raw;
+    default:
+      return undefined;
+  }
+}
 
 export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const v = api.vehicle;
@@ -450,6 +416,8 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
       // Normalize http → https to avoid mixed-content blocks
       return raw.replace(/^http:\/\//, 'https://');
     })(),
+    erpExportStatus: mapErpExportStatus(api.erpExportStatus),
+    erpExportMessage: api.erpExportMessage ?? undefined,
   };
 }
 
@@ -479,7 +447,6 @@ const planItemDimensionsSchema = z
     height: z.number(),
     length: z.number(),
     weight: z.number().catch(0),
-    imageUrl: z.string().nullable().optional(),
     productType: z.string().nullable().optional(),
     constraintIds: z.array(z.number().int()).optional(),
     stackGroup: z.string().nullable().optional(),
@@ -588,7 +555,6 @@ function apiItemToItem(raw: z.infer<typeof planItemDimensionsSchema>): Item {
     allowFaceBack: true,
     allowFaceLeft: true,
     allowFaceRight: true,
-    imageUrl: raw.imageUrl ?? undefined,
     constraintIds: raw.constraintIds ?? [],
     stackGroup: raw.stackGroup ?? null,
     incompatibleGroups: raw.incompatibleGroups ?? [],
