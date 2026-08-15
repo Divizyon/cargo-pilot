@@ -71,7 +71,7 @@ internal static class InvariantScenarioSource
     }
 
     /// <summary>
-    /// Snapshot'ta saklanmayan alanlar (Name, ImageUrl, kırılganlık, stackGroup)
+    /// Snapshot'ta saklanmayan alanlar (Name, kırılganlık, stackGroup)
     /// motor davranışını bu senaryolarda etkilemez; hepsi varsayılan değerdedir.
     /// </summary>
     private static OptimizationItemInput ToItem(SnapshotItem item)
@@ -79,7 +79,6 @@ internal static class InvariantScenarioSource
             ItemId: Guid.Parse(item.ItemId),
             SKU: item.Sku,
             Name: item.Sku,
-            ImageUrl: null,
             Width: item.Width,
             Height: item.Height,
             Length: item.Length,
