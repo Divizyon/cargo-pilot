@@ -63,7 +63,7 @@ services:
       - ../docker/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data_prod:/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     restart: unless-stopped
     networks:
       - cargo-pilot-prod
@@ -84,7 +84,7 @@ services:
       - ../docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data_prod:/var/lib/grafana
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - prometheus
       - loki
