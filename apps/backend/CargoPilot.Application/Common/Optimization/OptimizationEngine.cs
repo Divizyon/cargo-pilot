@@ -78,6 +78,14 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             PlacedBox? best = null;
             var bestScore = decimal.MaxValue;
 
+            // ── İki kademeli aday seçimi ──────────────────────────────────────
+            // LIFO grup bölgesi sert kısıttır: bölge içinde geçerli en az bir
+            // aday varsa seçim yalnızca onlar arasından yapılır. Bölge içi hiç
+            // aday yoksa (bölge kutudan dar kalabilir) bugünkü cezalı skorlamaya
+            // düşülür, böylece kutu yalnızca bölgesi yüzünden düşmez.
+            PlacedBox? bestInZone = null;
+            var bestInZoneScore = decimal.MaxValue;
+
             // Aday yalnızca kırılganlık yüzünden elendiyse ret sebebi "yer yok"
             // değil, kırılganlık kısıtı olarak raporlanır. Bayrak ancak diğer tüm
             // sert kısıtları geçmiş bir aday elendiğinde kalkar
@@ -117,8 +125,19 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                         bestScore = score;
                         best = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.FragilityType, item.UnloadingOrder);
                     }
+
+                    // Katı "<" karşılaştırması burada da korunur: eşit skorlu
+                    // adaylarda ilk gelen kazanır, determinizm bozulmaz.
+                    if (LifoPlacement.IsInsideZone(zoneStart, zoneEnd, ez, d) && score < bestInZoneScore)
+                    {
+                        bestInZoneScore = score;
+                        bestInZone = new PlacedBox(item.ItemId, ex, ey, ez, w, h, d, rotation, item.Weight, item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.FragilityType, item.UnloadingOrder);
+                    }
                 }
             }
+
+            // Bölge kısıtı burada "sert" olur: bölge içi aday varsa o kazanır.
+            best = bestInZone ?? best;
 
             if (best is null)
             {
@@ -203,6 +222,15 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     //   Lifo         : ey*1e6 + ez*1e3 +                ex + bölge
     // Kapalı modülün terimi ölçeği 0 olan 0m sabitidir; decimal toplamada
     // değeri de ölçeği de değiştirmez.
+    //
+    // BÖLGE TERİMİ ARTIK DİĞERLERİNİN AKRANI DEĞİLDİR. Aday seçimi iki
+    // kademelidir (bkz. Run içindeki bestInZone): bölge içi geçerli bir aday
+    // varsa seçim yalnızca onlar arasından yapılır ve bu skorun bölge terimi
+    // zaten 0'dır. Yukarıdaki üç satırdaki "+ bölge" ifadeleri bu yüzden
+    // yalnızca YEDEK kademede — yani hiçbir aday bölgesine sığmadığında —
+    // etkilidir; orada da adayları birbirine göre sıralamaktan başka bir işi
+    // yoktur. Katsayının yerçekimi katsayısından küçük olması bu nedenle
+    // bölge disiplinini zayıflatmaz.
     //
     // Hangi terimin açık olduğunu artık kriter değil modül bayrakları belirler.
     // Bayraklar verilmediğinde kriterden türetildikleri için yukarıdaki üç satır
