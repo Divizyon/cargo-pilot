@@ -11,7 +11,8 @@ namespace CargoPilot.Engine.Tests;
 /// tek katmanlı olduğu için bölge-yerçekimi çatışması orada hiç tetiklenmiyor;
 /// bu iki senaryo çatışmayı bilerek üretir.
 ///
-/// Sahne sözleşmesi: arka kapı Z=0, araç önü Z=VehicleLength.
+/// Koordinat sözleşmesi (docs/COORDINATE_STANDARD.md): uzak yüz Z=0,
+/// referans kapı Z=VehicleLength.
 /// </summary>
 public sealed class LifoBolgeKisitiTests
 {

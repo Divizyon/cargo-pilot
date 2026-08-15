@@ -9,7 +9,7 @@ Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.
 
 **Bilinen farklar:**
 - Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = width (genişlik), Y = height (yükseklik), Z = length (uzunluk)**; origin kutunun **origin'e en yakın köşesi** `(min x, min y, min z)`, araçta uzak yüzdeki (`z = 0`) sol-alt köşedir. Bağlayıcı tanım: `docs/COORDINATE_STANDARD.md`.
-  *(2026-08-15 ikinci ölçüm: standardın eksen ve terim kısmı PR #997/#1004 ile **koda uygulandı** — `depth` boyut terimi olarak kaldırıldı, referans kapı `z = length`, LIFO bölge haritası ters çevrildi. Bir önceki turun "standart henüz uygulanmamıştır" notu bu yüzden geçersizdi. Uygulanmayan tek kısım kapı modelidir: `doors` listesi, `top door`, `clearanceCm` — bkz. `COORDINATE_STANDARD.md` §10. Bu dosyanın kendisi tarihsel arşivdir; yalnız bu yönlendirme satırı güncellendi.)*
+  *(2026-08-15 ikinci ölçüm: standardın eksen ve terim kısmı PR #997/#1004 ile **koda uygulandı** — `depth` boyut terimi olarak kaldırıldı, referans kapı `z = length`, LIFO bölge haritası ters çevrildi. Bir önceki turun "standart henüz uygulanmamıştır" notu bu yüzden geçersizdi. Uygulanmayan tek kısım kapı modelinin arayüz tarafıdır: `doors` listesi backend'de var, form ve sahne hâlâ tekil `LoadingType` okuyor — bkz. `COORDINATE_STANDARD.md` §10. Bu dosyanın kendisi tarihsel arşivdir; yalnız bu yönlendirme satırı güncellendi.)*
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
 

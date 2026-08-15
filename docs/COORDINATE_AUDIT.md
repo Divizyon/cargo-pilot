@@ -8,7 +8,11 @@
 **Kapsam dışı:** `node_modules`, `bin`/`obj`, EF Core migration snapshot'ları,
 `.claude/worktrees` kopyaları
 
-> Bu denetim **yalnızca rapordur** — hiçbir kaynak dosya değiştirilmemiştir.
+> **Durum (2026-08-15):** Bu belge yazıldığında salt rapordu; o zamandan beri bulguların
+> bir kısmı düzeltildi. Kapatılanlar: `z` ekseni yönü (H-01…H-06), dingil yükü payı (H-05),
+> eksen etiketleri (H-10), `depth` terimi (M-00, M-11, M-12), kamera adlandırması (M-03),
+> birim tutarsızlığı. Açık kalanlar: kapı modeli (H-07, M-01, M-02), `x₀`'ın koda
+> uygulanması (H-09), prototip HTML (M-14). Güncel durum: `docs/KOORDINAT-UYUM-RAPORU.md`.
 
 > **⚠️ Bayatlık uyarısı (2026-08-15, ikinci ölçüm):** Bu belge 2026-08-12 tarihli **anlık
 > görüntüdür**. Daha yeni ve daha geniş tarama `docs/KOORDINAT-UYUM-RAPORU.md`'dir; onun

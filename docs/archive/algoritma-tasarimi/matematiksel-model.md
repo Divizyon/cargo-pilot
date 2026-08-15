@@ -8,7 +8,7 @@ Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.
 > **Yönlendirme düzeltmesi (2026-08-15):** bu satır önce okuyucuyu `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` yoluna gönderiyordu; o yol `caab495d` (2026-08-11) refactor'ünden beri **yoktur**. Güncel motor: `apps/backend/CargoPilot.Application/Common/Optimization/` — 7 dosya (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`). Dosyanın geri kalanı tarihsel kayıttır, değiştirilmedi.
 
 **Bilinen farklar:**
-- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik, Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`, `lib/config/scene-config.ts`).
+- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = width, Y = height, Z = length**, origin kutunun **origin'e en yakın** köşesi (min x, min y, min z); uzak yüz `z = 0`, referans kapı `z = length`. Tek yetkili tanım: `docs/COORDINATE_STANDARD.md`.
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
 
