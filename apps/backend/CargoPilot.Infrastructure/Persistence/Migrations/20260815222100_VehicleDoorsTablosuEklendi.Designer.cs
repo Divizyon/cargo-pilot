@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260815164912_VehicleDoorsTablosuEklendi")]
+    [Migration("20260815222100_VehicleDoorsTablosuEklendi")]
     partial class VehicleDoorsTablosuEklendi
     {
         /// <inheritdoc />
@@ -1736,10 +1736,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("ClearanceCm")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
-
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -1780,12 +1776,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("VehicleDoors", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_VehicleDoors_Clearance_NonNegative", "[ClearanceCm] >= 0");
-
-                            t.HasCheckConstraint("CK_VehicleDoors_Clearance_OnlyBigDoor", "[ClearanceCm] = 0 OR [Type] = 'Big'");
-                        });
+                    b.ToTable("VehicleDoors", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>

@@ -257,10 +257,9 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             vehicle.MaxWeightCapacity.GetValueOrDefault(),
             inputs, criteria, vehicle.LoadingType, clusterGroups,
             Modules: null,
-            // Big door aciklik payi arac kaydindan gelir; kapi yoksa 0 ve
-            // yukleme araligi degismez.
-            ClearanceAtZeroX: DoorClearance.AtZeroX(vehicle.Doors),
-            ClearanceAtWidthX: DoorClearance.AtWidthX(vehicle.Doors),
-            HasReferenceDoor: DoorClearance.HasReferenceDoor(vehicle.Doors));
+            // Yukleme kapinin oldugu yuzden baslamaz; baslangic kosesi kapi
+            // listesinden turetilir.
+            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors),
+            HasReferenceDoor: LoadingCorner.HasReferenceDoor(vehicle.Doors));
     }
 }

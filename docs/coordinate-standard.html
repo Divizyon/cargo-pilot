@@ -360,7 +360,7 @@
           <span class="pill">kodda yok</span> <strong>Kapılar liste olarak modellenir.</strong> Bir araçta aynı anda birden fazla kapı
           bulunabildiği için (ör. back door + iki big door) kapı bilgisi tekil bir enum değeri değil,
           yüz bilgisiyle birlikte bir liste olmalıdır:<br />
-          <code>doors: [{ type: 'small', face: 'z=length' }, { type: 'big', face: 'x=0', clearanceCm: 12 }, { type: 'top', face: 'y=height' }]</code>
+          <code>doors: [{ type: 'small', face: 'z=length' }, { type: 'big', face: 'x=0' }, { type: 'top', face: 'y=height' }]</code>
         </p>
 
         <p class="note">
@@ -608,10 +608,6 @@
 
           <rect x="240" y="70" width="220" height="320" fill="var(--face-top)" stroke="var(--edge)" stroke-width="2" />
 
-          <!-- big door açıklık payı -->
-          <rect x="240" y="70" width="32" height="320" fill="var(--axis-x)" fill-opacity="0.13" />
-          <line x1="272" y1="70" x2="272" y2="390" stroke="var(--axis-x)" stroke-width="1.5" stroke-dasharray="5 4" />
-          <text class="svg-label small" x="256" y="372" text-anchor="middle">x₀</text>
 
           <!-- big door -->
           <rect x="231" y="110" width="10" height="240" fill="var(--face-big-door)" stroke="var(--edge)" stroke-width="1" />
@@ -641,18 +637,17 @@
           <text class="svg-label small" x="228" y="103" text-anchor="end">uzak sol-alt köşe</text>
 
           <!-- yükleme başlangıcı -->
-          <rect x="266" y="64" width="12" height="12" fill="var(--axis-x)" stroke="var(--halo)" stroke-width="1.5" />
-          <line x1="278" y1="76" x2="298" y2="104" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
+          <rect x="448" y="64" width="12" height="12" fill="var(--axis-x)" stroke="var(--halo)" stroke-width="1.5" />
+          <line x1="448" y1="76" x2="330" y2="104" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
           <text class="svg-label" x="302" y="112" text-anchor="start">YÜKLEME BAŞLANGICI</text>
-          <text class="svg-label small" x="302" y="127" text-anchor="start">(x₀, 0, 0) — big door x = 0'da</text>
-          <text class="svg-label small" x="302" y="141" text-anchor="start">olduğu için x ekseninde kayar</text>
+          <text class="svg-label small" x="302" y="127" text-anchor="start">(width, 0, 0) — big door x = 0'da</text>
+          <text class="svg-label small" x="302" y="141" text-anchor="start">olduğu için karşı köşeden başlar</text>
         </svg>
         <p class="caption">
           Üstten bakış: <code>x</code> sağa, <code>z</code> aşağı (referans kapıya doğru) artar.
           Yükleme normalde <code>(0, 0, 0)</code>'dan başlar. <strong>Big door origin'in bulunduğu
-          <code>x = 0</code> yüzündeyse</strong> yükleme origin'den değil, <code>x</code> ekseninde
-          <code>x₀</code> kadar kaymış <code>(x₀, 0, 0)</code> noktasından başlar; taralı şerit bu
-          payı gösterir.
+          <code>x = 0</code> yüzündeyse</strong> yükleme o köşeden değil, karşı köşeden
+          (<code>(width, 0, 0)</code>) başlar ve kapıya doğru ilerler.
         </p>
       </div>
 
@@ -660,41 +655,42 @@
         <table>
           <thead>
             <tr>
-              <th>Durum</th>
-              <th>Yükleme başlangıç noktası</th>
-              <th>Kullanılabilir <code>x</code> aralığı</th>
+              <th>Big door</th>
+              <th>Başlangıç köşesi</th>
+              <th><code>x</code> doldurma yönü</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>Big door yok</td>
+              <td>yok</td>
               <td><code>(0, 0, 0)</code></td>
               <td><code>0 → width</code></td>
             </tr>
             <tr>
-              <td>Big door <code>x = 0</code> yüzünde</td>
-              <td><code>(x₀ˡ, 0, 0)</code></td>
-              <td><code>x₀ˡ → width</code></td>
-            </tr>
-            <tr>
-              <td>Big door <code>x = width</code> yüzünde</td>
+              <td><code>x = width</code> yüzünde</td>
               <td><code>(0, 0, 0)</code></td>
-              <td><code>0 → width − x₀ʳ</code></td>
+              <td><code>0 → width</code></td>
             </tr>
             <tr>
-              <td>Big door iki yüzde de</td>
-              <td><code>(x₀, 0, 0)</code></td>
-              <td><code>x₀ˡ → width − x₀ʳ</code></td>
+              <td><code>x = 0</code> yüzünde</td>
+              <td><code>(width, 0, 0)</code></td>
+              <td><code>width → 0</code></td>
             </tr>
           </tbody>
         </table>
 
         <p class="note">
-          <span class="pill">kodda yok</span> <strong><code>x₀</code> araç kaydından gelir.</strong> Sistem sabiti değildir; her big
-          door kendi açıklık payını (<code>clearanceCm</code>) taşır, çünkü kanat kalınlığı araca
-          göre değişir. <code>x₀ˡ</code> = <code>x = 0</code> yüzündeki kapının payı,
-          <code>x₀ʳ</code> = <code>x = width</code> yüzündekinin payı. Kapı tanımlıysa payı da
-          tanımlıdır; girilmemişse 0 kabul edilir.
+          <strong>Yükleme kapının bulunduğu yüzden başlamaz.</strong> Kutu kapının önüne
+          yığılırsa operatör kendi açtığı kapıdan içeri giremez. Kapının yanında boş bırakılan
+          bir pay <strong>yoktur</strong> — kutu duvara dayanır, değişen yalnızca hangi duvardan
+          başlandığıdır.
+        </p>
+
+        <p class="note warn">
+          <strong>Serbest köşe bırakmayan kombinasyonlar seçilemez.</strong> İki uzun yüzde
+          birden big door, ya da <code>z = 0</code> yüzünde ikinci bir small door bulunursa
+          kapıya değmeyen köşe kalmaz; araç formu bunu engeller. Eski veriden böyle bir kayıt
+          gelirse yükleme origin köşesinden başlar.
         </p>
       </div>
 
@@ -775,8 +771,7 @@
               <td>Kutu sınırları</td>
               <td>
                 <code>x … x + width</code> · <code>y … y + height</code> ·
-                <code>z … z + length</code>. Hepsi araç iç ölçüsü içinde kalmalı; big door payı varsa
-                <code>x</code> alt sınırı <code>x₀</code>'dır.
+                <code>z … z + length</code>. Hepsi araç iç ölçüsü içinde kalmalı.
               </td>
             </tr>
             <tr>
@@ -814,8 +809,8 @@
             uygulanıyor</strong><br />
             Origin geometrik bir köşedir, kapının varlığına bağlı değildir: small door olmasa da
             <code>z = 0</code> uzak yüz, <code>x = 0</code> sol yüz, <code>y = 0</code> zemindir.
-            Emsali <code>x₀</code> kuralıdır — kapı origin köşesine değdiğinde origin taşınmaz,
-            yalnızca yükleme başlangıcı kayar.
+            Emsali yükleme başlangıcı kuralıdır — kapı origin köşesine değdiğinde origin taşınmaz
+            ve konteyner döndürülmez, yalnızca başlangıç köşesi değişir.
           </li>
           <li>
             <strong>Üst kapı (top door)</strong> — karara bağlandı, <strong>kodda yok</strong><br />
@@ -824,16 +819,16 @@
             <code>LoadingType.Rear</code>'ı kapsıyor (OPT-10).
           </li>
           <li>
-            <strong><code>x₀</code> — big door açıklık payı</strong> — karara bağlandı,
-            <strong>kodda yok</strong><br />
-            Araç kaydındaki kapı alanıdır (<code>clearanceCm</code>). Bu alan henüz tanımlı değil;
-            bugün yükleme her koşulda <code>x = 0</code>'dan başlıyor.
+            <strong>Yükleme başlangıç köşesi</strong> — karara bağlandı,
+            <strong>kodda uygulanıyor</strong><br />
+            Açıklık payı diye bir kavram yok. Yükleme kapının olduğu yüzden başlamaz; başlangıç
+            köşesi kapı listesinden türetilir.
           </li>
         </ol>
 
         <p class="note">
-          Kapı modeli geçişi (<code>doors</code> listesi + <code>clearanceCm</code>)
-          tamamlandığında bu bölüm ve yukarıdaki işaretler güncellenir.
+          Kapı modeli geçişi (<code>doors</code> listesi) tamamlandığında bu bölüm ve yukarıdaki
+          işaretler güncellenir.
         </p>
       </div>
 

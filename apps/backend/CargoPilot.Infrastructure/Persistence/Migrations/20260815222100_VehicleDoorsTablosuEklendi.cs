@@ -7,19 +7,19 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     /// <summary>
     /// Kapilar tekil <c>LoadingType</c> enum'undan liste modeline tasinir
-    /// (docs/COORDINATE_STANDARD.md §4). Bir aracta ayni anda small door ve iki big
+    /// (docs/COORDINATE_STANDARD.md §4). Bir aracta ayni anda small door ve big
     /// door bulunabiliyor; tekil enum bunu ifade edemiyor ve SideBoth degeri
     /// esleme sirasinda tek tarafa dusup bilgi kaybediyordu.
     ///
-    /// Bu adim toplayicidir: <c>LoadingType</c> kolonu yerinde kaliyor ve motor
+    /// Bu adim toplayicidir: <c>LoadingType</c> kolonu yerinde kaliyor ve API
     /// hala onu okuyor. Gecis tamamlanana kadar iki model yan yana durur.
     ///
     /// Backfill sadik cevirir, kapi uydurmaz. Eski enum "hangi kapidan yukleniyor"
     /// sorusunu yanitliyordu, "aracta hangi kapilar var" sorusunu degil; SideRight
-    /// kayitlarina bir de small door eklemek veriyi zenginlestirmek degil,
-    /// olmayan bir kapiyi varsaymak olurdu. Bu ayni zamanda davranisi birebir
-    /// korur: motorun bolge mantigi bugun yalnizca Rear'da calisiyor ve cevrimden
-    /// sonra da yalnizca small door'u olan araclarda calisacak.
+    /// kayitlarina bir de small door eklemek olmayan bir kapiyi varsaymak olurdu.
+    /// Bu ayni zamanda davranisi birebir korur: bolge mantigi bugun yalnizca
+    /// Rear'da calisiyor ve cevrimden sonra da yalnizca small door'u olan
+    /// araclarda calisacak.
     /// </summary>
     public partial class VehicleDoorsTablosuEklendi : Migration
     {
@@ -34,7 +34,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     VehicleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
                     Face = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
-                    ClearanceCm = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -46,8 +45,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_VehicleDoors", x => x.Id);
-                    table.CheckConstraint("CK_VehicleDoors_Clearance_NonNegative", "[ClearanceCm] >= 0");
-                    table.CheckConstraint("CK_VehicleDoors_Clearance_OnlyBigDoor", "[ClearanceCm] = 0 OR [Type] = 'Big'");
                     table.ForeignKey(
                         name: "FK_VehicleDoors_Vehicles_VehicleId",
                         column: x => x.VehicleId,
@@ -67,9 +64,9 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
             // SideBoth=3, Top=4 (CargoPilot.Domain/Enums/LoadingType.cs).
             migrationBuilder.Sql(@"
                 INSERT INTO [VehicleDoors]
-                    ([Id], [VehicleId], [Type], [Face], [ClearanceCm],
+                    ([Id], [VehicleId], [Type], [Face],
                      [CreatedAtUtc], [IsDeleted], [IsActive])
-                SELECT NEWID(), v.[Id], d.[Type], d.[Face], 0,
+                SELECT NEWID(), v.[Id], d.[Type], d.[Face],
                        SYSUTCDATETIME(), 0, 1
                 FROM [Vehicles] v
                 CROSS APPLY (

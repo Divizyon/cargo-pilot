@@ -39,9 +39,10 @@ bakılan / yükleme yapılan kapıdır ve her zaman `z = length` yüzünde kabul
 konteynerde small door hiç bulunmasa da (yalnızca big door'u olan araç) eksen tanımı
 değişmez: `z = 0` uzak yüz, `x = 0` sol yüz, `y = 0` zemindir.
 
-Bunun emsali `x₀` kuralıdır (bölüm 7): big door origin'in bulunduğu `x = 0` yüzündeyse
-**origin taşınmaz**, yalnızca yükleme başlangıcı kaydırılır. Kapı origin köşesine değdiğinde
-değişen şey kullanılabilir aralıktır, koordinat sisteminin kendisi değil.
+Bunun emsali yükleme başlangıcı kuralıdır (bölüm 7): big door origin'in bulunduğu `x = 0`
+yüzündeyse **origin taşınmaz ve konteyner döndürülmez**, yalnızca yüklemenin başladığı köşe
+değişir. Kapı origin köşesine değdiğinde değişen şey doldurma yönüdür, koordinat sisteminin
+kendisi değil.
 
 Origin köşesini içeren yüzler: `z = 0` (ikinci small door burada olabilir) ve `x = 0`
 (big door burada olabilir). `z = length`, `x = width` ve `y = height` yüzleri origin'e
@@ -86,8 +87,7 @@ Kurallar:
   ```ts
   doors: [
     { type: 'small', face: 'z=length' },
-    { type: 'big',   face: 'x=0',     clearanceCm: 12 },
-    { type: 'big',   face: 'x=width', clearanceCm: 12 },
+    { type: 'big',   face: 'x=0' },
     { type: 'top',   face: 'y=height' },
   ]
   ```
@@ -136,24 +136,22 @@ Sayfada `z` aşağı doğru, referans kapıya doğru artar. Gözlemci sayfanın 
 ```
             x (width) ────────────────────────►
 
-    O ═══════╤═══════════════════════════════════════╗  ← z = 0 (uzak yüz)
-    │        ┊                                       ║
-    │  x₀ →  ┊                                       ║
-    ║        ┊                                       ║
-    ║ BIG    ┊                                       ║      │
-    ║ DOOR   ┊             yük alanı                 ║      │  z
-    ║ x = 0  ┊                                       ║      │  (length)
-    ║        ┊                                       ║      ▼
-    ║        ┊                                       ║
-    ║        ┊                                       ║
-    ╚════════╧═══════════════════════════════════════╝
-    ▲        ▲        REFERANS KAPI · z = length
-    │        │
-    │        └── YÜKLEME BAŞLANGICI (x₀, 0, 0)
-    └── ORIGIN (0,0,0) — uzak sol-alt köşe
+    O ══════════════════════════════════════════════╗ ◄── YÜKLEME BAŞLANGICI
+    │                                               ║     (width, 0, 0)
+    ║                                               ║
+    ║ BIG                                           ║      │
+    ║ DOOR         yük alanı        ◄── doldurma    ║      │  z
+    ║ x = 0                             yönü        ║      │  (length)
+    ║                                               ║      ▼
+    ║                                               ║
+    ╚═══════════════════════════════════════════════╝
+    ▲                 REFERANS KAPI · z = length
+    │
+    └── ORIGIN (0,0,0) — uzak sol-alt köşe; big door bu yüzde
+        olduğu için yükleme buradan BAŞLAMAZ
 ```
 
-`║` = big door'un bulunduğu uzun yüz · `╤┄┄` = big door açıklık payı `x₀`
+`║` = big door'un bulunduğu uzun yüz. Kapı origin köşesine değdiği için yükleme karşı köşeden başlar ve kapıya doğru ilerler.
 
 ### 5.3 Isometric — referans kamera: kapı tarafı + sağ + üst (`+z, +x, +y`)
 
@@ -213,24 +211,44 @@ tarafıdır. Üstten veya karşıdan bakışta ekranda görünen sol/sağ ile ka
 
 ## 7. Yükleme başlangıcı
 
-Yükleme normalde **origin'den** başlar. **Big door origin'in bulunduğu `x = 0`
-yüzündeyse** yükleme origin'den değil, `x` ekseninde `x₀` kadar kaymış noktadan başlar.
+**Yükleme, kapının bulunduğu yüzden başlamaz.** Başlangıç noktası hiçbir kapıya değmeyen
+köşedir; doldurma oradan kapıya doğru ilerler. Gerekçe pratiktir: kutu kapının önüne
+yığılırsa operatör kendi açtığı kapıdan içeri giremez.
 
-`x₀`, **her big door'un kendi açıklık payıdır** ve araç kaydında o kapının alanı olarak
-tutulur (`clearanceCm`). ⚠️ Bu alan kodda henüz yok; bugün yükleme her koşulda `x = 0`'dan
-başlıyor (bkz. bölüm 10). Sabit bir sistem değeri değildir: kanat kalınlığı araca göre
-değişir. Kapı listesinin parçası olduğu için `x = width` tarafındaki big door da kendi
-payını taşır — soru kendiliğinden yanıtlanır.
+Kapının yanında boş bırakılan bir pay **yoktur** — kutu duvara dayanır. Değişen tek şey
+hangi duvardan başlandığıdır.
 
-| Durum | Yükleme başlangıç noktası | Kullanılabilir `x` aralığı |
-| ----- | ------------------------- | -------------------------- |
-| Big door yok | `(0, 0, 0)` | `0 → width` |
-| Big door `x = 0` yüzünde | `(x₀ˡ, 0, 0)` | `x₀ˡ → width` |
-| Big door `x = width` yüzünde | `(0, 0, 0)` | `0 → width − x₀ʳ` |
-| Big door iki yüzde de | `(x₀ˡ, 0, 0)` | `x₀ˡ → width − x₀ʳ` |
+### Köşeler
 
-`x₀ˡ` = `x = 0` yüzündeki kapının payı, `x₀ʳ` = `x = width` yüzündekinin payı. Kapı
-tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme duvardan başlar.
+Zemindeki dört köşe ve değdikleri yüzler:
+
+| Köşe | Değdiği yüzler |
+| ---- | -------------- |
+| `(0, 0, 0)` | `x = 0`, `z = 0` |
+| `(width, 0, 0)` | `x = width`, `z = 0` |
+| `(0, 0, length)` | `x = 0`, `z = length` |
+| `(width, 0, length)` | `x = width`, `z = length` |
+
+Referans kapı her zaman `z = length` yüzünde olduğu için alttaki iki köşe baştan elenir.
+Bu, `z` ekseninde yönün sabit olması demektir: yükleme `z = 0`'dan başlar, kapıya doğru
+ilerler. Değişken olan `x` eksenidir.
+
+### Başlangıç köşesi
+
+| Big door | Başlangıç köşesi | `x` doldurma yönü |
+| -------- | ---------------- | ----------------- |
+| yok | `(0, 0, 0)` | `0 → width` |
+| `x = width` yüzünde | `(0, 0, 0)` | `0 → width` |
+| `x = 0` yüzünde | `(width, 0, 0)` | `width → 0` |
+
+### Serbest köşe bırakmayan kombinasyonlar
+
+İki uzun yüzde birden big door, ya da `z = 0` yüzünde ikinci bir small door bulunursa
+kapıya değmeyen köşe kalmaz. **Bu kombinasyonlar araç tanımında seçilemez**; form
+doğrulaması engeller.
+
+Eski veriden böyle bir kayıt gelirse yükleme origin köşesinden başlar — bu, kapı modeli
+öncesindeki davranıştır ve kayıt düzeltilene kadar geçerli kalır.
 
 ---
 
@@ -240,7 +258,7 @@ tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme du
 | ---- | ----- |
 | Birim | Santimetre (`cm`). Dönüşüm yalnızca API sınırında yapılır. |
 | Kutu pozisyonu | `positionX/Y/Z`, kutunun **origin'e en yakın köşesidir**: `(min x, min y, min z)`. Mesh merkezi değildir. |
-| Kutu sınırları | `x … x + width` · `y … y + height` · `z … z + length`. Hepsi araç iç ölçüsü içinde kalmalı; big door payı varsa `x` alt sınırı `x₀`'dır. |
+| Kutu sınırları | `x … x + width` · `y … y + height` · `z … z + length`. Hepsi araç iç ölçüsü içinde kalmalı. |
 | Yükleme yönü | Yükleme referans kapıdan yapılır: `z = 0` (uzak yüz) tarafındaki kutular önce yerleşir, kapıya en yakın olanlar (`z → length`) en son. |
 | Three.js pivot | Backend köşe verir, Three.js mesh merkezini bekler. Dönüşüm tek noktada: `center = position + boyut / 2`. |
 | Terminoloji | Yalnızca `width`, `height`, `length`. |
@@ -263,7 +281,7 @@ tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme du
 | 10 | **`y` aşağı artar** | 2D canvas alışkanlığı | `y` zeminden yukarı artar. |
 | 11 | **Gizli telafi dönüşümü** | `scale.x = -1`, `rotation.y = Math.PI`, `length - z` gibi düzeltmeler | Standart right-handed olduğu için Three.js'te **hiçbir aynalama gerekmez**. Böyle bir düzeltme, altta yatan konvansiyon uyuşmazlığının işaretidir. |
 | 12 | **Mesh merkezi ↔ köşe karışması** | Backend köşe verirken `position=[x,y,z]` doğrudan verilir | `+boyut/2` offset'i uygulanmadan kutular yarım boy kayar. |
-| 13 | **Big door payının atlanması** | Yükleme her zaman `x = 0`'dan başlar | Big door `x = 0` yüzündeyse başlangıç `(x₀, 0, 0)`'dır. |
+| 13 | **Kapının olduğu yüzden yükleme** | Yükleme her zaman `x = 0`'dan başlar | Big door `x = 0` yüzündeyse başlangıç `(width, 0, 0)`'dır ve doldurma kapıya doğru ilerler. |
 | 14 | **Birim karışması** | Metre ve santimetre aynı sahnede | Standart birim cm'dir; dönüşüm yalnızca API sınırında. |
 
 ---
@@ -276,17 +294,16 @@ tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme du
 
 | # | Konu | Karar | Kodda |
 |---|------|-------|-------|
-| 1 | **Small door'u olmayan konteyner** | Origin geometrik köşedir, kapıya bağlı değildir: small door olmasa da `z=0` uzak yüz, `x=0` sol yüz, `y=0` zemindir. Emsali `x₀` kuralı — kapı origin'e değdiğinde origin taşınmaz, yükleme başlangıcı kayar. Bölüm 2. | ✅ **uygulandı** (kod zaten böyle çalışıyor) |
+| 1 | **Small door'u olmayan konteyner** | Origin geometrik köşedir, kapıya bağlı değildir: small door olmasa da `z=0` uzak yüz, `x=0` sol yüz, `y=0` zemindir. Emsali yükleme başlangıcı kuralı — kapı origin'e değdiğinde origin taşınmaz, başlangıç köşesi değişir. Bölüm 2. | ✅ **uygulandı** (kod zaten böyle çalışıyor) |
 | 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4. | ❌ **uygulanmadı** |
-| 3 | **`x₀` — big door açıklık payı** | Sistem sabiti değil, araç kaydındaki kapı alanı (`clearanceCm`). Her big door kendi payını taşır. Bölüm 7. | ❌ **uygulanmadı** |
+| 3 | **Yükleme başlangıç köşesi** | Açıklık payı diye bir kavram yok. Yükleme kapının olduğu yüzden başlamaz; başlangıç köşesi kapı listesinden türetilir. Bölüm 7. | ✅ **uygulandı** |
 
 ### Kodun bugünkü hâli
 
 | Standartta yazan | Kodda karşılığı |
 |---|---|
-| `doors: [{ type, face, clearanceCm }]` listesi | Yok. Tekil `LoadingType` enum'u: `Rear/SideRight/SideLeft/SideBoth/Top` (`CargoPilot.Domain/Enums/LoadingType.cs`) |
-| `clearanceCm` — araç kaydında kapı açıklık payı | Yok. Ne domain'de, ne migration'da, ne frontend tipinde |
+| `doors: [{ type, face }]` listesi | Yok. Tekil `LoadingType` enum'u: `Rear/SideRight/SideLeft/SideBoth/Top` (`CargoPilot.Domain/Enums/LoadingType.cs`) |
 | top door: katman ekseni `y`, aynı katta `z` küçük→büyük | Motorda üstten yükleme mantığı yok. `LifoPlacement.ComputeGroupZones` yalnız `LoadingType.Rear` için bölge üretiyor — beş yükleme tipinin dördünde bölge hiç oluşmuyor (bkz. `docs/context/kod-taramasi-2026-08.md`, **OPT-10**) |
 
-Bu tablo, kapı modeli geçişi (`doors` listesi + `clearanceCm` alanı) tamamlandığında
+Bu tablo, kapı modeli geçişi (`doors` listesi) tamamlandığında
 güncellenir. **Bekleyen açık konu kalmadı**; 2 ve 3 yalnızca kodda uygulanmayı bekliyor.

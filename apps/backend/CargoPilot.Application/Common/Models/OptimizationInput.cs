@@ -10,22 +10,18 @@ namespace CargoPilot.Application.Common.Models;
 /// <param name="Items">Yerleştirilecek ürünler.</param>
 /// <param name="Criteria">Optimizasyon kriteri.</param>
 /// <param name="LoadingType">Yükleme kapısı yönü.</param>
+/// <param name="ClusterGroups">Gruplu ürünlerin bir arada tutulup tutulmayacağı.</param>
+/// <param name="Modules">Modül bayrakları. Verilmezse kriterden türetilir.</param>
 /// <param name="HasReferenceDoor">
 /// Aracin <c>z = length</c> yuzunde small door'u var mi. LIFO bolge ayrimi yalnizca
 /// referans kapidan yuklenen araclarda anlamlidir: bolgeler z ekseni boyunca dizilir
 /// ve kapiya yakinlik sirasi ancak o kapidan yukleme yapiliyorsa bir sey ifade eder.
 /// </param>
-/// <param name="ClearanceAtZeroX">
-/// <c>x = 0</c> yüzündeki big door'un açıklık payı (x₀, cm). Kapı origin tarafındaysa
-/// yükleme <c>(0,0,0)</c>'dan değil <c>(x₀,0,0)</c>'dan başlar
-/// (docs/COORDINATE_STANDARD.md §7). Kapı yoksa 0.
+/// <param name="FillFromMaxX">
+/// Yukleme <c>x = width</c> tarafindan mi baslasin. Kapinin oldugu yuzden yukleme
+/// baslamaz (docs/COORDINATE_STANDARD.md §7): big door <c>x = 0</c> yuzundeyse
+/// baslangic kosesi <c>(width, 0, 0)</c> olur ve doldurma kapiya dogru ilerler.
 /// </param>
-/// <param name="ClearanceAtWidthX">
-/// <c>x = width</c> yüzündeki big door'un açıklık payı (cm). Kullanılabilir üst sınırı
-/// <c>width − x₀</c>'a çeker. Kapı yoksa 0.
-/// </param>
-/// <param name="ClusterGroups">Gruplu ürünlerin bir arada tutulup tutulmayacağı.</param>
-/// <param name="Modules">Modül bayrakları. Verilmezse kriterden türetilir.</param>
 public sealed record OptimizationInput(
     decimal VehicleWidth,
     decimal VehicleHeight,
@@ -36,16 +32,9 @@ public sealed record OptimizationInput(
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
-    decimal ClearanceAtZeroX = 0m,
-    decimal ClearanceAtWidthX = 0m,
+    bool FillFromMaxX = false,
     bool? HasReferenceDoor = null)
 {
-    /// <summary>Yüklemenin başlayabileceği en küçük x (cm).</summary>
-    public decimal UsableMinX => ClearanceAtZeroX;
-
-    /// <summary>Yüklemenin taşamayacağı en büyük x (cm).</summary>
-    public decimal UsableMaxX => VehicleWidth - ClearanceAtWidthX;
-
     /// <summary>
     /// Bölge ayrımının geçerli olduğu durum. Kapı listesi verilmediyse eski tekil
     /// alandan türetilir; böylece <c>doors</c> henüz doldurulmamış çağrı yolları

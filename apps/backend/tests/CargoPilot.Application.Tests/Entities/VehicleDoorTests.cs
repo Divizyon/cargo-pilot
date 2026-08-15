@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using FluentAssertions;
@@ -5,56 +6,19 @@ using FluentAssertions;
 namespace CargoPilot.Application.Tests.Entities;
 
 /// <summary>
-/// Kapi modeli kurallari (docs/COORDINATE_STANDARD.md §4, §7). Aciklik payi (x0)
-/// yalnizca big door icin anlamlidir; digerlerinde tasinmasi motorun yukleme
-/// baslangicini sessizce kaydirmasina yol acardi.
+/// Kapi modeli ve yukleme baslangic kosesi (docs/COORDINATE_STANDARD.md §4, §7).
+/// Yukleme kapinin bulundugu yuzden baslamaz; baslangic kosesi kapi listesinden
+/// turetilir.
 /// </summary>
 public sealed class VehicleDoorTests
 {
     private static readonly Guid VehicleId = Guid.Parse("11111111-1111-4111-8111-111111111111");
 
-    private static VehicleDoor Create(DoorType type, DoorFace face, decimal clearanceCm = 0m)
-        => new(Guid.NewGuid(), VehicleId, type, face, clearanceCm);
-
-    [Fact]
-    public void BigDoor_AciklikPayiTasiyabilir()
-    {
-        var door = Create(DoorType.Big, DoorFace.ZeroX, clearanceCm: 12m);
-
-        door.ClearanceCm.Should().Be(12m);
-        door.Face.Should().Be(DoorFace.ZeroX);
-    }
-
-    [Theory]
-    [InlineData(DoorType.Small, DoorFace.LengthZ)]
-    [InlineData(DoorType.Top, DoorFace.HeightY)]
-    public void BigDoorDisindakiler_AciklikPayiKabulEtmez(DoorType type, DoorFace face)
-    {
-        var act = () => Create(type, face, clearanceCm: 12m);
-
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [Theory]
-    [InlineData(DoorType.Small, DoorFace.LengthZ)]
-    [InlineData(DoorType.Big, DoorFace.WidthX)]
-    [InlineData(DoorType.Top, DoorFace.HeightY)]
-    public void AciklikPayiVerilmezse_SifirBaslar(DoorType type, DoorFace face)
-    {
-        // Girilmemis pay yukleme sinirini kaydirmaz; kutular duvardan baslar.
-        Create(type, face).ClearanceCm.Should().Be(0m);
-    }
-
-    [Fact]
-    public void NegatifAciklikPayi_Reddedilir()
-    {
-        var act = () => Create(DoorType.Big, DoorFace.ZeroX, clearanceCm: -1m);
-
-        act.Should().Throw<ArgumentOutOfRangeException>();
-    }
+    private static VehicleDoor Door(DoorType type, DoorFace face)
+        => new(Guid.NewGuid(), VehicleId, type, face);
 
     /// <remarks>
-    /// Tekil enum'un ifade edemedigi durum: bir aracta ayni anda small door ve iki
+    /// Tekil enum'un ifade edemedigi durum: bir aracta ayni anda small door ve
     /// big door bulunabilir. Eski modelde SideBoth tek tarafa dusup bilgi
     /// kaybediyordu.
     /// </remarks>
@@ -67,11 +31,76 @@ public sealed class VehicleDoorTests
             maxWeightCapacity: 24_000m, layerCount: 3,
             loadingType: LoadingType.Rear, companyId: null);
 
-        vehicle.Doors.Add(Create(DoorType.Small, DoorFace.LengthZ));
-        vehicle.Doors.Add(Create(DoorType.Big, DoorFace.ZeroX, 10m));
-        vehicle.Doors.Add(Create(DoorType.Big, DoorFace.WidthX, 10m));
+        vehicle.Doors.Add(Door(DoorType.Small, DoorFace.LengthZ));
+        vehicle.Doors.Add(Door(DoorType.Big, DoorFace.ZeroX));
 
-        vehicle.Doors.Should().HaveCount(3);
-        vehicle.Doors.Count(d => d.Type == DoorType.Big).Should().Be(2);
+        vehicle.Doors.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void SolBigDoor_YuklemeKarsiTaraftanBaslar()
+    {
+        var doors = new List<VehicleDoor>
+        {
+            Door(DoorType.Small, DoorFace.LengthZ),
+            Door(DoorType.Big, DoorFace.ZeroX),
+        };
+
+        LoadingCorner.FillFromMaxX(doors).Should().BeTrue();
+    }
+
+    [Fact]
+    public void SagBigDoor_YuklemeOriginTarafindanBaslar()
+    {
+        var doors = new List<VehicleDoor>
+        {
+            Door(DoorType.Small, DoorFace.LengthZ),
+            Door(DoorType.Big, DoorFace.WidthX),
+        };
+
+        LoadingCorner.FillFromMaxX(doors).Should().BeFalse();
+    }
+
+    /// <remarks>
+    /// Iki yanda da big door varsa serbest kose kalmaz. Bu kombinasyon arac
+    /// formunda secilemez; eski veriden gelirse bugunku davranis korunur ve
+    /// yukleme origin kosesinden baslar.
+    /// </remarks>
+    [Fact]
+    public void IkiYandaBigDoor_MevcutDavranisKorunur()
+    {
+        var doors = new List<VehicleDoor>
+        {
+            Door(DoorType.Big, DoorFace.ZeroX),
+            Door(DoorType.Big, DoorFace.WidthX),
+        };
+
+        LoadingCorner.FillFromMaxX(doors).Should().BeFalse();
+    }
+
+    [Fact]
+    public void BigDoorYok_YuklemeOriginTarafindanBaslar()
+    {
+        var doors = new List<VehicleDoor> { Door(DoorType.Small, DoorFace.LengthZ) };
+
+        LoadingCorner.FillFromMaxX(doors).Should().BeFalse();
+    }
+
+    /// <remarks>
+    /// Kapi listesi doldurulmamis araclarda null doner ve cagiran taraf eski
+    /// tekil alandan turetmeye devam eder.
+    /// </remarks>
+    [Fact]
+    public void KapiListesiBos_ReferansKapiBilinmiyor()
+    {
+        LoadingCorner.HasReferenceDoor(new List<VehicleDoor>()).Should().BeNull();
+        LoadingCorner.HasReferenceDoor(null).Should().BeNull();
+    }
+
+    [Fact]
+    public void ReferansKapiVarligi_ListedenOkunur()
+    {
+        LoadingCorner.HasReferenceDoor([Door(DoorType.Small, DoorFace.LengthZ)]).Should().BeTrue();
+        LoadingCorner.HasReferenceDoor([Door(DoorType.Big, DoorFace.ZeroX)]).Should().BeFalse();
     }
 }

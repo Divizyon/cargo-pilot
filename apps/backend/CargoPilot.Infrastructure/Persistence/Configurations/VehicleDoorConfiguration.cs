@@ -6,18 +6,7 @@ namespace CargoPilot.Infrastructure.Persistence.Configurations;
 
 internal sealed class VehicleDoorConfiguration : IEntityTypeConfiguration<VehicleDoor> {
     public void Configure(EntityTypeBuilder<VehicleDoor> builder) {
-        builder.ToTable(
-            "VehicleDoors",
-            tableBuilder => {
-                // Aciklik payi yalnizca big door'da anlamli; digerlerinde sifir olmali.
-                // Domain kurali burada da tutulur ki dogrudan SQL ile bozulamasin.
-                tableBuilder.HasCheckConstraint(
-                    "CK_VehicleDoors_Clearance_OnlyBigDoor",
-                    "[ClearanceCm] = 0 OR [Type] = 'Big'");
-                tableBuilder.HasCheckConstraint(
-                    "CK_VehicleDoors_Clearance_NonNegative",
-                    "[ClearanceCm] >= 0");
-            });
+        builder.ToTable("VehicleDoors");
 
         builder.HasKey(door => door.Id);
 
@@ -34,10 +23,6 @@ internal sealed class VehicleDoorConfiguration : IEntityTypeConfiguration<Vehicl
         builder.Property(door => door.Face)
             .HasConversion<string>()
             .HasMaxLength(16)
-            .IsRequired();
-
-        builder.Property(door => door.ClearanceCm)
-            .HasPrecision(18, 4)
             .IsRequired();
 
         builder.HasOne(door => door.Vehicle)
