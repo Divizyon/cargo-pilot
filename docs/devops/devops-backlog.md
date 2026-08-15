@@ -1,6 +1,6 @@
 # DevOps Backlog
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
 
 Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini önceliklendirilmiş şekilde takip eder.
 
@@ -21,6 +21,9 @@ Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini ön
 | 9 | `deployment.md` güncelle | 🟡 Orta | ⚠️ Açık |
 | 10 | `monitoring-setup.md` — contact point adımları | 🟡 Orta | ⚠️ Açık |
 | 11 | Node.js 20 → 22 geçişi | 🟢 Düşük | ⚠️ Açık |
+| 12 | xlsx → exceljs geçişi (Dependabot izlenebilirliği) | 🟡 Orta | ⚠️ Açık |
+| 13 | three.js r162 → r185 yükseltmesi (3D QA'li) | 🟡 Orta | ⚠️ Açık |
+| 14 | CORS `AllowAnyOrigin()` geri dönüş yolu — fail-fast'e çevrilmeli | 🟠 Güvenlik | ⚠️ Açık |
 
 ---
 
@@ -212,6 +215,87 @@ Self-signed sertifika kullanılıyor. Cloudflare Full SSL modu ile şimdilik ça
 |-------|-------|-----|
 | GHA cache cleanup workflow eklendi (PR kapanınca + haftalık temizlik) | ✅ | #489/#492 |
 | `dev` branch test ile hizalandı (`sync/test-to-dev`) | ✅ | #493 |
+| xlsx → exceljs geçişi | ⚠️ Açık | — |
+
+**xlsx → exceljs bağlamı (2026-08-13):** xlsx, npm registry'de 0.18.5'te takılı kaldığı için
+(2 high advisory, fix yalnız SheetJS CDN'inde) bağımlılık CDN tarball'ına taşındı
+(`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`) — açıklar kapandı ancak URL bağımlılığını
+Dependabot izleyemez; gelecekteki xlsx CVE'leri SheetJS changelog'undan elle takip edilmeli.
+Kalıcı çözüm: 5 dosyadaki ~38 çağrının (`BulkImportDialog`, `VehicleBulkImportDialog`,
+`export-utils`, `exportVehiclesToExcel`, `useReports`) exceljs'e taşınması. Asıl maliyet kod değil
+QA: Excel export'ları müşteriye giden çıktılar — kolon düzeni/format birebir doğrulanmalı.
+Import/export ekranına dokunulan bir sprint'te ele alınması önerilir.
+
+---
+
+### 5.1 three.js r162 → r185 Yükseltmesi
+
+{% hint style="warning" %}
+**⚠️ Açık — 3D manuel QA zorunlu** · Tespit: 2026-08-13 (Dependabot ilk turu, PR #951)
+{% endhint %}
+
+Mevcut sürüm `three@^0.162.0`; güncel r185. Aradaki 23 sürüm **kırıcı değişiklik içeriyor** ancak
+semver bunu göstermiyor: three 0.x sürümlemesi kullandığı için `0.162 → 0.185` teknik olarak
+*minor* sayılır. Bu yüzden yükseltme, "npm-minor-patch" etiketli bir grup PR'ının içinde
+manuel QA görmeden gelmişti; `dependabot.yml`'de three ailesi için minor da ignore edilerek
+kapatıldı (PR #964).
+
+**Doğrulanmış kırılma:** `apps/frontend/src/features/planning/scene/SceneFloor.tsx:101` —
+r185'te `ShaderMaterialParameters.extensions` içinden `derivatives` kaldırıldı (r163'te WebGL1
+desteği düştüğü için `fwidth` artık GLSL ES 3.0'da core). TypeScript build'i `TS2739` ile kırıldı.
+Bu, **derleyicinin yakalayabildiği tek sorun**; r163→r185 aralığı TypeScript'in doğrulayamayacağı
+çok sayıda runtime davranış değişikliği içeriyor.
+
+**Kapsam ve QA gereksinimi:**
+
+- `scene-config.ts` koordinat/pivot eşlemesi — sahne sözleşmesi (cm, X=width, Y=height, Z=depth)
+  bozulmamalı
+- `InstancedMesh` ile çizilen kutular: konum, rotasyon, renk ve seçim (raycast) davranışı
+- `BoxWrapper` pivot offset'i — backend pozisyonları sol-alt-arka köşe referanslı
+- Zemin ızgarası shader'ı (`fwidth` tabanlı) — kırılmanın tespit edildiği kod yolu
+- Manuel edit akışı: sürükleme, çakışma/violation geri bildirimi
+- Bellek: manuel oluşturulan Three.js kaynaklarının dispose'u (`ResourceTracker`)
+
+**Önerilen yöntem:** tek seferde r185'e atlamak yerine ara sürümlerde (r170, r178) durup sahneyi
+görsel olarak doğrulamak; her adımda bir plan yükleyip 3D görüntüleyicide kontrol etmek.
+3D/canvas değişiklikleri için `CLAUDE.md` snapshot benzeri doğrulama veya manuel QA şart koşuyor.
+
+---
+
+### 5.2 CORS `AllowAnyOrigin()` Geri Dönüş Yolu
+
+{% hint style="danger" %}
+**⚠️ Açık — Güvenlik** · Tespit: 2026-08-13 (SonarAnalyzer 10.32 yükseltmesi, PR #955)
+{% endhint %}
+
+`apps/backend/CargoPilot.WebAPI/DependencyInjection.cs` içinde CORS yapılandırması şu şekilde:
+
+```csharp
+if (corsOrigins.Length > 0)
+    builder.WithOrigins(corsOrigins!).AllowCredentials();
+else
+    builder.AllowAnyOrigin();   // S5122 — pragma ile susturuldu
+```
+
+`CORS_ALLOWED_ORIGIN_*` değişkenleri tanımlı değilse API **tüm origin'lere açılır**. Analyzer
+yükseltmesi bunu S5122 olarak yakaladı; bağımlılık PR'ında çalışma zamanı davranışı
+değiştirilmemesi için `#pragma warning disable` ile susturuldu ve buraya taşındı.
+
+**Risk:** Kuralın güvenliği bir *varsayıma* dayanıyor — "dağıtım ortamlarında origin listesi her
+zaman verilir". Bu bir garanti değil; prod stack kurulurken (madde 1-2) env dosyası eksik
+hazırlanırsa API sessizce herkese açık başlar ve hiçbir uyarı üretmez.
+
+**Önerilen çözüm:** Geri dönüş yolunu ortama duyarlı hale getir — `Development` dışında origin
+listesi boşsa uygulama **başlatmayı reddetsin** (fail-fast), yalnızca development'ta
+`AllowAnyOrigin()` kalsın. Böylece pragma da kaldırılabilir.
+
+**Aynı PR'da susturulan, incelenmiş ve kabul edilmiş diğer kurallar** (bunlar için aksiyon
+gerekmiyor, kayıt amaçlı):
+
+- `AuthController` S2092 ×3 — `Secure = !_env.IsDevelopment()`; kod zaten doğru, analyzer
+  ifadeyi statik olarak çözemiyor. Sabit `true` yazmak lokal HTTP geliştirmeyi kırardı.
+- `MinioHealthCheck` S5332 — küme içi ağda MinIO sağlık ucuna düz HTTP; istek konteyner
+  ağından dışarı çıkmıyor.
 
 ---
 

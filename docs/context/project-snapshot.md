@@ -1,6 +1,6 @@
 # Proje Anlık Görüntüsü
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-13 · **Durum:** Aktif
 
 Stack, ortamlar, portlar, CI/CD ve açık risklerin tek sayfalık teknik anlık görüntüsü.
 
@@ -38,7 +38,7 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 | Validation | FluentValidation 11 (BE) / Zod (FE) | — |
 | DB | SQL Server 2022 + EF Core 8.0.25 (**43 migration**) | Soft delete global query filter (18/25 entity), `BaseEntity` audit alanları |
 | Storage | MinIO | Bucket policy public, nginx `/media/` proxy |
-| Test | Vitest 4 (**yalnızca FE, 13 dosya**) | RTL/Playwright paketleri kurulu değil; backend test projesi yok, CI'da `dotnet test` fiilen atlanıyor |
+| Test | Vitest 4 (FE, 16 dosya / 166 test) + **xUnit 2.5 (BE, 2 proje / 11 test sınıfı)** | RTL/Playwright paketleri kurulu değil; `CargoPilot.Engine.Tests` (golden-master, determinizm, kırılganlık, performans taban çizgisi, modül bayrakları) + `CargoPilot.Infrastructure.Tests` ikisi de `cargo-pilot.sln`'de kayıtlı, CI `dotnet test cargo-pilot.sln --no-build` koşturuyor |
 | Paket | npm (pnpm/yarn yasak) | — |
 
 **3D pivot farkı:** Three.js pivot merkezde, backend pivot sol-alt-arka köşede.
@@ -50,7 +50,7 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 
 | Ortam | Kaynak | URL | Durum |
 |-------|--------|-----|-------|
-| Test | `main` push | http://cargopilot.divizyon.org · 104.247.163.42 | ✅ Aktif (demo da buradan yapılıyor) |
+| Test | `test` push | http://cargopilot.divizyon.org · 104.247.163.42 | ✅ Aktif (demo da buradan yapılıyor) |
 | Production | `v*` tag (pipeline yok) | 104.247.163.42:80 | ❌ **Hiç deploy edilmedi** |
 
 **Sunucu:** tek makine, Ubuntu 24.04, 8 vCPU / 16 GB / 147 GB SSD. Prod ve test aynı host'ta.
@@ -71,12 +71,15 @@ Ek: `DIVIZYON` ERP veritabanı (müşteri `.bak` restore'u) test MSSQL container
 
 Workflow'lar: `ci.yml`, `test-deploy.yml`, `cache-cleanup.yml`, `sync-base-images.yml`, `rollback.yml`.
 
-Workflow'lar ayrıca: `release-tag.yml` (2026-08-03'te eklendi).
+Workflow'lar ayrıca: `release-tag.yml` (2026-08-03'te eklendi), `promote.yml` — *Terfi*
+(`workflow_dispatch`; `dev→test` / `test→main` terfi PR'ını `PROMOTION_PAT` ile merge eder,
+`gh pr merge` yerine bunu kullanın), `codeql.yml` — *CodeQL* (2026-08-13'te eklendi;
+PR → `dev` + haftalık tam tarama).
 
 | Tetikleyici | Sonuç |
 |-------------|-------|
 | push `feat/**`, `fix/**`, `hotfix/**`, `chore/**`, `infra/**` (+ eski `feature/**`, `bugfix/**`) | CI + geçici stack doğrulaması (inline build) |
-| PR → `dev` | CI + Docker Image Build |
+| PR → `dev` | CI + Docker Image Build + CodeQL |
 | PR → `test` | CI + Terfi Zinciri + Migration + Image Build + Deploy (Test) |
 | push `test` | Image Build → GHCR → **test sunucusuna deploy** |
 | PR → `main` | CI + Terfi Zinciri + Migration |
@@ -99,8 +102,10 @@ Workflow'lar ayrıca: `release-tag.yml` (2026-08-03'te eklendi).
 Merge yöntemi kısıtı kritik: terfi PR'ında squash yapılırsa hedef dal, kaynakta olmayan yeni bir
 commit alır ve dallar kalıcı ayrışır. Ruleset yanlış seçimi mümkün kılmıyor.
 
-Üçünde de: PR zorunlu, 1 onay + son push onayı, push'ta eski onaylar düşer, review thread'leri
-çözülmüş olmalı, branch silme ve force-push kapalı, bypass **sadece PR ile** (eski `always` kaldırıldı).
+Üçünde de: PR zorunlu ama **zorunlu review yok** — `required_approving_review_count: 0`
+(2026-08-08'de kaldırıldı, bkz. [branching.md](../conventions/branching.md) § PR Kuralları).
+Tek kapı, tablodaki required check'lerdir. Branch silme ve force-push kapalı,
+bypass **sadece PR ile** (eski `always` kaldırıldı).
 `main`'de ayrıca `update` kuralı → doğrudan push engelli.
 `strict_required_status_checks_policy` üçünde de **false** — aksi hâlde her terfiden sonra
 geri-merge zorunlu olurdu.

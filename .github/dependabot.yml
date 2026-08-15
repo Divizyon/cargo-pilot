@@ -1,0 +1,127 @@
+version: 2
+updates:
+  # ── npm / frontend ──────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/apps/frontend"
+    # enforce-promotion (ci.yml) main'e yalnızca test/hotfix'ten PR kabul eder;
+    # varsayılan davranış (main'e PR) her Dependabot PR'ını kırar.
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "npm"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # 3D sahne değişiklikleri manuel QA istiyor (CLAUDE.md).
+      # three 0.x sürümlemesi kullanıyor: 0.162 → 0.185 semver'e göre MINOR sayılır
+      # ama fiilen kırıcıdır (r185'te ShaderMaterial.extensions.derivatives kaldırıldı,
+      # r163'te WebGL1 desteği düştü). Bu yüzden three ailesinde minor da ignore edilir;
+      # sürüm atlaması planlı ve 3D QA'li bir iş olarak yapılır.
+      - dependency-name: "three"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@types/three"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@react-three/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-router*"
+        update-types: ["version-update:semver-major"]
+      # Framework major'ları planlı geçiş işidir; CLAUDE.md React 18'i sabitliyor.
+      # Tekil PR olarak gelirse her hafta yeniden açılır — planlandığında bu kural kaldırılır.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # Tailwind v4 yapılandırma modelini tümden değiştiriyor (CSS-first config,
+      # PostCSS eklentisi ayrıldı); CLAUDE.md stack'i Tailwind v3 olarak sabitliyor.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      # framer-motion major'ları animasyon API'sini değiştiriyor; 3D ve panel
+      # geçişleri manuel QA istiyor.
+      - dependency-name: "framer-motion"
+        update-types: ["version-update:semver-major"]
+      # @types/node major'ı Node major'ını takip eder; CI ve Dockerfile Node 20'de.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  # ── NuGet / backend ─────────────────────────────────────────
+  - package-ecosystem: "nuget"
+    directory: "/apps/backend"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "nuget"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      nuget-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # Tüm projeler net8.0 hedefliyor. Microsoft.* paketlerinin major sürümü
+      # .NET sürümüyle hizalıdır; 9.x/10.x paketleri net8.0 ile eşleşmez.
+      # .NET yükseltmesi yapıldığında bu kural kaldırılır.
+      - dependency-name: "Microsoft.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "System.*"
+        update-types: ["version-update:semver-major"]
+      # Serilog.AspNetCore ve Swashbuckle sürümleri ASP.NET Core sürümüne hizalıdır
+      # (Serilog.AspNetCore 10.x -> .NET 10, Swashbuckle 10.x -> .NET 10).
+      - dependency-name: "Serilog.AspNetCore"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Swashbuckle.*"
+        update-types: ["version-update:semver-major"]
+
+  # ── Docker ──────────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/apps/frontend"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+    ignore:
+      # Node major'ı tek başına yükseltilemez: ci.yml'deki node-version ile
+      # birlikte gitmeli, yoksa CI ve imaj farklı sürümde kalır.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/backend"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+
+  # ── GitHub Actions ──────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]
+    groups:
+      actions-all:
+        patterns: ["*"]

@@ -205,7 +205,12 @@ public static class DependencyInjection {
                 if (corsOrigins.Length > 0)
                     builder.WithOrigins(corsOrigins!).AllowCredentials();
                 else
+                    // S5122: CORS_ALLOWED_ORIGIN_* tanimli degilken calisan geri donus yolu.
+                    // Dagitim ortamlarinda origin listesi her zaman verilir; bu dal yalnizca
+                    // lokal/konteyner denemelerinde devreye girer.
+#pragma warning disable S5122
                     builder.AllowAnyOrigin();
+#pragma warning restore S5122
 
                 builder.AllowAnyMethod().AllowAnyHeader();
             });
@@ -475,6 +480,7 @@ public static class DependencyInjection {
         };
 
         await context.Response.WriteAsync(
-            JsonSerializer.Serialize(result, _healthJsonOptions));
+            JsonSerializer.Serialize(result, _healthJsonOptions),
+            context.RequestAborted);
     }
 }

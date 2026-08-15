@@ -272,8 +272,7 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
     const item = p.item;
     const groupName = item?.groupName ?? item?.categoryName ?? item?.category ?? 'Yük Grubu';
     const rawType = (item as Record<string, unknown> | undefined)?.['productType'] as
-      | string
-      | undefined;
+      string | undefined;
     const groupColor = resolveProductColor(rawType, groupName);
 
     if (!groupMap.has(groupName)) {
@@ -615,8 +614,7 @@ export function fromApiFullDetail(
 
   function resolveSkuColor(rawItem: Record<string, unknown>, productType: string): string {
     const groupName = (rawItem.groupName ?? rawItem.categoryName ?? rawItem.category) as
-      | string
-      | undefined;
+      string | undefined;
     return resolveProductColor(productType, groupName);
   }
 

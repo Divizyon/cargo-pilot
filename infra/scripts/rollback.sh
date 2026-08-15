@@ -34,12 +34,12 @@ cd "${DEPLOY_DIR}"
 
 # Hedef ref belirlenmemişse bir önceki tag'i bul
 if [[ -z "${TARGET_REF}" ]]; then
-    CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    CURRENT_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
     if [[ -z "${CURRENT_TAG}" ]]; then
         echo "[ERROR] Mevcut tag bulunamadı. Hedef ref manuel belirtin."
         exit 1
     fi
-    TARGET_REF=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || echo "")
+    TARGET_REF=$(git describe --tags --abbrev=0 --match 'v*' "${CURRENT_TAG}^" 2>/dev/null || echo "")
     if [[ -z "${TARGET_REF}" ]]; then
         echo "[ERROR] Önceki tag bulunamadı."
         exit 1
