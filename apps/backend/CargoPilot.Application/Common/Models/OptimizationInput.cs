@@ -10,6 +10,11 @@ namespace CargoPilot.Application.Common.Models;
 /// <param name="Items">Yerleştirilecek ürünler.</param>
 /// <param name="Criteria">Optimizasyon kriteri.</param>
 /// <param name="LoadingType">Yükleme kapısı yönü.</param>
+/// <param name="HasReferenceDoor">
+/// Aracin <c>z = length</c> yuzunde small door'u var mi. LIFO bolge ayrimi yalnizca
+/// referans kapidan yuklenen araclarda anlamlidir: bolgeler z ekseni boyunca dizilir
+/// ve kapiya yakinlik sirasi ancak o kapidan yukleme yapiliyorsa bir sey ifade eder.
+/// </param>
 /// <param name="ClearanceAtZeroX">
 /// <c>x = 0</c> yüzündeki big door'un açıklık payı (x₀, cm). Kapı origin tarafındaysa
 /// yükleme <c>(0,0,0)</c>'dan değil <c>(x₀,0,0)</c>'dan başlar
@@ -32,13 +37,21 @@ public sealed record OptimizationInput(
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
     decimal ClearanceAtZeroX = 0m,
-    decimal ClearanceAtWidthX = 0m)
+    decimal ClearanceAtWidthX = 0m,
+    bool? HasReferenceDoor = null)
 {
     /// <summary>Yüklemenin başlayabileceği en küçük x (cm).</summary>
     public decimal UsableMinX => ClearanceAtZeroX;
 
     /// <summary>Yüklemenin taşamayacağı en büyük x (cm).</summary>
     public decimal UsableMaxX => VehicleWidth - ClearanceAtWidthX;
+
+    /// <summary>
+    /// Bölge ayrımının geçerli olduğu durum. Kapı listesi verilmediyse eski tekil
+    /// alandan türetilir; böylece <c>doors</c> henüz doldurulmamış çağrı yolları
+    /// bugünkü davranışı korur.
+    /// </summary>
+    public bool ZonesApply => HasReferenceDoor ?? (LoadingType == LoadingType.Rear);
 }
 
 /// <summary>

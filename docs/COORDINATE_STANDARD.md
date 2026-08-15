@@ -34,6 +34,19 @@ Konteynerin iki kısa yüzünde de small door bulunması kuralı değiştirmez: 
 bakılırsa bakılsın tanım aynı şekilde işler ve tutarlı bir sistem üretir. Referans kapı,
 bakılan / yükleme yapılan kapıdır ve her zaman `z = length` yüzünde kabul edilir.
 
+**Origin geometrik bir köşedir; kapının varlığına bağlı değildir.** Referans kapı yalnızca
+"hangi yüzden bakıyoruz" sorusunu adlandırır, origin'in sayısal yerini belirlemez. Bir
+konteynerde small door hiç bulunmasa da (yalnızca big door'u olan araç) eksen tanımı
+değişmez: `z = 0` uzak yüz, `x = 0` sol yüz, `y = 0` zemindir.
+
+Bunun emsali `x₀` kuralıdır (bölüm 7): big door origin'in bulunduğu `x = 0` yüzündeyse
+**origin taşınmaz**, yalnızca yükleme başlangıcı kaydırılır. Kapı origin köşesine değdiğinde
+değişen şey kullanılabilir aralıktır, koordinat sisteminin kendisi değil.
+
+Origin köşesini içeren yüzler: `z = 0` (ikinci small door burada olabilir) ve `x = 0`
+(big door burada olabilir). `z = length`, `x = width` ve `y = height` yüzleri origin'e
+değmez.
+
 ---
 
 ## 3. Eksenler

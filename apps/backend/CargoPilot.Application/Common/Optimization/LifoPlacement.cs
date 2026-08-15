@@ -1,5 +1,4 @@
 using CargoPilot.Application.Common.Models;
-using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization;
 
@@ -54,13 +53,15 @@ internal static class LifoPlacement
     internal static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
-        LoadingType loadingType,
+        bool zonesApply,
         bool enabled)
     {
-        // Zone ayrımı yalnızca modül açıkken ve arka kapı yüklemesinde geçerli.
-        // Kapı yönü bir modül tercihi değil fiziksel gerçektir, bu yüzden bayrak
-        // ondan bağımsız kontrol edilir.
-        if (!enabled || loadingType != LoadingType.Rear)
+        // Zone ayrımı yalnızca modül açıkken ve referans kapıdan (small door,
+        // z = length) yükleme yapılırken geçerli: bölgeler z ekseni boyunca
+        // dizilir, kapıya yakınlık sırası ancak o kapıdan yükleniyorsa bir şey
+        // ifade eder. Kapının varlığı bir modül tercihi değil fiziksel gerçektir,
+        // bu yüzden bayrak ondan bağımsız kontrol edilir.
+        if (!enabled || !zonesApply)
             return [];
 
         var orders = items

@@ -260,6 +260,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             // Big door aciklik payi arac kaydindan gelir; kapi yoksa 0 ve
             // yukleme araligi degismez.
             ClearanceAtZeroX: DoorClearance.AtZeroX(vehicle.Doors),
-            ClearanceAtWidthX: DoorClearance.AtWidthX(vehicle.Doors));
+            ClearanceAtWidthX: DoorClearance.AtWidthX(vehicle.Doors),
+            HasReferenceDoor: DoorClearance.HasReferenceDoor(vehicle.Doors));
     }
 }

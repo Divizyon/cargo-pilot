@@ -113,7 +113,7 @@ public sealed class LifoBolgeKisitiTests
         var zones = LifoPlacement.ComputeGroupZones(
             input.Items,
             input.VehicleLength,
-            input.LoadingType,
+            input.ZonesApply,
             OptimizationModules.Resolve(input).UseLifo);
 
         // Bölge hiç kurulmazsa aşağıdaki döngü sessizce geçerdi; senaryonun
