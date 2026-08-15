@@ -102,6 +102,58 @@ jobs:
         env:
           NODE_ENV: test
 
+  # ─── Algoritma Test Arayüzü CI ───────────────────────────────────────────────
+  # Bağımsız uygulama (apps/algorithm-test-ui): kendi lockfile'ı, kendi portu,
+  # apps/frontend'den hiçbir şey import etmiyor. ESLint/Prettier yapılandırması
+  # yok, bu yüzden kapı tsc + build + Vitest.
+  algorithm-test-ui-ci:
+    name: Algoritma Test Arayüzü CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/algorithm-test-ui
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Node.js kur
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/algorithm-test-ui/package-lock.json
+
+      - name: Bağımlılıkları yükle
+        run: npm ci
+
+      - name: TypeScript + Vite build
+        run: npm run build
+
+      # Toplu koşu aracı (npm run suite) ayrı bir giriş noktasından derleniyor;
+      # uygulama build'i onu kapsamıyor. Derlenmezse regresyon kapısı sessizce
+      # çürür — koşulmadan da olsa derlendiği doğrulanmalı.
+      - name: Toplu koşu aracını derle
+        run: npm run build:suite
+
+      # goldenCrossCheck.test.ts backend'in Snapshots/*.json fixture'larını okur:
+      # denetleyicilerin motoru doğru aynaladığının kanıtı budur, checkout'ta
+      # ikisi de aynı ağaçta olduğu için ek adım gerekmez.
+      - name: Birim testleri (Vitest)
+        run: npm run test:ci
+
+      # Test düştüğünde de yüklensin; hangi vakanın kaldığı PR'dan görünsün.
+      - name: Test sonuçlarını yükle
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: algoritma-test-sonuclari
+          path: apps/algorithm-test-ui/reports/junit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
   # ─── Backend CI ──────────────────────────────────────────────────────────────
   backend-ci:
     name: Backend CI

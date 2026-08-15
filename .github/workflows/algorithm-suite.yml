@@ -1,0 +1,163 @@
+name: Algoritma Regresyon Koşusu
+
+# Yükleme motorunun gidişatını ölçer: aynı tohumla üretilmiş senaryo setini gerçek
+# backend'e karşı koşar, önceki GEÇEN koşuyla karşılaştırır ve gerilemede durur.
+#
+# CI'daki `algorithm-test-ui-ci` işinden ayrı: o iş kodu derler ve birim testlerini
+# koşar (saniyeler, bağımlılıksız). Bu iş canlı bir test ortamına ve kimlik
+# bilgilerine ihtiyaç duyar, dakikalar sürer ve veritabanına yazıp siler — her
+# push'ta koşamaz.
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Tohum — karşılaştırma için koşular arasında AYNI kalmalı'
+        required: false
+        default: '1'
+      count:
+        description: 'Senaryo sayısı (her biri 3 kriterle koşar)'
+        required: false
+        default: '50'
+      criteria:
+        description: 'Kapı kriteri: 0=LIFO 1=Ağırlık Dengesi 2=Hacim Önceliği'
+        required: false
+        default: '2'
+      ignore_baseline:
+        description: 'Referansı yok say — eşik taşındıysa temiz başlangıç'
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    # Her gece 02:00 UTC. Gecelik koşu, gün içinde biriken motor değişikliklerini
+    # tek bir karşılaştırmada toplar.
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+
+# Koşu paylaşılan veritabanında plan kaydı oluşturup siliyor; iki koşunun üst üste
+# binmesi hem sunucuyu yorar hem süre ölçümünü anlamsızlaştırır. Sıradaki bekler.
+concurrency:
+  group: algoritma-regresyon
+  cancel-in-progress: false
+
+env:
+  APP_DIR: apps/algorithm-test-ui
+  BASELINE_DIR: apps/algorithm-test-ui/.suite-baseline
+  BASELINE_FILE: apps/algorithm-test-ui/.suite-baseline/baseline.json
+
+jobs:
+  suite:
+    name: Regresyon koşusu
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Node.js kur
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/algorithm-test-ui/package-lock.json
+
+      # Kimlik bilgileri tanımlı değilse iş sessizce ve BAŞARILI biter. Zamanlanmış
+      # bir iş, yapılandırılmamış olduğu için her gece kırmızı yanmamalı.
+      - name: Yapılandırmayı doğrula
+        id: config
+        env:
+          API_URL: ${{ secrets.ALGO_SUITE_API_URL }}
+          EMAIL: ${{ secrets.ALGO_SUITE_EMAIL }}
+          PASSWORD: ${{ secrets.ALGO_SUITE_PASSWORD }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$EMAIL" ] || [ -z "$PASSWORD" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ALGO_SUITE_* secret'ları tanımlı değil — koşu atlandı."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bağımlılıkları yükle
+        if: steps.config.outputs.configured == 'true'
+        working-directory: ${{ env.APP_DIR }}
+        run: npm ci
+
+      # Referans, son GEÇEN koşunun raporudur. Anahtarda run_id olduğu için tam
+      # isabet olmaz ve önbellek her koşuda yeniden yazılır; restore-keys en son
+      # kaydedileni geri getirir.
+      - name: Referans koşuyu geri yükle
+        if: steps.config.outputs.configured == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.BASELINE_DIR }}
+          key: algoritma-referans-tohum${{ inputs.seed || '1' }}-${{ github.run_id }}
+          restore-keys: |
+            algoritma-referans-tohum${{ inputs.seed || '1' }}-
+
+      - name: Koşuyu çalıştır
+        id: suite
+        if: steps.config.outputs.configured == 'true'
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          CARGO_PILOT_API_URL: ${{ secrets.ALGO_SUITE_API_URL }}
+          CARGO_PILOT_EMAIL: ${{ secrets.ALGO_SUITE_EMAIL }}
+          CARGO_PILOT_PASSWORD: ${{ secrets.ALGO_SUITE_PASSWORD }}
+          CARGO_PILOT_API_TIMEOUT_MS: '120000'
+          SEED: ${{ inputs.seed || '1' }}
+          COUNT: ${{ inputs.count || '50' }}
+          CRITERIA: ${{ inputs.criteria || '2' }}
+          IGNORE_BASELINE: ${{ inputs.ignore_baseline || 'false' }}
+        run: |
+          BASELINE_PATH="${GITHUB_WORKSPACE}/${BASELINE_FILE}"
+          BASELINE_ARGS=""
+          if [ "$IGNORE_BASELINE" = "true" ]; then
+            echo "::notice::Referans yok sayıldı (ignore_baseline)."
+          elif [ -f "$BASELINE_PATH" ]; then
+            BASELINE_ARGS="--baseline $BASELINE_PATH"
+          else
+            echo "::notice::Referans koşu yok — yalnızca mutlak kurallar uygulanacak."
+          fi
+
+          # Çıkış kodu kapının kararıdır ve ayrım önemli: 1 = gerileme (rapor var,
+          # yüklenmeli), 2 = bağlantı/kullanım hatası (rapor yok). İşi burada
+          # düşürmek raporun yüklenmesini engellerdi.
+          set +e
+          npm run suite -- \
+            --seed "$SEED" \
+            --count "$COUNT" \
+            --criteria "$CRITERIA" \
+            --engine-version "${GITHUB_SHA:0:7}" \
+            $BASELINE_ARGS
+          CODE=$?
+          set -e
+          echo "exit-code=$CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Raporu yükle
+        if: always() && steps.suite.outputs.report-path != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: algoritma-regresyon-raporu-${{ github.run_number }}
+          path: ${{ env.APP_DIR }}/${{ steps.suite.outputs.report-path }}
+          retention-days: 90
+
+      # Referans yalnızca GEÇEN koşuyla güncellenir. Gerileyen bir koşuyu referans
+      # yapmak, gerilemeyi yeni normal hâline getirir ve kapı bir daha ötmez.
+      - name: Referansı güncelle
+        if: steps.suite.outputs.exit-code == '0'
+        run: |
+          mkdir -p "$BASELINE_DIR"
+          cp "${APP_DIR}/${{ steps.suite.outputs.report-path }}" "$BASELINE_FILE"
+          echo "Referans güncellendi: $(basename "${{ steps.suite.outputs.report-path }}")"
+
+      - name: Sonucu değerlendir
+        if: steps.config.outputs.configured == 'true'
+        env:
+          CODE: ${{ steps.suite.outputs.exit-code }}
+        run: |
+          case "$CODE" in
+            0) echo "Kapı geçti." ;;
+            1) echo "::error::Regresyon kapısı düştü — ayrıntı koşu özetinde ve rapor artefaktında."; exit 1 ;;
+            *) echo "::error::Koşu tamamlanamadı (çıkış kodu $CODE) — bağlantı ya da yapılandırma hatası."; exit 1 ;;
+          esac
