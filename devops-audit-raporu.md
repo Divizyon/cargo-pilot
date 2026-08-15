@@ -1,6 +1,6 @@
 # Cargo Pilot — DevOps Denetim Raporu
 
-**Denetim:** 2026-08-13 · **Son güncelleme:** 2026-08-15 (bayatlık tazelemesi) · **Kapsam:** `Divizyon/cargo-pilot` (public) · **Yöntem:** 7 paralel denetim ajanı + her orta ve üzeri iddianın bağımsız şüpheci doğrulaması (38 iddia yeniden koşuldu: 37 doğrulandı, 1'i düzeltilerek işlendi). Her bulgunun kanıtı `dosya:satır` veya çalıştırılan komuttur. Denetimin aynı günü öncelik matrisinin iki hücresi uygulandı (PR #942–#945); rapor **denetim anı → bugünkü durum** karşılaştırmalı okunmalıdır.
+**Denetim:** 2026-08-13 · **Son güncelleme:** 2026-08-15 (bayatlık tazelemesi, **ikinci tur**) · **Kapsam:** `Divizyon/cargo-pilot` (public) · **Yöntem:** 7 paralel denetim ajanı + her orta ve üzeri iddianın bağımsız şüpheci doğrulaması (38 iddia yeniden koşuldu: 37 doğrulandı, 1'i düzeltilerek işlendi). Her bulgunun kanıtı `dosya:satır` veya çalıştırılan komuttur. Denetimin aynı günü öncelik matrisinin iki hücresi uygulandı (PR #942–#945); rapor **denetim anı → bugünkü durum** karşılaştırmalı okunmalıdır.
 
 ---
 
@@ -24,6 +24,30 @@ sütunda verilmiştir — bir sonraki okuyucu aynı komutu koşarak bayatlığı
 **Sağlık skoru bu düzeltmelerle düşer:** SAST 10/10 → **6/10** (CodeQL koşuyor ama merge kapısı
 değil), Token-Permissions 9/10 → **8/10** (7/8). Yeni tahmini toplam **≈71 / 100** (±10).
 
+### ⚠️ Tazeleme Notu — 2026-08-15, **ikinci tur** (`dev` @ `96e9fd8b`)
+
+Yukarıdaki birinci tur notu aynı gün erken saatte yazıldı. Sonrasında `dev`'e PR
+**#989, #990, #991, #992, #994, #997, #1002, #1004** girdi ve `dev → test` terfisi yapılıp
+test sunucusuna deploy indi. Birinci turun aşağıdaki üç ifadesi **artık yanlıştır**:
+
+| Birinci turun yazdığı | Gerçek (2026-08-15, ikinci ölçüm) | Doğrulama komutu |
+|---|---|---|
+| "`rollback.sh:69` **hâlâ** hatalı SHA türetiyor; düzeltme yalnız `infra/yedekleme-rollback-sertlestirme` dalında, `dev`'e terfi etmedi" | ✅ **Düzeltme `dev`'e girdi (#994).** `infra/scripts/rollback.sh:72` artık `git rev-parse --short=7 "${TARGET_REF}^2"` deniyor, başarısızsa commit'in kendisine düşüyor — tek-parent hotfix push'u da kapsanıyor | `grep -n "TARGET_SHA=" -A2 infra/scripts/rollback.sh` |
+| "Aynı push'ta çifte image build ⏸ **açık**" | ✅ **Kapandı (#992).** `ci.yml`'deki image build job'u artık yalnız `dev`'e açılan PR'da koşuyor (`ci.yml:203` → `if: github.event_name == 'pull_request' && github.base_ref == 'dev'`); `test-deploy.yml`'in deploy job'undaki `cache-to` yazıcıları kaldırıldı, yalnız `cache-from` kaldı (`test-deploy.yml:221, 237`) | `grep -n "cache-to\|base_ref" .github/workflows/{ci,test-deploy}.yml` |
+| "45 md / 11.315 satır" | **47 md / 11.956 satır** | `git ls-files '*.md' \| wc -l` (47) · `… \| xargs wc -l \| tail -1` (11956) |
+
+**Bu turda çıkan yeni bulgu — SHA pinleme %100 değil:**
+`.github/workflows/*.yml` içinde **45 `uses:` referansının 38'i** 40 haneli SHA'ya pinli;
+kalan **7'si mutable tag** ve hepsi `test-deploy.yml`'in e2e job'undadır:
+`checkout@v4` (`:314`), `setup-buildx-action@v3` (`:317`), `login-action@v3` (`:320`),
+`build-push-action@v5` (`:327`, `:340`), `setup-node@v4` (`:354`), `upload-artifact@v4` (`:397`).
+Rapordaki "28/28" ve panoramadaki "32/32 ✅" değerleri o job eklenmeden önceye aittir.
+Doğrulama: `grep -rn "uses: " .github/workflows/*.yml | grep -v "@[0-9a-f]\{40\}"` → 7 satır.
+
+**Bu turda yeniden ölçülmeyenler:** CI başarı oranları, ruleset/CodeQL durumu, GHCR tag eşlemesi,
+frontend test sayısı, sağlık skoru. Birinci turun değerleri olduğu gibi duruyor —
+**doğrulanmadılar, çürütülmediler.**
+
 ---
 
 ## Yönetici Özeti
@@ -33,13 +57,14 @@ değil), Token-Permissions 9/10 → **8/10** (7/8). Yeni tahmini toplam **≈71 
 > *2026-08-15 düzeltmesi: skor önce 75 yazılmıştı; SAST (CodeQL merge kapısı değil) ve Token-Permissions (7/8) yeniden puanlanınca ≈71'e indi. Bkz. yukarıdaki Tazeleme Notu.*
 
 1. **🔴→🟡 Rollback güvencesi kısmen onarıldı.** Denetimde: 10 sürüm tag'inin hiçbirinin GHCR'da image'ı yoktu, `rollback.yml` hiç koşmamıştı, boş hedef arşiv tag'ine çözülüyordu. Şimdi: `release-tag.yml` her yeni tag'i `test-<sha7>` imajıyla eşliyor (#943), `rollback.sh` yalnız `v*` tag'lerine çözülüyor (#942). **v0.11.0–v0.14.0** GHCR'da imajlarıyla mevcut.
-   **⚠️ 2026-08-15 düzeltmesi — "üç kez canlıda doğrulandı" ifadesi yanıltıcıydı:** doğrulanan yalnız `release-tag.yml` tarafıdır (yeni tag → imaj eşlemesi). Geri dönüş script'inin kendisi, `infra/scripts/rollback.sh:69`, **hâlâ hatalı SHA türetiyor** — `git rev-parse --short=7 "${TARGET_REF}"` bir merge commit'in `^2` (test head) parent'ını almadığı için `test-<sha7>` imajı bulunamıyor. Düzeltme yalnız `infra/yedekleme-rollback-sertlestirme` dalında duruyor, `dev`'e terfi etmedi.
+   **⚠️ 2026-08-15 düzeltmesi — "üç kez canlıda doğrulandı" ifadesi yanıltıcıydı:** doğrulanan yalnız `release-tag.yml` tarafıdır (yeni tag → imaj eşlemesi). Geri dönüş script'inin kendisi o an hatalı SHA türetiyordu — `git rev-parse --short=7 "${TARGET_REF}"` bir merge commit'in `^2` (test head) parent'ını almadığı için `test-<sha7>` imajı bulunamıyordu.
+   **✅ 2026-08-15 ikinci tur düzeltmesi:** bu onarım **`dev`'e girdi (#994)**. `infra/scripts/rollback.sh:72` artık önce `"${TARGET_REF}^2"` deniyor, tek-parent hotfix push'unda commit'in kendisine düşüyor ve SHA türetilemezse `exit 1` veriyor (`:74-77`). Birinci turdaki "düzeltme yalnız `infra/yedekleme-rollback-sertlestirme` dalında" ifadesi **artık geçersizdir**.
    **⚠️ Kapsam:** git'te **14** sürüm tag'i var (`v0.1.0`…`v0.14.0`), GHCR'de yalnız **4**'ünün imajı (`v0.11.0`–`v0.14.0`). **v0.1.0–v0.10.0 için rollback fiilen imkânsız.**
    **Kalan:** gerçek bir rollback tatbikatı hâlâ yapılmadı; önce `rollback.sh` düzeltmesi terfi etmeli.
 2. **🟠→🟢 Tedarik zinciri kapatıldı.** 28 action referansının tamamı commit SHA'sına pinli (#942), Dependabot `github-actions` ekosistemi pinleri güncel tutacak. **Kalan:** dispatch input'larının root SSH script'ine interpolasyonu ve Dockerfile digest'leri (orta öncelik).
 3. **🟠→🟢 Güvenlik görünürlüğü kuruldu.** Dependabot alerts + secret scanning + push protection + **private vulnerability reporting** açık; CodeQL iki dilde PR'larda koşuyor (ölçülen: C# 2:13, TS 1:13) — **ancak 2026-08-15 doğrulaması: CodeQL hiçbir ruleset'in `required_status_checks` listesinde değil, yani merge'ü bloke etmiyor; advisory seviyede** (`gh api /repos/Divizyon/cargo-pilot/rulesets/{id}` × 4); npm açıkları **10 → 0** (#944 + xlsx→SheetJS CDN 0.20.3 #945). NuGet ilk taramada temiz. `.github/SECURITY.md` eklendi (#962). **Kalan:** LICENSE bilinçli ertelendi; server-access.md hâlâ IP/port yayınlıyor (silmek geçmişten kaldırmadığı için ayrı karar).
 4. **🟡 CI hattı ayakta ama başarı oranı düşük.** **⚠️ 2026-08-15 düzeltmesi:** "%98,9 koşum başarısı" yanlıştı — ana CI workflow'u (`CI — Kod Kalite ve Build Kontrolü`) örneklem penceresine göre **%58,8 – %81** arasında. Son 100 koşumun 34'ü bu workflow ve 20'si yeşil (%58,8); `--workflow=ci.yml --limit 100` ile daha geniş pencerede 81/100 (%81). En uzun kırmızı seri: 12 ardışık başarısızlık (`feat/ERP-toplu-iyilestirme`, `Frontend CI` job'u, 2026-08-13 → 08-14). Terfi zinciri 3 ruleset + `enforce-promotion` ile zorlanıyor. Buna ek olarak (#961): **7/8** workflow'da top-level `contents: read` (`promote.yml:55` bilerek `contents: write` — terfi merge'i için), 15/15 job'da `timeout-minutes`, backend test guard artık sessizce geçmiyor, sürüm etiketine otomatik changelog'lu GitHub Release bağlandı. **Kalan:** 0/20 merge review'lu — 1-onay/CODEOWNERS kararı bekliyor; her işe ~1,5 terfi PR'ı yükü sürüyor.
-5. **🟡 Dokümantasyon bayatlığı ilk turda kapatıldı, ikinci turda yeniden açıldı.** Denetimde 12 bayat dosya vardı; hepsi düzeltildi (#942, #962): README parolası, escape'li kök CLAUDE.md (111 escape, içerik birebir korundu), snapshot/kod-taraması yanlışları, secret envanteri, doc-map yeniden ölçümü. **⚠️ 2026-08-15 yeniden taraması 45 md dosyasının 20'sinde bayat/çelişkili içerik buldu** (ölü motor yolu ×8, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity "kanıtı", sayı hataları); bunlar `docs/dokuman-tazeleme` turunda düzeltildi. Güncel hacim: **45 md / 11.315 satır** (`git ls-files '*.md'`, 2026-08-15, tazeleme sonrası) — rapordaki eski "41 / 10.125" değeri bayat. **Kalan:** koordinat terminolojisi çelişkisi — `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor.
+5. **🟡 Dokümantasyon bayatlığı ilk turda kapatıldı, ikinci turda yeniden açıldı.** Denetimde 12 bayat dosya vardı; hepsi düzeltildi (#942, #962): README parolası, escape'li kök CLAUDE.md (111 escape, içerik birebir korundu), snapshot/kod-taraması yanlışları, secret envanteri, doc-map yeniden ölçümü. **⚠️ 2026-08-15 yeniden taraması 45 md dosyasının 20'sinde bayat/çelişkili içerik buldu** (ölü motor yolu ×8, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity "kanıtı", sayı hataları); bunlar `docs/dokuman-tazeleme` turunda düzeltildi. Güncel hacim: **47 md / 11.956 satır** (`git ls-files '*.md'`, 2026-08-15 **ikinci ölçüm**, `dev` @ `96e9fd8b`) — rapordaki eski "41 / 10.125" ve birinci turun "45 / 11.315" değeri bayat. **İkinci turda 11 dosya daha bayat çıktı** (#989–#1004 sonrası: koordinat çapraz-referans notları, LIFO "yumuşak ceza" tarifi, motor satır sayısı, backend test sayıları, md envanteri) ve düzeltildi. **Kalan:** koordinat kapı modeli — `doors` listesi / `top door` / `clearanceCm` kodda yok, `COORDINATE_STANDARD.md` §10 bunu açık kayıt olarak tutuyor. `COORDINATE_AUDIT.md` (2026-08-12) bayat işaretlendi; güncel kaynak `docs/KOORDINAT-UYUM-RAPORU.md` §0'dır.
 
 ---
 
@@ -47,12 +72,12 @@ değil), Token-Permissions 9/10 → **8/10** (7/8). Yeni tahmini toplam **≈71 
 
 | Metrik | Denetim | Bugün | Metrik | Denetim | Bugün |
 |---|---|---|---|---|---|
-| SHA-pinned action | 0/28 | **32/32** ✅ (codeql dahil) | npm açığı | 9 high + 1 low | **0** ✅ |
+| SHA-pinned action | 0/28 | **38/45** ⚠️ (2026-08-15 ikinci sayım; 7 mutable tag `test-deploy.yml` e2e job'unda) | npm açığı | 9 high + 1 low | **0** ✅ |
 | Dependabot / CodeQL | Yok / Yok | **Kurulu** ✅ | Secret scanning + push prot. | Kapalı | **Açık** ✅ |
 | NuGet taraması | Yok | **Temiz (0 alert)** ✅ | Sürüm↔imaj eşleme | Yok (10/10 kopuk) | **Otomatik** (yeni tag'ler) ✅ |
 | GitHub environment | Yok (rollback kırık) | **test + prod** (prod onaylı) ✅ | README'de parola | Var | **Kaldırıldı** ✅ |
 | Dependabot alert (main) | — (kapalıydı) | **36 → 0** ✅ | Eşlenen sürüm | 0/10 | **4/14** ⚠️ (v0.11–v0.14) |
-| SECURITY.md | Yok | **Var** ✅ | Bayat doküman | 12 | 20/45 ⚠️ (08-15 yeniden tarama) |
+| SECURITY.md | Yok | **Var** ✅ | Bayat doküman | 12 | 20/45 → ikinci turda **11/47** ⚠️ (08-15) |
 | Top-level `permissions` | 1/7 workflow | **7/8** ✅ (promote.yml bilerek `write`) | `timeout-minutes` | 2/15 job | **15/15** ✅ |
 | Backend test guard | Sessizce atlıyor | **`exit 1`** ✅ | Ölü secret (TEST_GHCR_*) | 2 | **0** ✅ |
 | Review'lu merge PR (son 20) | 0/20 | 0/20 ⏸ | rollback.yml koşumu | 0 | 0 ⏸ (tatbikat bekliyor) |
@@ -116,7 +141,7 @@ flowchart LR
 | 🟠 Yüksek | 28/28 action mutable tag'li, SHA pin yok | `grep uses:` → @v3…@v1.0.3 | ✅ #942: 28/28 SHA-pinli |
 | 🟠 Yüksek | `appleboy/ssh-action` root + SSH key ile, tag mutable | test-deploy.yml:309-315, rollback.yml:51-67 | ✅ pin #942 · root/fingerprint ⏸ |
 | 🟡 Orta | rollback.yml hiç koşmamış — ilk deneme arıza anında olacak | `gh run list` → boş | ⏸ tatbikat bekliyor |
-| 🟡 Orta | Aynı push'ta çifte image build (farklı cache scope) | ci.yml:139-177 vs test-deploy.yml:150-229 | ⏸ açık |
+| 🟡 Orta | Aynı push'ta çifte image build (farklı cache scope) | ci.yml:139-177 vs test-deploy.yml:150-229 | ✅ #992: `ci.yml:203` build job'u yalnız `dev` PR'ında koşuyor; deploy job'unun `cache-to` yazıcıları kaldırıldı |
 | 🟡 Orta | build-push-action v5/v6 karışık | ci.yml @v6, test-deploy.yml @v5 ×4 | ⏸ açık (SHA-pinli ama iki sürüm) |
 | ⚪ Düşük | 13/14 job'da `timeout-minutes` yok | yalnız promote.yml:65 | ✅ #961: 15/15 job |
 | ⚪ Düşük | Backend test adımı `find` guard'ı ile **sessizce atlanabilir** | ci.yml:120-127 | ✅ #961: `::error::` + `exit 1` |

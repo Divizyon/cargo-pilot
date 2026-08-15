@@ -8,8 +8,8 @@ Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.
 > **Yönlendirme düzeltmesi (2026-08-15):** bu satır önce okuyucuyu `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` yoluna gönderiyordu; o yol `caab495d` (2026-08-11) refactor'ünden beri **yoktur**. Güncel motor: `apps/backend/CargoPilot.Application/Common/Optimization/` — 7 dosya (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`). Dosyanın geri kalanı tarihsel kayıttır, değiştirilmedi.
 
 **Bilinen farklar:**
-- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik, Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`, `lib/config/scene-config.ts`).
-  *(2026-08-15 çapraz-referansı: bu "güncel sözleşme" bugünkü kodu anlatır. `docs/COORDINATE_STANDARD.md` §9–§10 `depth` yerine `length` ve yüz-tabanlı kapı tanımını hedefler; standart henüz uygulanmamıştır.)*
+- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = width (genişlik), Y = height (yükseklik), Z = length (uzunluk)**; origin kutunun **origin'e en yakın köşesi** `(min x, min y, min z)`, araçta uzak yüzdeki (`z = 0`) sol-alt köşedir. Bağlayıcı tanım: `docs/COORDINATE_STANDARD.md`.
+  *(2026-08-15 ikinci ölçüm: standardın eksen ve terim kısmı PR #997/#1004 ile **koda uygulandı** — `depth` boyut terimi olarak kaldırıldı, referans kapı `z = length`, LIFO bölge haritası ters çevrildi. Bir önceki turun "standart henüz uygulanmamıştır" notu bu yüzden geçersizdi. Uygulanmayan tek kısım kapı modelidir: `doors` listesi, `top door`, `clearanceCm` — bkz. `COORDINATE_STANDARD.md` §10. Bu dosyanın kendisi tarihsel arşivdir; yalnız bu yönlendirme satırı güncellendi.)*
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
 
