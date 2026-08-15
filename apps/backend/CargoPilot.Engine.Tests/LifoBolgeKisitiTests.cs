@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Engine.Tests.Golden;
 
@@ -36,9 +37,10 @@ public sealed class LifoBolgeKisitiTests
             Box(index: 2, width: 100m, height: 50m, length: 100m, quantity: 4, unloadingOrder: 2),
         };
 
-        var result = EngineScenario.Run(Vehicle(items));
+        var input = Vehicle(items);
+        var result = EngineScenario.Run(input);
 
-        AssertAllPlacementsInsideZone(result, items);
+        AssertAllPlacementsInsideZone(input, result);
 
         // Kapasite paritesi: sert kısıt kutu kaybettirmemeli.
         Assert.Equal(8, result.Placements.Count);
@@ -60,9 +62,10 @@ public sealed class LifoBolgeKisitiTests
             Box(index: 2, width: 50m, height: 50m, length: 100m, quantity: 1, unloadingOrder: 2),
         };
 
-        var result = EngineScenario.Run(Vehicle(items));
+        var input = Vehicle(items);
+        var result = EngineScenario.Run(input);
 
-        AssertAllPlacementsInsideZone(result, items);
+        AssertAllPlacementsInsideZone(input, result);
 
         Assert.Equal(5, result.Placements.Count);
         Assert.Equal(0.2125m, result.FillRate);
@@ -97,32 +100,35 @@ public sealed class LifoBolgeKisitiTests
             clusterGroups: true);
 
     /// <summary>
-    /// Motorun ComputeGroupZones kuralını testte yeniden kurar: distinct
-    /// UnloadingOrder değerleri ASC sıralanır, araç uzunluğu eşit bölünür.
+    /// Bölge sınırlarını ve "içeride mi" yüklemini motorun kendi kodundan alır:
+    /// <see cref="LifoPlacement.ComputeGroupZones"/> ve
+    /// <see cref="LifoPlacement.IsInsideZone"/>. Formül testte ikinci kez
+    /// yazılmaz; aksi hâlde üretim kodu değiştiğinde test eski kurala göre
+    /// ölçüp sahte ihlal ya da sahte başarı raporlar.
     /// </summary>
     private static void AssertAllPlacementsInsideZone(
-        OptimizationResult result,
-        IReadOnlyList<OptimizationItemInput> items)
+        OptimizationInput input,
+        OptimizationResult result)
     {
-        var orders = items
-            .Select(i => i.UnloadingOrder!.Value)
-            .Distinct()
-            .OrderBy(o => o)
-            .ToList();
+        var zones = LifoPlacement.ComputeGroupZones(
+            input.Items,
+            input.VehicleLength,
+            input.LoadingType,
+            OptimizationModules.Resolve(input).UseLifo);
 
-        var zoneSize = VehicleLength / orders.Count;
-        var orderByItemId = items.ToDictionary(i => i.ItemId, i => i.UnloadingOrder!.Value);
+        // Bölge hiç kurulmazsa aşağıdaki döngü sessizce geçerdi; senaryonun
+        // gerçekten bölgeli olduğu burada sabitlenir.
+        Assert.NotEmpty(zones);
 
+        var orderByItemId = input.Items.ToDictionary(i => i.ItemId, i => i.UnloadingOrder!.Value);
         var ihlaller = new List<string>();
 
         foreach (var p in result.Placements)
         {
-            var zoneIndex = orders.IndexOf(orderByItemId[p.ItemId]);
-            var zoneStart = zoneIndex * zoneSize;
-            var zoneEnd = (zoneIndex + 1) * zoneSize;
+            var zone = zones[orderByItemId[p.ItemId]];
 
-            if (p.Z < zoneStart || p.Z + p.Depth > zoneEnd)
-                ihlaller.Add($"Z={p.Z} D={p.Depth} bölge=[{zoneStart},{zoneEnd})");
+            if (!LifoPlacement.IsInsideZone(zone.ZStart, zone.ZEnd, p.Z, p.Depth))
+                ihlaller.Add($"Z={p.Z} D={p.Depth} bölge=[{zone.ZStart},{zone.ZEnd})");
         }
 
         Assert.True(
