@@ -2,6 +2,7 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -91,6 +92,10 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             loadingType: request.LoadingType,
             companyId: companyId,
             isDraft: request.IsDraft);
+
+        // Kapi listesi tekil LoadingType'dan turetilir. Istemci kapi gondermedigi
+        // surece tablo bos kalirdi ve motor aciklik payini okuyamazdi.
+        DoorSetFactory.EnsureDoors(vehicle);
 
         _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);

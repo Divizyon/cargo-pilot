@@ -31,4 +31,5 @@ public sealed record VehicleDetailDto(
     AuditUserDto? CreatedBy,
     DateTime? UpdatedAtUtc,
     AuditUserDto? UpdatedBy,
-    string? Status);
+    string? Status,
+    IReadOnlyList<VehicleDoorDto> Doors);
