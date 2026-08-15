@@ -63,7 +63,7 @@ Cargo Pilot `Item` sync'inin kaynağı.
 | 37 | `NAKLIYET_TUT` | decimal | NO | — | Nakliye tutarı |
 | 38 | `KDV_ORANI` | int | NO | — | KDV oranı |
 | 39 | `ALIS_DOV_TIP` | tinyint | NO | — | Alış döviz tipi |
-| 40 | `DEPO_KODU` | int | NO | — | Depo kodu |
+| 40 | `DEPO_KODU` | int | NO | (depo filtresi) | Depo kodu; ürün alanına yazılmaz, yalnızca filtrede kullanılır |
 | 41 | `DOV_TUR` | tinyint | NO | — | Döviz türü |
 | 42 | `URET_OLCU_BR` | tinyint | NO | — | Üretim ölçü birimi |
 | 43 | `BILESENMI` | char(1) | NO | — | Bileşen mi? |
@@ -78,7 +78,7 @@ Cargo Pilot `Item` sync'inin kaynağı.
 | 52 | `KILIT` | char(1) | NO | — | Kilit durumu |
 | 53 | `ONCEKI_KOD` | varchar(100) | NO | — | Önceki kod |
 | 54 | `SONRAKI_KOD` | varchar(100) | NO | — | Sonraki kod |
-| 55 | `BARKOD1` | varchar(35) | NO | — | Barkod 1 |
+| 55 | `BARKOD1` | varchar(35) | NO | `DraftItem.Barcode` | Barkod 1; ham veri anlık görüntüsüne de girer |
 | 56 | `BARKOD2` | varchar(35) | NO | — | Barkod 2 |
 | 57 | `BARKOD3` | varchar(35) | NO | — | Barkod 3 |
 | 58 | `ALIS_KDV_KODU` | int | NO | — | Alış KDV kodu |
