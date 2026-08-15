@@ -61,6 +61,12 @@ Kurallar:
 - Validator'lar aynı klasör altında `<UseCase>CommandValidator.cs` olarak durur.
 - Repository soyutlamaları `Common/Interfaces/` altında yaşar (`I*Repository`, aggregate-specific).
 - Ortak modeller `Common/Models/` altında (`Result<T>`, `Error`, `OptimizationInput/Result`).
+- **Yük yerleştirme motoru** `Common/Optimization/` altındadır — **7 dosya**: `OptimizationEngine.cs`,
+  `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`,
+  `VolumeScoring.cs`, `PlacedBox.cs`. `caab495d` (2026-08-11) ile Infrastructure katmanından
+  buraya taşındı ve tek dosyadan 7 dosyaya bölündü.
+  *Ölçüm 2026-08-15, `dev` dalı: `wc -l apps/backend/CargoPilot.Application/Common/Optimization/*.cs`
+  → toplam **915 satır**. Satır sayısı hareketlidir; OPT-01 çalışması sırasında 981'e kadar çıktı.*
 
 Örnek klasör (gerçek koddan):
 ```
@@ -78,7 +84,8 @@ Features/
 - `Persistence/AppDbContext.cs` (25 DbSet; audit alanları `SaveChanges` override'inda otomatik dolar)
 - `Persistence/Repositories/<Entity>Repository.cs`
 - `Persistence/Configurations/` — entity konfigürasyonları + soft delete global query filter
-- `Services/` — `OptimizationEngine` (yük yerleştirme motoru), `ResendEmailService`, ERP connector'ları (`LogoErpConnector`, `NetsisErpConnector`)
+- `Services/` — `ResendEmailService`, ERP connector'ları (`LogoErpConnector`, `NetsisErpConnector`)
+  - ⚠️ Yük yerleştirme motoru **artık burada değil**: `caab495d` (2026-08-11) ile Application katmanına taşındı → `CargoPilot.Application/Common/Optimization/`, 7 dosya. Bkz. §2.2.
 - `Jobs/` — Hangfire job'ları (`ErpExportJob`, trial expiry, notification cleanup)
 - EF Core + SQL Server sağlayıcısı kullanılır.
 

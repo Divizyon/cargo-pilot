@@ -86,12 +86,14 @@ Branch'i role göre bölmek yerine **sahipliği CODEOWNERS ile** tanımla. Yeni 
 apps/frontend/                @frontend-gelistirici
 apps/backend/                 @backend-gelistirici
 apps/backend/**/Packing/      @algoritma-gelistirici
-apps/backend/**/Services/OptimizationEngine.cs  @algoritma-gelistirici
+apps/backend/**/Common/Optimization/           @algoritma-gelistirici
 infra/  .github/  database/   @devops
 docs/                         @takim-lideri
 ```
 
 Böylece PR açıldığında doğru kişi otomatik reviewer olur — kimin bakacağı tartışılmaz.
+
+> **Yol düzeltmesi (2026-08-15):** öneri metnindeki motor yolu önce `apps/backend/**/Services/OptimizationEngine.cs` yazıyordu; motor `caab495d` (2026-08-11) ile `CargoPilot.Application/Common/Optimization/` altına (7 dosya) taşındığı için yol güncellendi. Öneri zaten yürürlükte değildir, CODEOWNERS hiç uygulanmadı — bu düzeltme yalnız yanlış yol izlenmesin diyedir.
 
 | Rol | Tipik branch | Notu |
 |-----|--------------|------|

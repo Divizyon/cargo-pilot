@@ -48,7 +48,7 @@ Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR
 
 ## 4. Algoritma
 
-- **Motor:** `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` (570 satır) — tek geçiş greedy **extreme-point + skor (argmin)**; yalnızca `WeightBalance` kriterinde 3 turlu greedy-swap denge iyileştirici. Ön filtre: `ContaminationFilter` (BFS, en yüksek hacimli grup kazanır).
+- **Motor:** `apps/backend/CargoPilot.Application/Common/Optimization/` — **7 dosya** (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`) — tek geçiş greedy **extreme-point + skor (argmin)**; yalnızca `WeightBalance` kriterinde 3 turlu greedy-swap denge iyileştirici. Ön filtre: `ContaminationFilter` (BFS, en yüksek hacimli grup kazanır).
 - **Kısıtlar (backend):** sınır, AABB çakışma, %80 taban desteği, `IsStackable`+LIFO, `MaxStackCount`, `MaxWeightOnTop` (tüm alt kutular), `AllowedRotations` (1/2/3/6 varyant), ağırlık kapasitesi. CoG **yalnızca soft ceza** (hard eşik yok). Yükleme yönü sadece `Lifo`+`Rear`'da etkili. **Kırılganlık modellenmemiş.**
 - **Kayıp çıktılar:** `LoadingPlanWarnings` tablosu var ama hiçbir yazıcı yok; `WeightBalanceOffsetX/Z` hesaplanıyor ama DB'ye yazılmıyor (API'de hep null). Unplaced sebeplerinden 3'ü (`StackingNotAllowed`, `FragilityOrHandlingConstraint`, `RotationOrGeometryConstraint`) hiç üretilmiyor.
 - **Çift mantık:** frontend `buildPlacements` (shelf/row) tamamen ayrı bir heuristik — ön izleme/staging için. Manuel drag doğrulaması backend kurallarının **alt kümesi**: %80 destek, MaxStackCount, MaxWeightOnTop, LIFO, drag sonrası ağırlık kontrolü frontend'de yok; tek violation mesajı sınır/çakışma. Yüzey (face) kısıtı ise **sadece** frontend'de var.
