@@ -107,6 +107,62 @@ services:
     networks:
       - cargo-pilot-test
 
+  # ─── Sahte ERP MSSQL (yalnizca e2e profili) ─────────────────────────────────
+  # Test sunucusundaki stack'e sizmasin diye profile arkasinda durur; ancak
+  # `--profile e2e` verildiginde ayaga kalkar.
+  erp-mssql:
+    profiles: ["e2e"]
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: cargo-pilot-erp-mssql-test
+    user: root
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${ERP_MSSQL_SA_PASSWORD:-ErpFake_Pass123!}
+      SA_PASSWORD: ${ERP_MSSQL_SA_PASSWORD:-ErpFake_Pass123!}
+      # Uygulama MSSQL'i ile ayni makinede kostugu icin bellek siniri verilir.
+      MSSQL_MEMORY_LIMIT_MB: ${ERP_MSSQL_MEMORY_LIMIT_MB:-1024}
+    ports:
+      - "${ERP_MSSQL_PORT:-1435}:1433"
+    volumes:
+      - erp_mssql_data_test:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 12
+      start_period: 90s
+    restart: unless-stopped
+    networks:
+      - cargo-pilot-test
+
+  # Tek seferlik tohumlama; `docker compose run --rm erp-mssql-init` ile calisir.
+  # Ayri profilde tutulur ki `up --wait` cikan bir konteyneri beklemeye calismasin.
+  erp-mssql-init:
+    profiles: ["e2e-seed"]
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: cargo-pilot-erp-mssql-init-test
+    user: root
+    environment:
+      ERP_MSSQL_SA_PASSWORD: ${ERP_MSSQL_SA_PASSWORD:-ErpFake_Pass123!}
+    depends_on:
+      erp-mssql:
+        condition: service_healthy
+    volumes:
+      - ../docker/erp-mssql/init:/erp-init:ro
+    entrypoint: ["/bin/bash", "-c"]
+    # Tek elemanli liste sart: duz dize verilirse compose argumanlara boler ve
+    # bash -c yalnizca ilk kelimeyi calistirir.
+    command:
+      - >
+        /opt/mssql-tools18/bin/sqlcmd -S erp-mssql,1433 -U sa
+        -P "$${ERP_MSSQL_SA_PASSWORD}" -C -b -f 65001 -i /erp-init/01-netsis-seed.sql
+    restart: "no"
+    networks:
+      - cargo-pilot-test
+
   minio:
     image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     platform: linux/amd64
@@ -133,6 +189,8 @@ services:
 volumes:
   mssql_data_test:
     name: cargo-pilot-mssql-data-test
+  erp_mssql_data_test:
+    name: cargo-pilot-erp-mssql-data-test
   minio_data_test:
     name: cargo-pilot-minio-data-test
 

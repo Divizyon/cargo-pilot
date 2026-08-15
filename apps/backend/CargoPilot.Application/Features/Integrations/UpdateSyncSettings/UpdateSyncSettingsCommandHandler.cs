@@ -1,8 +1,8 @@
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Integrations.GetSyncSettings;
-using CargoPilot.Domain.Enums;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Integrations.UpdateSyncSettings;
@@ -33,9 +33,7 @@ internal sealed class UpdateSyncSettingsCommandHandler : IRequestHandler<UpdateS
             return Result<SyncSettingsResponse>.Failure(
                 new Error(ErrorType.NotFound, "Integration.NotFound", "Entegrasyon bulunamadı."));
 
-        DateTime? nextScheduledSyncAt = request.SyncFrequency.HasValue
-            ? DateTime.UtcNow.Add(request.SyncFrequency.Value.ToTimeSpan())
-            : null;
+        var nextScheduledSyncAt = ErpSyncPolicy.NextScheduledSyncAt(request.SyncFrequency, DateTime.UtcNow);
 
         integration.UpdateSyncSettings(request.SyncFrequency, nextScheduledSyncAt);
         await _integrationRepository.SaveChangesAsync(cancellationToken);

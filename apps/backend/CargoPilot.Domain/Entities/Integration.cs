@@ -12,13 +12,14 @@ public sealed class Integration : BaseEntity {
     public SyncFrequency? SyncFrequency { get; private set; }
     public DateTime? NextScheduledSyncAt { get; private set; }
     public ErpSyncStatus SyncStatus { get; private set; } = ErpSyncStatus.Idle;
-    public string? AuthCredentials { get; private set; }
+
+    /// <summary>Calisan sync'in baslangic ani; Running'de takilan kayitlarin zaman asimi icin kullanilir.</summary>
+    public DateTime? SyncStartedAtUtc { get; private set; }
 
 #pragma warning disable S1144
     public Company? Company { get; private set; }
 #pragma warning restore S1144
     public ICollection<SyncLog> SyncLogs { get; } = [];
-    public ICollection<ErpUserMapping> ErpUserMappings { get; } = [];
 
     private Integration() { }
 
@@ -28,14 +29,12 @@ public sealed class Integration : BaseEntity {
         string systemName,
         string apiEndpoint,
         string? mappingTable,
-        int? syncInterval,
-        string? authCredentials) : base(id) {
+        int? syncInterval) : base(id) {
         CompanyId = companyId;
         SystemName = systemName;
         ApiEndpoint = apiEndpoint;
         MappingTable = mappingTable;
         SyncInterval = syncInterval;
-        AuthCredentials = authCredentials;
     }
 
     public void Update(string systemName, string apiEndpoint, string? mappingTable, int? syncInterval) {
@@ -45,7 +44,21 @@ public sealed class Integration : BaseEntity {
         SyncInterval = syncInterval;
     }
 
-    public void UpdateAuthCredentials(string? authCredentials) => AuthCredentials = authCredentials;
+    /// <summary>
+    /// Kaldirilmis baglanti yeniden kurulurken ayni kayit canlandirilir. Yerine yeni kayit
+    /// acilsaydi eski taslaklar olu bir entegrasyonda kalir ve ayni urun her baglanista
+    /// listede bir kez daha gorunurdu; taslaklarin tekilligi (IntegrationId, ErpId) uzerinde.
+    /// Zamanlama sifirlanir: kullanici acisindan bu yeni bir kurulum, eski otomatik
+    /// senkronizasyon tercihi habersiz devam etmemeli.
+    /// </summary>
+    public void Reactivate(string systemName, string apiEndpoint) {
+        Restore();
+        Update(systemName, apiEndpoint, MappingTable, SyncInterval);
+        SyncFrequency = null;
+        NextScheduledSyncAt = null;
+        SyncStatus = ErpSyncStatus.Idle;
+        SyncStartedAtUtc = null;
+    }
 
     public void RecordSync(DateTime syncDate) => LastSyncDate = syncDate;
 
@@ -54,13 +67,23 @@ public sealed class Integration : BaseEntity {
         NextScheduledSyncAt = nextScheduledSyncAt;
     }
 
-    public void StartSync() => SyncStatus = ErpSyncStatus.Running;
+    /// <summary>Frekansi degistirmeden yalnizca bir sonraki vadeyi ileri alir.</summary>
+    public void RescheduleNextSync(DateTime? nextScheduledSyncAt) => NextScheduledSyncAt = nextScheduledSyncAt;
+
+    public void StartSync(DateTime startedAtUtc) {
+        SyncStatus = ErpSyncStatus.Running;
+        SyncStartedAtUtc = startedAtUtc;
+    }
 
     public void CompleteSync(DateTime lastSyncAt, DateTime? nextScheduledSyncAt) {
         LastSyncDate = lastSyncAt;
         NextScheduledSyncAt = nextScheduledSyncAt;
         SyncStatus = ErpSyncStatus.Idle;
+        SyncStartedAtUtc = null;
     }
 
-    public void FailSync() => SyncStatus = ErpSyncStatus.Failed;
+    public void FailSync() {
+        SyncStatus = ErpSyncStatus.Failed;
+        SyncStartedAtUtc = null;
+    }
 }

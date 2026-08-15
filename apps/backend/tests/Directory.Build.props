@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Test projeleri icin ortak ayarlar.
+    apps/backend/Directory.Build.props zincire dahil edilir; yalnizca teste ozgu
+    kurallar burada gevsetilir (uretim kod kalite kapisi aynen korunur).
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!-- Testlerde public API XML dokumantasyonu beklenmez -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- Teste ozgu istisnalar:
+         - CA1707 : Test metodu adlarinda alt cizgi (Given_When_Then) kullanilir.
+         - CA2007 : Test govdelerinde ConfigureAwait gereksiz.
+         - CA1861 : Test verisi olarak satir ici dizi kullanimi.
+         - S2699  : Substitute.Received() dogrulamalari Sonar tarafindan assert sayilmaz.
+         - S6966  : Test icinde senkron Wait/Result kullanimi yok; asenkron oneri gurultusu.
+         - xUnit1004 : Gecici olarak atlanan testler icin.
+         - EnableGenerateDocumentationFile : GenerateDocumentationFile kapali oldugu icin
+           IDE0005 analizinin devre disi kaldigina dair bilgi mesaji. -->
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1861;S2699;S6966;xUnit1004;EnableGenerateDocumentationFile</NoWarn>
+  </PropertyGroup>
+
+</Project>

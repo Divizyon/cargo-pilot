@@ -1,8 +1,8 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Common.Items;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Items.CreateItem;
-using CargoPilot.Domain.Entities;
 using FluentValidation;
 using MediatR;
 
@@ -82,29 +82,7 @@ public sealed class BulkCreateItemsCommandHandler
 
         foreach (var cmd in request.Items)
         {
-            _itemRepository.Add(new Item(
-                id: Guid.NewGuid(),
-                sku: cmd.SKU,
-                name: cmd.Name,
-                productType: cmd.ProductType,
-                category: cmd.Category,
-                width: cmd.Width,
-                height: cmd.Height,
-                length: cmd.Length,
-                weight: cmd.Weight,
-                fragilityType: cmd.FragilityType,
-                isStackable: cmd.IsStackable,
-                maxStackCount: cmd.MaxStackCount,
-                maxWeightOnTop: cmd.MaxWeightOnTop,
-                allowedRotations: cmd.AllowedRotations,
-                barcode: cmd.Barcode,
-                diameter: cmd.Diameter,
-                imageUrl: cmd.ImageUrl,
-                stackGroup: cmd.StackGroup,
-                incompatibleGroups: cmd.IncompatibleGroups,
-                specialNotes: cmd.SpecialNotes,
-                constraintIds: cmd.ConstraintIds,
-                companyId: companyId));
+            _itemRepository.Add(ItemFactory.Create(cmd.SKU, cmd.Name, cmd, companyId));
         }
 
         await _itemRepository.SaveChangesAsync(cancellationToken);

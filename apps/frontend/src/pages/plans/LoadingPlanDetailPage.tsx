@@ -49,13 +49,13 @@ import {
 import { PlanCanvas } from '@/features/planning/scene/components/PlanCanvas';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { useSceneStore } from '@/lib/store/useSceneStore';
-import { PlanStatus } from '@/lib/types/loadingPlan';
-import { useErpSettingsStore } from '@/lib/store/useErpSettingsStore';
+import { PlanStatus, ErpExportStatus } from '@/lib/types/loadingPlan';
 import type {
   LoadingPlanListItem,
   PlanProductGroup,
   PlanProductItem,
 } from '@/lib/types/loadingPlan';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -559,17 +559,71 @@ interface PlanDetailContentProps {
   onBack?: () => void;
 }
 
-type ErpExportStatus = 'idle' | 'queued';
+const ERP_BADGE_CLASS =
+  'flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium';
+
+/**
+ * Aktarım durumu sunucudan okunur; onay isteğinden hemen sonra plan sorgusu tazelenene
+ * kadar iyimser 'kuyrukta' göstergesi için {@link justQueued} kullanılır.
+ */
+interface ErpExportBadgeProps {
+  status: ErpExportStatus | null | undefined;
+  message: string | null | undefined;
+  justQueued: boolean;
+}
+
+function ErpExportBadge({ status, message, justQueued }: ErpExportBadgeProps) {
+  if (status === ErpExportStatus.Sent) {
+    return (
+      <span className={cn(ERP_BADGE_CLASS, 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
+        <CheckCircle2 className="h-3 w-3" />
+        ERP'ye aktarıldı
+      </span>
+    );
+  }
+
+  if (status === ErpExportStatus.Failed) {
+    const reason = message?.trim() || 'Aktarım başarısız oldu; nedeni kaydedilmedi.';
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              tabIndex={0}
+              title={reason}
+              className={cn(ERP_BADGE_CLASS, 'border-red-200 bg-red-50 text-red-700')}
+            >
+              <AlertCircle className="h-3 w-3" />
+              ERP'ye aktarılamadı
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-80 whitespace-pre-wrap break-words">
+            {reason}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  if (status === ErpExportStatus.Pending || justQueued) {
+    return (
+      <span className={cn(ERP_BADGE_CLASS, 'border-blue-200 bg-blue-50 text-blue-700')}>
+        <Loader2 className="h-3 w-3 animate-spin" />
+        ERP aktarımı kuyrukta…
+      </span>
+    );
+  }
+
+  return null;
+}
 
 export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<PlanTab>('3d-planner');
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [erpStatus, setErpStatus] = useState<ErpExportStatus>('idle');
+  const [justQueued, setJustQueued] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const autoTriggerOnApproval = useErpSettingsStore((s) => s.autoTriggerOnApproval);
 
   const { data: plan, isLoading, isError } = useLoadingPlanListItem(id);
   const { data: productGroups = [] } = useLoadingPlanProducts(id);
@@ -578,11 +632,11 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
 
   async function handleApprove() {
     try {
-      await approvePlan(id);
-      if (!autoTriggerOnApproval) return;
-      // Onay isteği ERP aktarımını sunucu tarafında kuyruğa alır; ayrı bir tetikleme ucu yoktur.
-      setErpStatus('queued');
-      toast.success('Plan onaylandı, ERP aktarımı kuyruğa alındı.', { position: 'bottom-right' });
+      // ERP aktarımı sunucudaki özellik anahtarına bağlıdır; kuyruğa alındı bilgisi
+      // yalnızca yanıttaki erpExportQueued true iken gösterilir.
+      const outcome = await approvePlan(id);
+      if (outcome.erpExportQueued) setJustQueued(true);
+      toast.success(outcome.message, { position: 'bottom-right' });
     } catch {
       // approvePlan mutation handles its own error toast
     }
@@ -668,20 +722,24 @@ export function PlanDetailContent({ id, onBack }: PlanDetailContentProps) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* ERP export status label */}
-            {erpStatus === 'queued' && (
-              <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                ERP aktarımı kuyrukta…
-              </span>
-            )}
+            {/* ERP aktarım durumu — sunucudaki plan durumundan okunur */}
+            <ErpExportBadge
+              status={plan.erpExportStatus}
+              message={plan.erpExportMessage}
+              justQueued={justQueued}
+            />
 
             {/* Onayla butonu — sadece 'aktif' planlarda */}
             {plan.status === PlanStatus.Aktif && (
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={isApproving || erpStatus === 'queued'}
+                disabled={
+                  isApproving ||
+                  justQueued ||
+                  plan.erpExportStatus === ErpExportStatus.Pending ||
+                  plan.erpExportStatus === ErpExportStatus.Sent
+                }
                 onClick={() => void handleApprove()}
               >
                 {isApproving ? (

@@ -1,18 +1,34 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import {
+  AlertTriangle,
   Check,
+  PackageSearch,
+  PlugZap,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Loader2,
   RefreshCw,
+  RotateCcw,
   SlidersHorizontal,
   Upload,
   XCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,89 +40,113 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useERPConnection, useTriggerERPSync } from '@/lib/api/useERPIntegration';
+import { useERPConnection, useERPSettings, useTriggerERPSync } from '@/lib/api/useERPIntegration';
 import {
   useDraftItems,
   useBulkRejectDraftItems,
+  useReinstateDraftItems,
+  type DraftItem,
+  DRAFT_FIELD,
   DRAFT_PENDING,
   DRAFT_APPROVED,
   DRAFT_REJECTED,
   DRAFT_UPDATE_PENDING,
-  type DraftItem,
+  DRAFT_UPDATE_DISMISSED,
 } from '@/lib/api/useDraftItems';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { formatDimensionDisplay } from '@/lib/utils/format/unitConversion';
+import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/format/unitConversion';
+import { draftItemToRow } from '@/features/data-management/imports/utils/draftItemToRow';
+import {
+  DIMENSION_LABEL,
+  DIMENSION_SHORT_LABEL,
+  ERP_SETTINGS_ROUTE,
+  ERP_SOURCE_MISSING,
+  ERP_TERM,
+} from '@/lib/config/erpTerms';
+import { draftProductType } from '@/lib/config/productTypeDisplay';
+import { useDebounce } from '@/lib/hooks/useDebounce';
+import { ITEM_CATEGORY } from '@/lib/api/itemMappers';
+import { ProductTypeCell } from '@/components/shared/ProductTypeCell';
+import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
 import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
+import { ErpSyncRequirementsDialog } from './ErpSyncRequirementsDialog';
+import { ErpSyncDialog } from '@/features/platform/erp/components/ErpSyncDialog';
+import { collectMissingSyncRequirements } from '@/features/data-management/imports/utils/erpSyncRequirements';
+import { ErpProviderMark } from '@/components/shared/ErpProviderMark';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { SearchInput } from '@/components/shared/SearchInput';
+import { QueryErrorState } from '@/components/shared/QueryErrorState';
 
 const ROW_H = 48;
+
+const MISSING_FIELD_LABEL: Record<string, string> = {
+  [DRAFT_FIELD.Width]: DIMENSION_SHORT_LABEL.width,
+  [DRAFT_FIELD.Height]: DIMENSION_SHORT_LABEL.height,
+  [DRAFT_FIELD.Length]: DIMENSION_SHORT_LABEL.length,
+  [DRAFT_FIELD.Weight]: DIMENSION_SHORT_LABEL.weight,
+};
+
+type TypeFilterKey = ProductType | typeof ERP_SOURCE_MISSING.label;
+
+/**
+ * ERP grup kodundan çözülen kategori (Koli/Varil/Palet) tip için güvenilirdir; yalnızca
+ * grup kodu boş/bilinmeyen satırlar (Package) '?' kovasına düşer. `fromCategory` Package'ı
+ * 'varil'e düşürdüğü için Package burada ayrıca elenir.
+ */
+function hasKnownCategory(item: DraftItem): boolean {
+  return item.category !== ITEM_CATEGORY.Package;
+}
+
+/** Tip filtresinin satır anahtarı; kategorisi bilinmeyen taslak '?' kovasında toplanır. */
+function categoryFilterKey(category: number): TypeFilterKey {
+  return category === ITEM_CATEGORY.Package ? ERP_SOURCE_MISSING.label : draftProductType(category);
+}
+
+/** Filtre anahtarından kategoriye geri dönüş; eşleme birebirdir. */
+const CATEGORY_BY_FILTER_KEY = new Map<TypeFilterKey, number>(
+  Object.values(ITEM_CATEGORY).map((category) => [categoryFilterKey(category), category]),
+);
+
+/**
+ * Filtre seçeneklerini sunucudan gelen kategori kümesinden kurar. Açık sayfadan
+ * türetilseydi seçenekler sayfa değiştikçe kaybolurdu.
+ */
+function toTypeOptions(categories: readonly number[]): TypeFilterKey[] {
+  const known = Array.from(
+    new Set(categories.filter((c) => c !== ITEM_CATEGORY.Package).map(draftProductType)),
+  ).sort();
+  return categories.includes(ITEM_CATEGORY.Package) ? [...known, ERP_SOURCE_MISSING.label] : known;
+}
+
+/** Ret kalıcıdır; tam ret de reddedilmiş ERP güncellemesi de 'Reddedilenler' altında listelenir. */
+function isRejectedStatus(status: number): boolean {
+  return status === DRAFT_REJECTED || status === DRAFT_UPDATE_DISMISSED;
+}
+
+interface DraftValueCellProps {
+  isMissing: boolean;
+  value: string;
+}
+
+/** ERP'de eksik gelen ölçü, gerçek 0 değeriymiş gibi gösterilmez. */
+function DraftValueCell({ isMissing, value }: DraftValueCellProps) {
+  if (isMissing) {
+    return (
+      <span className="text-xs font-medium text-amber-700 dark:text-amber-400">ERP’de eksik</span>
+    );
+  }
+  return <span className="text-xs text-foreground">{value}</span>;
+}
+/** Bağlantı varken sekmeye göre boş durum başlığı; hepsi aynı dili konuşur. */
+const EMPTY_TAB_TITLE: Record<number, string> = {
+  [DRAFT_PENDING]: 'Bekleyen ERP ürünü yok.',
+  [DRAFT_APPROVED]: 'Aktarılmış ERP ürünü yok.',
+  [DRAFT_UPDATE_PENDING]: 'Güncellenmeyi bekleyen ERP ürünü yok.',
+  [DRAFT_REJECTED]: 'Reddedilmiş ERP ürünü yok.',
+};
+
 const HEADER_ROW_H = 36;
 const BELOW_TABLE_H = 80;
-
-// ─── ERP → BulkImportDialog row dönüşümü (cm → mm) ──────────────────────────
-
-function draftItemToImportRow(item: DraftItem): EditableRow {
-  let tip: string;
-  if (item.category === 1) tip = 'palet';
-  else if (item.category === 0) tip = 'koli';
-  else tip = 'varil';
-
-  let allowRotateX = false,
-    allowRotateY = false,
-    allowRotateZ = false;
-  switch (item.allowedRotations) {
-    case 0:
-      allowRotateX = true;
-      allowRotateY = true;
-      allowRotateZ = true;
-      break;
-    case 1:
-      allowRotateX = false;
-      allowRotateY = true;
-      allowRotateZ = false;
-      break;
-    case 3:
-      allowRotateX = true;
-      allowRotateY = false;
-      allowRotateZ = true;
-      break;
-    case 4:
-      allowRotateX = true;
-      allowRotateY = false;
-      allowRotateZ = false;
-      break;
-    case 5:
-      allowRotateX = false;
-      allowRotateY = false;
-      allowRotateZ = true;
-      break;
-    case 6:
-      allowRotateX = false;
-      allowRotateY = true;
-      allowRotateZ = false;
-      break;
-  }
-
-  return {
-    _id: crypto.randomUUID(),
-    name: item.name,
-    sku: item.sku ?? '',
-    tip,
-    width: String(item.width),
-    height: String(item.height),
-    length: String(item.length),
-    weight: String(item.weight),
-    fragility: String(item.fragilityType),
-    isStackable: item.isStackable,
-    maxStackCount: String(item.maxStackCount > 0 ? item.maxStackCount : 1),
-    allowRotateX,
-    allowRotateY,
-    allowRotateZ,
-    constraintIds: item.constraintIds ?? [],
-    incompatibleGroups: [],
-    notes: item.specialNotes ?? '',
-  };
-}
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -143,8 +183,11 @@ function ERPItemsTableSkeleton() {
 
 export function ERPItemsTable() {
   const { data: connection } = useERPConnection();
+  const { data: erpSettings } = useERPSettings();
   const integrationId = connection?.id;
+  const missingSyncRequirements = collectMissingSyncRequirements(connection, erpSettings);
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const tableCardRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -159,10 +202,13 @@ export function ERPItemsTable() {
   const [importRows, setImportRows] = useState<EditableRow[]>([]);
   const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
+  const [typeFilters, setTypeFilters] = useState<Set<TypeFilterKey>>(new Set());
   const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
   const [selectAllMode, setSelectAllMode] = useState(false);
   const [importMode, setImportMode] = useState<'import' | 'update'>('import');
+  const [requirementsOpen, setRequirementsOpen] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
 
   useEffect(() => {
     let last = pageSize;
@@ -198,60 +244,95 @@ export function ERPItemsTable() {
     return () => document.removeEventListener('mousedown', handler);
   }, [showFilterPanel]);
 
+  const isRejectedTab = statusFilter === DRAFT_REJECTED;
+  const isUpdateTab = statusFilter === DRAFT_UPDATE_PENDING;
+  const isSelectableTab = statusFilter === DRAFT_PENDING || isUpdateTab;
+
   const isSearching = searchTerm.trim().length > 0;
-  const hasActiveFilters = categoryFilters.size > 0;
-  const queryPage = isSearching ? 1 : page;
-  const queryPageSize = isSearching ? 100 : pageSize;
+  const hasActiveFilters = typeFilters.size > 0;
+  // Arama ve tip filtresi sunucuda uygulanir; istemcide filtrelemek yalnizca acik
+  // sayfayi kapsar ve "Toplam" sayacini filtreden habersiz birakirdi.
+  const debouncedSearch = useDebounce(searchTerm.trim());
+  const selectedCategories = Array.from(typeFilters)
+    .map((key) => CATEGORY_BY_FILTER_KEY.get(key))
+    .filter((category): category is number => category !== undefined);
 
   const {
     data: draftPage,
     isLoading,
     isFetching,
-  } = useDraftItems({ page: queryPage, pageSize: queryPageSize, status: statusFilter });
+    isError: isDraftError,
+    error: draftError,
+    refetch: refetchDrafts,
+  } = useDraftItems({
+    page,
+    pageSize,
+    status: statusFilter,
+    search: debouncedSearch || undefined,
+    categories: selectedCategories,
+  });
 
-  const { data: allPendingPage } = useDraftItems(
-    { page: 1, pageSize: 9999, status: DRAFT_PENDING },
-    { enabled: selectAllMode },
+  const pageItemIds = new Set((draftPage?.items ?? []).map((i) => i.id));
+  // Seçim sayfa değişince korunur; bu yüzden seçili kayıtların bir kısmı açık sayfada
+  // olmayabilir. Aktarıma giden satırlar kayıt nesnesini gerektirdiğinden, o durumda
+  // tüm seçilebilir kümenin de çekilmesi gerekir.
+  const hasOffPageSelection = Array.from(selectedIds).some((id) => !pageItemIds.has(id));
+
+  // Tümünü-seç kümesi aktif sekmeye ve açık filtreye bağlıdır; aksi halde ekranda
+  // görünmeyen kayıtlar toplu işleme girer.
+  const { data: allSelectablePage } = useDraftItems(
+    {
+      page: 1,
+      pageSize: 9999,
+      status: statusFilter,
+      search: debouncedSearch || undefined,
+      categories: selectedCategories,
+    },
+    { enabled: isSelectableTab && (selectAllMode || hasOffPageSelection) },
   );
 
+  // Reddedilenler sekmesi rozeti; kayitlarin kaybolmadigini sekme uzerinden gorunur kilar.
+  const { data: rejectedCountPage } = useDraftItems({
+    page: 1,
+    pageSize: 1,
+    status: DRAFT_REJECTED,
+  });
+
   const effectiveSelectedIds: ReadonlySet<string> =
-    selectAllMode && allPendingPage ? new Set(allPendingPage.items.map((i) => i.id)) : selectedIds;
+    selectAllMode && allSelectablePage
+      ? new Set(allSelectablePage.items.map((i) => i.id))
+      : selectedIds;
+
+  // Kimlikten kayda çözüm tablosu: açık sayfa ile seçilebilir kümenin birleşimi.
+  // Açık sayfa sonra yazılır ki en taze kopya kazansın.
+  const knownItemsById = new Map<string, DraftItem>();
+  for (const item of allSelectablePage?.items ?? []) knownItemsById.set(item.id, item);
+  for (const item of draftPage?.items ?? []) knownItemsById.set(item.id, item);
 
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerERPSync();
   const bulkReject = useBulkRejectDraftItems();
+  const reinstate = useReinstateDraftItems();
+
+  const columnCount = isRejectedTab ? 10 : 9;
 
   const allItems = draftPage?.items ?? [];
 
-  const uniqueCategories = Array.from(
-    new Set(allItems.map((i) => i.productType).filter((c): c is string => Boolean(c))),
-  ).sort();
+  // Tip ERP grup kodundan çözülen kategoriden okunur; kategorisi bilinmeyenler '?' seçeneğinde toplanır.
+  const uniqueTypes = toTypeOptions(draftPage?.availableCategories ?? []);
 
-  const filteredItems = allItems.filter((item) => {
-    if (hasActiveFilters && !categoryFilters.has(item.productType ?? '')) return false;
-    if (!isSearching) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(q) ||
-      (item.sku ?? '').toLowerCase().includes(q) ||
-      (item.erpId ?? '').toLowerCase().includes(q) ||
-      (item.barcode ?? '').toLowerCase().includes(q)
-    );
-  });
-
-  const totalCount = isSearching ? filteredItems.length : (draftPage?.totalCount ?? 0);
+  // Eleme sunucuda bittiği için sayfa doğrudan gösterilir; toplam da filtreli sayıdır.
+  const totalCount = draftPage?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const displayedItems = isSearching
-    ? filteredItems.slice((page - 1) * pageSize, page * pageSize)
-    : filteredItems;
+  const displayedItems = allItems;
 
-  const showSkeleton = isLoading || isFetching;
-  const isEmpty = !showSkeleton && displayedItems.length === 0 && !isSearching;
-  const noResults = !showSkeleton && displayedItems.length === 0 && isSearching;
+  const showSkeleton = (isLoading || isFetching) && !isDraftError;
+  const hasNarrowedView = isSearching || hasActiveFilters;
+  const isEmpty = !showSkeleton && !isDraftError && displayedItems.length === 0 && !hasNarrowedView;
+  const noResults =
+    !showSkeleton && !isDraftError && displayedItems.length === 0 && hasNarrowedView;
 
-  const selectableItems = filteredItems.filter((i) =>
-    statusFilter === DRAFT_UPDATE_PENDING
-      ? i.status === DRAFT_UPDATE_PENDING
-      : i.status === DRAFT_PENDING,
+  const selectableItems = displayedItems.filter((i) =>
+    isUpdateTab ? i.status === DRAFT_UPDATE_PENDING : i.status === DRAFT_PENDING,
   );
   const allSelected =
     selectAllMode ||
@@ -273,8 +354,8 @@ export function ERPItemsTable() {
   }
 
   function handleSelectRow(id: string, checked: boolean) {
-    if (selectAllMode && allPendingPage) {
-      const materialized = new Set(allPendingPage.items.map((i) => i.id));
+    if (selectAllMode && allSelectablePage) {
+      const materialized = new Set(allSelectablePage.items.map((i) => i.id));
       if (!checked) materialized.delete(id);
       setSelectAllMode(false);
       setSelectedIds(materialized);
@@ -288,25 +369,40 @@ export function ERPItemsTable() {
     });
   }
 
+  // Kilitli aksiyon sessizce başarısız olmaz; eksik ayar diyalogla tamamlatılır.
   function handleSync() {
-    if (!integrationId) return;
-    triggerSync({ integrationId });
+    if (!integrationId || missingSyncRequirements.length > 0) {
+      setRequirementsOpen(true);
+      return;
+    }
+    // Çekim ve sıklık ayarı aynı diyalogda; kullanıcı zamanlama için Ayarlar'a gitmez.
+    setSyncDialogOpen(true);
+  }
+
+  function handleSyncNow() {
+    if (integrationId) triggerSync({ integrationId });
   }
 
   function handleOpenImport() {
-    const selected = filteredItems.filter((item) => effectiveSelectedIds.has(item.id));
-    const rows = selected.map(draftItemToImportRow);
+    // Seçim açık sayfayla sınırlı değildir; satırlar tüm bilinen kayıtlardan çözülür,
+    // aksi halde yalnızca o an ekranda duran kadarı aktarım ekranına giderdi.
+    const selected = Array.from(effectiveSelectedIds)
+      .map((id) => knownItemsById.get(id))
+      .filter((item): item is DraftItem => item !== undefined);
+    const rows = selected.map(draftItemToRow);
     const draftIds: Record<string, string> = {};
     rows.forEach((row, i) => {
       draftIds[row._id] = selected[i].id;
     });
     setImportRows(rows);
     setImportDraftIds(draftIds);
-    setImportMode(statusFilter === DRAFT_UPDATE_PENDING ? 'update' : 'import');
+    setImportMode(isUpdateTab ? 'update' : 'import');
     setImportOpen(true);
   }
 
-  function handleRejectSelected() {
+  // Toplu ret teyitsiz calismaz; kullanici kac kaydin ne olacagini gorur.
+  function handleConfirmReject() {
+    setRejectConfirmOpen(false);
     bulkReject.mutate(Array.from(effectiveSelectedIds), {
       onSuccess: () => {
         setSelectedIds(new Set());
@@ -325,6 +421,11 @@ export function ERPItemsTable() {
             { value: String(DRAFT_PENDING), label: 'Bekleyenler' },
             { value: String(DRAFT_APPROVED), label: 'Aktarılanlar' },
             { value: String(DRAFT_UPDATE_PENDING), label: 'Güncellemeler' },
+            {
+              value: String(DRAFT_REJECTED),
+              label: 'Reddedilenler',
+              count: rejectedCountPage?.totalCount,
+            },
           ]}
           value={String(statusFilter)}
           onChange={(v) => {
@@ -356,7 +457,7 @@ export function ERPItemsTable() {
             Filtrele
             {hasActiveFilters && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {categoryFilters.size}
+                {typeFilters.size}
               </span>
             )}
             <ChevronDown
@@ -367,28 +468,37 @@ export function ERPItemsTable() {
           {showFilterPanel && (
             <div className="absolute left-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-border bg-background shadow-lg">
               <div className="p-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Kategori
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Tip
                 </p>
                 <div className="space-y-2">
-                  {uniqueCategories.map((cat) => (
+                  {uniqueTypes.map((type) => (
                     <label
-                      key={cat}
+                      key={type}
                       className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 hover:bg-muted"
                     >
                       <Checkbox
-                        checked={categoryFilters.has(cat)}
+                        checked={typeFilters.has(type)}
                         onCheckedChange={() => {
-                          setCategoryFilters((prev) => {
+                          setTypeFilters((prev) => {
                             const next = new Set(prev);
-                            if (next.has(cat)) next.delete(cat);
-                            else next.add(cat);
+                            if (next.has(type)) next.delete(type);
+                            else next.add(type);
                             return next;
                           });
                           setPage(1);
                         }}
                       />
-                      <span className="text-xs">{cat}</span>
+                      {type === ERP_SOURCE_MISSING.label ? (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={ERP_SOURCE_MISSING.hint}
+                        >
+                          {ERP_SOURCE_MISSING.label}
+                        </span>
+                      ) : (
+                        <ProductTypeCell productType={type} />
+                      )}
                     </label>
                   ))}
                 </div>
@@ -399,7 +509,7 @@ export function ERPItemsTable() {
                     size="sm"
                     className="mt-3 h-auto p-0 text-[11px] text-muted-foreground"
                     onClick={() => {
-                      setCategoryFilters(new Set());
+                      setTypeFilters(new Set());
                       setPage(1);
                     }}
                   >
@@ -416,14 +526,14 @@ export function ERPItemsTable() {
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
           onClick={handleSync}
-          disabled={isSyncing || !integrationId}
+          disabled={isSyncing}
         >
           {isSyncing ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
-          ERP ile Sync
+          {isSyncing ? ERP_TERM.syncRunning : ERP_TERM.sync}
         </Button>
       </div>
 
@@ -439,59 +549,99 @@ export function ERPItemsTable() {
         ref={tableCardRef}
         className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
       >
-        {showSkeleton ? (
+        {isDraftError ? (
+          <QueryErrorState
+            error={draftError}
+            title="Taslak ürünler yüklenemedi"
+            fallbackMessage="ERP taslakları alınamadı. Bu bir bağlantı veya sunucu hatası; taslak olmadığı anlamına gelmez."
+            onRetry={() => void refetchDrafts()}
+            className="m-4 w-auto"
+          />
+        ) : showSkeleton ? (
           <ERPItemsTableSkeleton />
         ) : (
           <Table className="min-w-[1100px] table-fixed">
             <TableHeader>
               <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-10 py-0 px-3">
-                  <Checkbox
-                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Tümünü seç"
-                  />
+                  {isSelectableTab && (
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Tümünü seç"
+                    />
+                  )}
                 </TableHead>
-                <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
                   Ürün
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Kategori
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                  Tip
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
                   SKU
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
                   Barkod
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Uzunluk/Çap (X)
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                  {DIMENSION_LABEL.width}
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Yükseklik (Y)
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                  {DIMENSION_LABEL.height}
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
-                  Derinlik (Z)
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                  {DIMENSION_LABEL.length}
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
                   Ağırlık
                 </TableHead>
+                {isRejectedTab && (
+                  <TableHead className="w-40 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                    İşlem
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isEmpty && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={9}
-                    className="py-16 text-center text-sm text-muted-foreground"
-                  >
-                    {!integrationId
-                      ? 'ERP bağlantısı yapılandırılmamış.'
-                      : statusFilter === DRAFT_UPDATE_PENDING
-                        ? 'Güncellenmeyi bekleyen ERP ürünü yok.'
-                        : statusFilter === DRAFT_APPROVED
-                          ? 'Aktarılmış ERP ürünü yok.'
-                          : 'Bekleyen ERP ürünü yok.'}
+                  <TableCell colSpan={columnCount} className="p-4">
+                    {!integrationId ? (
+                      <EmptyState
+                        icon={PlugZap}
+                        title="Henüz ERP bağlantınız yok"
+                        description={
+                          <span className="block">
+                            Üç adımda tamamlanır: 1) Bağlan · 2) {ERP_TERM.sync} · 3){' '}
+                            {ERP_TERM.approve}
+                          </span>
+                        }
+                        className="border-0"
+                      >
+                        <Button asChild size="sm">
+                          <Link to={ERP_SETTINGS_ROUTE.connection}>{ERP_TERM.connect}</Link>
+                        </Button>
+                      </EmptyState>
+                    ) : (
+                      <EmptyState
+                        icon={PackageSearch}
+                        title={EMPTY_TAB_TITLE[statusFilter] ?? 'Bekleyen ERP ürünü yok.'}
+                        description={
+                          statusFilter === DRAFT_PENDING
+                            ? "Son çekimden bu yana yeni ürün gelmemiş olabilir; ERP'den yeniden çekebilirsiniz."
+                            : undefined
+                        }
+                        className="border-0"
+                      >
+                        {statusFilter === DRAFT_PENDING && (
+                          <Button size="sm" onClick={handleSync} disabled={isSyncing}>
+                            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                            {ERP_TERM.sync}
+                          </Button>
+                        )}
+                      </EmptyState>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -502,7 +652,7 @@ export function ERPItemsTable() {
                     'h-12',
                     row.status === DRAFT_APPROVED && 'bg-emerald-50/40 dark:bg-emerald-950/20',
                     row.status === DRAFT_UPDATE_PENDING && 'bg-amber-50/60 dark:bg-amber-950/20',
-                    row.status === DRAFT_REJECTED && 'opacity-50',
+                    isRejectedStatus(row.status) && 'opacity-60',
                   )}
                 >
                   <TableCell className="py-0 px-3">
@@ -525,29 +675,48 @@ export function ERPItemsTable() {
                         aria-label={`${row.name} güncelleme seç`}
                         className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                       />
-                    ) : row.status === DRAFT_REJECTED ? (
-                      <XCircle className="h-4 w-4 text-destructive/60" aria-label="Reddedildi" />
+                    ) : isRejectedStatus(row.status) ? (
+                      <XCircle
+                        className="h-4 w-4 text-destructive/60"
+                        aria-label={
+                          row.status === DRAFT_UPDATE_DISMISSED
+                            ? 'Güncellemesi reddedildi'
+                            : 'Reddedildi'
+                        }
+                      />
                     ) : null}
                   </TableCell>
                   <TableCell className="py-0 px-3 max-w-[176px]">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {row.integrationSystemName?.toLowerCase().includes('logo') && (
-                        <img
-                          src="/icons/erp-logo.png"
-                          alt="Logo"
-                          className="h-6 w-auto shrink-0 object-contain"
-                        />
-                      )}
-                      <span
-                        className="block truncate text-xs text-muted-foreground"
-                        title={row.name}
-                      >
+                      <ErpProviderMark systemName={row.integrationSystemName} />
+                      <span className="block truncate text-xs text-foreground" title={row.name}>
                         {row.name}
                       </span>
+                      {row.missingFields.length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 gap-1 border-amber-500/60 px-1.5 text-[10px] text-amber-700 dark:text-amber-400"
+                          title={`ERP'de eksik: ${row.missingFields
+                            .map((field) => MISSING_FIELD_LABEL[field] ?? field)
+                            .join(', ')}`}
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Eksik alan
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-0 px-3 text-xs text-muted-foreground">
-                    {row.productType ?? '—'}
+                  <TableCell className="py-0 px-3">
+                    {hasKnownCategory(row) ? (
+                      <ProductTypeCell productType={draftProductType(row.category)} />
+                    ) : (
+                      <span
+                        className="text-xs text-muted-foreground"
+                        title={ERP_SOURCE_MISSING.hint}
+                      >
+                        {ERP_SOURCE_MISSING.label}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="py-0 px-3 font-mono text-xs text-muted-foreground">
                     {row.sku ?? row.erpId ?? '—'}
@@ -556,23 +725,44 @@ export function ERPItemsTable() {
                     {row.barcode ?? '—'}
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {formatDimensionDisplay(row.width, dimensionUnit)}
-                    </span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Width)}
+                      value={formatDimensionDisplay(row.width, dimensionUnit)}
+                    />
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {formatDimensionDisplay(row.height, dimensionUnit)}
-                    </span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Height)}
+                      value={formatDimensionDisplay(row.height, dimensionUnit)}
+                    />
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">
-                      {formatDimensionDisplay(row.length, dimensionUnit)}
-                    </span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Length)}
+                      value={formatDimensionDisplay(row.length, dimensionUnit)}
+                    />
                   </TableCell>
                   <TableCell className="py-0 px-3">
-                    <span className="text-xs text-foreground">{row.weight} kg</span>
+                    <DraftValueCell
+                      isMissing={row.missingFields.includes(DRAFT_FIELD.Weight)}
+                      value={formatWeightDisplay(row.weight, weightUnit)}
+                    />
                   </TableCell>
+                  {isRejectedTab && (
+                    <TableCell className="py-0 px-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs"
+                        disabled={reinstate.isPending}
+                        onClick={() => reinstate.mutate([row.id])}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Tekrar beklemeye al
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -592,6 +782,7 @@ export function ERPItemsTable() {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8 p-0"
+                aria-label="Önceki sayfa"
                 disabled={page <= 1 || showSkeleton}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -606,6 +797,7 @@ export function ERPItemsTable() {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8 p-0"
+                aria-label="Sonraki sayfa"
                 disabled={page >= totalPages || showSkeleton}
                 onClick={() => setPage((p) => p + 1)}
               >
@@ -635,41 +827,74 @@ export function ERPItemsTable() {
             }}
             className="text-muted-foreground hover:text-foreground"
           >
-            İptal Et
+            {ERP_TERM.clearSelection}
           </Button>
-          {statusFilter === DRAFT_UPDATE_PENDING ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-1.5"
-                onClick={handleRejectSelected}
-                disabled={bulkReject.isPending}
-              >
-                Reddet
-                <span className="ml-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold">
-                  {effectiveSelectedIds.size}
-                </span>
-              </Button>
-              <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
-                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                Onayla
-                <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
-                  {effectiveSelectedIds.size}
-                </span>
-              </Button>
-            </>
-          ) : (
-            <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => setRejectConfirmOpen(true)}
+            disabled={bulkReject.isPending}
+          >
+            Reddet
+            <span className="ml-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold">
+              {effectiveSelectedIds.size}
+            </span>
+          </Button>
+          <Button type="button" className="gap-1.5" onClick={handleOpenImport}>
+            {isUpdateTab ? (
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+            ) : (
               <Upload className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Ürünlere Aktar
-              <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
-                {effectiveSelectedIds.size}
-              </span>
-            </Button>
-          )}
+            )}
+            {isUpdateTab ? 'Onayla' : ERP_TERM.approve}
+            <span className="ml-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
+              {effectiveSelectedIds.size}
+            </span>
+          </Button>
         </div>
       </div>
+
+      <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {effectiveSelectedIds.size} ürünü reddetmek üzeresiniz
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isUpdateTab
+                ? "ERP'den gelen güncelleme uygulanmayacak; ürünler mevcut haliyle kalacak. Kayıtlar Reddedilenler sekmesinde durur, buradan tekrar beklemeye alabilirsiniz."
+                : 'Bu ürünler Ürünler listesine aktarılmayacak. Kayıtlar silinmez; Reddedilenler sekmesinde durur ve tekrar beklemeye alabilirsiniz.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleConfirmReject}
+              disabled={bulkReject.isPending}
+            >
+              Reddet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <ErpSyncRequirementsDialog
+        open={requirementsOpen}
+        onOpenChange={setRequirementsOpen}
+        missing={missingSyncRequirements}
+      />
+
+      {integrationId && (
+        <ErpSyncDialog
+          open={syncDialogOpen}
+          onOpenChange={setSyncDialogOpen}
+          integrationId={integrationId}
+          onSyncNow={handleSyncNow}
+          isSyncing={isSyncing}
+        />
+      )}
 
       {/* Transfer modal */}
       <BulkImportDialog

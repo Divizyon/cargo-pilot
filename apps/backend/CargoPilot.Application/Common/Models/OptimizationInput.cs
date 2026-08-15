@@ -61,7 +61,6 @@ public sealed record OptimizationItemInput(
     Guid ItemId,
     string SKU,
     string Name,
-    string? ImageUrl,
     decimal Width,
     decimal Height,
     decimal Length,

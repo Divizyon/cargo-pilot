@@ -1,9 +1,11 @@
+using CargoPilot.Application.Features.ErpSettings.DeleteErpSettings;
 using CargoPilot.Application.Features.ErpSettings.GetErpSettings;
 using CargoPilot.Application.Features.ErpSettings.TestErpConnection;
 using CargoPilot.Application.Features.ErpSettings.UpsertErpSettings;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CargoPilot.WebAPI.Controllers;
 
@@ -57,6 +59,23 @@ public sealed class ErpSettingsController : BaseController
     }
 
     /// <summary>
+    /// Şirkete ait ERP bağlantısını kaldırır. Kimlik bilgileri silinir, entegrasyon kaydı
+    /// pasifleşir; senkronizasyon geçmişi korunur.
+    /// </summary>
+    /// <response code="200">Bağlantı kaldırıldı.</response>
+    /// <response code="404">Kaldırılacak bağlantı bulunamadı.</response>
+    [HttpDelete]
+    [Authorize(Policy = "CompanyAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new DeleteErpSettingsCommand(), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// ERP sistemine bağlantıyı test eder.
     /// Başarı veya başarısızlık durumunu kullanıcı dostu mesajla döndürür.
     /// </summary>
@@ -64,6 +83,7 @@ public sealed class ErpSettingsController : BaseController
     /// <response code="400">Doğrulama hatası.</response>
     [HttpPost("test-connection")]
     [Authorize(Policy = "CompanyAdmin")]
+    [EnableRateLimiting("erp-test-connection")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

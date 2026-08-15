@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-export const ErpSystemType = {
-  Logo: 'Logo',
-  Netsis: 'Netsis',
-} as const;
-
 export const ErpSyncInterval = {
   FourHours: 'FourHours',
   Daily: 'Daily',
@@ -12,155 +7,64 @@ export const ErpSyncInterval = {
 
 export type ErpSyncInterval = (typeof ErpSyncInterval)[keyof typeof ErpSyncInterval];
 
+/** Backend sözleşmesi: CargoPilot.Domain/Enums/ErpSyncStatus → Idle = 0, Running = 1, Failed = 2 */
 export const ErpSyncStatus = {
   Idle: 'Idle',
   Running: 'Running',
+  Failed: 'Failed',
 } as const;
 
 export type ErpSyncStatus = (typeof ErpSyncStatus)[keyof typeof ErpSyncStatus];
 
-export type ErpSystemType = (typeof ErpSystemType)[keyof typeof ErpSystemType];
-
-export const erpConnectionSchema = z.object({
-  id: z.string().uuid().optional(),
-  systemType: z.enum(['Logo', 'Netsis']),
-  companyCode: z.string().min(1),
-  username: z.string().min(1),
-  serverAddress: z.string().min(1),
-  isConnected: z.boolean().optional(),
-  lastTestedAt: z.string().datetime({ offset: true }).nullable().optional(),
+/** Backend sözleşmesi: CargoPilot.Application/Common/Erp/SyncRowError */
+export const syncRowErrorSchema = z.object({
+  erpId: z.string(),
+  sku: z.string().nullable().optional(),
+  reason: z.string(),
 });
 
-export const erpSyncSettingsSchema = z.object({
-  syncInterval: z.enum(['FourHours', 'Daily']),
-  syncStatus: z.enum(['Idle', 'Running']),
-  nextScheduledSyncAt: z.string().datetime({ offset: true }).nullable(),
-  lastSyncedAt: z.string().datetime({ offset: true }).nullable(),
-});
+export type SyncRowError = z.infer<typeof syncRowErrorSchema>;
 
-export const erpPendingMatchSchema = z.object({
-  id: z.string().uuid(),
-  erpProductId: z.string(),
-  erpProductName: z.string(),
-  erpSku: z.string().nullable(),
-  erpWeight: z.number().nullable(),
-  erpWidth: z.number().nullable(),
-  erpHeight: z.number().nullable(),
-  erpLength: z.number().nullable(),
-  erpCategory: z.string().nullable().optional(),
-  erpBarcode: z.string().nullable().optional(),
-  hasConstraintData: z.boolean().optional(),
-});
+/**
+ * Backend sözleşmesi: CargoPilot.Application/Common/Erp/ErpDropReason.
+ * Eksik ölçü bir eleme nedeni değildir; o satırlar 'eksik alan' işaretiyle taslağa düşer.
+ */
+export const ErpDropReason = {
+  SalesLocked: 'SalesLocked',
+  CategoryFiltered: 'CategoryFiltered',
+  WarehouseFiltered: 'WarehouseFiltered',
+  RowLimitExceeded: 'RowLimitExceeded',
+  DuplicateErpId: 'DuplicateErpId',
+} as const;
 
-export type ErpPendingMatch = z.infer<typeof erpPendingMatchSchema>;
+export type ErpDropReason = (typeof ErpDropReason)[keyof typeof ErpDropReason];
 
-export const erpSavedMatchSchema = z.object({
-  id: z.string(),
-  erpProductId: z.string(),
-  erpProductName: z.string(),
-  erpSku: z.string().nullable(),
-  cargoItemId: z.string(),
-  cargoItemName: z.string(),
-  cargoItemSku: z.string(),
-});
+/** Neden bazlı eleme kırılımı; bilinmeyen neden anahtarları da korunur. */
+export const droppedByReasonSchema = z.record(z.string(), z.number().int().min(0));
 
-export type ErpSavedMatch = z.infer<typeof erpSavedMatchSchema>;
+export type DroppedByReason = z.infer<typeof droppedByReasonSchema>;
 
 export const erpSyncSummarySchema = z.object({
   syncLogId: z.string().uuid().optional(),
   added: z.number().int().min(0),
   updated: z.number().int().min(0),
+  /** ERP verisi değişmediği için taslağa hiç dokunulmayan satır sayısı. */
+  unchanged: z.number().int().min(0).default(0),
+  /** Hata nedeniyle yazılamayan satır sayısı. */
   skipped: z.number().int().min(0),
+  errorCount: z.number().int().min(0).default(0),
+  /** Eksik alan işaretiyle taslağa yazılan satır sayısı. */
+  missingFieldCount: z.number().int().min(0).default(0),
+  rowErrors: z.array(syncRowErrorSchema).default([]),
+  /** ERP kaynağında eleme öncesi bulunan satır sayısı. */
+  sourceTotal: z.number().int().min(0).default(0),
+  droppedByReason: droppedByReasonSchema.default({}),
+  /** Mutabakat farkı: sourceTotal − (yazılan + atlanan + elenen). Negatif olabilir. */
+  unaccounted: z.number().int().default(0),
   syncedAt: z.string().datetime({ offset: true }).optional(),
 });
 
-export const erpSyncFiltersSchema = z.object({
-  categoryId: z.string().nullable().optional(),
-  warehouseId: z.string().nullable().optional(),
-});
-
-export type ErpSyncFilters = z.infer<typeof erpSyncFiltersSchema>;
-
-export const erpFilterOptionSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-export const erpSyncOptionsSchema = z.object({
-  categories: z.array(erpFilterOptionSchema),
-  warehouses: z.array(erpFilterOptionSchema),
-});
-
-export const ErpShipmentStatus = {
-  Pending: 'Pending',
-  Imported: 'Imported',
-  Cancelled: 'Cancelled',
-} as const;
-
-export type ErpShipmentStatus = (typeof ErpShipmentStatus)[keyof typeof ErpShipmentStatus];
-
-export const erpShipmentOrderItemSchema = z.object({
-  erpProductId: z.string(),
-  erpProductName: z.string(),
-  erpSku: z.string().nullable(),
-  quantity: z.number().int().min(1),
-  unitWeight: z.number().nullable(),
-});
-
-export const erpShipmentOrderSchema = z.object({
-  id: z.string(),
-  orderNumber: z.string(),
-  customerName: z.string(),
-  deliveryAddress: z.string().nullable(),
-  status: z.enum(['Pending', 'Imported', 'Cancelled']),
-  erpCreatedAt: z.string().datetime({ offset: true }).nullable(),
-  importedAt: z.string().datetime({ offset: true }).nullable(),
-  items: z.array(erpShipmentOrderItemSchema),
-});
-
-export type ErpShipmentOrder = z.infer<typeof erpShipmentOrderSchema>;
-
-export const erpShipmentOrderFiltersSchema = z.object({
-  status: z.enum(['Pending', 'Imported', 'Cancelled']).nullable().optional(),
-});
-
-export type ErpShipmentOrderFilters = z.infer<typeof erpShipmentOrderFiltersSchema>;
-
-export const ErpSyncLogStatus = {
-  Success: 'Success',
-  Error: 'Error',
-  Warning: 'Warning',
-} as const;
-
-export type ErpSyncLogStatus = (typeof ErpSyncLogStatus)[keyof typeof ErpSyncLogStatus];
-
-export const ErpSyncEntityType = {
-  Product: 'Product',
-  ShipmentOrder: 'ShipmentOrder',
-} as const;
-
-export type ErpSyncEntityType = (typeof ErpSyncEntityType)[keyof typeof ErpSyncEntityType];
-
-export const erpSyncLogEntrySchema = z.object({
-  id: z.string(),
-  entityType: z.enum(['Product', 'ShipmentOrder']),
-  entityId: z.string(),
-  entityName: z.string(),
-  status: z.enum(['Success', 'Error', 'Warning']),
-  errorReason: z.string().nullable(),
-  occurredAt: z.string().datetime({ offset: true }),
-});
-
-export const erpSyncRunSchema = z.object({
-  id: z.string(),
-  startedAt: z.string().datetime({ offset: true }),
-  completedAt: z.string().datetime({ offset: true }).nullable(),
-  status: z.enum(['Idle', 'Running', 'Completed', 'Failed']),
-  totalCount: z.number().int().min(0),
-  successCount: z.number().int().min(0),
-  errorCount: z.number().int().min(0),
-  entries: z.array(erpSyncLogEntrySchema),
-});
+export type ErpSyncSummary = z.infer<typeof erpSyncSummarySchema>;
 
 export const SyncLogStatus = { Running: 0, Success: 1, PartialFailure: 2, Failed: 3 } as const;
 export type SyncLogStatusValue = (typeof SyncLogStatus)[keyof typeof SyncLogStatus];
@@ -172,60 +76,41 @@ export const syncLogDtoSchema = z.object({
   status: z.number().int() as z.ZodType<SyncLogStatusValue>,
   syncedRecordCount: z.number().int().min(0),
   errorMessage: z.string().nullable(),
+  rowErrors: z.array(syncRowErrorSchema).default([]),
+  /** ERP kaynağında eleme öncesi bulunan satır sayısı. */
+  sourceTotal: z.number().int().min(0).default(0),
+  /** Kaynaktan uygulamaya çekilen satır sayısı. */
+  fetchedCount: z.number().int().min(0).default(0),
+  droppedByReason: droppedByReasonSchema.default({}),
+  /** ERP verisi değişmediği için taslağa hiç dokunulmayan satır sayısı. */
+  unchanged: z.number().int().min(0).default(0),
+  /** Mutabakat farkı; sıfırdan farklıysa kaynak satırların bir kısmı sayaca düşmemiştir. */
+  unaccounted: z.number().int().default(0),
 });
 
-// ─── User Mapping ──────────────────────────────────────────────────────────────
-
-export const erpRemoteUserSchema = z.object({
-  erpUserId: z.string(),
-  erpUserName: z.string(),
-  erpUserEmail: z.string().nullable(),
-  erpRole: z.string().nullable().optional(),
-});
-
-export const erpUserMappingSchema = z.object({
-  id: z.string(),
-  erpUserId: z.string(),
-  erpUserName: z.string(),
-  erpUserEmail: z.string().nullable(),
-  erpRole: z.string().nullable().optional(),
-  cargoUserId: z.string(),
-  cargoUserName: z.string(),
-  cargoUserEmail: z.string().nullable(),
-  cargoUserRole: z.string().nullable().optional(),
-  hasRoleConflict: z.boolean().optional(),
-  isInvalid: z.boolean().optional(),
-});
-
-export type ErpUserMapping = z.infer<typeof erpUserMappingSchema>;
-
-export const erpRoleConflictLogSchema = z.object({
-  id: z.string(),
-  adminName: z.string(),
-  occurredAt: z.string().datetime({ offset: true }),
-  erpUserName: z.string(),
-  erpRole: z.string(),
-  cargoUserName: z.string(),
-  cargoUserRole: z.string(),
-});
-
-export const erpUnassignedDataItemSchema = z.object({
-  id: z.string(),
-  entityType: z.enum(['Product', 'ShipmentOrder']),
-  entityId: z.string(),
-  entityName: z.string(),
-  erpUserId: z.string(),
-  erpUserName: z.string(),
-  occurredAt: z.string().datetime({ offset: true }),
-});
+export type SyncLogDto = z.infer<typeof syncLogDtoSchema>;
 
 // ─── ERP Settings (connection credentials) ────────────────────────────────────
 
 export const erpSettingsApiSchema = z.object({
   id: z.string().uuid(),
-  providerType: z.number().int(), // 0=Logo, 1=Netsis
+  providerType: z.number().int(), // ErpProviderType: 1=Logo, 2=Netsis
   companyCode: z.string(),
   username: z.string(),
   serverAddress: z.string(),
   hasPassword: z.boolean(),
+  /** false ise ERP sunucusunun TLS sertifikası doğrulanır. Eski kayıtlarda alan gelmeyebilir. */
+  trustServerCertificate: z.boolean().default(true),
+  /** ErpDimensionUnit: 0=cm, 1=mm, 2=m, 3=inç. Eski kayıtlarda alan gelmeyebilir. */
+  dimensionUnit: z.number().int().default(0),
+  /** ErpWeightUnit: 0=kg, 1=g, 2=lb. */
+  weightUnit: z.number().int().default(0),
+  /**
+   * Son bağlantı testinin sonucu. Backend bu alanı yalnızca test edilen yapılandırma
+   * kayıtlı ayarlarla aynıysa doldurur; null = güncel bir test yok.
+   */
+  lastTestSucceeded: z.boolean().nullable().default(null),
+  lastTestedAt: z.string().nullable().default(null),
 });
+
+export type ErpSettings = z.infer<typeof erpSettingsApiSchema>;

@@ -47,6 +47,7 @@ import {
   type ProductFormValues,
   type DimensionUnitKey,
 } from '@/features/data-management/products/schemas/productSchema';
+import { LOAD_GROUPS } from '@/lib/config/item-import-columns';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatVolumeDisplay } from '@/lib/utils/format/unitConversion';
 import { parseDecimalInput } from '@/lib/utils/format/parseDecimalInput';
@@ -225,7 +226,8 @@ const CONSTRAINT_OPTIONS: ConstraintOption[] = [
   },
 ];
 
-const CARGO_GROUPS = ['Kimya', 'Gıda', 'Genel', 'Tehlikeli Madde', 'Elektronik', 'Tekstil'];
+/** Excel şablonuyla aynı sözlük; ayrışırsa dışa aktarılan grup geri içe aktarımda düşerdi. */
+const CARGO_GROUPS = LOAD_GROUPS;
 const INCOMPATIBLE_GROUPS = [
   { value: 'Gıda', Icon: Utensils },
   { value: 'Genel', Icon: Package },
