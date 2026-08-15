@@ -1,6 +1,20 @@
-# DevOps İyileştirme Analizi — 2026-08-03
+# DevOps İyileştirme Analizi — 2026-08-03 (anlık görüntü)
 
-**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+**Ölçüm tarihi:** 2026-08-03 · **Durum:** 🗄 **Arşiv / anlık görüntü** — canlı belge değildir
+
+> ### ⚠️ Bu bir zaman-damgalı anlık görüntüdür
+>
+> İçindeki **tüm** sayı ve ölçümler **2026-08-03** tarihine aittir ve o günden beri
+> güncellenmemiştir; bugünkü durumu göstermez. Statüsü 2026-08-15'te "Aktif"ten
+> "Arşiv / anlık görüntü"ye çevrildi — **içerik bilinçli olarak değiştirilmedi**, çünkü
+> belgenin değeri o günkü tabloyu tarihsel olarak sabitlemesidir.
+>
+> Bilinen kayma örneği: aşağıda "cache kotası 9.93 GiB / 10 GiB, 267 cache" yazıyor;
+> 2026-08-15 ölçümü **9,652 GiB / 10 GiB, 228 giriş (%96,5)** verdi
+> (`gh cache list --repo Divizyon/cargo-pilot --limit 500`). İkisi de kendi gününde doğrudur.
+>
+> Güncel durum için: `devops-audit-raporu.md`, `docs/devops/known-issues.md`,
+> `docs/devops/devops-backlog.md`.
 
 Bu doküman dört paralel tarama (CI/CD süresi · Docker image · Altyapı & observability · Sunucu operasyonu) ile tespit edilen 51 maddelik DevOps bulgu listesini, doğrulama durumlarını ve uygulama sırasını içerir.
 
@@ -110,7 +124,7 @@ Sonuç, log satırı sayımıyla:
 
 Aynı Dockerfile, aynı context. `ci.yml` hiçbir zaman 89 sn altına inmiyor; `test-deploy` medyanı **5.5 sn**.
 
-**Cache kotası bu yüzden dolu:** 9.93 GiB / 10 GiB, 267 cache. Ref dağılımı:
+**Cache kotası bu yüzden dolu:** 9.93 GiB / 10 GiB, 267 cache *(2026-08-03 ölçümü; 2026-08-15'te 9,652 GiB / 228 giriş)*. Ref dağılımı:
 
 ```
 70  refs/heads/main       ← trunk penceresinde (12:00–12:27) yazılmış, artık donmuş
