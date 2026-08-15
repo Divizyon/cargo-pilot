@@ -83,6 +83,9 @@ export const SCENE = {
 
 X=Genişlik · Y=Yükseklik · Z=Derinlik · Origin=Sol-Alt-Arka · Rotasyon=Derece
 
+> **Terminoloji çapraz-referansı (2026-08-15):** Yukarıdaki adlandırma **mevcut kodu** anlatır (`PlacedBox.cs` → `W,H,D`; `scene-config.ts` → `STAGING_DEPTH_CM`; `BoxWrapper.tsx` 31 satırda `depth`). `docs/COORDINATE_STANDARD.md` (2026-08-12) hedef standardı tanımlar ve `depth` terimini `length` ile, "front/rear" dilini yüz-tabanlı tanımla değiştirmeyi öngörür. **Bu standart henüz hiçbir yerde uygulanmamıştır** — kendi §10'unda üç maddesi onay beklediği için kod değişikliği başlatılmadığını yazar. Yani buradaki terminoloji bugün doğrudur; hedef için bkz. `COORDINATE_STANDARD.md` §9–§10.
+
+
 `<mesh position={[p.x,p.y,p.z]}>` yasak — `BoxWrapper` zorunlu:
 
 ```tsx

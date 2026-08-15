@@ -97,6 +97,8 @@
 - Use R3F state/events instead of manual DOM mutation or custom Raycaster plumbing unless clearly necessary.
 - Manual 3D edits must preserve the same validation and violation feedback.
 
+> **Terminology cross-reference (2026-08-15):** The wording above describes the **current code** (`PlacedBox.cs` uses `W,H,D`; `scene-config.ts` has `STAGING_DEPTH_CM`; `BoxWrapper.tsx` uses `depth` in 31 places). `docs/COORDINATE_STANDARD.md` (2026-08-12) defines a **target** standard that would replace `depth` with `length` and drop the front/rear vocabulary. That standard is **not implemented anywhere yet** — its own §10 states that code changes are on hold until three open items are approved. See `COORDINATE_STANDARD.md` §9–§10.
+
 ## Working Style
 
 - Make small, safe, reviewable changes in the Cargo Pilot frontend.

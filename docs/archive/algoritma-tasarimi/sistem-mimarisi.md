@@ -9,6 +9,7 @@ Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.
 
 **Bilinen farklar:**
 - Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik, Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`, `lib/config/scene-config.ts`).
+  *(2026-08-15 çapraz-referansı: bu "güncel sözleşme" bugünkü kodu anlatır. `docs/COORDINATE_STANDARD.md` §9–§10 `depth` yerine `length` ve yüz-tabanlı kapı tanımını hedefler; standart henüz uygulanmamıştır.)*
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
 

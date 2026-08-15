@@ -409,6 +409,9 @@ const fragility = useWatch({ control: form.control, name: "fragility" });
 | Origin   | Kutunun Sol-Alt-Arka (Bottom-Left-Rear) köşesi |
 | Rotasyon | Derece (0, 90, 180, 270)                       |
 
+
+> **Terminoloji çapraz-referansı (2026-08-15):** Yukarıdaki adlandırma **mevcut kodu** anlatır (`PlacedBox.cs` → `W,H,D`; `scene-config.ts` → `STAGING_DEPTH_CM`; `BoxWrapper.tsx` 31 satırda `depth`). `docs/COORDINATE_STANDARD.md` (2026-08-12) hedef standardı tanımlar ve `depth` terimini `length` ile, "front/rear" dilini yüz-tabanlı tanımla değiştirmeyi öngörür. **Bu standart henüz hiçbir yerde uygulanmamıştır** — kendi §10'unda üç maddesi onay beklediği için kod değişikliği başlatılmadığını yazar. Yani buradaki terminoloji bugün doğrudur; hedef için bkz. `COORDINATE_STANDARD.md` §9–§10.
+
 Koordinat mapping'i `lib/config/scene-config.ts` dosyasında merkezi olarak tanımlanır.
 
 ### BoxWrapper Zorunluluğu
