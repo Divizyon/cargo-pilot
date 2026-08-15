@@ -118,8 +118,10 @@ minio-data/
 *.ldf
 *.bak
 
-# Claude Code local settings (içinde hassas token olabilir)
-.claude/settings.local.json
+# Claude Code yerel çalışma alanı: ayarlar (hassas token içerebilir),
+# ajan worktree'leri ve oturum artıkları. Paylaşılması gereken bir yapılandırma
+# eklenirse `!.claude/<dosya>` ile tek tek istisna tanımlanabilir.
+.claude/
 
 # Serena (yerel LSP/MCP aracı yapılandırması ve önbelleği)
 .serena/
