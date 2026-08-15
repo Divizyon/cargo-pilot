@@ -38,7 +38,7 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 | Validation | FluentValidation 11 (BE) / Zod (FE) | — |
 | DB | SQL Server 2022 + EF Core 8.0.25 (**43 migration**) | Soft delete global query filter (18/25 entity), `BaseEntity` audit alanları |
 | Storage | MinIO | Bucket policy public, nginx `/media/` proxy |
-| Test | Vitest 4 (FE, 16 dosya / 166 test) + **xUnit 2.5 (BE, 2 proje / 11 test sınıfı)** | RTL/Playwright paketleri kurulu değil; `CargoPilot.Engine.Tests` (golden-master, determinizm, kırılganlık, performans taban çizgisi, modül bayrakları) + `CargoPilot.Infrastructure.Tests` ikisi de `cargo-pilot.sln`'de kayıtlı, CI `dotnet test cargo-pilot.sln --no-build` koşturuyor |
+| Test | Vitest 4 (FE, **16 dosya / ~151 test-case — alt sınır**) + **xUnit 2.5 (BE, 2 proje / 11 test sınıfı)** | RTL/Playwright paketleri kurulu değil; `CargoPilot.Engine.Tests` (golden-master, determinizm, kırılganlık, performans taban çizgisi, modül bayrakları) + `CargoPilot.Infrastructure.Tests` ikisi de `cargo-pilot.sln`'de kayıtlı, CI `dotnet test cargo-pilot.sln --no-build` koşturuyor. *Frontend sayısı 2026-08-15'te yeniden ölçüldü: 16 test dosyası, `grep -oE '^\s*(it|test)\('` ile 151 test-case satırı. Bu bir **alt sınırdır** — `it.each`/`describe.each` gibi data-driven kalıplar regex sayımına girmez. Önceki "166 test" değeri doğrulanamadı.* |
 | Paket | npm (pnpm/yarn yasak) | — |
 
 **3D pivot farkı:** Three.js pivot merkezde, backend pivot sol-alt-arka köşede.
