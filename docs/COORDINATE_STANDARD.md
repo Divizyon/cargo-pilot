@@ -276,7 +276,7 @@ tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme du
 
 | # | Konu | Karar | Kodda |
 |---|------|-------|-------|
-| 1 | **Small door'u olmayan konteyner** | Açık — yalnızca big door'u olan konteynerde origin kuralının hangi yüzden türetileceği tanımsız; sektör araştırması bekliyor. | — |
+| 1 | **Small door'u olmayan konteyner** | Origin geometrik köşedir, kapıya bağlı değildir: small door olmasa da `z=0` uzak yüz, `x=0` sol yüz, `y=0` zemindir. Emsali `x₀` kuralı — kapı origin'e değdiğinde origin taşınmaz, yükleme başlangıcı kayar. Bölüm 2. | ✅ **uygulandı** (kod zaten böyle çalışıyor) |
 | 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4. | ❌ **uygulanmadı** |
 | 3 | **`x₀` — big door açıklık payı** | Sistem sabiti değil, araç kaydındaki kapı alanı (`clearanceCm`). Her big door kendi payını taşır. Bölüm 7. | ❌ **uygulanmadı** |
 
@@ -288,6 +288,5 @@ tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme du
 | `clearanceCm` — araç kaydında kapı açıklık payı | Yok. Ne domain'de, ne migration'da, ne frontend tipinde |
 | top door: katman ekseni `y`, aynı katta `z` küçük→büyük | Motorda üstten yükleme mantığı yok. `LifoPlacement.ComputeGroupZones` yalnız `LoadingType.Rear` için bölge üretiyor — beş yükleme tipinin dördünde bölge hiç oluşmuyor (bkz. `docs/context/kod-taramasi-2026-08.md`, **OPT-10**) |
 
-Bu üç satır, kapı modeli geçişi (`doors` listesi + `clearanceCm` alanı) tamamlandığında
-güncellenir. 1 numaralı konu netleşene kadar yalnızca ona bağlı kod değişiklikleri
-başlatılmaz.
+Bu tablo, kapı modeli geçişi (`doors` listesi + `clearanceCm` alanı) tamamlandığında
+güncellenir. **Bekleyen açık konu kalmadı**; 2 ve 3 yalnızca kodda uygulanmayı bekliyor.

@@ -802,17 +802,20 @@
 
       <div class="card">
         <p class="note warn">
-          <strong>Bu belge standardı tanımlar, kodun bugünkü hâlini değil.</strong> Aşağıdaki 2 ve
-          3 numaralı kararlar <strong>kodda henüz uygulanmamıştır</strong>; bölüm 2 ve 5'teki
-          <span class="pill">kodda yok</span> işaretli tanımlar hedefi anlatır.
+          <strong>Bu belge standardı tanımlar, kodun bugünkü hâlini değil.</strong> 2 ve 3
+          numaralı kararlar <strong>kodda henüz uygulanmamıştır</strong>; bölüm 2 ve 5'teki
+          <span class="pill">kodda yok</span> işaretli tanımlar hedefi anlatır. Bekleyen açık
+          konu kalmadı.
         </p>
 
         <ol class="assumptions">
           <li>
-            <strong>Small door'u olmayan konteyner</strong>
-            <span class="pill">sektör araştırması</span><br />
-            Yalnızca big door'u olan bir konteynerde origin kuralı hâlâ tanımsız. Açık olan tek
-            konu budur; yalnızca buna bağlı kod değişiklikleri başlatılmaz.
+            <strong>Small door'u olmayan konteyner</strong> — karara bağlandı, <strong>kodda
+            uygulanıyor</strong><br />
+            Origin geometrik bir köşedir, kapının varlığına bağlı değildir: small door olmasa da
+            <code>z = 0</code> uzak yüz, <code>x = 0</code> sol yüz, <code>y = 0</code> zemindir.
+            Emsali <code>x₀</code> kuralıdır — kapı origin köşesine değdiğinde origin taşınmaz,
+            yalnızca yükleme başlangıcı kayar.
           </li>
           <li>
             <strong>Üst kapı (top door)</strong> — karara bağlandı, <strong>kodda yok</strong><br />
