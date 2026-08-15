@@ -21,7 +21,6 @@ public static class DoorSetFactory
             LoadingType.Rear      => [(DoorType.Small, DoorFace.LengthZ)],
             LoadingType.SideRight => [(DoorType.Big, DoorFace.WidthX)],
             LoadingType.SideLeft  => [(DoorType.Big, DoorFace.ZeroX)],
-            LoadingType.SideBoth  => [(DoorType.Big, DoorFace.ZeroX), (DoorType.Big, DoorFace.WidthX)],
             LoadingType.Top       => [(DoorType.Top, DoorFace.HeightY)],
             _                     => [],
         };

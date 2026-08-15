@@ -14,6 +14,10 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
     /// Bu adim toplayicidir: <c>LoadingType</c> kolonu yerinde kaliyor ve API
     /// hala onu okuyor. Gecis tamamlanana kadar iki model yan yana durur.
     ///
+    /// Eski <c>SideBoth</c> (deger 3) kaldirildi: iki uzun yuzde birden big door
+    /// serbest kose birakmaz ve arac tanimlanirken secilemez. Kalan satir varsa
+    /// tek yana indirilir.
+    ///
     /// Backfill sadik cevirir, kapi uydurmaz. Eski enum "hangi kapidan yukleniyor"
     /// sorusunu yanitliyordu, "aracta hangi kapilar var" sorusunu degil; SideRight
     /// kayitlarina bir de small door eklemek olmayan bir kapiyi varsaymak olurdu.
@@ -60,8 +64,13 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                 unique: true,
                 filter: "[IsDeleted] = 0");
 
-            // LoadingType -> kapi listesi. Rear=0, SideRight=1, SideLeft=2,
-            // SideBoth=3, Top=4 (CargoPilot.Domain/Enums/LoadingType.cs).
+            // LoadingType -> kapi listesi. Rear=0, SideRight=1, SideLeft=2, Top=4
+            // (CargoPilot.Domain/Enums/LoadingType.cs).
+            //
+            // Deger 3 (eski SideBoth) artik gecerli degil: iki uzun yuzde birden
+            // big door serbest kose birakmaz ve arac tanimlanirken secilemez.
+            // Boyle bir satir kalmissa tek yana (x = width) indirilir; iki kapi
+            // uretmek secilemeyen bir durumu veriye yazmak olurdu.
             migrationBuilder.Sql(@"
                 INSERT INTO [VehicleDoors]
                     ([Id], [VehicleId], [Type], [Face],
@@ -74,7 +83,7 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     UNION ALL
                     SELECT 'Big',  'WidthX' WHERE v.[LoadingType] IN (1, 3)
                     UNION ALL
-                    SELECT 'Big',  'ZeroX'  WHERE v.[LoadingType] IN (2, 3)
+                    SELECT 'Big',  'ZeroX'  WHERE v.[LoadingType] = 2
                     UNION ALL
                     SELECT 'Top',  'HeightY' WHERE v.[LoadingType] = 4
                 ) d;");

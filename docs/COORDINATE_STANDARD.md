@@ -30,9 +30,9 @@
 Bu kural her iki araç tipinde aynıdır. Referans kapı, TIR konteynerinde back door, düz
 konteynerde small door'dur.
 
-Konteynerin iki kısa yüzünde de small door bulunması kuralı değiştirmez: hangisinden
-bakılırsa bakılsın tanım aynı şekilde işler ve tutarlı bir sistem üretir. Referans kapı,
-bakılan / yükleme yapılan kapıdır ve her zaman `z = length` yüzünde kabul edilir.
+Referans kapı, bakılan / yükleme yapılan kapıdır ve her zaman `z = length` yüzünde kabul
+edilir. Fiziksel olarak konteynerin diğer kısa yüzünde de bir kapı bulunabilir; kayıtta
+referans olan, yükleme yapılan kapıdır.
 
 **Origin geometrik bir köşedir; kapının varlığına bağlı değildir.** Referans kapı yalnızca
 "hangi yüzden bakıyoruz" sorusunu adlandırır, origin'in sayısal yerini belirlemez. Bir
@@ -74,8 +74,8 @@ dönüşüm görülürse hatadır.
 
 | Door           | Yüz (face)        | Olabileceği konumlar          | TIR konteyneri                                  | Düz konteyner                          |
 | -------------- | ----------------- | ----------------------------- | ----------------------------------------------- | -------------------------------------- |
-| **small door** | `width × height`  | `z = length` ve/veya `z = 0`  | Yalnızca `z = length` (**back door**). `z = 0` kabin ucudur, kapı olmaz. | İki uçta da olabilir; referans `z = length`'tedir. |
-| **big door**   | `length × height` | `x = 0` ve/veya `x = width`   | Olabilir — tek tarafta ya da iki tarafta          | Olabilir — tek tarafta ya da iki tarafta |
+| **small door** | `width × height`  | `z = length` | Yalnızca `z = length` (**back door**). `z = 0` kabin ucudur, kapı olmaz. | `z = length` — yükleme yapılan yüz. |
+| **big door**   | `length × height` | `x = 0` **veya** `x = width` (ikisi birden değil) | Olabilir — tek tarafta | Olabilir — tek tarafta |
 | **top door**   | `width × length`  | `y = height`                  | Olabilir                                          | Olabilir                                |
 
 Kurallar:
@@ -241,14 +241,26 @@ ilerler. Değişken olan `x` eksenidir.
 | `x = width` yüzünde | `(0, 0, 0)` | `0 → width` |
 | `x = 0` yüzünde | `(width, 0, 0)` | `width → 0` |
 
-### Serbest köşe bırakmayan kombinasyonlar
+### Serbest köşe her zaman vardır
 
-İki uzun yüzde birden big door, ya da `z = 0` yüzünde ikinci bir small door bulunursa
-kapıya değmeyen köşe kalmaz. **Bu kombinasyonlar araç tanımında seçilemez**; form
-doğrulaması engeller.
+Kural, kapı kombinasyonlarının **her zaman en az bir serbest köşe bırakmasına** dayanır.
+Bunu sağlayan iki kısıt araç tanımında zorlanır:
 
-Eski veriden böyle bir kayıt gelirse yükleme origin köşesinden başlar — bu, kapı modeli
-öncesindeki davranıştır ve kayıt düzeltilene kadar geçerli kalır.
+**1. Her tipten en fazla bir kapı.** Bir small, bir big, bir top. İki small door `z`
+ekseninde, iki big door `x` ekseninde serbest köşe bırakmazdı.
+
+**2. Her tip yalnızca kendi yüzünde.** Small door `z = length`, big door `x = 0` veya
+`x = width`, top door `y = height`.
+
+Seçilebilir kombinasyonlar bu yüzden sınırlıdır:
+
+| Kapılar | Serbest köşe | Başlangıç |
+| ------- | ------------ | --------- |
+| small | `(0,0,0)` ve `(width,0,0)` | `(0, 0, 0)` |
+| small + big (`x = width`) | `(0,0,0)` | `(0, 0, 0)` |
+| small + big (`x = 0`) | `(width,0,0)` | `(width, 0, 0)` |
+
+Top door başlangıç köşesini etkilemez: `y = height` yüzü zemindeki köşelere değmez.
 
 ---
 

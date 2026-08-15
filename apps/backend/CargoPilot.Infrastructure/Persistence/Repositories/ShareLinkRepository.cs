@@ -178,7 +178,6 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
         {
             LoadingType.Rear     => "rear",
             LoadingType.SideRight or LoadingType.SideLeft => "side",
-            LoadingType.SideBoth => "rearAndSide",
             LoadingType.Top      => "top",
             _                    => "rear",
         };

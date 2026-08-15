@@ -62,12 +62,13 @@ public sealed class VehicleDoorTests
     }
 
     /// <remarks>
-    /// Iki yanda da big door varsa serbest kose kalmaz. Bu kombinasyon arac
-    /// formunda secilemez; eski veriden gelirse bugunku davranis korunur ve
-    /// yukleme origin kosesinden baslar.
+    /// Iki yanda da big door serbest kose birakmazdi; bu kombinasyon artik
+    /// veritabani kisitiyla engelleniyor (IX_VehicleDoors_TekBigDoor) ve arac
+    /// tanimlanirken secilemiyor. Kural yine de savunmali yazildi: boyle bir
+    /// liste gelirse yon degistirmez, yukleme origin kosesinden baslar.
     /// </remarks>
     [Fact]
-    public void IkiYandaBigDoor_MevcutDavranisKorunur()
+    public void IkiYandaBigDoor_YonDegistirmez()
     {
         var doors = new List<VehicleDoor>
         {
