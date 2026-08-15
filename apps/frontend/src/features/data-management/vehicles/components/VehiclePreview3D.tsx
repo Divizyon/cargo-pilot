@@ -209,9 +209,21 @@ function CabMesh({
       10, 11, 9, 10, 9, 8,
     ];
 
+    // Kabin uzak yüz (z = 0) tarafında durur ve burnu −z'ye bakar. Geometri
+    // okunabilirlik için +z'de kurulup burada çevrilir: z bileşenleri negatiflenir,
+    // üçgen sarımı terslenir. Sarım terslenmezse computeVertexNormals normalleri
+    // içe çevirir ve kabin ters aydınlanır.
+    //
+    // Sahneye rotation/scale uygulanmaz: standart §9-11 `rotation.y = Math.PI` ve
+    // `scale.x = -1` gibi telafi dönüşümlerini ihlal sayıyor.
+    for (let i = 2; i < positions.length; i += 3) positions[i] = -positions[i];
+    const wound = [];
+    for (let i = 0; i < indices.length; i += 3)
+      wound.push(indices[i], indices[i + 2], indices[i + 1]);
+
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setIndex(indices);
+    geo.setIndex(wound);
     geo.computeVertexNormals();
 
     const edges = new THREE.EdgesGeometry(geo);
@@ -233,6 +245,7 @@ function CabMesh({
       hfL + ins + slideY,
       dmL + ins + slideZ,
     ]);
+    for (let i = 2; i < lPts.length; i += 3) lPts[i] = -lPts[i];
     const leftWin = new THREE.BufferGeometry();
     leftWin.setAttribute('position', new THREE.BufferAttribute(lPts, 3));
     leftWin.computeVertexNormals();
@@ -249,6 +262,7 @@ function CabMesh({
       hfL + ins + slideY,
       dmL + ins + slideZ,
     ]);
+    for (let i = 2; i < rPts.length; i += 3) rPts[i] = -rPts[i];
     const rightWin = new THREE.BufferGeometry();
     rightWin.setAttribute('position', new THREE.BufferAttribute(rPts, 3));
     rightWin.computeVertexNormals();
@@ -279,10 +293,9 @@ function CabMesh({
   const winOffsetZ = (3 * cabH) / slopeNorm;
 
   // Kabin uzak yüz (z = 0) tarafındadır: TIR'da z = 0 kabin ucudur, referans kapı
-  // z = length'tedir. Geometri yerelde +z'ye uzandığı için grup y ekseninde 180°
-  // döndürülür — aynalama (scale = -1) değil, gerçek bir dönüş.
+  // z = length'tedir. Geometri zaten −z'ye kurulduğu için grup yalnızca ötelenir.
   return (
-    <group position={[width, 0, -gapLength]} rotation={[0, Math.PI, 0]}>
+    <group position={[0, 0, -gapLength]}>
       <mesh castShadow geometry={cabGeo}>
         <meshStandardMaterial color={CAB_COLOR} metalness={0.2} roughness={0.7} />
       </mesh>
@@ -290,11 +303,11 @@ function CabMesh({
         <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
       </lineSegments>
 
-      {/* Ön cam — dikdörtgen, eğimli üst yüzeye (z=dm→d) oturur */}
+      {/* Ön cam — dikdörtgen, eğimli üst yüzeye (z=−dm→−d) oturur */}
       {frontWinW > 0 && frontWinSlopeH > 0 && (
         <mesh
-          position={[width / 2, (cabH * 3) / 4 + winOffsetY, (d * 3) / 4 + winOffsetZ]}
-          rotation={[slopeRotX, 0, 0]}
+          position={[width / 2, (cabH * 3) / 4 + winOffsetY, -((d * 3) / 4 + winOffsetZ)]}
+          rotation={[-slopeRotX, 0, 0]}
         >
           <planeGeometry args={[frontWinW, frontWinSlopeH]} />
           <meshStandardMaterial
