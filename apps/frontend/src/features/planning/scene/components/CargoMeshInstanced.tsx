@@ -281,8 +281,8 @@ function InstancedBoxes() {
 
   // Animasyon için yükleme sırası (arka→ön, alt→üst, sol→sağ)
   const loadOrder = useMemo(
-    () => buildLoadOrder(placements, vehicle?.doorDirection, vehicle?.doorSide),
-    [placements, vehicle?.doorDirection, vehicle?.doorSide],
+    () => buildLoadOrder(placements, vehicle?.doors),
+    [placements, vehicle?.doors],
   );
 
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
@@ -665,8 +665,7 @@ function InstancedBoxes() {
     vehicle?.length,
     vehicle?.width,
     vehicle?.height,
-    vehicle?.doorDirection,
-    vehicle?.doorSide,
+    vehicle?.doors,
   );
 
   // Animasyon idle'a döndüğünde pozisyon cache'ini temizle
@@ -1177,8 +1176,8 @@ function BoxPathBoxes() {
   );
 
   const loadOrder = useMemo(
-    () => buildLoadOrder(placements, vehicle?.doorDirection, vehicle?.doorSide),
-    [placements, vehicle?.doorDirection, vehicle?.doorSide],
+    () => buildLoadOrder(placements, vehicle?.doors),
+    [placements, vehicle?.doors],
   );
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
 
@@ -1288,8 +1287,7 @@ function BoxPathBoxes() {
     vehicle?.length,
     vehicle?.width,
     vehicle?.height,
-    vehicle?.doorDirection,
-    vehicle?.doorSide,
+    vehicle?.doors,
   );
 
   return (

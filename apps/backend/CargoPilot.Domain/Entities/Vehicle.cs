@@ -33,10 +33,11 @@ public sealed class Vehicle : BaseEntity {
     public LoadingType LoadingType { get; private set; }
 
     /// <summary>
-    /// Aracin kapilari (docs/COORDINATE_STANDARD.md §4). Bir aracta ayni anda small
-    /// door ve iki big door bulunabildigi icin kapi bilgisi listedir; tekil
-    /// <see cref="LoadingType"/> bunu ifade edemiyor ve SideBoth gibi degerlerde
-    /// bilgi kaybediyordu.
+    /// Aracin kapilari (docs/COORDINATE_STANDARD.md §4). Bir aracta ayni anda
+    /// small door ve big door bulunabildigi icin kapi bilgisi listedir; tekil
+    /// <see cref="LoadingType"/> "hangi kapidan yukleniyor" sorusunu yanitliyordu,
+    /// "aracta hangi kapilar var" sorusunu degil. Her tipten en fazla bir kapi
+    /// olabilir (VehicleDoorRules).
     /// </summary>
     public ICollection<VehicleDoor> Doors { get; } = [];
     public Guid? CompanyId { get; private set; }
@@ -194,5 +195,15 @@ public sealed class Vehicle : BaseEntity {
         LoadingType = loadingType;
         CompanyId = companyId;
         IsDraft = isDraft;
+    }
+
+    /// <summary>
+    /// Aracin kapi listesini verilen kumeyle degistirir. Eski kapilar iliskiden
+    /// dusurulur; VehicleDoor bagimsiz bir kayit degil, aracin bir parcasidir.
+    /// </summary>
+    public void ReplaceDoors(IEnumerable<(DoorType Type, DoorFace Face)> doors) {
+        Doors.Clear();
+        foreach (var (type, face) in doors)
+            Doors.Add(new VehicleDoor(Guid.NewGuid(), Id, type, face));
     }
 }

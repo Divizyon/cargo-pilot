@@ -25,6 +25,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
         bool? isDraft = null,
         CancellationToken cancellationToken = default) {
         var query = _context.Vehicles.AsNoTracking()
+            .Include(v => v.Doors)
             .Where(v => v.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm)) {

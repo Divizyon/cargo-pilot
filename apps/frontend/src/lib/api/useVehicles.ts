@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import axios from 'axios';
-import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { VehicleType, vehicleDoorSchema, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { axiosInstance } from './axiosInstance';
@@ -15,7 +15,7 @@ import {
   buildCreateVehiclePayload,
   VEHICLE_TYPE_INT,
   VEHICLE_TYPE_FROM_INT,
-  resolveLoadingType,
+  resolveDoors,
 } from './vehicleMappers';
 
 // ─── List API response schema ─────────────────────────────────────────────────
@@ -32,6 +32,7 @@ const vehicleListApiItemSchema = z.object({
   maxWeightCapacity: z.number(),
   layerCount: z.number().int().nullable().optional(),
   loadingType: z.number().int().nullable().optional(),
+  doors: z.array(vehicleDoorSchema).optional().nullable(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
   status: z.string().optional(),
@@ -50,7 +51,7 @@ const vehicleListApiItemSchema = z.object({
 type VehicleListApiItem = z.infer<typeof vehicleListApiItemSchema>;
 
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
-  const loadingTypeInfo = resolveLoadingType(api.loadingType);
+  const doors = resolveDoors(api.doors, api.loadingType);
   const kingpin =
     api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
       ? {
@@ -87,8 +88,7 @@ function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
     length: api.internalLength,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -338,7 +338,7 @@ export function useDeleteVehicle() {
         grossWeight: vehicle.grossWeight,
         tareWeight: vehicle.tareWeight,
         maxLayerCount: vehicle.maxLayerCount,
-        doorDirection: vehicle.doorDirection,
+        doors: vehicle.doors,
         isActive: false,
         status: vehicle.status,
       } as VehicleFormValues);
@@ -367,7 +367,7 @@ export function useArchiveVehicle() {
         grossWeight: vehicle.grossWeight,
         tareWeight: vehicle.tareWeight,
         maxLayerCount: vehicle.maxLayerCount,
-        doorDirection: vehicle.doorDirection,
+        doors: vehicle.doors,
         isActive: false,
         status: vehicle.status,
       } as VehicleFormValues);

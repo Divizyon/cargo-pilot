@@ -56,6 +56,12 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
             isActive: request.IsActive,
             isDraft: request.IsDraft ?? vehicle.IsDraft);
 
+        // Kapi listesi yalnizca gonderildiginde degistirilir. Alan hic yoksa
+        // istemci kapilara dokunmuyor demektir; bos liste gondermekle ayni sey
+        // degil, o yuzden mevcut kapilar korunur.
+        if (request.Doors is not null)
+            vehicle.ReplaceDoors(request.Doors.Select(door => (door.Type, door.Face)));
+
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(vehicle.Id);

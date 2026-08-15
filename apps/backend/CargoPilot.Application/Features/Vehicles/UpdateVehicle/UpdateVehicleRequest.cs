@@ -23,4 +23,5 @@ public sealed record UpdateVehicleRequest(
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
     decimal? AdditionalAxleMaxLoadKg,
-    bool? IsDraft = null);
+    bool? IsDraft = null,
+    IReadOnlyList<VehicleDoorDto>? Doors = null);

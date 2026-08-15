@@ -1,13 +1,19 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { DoorDirection } from '@/lib/types/vehicle';
+import { DoorType, DoorFace, type VehicleDoor } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import {
-  LOADING_TYPE_FROM_INT,
-  resolveLoadingType,
+  doorsFromLoadingType,
+  resolveDoors,
+  loadingTypeFromDoors,
   buildCreateVehiclePayload,
   fromApiVehicle,
   type VehicleApi,
 } from './vehicleMappers';
+
+const REAR: VehicleDoor = { type: DoorType.Small, face: DoorFace.LengthZ };
+const SIDE_RIGHT: VehicleDoor = { type: DoorType.Big, face: DoorFace.WidthX };
+const SIDE_LEFT: VehicleDoor = { type: DoorType.Big, face: DoorFace.ZeroX };
+const TOP: VehicleDoor = { type: DoorType.Top, face: DoorFace.HeightY };
 
 function makeApiVehicle(overrides: Partial<VehicleApi> = {}): VehicleApi {
   return {
@@ -34,42 +40,13 @@ function makeFormValues(overrides: Partial<VehicleFormValues> = {}): VehicleForm
     width: 240,
     height: 260,
     maxCargoWeight: 24000,
-    doorDirection: 'rear',
+    doors: [REAR],
     isActive: true,
     ...overrides,
   } as VehicleFormValues;
 }
 
-describe('LOADING_TYPE_FROM_INT — backend LoadingType enum ile hizalama', () => {
-  it('Rear=0 → { direction: rear }', () => {
-    expect(LOADING_TYPE_FROM_INT[0]).toEqual({ direction: DoorDirection.Rear });
-  });
-
-  it('SideRight=1 → { direction: side, doorSide: right }', () => {
-    expect(LOADING_TYPE_FROM_INT[1]).toEqual({
-      direction: DoorDirection.Side,
-      doorSide: 'right',
-    });
-  });
-
-  it('SideLeft=2 → { direction: side, doorSide: left }', () => {
-    expect(LOADING_TYPE_FROM_INT[2]).toEqual({
-      direction: DoorDirection.Side,
-      doorSide: 'left',
-    });
-  });
-
-  it('SideBoth=3 → { direction: side }, doorSide belirsiz bırakılır', () => {
-    expect(LOADING_TYPE_FROM_INT[3]).toEqual({ direction: DoorDirection.Side });
-    expect(LOADING_TYPE_FROM_INT[3].doorSide).toBeUndefined();
-  });
-
-  it('Top=4 → { direction: top }', () => {
-    expect(LOADING_TYPE_FROM_INT[4]).toEqual({ direction: DoorDirection.Top });
-  });
-});
-
-describe('resolveLoadingType', () => {
+describe('doorsFromLoadingType — eski tekil alandan kapı listesi', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -80,95 +57,103 @@ describe('resolveLoadingType', () => {
     warnSpy.mockRestore();
   });
 
-  it('null/undefined için undefined döner, uyarı basmaz', () => {
-    expect(resolveLoadingType(null)).toBeUndefined();
-    expect(resolveLoadingType(undefined)).toBeUndefined();
+  it.each([
+    [0, [REAR]],
+    [1, [SIDE_RIGHT]],
+    [2, [SIDE_LEFT]],
+    [4, [TOP]],
+  ] as const)('loadingType=%i → %o', (loadingType, expected) => {
+    expect(doorsFromLoadingType(loadingType)).toEqual(expected);
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it('bilinmeyen int için undefined döner ve konsola uyarı basar (sessizce yutmaz)', () => {
-    expect(resolveLoadingType(99)).toBeUndefined();
+  it('null/undefined için boş liste döner, uyarı basmaz', () => {
+    expect(doorsFromLoadingType(null)).toEqual([]);
+    expect(doorsFromLoadingType(undefined)).toEqual([]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('kaldırılan SideBoth=3 için kapı uydurmaz, uyarı basar', () => {
+    expect(doorsFromLoadingType(3)).toEqual([]);
     expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toContain('3');
+  });
+
+  it('bilinmeyen int için boş liste döner ve sessizce yutmaz', () => {
+    expect(doorsFromLoadingType(99)).toEqual([]);
     expect(warnSpy.mock.calls[0][0]).toContain('99');
   });
+});
 
-  it('geçerli int için uyarı basmadan doğru eşlemeyi döner', () => {
-    expect(resolveLoadingType(2)).toEqual({ direction: DoorDirection.Side, doorSide: 'left' });
-    expect(warnSpy).not.toHaveBeenCalled();
+describe('resolveDoors — liste varsa liste, yoksa eski alan', () => {
+  it('kapı listesi doluysa loadingType yok sayılır', () => {
+    // Çelişkili veri: liste yan kapı der, eski alan arka kapı (0) der.
+    expect(resolveDoors([SIDE_LEFT], 0)).toEqual([SIDE_LEFT]);
+  });
+
+  it('liste boş/null ise eski alandan türetilir', () => {
+    expect(resolveDoors([], 1)).toEqual([SIDE_RIGHT]);
+    expect(resolveDoors(null, 1)).toEqual([SIDE_RIGHT]);
+    expect(resolveDoors(undefined, 4)).toEqual([TOP]);
   });
 });
 
-describe('fromApiVehicle — backend loadingType int → Vehicle.doorDirection/doorSide', () => {
-  it.each([
-    [0, DoorDirection.Rear, undefined],
-    [1, DoorDirection.Side, 'right'],
-    [2, DoorDirection.Side, 'left'],
-    [3, DoorDirection.Side, undefined],
-    [4, DoorDirection.Top, undefined],
-  ] as const)('loadingType=%i → direction=%s doorSide=%s', (loadingType, direction, doorSide) => {
-    const vehicle = fromApiVehicle(makeApiVehicle({ loadingType }));
-    expect(vehicle.doorDirection).toBe(direction);
-    expect(vehicle.doorSide).toBe(doorSide);
+describe('loadingTypeFromDoors — geçiş boyunca tekil alanı besler', () => {
+  it('yan kapı varsa yüzüne göre SideLeft/SideRight', () => {
+    expect(loadingTypeFromDoors([REAR, SIDE_LEFT])).toBe(2);
+    expect(loadingTypeFromDoors([REAR, SIDE_RIGHT])).toBe(1);
   });
 
-  it('bilinmeyen loadingType için Front varsayılanına düşer', () => {
-    const vehicle = fromApiVehicle(makeApiVehicle({ loadingType: 42 }));
-    expect(vehicle.doorDirection).toBe(DoorDirection.Front);
-    expect(vehicle.doorSide).toBeUndefined();
+  it('yan kapı yoksa arka kapı (Rear=0) baskındır', () => {
+    expect(loadingTypeFromDoors([REAR])).toBe(0);
+    expect(loadingTypeFromDoors([REAR, TOP])).toBe(0);
   });
 
-  it('loadingType null için Front varsayılanına düşer', () => {
-    const vehicle = fromApiVehicle(makeApiVehicle({ loadingType: null }));
-    expect(vehicle.doorDirection).toBe(DoorDirection.Front);
+  it('yalnızca üst kapı varsa Top=4', () => {
+    expect(loadingTypeFromDoors([TOP])).toBe(4);
+  });
+
+  it('kapı yoksa Rear=0 varsayılanına düşer', () => {
+    expect(loadingTypeFromDoors([])).toBe(0);
   });
 });
 
-describe('buildCreateVehiclePayload — frontend DoorDirection → backend loadingType int', () => {
-  it('rear → 0', () => {
-    const payload = buildCreateVehiclePayload(makeFormValues({ doorDirection: 'rear' }));
-    expect(payload.loadingType).toBe(0);
+describe('fromApiVehicle — kapı listesi çözümü', () => {
+  it('API kapı listesi gönderdiyse doğrudan kullanılır', () => {
+    const vehicle = fromApiVehicle(makeApiVehicle({ doors: [REAR, SIDE_LEFT], loadingType: 0 }));
+    expect(vehicle.doors).toEqual([REAR, SIDE_LEFT]);
   });
 
-  it('side + doorSide=right → 1 (SideRight)', () => {
-    const payload = buildCreateVehiclePayload(
-      makeFormValues({ doorDirection: 'side', doorSide: 'right' }),
+  it('kapı listesi yoksa loadingType üzerinden türetilir', () => {
+    const vehicle = fromApiVehicle(makeApiVehicle({ loadingType: 2 }));
+    expect(vehicle.doors).toEqual([SIDE_LEFT]);
+  });
+
+  it('iki alan da yoksa kapı listesi boş kalır — varsayılan kapı uydurulmaz', () => {
+    expect(fromApiVehicle(makeApiVehicle()).doors).toEqual([]);
+  });
+});
+
+describe('buildCreateVehiclePayload — kapı listesi asıl alandır', () => {
+  it('kapı listesi payload’a olduğu gibi girer', () => {
+    const payload = buildCreateVehiclePayload(makeFormValues({ doors: [REAR, SIDE_RIGHT] }));
+    expect(payload.doors).toEqual([REAR, SIDE_RIGHT]);
+  });
+
+  it('loadingType listeden türetilir (geriye dönük uyumluluk)', () => {
+    expect(buildCreateVehiclePayload(makeFormValues({ doors: [REAR] })).loadingType).toBe(0);
+    expect(
+      buildCreateVehiclePayload(makeFormValues({ doors: [REAR, SIDE_LEFT] })).loadingType,
+    ).toBe(2);
+    expect(buildCreateVehiclePayload(makeFormValues({ doors: [TOP] })).loadingType).toBe(4);
+  });
+
+  it('round-trip: kapı listesi API’ye gidip geri geldiğinde korunur', () => {
+    const doors = [REAR, SIDE_LEFT];
+    const payload = buildCreateVehiclePayload(makeFormValues({ doors }));
+    const vehicle = fromApiVehicle(
+      makeApiVehicle({ doors: payload.doors, loadingType: payload.loadingType }),
     );
-    expect(payload.loadingType).toBe(1);
-  });
-
-  it('side + doorSide=left → 2 (SideLeft)', () => {
-    const payload = buildCreateVehiclePayload(
-      makeFormValues({ doorDirection: 'side', doorSide: 'left' }),
-    );
-    expect(payload.loadingType).toBe(2);
-  });
-
-  it('side + doorSide belirtilmemiş → 1 (SideRight varsayılanı)', () => {
-    const payload = buildCreateVehiclePayload(makeFormValues({ doorDirection: 'side' }));
-    expect(payload.loadingType).toBe(1);
-  });
-
-  it('top → 4', () => {
-    const payload = buildCreateVehiclePayload(makeFormValues({ doorDirection: 'top' }));
-    expect(payload.loadingType).toBe(4);
-  });
-
-  it.each([0, 1, 2, 4] as const)(
-    'round-trip: backend int %i → frontend değerler → tekrar aynı backend int',
-    (loadingType) => {
-      const vehicle = fromApiVehicle(makeApiVehicle({ loadingType }));
-      const payload = buildCreateVehiclePayload(
-        makeFormValues({ doorDirection: vehicle.doorDirection, doorSide: vehicle.doorSide }),
-      );
-      expect(payload.loadingType).toBe(loadingType);
-    },
-  );
-
-  it('SideBoth=3 round-trip: doorSide belirsiz kaldığı için SideRight (1) olarak geri döner (bilinçli basitleştirme)', () => {
-    const vehicle = fromApiVehicle(makeApiVehicle({ loadingType: 3 }));
-    const payload = buildCreateVehiclePayload(
-      makeFormValues({ doorDirection: vehicle.doorDirection, doorSide: vehicle.doorSide }),
-    );
-    expect(payload.loadingType).toBe(1);
+    expect(vehicle.doors).toEqual(doors);
   });
 });

@@ -3,14 +3,7 @@ import type { Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFilters } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDate, getExcelDateCellValue } from '@/lib/utils/format/formatDate';
-
-const DOOR_LABELS: Record<string, string> = {
-  front: 'Ön',
-  rear: 'Arka',
-  side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka + Yan',
-};
+import { formatDoorSummary } from '@/lib/types/vehicle';
 
 export function exportVehiclesToExcel(vehicles: Vehicle[], _filters?: VehicleFilters): void {
   const { dateFormat } = useUnitStore.getState();
@@ -23,7 +16,7 @@ export function exportVehiclesToExcel(vehicles: Vehicle[], _filters?: VehicleFil
     'Dış Yükseklik (cm)': v.height,
     'Maks Kapasite (kg)': v.maxCargoWeight,
     'Boş Ağırlık (kg)': v.tareWeight ?? '',
-    'Kapı Yönü': DOOR_LABELS[v.doorDirection] ?? v.doorDirection,
+    Kapılar: formatDoorSummary(v.doors),
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);

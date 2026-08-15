@@ -129,7 +129,8 @@ public sealed class VehiclesController : BaseController {
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
             request.AdditionalAxleMaxLoadKg,
-            IsDraft: request.IsDraft ?? false);
+            IsDraft: request.IsDraft ?? false,
+            Doors: request.Doors);
         var result = await _mediator.Send(command, cancellationToken);
         if (result.IsSuccess)
             return StatusCode(StatusCodes.Status201Created, result);
@@ -177,7 +178,8 @@ public sealed class VehiclesController : BaseController {
             request.AdditionalAxleDistanceMm,
             request.AdditionalAxleTareWeightKg,
             request.AdditionalAxleMaxLoadKg,
-            IsDraft: request.IsDraft);
+            IsDraft: request.IsDraft,
+            Doors: request.Doors);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

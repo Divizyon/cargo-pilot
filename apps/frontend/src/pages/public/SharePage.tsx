@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useShareByToken, useRecordShareView, isShareExpiredError } from '@/lib/api/useShareLinks';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { NewPlanPage } from '@/pages/plans/NewPlanPage';
-import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
+import { VehicleType, DoorType, DoorFace } from '@/lib/types/vehicle';
 import { ProductType } from '@/lib/types/item';
 import type { AxiosError } from 'axios';
 import type { SharePlan } from '@/lib/types/share';
@@ -58,7 +58,7 @@ function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
       width: vd.width ?? 100,
       height: vd.height ?? 100,
       maxCargoWeight: plan.vehicleCapacityKg,
-      doorDirection: (vd.doorDirection as Vehicle['doorDirection']) ?? DoorDirection.Rear,
+      doors: vd.doors ?? [{ type: DoorType.Small, face: DoorFace.LengthZ }],
       plate: plan.vehiclePlate ?? undefined,
       isFavorite: false,
       isActive: true,

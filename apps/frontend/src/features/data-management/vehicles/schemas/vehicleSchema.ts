@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { VehicleType, type VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
+import {
+  VehicleType,
+  vehicleDoorSchema,
+  validateDoors,
+  type VehicleType as VehicleTypeValue,
+} from '@/lib/types/vehicle';
 import { DIMENSION_MAX, KINGPIN_LEGAL_MAX_LOAD } from '@/lib/config/vehicle-config';
 
 const VEHICLE_TYPE_VALUES = Object.values(VehicleType) as [VehicleTypeValue, ...VehicleTypeValue[]];
@@ -62,11 +67,8 @@ export const vehicleFormSchema = z
       .min(0, 'Dara ağırlığı negatif olamaz')
       .optional(),
 
-    // VY-07: Kapı yönü
-    doorDirection: z.enum(['front', 'rear', 'side', 'top', 'rearAndSide'] as const, {
-      message: 'Lütfen kapı yönünü seçiniz',
-    }),
-    doorSide: z.enum(['right', 'left'] as const).optional(),
+    // VY-07: Kapılar (docs/COORDINATE_STANDARD.md §4)
+    doors: z.array(vehicleDoorSchema).default([]),
 
     // VY-09: King pimi (Tır/Kamposet)
     kingpin: z
@@ -102,6 +104,12 @@ export const vehicleFormSchema = z
     isActive: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
+    // VY-07: En az bir kapı seçilmeli; kapısı olmayan araca yük giremez.
+    const doorError = validateDoors(data.doors ?? []);
+    if (doorError) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: doorError, path: ['doors'] });
+    }
+
     if (!data.vehicleType) return;
 
     const isTirOrKamposet =

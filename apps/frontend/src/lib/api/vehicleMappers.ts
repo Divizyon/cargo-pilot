@@ -8,7 +8,14 @@ import {
   type WeightUnitKey,
 } from '@/features/data-management/products/schemas/productSchema';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import {
+  VehicleType,
+  DoorType,
+  DoorFace,
+  vehicleDoorSchema,
+  type Vehicle,
+  type VehicleDoor,
+} from '@/lib/types/vehicle';
 
 // Backend: Trailer=0, Truck=1, Container=2, Romork=3
 export const VEHICLE_TYPE_INT = {
@@ -26,42 +33,61 @@ export const VEHICLE_TYPE_FROM_INT: Record<number, VehicleType> = {
   3: VehicleType.Kamposet,
 };
 
-// loadingType int → { direction, doorSide }
-// Backend (CargoPilot.Domain.Enums.LoadingType): Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4
-export const LOADING_TYPE_FROM_INT: Record<
-  number,
-  { direction: DoorDirection; doorSide?: 'right' | 'left' }
-> = {
-  0: { direction: DoorDirection.Rear },
-  1: { direction: DoorDirection.Side, doorSide: 'right' },
-  2: { direction: DoorDirection.Side, doorSide: 'left' },
-  // SideBoth: hem sağ hem sol kapı var, frontend'de tek bir "her iki taraf" kavramı yok.
-  // En küçük doğru karşılık: side yönü, doorSide belirsiz bırakılır. loadOrder.ts ve
-  // ContainerMesh/VehiclePreview3D, doorSide tanımsızken sağ kapı varsayımına düşer —
-  // yani SideBoth aracı, sağ kapıdan yükleniyormuş gibi gösterilir/sıralanır (yanlış değil,
-  // eksik bilgiyle en güvenli varsayım).
-  3: { direction: DoorDirection.Side },
-  4: { direction: DoorDirection.Top },
+/**
+ * Eski tekil `loadingType` değerinden kapı listesi türetir.
+ *
+ * Backend (CargoPilot.Domain.Enums.LoadingType): Rear=0, SideRight=1, SideLeft=2, Top=4.
+ * Yalnızca `doors` alanı boş gelen kayıtlar için kullanılır — kapı tablosu
+ * dolduktan sonra bu yol tamamen kalkacak (3/3c).
+ *
+ * Çevrim sadıktır, kapı uydurmaz: eski enum "hangi kapıdan yükleniyor" sorusunu
+ * yanıtlıyordu, "araçta hangi kapılar var" sorusunu değil. Backend'deki
+ * DoorSetFactory ile aynı tabloyu kullanır.
+ */
+const DOORS_FROM_LOADING_TYPE: Record<number, readonly VehicleDoor[]> = {
+  0: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  1: [{ type: DoorType.Big, face: DoorFace.WidthX }],
+  2: [{ type: DoorType.Big, face: DoorFace.ZeroX }],
+  4: [{ type: DoorType.Top, face: DoorFace.HeightY }],
 };
 
-/**
- * Backend loadingType (int) değerini { direction, doorSide } çiftine çevirir.
- * - null/undefined: veri yok, `undefined` döner — çağıran taraf kendi varsayılanını uygular.
- * - Eşleşmeyen/bilinmeyen int (tabloda karşılığı olmayan): backend'e yeni bir LoadingType
- *   değeri eklenmiş ya da veri bozuk olabilir — sessizce yutulmaz, konsola uyarı basılır ve
- *   `undefined` döner (çağıran taraf kendi varsayılanına bilinçli olarak düşer).
- */
-export function resolveLoadingType(
-  loadingType: number | null | undefined,
-): { direction: DoorDirection; doorSide?: 'right' | 'left' } | undefined {
-  if (loadingType == null) return undefined;
-  const mapped = LOADING_TYPE_FROM_INT[loadingType];
+export function doorsFromLoadingType(loadingType: number | null | undefined): VehicleDoor[] {
+  if (loadingType == null) return [];
+  const mapped = DOORS_FROM_LOADING_TYPE[loadingType];
   if (!mapped) {
     console.warn(
-      `[vehicleMappers] Bilinmeyen loadingType değeri: ${loadingType} — eşleme tablosunda karşılığı yok, varsayılana düşülüyor.`,
+      `[vehicleMappers] Bilinmeyen loadingType değeri: ${loadingType} — kapı listesi türetilemedi.`,
     );
+    return [];
   }
-  return mapped;
+  return [...mapped];
+}
+
+/**
+ * API'den gelen kapı listesini çözer. Liste boşsa eski `loadingType` alanından
+ * türetilir; iki model geçiş boyunca yan yana durur.
+ */
+export function resolveDoors(
+  doors: readonly VehicleDoor[] | null | undefined,
+  loadingType: number | null | undefined,
+): VehicleDoor[] {
+  if (doors && doors.length > 0) return [...doors];
+  return doorsFromLoadingType(loadingType);
+}
+
+/**
+ * Kapı listesini backend'in beklediği tekil `loadingType` değerine indirger.
+ *
+ * Öncelik sırası kayıplı bir indirgemedir: tek değer birden fazla kapıyı
+ * ifade edemez, o yüzden yüklemeyi fiilen belirleyen kapı seçilir — önce yan
+ * kapı (X yönünü çevirir), sonra referans kapı, en son üst kapı.
+ */
+export function loadingTypeFromDoors(doors: readonly VehicleDoor[]): number {
+  const big = doors.find((door) => door.type === DoorType.Big);
+  if (big) return big.face === DoorFace.ZeroX ? 2 : 1;
+  if (doors.some((door) => door.type === DoorType.Small)) return 0;
+  if (doors.some((door) => door.type === DoorType.Top)) return 4;
+  return 0;
 }
 
 // ─── Backend response schema ──────────────────────────────────────────────────
@@ -81,6 +107,7 @@ export const vehicleApiSchema = z.object({
   tareWeight: z.number().optional().nullable(),
   layerCount: z.number().int().optional().nullable(),
   loadingType: z.number().int().nullable().optional(),
+  doors: z.array(vehicleDoorSchema).optional().nullable(),
   kingPinDistanceMm: z.number().optional().nullable(),
   kingPinTareWeightKg: z.number().optional().nullable(),
   kingPinMaxLoadKg: z.number().optional().nullable(),
@@ -119,6 +146,7 @@ export const vehicleDetailApiSchema = z.object({
   maxWeightCapacity: z.number(),
   layerCount: z.number().int().optional().nullable(),
   loadingType: z.number().int().nullable().optional(),
+  doors: z.array(vehicleDoorSchema).optional().nullable(),
   kingPinDistanceMm: z.number().optional().nullable(),
   kingPinTareWeightKg: z.number().optional().nullable(),
   kingPinMaxLoadKg: z.number().optional().nullable(),
@@ -173,7 +201,7 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
 
   const vehicleType = VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir;
   const isContainer = vehicleType === VehicleType.Konteyner;
-  const loadingTypeInfo = resolveLoadingType(api.loadingType);
+  const doors = resolveDoors(api.doors, api.loadingType);
   return {
     id: api.id,
     name: api.vehicleName,
@@ -186,8 +214,7 @@ export function fromApiVehicleDetail(api: VehicleDetailApi): Vehicle {
     height: api.internalHeight,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Front,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -235,7 +262,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
 
   const vehicleType = VEHICLE_TYPE_FROM_INT[api.vehicleType] ?? VehicleType.Tir;
   const isContainer = vehicleType === VehicleType.Konteyner;
-  const loadingTypeInfo = resolveLoadingType(api.loadingType);
+  const doors = resolveDoors(api.doors, api.loadingType);
   return {
     id: api.id,
     name: api.vehicleName,
@@ -250,8 +277,7 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
     grossWeight: api.grossWeight ?? undefined,
     tareWeight: api.tareWeight ?? undefined,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Front,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -287,8 +313,7 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
         ? fromKilograms(v.tareWeight, weightUnit as WeightUnitKey)
         : v.tareWeight,
     layerCount: v.maxLayerCount,
-    doorDirection: v.doorDirection,
-    doorSide: v.doorSide,
+    doors: v.doors,
     kingpin: v.kingpin,
     axleB: v.axleB,
     axles: v.axles,
@@ -310,6 +335,7 @@ export interface CreateVehicleRequest {
   maxWeightCapacity: number;
   layerCount?: number;
   loadingType: number;
+  doors: VehicleDoor[];
   isActive?: boolean;
   kingPinDistanceMm?: number | null;
   kingPinTareWeightKg?: number | null;
@@ -345,16 +371,10 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
       ? toKilograms(values.maxCargoWeight, weightUnit as WeightUnitKey)
       : 0,
     layerCount: Number.isFinite(values.layerCount) ? (values.layerCount ?? 1) : 1,
-    // Backend LoadingType: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4.
-    // 'front' ve 'rearAndSide' için backend'de birebir karşılık yok — Rear (0) varsayılanına düşülür.
-    loadingType: (() => {
-      if (values.doorDirection === 'rear') return 0;
-      if (values.doorDirection === 'top') return 4;
-      if (values.doorDirection === 'side') {
-        return values.doorSide === 'left' ? 2 : 1; // SideLeft : SideRight (belirtilmemişse sağ)
-      }
-      return 0;
-    })(),
+    // Kapı listesi asıl alandır. `loadingType` geçiş boyunca korunuyor ve
+    // listeden türetiliyor; 3/3c'de tamamen kalkacak.
+    doors: values.doors ?? [],
+    loadingType: loadingTypeFromDoors(values.doors ?? []),
     isActive: values.isActive ?? true,
     kingPinDistanceMm: Number.isFinite(values.kingpin?.distance) ? values.kingpin!.distance : null,
     kingPinTareWeightKg: Number.isFinite(values.kingpin?.tareWeight)

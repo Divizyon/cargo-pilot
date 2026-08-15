@@ -6,7 +6,7 @@ import { ContactShadows, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { SCENE } from '@/lib/config/scene-config';
-import type { DoorDirection } from '@/lib/types/vehicle';
+import { DoorType, DoorFace, findDoor, type VehicleDoor } from '@/lib/types/vehicle';
 import { ContainerBody } from './ContainerBody';
 
 import normalUrl from '@/assets/textures/container-steel/normal.jpg';
@@ -292,55 +292,41 @@ function TopDoor({ width, length }: { width: number; length: number }) {
 
 // ─── ContainerMesh ─────────────────────────────────────────────────────────────
 
-function renderDoor(
-  doorDirection: DoorDirection | undefined,
-  doorSide: 'right' | 'left' | undefined,
-  width: number,
-  height: number,
-  length: number,
-) {
-  switch (doorDirection) {
-    case 'side': {
-      const side = doorSide ?? 'right';
-      // Pivot: X=width (sağ) veya X=0 (sol) yüzünün uzak-zemin köşesi
-      const posX = side === 'right' ? width : 0;
-      return (
-        <group position={[posX, 0, 0]}>
-          <SideDoor length={length} height={height} side={side} />
-        </group>
-      );
-    }
-    case 'top':
-      // Pivot: tavanın uzak yüz kenarı — Y=height, Z=0
-      return (
-        <group position={[0, height, 0]}>
-          <TopDoor width={width} length={length} />
-        </group>
-      );
-    case 'rearAndSide': {
-      const side = doorSide ?? 'right';
-      const posX = side === 'right' ? width : 0;
-      return (
-        <>
-          <group position={[0, 0, length]}>
-            <RearDoors width={width} height={height} />
-          </group>
-          <group position={[posX, 0, 0]}>
-            <SideDoor length={length} height={height} side={side} />
-          </group>
-        </>
-      );
-    }
-    default:
-      // Referans kapı z = length yüzündedir (docs/COORDINATE_STANDARD.md §2).
-      // 'rear', 'rearAndSide' ve tanımsız değer aynı yüzü paylaşır; z = 0 uzak
-      // yüzdür ve TIR'da kabin ucu olduğu için orada kapı bulunmaz.
-      return (
+function renderDoors(doors: readonly VehicleDoor[], width: number, height: number, length: number) {
+  const referenceDoor = findDoor(doors, DoorType.Small);
+  const sideDoor = findDoor(doors, DoorType.Big);
+  const topDoor = findDoor(doors, DoorType.Top);
+
+  // Kapılar bir liste: bir araçta aynı anda arka ve yan kapı bulunabilir, bu
+  // yüzden dallar birbirini dışlamaz (docs/COORDINATE_STANDARD.md §4).
+  return (
+    <>
+      {referenceDoor && (
+        // Referans kapı z = length yüzündedir; z = 0 uzak yüzdür ve TIR'da
+        // kabin ucu olduğu için orada kapı bulunmaz.
         <group position={[0, 0, length]}>
           <RearDoors width={width} height={height} />
         </group>
-      );
-  }
+      )}
+
+      {sideDoor && (
+        <group position={[sideDoor.face === DoorFace.ZeroX ? 0 : width, 0, 0]}>
+          <SideDoor
+            length={length}
+            height={height}
+            side={sideDoor.face === DoorFace.ZeroX ? 'left' : 'right'}
+          />
+        </group>
+      )}
+
+      {topDoor && (
+        // Pivot: tavanın uzak yüz kenarı — Y=height, Z=0
+        <group position={[0, height, 0]}>
+          <TopDoor width={width} length={length} />
+        </group>
+      )}
+    </>
+  );
 }
 
 export function ContainerMesh() {
@@ -348,16 +334,14 @@ export function ContainerMesh() {
 
   if (!vehicle) return null;
 
-  const { width, height, length, doorDirection, doorSide } = vehicle;
+  const { width, height, length, doors } = vehicle;
 
   return (
     <group>
       <ContainerBody width={width} height={height} length={length} />
       <ContainerEdges width={width} height={height} length={length} />
 
-      <group key={`door-${vehicle.id}`}>
-        {renderDoor(doorDirection, doorSide, width, height, length)}
-      </group>
+      <group key={`door-${vehicle.id}`}>{renderDoors(doors ?? [], width, height, length)}</group>
 
       <ContactShadows
         position={[width / 2, -0.5, length / 2]}

@@ -13,14 +13,7 @@ import {
   formatVolumeDisplay,
 } from '@/lib/utils/format/unitConversion';
 import { formatAuditDate } from '@/lib/utils/format/formatAuditDate';
-import type { Vehicle } from '@/lib/types/vehicle';
-
-const DOOR_LABELS: Record<string, string> = {
-  rear: 'Arka',
-  side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka + Yan',
-};
+import { formatDoorSummary, type Vehicle } from '@/lib/types/vehicle';
 
 const TYPE_LABELS: Record<string, string> = {
   Tir: 'Tır',
@@ -52,8 +45,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
     maxCargoWeight,
     grossWeight,
     tareWeight,
-    doorDirection,
-    doorSide,
+    doors,
     description,
     axles,
     axleB,
@@ -70,8 +62,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
       'maxCargoWeight',
       'grossWeight',
       'tareWeight',
-      'doorDirection',
-      'doorSide',
+      'doors',
       'description',
       'axles',
       'axleB',
@@ -96,10 +87,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   const summaryRows = [
     { label: 'Araç Adı', value: name || '—', bold: true },
     { label: 'Tip', value: TYPE_LABELS[vehicleType] ?? vehicleType ?? '—' },
-    {
-      label: 'Kapı Yönü',
-      value: doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—',
-    },
+    { label: 'Kapılar', value: formatDoorSummary(doors) },
     { label: 'Ölçüler', value: dimsRaw },
     { label: 'Maks. Kargo', value: cargo },
     { label: 'Brüt Ağırlık', value: gross },
@@ -149,8 +137,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
             length={length ?? 0}
             width={width ?? 0}
             height={height ?? 0}
-            doorDirection={doorDirection}
-            doorSide={doorSide}
+            doors={doors}
             kingpinDistance={kingpin?.distance}
             axleBDistance={axleB?.distance}
             axleDistances={(axles ?? []).map((a) => a?.distance).filter((d): d is number => d > 0)}

@@ -8,8 +8,8 @@ import type {
 import { ErpExportStatus } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
-import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
-import { VEHICLE_TYPE_FROM_INT, resolveLoadingType } from './vehicleMappers';
+import { VehicleType, vehicleDoorSchema } from '@/lib/types/vehicle';
+import { VEHICLE_TYPE_FROM_INT, resolveDoors } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/geometry/boxOrientations';
 import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
@@ -28,6 +28,7 @@ const planVehicleApiSchema = z
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
     loadingType: z.number().int().nullable().optional(),
+    doors: z.array(vehicleDoorSchema).optional().nullable(),
   })
   .nullable()
   .optional();
@@ -385,7 +386,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     0;
   const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
   const createdAt = normalizeUtcDatetime(rawCreatedAt);
-  const loadingTypeInfo = resolveLoadingType(v?.loadingType);
+  const doors = resolveDoors(v?.doors, v?.loadingType);
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
@@ -405,8 +406,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     interiorHeightCm: v?.internalHeight ?? 0,
     interiorLengthCm: v?.internalLength ?? 0,
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
-    doorDirection: loadingTypeInfo?.direction,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     thumbnailUrl: (() => {
       const raw = ((api as Record<string, unknown>)['thumbnailUrl'] ??
         (api as Record<string, unknown>)['snapshotUrl'] ??
@@ -488,6 +488,7 @@ const planVehicleInPlanSchema = z
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
     loadingType: z.number().int().nullable().optional(),
+    doors: z.array(vehicleDoorSchema).optional().nullable(),
     vehicleId: z.string().uuid().optional(),
     sortOrder: z.number().int().optional(),
   })
@@ -568,7 +569,7 @@ function apiVehicleToVehicle(
   v: z.infer<typeof planVehicleApiSchema> & { vehicleId?: string },
 ): Vehicle {
   const id = v.vehicleId ?? v.id ?? '';
-  const loadingTypeInfo = resolveLoadingType(v.loadingType);
+  const doors = resolveDoors(v.doors, v.loadingType);
   return {
     id,
     name: v.vehicleName ?? v.name ?? '—',
@@ -581,8 +582,7 @@ function apiVehicleToVehicle(
       v.vehicleType != null
         ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
         : VehicleType.Tir,
-    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     isFavorite: false,
     isActive: true,
     isDeleted: false,

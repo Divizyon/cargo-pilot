@@ -93,9 +93,12 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             companyId: companyId,
             isDraft: request.IsDraft);
 
-        // Kapi listesi tekil LoadingType'dan turetilir. Istemci kapi gondermedigi
-        // surece tablo bos kalirdi ve motor aciklik payini okuyamazdi.
-        DoorSetFactory.EnsureDoors(vehicle);
+        // Istemci kapi listesi gonderdiyse o gecerlidir; gondermediyse liste
+        // tekil LoadingType'dan turetilir (eski istemciler icin gecis yolu).
+        if (request.Doors is { Count: > 0 })
+            vehicle.ReplaceDoors(request.Doors.Select(door => (door.Type, door.Face)));
+        else
+            DoorSetFactory.EnsureDoors(vehicle);
 
         _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);

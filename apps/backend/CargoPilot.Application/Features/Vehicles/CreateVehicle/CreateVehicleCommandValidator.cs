@@ -84,5 +84,12 @@ public sealed class CreateVehicleCommandValidator : AbstractValidator<CreateVehi
         When(x => x.AdditionalAxleMaxLoadKg.HasValue, () =>
             RuleFor(x => x.AdditionalAxleMaxLoadKg!.Value)
                 .GreaterThan(0).WithMessage("Ek aks maksimum yük sıfırdan büyük olmalıdır."));
+
+        // Kapi listesi yalnizca gonderildiginde dogrulanir; gondermeyen eski
+        // istemciler tekil LoadingType yolundan devam eder.
+        When(x => x.Doors is not null, () =>
+            RuleFor(x => x.Doors!)
+                .Must(doors => VehicleDoorRules.Validate([.. doors.Select(d => (d.Type, d.Face))]) is null)
+                .WithMessage(x => VehicleDoorRules.Validate([.. x.Doors!.Select(d => (d.Type, d.Face))])));
     }
 }
