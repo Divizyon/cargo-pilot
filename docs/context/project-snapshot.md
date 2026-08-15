@@ -29,7 +29,7 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 | Server state | TanStack Query v5 | Tuple query key, API verisi Zustand'a **kopyalanmaz** |
 | Client state | **Zustand v5** (10 store) | Sadece UI state; access token yalnızca `useAuthStore` (localStorage yasak) |
 | i18n | i18next 26 + react-i18next (`tr` varsayılan, `en` fallback) | Kaynaklar `src/locales/{tr,en}.json` |
-| 3D | Three.js 0.162 + R3F 8 + drei 9 | cm birimi; X=genişlik, Y=yükseklik, Z=derinlik; origin **sol-alt-arka** |
+| 3D | Three.js 0.162 + R3F 8 + drei 9 | cm birimi; X=width, Y=height, Z=length; origin **uzak-sol-alt köşe** (min x, min y, min z), referans kapı z=length |
 | Export | @react-pdf/renderer 4, SheetJS | PDF dinamik import ile code-split, Canvas `preserveDrawingBuffer: true` |
 | Backend | .NET 8, Clean Architecture + **MediatR 12** (Command/Query/Handler) | Domain ← Application ← Infrastructure/WebAPI. *(Eski "MediatR yok, service-based" iddiası kodla çelişiyordu — architecture.md hâlâ eski modeli anlatıyor)* |
 | Backend hata | `Result<T>` + `Error` + `ErrorType` | Exception ile akış kontrolü yapılmaz (kodda doğrulandı) |
@@ -41,7 +41,7 @@ Monorepo: `apps/frontend` (React) + `apps/backend` (.NET 8) + `infra` (Docker/CI
 | Test | Vitest 4 (FE, **16 dosya / ~151 test-case — alt sınır**) + **xUnit 2.5 (BE, 2 proje / 11 test sınıfı)** | RTL/Playwright paketleri kurulu değil; `CargoPilot.Engine.Tests` (golden-master, determinizm, kırılganlık, performans taban çizgisi, modül bayrakları) + `CargoPilot.Infrastructure.Tests` ikisi de `cargo-pilot.sln`'de kayıtlı, CI `dotnet test cargo-pilot.sln --no-build` koşturuyor. *Frontend sayısı 2026-08-15'te yeniden ölçüldü: 16 test dosyası, `grep -oE '^\s*(it|test)\('` ile 151 test-case satırı. Bu bir **alt sınırdır** — `it.each`/`describe.each` gibi data-driven kalıplar regex sayımına girmez. Önceki "166 test" değeri doğrulanamadı.* |
 | Paket | npm (pnpm/yarn yasak) | — |
 
-**3D pivot farkı:** Three.js pivot merkezde, backend pivot sol-alt-arka köşede.
+**3D pivot farkı:** Three.js pivot merkezde, backend pivot origin'e en yakın köşede (min x, min y, min z).
 `BoxWrapper` / merkezi `lib/config/scene-config.ts` ile çözülür. 50+ kutuda `InstancedMesh` zorunlu.
 
 ---

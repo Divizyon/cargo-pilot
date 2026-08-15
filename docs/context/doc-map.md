@@ -57,7 +57,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11315
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
-| `COORDINATE_STANDARD.md` | 254 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12): eksen/boyut terimleri, cm birimi, X=width / Y=height / Z=depth, kutu origin'i, API sözleşmesi. Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
+| `COORDINATE_STANDARD.md` | 254 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12): eksen/boyut terimleri, cm birimi, X=width / Y=height / Z=length, kutu origin'i, API sözleşmesi. Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
 | `COORDINATE_AUDIT.md` | 736 | **Yalnızca rapor** (2026-08-12, sürüm 2) — mevcut frontend/backend kodunun standarda göre denetimi, dosya:satır kanıtlı sapma listesi | Koordinat sapması ararken |
 
 ## docs/conventions

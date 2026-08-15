@@ -3,7 +3,15 @@
 **Tarih:** 2026-08-15
 **Kapsam:** Backend (optimizasyon motoru, sözleşmeler, migrations, ERP), Frontend (tip/API/store, 3D sahne, geometri, UI/form), dokümantasyon ve testler — 7 alan, ayrı ajanlarca doğrulanmış tarama.
 **Referans standart:** `docs/COORDINATE_STANDARD.md` (projenin tek yetkili koordinat sistemi tanımı). Çelişki hâlinde bu belge kazanır.
-**Not:** Bu belge salt bir denetim raporudur. Bu tur içinde **kaynak kod değiştirilmemiştir** — yalnızca `CLAUDE.md` dosyalarına standardın özeti işlenmiş ve kod tabanı taranmıştır. Aşağıdaki tüm bulgular ayrı doğrulama ajanları tarafından dosya:satır düzeyinde kanıt alıntısıyla teyit edilmiştir.
+**Not:** Bu belge bir denetim raporudur; yazıldığı turda kaynak kod değiştirilmemişti.
+
+> **Uygulama durumu (2026-08-15):** Bulguların bir kısmı bu tarihten sonra düzeltildi.
+> **Kapatıldı:** KN-1 (z ekseni yönü — LIFO bölgeleri, dingil yükü, yükleme sırası,
+> animasyon, kapı/kabin konumu), KN-3 (terminoloji: `depth` → `length`, `w/h/d/l`),
+> KN-5 (birim: `Vehicle.Volume` böleni, demo seed), UI etiketleri (M-45…M-64).
+> **Açık:** KN-2 (kapı modeli, 51 bulgu), dokümantasyon senkronizasyonu ve düşük
+> öncelikli isimlendirme kalıntıları. Bloke bulguların 20'sinden 2'si (top-door, x₀)
+> karara bağlandı ama **kodda henüz uygulanmadı** — bkz. `COORDINATE_STANDARD.md` §10. Aşağıdaki tüm bulgular ayrı doğrulama ajanları tarafından dosya:satır düzeyinde kanıt alıntısıyla teyit edilmiştir.
 
 ---
 
