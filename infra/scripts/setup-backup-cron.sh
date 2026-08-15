@@ -35,19 +35,22 @@ ${entry}"
     fi
 }
 
+# Cron satırlarında `bash ` öneki ikinci savunma hattıdır: repo'dan gelen dosyada
+# execute biti düşerse yedekleme sessizce "permission denied" ile durmaz.
+
 # Prod DB — her gece 02:00
 add_cron \
-    "0 2 * * * ${DEPLOY_DIR}/infra/scripts/backup-db.sh prod >> ${LOG_DIR}/backup-prod.log 2>&1" \
+    "0 2 * * * bash ${DEPLOY_DIR}/infra/scripts/backup-db.sh prod >> ${LOG_DIR}/backup-prod.log 2>&1" \
     "Cargo Pilot - Prod DB yedek"
 
 # Test DB — her gece 03:00
 add_cron \
-    "0 3 * * * ${DEPLOY_DIR}/infra/scripts/backup-db.sh test >> ${LOG_DIR}/backup-test.log 2>&1" \
+    "0 3 * * * bash ${DEPLOY_DIR}/infra/scripts/backup-db.sh test >> ${LOG_DIR}/backup-test.log 2>&1" \
     "Cargo Pilot - Test DB yedek"
 
 # Prod yedek doğrulaması — her Pazar 04:00
 add_cron \
-    "0 4 * * 0 ${DEPLOY_DIR}/infra/scripts/verify-backup.sh prod >> ${LOG_DIR}/verify-backup.log 2>&1" \
+    "0 4 * * 0 bash ${DEPLOY_DIR}/infra/scripts/verify-backup.sh prod >> ${LOG_DIR}/verify-backup.log 2>&1" \
     "Cargo Pilot - Prod yedek doğrulama"
 
 # Crontab'a yaz

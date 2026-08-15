@@ -1,0 +1,30 @@
+/**
+ * Üretimdeki markanın kopyası (apps/frontend
+ * src/components/shared/CargoPilotLogo.tsx). Path verisi birebir aynıdır.
+ *
+ * Neden import değil kopya: test aracı kendi Vite kökü olan ayrı bir uygulama.
+ * `../frontend`den import etmek iki uygulamayı tek derlemede birleştirir —
+ * `npm run build` başka bir projenin `tsconfig`'ine ve `node_modules`'ına bağlı
+ * hâle gelirdi. Üretimdeki sidebar `CargoPilotLogoAnimated`'i kullanıyor ama o
+ * framer-motion istiyor; test aracına bir animasyon kütüphanesi eklemeye değmez,
+ * hareketsiz sürüm aynı marka işaretini çiziyor.
+ */
+interface CargoPilotLogoProps {
+  className?: string;
+}
+
+export function CargoPilotLogo({ className }: CargoPilotLogoProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="330 315 595 610"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M817.15,541.55c-.42-2.84-1.52-5.54-2.86-6.43s-5.47-1.61-6.94-.85l-25.79,13.31-91.1,48.79c-2.51,1.34-4.13,5.82-4.13,8.91v257.4s-75.21,41.44-75.21,41.44c-3.18,1.75-8.19.81-10.81-.82-2.43-1.51-4.85-5.4-4.85-9.56l.02-346.55c0-5.9,2.62-12.37,7.7-15.21l139.53-78.21,57.14-31.85c6.39-3.56,11.98-3.23,18.2.13l52.44,28.37,25.37,15.7c6.83,4.23,10.97,11.7,10.96,20.15l-.03,112.65-1.37,69.97c.2,8.73-3.49,16.02-10.98,20.69l-183.42,101.59-.07-112.98,106.13-58.74.08-77.93Z" />
+      <path d="M437.01,692.39c.12,5.02,1.62,8.13,4.92,10.84l128.65,71.53-.15,111.43-204.28-117.05c-12.31-8.71-18.4-21.23-18.4-36.31l.05-232.64c1.39-14.78,8.91-26.06,21.61-32.98l115.97-63.25,150,80.64-44.26,25.41c-12.84,8.15-20.61,20.64-20.53,36.09l-.17,62.95-121.62-66.69c-1.88-1.03-6.44-.21-8.07.67-1.78.96-3.78,4.06-3.77,7.08l.05,142.28Z" />
+      <path d="M661.05,470.39l-149.81-80.14,104.73-56.15c11.05-4.04,22.27-3.94,32.9,1.07l131.7,69-119.53,66.21Z" />
+    </svg>
+  );
+}

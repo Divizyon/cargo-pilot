@@ -1,9 +1,10 @@
 # Proje Bağlam Kütüphanesi (context)
 
-**Son güncelleme:** 2026-08-08 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-15 · **Durum:** Aktif
 
 Bu klasör, repodaki tüm dokümanların **özetlenmiş halini** tutar. Amaç: bir soruya cevap
-vermek için 37 ayrı `.md` dosyasını baştan okumak zorunda kalmamak.
+vermek için **45** ayrı `.md` dosyasını baştan okumak zorunda kalmamak.
+*(Sayım 2026-08-15, `git ls-files '*.md' | wc -l`. Önceki 37 değeri 2026-08-08'e aitti.)*
 
 ---
 
@@ -19,7 +20,7 @@ vermek için 37 ayrı `.md` dosyasını baştan okumak zorunda kalmamak.
 | Dosya | İçerik | Ne zaman okunur |
 |-------|--------|-----------------|
 | [project-snapshot.md](project-snapshot.md) | Stack, ortamlar, portlar, CI/CD, açık riskler — tek sayfa | Her oturum başında |
-| [doc-map.md](doc-map.md) | Repodaki 37 `.md` dosyasının haritası + özeti | "Bu bilgi nerede yazıyor?" sorusunda |
+| [doc-map.md](doc-map.md) | Repodaki 45 `.md` dosyasının haritası + özeti | "Bu bilgi nerede yazıyor?" sorusunda |
 | [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md) | 6 kategoride kod tabanı taraması: gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde; algoritma/test/devops durumu sorulduğunda |
 | [branch-audit.md](branch-audit.md) | 30 remote branch + açık PR analizi, temizlik kararları | Branch/PR temizliği yaparken |
 

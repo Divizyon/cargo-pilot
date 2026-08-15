@@ -46,6 +46,11 @@ if [[ -z "${SA_PASSWORD}" ]]; then
     exit 1
 fi
 
+# Parolayı sqlcmd'e ortam değişkeniyle geçiyoruz; -P bayrağı komut satırında
+# kalsaydı parola host'ta ve container'da `ps` çıktısında görünürdü.
+# `docker exec -e SQLCMDPASSWORD` (değersiz form) değeri bu kabuktan devralır.
+export SQLCMDPASSWORD="${SA_PASSWORD}"
+
 # Yedek dosyası belirtilmemişse en son yedeği bul
 if [[ -z "${BACKUP_FILE}" ]]; then
     BACKUP_FILE=$(find "${BACKUP_DIR}" -name "*.bak" -printf '%T@ %p\n' 2>/dev/null \
@@ -79,13 +84,26 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# RESTORE VERIFYONLY: veritabanına dokunmadan backup'ın okunabilirliğini doğrular
+# RESTORE VERIFYONLY: veritabanına dokunmadan backup'ın okunabilirliğini doğrular.
+# WITH CHECKSUM sayfa checksum'larını da doğrular; bozuk yedek burada yakalanır.
+verify_only() {
+    docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
+        /opt/mssql-tools18/bin/sqlcmd \
+        -S localhost -U sa -C \
+        -Q "RESTORE VERIFYONLY FROM DISK = N'/var/opt/mssql/restore/${FILENAME}'${1};" \
+        2>&1
+}
+
 echo "[$(date)] RESTORE VERIFYONLY çalıştırılıyor..."
-VERIFY_OUTPUT=$(docker exec "${CONTAINER}" \
-    /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "${SA_PASSWORD}" -C \
-    -Q "RESTORE VERIFYONLY FROM DISK = N'/var/opt/mssql/restore/${FILENAME}';" \
-    2>&1)
+VERIFY_OUTPUT=$(verify_only " WITH CHECKSUM")
+
+# backup-db.sh'a CHECKSUM eklenmeden önce alınmış yedeklerde checksum bilgisi yoktur.
+# Bunu "bozuk yedek" saymak yanlış alarm olur; checksum'suz doğrulamaya düşüp uyarıyoruz.
+if echo "${VERIFY_OUTPUT}" | grep -qi "does not contain checksum"; then
+    echo "[WARN] Yedekte checksum bilgisi yok (CHECKSUM öncesi alınmış)."
+    echo "[WARN] Checksum'suz doğrulamaya düşülüyor — sayfa bozulması tespit edilemez."
+    VERIFY_OUTPUT=$(verify_only "")
+fi
 
 if echo "${VERIFY_OUTPUT}" | grep -qi "error\|hata\|fail"; then
     echo "[ERROR] Yedek doğrulaması başarısız:"
@@ -95,9 +113,9 @@ fi
 
 # Yedek içerik bilgisini al (database adı, tarih, boyut)
 echo "[$(date)] Yedek içeriği okunuyor..."
-HEADER=$(docker exec "${CONTAINER}" \
+HEADER=$(docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
     /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "${SA_PASSWORD}" -C \
+    -S localhost -U sa -C \
     -Q "RESTORE HEADERONLY FROM DISK = N'/var/opt/mssql/restore/${FILENAME}';" \
     2>/dev/null | head -3 || true)
 

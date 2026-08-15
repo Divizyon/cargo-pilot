@@ -45,6 +45,11 @@ if [[ -z "${SA_PASSWORD}" ]]; then
     exit 1
 fi
 
+# Parolayı sqlcmd'e ortam değişkeniyle geçiyoruz; -P bayrağı komut satırında
+# kalsaydı parola host'ta ve container'da `ps` çıktısında görünürdü.
+# `docker exec -e SQLCMDPASSWORD` (değersiz form) değeri bu kabuktan devralır.
+export SQLCMDPASSWORD="${SA_PASSWORD}"
+
 # Yedek dosyası belirtilmemişse en son yedeği bul
 if [[ -z "${BACKUP_FILE}" ]]; then
     BACKUP_FILE=$(find "${BACKUP_DIR}" -name "*.bak" -printf '%T@ %p\n' 2>/dev/null \
@@ -81,9 +86,9 @@ fi
 
 # Geri yükleme öncesi mevcut durumu kaydet
 echo "[$(date)] Mevcut tablo sayısı kontrol ediliyor..."
-BEFORE_COUNT=$(docker exec "${CONTAINER}" \
+BEFORE_COUNT=$(docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
     /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "${SA_PASSWORD}" -C \
+    -S localhost -U sa -C \
     -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM [${DATABASE}].INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';" \
     -h -1 2>/dev/null | tr -d ' \r\n' || echo "0")
 echo "[$(date)] Geri yüklemeden önce tablo sayısı: ${BEFORE_COUNT}"
@@ -95,9 +100,9 @@ docker cp "${BACKUP_FILE}" "${CONTAINER}:/var/opt/mssql/restore/${FILENAME}"
 
 # RESTORE DATABASE
 echo "[$(date)] Veritabanı geri yükleniyor (bu işlem birkaç dakika sürebilir)..."
-docker exec "${CONTAINER}" \
+docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
     /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "${SA_PASSWORD}" -C \
+    -S localhost -U sa -C \
     -Q "
 ALTER DATABASE [${DATABASE}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 RESTORE DATABASE [${DATABASE}]
@@ -112,9 +117,9 @@ docker exec "${CONTAINER}" rm -f "/var/opt/mssql/restore/${FILENAME}"
 
 # Doğrulama: Tablo sayısını kontrol et
 echo "[$(date)] Geri yükleme doğrulanıyor..."
-AFTER_COUNT=$(docker exec "${CONTAINER}" \
+AFTER_COUNT=$(docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
     /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "${SA_PASSWORD}" -C \
+    -S localhost -U sa -C \
     -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM [${DATABASE}].INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';" \
     -h -1 2>/dev/null | tr -d ' \r\n')
 

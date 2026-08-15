@@ -22,6 +22,14 @@ namespace CargoPilot.Application.Common.Optimization;
 internal static class LifoPlacement
 {
     /// <summary>
+    /// Bölge dışına taşmanın santimetre başına cezası. Bölge artık sert kısıt
+    /// olduğu için (motor önce bölge içi adaylar arasından seçer) bu katsayı
+    /// yalnızca hiç bölge içi aday kalmadığında, yedek kademedeki adayları
+    /// kendi aralarında sıralar.
+    /// </summary>
+    private const decimal ZoneOverflowPenaltyPerCm = 2_000m;
+
+    /// <summary>
     /// Yükleme sırası karşılaştırması. Yüksek UnloadingOrder = önce yüklenir =
     /// araç arkası (kapıdan en uzak bölge).
     ///
@@ -83,9 +91,24 @@ internal static class LifoPlacement
         {
             var overLeft  = Math.Max(0m, zoneStart.Value - ez);
             var overRight = Math.Max(0m, (ez + d) - zoneEnd.Value);
-            zonePenalty = (overLeft + overRight) * 2_000m;
+            zonePenalty = (overLeft + overRight) * ZoneOverflowPenaltyPerCm;
         }
 
         return zonePenalty;
     }
+
+    /// <summary>
+    /// Aday pozisyon tamamen kendi grubunun bölgesinin içinde mi? Bölge tanımlı
+    /// değilse (modül kapalı, arka kapı dışı yükleme, gruplanmamış ürün) kısıt
+    /// yoktur ve yüklem her zaman doğrudur.
+    ///
+    /// Motor bu yüklemi <see cref="ZonePenalty"/> ile birlikte kullanır: önce
+    /// bölge içi adaylar arasından seçer, bölge içi hiç aday yoksa cezalı
+    /// skorlamaya düşer. Böylece bölge sert kısıt olur ama hiçbir kutu yalnızca
+    /// bölgesi dar kaldığı için düşmez.
+    /// </summary>
+    internal static bool IsInsideZone(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal d)
+        => !zoneStart.HasValue
+           || !zoneEnd.HasValue
+           || (ez >= zoneStart.Value && ez + d <= zoneEnd.Value);
 }
