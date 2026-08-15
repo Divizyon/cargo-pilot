@@ -1,18 +1,45 @@
 # Cargo Pilot — DevOps Denetim Raporu
 
-**Denetim:** 2026-08-13 · **Son güncelleme:** 2026-08-13 (uygulama sonrası revizyon) · **Kapsam:** `Divizyon/cargo-pilot` (public) · **Yöntem:** 7 paralel denetim ajanı + her orta ve üzeri iddianın bağımsız şüpheci doğrulaması (38 iddia yeniden koşuldu: 37 doğrulandı, 1'i düzeltilerek işlendi). Her bulgunun kanıtı `dosya:satır` veya çalıştırılan komuttur. Denetimin aynı günü öncelik matrisinin iki hücresi uygulandı (PR #942–#945); rapor **denetim anı → bugünkü durum** karşılaştırmalı okunmalıdır.
+**Denetim:** 2026-08-13 · **Son güncelleme:** 2026-08-15 (bayatlık tazelemesi) · **Kapsam:** `Divizyon/cargo-pilot` (public) · **Yöntem:** 7 paralel denetim ajanı + her orta ve üzeri iddianın bağımsız şüpheci doğrulaması (38 iddia yeniden koşuldu: 37 doğrulandı, 1'i düzeltilerek işlendi). Her bulgunun kanıtı `dosya:satır` veya çalıştırılan komuttur. Denetimin aynı günü öncelik matrisinin iki hücresi uygulandı (PR #942–#945); rapor **denetim anı → bugünkü durum** karşılaştırmalı okunmalıdır.
+
+---
+
+## ⚠️ Tazeleme Notu — 2026-08-15
+
+Bu rapordaki bazı sayılar bağımsız yeniden ölçümle **yanlış** çıktı. Aşağıdaki tablo düzeltmelerin
+özetidir; ilgili bölümlerin metni de yerinde güncellendi. Ölçüm günü **2026-08-15**, komutlar
+sütunda verilmiştir — bir sonraki okuyucu aynı komutu koşarak bayatlığı kendisi ölçebilir.
+
+| Rapordaki iddia | Gerçek (2026-08-15) | Doğrulama komutu |
+|---|---|---|
+| "%98,9 koşum başarısı", "ci.yml %100" | Ana CI workflow'u **%58,8 – %81** (örneklem penceresine göre) | `gh run list --workflow=ci.yml --limit 100` → 81/100 · son 100 koşumun 34'ü ci.yml, 20'si yeşil → %58,8 |
+| "test-deploy.yml %100" | **29/30 = %96,7** | `gh run list --workflow=test-deploy.yml --limit 30` |
+| "8/8 workflow'da `contents: read`" | **7/8** — `promote.yml:55` `contents: write` (terfi merge'i için meşru) | `grep -n "contents:" .github/workflows/*.yml` |
+| "SAST 10/10 · CodeQL PR kapısında" | CodeQL **hiçbir ruleset'te zorunlu check değil**, merge'ü bloke etmiyor (advisory) | `gh api /repos/Divizyon/cargo-pilot/rulesets/{id}` × 4 |
+| "Rollback onarıldı, üç kez canlıda doğrulandı" | Yalnız `release-tag.yml` tarafı. `rollback.sh:69` **hâlâ** hatalı SHA türetiyor | `grep -n "TARGET_SHA=" infra/scripts/rollback.sh` |
+| "10 eski tag eşlenmemiş" | Git'te **14** sürüm tag'i, GHCR'de yalnız **4**'ünün imajı (v0.11–v0.14) → v0.1–v0.10'a rollback imkânsız | `git tag -l 'v*'` (14) + GHCR `tags/list` (4 adet `v*`) |
+| "41 md / 10.125 satır" | **45 md / 11.056 satır** (`dev` dalı) | `git ls-files '*.md' \| wc -l` ve `xargs wc -l` |
+| "166 test yeşil" (frontend) | **16 dosya / ~151 test-case** — bu bir **alt sınır**, `it.each`/`describe.each` kalıpları regex sayımını kaçırabilir | `grep -oE '^\s*(it\|test)\(' apps/frontend/**/*.test.ts*` |
+
+**Sağlık skoru bu düzeltmelerle düşer:** SAST 10/10 → **6/10** (CodeQL koşuyor ama merge kapısı
+değil), Token-Permissions 9/10 → **8/10** (7/8). Yeni tahmini toplam **≈71 / 100** (±10).
 
 ---
 
 ## Yönetici Özeti
 
-> ### Genel sağlık skoru: **75 / 100** — denetim günü **36** idi *(OpenSSF Scorecard kriterlerine göre tahmin, ±10; sıçramanın kaynağı: Dependency-Update-Tool 0→10, SAST 0→10, Vulnerabilities 0→10, Security-Policy 0→10, Pinned 3→8, Token-Permissions 4→9)*
+> ### Genel sağlık skoru: **≈71 / 100** — denetim günü **36** idi *(OpenSSF Scorecard kriterlerine göre tahmin, ±10; sıçramanın kaynağı: Dependency-Update-Tool 0→10, SAST 0→6, Vulnerabilities 0→10, Security-Policy 0→10, Pinned 3→8, Token-Permissions 4→8)*
+>
+> *2026-08-15 düzeltmesi: skor önce 75 yazılmıştı; SAST (CodeQL merge kapısı değil) ve Token-Permissions (7/8) yeniden puanlanınca ≈71'e indi. Bkz. yukarıdaki Tazeleme Notu.*
 
-1. **🔴→🟢 Rollback güvencesi onarıldı ve üç kez canlıda doğrulandı.** Denetimde: 10 sürüm tag'inin hiçbirinin GHCR'da image'ı yoktu, `rollback.yml` hiç koşmamıştı, boş hedef arşiv tag'ine çözülüyordu. Şimdi: `release-tag.yml` her yeni tag'i `test-<sha7>` imajıyla eşliyor (#943), `rollback.sh` yalnız `v*` tag'lerine çözülüyor (#942). **v0.11.0, v0.12.0 ve v0.13.0** GHCR'da imajlarıyla mevcut. **Kalan:** gerçek bir rollback tatbikatı hâlâ yapılmadı — artık `target_ref=v0.13.0` ile denenebilir.
+1. **🔴→🟡 Rollback güvencesi kısmen onarıldı.** Denetimde: 10 sürüm tag'inin hiçbirinin GHCR'da image'ı yoktu, `rollback.yml` hiç koşmamıştı, boş hedef arşiv tag'ine çözülüyordu. Şimdi: `release-tag.yml` her yeni tag'i `test-<sha7>` imajıyla eşliyor (#943), `rollback.sh` yalnız `v*` tag'lerine çözülüyor (#942). **v0.11.0–v0.14.0** GHCR'da imajlarıyla mevcut.
+   **⚠️ 2026-08-15 düzeltmesi — "üç kez canlıda doğrulandı" ifadesi yanıltıcıydı:** doğrulanan yalnız `release-tag.yml` tarafıdır (yeni tag → imaj eşlemesi). Geri dönüş script'inin kendisi, `infra/scripts/rollback.sh:69`, **hâlâ hatalı SHA türetiyor** — `git rev-parse --short=7 "${TARGET_REF}"` bir merge commit'in `^2` (test head) parent'ını almadığı için `test-<sha7>` imajı bulunamıyor. Düzeltme yalnız `infra/yedekleme-rollback-sertlestirme` dalında duruyor, `dev`'e terfi etmedi.
+   **⚠️ Kapsam:** git'te **14** sürüm tag'i var (`v0.1.0`…`v0.14.0`), GHCR'de yalnız **4**'ünün imajı (`v0.11.0`–`v0.14.0`). **v0.1.0–v0.10.0 için rollback fiilen imkânsız.**
+   **Kalan:** gerçek bir rollback tatbikatı hâlâ yapılmadı; önce `rollback.sh` düzeltmesi terfi etmeli.
 2. **🟠→🟢 Tedarik zinciri kapatıldı.** 28 action referansının tamamı commit SHA'sına pinli (#942), Dependabot `github-actions` ekosistemi pinleri güncel tutacak. **Kalan:** dispatch input'larının root SSH script'ine interpolasyonu ve Dockerfile digest'leri (orta öncelik).
-3. **🟠→🟢 Güvenlik görünürlüğü kuruldu.** Dependabot alerts + secret scanning + push protection + **private vulnerability reporting** açık; CodeQL iki dilde PR kapısında (ölçülen: C# 2:13, TS 1:13); npm açıkları **10 → 0** (#944 + xlsx→SheetJS CDN 0.20.3 #945). NuGet ilk taramada temiz. `.github/SECURITY.md` eklendi (#962). **Kalan:** LICENSE bilinçli ertelendi; server-access.md hâlâ IP/port yayınlıyor (silmek geçmişten kaldırmadığı için ayrı karar).
-4. **🟢 CI hattı sağlam, hijyeni de tamamlandı.** %98,9 koşum başarısı; terfi zinciri 3 ruleset + `enforce-promotion` ile zorlanıyor. Buna ek olarak (#961): 8/8 workflow'da top-level `contents: read`, 15/15 job'da `timeout-minutes`, backend test guard artık sessizce geçmiyor, sürüm etiketine otomatik changelog'lu GitHub Release bağlandı. **Kalan:** 0/20 merge review'lu — 1-onay/CODEOWNERS kararı bekliyor; her işe ~1,5 terfi PR'ı yükü sürüyor.
-5. **🟡→🟢 Dokümantasyon bayatlığı kapatıldı.** Denetimde 12 bayat dosya vardı; hepsi düzeltildi (#942, #962): README parolası, escape'li kök CLAUDE.md (111 escape, içerik birebir korundu), snapshot/kod-taraması yanlışları, secret envanteri, doc-map yeniden ölçümü (41 dosya / 10.125 satır). **Kalan:** koordinat terminolojisi çelişkisi — `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor.
+3. **🟠→🟢 Güvenlik görünürlüğü kuruldu.** Dependabot alerts + secret scanning + push protection + **private vulnerability reporting** açık; CodeQL iki dilde PR'larda koşuyor (ölçülen: C# 2:13, TS 1:13) — **ancak 2026-08-15 doğrulaması: CodeQL hiçbir ruleset'in `required_status_checks` listesinde değil, yani merge'ü bloke etmiyor; advisory seviyede** (`gh api /repos/Divizyon/cargo-pilot/rulesets/{id}` × 4); npm açıkları **10 → 0** (#944 + xlsx→SheetJS CDN 0.20.3 #945). NuGet ilk taramada temiz. `.github/SECURITY.md` eklendi (#962). **Kalan:** LICENSE bilinçli ertelendi; server-access.md hâlâ IP/port yayınlıyor (silmek geçmişten kaldırmadığı için ayrı karar).
+4. **🟡 CI hattı ayakta ama başarı oranı düşük.** **⚠️ 2026-08-15 düzeltmesi:** "%98,9 koşum başarısı" yanlıştı — ana CI workflow'u (`CI — Kod Kalite ve Build Kontrolü`) örneklem penceresine göre **%58,8 – %81** arasında. Son 100 koşumun 34'ü bu workflow ve 20'si yeşil (%58,8); `--workflow=ci.yml --limit 100` ile daha geniş pencerede 81/100 (%81). En uzun kırmızı seri: 12 ardışık başarısızlık (`feat/ERP-toplu-iyilestirme`, `Frontend CI` job'u, 2026-08-13 → 08-14). Terfi zinciri 3 ruleset + `enforce-promotion` ile zorlanıyor. Buna ek olarak (#961): **7/8** workflow'da top-level `contents: read` (`promote.yml:55` bilerek `contents: write` — terfi merge'i için), 15/15 job'da `timeout-minutes`, backend test guard artık sessizce geçmiyor, sürüm etiketine otomatik changelog'lu GitHub Release bağlandı. **Kalan:** 0/20 merge review'lu — 1-onay/CODEOWNERS kararı bekliyor; her işe ~1,5 terfi PR'ı yükü sürüyor.
+5. **🟡 Dokümantasyon bayatlığı ilk turda kapatıldı, ikinci turda yeniden açıldı.** Denetimde 12 bayat dosya vardı; hepsi düzeltildi (#942, #962): README parolası, escape'li kök CLAUDE.md (111 escape, içerik birebir korundu), snapshot/kod-taraması yanlışları, secret envanteri, doc-map yeniden ölçümü. **⚠️ 2026-08-15 yeniden taraması 45 md dosyasının 20'sinde bayat/çelişkili içerik buldu** (ölü motor yolu ×8, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity "kanıtı", sayı hataları); bunlar `docs/dokuman-tazeleme` turunda düzeltildi. Güncel hacim: **45 md / 11.056 satır** (`git ls-files '*.md'`, `dev`, 2026-08-15) — rapordaki eski "41 / 10.125" değeri bayat. **Kalan:** koordinat terminolojisi çelişkisi — `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor.
 
 ---
 
@@ -24,14 +51,17 @@
 | Dependabot / CodeQL | Yok / Yok | **Kurulu** ✅ | Secret scanning + push prot. | Kapalı | **Açık** ✅ |
 | NuGet taraması | Yok | **Temiz (0 alert)** ✅ | Sürüm↔imaj eşleme | Yok (10/10 kopuk) | **Otomatik** (yeni tag'ler) ✅ |
 | GitHub environment | Yok (rollback kırık) | **test + prod** (prod onaylı) ✅ | README'de parola | Var | **Kaldırıldı** ✅ |
-| Dependabot alert (main) | — (kapalıydı) | **36 → 0** ✅ | Eşlenen sürüm | 0/10 | **v0.11.0 + v0.12.0 + v0.13.0** ✅ |
-| SECURITY.md | Yok | **Var** ✅ | Bayat doküman | 12 | **0** ✅ |
-| Top-level `permissions` | 1/7 workflow | **8/8** ✅ | `timeout-minutes` | 2/15 job | **15/15** ✅ |
+| Dependabot alert (main) | — (kapalıydı) | **36 → 0** ✅ | Eşlenen sürüm | 0/10 | **4/14** ⚠️ (v0.11–v0.14) |
+| SECURITY.md | Yok | **Var** ✅ | Bayat doküman | 12 | 20/45 ⚠️ (08-15 yeniden tarama) |
+| Top-level `permissions` | 1/7 workflow | **7/8** ✅ (promote.yml bilerek `write`) | `timeout-minutes` | 2/15 job | **15/15** ✅ |
 | Backend test guard | Sessizce atlıyor | **`exit 1`** ✅ | Ölü secret (TEST_GHCR_*) | 2 | **0** ✅ |
 | Review'lu merge PR (son 20) | 0/20 | 0/20 ⏸ | rollback.yml koşumu | 0 | 0 ⏸ (tatbikat bekliyor) |
 | LICENSE | Yok | Yok ⏸ (ertelendi) | GitHub Release | 0/11 sürüm | **v0.12.0 + v0.13.0** ✅ (otomatik changelog) |
 | Dependabot ignore kuralı (main) | — | 4 → **17** ✅ | İşlenen Dependabot PR | — | **17** (8 merge / 9 kapatma) |
-| Workflow / job | 7 / 14 | 8 / 15 (codeql) | CI başarı / ort. süre | %98,9 / 4,5 dk | değişmedi |
+| Workflow / job | 7 / 14 | 8 / 15 (codeql) | CI başarı (ana workflow) | %98,9 ❌ bayat | **%58,8 – %81** ⚠️ (2026-08-15) |
+| CodeQL zorunlu check | — | **Hayır** ⚠️ (advisory) | md dosya / satır | 41 / 10.125 ❌ bayat | **45 / 11.056** (2026-08-15) |
+
+*Tablo 2026-08-15'te tazelendi; ❌ bayat işaretli hücreler denetim günü (2026-08-13) yazılmış, yeniden ölçümde yanlış çıkmış değerlerdir.*
 
 ---
 
@@ -66,17 +96,18 @@ flowchart LR
   RT -->|"imagetools retag + GitHub Release (#943, #961)"| G[("GHCR")]
 ```
 
-**Workflow envanteri** *(süreler son 20 koşumun `updatedAt-createdAt` ortalaması; kuyruk süresi dahil)*:
+**Workflow envanteri** *(süreler son 20 koşumun `updatedAt-createdAt` ortalaması; kuyruk süresi dahil. **Başarı sütunu 2026-08-15'te yeniden ölçüldü** — denetim günü yazılan %100'ler yanlıştı)*:
 
-| Workflow | Tetikleyici | Job | Ort. süre | Başarı |
-|---|---|---|---|---|
-| ci.yml | iş branch'i push + PR→dev/test/main | 4 | 4,5 dk | %100 |
-| test-deploy.yml | iş branch'i push + PR→test/main + push test | 4 | 3,9 dk | %100 |
-| promote.yml ("Terfi") | workflow_dispatch | 1 | 1,6 dk | 4/4 |
-| release-tag.yml | push main | 1 | 14 sn | %91 (10/11) |
-| rollback.yml | workflow_dispatch | 1 | — | **0 koşum** |
-| sync-base-images.yml | Pazar 02:00 | 1 | 71 sn | %100 |
-| cache-cleanup.yml | PR close + Pzt 03:00 | 2 | 17 sn | %100 |
+| Workflow | Tetikleyici | Job | Ort. süre | Başarı (2026-08-13, bayat) | Başarı (2026-08-15, ölçülen) |
+|---|---|---|---|---|---|
+| ci.yml | iş branch'i push + PR→dev/test/main | 4 | 4,5 dk | %100 ❌ | **%58,8 – %81** — son 100 koşumun 34'ü ci.yml, 20'si yeşil (%58,8); `--workflow=ci.yml --limit 100` penceresinde 81/100 (%81) |
+| test-deploy.yml | iş branch'i push + PR→test/main + push test | 4 | 3,9 dk | %100 ❌ | **%96,7** (29/30) |
+| promote.yml ("Terfi") | workflow_dispatch | 1 | 1,6 dk | 4/4 | 4/4 (%100) |
+| release-tag.yml | push main | 1 | 14 sn | %91 (10/11) | 3/3 (%100, son 100 koşum penceresi) |
+| rollback.yml | workflow_dispatch | 1 | — | **0 koşum** | **0 koşum** |
+| sync-base-images.yml | Pazar 02:00 | 1 | 71 sn | %100 | doğrulanamadı (son 100 koşum penceresine girmedi) |
+| cache-cleanup.yml | PR close + Pzt 03:00 | 2 | 17 sn | %100 | 13/13 (%100) |
+| codeql.yml | PR→dev + haftalık cron | 2 | 2,5 dk | — | 9/9 (%100) — **zorunlu check değil** |
 
 **Başlıca bulgular** *(tümü doğrulanmış; sağ sütun bugünkü durum)*:
 
@@ -89,7 +120,7 @@ flowchart LR
 | 🟡 Orta | build-push-action v5/v6 karışık | ci.yml @v6, test-deploy.yml @v5 ×4 | ⏸ açık (SHA-pinli ama iki sürüm) |
 | ⚪ Düşük | 13/14 job'da `timeout-minutes` yok | yalnız promote.yml:65 | ✅ #961: 15/15 job |
 | ⚪ Düşük | Backend test adımı `find` guard'ı ile **sessizce atlanabilir** | ci.yml:120-127 | ✅ #961: `::error::` + `exit 1` |
-| ⚪ Düşük | 6/14 job'da `permissions` bloğu yok | `grep permissions` | ✅ #961: 8/8 dosyada top-level `contents: read` |
+| ⚪ Düşük | 6/14 job'da `permissions` bloğu yok | `grep permissions` | ✅ #961: **7/8** dosyada top-level `contents: read` (2026-08-15 sayımı); `promote.yml:55` bilerek `contents: write` |
 
 ---
 
@@ -111,7 +142,7 @@ flowchart LR
 - 🟠→🟢 `rollback.yml`'in dayandığı `test`/`prod` environment'ları mevcut değildi → **ikisi de kuruldu** (2026-08-13, API ile); `prod` required-reviewer korumalı — prod rollback artık insan onayı arkasında. ⏸ Kalan: `PROD_SSH_*` hâlâ tanımsız; `TEST_SSH_*`'ın environment secret'ına taşınması manuel (değerlerin yeniden girilmesi gerekir).
 - 🟡 `workflow_dispatch` input'ları `${{ }}` ile doğrudan script gövdesine giriyor; rollback'te bu, **sunucuda root olarak koşan** SSH script'i (rollback.yml:36,58,70). ⏸ Açık — env üzerinden geçirilmeli.
 - 🟡 SSH'ta host key `fingerprint` pinning yok; kullanıcı `root`. ⏸ Açık — dedike deploy kullanıcısı sunucu tarafı iş.
-- ⚪→🟢 6/14 job'da `permissions` bloğu yoktu → **8/8 workflow'a top-level `contents: read` eklendi** (#961); job seviyesinde kendi izinlerini bildirenlere dokunulmadı.
+- ⚪→🟢 6/14 job'da `permissions` bloğu yoktu → **top-level `permissions` bloğu 8/8 workflow'a eklendi** (#961); bunların **7'si `contents: read`**, `promote.yml:55` ise terfi merge'ini yapabilmek için bilerek `contents: write` (2026-08-15'te `grep -n "contents:" .github/workflows/*.yml` ile doğrulandı). Job seviyesinde kendi izinlerini bildirenlere dokunulmadı.
 - 🟡→🟢 Ölü `TEST_GHCR_PAT`/`TEST_GHCR_USER` secret'ları **silindi** (8 → 6 secret). ⏸ Kalan: PAT'in GitHub hesabından revoke edilmesi (manuel).
 - ✅ Güçlü yönler: `pull_request_target` yok, self-hosted runner yok, fork PR'ları cache job'unda doğru dışlanmış, default token izni `read`.
 
@@ -188,15 +219,15 @@ Ruleset gerçeği *(klasik branch protection API'si 404 döner — korumalar rul
 | Maintained | 10/10 | 10/10 | 90 günde 822 commit |
 | CI-Tests | 9/10 | 9/10 | `find` guard'ı sessiz atlama riski sürüyor |
 | **Dependency-Update-Tool** | 0/10 | **10/10** | dependabot.yml (5 girdi) + alerts açık |
-| **SAST** | 0/10 | **10/10** | CodeQL PR kapısında, iki dil (C# 2:13, TS 1:13) |
+| **SAST** | 0/10 | **6/10** | CodeQL iki dilde koşuyor (C# 2:13, TS 1:13) ama **zorunlu status check değil** — 4 ruleset'in hiçbirinde listeli değil, merge'ü bloke etmiyor (2026-08-15, `gh api .../rulesets/{id}`). Denetim günü 10/10 yazılmıştı, düzeltildi |
 | **Vulnerabilities** | 0/10 | **10/10** | npm audit 0 açık; NuGet ilk taramada temiz |
 | **Pinned-Dependencies** | 3/10 | **8/10** | 28/28 action SHA-pinli; Dockerfile'lar hâlâ digest'siz |
-| **Token-Permissions** | 4/10 | **9/10** | 8/8 workflow'da top-level `contents: read` (#961) |
+| **Token-Permissions** | 4/10 | **8/10** | **7/8** workflow'da top-level `contents: read` (#961); `promote.yml` `contents: write` (meşru). Denetim günü 9/10 ve 8/8 yazılmıştı, düzeltildi |
 | **Security-Policy** | 0/10 | **10/10** | `.github/SECURITY.md` + private vulnerability reporting (#962) |
 | Branch-Protection | 4/10 | 4/10 | 0 zorunlu onay — karar bekliyor |
 | Code-Review | 0/10 | 0/10 | 0/20 review'lu merge |
 | License | 0/10 | 0/10 | Bilinçli ertelendi |
-| **Toplam (ort. ×10)** | **≈36** | **≈75** | ±10; kalan üç düşük puan da aynı karara bağlı: review zorunluluğu + lisans |
+| **Toplam (ort. ×10)** | **≈36** | **≈71** | ±10 (2026-08-15 düzeltmesi: SAST ve Token-Permissions yeniden puanlanınca 75 → ≈71). Kalan üç düşük puan aynı karara bağlı: review zorunluluğu + lisans |
 
 ---
 
@@ -318,7 +349,15 @@ jobs:
 
 ## 8. Dokümantasyon
 
-Denetimde **12 dosyada bayatlık/çelişki** vardı; yeniden ölçülen güncel hacim **41 md / 10.125 satır**. 12'sinin tamamı kapatıldı (#942, #962):
+Denetimde **12 dosyada bayatlık/çelişki** vardı ve 12'sinin tamamı kapatıldı (#942, #962).
+
+**⚠️ 2026-08-15 tazelemesi:** "41 md / 10.125 satır" değeri bayattır. Güncel hacim **45 md / 11.056 satır**
+(`git ls-files '*.md' | wc -l` = 45, `git ls-files '*.md' | xargs wc -l` = 11.056; `dev` dalı, 2026-08-15).
+Ayrıca bağımsız bir yeniden tarama 45 dosyanın **20'sinde** yeni bayat/çelişkili iddia buldu
+(ölü motor yolu 8 yerde, `useInMemoryRepository` varsayılanı, Grafana portu, kurgusal `Cargo` entity
+"kanıtı", `global.json` kök iddiası, sayı hataları) — bunlar `docs/dokuman-tazeleme` turunda düzeltildi.
+Yani "bayat doküman = 0" iddiası yalnız 2026-08-13 için geçerliydi.
+
 
 | Dosya | Sorun (denetim anı) | Durum |
 |---|---|---|
@@ -327,7 +366,7 @@ Denetimde **12 dosyada bayatlık/çelişki** vardı; yeniden ölçülen güncel 
 | `docs/context/kod-taramasi-2026-08.md` | "Backend test projesi hiç yok" | ✅ Tarihli rapor olduğu için silinmedi, "geçerli değil" notu düşüldü |
 | `README.md` | Default admin parolası canlı URL'le yan yana | ✅ #942 |
 | `docs/devops/server-access.md` | Secret adları yanlış (`SSH_HOST` vs `TEST_SSH_HOST`) | ✅ Düzeltildi + environment notu |
-| `doc-map.md` + `SUMMARY.md` | Koordinat dokümanları indekste yok; sayılar eski | ✅ Yeniden ölçüldü (41/10.125), eksik dokümanlar eklendi |
+| `doc-map.md` + `SUMMARY.md` | Koordinat dokümanları indekste yok; sayılar eski | ✅ Yeniden ölçüldü, eksik dokümanlar eklendi. ⚠️ O turun 41/10.125 sayısı da bayatladı → **45/11.056** (2026-08-15) |
 | `docs/devops/deployment.md` | Eski branch prefix'leri + yanlış tetikleyici tablosu | ✅ Tablo `branching.md`'ye devredildi (çift bakım bitti) |
 | `docs/devops/secret-management.md` | Ölü TEST_GHCR_* listeli; kullanılan 10+ secret yok | ✅ Kategorili tam envanter + VITE_* uyarısı |
 | `docs/devops/known-issues.md` | 3 çözülmüş madde "Açık Sorunlar" altında | ✅ "Çözülenler"e taşındı; numaralar bilinçli korundu (4 doküman atıf yapıyor) |
@@ -382,7 +421,7 @@ Eksik standart dosyalar: ~~SECURITY.md~~ ✅ eklendi · **LICENSE** ⏸ bilinçl
 | Kalem | Durum | Not |
 |---|---|---|
 | v0.x ↔ GHCR image eşleme | ✅ [PR #943](https://github.com/Divizyon/cargo-pilot/pull/943) merge | `release-tag.yml` artık yeni tag'i `test-<sha7>` imajına `imagetools` ile eşliyor; kaynak imaj yoksa açık hata |
-| `npm audit fix` (9/10 açık) | ✅ [PR #944](https://github.com/Divizyon/cargo-pilot/pull/944) merge | Yalnız lockfile değişti; 166 test yeşil |
+| `npm audit fix` (9/10 açık) | ✅ [PR #944](https://github.com/Divizyon/cargo-pilot/pull/944) merge | Yalnız lockfile değişti; frontend testleri yeşil. ⚠️ "166 test" sayısı doğrulanamadı — 2026-08-15 sayımı **16 dosya / ~151 test-case** verdi ve bu bir **alt sınırdır** (`it.each`/`describe.each` kalıpları regex ile sayılamıyor) |
 | xlsx → SheetJS CDN 0.20.3 | ✅ [PR #945](https://github.com/Divizyon/cargo-pilot/pull/945) | `npm audit`: **0 açık**; iki advisory de kapandı; kod değişikliği yok |
 | xlsx → exceljs geçişi | 📋 Backlog | `devops-backlog.md` madde 12 (Kategori 5'te kapsam + QA notu) |
 | test/prod GitHub environment | ✅ API ile kuruldu | `prod` required-reviewer korumalı; `test` korumasız (otomatik terfi akışı bozulmasın) |
@@ -400,7 +439,7 @@ Eksik standart dosyalar: ~~SECURITY.md~~ ✅ eklendi · **LICENSE** ⏸ bilinçl
 | SECURITY.md | ✅ [PR #962](https://github.com/Divizyon/cargo-pilot/pull/962) | Kanal: **GitHub private vulnerability reporting** (repo ayarından açıldı); e-posta yayınlanmadı |
 | Ölü secret temizliği | ✅ Repo ayarı | `TEST_GHCR_PAT` + `TEST_GHCR_USER` silindi (8 → 6 secret) |
 | Kök `CLAUDE.md` escape'leri | ✅ PR #962 | 111 escape, 248→135 satır; içerik birebir korundu (kelime sayısı 1037=1037) |
-| 12 bayat dokümanın tamamı | ✅ PR #962 | Bağlam + DevOps dokümanları workflow gerçeğiyle hizalandı; doc-map yeniden ölçüldü (41 dosya / 10.125 satır) |
+| 12 bayat dokümanın tamamı | ✅ PR #962 | Bağlam + DevOps dokümanları workflow gerçeğiyle hizalandı; doc-map o gün 41 dosya / 10.125 satır ölçülmüştü. ⚠️ 2026-08-15: **45 dosya / 11.056 satır**, 20 dosyada yeni bayatlık (bkz. §8) |
 | LICENSE | ⏸ Ertelendi | Repo taahhüdü netleşene kadar — bilinçli karar |
 | `server-access.md` IP/port ifşası | ⏸ Karar | Dosyadan silmek git geçmişinden kaldırmıyor; ayrı bir karar konusu |
 | Koordinat terminolojisi çelişkisi | ⏸ Bağımlı | `COORDINATE_AUDIT.md` kod değişikliğiyle birlikte ele alınmasını şart koşuyor |
