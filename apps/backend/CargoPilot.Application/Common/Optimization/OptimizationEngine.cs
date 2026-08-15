@@ -30,20 +30,26 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         var instances = ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups);
 
-        var halfW = input.VehicleWidth  / 2m;
+        // Big door aciklik payi kullanilabilir x araligini daraltir
+        // (docs/COORDINATE_STANDARD.md §7). Kapi yoksa pay 0'dir ve aralik
+        // 0..VehicleWidth olarak kalir — bugunku davranis.
+        var minX = input.UsableMinX;
+        var maxX = input.UsableMaxX;
+
+        var halfW = (minX + maxX) / 2m;
         var halfL = input.VehicleLength / 2m;
 
         // ── Extreme-point tohumu ──────────────────────────────────────────────
         // WeightBalance: aracın 4 kat-zemin köşesi tohumlanır; aksi hâlde greedy
         // her zaman (0,0,0) yakınına yığılır ve ön-arka/sol-sağ denge bozulur.
-        var extremePoints = new HashSet<(decimal x, decimal y, decimal z)> { (0m, 0m, 0m) };
+        var extremePoints = new HashSet<(decimal x, decimal y, decimal z)> { (minX, 0m, 0m) };
         if (useWeightBalance
             && input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance
-            && halfW > 0m && halfL > 0m)
+            && halfW > minX && halfL > 0m)
         {
-            extremePoints.Add((halfW, 0m, 0m));    // arka-sağ
-            extremePoints.Add((0m,    0m, halfL)); // ön-sol
-            extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
+            extremePoints.Add((halfW, 0m, 0m));    // uzak yüz, sağ yarı
+            extremePoints.Add((minX,  0m, halfL)); // kapı tarafı, sol yarı
+            extremePoints.Add((halfW, 0m, halfL)); // kapı tarafı, sağ yarı
         }
 
         var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, modules.UseLifo);
@@ -95,7 +101,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             {
                 foreach (var (width, height, length, rotation) in PlacementValidator.GetOrientations(item))
                 {
-                    if (ex + width > input.VehicleWidth)  continue;
+                    if (ex < minX) continue;
+                    if (ex + width > maxX) continue;
                     if (ey + height > input.VehicleHeight) continue;
                     if (ez + length > input.VehicleLength) continue;
 
@@ -159,7 +166,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((best.X, best.Y, best.Z + best.Length));
 
             extremePoints.RemoveWhere(p =>
-                p.x >= input.VehicleWidth  ||
+                p.x >= maxX ||
                 p.y >= input.VehicleHeight ||
                 p.z >= input.VehicleLength);
         }

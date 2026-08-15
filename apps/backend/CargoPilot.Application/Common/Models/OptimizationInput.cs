@@ -10,6 +10,15 @@ namespace CargoPilot.Application.Common.Models;
 /// <param name="Items">Yerleştirilecek ürünler.</param>
 /// <param name="Criteria">Optimizasyon kriteri.</param>
 /// <param name="LoadingType">Yükleme kapısı yönü.</param>
+/// <param name="ClearanceAtZeroX">
+/// <c>x = 0</c> yüzündeki big door'un açıklık payı (x₀, cm). Kapı origin tarafındaysa
+/// yükleme <c>(0,0,0)</c>'dan değil <c>(x₀,0,0)</c>'dan başlar
+/// (docs/COORDINATE_STANDARD.md §7). Kapı yoksa 0.
+/// </param>
+/// <param name="ClearanceAtWidthX">
+/// <c>x = width</c> yüzündeki big door'un açıklık payı (cm). Kullanılabilir üst sınırı
+/// <c>width − x₀</c>'a çeker. Kapı yoksa 0.
+/// </param>
 /// <param name="ClusterGroups">Gruplu ürünlerin bir arada tutulup tutulmayacağı.</param>
 /// <param name="Modules">Modül bayrakları. Verilmezse kriterden türetilir.</param>
 public sealed record OptimizationInput(
@@ -21,7 +30,16 @@ public sealed record OptimizationInput(
     LoadingPlanOptimizationCriteria Criteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
-    OptimizationModules? Modules = null);
+    OptimizationModules? Modules = null,
+    decimal ClearanceAtZeroX = 0m,
+    decimal ClearanceAtWidthX = 0m)
+{
+    /// <summary>Yüklemenin başlayabileceği en küçük x (cm).</summary>
+    public decimal UsableMinX => ClearanceAtZeroX;
+
+    /// <summary>Yüklemenin taşamayacağı en büyük x (cm).</summary>
+    public decimal UsableMaxX => VehicleWidth - ClearanceAtWidthX;
+}
 
 /// <summary>
 /// Optimizasyon modüllerinin açık/kapalı durumu. Verilmezse kriterden türetilir
