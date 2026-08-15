@@ -10,6 +10,12 @@
 
 > Bu denetim **yalnızca rapordur** — hiçbir kaynak dosya değiştirilmemiştir.
 
+> **⚠️ Bayatlık uyarısı (2026-08-15, ikinci ölçüm):** Bu belge 2026-08-12 tarihli **anlık
+> görüntüdür**. Daha yeni ve daha geniş tarama `docs/KOORDINAT-UYUM-RAPORU.md`'dir; onun
+> §0 bölümü PR #997/#1004 sonrası hangi bulguların kapandığını dosya:satır kanıtıyla verir.
+> Buradaki z-yönü ve `depth` bulgularının büyük kısmı **artık geçersizdir** — düzeltmeye
+> başlamadan önce güncel durumu o rapordan okuyun. İçerik tarihsel kayıt olarak korunmuştur.
+
 > **Sürüm 1'e göre ne değişti:** origin sağ-alt yerine **sol-alt**, `depth` yerine
 > **`length`**, kapılar front/rear/sağ/sol yerine **small/big**. Bunun sonucunda önceki
 > denetimde ihlal sayılan bazı maddeler **artık uyumludur** — bkz. bölüm 4

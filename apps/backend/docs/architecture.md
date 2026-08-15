@@ -65,16 +65,25 @@ Kurallar:
   `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`,
   `VolumeScoring.cs`, `PlacedBox.cs`. `caab495d` (2026-08-11) ile Infrastructure katmanından
   buraya taşındı ve tek dosyadan 7 dosyaya bölündü.
-  *Ölçüm 2026-08-15, `dev` dalı: `wc -l apps/backend/CargoPilot.Application/Common/Optimization/*.cs`
-  → toplam **915 satır**. `fix/OPT-01-denge-takas-destek-dogrulamasi` ve
-  `fix/OPT-02-lifo-bolge-sert-kisiti` dalları henüz `dev`'e alınmamıştır; birleşik bir durum
-  bugün mevcut değildir. Satır sayısı yeniden ölçülmeden alıntılanmamalıdır.*
-- **LIFO boşaltma bölgesi kısıtı** (`LifoPlacement.cs`) `dev` üzerinde hâlâ **yumuşaktır** —
-  bölge dışına çıkma yalnız skor cezasıyla (katsayı 2 000) caydırılır ve yerçekimi terimi
-  (1 000 000) yanında 500× zayıf kaldığı için pratikte bağlamaz.
-  `fix/OPT-02-lifo-bolge-sert-kisiti` dalı bunu **iki kademeli sert kısıta** çevirir: bölge içinde
-  geçerli aday varsa yalnız onlardan seçilir, hiç yoksa mevcut skorlamaya düşülür.
-  Ayrıntı ve ölçümler: `docs/context/kod-taramasi-2026-08.md` §4.1.
+  *Ölçüm 2026-08-15 (ikinci ölçüm), `dev` @ `96e9fd8b`:
+  `wc -l apps/backend/CargoPilot.Application/Common/Optimization/*.cs` → toplam **1036 satır**
+  (BalanceScoring 220 · ItemOrdering 71 · LifoPlacement 118 · OptimizationEngine 268 ·
+  PlacedBox 17 · PlacementValidator 314 · VolumeScoring 28). Aynı gün erken saatte ölçülen
+  915 satır değeri, OPT-01 (#989) ve OPT-02 (#990) `dev`'e alınmadan öncesine aitti ve artık
+  bayattır. Satır sayısı yeniden ölçülmeden alıntılanmamalıdır.*
+- **LIFO boşaltma bölgesi kısıtı** (`LifoPlacement.cs`) PR **#990** ile **iki kademeli sert kısıt**
+  oldu: motor önce bölge içindeki geçerli adaylar arasından seçer
+  (`OptimizationEngine.cs:131` → `LifoPlacement.IsInsideZone`), bölge içinde hiç aday yoksa
+  cezalı skorlamaya düşer (yedek kademe, `OptimizationEngine.cs:264` → `ZonePenalty`).
+  Ceza katsayısı **2 000'de bırakıldı** (`LifoPlacement.cs:30`) ama artık yalnızca yedek
+  kademedeki adayları kendi aralarında sıralar — "bölge ihlali cezalandırılır" tarifi
+  **geçersizdir**, bölge içi aday varken ihlal hiç seçilemez. Bölge haritası PR **#997** ile
+  ters çevrildi: referans kapı `z = length`, ilk inecek grup kapıya en yakın bölgeyi alır
+  (`LifoPlacement.cs:82`). Ayrıntı ve ölçümler: `docs/context/kod-taramasi-2026-08.md` §4.1.
+- **Denge takası destek doğrulaması** PR **#989** ile eklendi: `BalanceScoring` greedy-swap'i
+  artık takas edilen her iki kutu için `PlacementValidator.ViolatesLoadAbove` çağırıyor
+  (`BalanceScoring.cs:182-183`) ve takas sonrası eski üst yüzeylerdeki desteği yeniden
+  denetliyor. Önceki hâlde takas yalnız aşağı bakan kısıtları kontrol ediyordu.
 
 Örnek klasör (gerçek koddan):
 ```

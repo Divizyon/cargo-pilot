@@ -75,18 +75,20 @@ dönüşüm görülürse hatadır.
 | -------------- | ----------------- | ----------------------------- | ----------------------------------------------- | -------------------------------------- |
 | **small door** | `width × height`  | `z = length` ve/veya `z = 0`  | Yalnızca `z = length` (**back door**). `z = 0` kabin ucudur, kapı olmaz. | İki uçta da olabilir; referans `z = length`'tedir. |
 | **big door**   | `length × height` | `x = 0` ve/veya `x = width`   | Olabilir — tek tarafta ya da iki tarafta          | Olabilir — tek tarafta ya da iki tarafta |
+| **top door**   | `width × length`  | `y = height`                  | Olabilir                                          | Olabilir                                |
 
 Kurallar:
 
-- **Kapılar liste olarak modellenir.** Bir araçta aynı anda birden fazla kapı
+- **Kapılar liste olarak modellenir** (⚠️ kodda henüz tekil enum var — bkz. bölüm 10). Bir araçta aynı anda birden fazla kapı
   bulunabildiği için kapı bilgisi tekil bir enum değeri değil, yüz bilgisiyle birlikte bir
   listedir:
 
   ```ts
   doors: [
     { type: 'small', face: 'z=length' },
-    { type: 'big',   face: 'x=0' },
-    { type: 'big',   face: 'x=width' },
+    { type: 'big',   face: 'x=0',     clearanceCm: 12 },
+    { type: 'big',   face: 'x=width', clearanceCm: 12 },
+    { type: 'top',   face: 'y=height' },
   ]
   ```
 
@@ -95,6 +97,10 @@ Kurallar:
   bakışlarını adlandırmak için kullanılır (bkz. bölüm 6).
 - **"ön kapı" / "front door" diye bir kavram yoktur.** TIR'da `z = 0` kabin ucudur;
   düz konteynerde `z = 0` yalnızca karşı küçük yüzdür.
+- **top door** üçüncü bir kapı tipidir ve `y = height` yüzünde bulunur
+  (⚠️ kodda henüz uygulanmadı — bkz. bölüm 10). Yükleme
+  yukarıdan yapıldığı için katman ekseni `y`'dir; aynı kattaki sıralama yine
+  yükleme yönünü (`z` küçük→büyük) izler.
 
 ---
 
@@ -210,15 +216,21 @@ tarafıdır. Üstten veya karşıdan bakışta ekranda görünen sol/sağ ile ka
 Yükleme normalde **origin'den** başlar. **Big door origin'in bulunduğu `x = 0`
 yüzündeyse** yükleme origin'den değil, `x` ekseninde `x₀` kadar kaymış noktadan başlar.
 
+`x₀`, **her big door'un kendi açıklık payıdır** ve araç kaydında o kapının alanı olarak
+tutulur (`clearanceCm`). ⚠️ Bu alan kodda henüz yok; bugün yükleme her koşulda `x = 0`'dan
+başlıyor (bkz. bölüm 10). Sabit bir sistem değeri değildir: kanat kalınlığı araca göre
+değişir. Kapı listesinin parçası olduğu için `x = width` tarafındaki big door da kendi
+payını taşır — soru kendiliğinden yanıtlanır.
+
 | Durum | Yükleme başlangıç noktası | Kullanılabilir `x` aralığı |
 | ----- | ------------------------- | -------------------------- |
 | Big door yok | `(0, 0, 0)` | `0 → width` |
-| Big door `x = 0` yüzünde | `(x₀, 0, 0)` | `x₀ → width` |
-| Big door `x = width` yüzünde | `(0, 0, 0)` | `0 → width − x₀` ⚠️ onay bekliyor |
-| Big door iki yüzde de | `(x₀, 0, 0)` | `x₀ → width − x₀` ⚠️ onay bekliyor |
+| Big door `x = 0` yüzünde | `(x₀ˡ, 0, 0)` | `x₀ˡ → width` |
+| Big door `x = width` yüzünde | `(0, 0, 0)` | `0 → width − x₀ʳ` |
+| Big door iki yüzde de | `(x₀ˡ, 0, 0)` | `x₀ˡ → width − x₀ʳ` |
 
-⚠️ **`x₀` değeri henüz tanımlı değildir** (bkz. bölüm 10). Son iki satır verilen kuraldan
-türetilmiş önerilerdir, onay bekliyor.
+`x₀ˡ` = `x = 0` yüzündeki kapının payı, `x₀ʳ` = `x = width` yüzündekinin payı. Kapı
+tanımlıysa payı da tanımlıdır; girilmemişse 0 kabul edilir ve yükleme duvardan başlar.
 
 ---
 
@@ -256,12 +268,26 @@ türetilmiş önerilerdir, onay bekliyor.
 
 ---
 
-## 10. Beklemedeki konular
+## 10. Karara bağlanan konular
 
-| # | Konu | Durum |
-|---|------|-------|
-| 1 | **Small door'u olmayan konteyner** — yalnızca big door'u olan konteynerde origin kuralı tanımsız | Sektör araştırması bekliyor |
-| 2 | **Üst kapı (top door)** — mevcut sistemde `top` kapı yönü var; yeni adlandırmada karşılığı belirsiz | Sektör araştırması bekliyor |
-| 3 | **`x₀` — big door açıklık payı** — kaç cm, nereden geliyor (sabit / araç kaydı / kanat ölçüsü); `x = width` tarafına da uygulanacak mı | Değer ve onay bekliyor |
+> **Bu belge standardı tanımlar, kodun bugünkü hâlini değil.** Aşağıdaki 2 ve 3
+> numaralı kararlar **kodda henüz uygulanmamıştır**; bölüm 4 ve 7'deki ilgili
+> tanımlar hedefi anlatır. Uygulama durumu "Kodda" sütununda.
 
-Bu üç konu netleşene kadar ilgili kod değişiklikleri başlatılmaz.
+| # | Konu | Karar | Kodda |
+|---|------|-------|-------|
+| 1 | **Small door'u olmayan konteyner** | Açık — yalnızca big door'u olan konteynerde origin kuralının hangi yüzden türetileceği tanımsız; sektör araştırması bekliyor. | — |
+| 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4. | ❌ **uygulanmadı** |
+| 3 | **`x₀` — big door açıklık payı** | Sistem sabiti değil, araç kaydındaki kapı alanı (`clearanceCm`). Her big door kendi payını taşır. Bölüm 7. | ❌ **uygulanmadı** |
+
+### Kodun bugünkü hâli
+
+| Standartta yazan | Kodda karşılığı |
+|---|---|
+| `doors: [{ type, face, clearanceCm }]` listesi | Yok. Tekil `LoadingType` enum'u: `Rear/SideRight/SideLeft/SideBoth/Top` (`CargoPilot.Domain/Enums/LoadingType.cs`) |
+| `clearanceCm` — araç kaydında kapı açıklık payı | Yok. Ne domain'de, ne migration'da, ne frontend tipinde |
+| top door: katman ekseni `y`, aynı katta `z` küçük→büyük | Motorda üstten yükleme mantığı yok. `LifoPlacement.ComputeGroupZones` yalnız `LoadingType.Rear` için bölge üretiyor — beş yükleme tipinin dördünde bölge hiç oluşmuyor (bkz. `docs/context/kod-taramasi-2026-08.md`, **OPT-10**) |
+
+Bu üç satır, kapı modeli geçişi (`doors` listesi + `clearanceCm` alanı) tamamlandığında
+güncellenir. 1 numaralı konu netleşene kadar yalnızca ona bağlı kod değişiklikleri
+başlatılmaz.
