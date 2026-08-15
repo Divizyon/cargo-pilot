@@ -39,9 +39,9 @@ export function ErpSetupHelpContent({ onCopyChecklist }: ErpSetupHelpProps) {
       <div className="space-y-1">
         <p className="text-sm font-medium text-foreground">Henüz bir ERP bağlantınız yok</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Aşağıdaki alanları doldurduğunuzda ERP&apos;nizdeki ürünler Cargo Pilot&apos;a
-          çekilebilir hale gelir. Bu bilgiler sizde değil, ERP sunucunuzu yöneten IT ekibinde
-          bulunur — listeyi kopyalayıp onlara iletebilirsiniz.
+          Aşağıdaki alanları doldurduğunuzda ERP&apos;nizdeki ürünler Cargo Pilot&apos;a çekilebilir
+          hale gelir. Bu bilgiler sizde değil, ERP sunucunuzu yöneten IT ekibinde bulunur — listeyi
+          kopyalayıp onlara iletebilirsiniz.
         </p>
       </div>
 

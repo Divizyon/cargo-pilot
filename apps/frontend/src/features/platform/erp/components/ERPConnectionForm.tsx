@@ -459,7 +459,6 @@ export function ERPConnectionForm({ onDirtyChange }: ERPConnectionFormProps) {
               </FormItem>
             )}
           />
-
         </div>
 
         {/*

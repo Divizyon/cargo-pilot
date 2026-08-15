@@ -82,14 +82,20 @@ describe('buildSyncToastMessage', () => {
 
   it('değişmeyen satırlar güncellenenlerden ayrı raporlanır', () => {
     expect(
-      buildSyncToastMessage({ ...emptySummary, added: 0, updated: 1, unchanged: 26, sourceTotal: 27 }),
+      buildSyncToastMessage({
+        ...emptySummary,
+        added: 0,
+        updated: 1,
+        unchanged: 26,
+        sourceTotal: 27,
+      }),
     ).toBe("ERP'de 27 satır bulundu — 0 eklendi, 1 güncellendi, 26 değişmedi");
   });
 
   it('değişmeyen satır yoksa cümlede o parça hiç geçmez', () => {
-    expect(buildSyncToastMessage({ ...emptySummary, added: 5, updated: 0, sourceTotal: 5 })).not.toContain(
-      'değişmedi',
-    );
+    expect(
+      buildSyncToastMessage({ ...emptySummary, added: 5, updated: 0, sourceTotal: 5 }),
+    ).not.toContain('değişmedi');
   });
 
   it('kaynak toplamı biliniyorsa cümleye ERP satır sayısıyla başlar', () => {

@@ -44,7 +44,9 @@ describe('draftItemToRow', () => {
   const placeholderTypeCases: Array<[string | null]> = [['General'], ['STANDARD'], [null]];
 
   it.each(placeholderTypeCases)('ERP tipi %s olsa da tip kategoriden okunur', (productType) => {
-    expect(draftItemToRow(makeDraft({ productType, category: ITEM_CATEGORY.Box })).tip).toBe('koli');
+    expect(draftItemToRow(makeDraft({ productType, category: ITEM_CATEGORY.Box })).tip).toBe(
+      'koli',
+    );
   });
 
   const rotationCases: Array<[number, boolean, boolean, boolean]> = [
