@@ -9,7 +9,7 @@ import { ErpExportStatus } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { VehicleType, vehicleDoorSchema } from '@/lib/types/vehicle';
-import { VEHICLE_TYPE_FROM_INT, resolveDoors } from './vehicleMappers';
+import { VEHICLE_TYPE_FROM_INT } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/geometry/boxOrientations';
 import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
@@ -386,7 +386,10 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     0;
   const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
   const createdAt = normalizeUtcDatetime(rawCreatedAt);
-  const doors = resolveDoors(v?.doors, v?.loadingType);
+  // Plan detayı ve liste ucu kapı listesini taşıyor (VehicleInPlanDto.Doors).
+  // Eski `loadingType` türetimi kayıplıydı: arka + yan kapılı araçta ikinci
+  // kapı düşüyordu, o yüzden geri düşme yolu bilinçli olarak kaldırıldı.
+  const doors = v?.doors ?? [];
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
@@ -569,7 +572,7 @@ function apiVehicleToVehicle(
   v: z.infer<typeof planVehicleApiSchema> & { vehicleId?: string },
 ): Vehicle {
   const id = v.vehicleId ?? v.id ?? '';
-  const doors = resolveDoors(v.doors, v.loadingType);
+  const doors = v.doors ?? [];
   return {
     id,
     name: v.vehicleName ?? v.name ?? '—',

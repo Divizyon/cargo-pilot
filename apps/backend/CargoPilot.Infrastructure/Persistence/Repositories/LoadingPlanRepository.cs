@@ -1,6 +1,7 @@
 using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Features.Vehicles;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
 using CargoPilot.Application.Features.Plans.GetPlanById;
@@ -191,6 +192,7 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         var plan = await _context.LoadingPlans
             .AsNoTracking()
             .Include(p => p.Vehicle)
+                .ThenInclude(v => v.Doors)
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
         if (plan is null) return null;
@@ -256,7 +258,8 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             plan.Vehicle.InternalWidth,
             plan.Vehicle.InternalHeight,
             plan.Vehicle.InternalLength,
-            plan.Vehicle.MaxWeightCapacity);
+            plan.Vehicle.MaxWeightCapacity,
+            [.. plan.Vehicle.Doors.Select(VehicleDoorDto.FromEntity)]);
 
         var placementDtos = placements
             .Select(p => new PlacementDto(

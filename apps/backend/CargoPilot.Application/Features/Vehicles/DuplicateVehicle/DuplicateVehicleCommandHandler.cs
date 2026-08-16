@@ -1,6 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Entities;
 using MediatR;
 
@@ -52,6 +53,16 @@ public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVe
             layerCount: source.LayerCount,
             loadingType: source.LoadingType,
             companyId: companyId);
+
+        // Kapi listesi de kopyalanir. Atlanirsa kopya kapisiz kalirdi: motor
+        // LoadingCorner.FillFromMaxX([]) ile false gorur ve yan kapisi x = 0
+        // olan bir aracin kopyasinda yukleme kapinin tam onunden baslardi
+        // (docs/COORDINATE_STANDARD.md §7). Kaynakta hic kapi yoksa tekil
+        // LoadingType'dan turetilir — CreateVehicle ile ayni iki yol.
+        if (source.Doors.Count > 0)
+            duplicate.ReplaceDoors(source.Doors.Select(door => (door.Type, door.Face)));
+        else
+            DoorSetFactory.EnsureDoors(duplicate);
 
         _vehicleRepository.Add(duplicate);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);

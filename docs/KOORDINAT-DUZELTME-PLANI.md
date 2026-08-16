@@ -23,12 +23,13 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 2 — Kapı sözleşmesinin okuma yolları
+## Faz 2 — Kapı sözleşmesinin okuma yolları ✅
 **Bulgular:** S-01, S-02, S-03 (+ frontend fallback temizliği)
+**Durum:** tamamlandı. Backend 306/306, frontend 340/340. `MapDoorDirection` silindi; plan ve paylaşım yollarındaki kayıplı `loadingType` türetimi kaldırıldı. 4 regresyon testi (`DuplicateVehicleDoorsTests`) düzeltme geri alındığında kırılıyor — doğrulandı.
 
-- [ ] **S-03** `DuplicateVehicleCommandHandler.cs` — `duplicate.ReplaceDoors(source.Doors.Select(d => (d.Type, d.Face)))`; kaynak boşsa `DoorSetFactory.EnsureDoors(duplicate)`. (Önce bu: S-02 düzelse bile kopyalar kapısız kalırdı.)
-- [ ] **S-01** `SharePlanDto` → `IReadOnlyList<VehicleDoorDto> Doors`; `ShareLinkRepository` sorgusuna `.ThenInclude(v => v.Doors)`; `MapDoorDirection` + `string DoorDirection` sil. `share.ts:47` zaten `doors` bekliyor; `SharePage.tsx:61`'deki `?? [{Small,LengthZ}]` fallback'i yalnızca gerçekten boş liste için kalsın.
-- [ ] **S-02** `VehicleInPlanDto` → `Doors` alanı; `LoadingPlanRepository.cs:193`'e `.ThenInclude(v => v.Doors)`; `MapToDetailDto` doldursun. Frontend `loadingPlanMappers`'ta plan yolundaki `loadingType` fallback'i kalksın (`resolveDoors` ikinci argümanı `undefined`).
+- [x] **S-03** `DuplicateVehicleCommandHandler.cs` — `duplicate.ReplaceDoors(source.Doors.Select(d => (d.Type, d.Face)))`; kaynak boşsa `DoorSetFactory.EnsureDoors(duplicate)`. (Önce bu: S-02 düzelse bile kopyalar kapısız kalırdı.)
+- [x] **S-01** `SharePlanDto` → `IReadOnlyList<VehicleDoorDto> Doors`; `ShareLinkRepository` sorgusuna `.ThenInclude(v => v.Doors)`; `MapDoorDirection` + `string DoorDirection` sil. `share.ts:47` zaten `doors` bekliyor; `SharePage.tsx:61`'deki `?? [{Small,LengthZ}]` fallback'i yalnızca gerçekten boş liste için kalsın.
+- [x] **S-02** `VehicleInPlanDto` → `Doors` alanı; `LoadingPlanRepository.cs:193`'e `.ThenInclude(v => v.Doors)`; `MapToDetailDto` doldursun. Frontend `loadingPlanMappers`'ta plan yolundaki `loadingType` fallback'i kalksın (`resolveDoors` ikinci argümanı `undefined`).
 
 **Doğrulama:** Application testleri + share/plan mapper vitest'leri. Manuel: yan kapılı aracın planını paylaş, public sayfada kapı doğru yüzde mi.
 
