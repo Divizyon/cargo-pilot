@@ -1,3 +1,4 @@
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
@@ -88,20 +89,42 @@ public sealed class VehicleDoorTests
     }
 
     /// <remarks>
-    /// Kapi listesi doldurulmamis araclarda null doner ve cagiran taraf eski
-    /// tekil alandan turetmeye devam eder.
+    /// LIFO bolge ayrimi artik kapi listesine BAGLI DEGIL: yalnizca buyuk
+    /// kapisi olan aracta da bolgeler kurulur (LifoPlacement.ComputeGroupZones).
+    /// Bu yuzden LoadingCorner'da referans kapi sorgusu kalmadi; kapi listesinin
+    /// motora etkisi tek noktada, yukleme baslangic kosesinde toplandi.
     /// </remarks>
     [Fact]
-    public void KapiListesiBos_ReferansKapiBilinmiyor()
+    public void ReferansKapi_BolgeAyriminin_OnKosulu_Degildir()
     {
-        LoadingCorner.HasReferenceDoor(new List<VehicleDoor>()).Should().BeNull();
-        LoadingCorner.HasReferenceDoor(null).Should().BeNull();
+        var yalnizcaBuyukKapi = new List<VehicleDoor> { Door(DoorType.Big, DoorFace.ZeroX) };
+
+        // Kapi listesi yalnizca baslangic kosesini belirler.
+        LoadingCorner.FillFromMaxX(yalnizcaBuyukKapi).Should().BeTrue();
+
+        // Bolgeler kapiya degil yalnizca LIFO modulune bagli.
+        var zones = LifoPlacement.ComputeGroupZones(
+            [GrupluUrun(1), GrupluUrun(2)],
+            vehicleLength: 300m,
+            enabled: true);
+
+        zones.Should().HaveCount(2);
     }
 
-    [Fact]
-    public void ReferansKapiVarligi_ListedenOkunur()
-    {
-        LoadingCorner.HasReferenceDoor([Door(DoorType.Small, DoorFace.LengthZ)]).Should().BeTrue();
-        LoadingCorner.HasReferenceDoor([Door(DoorType.Big, DoorFace.ZeroX)]).Should().BeFalse();
-    }
+    private static OptimizationItemInput GrupluUrun(int unloadingOrder)
+        => new(
+            ItemId: Guid.NewGuid(),
+            SKU: $"SKU-{unloadingOrder}",
+            Name: $"Urun-{unloadingOrder}",
+            Width: 100m,
+            Height: 100m,
+            Length: 40m,
+            Weight: 10m,
+            IsStackable: true,
+            MaxStackCount: 0,
+            MaxWeightOnTop: 0m,
+            AllowedRotations: AllowedRotations.Fixed,
+            Quantity: 1,
+            GroupId: Guid.NewGuid(),
+            UnloadingOrder: unloadingOrder);
 }

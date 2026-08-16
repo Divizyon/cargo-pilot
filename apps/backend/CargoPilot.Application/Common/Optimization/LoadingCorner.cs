@@ -7,6 +7,9 @@ namespace CargoPilot.Application.Common.Optimization;
 /// Yukleme baslangic kosesini aracin kapi listesinden turetir
 /// (docs/COORDINATE_STANDARD.md §7).
 ///
+/// LIFO bolge ayrimi buraya bagli DEGILDIR: bolgeler kapi listesinden bagimsiz
+/// kurulur (LifoPlacement.ComputeGroupZones).
+///
 /// Kural: yukleme kapinin bulundugu yuzden baslamaz. Kutu kapinin onune
 /// yigilirsa operator kendi actigi kapidan iceri giremez, bu yuzden baslangic
 /// kosesi kapiya degmeyen kose olur ve doldurma kapiya dogru ilerler.
@@ -27,10 +30,9 @@ public static class LoadingCorner
     /// "serbest kose yoksa yon degistirme" karari; kisit gevserse davranis
     /// tanimsiz kalmasin.
     ///
-    /// Kapi listesi bos ise <c>null</c> doner: <see cref="HasReferenceDoor"/> ile
-    /// ayni semantik. Duz <c>false</c> donseydi kapilari henuz doldurulmamis
-    /// arac "yan kapisi yok" saydirilir, oysa dogru cevap "bilinmiyor"dur ve
-    /// cagiran taraf tekil alandan turetebilir.
+    /// Kapi listesi bos ise <c>null</c> doner. Duz <c>false</c> donseydi
+    /// kapilari henuz doldurulmamis arac "buyuk kapisi yok" saydirilir, oysa
+    /// dogru cevap "bilinmiyor"dur ve cagiran taraf tekil alandan turetebilir.
     /// </summary>
     public static bool? FillFromMaxX(ICollection<VehicleDoor>? doors)
     {
@@ -42,17 +44,6 @@ public static class LoadingCorner
 
         return atZeroX && !atWidthX;
     }
-
-    /// <summary>
-    /// Aracin referans kapisi (small door, z = length) var mi. LIFO bolge ayrimi
-    /// buna bagli. Kapi listesi bos ise null doner: cagiran taraf eski tekil
-    /// alandan turetmeye devam eder, boylece kapilari henuz doldurulmamis araclar
-    /// bugunku davranisi korur.
-    /// </summary>
-    public static bool? HasReferenceDoor(ICollection<VehicleDoor>? doors)
-        => doors is null || doors.Count == 0
-            ? null
-            : Has(doors, DoorType.Small, DoorFace.LengthZ);
 
     private static bool Has(IEnumerable<VehicleDoor> doors, DoorType type, DoorFace face)
         => doors.Any(door => door.Type == type && door.Face == face);

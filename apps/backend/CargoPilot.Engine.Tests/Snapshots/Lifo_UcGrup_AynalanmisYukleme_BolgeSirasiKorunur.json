@@ -8,8 +8,7 @@
     "Criteria": "Lifo",
     "LoadingType": "Rear",
     "ClusterGroups": true,
-    "FillFromMaxX": true,
-    "HasReferenceDoor": true
+    "FillFromMaxX": true
   },
   "Items": [
     {

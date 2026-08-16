@@ -12,11 +12,6 @@ namespace CargoPilot.Application.Common.Models;
 /// <param name="LoadingType">Yükleme kapısı yönü.</param>
 /// <param name="ClusterGroups">Gruplu ürünlerin bir arada tutulup tutulmayacağı.</param>
 /// <param name="Modules">Modül bayrakları. Verilmezse kriterden türetilir.</param>
-/// <param name="HasReferenceDoor">
-/// Aracin <c>z = length</c> yuzunde small door'u var mi. LIFO bolge ayrimi yalnizca
-/// referans kapidan yuklenen araclarda anlamlidir: bolgeler z ekseni boyunca dizilir
-/// ve kapiya yakinlik sirasi ancak o kapidan yukleme yapiliyorsa bir sey ifade eder.
-/// </param>
 /// <param name="FillFromMaxX">
 /// Yukleme <c>x = width</c> tarafindan mi baslasin. Kapinin oldugu yuzden yukleme
 /// baslamaz (docs/COORDINATE_STANDARD.md §7): big door <c>x = 0</c> yuzundeyse
@@ -34,20 +29,12 @@ public sealed record OptimizationInput(
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
-    bool? FillFromMaxX = null,
-    bool? HasReferenceDoor = null)
+    bool? FillFromMaxX = null)
 {
     /// <summary>
-    /// Bölge ayrımının geçerli olduğu durum. Kapı listesi verilmediyse eski tekil
-    /// alandan türetilir; böylece <c>doors</c> henüz doldurulmamış çağrı yolları
-    /// bugünkü davranışı korur.
-    /// </summary>
-    public bool ZonesApply => HasReferenceDoor ?? (LoadingType == LoadingType.Rear);
-
-    /// <summary>
     /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.
-    /// <see cref="ZonesApply"/> ile aynı kalıp: kapı listesi verilmediyse tekil
-    /// alandan türetilir, böylece iki alanın geri-uyum semantiği ayrışmaz.
+    /// Kapı listesi verilmediyse tekil alandan türetilir; böylece <c>doors</c>
+    /// henüz doldurulmamış çağrı yolları bugünkü davranışı korur.
     /// </summary>
     public bool FillsFromMaxX => FillFromMaxX ?? (LoadingType == LoadingType.SideLeft);
 }

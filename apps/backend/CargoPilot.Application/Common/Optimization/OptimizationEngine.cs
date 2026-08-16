@@ -55,7 +55,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             extremePoints.Add((halfW, 0m, halfL)); // kapı tarafı, orta
         }
 
-        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.ZonesApply, modules.UseLifo);
+        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, modules.UseLifo);
 
         // LIFO bölgeleri de aynı nedenle tohumlanır: aday noktalar yalnızca
         // yerleştirilmiş kutulara komşu doğduğu için her grup Z=0'a, yani uzak

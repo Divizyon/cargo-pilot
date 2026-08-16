@@ -16,9 +16,13 @@ describe('computeGroupZones', () => {
     ).toEqual([]);
   });
 
-  it('küçük kapı dışında bölge oluşmaz', () => {
-    expect(computeGroupZones([1, 2], 300, SIDE, LIFO)).toEqual([]);
-    expect(computeGroupZones([1, 2], 300, TOP, LIFO)).toEqual([]);
+  it('kapı listesi bölgeleri etkilemez', () => {
+    // Bölge ayrımı yalnızca LIFO modülüne ve grup sayısına bağlı; yalnızca
+    // büyük ya da üst kapısı olan araçta da bölgeler kurulur.
+    const beklenen = computeGroupZones([1, 2], 300, REAR, LIFO);
+    expect(computeGroupZones([1, 2], 300, SIDE, LIFO)).toEqual(beklenen);
+    expect(computeGroupZones([1, 2], 300, TOP, LIFO)).toEqual(beklenen);
+    expect(computeGroupZones([1, 2], 300, [], LIFO)).toEqual(beklenen);
   });
 
   it('tek boşaltma sırasında bölge oluşmaz', () => {

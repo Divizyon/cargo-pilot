@@ -49,22 +49,21 @@ const DOORS_BY_LOADING_TYPE: Record<string, readonly VehicleDoor[]> = {
 };
 
 /**
- * Snapshot'ın kapı kümesi: motor kararını `FillFromMaxX` ve `HasReferenceDoor`
- * üzerinden verdiği için ayna da bu iki alandan kurulur.
+ * Snapshot'ın kapı kümesi.
+ *
+ * Kapı listesinin motora tek etkisi yükleme başlangıç köşesidir, o da
+ * `FillFromMaxX` alanında saklanır. Bölge ayrımı kapıdan bağımsız olduğu için
+ * ayna yalnızca bu alanı ve geri uyum amaçlı `LoadingType`'ı kullanır.
  */
 function doorsFromSnapshot(vehicle: Snapshot['Vehicle']): VehicleDoor[] {
-  const doors: VehicleDoor[] = [];
-
-  const referenceDoor = vehicle.HasReferenceDoor ?? vehicle.LoadingType === 'Rear';
-  if (referenceDoor) doors.push({ type: DoorType.Small, face: DoorFace.LengthZ });
-
   if (vehicle.FillFromMaxX) {
-    doors.push({ type: DoorType.Big, face: DoorFace.ZeroX });
-  } else if (!referenceDoor) {
-    doors.push(...(DOORS_BY_LOADING_TYPE[vehicle.LoadingType] ?? []));
+    return [
+      { type: DoorType.Small, face: DoorFace.LengthZ },
+      { type: DoorType.Big, face: DoorFace.ZeroX },
+    ];
   }
 
-  return doors;
+  return [...(DOORS_BY_LOADING_TYPE[vehicle.LoadingType] ?? [])];
 }
 
 /** LoadingPlanPlacementRotation.cs sırası. */
@@ -138,7 +137,6 @@ const snapshotSchema = z.object({
     LoadingType: z.string(),
     ClusterGroups: z.boolean(),
     FillFromMaxX: z.boolean(),
-    HasReferenceDoor: z.boolean().nullable(),
   }),
   Items: z.array(snapshotItemSchema),
   Outcome: z.object({

@@ -1,4 +1,4 @@
-import { hasReferenceDoor, type VehicleDoor } from '@/lib/types/vehicle';
+import type { VehicleDoor } from '@/lib/types/vehicle';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 
 /**
@@ -20,21 +20,21 @@ export interface LifoZone {
 }
 
 /**
- * Bölgeler yalnızca üç koşul birlikte sağlandığında oluşur (motorla aynı kapı):
- * modül açık (varsayılan türetmede yalnızca Lifo kriteri), araçta referans kapı
- * bulunması, ve en az 2 farklı unloadingOrder. Aksi hâlde boş sözlük — ne bölge
- * tohumlaması ne bölge cezası oluşur.
+ * Bölgeler iki koşul birlikte sağlandığında oluşur (motorla aynı kapı): modül
+ * açık (varsayılan türetmede yalnızca Lifo kriteri) ve en az 2 farklı
+ * unloadingOrder. Aksi hâlde boş sözlük — ne bölge tohumlaması ne bölge cezası
+ * oluşur.
+ *
+ * Kapı listesi bölgeleri etkilemez; `_doors` yalnızca çağrı sözleşmesini
+ * motorunkiyle aynı tutmak için duruyor.
  */
 export function computeGroupZones(
   unloadingOrders: readonly number[],
   vehicleLength: number,
-  doors: readonly VehicleDoor[],
+  _doors: readonly VehicleDoor[],
   criteria: OptimizationCriteria,
 ): LifoZone[] {
   if (criteria !== OptimizationCriteria.Lifo) return [];
-  // Bölge ayrımı referans kapıya bağlı, "büyük kapı değil"e değil: küçük + büyük
-  // kapılı araçta bölgeler geçerli kalır (LoadingCorner.HasReferenceDoor).
-  if (!hasReferenceDoor(doors)) return [];
 
   const orders = [...new Set(unloadingOrders)].sort((a, b) => a - b);
   if (orders.length <= 1) return [];

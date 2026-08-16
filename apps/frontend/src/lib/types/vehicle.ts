@@ -138,7 +138,13 @@ export function fillsFromMaxX(doors: readonly VehicleDoor[]): boolean {
   return findDoor(doors, DoorType.Big)?.face === DoorFace.ZeroX;
 }
 
-/** Araçta referans kapı (küçük kapı) var mı? LIFO bölge ayrımının ön koşulu. */
+/**
+ * Araçta referans kapı (küçük kapı) var mı?
+ *
+ * LIFO bölge ayrımı buna **bağlı değildir** — bölgeler kapı listesinden bağımsız
+ * kurulur. Kapı listesinin yerleştirmeye tek etkisi yükleme başlangıç köşesidir
+ * (`fillsFromMaxX`). Bu yardımcı yalnızca kapı kümesini sorgulamak için durur.
+ */
 export function hasReferenceDoor(doors: readonly VehicleDoor[]): boolean {
   return doors.some((door) => door.type === DoorType.Small);
 }

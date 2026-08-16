@@ -1,5 +1,5 @@
 {
-  "Scenario": "Lifo_ReferansKapiYok_BolgeUygulanmaz",
+  "Scenario": "Lifo_YalnizcaBuyukKapi_BolgeSirasiKorunur",
   "Vehicle": {
     "Width": 100,
     "Height": 100,
@@ -8,8 +8,7 @@
     "Criteria": "Lifo",
     "LoadingType": "SideRight",
     "ClusterGroups": true,
-    "FillFromMaxX": false,
-    "HasReferenceDoor": null
+    "FillFromMaxX": false
   },
   "Items": [
     {
@@ -63,9 +62,9 @@
     "FillRate": 0.8,
     "CenterOfGravityX": 50,
     "CenterOfGravityY": 50,
-    "CenterOfGravityZ": 120,
+    "CenterOfGravityZ": 140,
     "WeightBalanceOffsetX": 0,
-    "WeightBalanceOffsetZ": 20.0,
+    "WeightBalanceOffsetZ": 6.7,
     "Placements": [
       {
         "Order": 0,
@@ -96,7 +95,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000002",
         "X": 0,
         "Y": 0,
-        "Z": 80,
+        "Z": 100,
         "Width": 100,
         "Height": 100,
         "Length": 40,
@@ -108,7 +107,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000002",
         "X": 0,
         "Y": 0,
-        "Z": 120,
+        "Z": 140,
         "Width": 100,
         "Height": 100,
         "Length": 40,
@@ -120,7 +119,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 160,
+        "Z": 200,
         "Width": 100,
         "Height": 100,
         "Length": 40,
@@ -132,7 +131,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 200,
+        "Z": 240,
         "Width": 100,
         "Height": 100,
         "Length": 40,

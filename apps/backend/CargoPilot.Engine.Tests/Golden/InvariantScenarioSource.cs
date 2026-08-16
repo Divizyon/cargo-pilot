@@ -69,8 +69,7 @@ internal static class InvariantScenarioSource
             Enum.Parse<LoadingType>(payload.Vehicle.LoadingType),
             payload.Vehicle.ClusterGroups,
             Modules: null,
-            FillFromMaxX: payload.Vehicle.FillFromMaxX,
-            HasReferenceDoor: payload.Vehicle.HasReferenceDoor);
+            FillFromMaxX: payload.Vehicle.FillFromMaxX);
     }
 
     /// <summary>

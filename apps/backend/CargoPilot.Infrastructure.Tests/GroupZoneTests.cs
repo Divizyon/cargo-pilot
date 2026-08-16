@@ -40,7 +40,6 @@ public sealed class GroupZoneTests
         var zones = LifoPlacement.ComputeGroupZones(
             input.Items,
             input.VehicleLength,
-            input.ZonesApply,
             OptimizationModules.Resolve(input).UseLifo);
 
         Assert.NotEmpty(zones);

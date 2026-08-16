@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useItems } from '@/lib/api/useItems';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
-import { formatDoorSummary, hasReferenceDoor } from '@/lib/types/vehicle';
+import { formatDoorSummary } from '@/lib/types/vehicle';
 import {
   algorithmTestRequestSchema,
   MAX_TOTAL_BOX_COUNT,
@@ -152,13 +152,9 @@ export function AlgorithmTestForm({
     [selection],
   );
 
-  // LIFO bölgeleri yalnızca referans kapı + en az 2 farklı boşaltılma sırasıyla
-  // devreye girer (LifoPlacement.ComputeGroupZones). Büyük kapı bölgeleri
-  // kapatmaz; belirleyici olan araçta küçük kapı bulunup bulunmadığıdır.
-  const lifoZonesActive =
-    selectedVehicle !== undefined &&
-    hasReferenceDoor(selectedVehicle.doors) &&
-    usedGroupNumbers.length >= 2;
+  // LIFO bölgeleri yalnızca en az 2 farklı boşaltılma sırasıyla devreye girer
+  // (LifoPlacement.ComputeGroupZones). Kapı listesi bölgeleri etkilemez.
+  const lifoZonesActive = selectedVehicle !== undefined && usedGroupNumbers.length >= 2;
 
   function addItem(itemId: string) {
     setSelection((prev) =>
@@ -422,7 +418,7 @@ export function AlgorithmTestForm({
 
       {usedGroupNumbers.length > 0 && !lifoZonesActive && (
         <p className="text-xs text-muted-foreground">
-          LIFO bölgeleri devre dışı: küçük kapılı araç ve en az iki farklı grup gerekir.
+          LIFO bölgeleri devre dışı: en az iki farklı grup gerekir.
         </p>
       )}
 

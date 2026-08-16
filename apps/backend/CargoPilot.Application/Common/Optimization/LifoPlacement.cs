@@ -53,15 +53,18 @@ internal static class LifoPlacement
     internal static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
-        bool zonesApply,
         bool enabled)
     {
-        // Zone ayrımı yalnızca modül açıkken ve referans kapıdan (small door,
-        // z = length) yükleme yapılırken geçerli: bölgeler z ekseni boyunca
-        // dizilir, kapıya yakınlık sırası ancak o kapıdan yükleniyorsa bir şey
-        // ifade eder. Kapının varlığı bir modül tercihi değil fiziksel gerçektir,
-        // bu yüzden bayrak ondan bağımsız kontrol edilir.
-        if (!enabled || !zonesApply)
+        // Bölge ayrımı kapı listesinden bağımsızdır: yalnızca LIFO modülü açık
+        // olmalı. Önceden referans kapı (small door) aranıyordu ve yalnızca yan
+        // kapısı olan araçta bölgeler hiç kurulmuyordu — kullanıcı LIFO'yu
+        // seçebiliyor, sıralama işliyor ama bölge kısıtı sessizce devre dışı
+        // kalıyordu.
+        //
+        // Bölgeler z ekseni boyunca dizilir ve ilk inecek grup z = length ucunu
+        // alır. Bu, kapının fiziken orada olmasını gerektirmez; boşaltma
+        // sırasının bir ucu vardır ve gruplar o uca göre ayrılır.
+        if (!enabled)
             return [];
 
         var orders = items

@@ -191,10 +191,7 @@ public sealed class LifoBolgeKisitiTests
             vehicleLength: vehicleLength,
             loadingType: LoadingType.Rear,
             clusterGroups: true,
-            fillFromMaxX: fillFromMaxX,
-            // Referans kapi (small door, z = length) var: bolgeler uygulanir.
-            // Aynalanmis mod bu kapiyla birlikte olusur — big door x = 0'da.
-            hasReferenceDoor: true);
+            fillFromMaxX: fillFromMaxX);
 
     /// <summary>
     /// Bölge sınırlarını ve "içeride mi" yüklemini motorun kendi kodundan alır:
@@ -210,7 +207,6 @@ public sealed class LifoBolgeKisitiTests
         var zones = LifoPlacement.ComputeGroupZones(
             input.Items,
             input.VehicleLength,
-            input.ZonesApply,
             OptimizationModules.Resolve(input).UseLifo);
 
         // Bölge hiç kurulmazsa aşağıdaki döngü sessizce geçerdi; senaryonun

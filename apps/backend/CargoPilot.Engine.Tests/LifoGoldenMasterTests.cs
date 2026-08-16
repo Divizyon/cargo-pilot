@@ -58,16 +58,18 @@ public sealed class LifoGoldenMasterTests
     }
 
     /// <summary>
-    /// Referans kapısı olmayan araç: gruplar tanımlı olsa da bölge ayrımı
-    /// oluşmaz. Belirleyici olan "büyük kapı var" değil, "küçük kapı yok" —
-    /// küçük + büyük kapılı araçta bölgeler geçerli kalır
-    /// (<c>LoadingCorner.HasReferenceDoor</c>).
+    /// Yalnızca büyük kapısı olan araç: bölge ayrımı yine uygulanır.
+    ///
+    /// Önceden referans kapı (small door) aranıyordu ve bu araçta bölgeler hiç
+    /// kurulmuyordu; kullanıcı LIFO'yu seçebiliyor, sıralama işliyor ama bölge
+    /// kısıtı sessizce devre dışı kalıyordu. Boşaltma sırasının bir ucu vardır
+    /// ve gruplar o uca göre ayrılır — kapının fiziken orada olması gerekmez.
     /// </summary>
     [Fact]
-    public void Lifo_ReferansKapiYok_BolgeUygulanmaz()
+    public void Lifo_YalnizcaBuyukKapi_BolgeSirasiKorunur()
     {
         EngineScenario.Verify(
-            nameof(Lifo_ReferansKapiYok_BolgeUygulanmaz),
+            nameof(Lifo_YalnizcaBuyukKapi_BolgeSirasiKorunur),
             CorridorVehicle(ThreeGroupItems(), LoadingType.SideRight));
     }
 
@@ -133,8 +135,7 @@ public sealed class LifoGoldenMasterTests
                 vehicleLength: EngineScenario.CorridorLength,
                 loadingType: LoadingType.Rear,
                 clusterGroups: true,
-                fillFromMaxX: true,
-                hasReferenceDoor: true));
+                fillFromMaxX: true));
     }
 
     private static List<OptimizationItemInput> ThreeGroupItems()

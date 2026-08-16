@@ -46,7 +46,7 @@ describe('fillsFromMaxX — yalnızca büyük kapı yön çevirir', () => {
   });
 });
 
-describe('hasReferenceDoor — LIFO bölgelerinin ön koşulu', () => {
+describe('hasReferenceDoor — kapı kümesi sorgusu (bölge ön koşulu DEĞİL)', () => {
   it('küçük kapı varsa doğru', () => {
     expect(hasReferenceDoor([SMALL])).toBe(true);
     expect(hasReferenceDoor([SMALL, BIG_LEFT])).toBe(true);

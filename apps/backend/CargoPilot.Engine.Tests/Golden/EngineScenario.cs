@@ -70,8 +70,7 @@ internal static class EngineScenario
         decimal vehicleMaxWeight = StandardMaxWeight,
         LoadingType loadingType = LoadingType.Rear,
         bool clusterGroups = true,
-        bool fillFromMaxX = false,
-        bool? hasReferenceDoor = null)
+        bool fillFromMaxX = false)
         => new(
             vehicleWidth,
             vehicleHeight,
@@ -82,8 +81,7 @@ internal static class EngineScenario
             loadingType,
             clusterGroups,
             Modules: null,
-            FillFromMaxX: fillFromMaxX,
-            HasReferenceDoor: hasReferenceDoor);
+            FillFromMaxX: fillFromMaxX);
 
     public static OptimizationResult Run(OptimizationInput input) => new OptimizationEngine().Run(input);
 

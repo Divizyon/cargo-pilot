@@ -259,7 +259,6 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             Modules: null,
             // Yukleme kapinin oldugu yuzden baslamaz; baslangic kosesi kapi
             // listesinden turetilir.
-            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors),
-            HasReferenceDoor: LoadingCorner.HasReferenceDoor(vehicle.Doors));
+            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors));
     }
 }

@@ -134,15 +134,6 @@ export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
               })}
             </ToggleGroup>
 
-            {/* Bölge ayrımı referans kapıya bağlıdır: küçük kapı yoksa LIFO
-                kriteri sessizce etkisiz kalır, kullanıcı bunu önden bilmeli. */}
-            {setKey === 'big' && (
-              <p className="text-sm text-muted-foreground">
-                Küçük kapı olmadan yükleme sırası LIFO bölgelerine ayrılamaz; plan oluştururken LIFO
-                kriteri devre dışı kalır.
-              </p>
-            )}
-
             {fieldState.error && (
               <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p>
             )}

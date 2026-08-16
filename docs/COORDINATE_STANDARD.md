@@ -291,6 +291,7 @@ Top door başlangıç köşesini etkilemez: `y = height` yüzü zemindeki köşe
 | Kutu pozisyonu | `positionX/Y/Z`, kutunun **origin'e en yakın köşesidir**: `(min x, min y, min z)`. Mesh merkezi değildir. |
 | Kutu sınırları | `x … x + width` · `y … y + height` · `z … z + length`. Hepsi araç iç ölçüsü içinde kalmalı. |
 | Yükleme yönü | Yükleme referans kapıdan yapılır: `z = 0` (uzak yüz) tarafındaki kutular önce yerleşir, kapıya en yakın olanlar (`z → length`) en son. |
+| LIFO bölgeleri | Bölge ayrımı **kapı listesinden bağımsızdır**: yalnızca LIFO kriteri ve en az iki boşaltma sırası gerekir. İlk inecek grup `z = length` ucundaki bölgeyi alır. Yalnızca büyük kapısı olan araçta da geçerlidir — boşaltma sırasının bir ucu vardır, kapının fiziken orada olması gerekmez. |
 | Three.js pivot | Backend köşe verir, Three.js mesh merkezini bekler. Dönüşüm tek noktada: `center = position + boyut / 2`. |
 | Terminoloji | Yalnızca `width`, `height`, `length`. |
 
@@ -334,8 +335,8 @@ Top door başlangıç köşesini etkilemez: `y = height` yüzü zemindeki köşe
 | Standartta yazan | Kodda karşılığı |
 |---|---|
 | `doors: [{ type, face }]` listesi | ✅ `VehicleDoors` tablosu; `VehicleDoor(Type, Face)` entity'si. API sözleşmesinde `Doors` (araç detay/liste, plan detay, paylaşım). Frontend `lib/types/vehicle.ts` |
-| top door: katman ekseni `y`, aynı katta `z` küçük→büyük | ✅ Frontend `loadOrder.ts`. Motorda üstten yükleme için ayrı bir yerleştirme stratejisi yok; üst kapı bölge ayrımını etkilemiyor (`LifoPlacement.ComputeGroupZones` referans kapıya bakıyor) |
-| Bölge ayrımı yalnızca referans kapılı araçta | ✅ `OptimizationInput.ZonesApply` → `LoadingCorner.HasReferenceDoor` |
+| top door: katman ekseni `y`, aynı katta `z` küçük→büyük | ✅ Frontend `loadOrder.ts`. Motorda üstten yükleme için ayrı bir yerleştirme stratejisi yok |
+| LIFO bölge ayrımı kapı listesinden bağımsız | ✅ `LifoPlacement.ComputeGroupZones` yalnızca LIFO modülüne ve grup sayısına bakar |
 | Yükleme başlangıç köşesi | ✅ `OptimizationInput.FillsFromMaxX` → `LoadingCorner.FillFromMaxX` |
 
 **Geçiş kalıntısı:** tekil `LoadingType` kolonu hâlâ duruyor ama artık türetilmiş
