@@ -59,11 +59,8 @@ echo "[$(date)] Kod ${TARGET_REF} sürümüne getiriliyor..."
 git fetch --tags origin
 git checkout "${TARGET_REF}"
 
-# Stack'i yeniden başlat
-echo "[$(date)] Stack yeniden başlatılıyor..."
-docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
-    down --remove-orphans
-
+# Image'lar ortam KAPATILMADAN ÖNCE çekilir. Aksi hâlde GHCR erişilemezse ya da
+# tag yoksa stack zaten kapanmış olur ve ortam elde kalır.
 if [[ "${ENVIRONMENT}" == "test" ]]; then
     # Test ortamı: GHCR'dan immutable tag ile çek (--build yapılmaz)
     # Türetme release-tag.yml ile birebir aynı olmalı: sürüm tag'i main'deki merge
@@ -79,6 +76,14 @@ if [[ "${ENVIRONMENT}" == "test" ]]; then
     echo "[$(date)] GHCR'dan image çekiliyor: IMAGE_TAG=${IMAGE_TAG}"
     IMAGE_TAG="${IMAGE_TAG}" docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
         pull backend frontend
+fi
+
+# Stack'i yeniden başlat
+echo "[$(date)] Stack yeniden başlatılıyor..."
+docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
+    down --remove-orphans
+
+if [[ "${ENVIRONMENT}" == "test" ]]; then
     IMAGE_TAG="${IMAGE_TAG}" docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
         up -d --no-build
 else
