@@ -26,9 +26,11 @@ BACKUP_DIR="${DEPLOY_DIR}/backups/mssql/${ENVIRONMENT}"
 if [[ "${ENVIRONMENT}" == "prod" ]]; then
     CONTAINER="cargo-pilot-mssql-prod"
     ENV_FILE="${DEPLOY_DIR}/infra/env/.env.prod"
+    DATABASE="CargoPilot"
 elif [[ "${ENVIRONMENT}" == "test" ]]; then
     CONTAINER="cargo-pilot-mssql-test"
     ENV_FILE="${DEPLOY_DIR}/infra/env/.env.test"
+    DATABASE="CargoPilotTest"
 else
     echo "[ERROR] Geçersiz ortam: ${ENVIRONMENT}. 'prod' veya 'test' kullanın."
     exit 1
@@ -39,7 +41,11 @@ if [[ ! -f "${ENV_FILE}" ]]; then
     echo "[ERROR] Env dosyası bulunamadı: ${ENV_FILE}"
     exit 1
 fi
-SA_PASSWORD=$(grep -E '^MSSQL_SA_PASSWORD=' "${ENV_FILE}" | cut -d= -f2- | tr -d '"' | tr -d "'")
+# `|| true` şart: `set -euo pipefail` altında grep eşleşme bulamazsa (satır yoksa)
+# pipeline 1 döner ve script tam bu atama satırında, hiçbir mesaj basmadan ölür.
+# Aşağıdaki anlamlı hata bloğuna hiç gelinmez. `|| true` ile boş değer atanır,
+# hatayı `if [[ -z ]]` kontrolü açıkça raporlar.
+SA_PASSWORD=$(grep -E '^MSSQL_SA_PASSWORD=' "${ENV_FILE}" | cut -d= -f2- | tr -d '"' | tr -d "'" || true)
 
 if [[ -z "${SA_PASSWORD}" ]]; then
     echo "[ERROR] MSSQL_SA_PASSWORD env dosyasında bulunamadı."
@@ -51,12 +57,16 @@ fi
 # `docker exec -e SQLCMDPASSWORD` (değersiz form) değeri bu kabuktan devralır.
 export SQLCMDPASSWORD="${SA_PASSWORD}"
 
-# Yedek dosyası belirtilmemişse en son yedeği bul
+# Yedek dosyası belirtilmemişse en son yedeği bul.
+# Arama uygulama veritabanının adıyla sınırlı: backup-db.sh aynı dizine birden
+# fazla veritabanının yedeğini yazıyor (ör. test'te DIVIZYON). Filtresiz arama,
+# başka bir veritabanının yedeğini doğrulayıp uygulama yedeği sağlıklıymış gibi
+# rapor verebilirdi. Başka bir .bak'ı doğrulamak için dosya yolu argümanı verilir.
 if [[ -z "${BACKUP_FILE}" ]]; then
-    BACKUP_FILE=$(find "${BACKUP_DIR}" -name "*.bak" -printf '%T@ %p\n' 2>/dev/null \
+    BACKUP_FILE=$(find "${BACKUP_DIR}" -name "${DATABASE}_*.bak" -printf '%T@ %p\n' 2>/dev/null \
         | sort -n | tail -1 | cut -d' ' -f2-)
     if [[ -z "${BACKUP_FILE}" ]]; then
-        echo "[ERROR] ${BACKUP_DIR} dizininde yedek dosyası bulunamadı."
+        echo "[ERROR] ${BACKUP_DIR} dizininde ${DATABASE} yedeği bulunamadı."
         exit 1
     fi
     echo "[$(date)] En son yedek seçildi: ${BACKUP_FILE}"

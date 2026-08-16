@@ -38,7 +38,11 @@ if [[ ! -f "${ENV_FILE}" ]]; then
     echo "[ERROR] Env dosyası bulunamadı: ${ENV_FILE}"
     exit 1
 fi
-SA_PASSWORD=$(grep -E '^MSSQL_SA_PASSWORD=' "${ENV_FILE}" | cut -d= -f2- | tr -d '"' | tr -d "'")
+# `|| true` şart: `set -euo pipefail` altında grep eşleşme bulamazsa (satır yoksa)
+# pipeline 1 döner ve script tam bu atama satırında, hiçbir mesaj basmadan ölür.
+# Aşağıdaki anlamlı hata bloğuna hiç gelinmez. `|| true` ile boş değer atanır,
+# hatayı `if [[ -z ]]` kontrolü açıkça raporlar.
+SA_PASSWORD=$(grep -E '^MSSQL_SA_PASSWORD=' "${ENV_FILE}" | cut -d= -f2- | tr -d '"' | tr -d "'" || true)
 
 if [[ -z "${SA_PASSWORD}" ]]; then
     echo "[ERROR] MSSQL_SA_PASSWORD env dosyasında bulunamadı."
@@ -50,15 +54,23 @@ fi
 # `docker exec -e SQLCMDPASSWORD` (değersiz form) değeri bu kabuktan devralır.
 export SQLCMDPASSWORD="${SA_PASSWORD}"
 
-# Yedek dosyası belirtilmemişse en son yedeği bul
+# Yedek dosyası belirtilmemişse en son yedeği bul.
+# Arama hedef veritabanının adıyla sınırlı: backup-db.sh artık aynı dizine birden
+# fazla veritabanının yedeğini yazıyor (ör. test'te DIVIZYON). Filtre olmasaydı
+# "en son yedek" başka bir veritabanının .bak'ı olabilir ve yanlış veri
+# CargoPilot üzerine geri yüklenirdi.
 if [[ -z "${BACKUP_FILE}" ]]; then
-    BACKUP_FILE=$(find "${BACKUP_DIR}" -name "*.bak" -printf '%T@ %p\n' 2>/dev/null \
+    BACKUP_FILE=$(find "${BACKUP_DIR}" -name "${DATABASE}_*.bak" -printf '%T@ %p\n' 2>/dev/null \
         | sort -n | tail -1 | cut -d' ' -f2-)
     if [[ -z "${BACKUP_FILE}" ]]; then
-        echo "[ERROR] ${BACKUP_DIR} dizininde yedek dosyası bulunamadı."
+        echo "[ERROR] ${BACKUP_DIR} dizininde ${DATABASE} yedeği bulunamadı."
         exit 1
     fi
     echo "[$(date)] En son yedek seçildi: ${BACKUP_FILE}"
+elif [[ "$(basename "${BACKUP_FILE}")" != "${DATABASE}_"* ]]; then
+    # Elle verilen dosya başka bir veritabanına ait görünüyor. Bilinçli bir işlem
+    # olabilir (ör. DIVIZYON.bak'ı elle yükleme), o yüzden engellemiyoruz.
+    echo "[WARN] Dosya adı hedef veritabanıyla eşleşmiyor: $(basename "${BACKUP_FILE}") → ${DATABASE}"
 fi
 
 # Yedek dosyası var mı?

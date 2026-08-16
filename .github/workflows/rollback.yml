@@ -17,6 +17,11 @@ on:
         required: false
         type: string
         default: ''
+      skip_backup:
+        description: 'DB yedeği alınamazsa yine de devam et (VERİ KAYBI RİSKİ)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -60,7 +65,13 @@ jobs:
           script: |
             set -e
             TARGET="${{ github.event.inputs.target_ref }}"
-            /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET}"
+            # rollback.sh yedek alınamazsa varsayılan olarak durur; bayrak yalnız
+            # operatör bunu UI'da bilinçli olarak işaretlediğinde geçilir.
+            if [ "${{ github.event.inputs.skip_backup }}" = "true" ]; then
+              /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET}" --skip-backup
+            else
+              /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET}"
+            fi
 
       - name: Prod sunucusuna rollback yap
         if: github.event.inputs.environment == 'prod'
@@ -72,7 +83,13 @@ jobs:
           script: |
             set -e
             TARGET="${{ github.event.inputs.target_ref }}"
-            /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET}"
+            # rollback.sh yedek alınamazsa varsayılan olarak durur; bayrak yalnız
+            # operatör bunu UI'da bilinçli olarak işaretlediğinde geçilir.
+            if [ "${{ github.event.inputs.skip_backup }}" = "true" ]; then
+              /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET}" --skip-backup
+            else
+              /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET}"
+            fi
 
       - name: Rollback özeti
         if: always()
@@ -80,5 +97,6 @@ jobs:
           echo "## Rollback Özeti" >> $GITHUB_STEP_SUMMARY
           echo "- **Ortam**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Hedef**: ${{ github.event.inputs.target_ref || '(önceki tag)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Yedek atlandı**: ${{ github.event.inputs.skip_backup }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Tetikleyen**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Zaman**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
