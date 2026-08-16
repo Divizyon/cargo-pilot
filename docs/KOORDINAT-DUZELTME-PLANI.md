@@ -103,12 +103,13 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 7 — Frontend yerleşim ve sıralama
+## Faz 7 — Frontend yerleşim ve sıralama ✅
 **Bulgular:** S-18, S-19, S-20
+**Durum:** tamamlandı. Frontend 363/363. S-20 `buildLoadOrder` içinde çözüldü (iki çağrı yerinde ayrı ayrı filtre yerine tek yer); dönen indeksler `placements` dizisine ait olduğu için yeniden numaralandırma yok.
 
-- [ ] **S-18** `usePlanStore.buildPlacements` — `fillsFromMaxX(vehicle.doors)` okunsun; manuel yerleşim imleci doğru köşeden başlasın.
-- [ ] **S-19** Cursor ve kümülatif ağırlık `isStagingArea` kutularını saymasın.
-- [ ] **S-20** `buildLoadOrder`/`seqNo` staging kutularını dışlasın (`CameraPresetButtons.tsx:79`'daki filtre örnek).
+- [x] **S-18** `usePlanStore.buildPlacements` — `fillsFromMaxX(vehicle.doors)` okunsun; manuel yerleşim imleci doğru köşeden başlasın.
+- [x] **S-19** Cursor ve kümülatif ağırlık `isStagingArea` kutularını saymasın.
+- [x] **S-20** `buildLoadOrder`/`seqNo` staging kutularını dışlasın (`CameraPresetButtons.tsx:79`'daki filtre örnek).
 
 **Doğrulama:** `loadOrder.test.ts` + yeni store testleri.
 

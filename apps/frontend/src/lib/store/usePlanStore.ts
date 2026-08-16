@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Item } from '@/lib/types/item';
+import { fillsFromMaxX } from '@/lib/types/vehicle';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type {
   OptimizationCriteria,
@@ -83,7 +84,7 @@ function maxTopInLayer(placements: PlacementWithDimensions[], y: number): number
   return max;
 }
 
-function buildPlacements(
+export function buildPlacements(
   item: Item,
   qty: number,
   color: string,
@@ -94,14 +95,24 @@ function buildPlacements(
   const height = item.height;
   const length = item.length;
 
-  // Violation'ları hariç tut — cursor hesabı için sadece geçerli yerleşimler
-  const valid = existingPlacements.filter((p) => !p.isViolation);
+  // Cursor ve ağırlık hesabı yalnızca araca GİREN kutulara bakar. Bekleme
+  // alanındaki kutular araç dışında duruyor (z = length + offset); sayılırsa
+  // imleç boş araçta bile ileriden başlıyor ve ağırlık limiti erken doluyordu
+  // (denetim S-19).
+  const valid = existingPlacements.filter((p) => !p.isViolation && !p.isStagingArea);
 
   // En üst katmandan devam et
   const curY_init = valid.length > 0 ? Math.max(...valid.map((p) => p.positionY)) : 0;
   const curZ_init = maxZInLayer(valid, curY_init);
 
-  let curX = 0;
+  // Yükleme kapıya değmeyen köşeden başlar (docs/COORDINATE_STANDARD.md §7).
+  // Motor bunu `LoadingCorner.FillFromMaxX` ile yapıyor; manuel yerleşim imleci
+  // ise sabit x = 0'dan başlıyordu, yani yan kapısı x = 0 olan araçta kutuları
+  // kapının tam önüne diziyordu (denetim S-18).
+  const fromMaxX = fillsFromMaxX(vehicle.doors ?? []);
+  const rowStartX = fromMaxX ? vehicle.width - width : 0;
+
+  let curX = rowStartX;
   let curY = curY_init;
   let curZ = curZ_init;
   let rowMaxDepth = length;
@@ -136,7 +147,7 @@ function buildPlacements(
         continue;
       }
       curY = newLayerY;
-      curX = 0;
+      curX = rowStartX;
       curZ = maxZInLayer(allSoFar, curY);
       rowMaxDepth = length;
     }
@@ -168,9 +179,12 @@ function buildPlacements(
     });
 
     cumulativeWeight += item.weight;
-    curX += width;
-    if (curX + width > vehicle.width) {
-      curX = 0;
+
+    // Sıra, başlangıç köşesinden karşı duvara doğru ilerler.
+    curX = fromMaxX ? curX - width : curX + width;
+    const satirBitti = fromMaxX ? curX < 0 : curX + width > vehicle.width;
+    if (satirBitti) {
+      curX = rowStartX;
       curZ += rowMaxDepth;
       rowMaxDepth = length;
     }

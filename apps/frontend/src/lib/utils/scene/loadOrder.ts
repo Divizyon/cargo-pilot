@@ -13,6 +13,12 @@ import { DoorType, findDoor, fillsFromMaxX, type VehicleDoor } from '@/lib/types
  * - yan kapı x = 0'da                     → X büyük→küçük (x = width duvarı önce)
  *
  * Yalnızca üst kapısı olan araçta yükleme yukarıdan yapılır: alt kat önce girer.
+ *
+ * Bekleme alanındaki kutular sıraya girmez: araç dışında duruyorlar, yani ne
+ * yüklenirler ne de bir sıra numarası alırlar. Dahil edildiklerinde araca giren
+ * ilk kutu 1 yerine N+1 numarasını alıyordu (denetim S-20). Dönen indeksler
+ * `placements` dizisine ait olduğu için filtrelenen kutular yeniden
+ * numaralandırılmaz, yalnızca listeden düşer.
  */
 export function buildLoadOrder(
   placements: PlacementWithDimensions[],
@@ -29,6 +35,7 @@ export function buildLoadOrder(
 
   return placements
     .map((p, i) => ({ p, i }))
+    .filter(({ p }) => !p.isStagingArea)
     .sort((a, b) => {
       const pa = a.p;
       const pb = b.p;

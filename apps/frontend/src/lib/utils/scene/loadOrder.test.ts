@@ -74,3 +74,18 @@ describe('buildLoadOrder — Z yönü kapıdan bağımsızdır', () => {
     expect(buildLoadOrder([upper, lower], [REAR, TOP])).toEqual([0, 1]);
   });
 });
+
+describe('buildLoadOrder — bekleme alanı kutuları sıraya girmez', () => {
+  it('staging kutuları listeden düşer, indeksler kaymaz', () => {
+    const staging = makePlacement({ positionZ: 0, isStagingArea: true });
+    const aracIci = makePlacement({ positionZ: 100 });
+
+    // index 0 = staging, index 1 = araç içi → yalnızca 1 dönmeli.
+    expect(buildLoadOrder([staging, aracIci], [REAR])).toEqual([1]);
+  });
+
+  it('hepsi bekleme alanındaysa sıra boş kalır', () => {
+    const staging = makePlacement({ isStagingArea: true });
+    expect(buildLoadOrder([staging, staging], [REAR])).toEqual([]);
+  });
+});
