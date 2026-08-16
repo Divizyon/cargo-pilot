@@ -280,10 +280,10 @@ Bu, **derleyicinin yakalayabildiği tek sorun**; r163→r185 aralığı TypeScri
 
 **Kapsam ve QA gereksinimi:**
 
-- `scene-config.ts` koordinat/pivot eşlemesi — sahne sözleşmesi (cm, X=width, Y=height, Z=depth)
+- `scene-config.ts` koordinat/pivot eşlemesi — sahne sözleşmesi (cm, X=width, Y=height, Z=length)
   bozulmamalı
 - `InstancedMesh` ile çizilen kutular: konum, rotasyon, renk ve seçim (raycast) davranışı
-- `BoxWrapper` pivot offset'i — backend pozisyonları sol-alt-arka köşe referanslı
+- `BoxWrapper` pivot offset'i — backend pozisyonları origin'e en yakın köşe `(min x, min y, min z)` referanslı
 - Zemin ızgarası shader'ı (`fwidth` tabanlı) — kırılmanın tespit edildiği kod yolu
 - Manuel edit akışı: sürükleme, çakışma/violation geri bildirimi
 - Bellek: manuel oluşturulan Three.js kaynaklarının dispose'u (`ResourceTracker`)

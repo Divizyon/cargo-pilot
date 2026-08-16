@@ -1,6 +1,6 @@
 # Doküman Haritası
 
-**Son güncelleme:** 2026-08-15 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-16 · **Durum:** Aktif
 
 Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 
@@ -22,14 +22,22 @@ orada tek nüsha duruyordu ve dosya listesiyle birlikte iki ayrı yerde bayatlı
 
 ---
 
-**Toplam 47 dosya / 11.956 satır** (git ile izlenen tüm `.md` dosyaları, `dev` @ `96e9fd8b`).
-Son tarama: **2026-08-15 (ikinci ölçüm)**. Ölçüm komutu — bir sonraki okuyucu bayatlığı böyle kontrol eder:
+**Toplam 47 dosya / 12.322 satır** (git ile izlenen tüm `.md` dosyaları).
+Son tarama: **2026-08-16 (konsolidasyon turu)**. Ölçüm komutu — bir sonraki okuyucu bayatlığı böyle kontrol eder:
 
 ```bash
 git ls-files '*.md' | wc -l                 # → 47
-git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
+git ls-files '*.md' | xargs wc -l | tail -1 # → 12322
 ```
 
+> **Revizyon 2026-08-16 (konsolidasyon):** dosya sayısı değişmedi (**47**), yerleşim değişti.
+> `docs/COORDINATE_AUDIT.md`, `docs/devops/iyilestirme-analizi-2026-08.md` ve
+> `docs/context/branch-audit.md` `docs/archive/`'a taşındı (üçü de kendini bayat ilan etmişti);
+> kökteki `devops-audit-raporu.md` → `docs/devops/denetim-raporu-2026-08-13.md`.
+> Arşive taşınan devops analizinin **45 açık D-bulgusu** taşımadan önce
+> `devops-backlog.md` Kategori 6'ya triyaj edildi. Hiçbir dosya silinmedi.
+> `docs/archive` 5 → **8**, `docs/context` 5 → **4**, repo kökü 5 → **4** `.md`.
+>
 > **Revizyon 2026-08-15 (ikinci tur):** sayım yeniden ölçüldü (45 → **47** dosya,
 > 11.315 → **11.956** satır). Aynı günün erken saatinde yazılan 45/11.315 değeri PR #993
 > anına aitti ve #994–#1004 turundan sonra bayatladı. Yeni giren iki dosya:
@@ -69,7 +77,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 |-------|------:|------|--------------|
 | `README.md` | 101 | Ürün tanıtımı, hızlı başlangıç (3 komut), stack tablosu, repo ağacı, ortam durumu, "Katkı Sağlama" bölümü | Projeye ilk bakış |
 | `CONTRIBUTING.md` | 63 | Katkı rehberi: kurulum, üç dallı branch modeli, commit kuralları, kod standartları, PR süreci (**zorunlu review yok** — CI kapıları geçen PR merge edilebilir; UI ekran görüntüsü zorunlu), yeni doküman eklerken güncellenecek dosyalar | Repoya ilk katkıdan önce |
-| `SUMMARY.md` | 55 | GitBook içindekiler tablosu. Bölümler: Başlangıç (3), Geliştirme Kuralları (4), DevOps (10), Backend (7), Proje Bağlamı (5), Arşiv (5) | Yeni doküman eklerken (buraya da satır eklenmeli) |
+| `SUMMARY.md` | 55 | GitBook içindekiler tablosu. Bölümler: Başlangıç (3), Geliştirme Kuralları (4), DevOps (9), Backend (7), Proje Bağlamı (4), Arşiv (8) | Yeni doküman eklerken (buraya da satır eklenmeli) |
 | `CLAUDE.md` | 147 | **Frontend** geliştirme kuralları (AI asistan talimatı). Kapsam, stack, sınırlar, veri kuralları, 3D invariant'ları, kalite kapıları; Git konusunda `docs/conventions/`e yönlendirir | Frontend'e kod yazmadan önce |
 
 Kökte yalnızca konvansiyonel dosyalar durur. `devops-audit-raporu.md` 2026-08-16'da
@@ -187,5 +195,5 @@ güncel davranışın kaynağı değildir.
 | ~~Branch konvansiyonu entegrasyon dalı modelini tarif ediyor, `known-issues.md` #6 bu modelin ayrışma ürettiğini kayıt altına almış~~ | ✅ Çözüldü — `branching.md` üç dallı terfi modelini tarif ediyor, `known-issues.md` #6'nın "Uygulanan çözüm" bölümü `Terfi Zinciri Kontrolü` job'unu ve terfi PR'larında squash yasağını belgeliyor; çelişki kalmadı |
 | ~~Algoritma tasarım dokümanları sadece `feature/3D_Packing_Algorithm` branch'inde~~ | ✅ Çözüldü — 1.160 satır PR #888 ile kurtarıldı; 2026-08-08'de `docs/archive/algoritma-tasarimi/` altına taşındı |
 | ~~`SUMMARY.md` (GitBook ToC) backend ve ERP dokümanlarını hiç listelemiyor~~ | ✅ Çözüldü (2026-08-08) — SUMMARY 7 bölümle yeniden üretildi; backend, devops ve arşiv dokümanları dahil edildi |
-| `SUMMARY.md` indeksi 47 dosyanın 35'ini kapsıyor | 🟡 **Açık, düşük öncelik** (ölçüm 2026-08-15 ikinci tur: `grep -oE '\]\([^)]+\)' SUMMARY.md \| sort` → 35 bağlantı; `git ls-files '*.md'` → 47). Kapsam dışı 11 dosya: 4 `CLAUDE.md` (AI asistan talimatı), `pull_request_template.md`, `apps/frontend/e2e/README.md`, `apps/algorithm-test-ui/README.md`, `docs/KOORDINAT-UYUM-RAPORU.md`, 3 ERP dokümanı (`adr-baglanti-mimarisi`, `erp-export-kontrati`, `logo-schema-referans`). İlk altısı bilinçli dışlama; son dördü **eklenmeli** |
+| `SUMMARY.md` indeksi 47 dosyanın 36'sını kapsıyor | 🟡 **Açık, düşük öncelik** (ölçüm 2026-08-16: `grep -oE '\]\([^)]+\)' SUMMARY.md \| wc -l` → 36 bağlantı; `git ls-files '*.md'` → 47). `docs/` altındaki **24 dosyanın tamamı artık ToC'de** — `KOORDINAT-UYUM-RAPORU.md` bu turda eklendi. Kapsam dışı kalan 10 dosya: 4 `CLAUDE.md` (AI asistan talimatı), `pull_request_template.md`, `apps/frontend/e2e/README.md`, `apps/algorithm-test-ui/README.md`, 3 ERP dokümanı (`adr-baglanti-mimarisi`, `erp-export-kontrati`, `logo-schema-referans`). İlk yedisi bilinçli dışlama; 3 ERP dokümanı **eklenmeli** |
 | ~~PR şablonunda ekran görüntüsü alanı yok~~ | ✅ Çözüldü (2026-08-08) — `pull_request_template.md`'ye "Ekran Görüntüleri" bölümü eklendi (UI PR'larında zorunlu) |

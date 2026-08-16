@@ -6,7 +6,10 @@ Stack, ortamlar, portlar, CI/CD ve açık risklerin tek sayfalık teknik anlık 
 
 ---
 
-**Kaynak tarama:** 2026-08-03 · `test` @ `3c42f65a` · Repodaki 25 `.md` dosyası okundu.
+**Kaynak tarama:** 2026-08-03 · `test` @ `3c42f65a`.
+**Doküman envanteri (2026-08-16 ölçümü):** repoda **47** `.md` dosyası / 12.322 satır
+(`git ls-files '*.md' | wc -l`). Bu satırdaki eski "25 dosya" değeri 2026-08-03 anına aitti.
+Güncel harita: [doc-map.md](doc-map.md).
 **Kod taraması:** 2026-08-04 · 6 kategoride kod tabanı tarandı, §2 kodla doğrulanıp düzeltildi.
 Detaylı bulgular: [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md).
 
