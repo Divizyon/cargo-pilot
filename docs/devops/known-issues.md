@@ -4,11 +4,15 @@
 
 Bu doküman açık ve çözülmüş devops sorunlarını, kök nedenlerini ve uygulanan/uygulanacak çözümlerini listeler.
 
-> Geliştirme backlog'u ve iyileştirme maddeleri için bkz. [DevOps Backlog](devops-backlog.md).
+> **Rol ayrımı (2026-08-16):** Burası **sorun sicilidir** — belirti, etki ve kök neden burada
+> durur; madde numaraları başka dokümanlardan referans verildiği için sabittir.
+> **Ne yapılacağı** [`devops-backlog.md`](devops-backlog.md)'de planlanır. Çakışan maddelerde
+> tam kayıt burada, plan orada; tekrar bırakılmaz (eşleme tablosu backlog'un başındadır).
 >
-> 2026-08-03 tarihli kapsamlı DevOps taraması ve 51 maddelik bulgu listesi için bkz.
-> [İyileştirme Analizi](../archive/devops-iyilestirme-analizi-2026-08.md). O doküman bu dosyadaki bazı
-> maddelerin kapsamını düzeltiyor (özellikle madde 7 — log rotation).
+> 2026-08-03 tarihli DevOps taramasının 45 açık bulgusu D-kodlarıyla
+> [`devops-backlog.md`](devops-backlog.md) **Kategori 6**'dadır. Taramanın kanıt gövdesi
+> arşivdedir: [İyileştirme Analizi](../archive/devops-iyilestirme-analizi-2026-08.md)
+> (madde 7'nin — log rotation — kapsam düzeltmesi oradan gelmişti).
 
 ---
 

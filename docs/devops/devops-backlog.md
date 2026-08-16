@@ -4,6 +4,20 @@
 
 Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini önceliklendirilmiş şekilde takip eder.
 
+**Rol ayrımı (2026-08-16):** Bu dosya **canlı plandır** — ne yapılacağını, hangi öncelikle
+ve hangi bağımlılıkla yapılacağını tutar. Bir sorunun **belirtisi, etkisi ve kök nedeni**
+[`known-issues.md`](known-issues.md)'de, numaralı sicilde durur. Çakışan maddelerde tam
+kayıt orada, plan burada; ikisi arasında tekrar bırakılmaz.
+
+| Konu | Sorun kaydı | Plan |
+|---|---|---|
+| Resend domain doğrulaması | `known-issues.md` #1 | madde 2.7 |
+| Production stack kurulmadı | `known-issues.md` #2 | madde 2.1–2.3 |
+| MSSQL SA parolası git geçmişinde | `known-issues.md` #3 | madde 2.6 |
+| Node.js 20 deprecation | `known-issues.md` #4 | Kategori 3 |
+| Log rotation yok | `known-issues.md` #7 | Kategori 6.6 (D-40) |
+| Image CVE'leri | `known-issues.md` #8 | Kategori 6.5 (D-31, D-32) |
+
 ---
 
 ## Öncelik Matrisi
@@ -165,24 +179,13 @@ Branch protection ve required status check'ler aktif.
 **⚠️ Açık — Güvenlik**
 {% endhint %}
 
-`appsettings.Development.json` **ve** `PRODUCTION_DEPLOYMENT_INFO.md` içindeki eski SA parolası
-git geçmişinde görünür durumdadır.
+Sorunun tam kaydı — iki dosya, dört commit, 2026-08-15 yeniden doğrulaması —
+[`known-issues.md`](known-issues.md) **madde 3**'tedir; burada tekrarlanmaz.
 
-**Yeniden doğrulama — 2026-08-15.** Bu uyarının "çürütüldü / yalnız `.env.dev.example`'daydı"
-şeklinde kapatıldığı bir not dolaşıyordu; **o not yanlıştır.** Bağımsız `git log --all -S <parola>`
-taraması parolanın gerçekten commit edildiğini gösterdi:
+**Rotasyon hâlâ yapılmadı.** Bu madde kapatılmamıştır.
 
-| Commit | Dosya |
-|---|---|
-| `fe4c7a65` (ekleyen) → `998e04ba` (kaldıran) | `apps/backend/CargoPilot.WebAPI/appsettings.Development.json` |
-| `e46dde04` (ekleyen) → `520da7ae` (kaldıran) | `PRODUCTION_DEPLOYMENT_INFO.md` |
-
-Yani parola **iki ayrı dosyada** geçmişte duruyor; dosyaların bugünkü hâli temiz olsa da
-`git log -p` ile hâlâ okunabilir. **Parola rotasyonu HÂLÂ GEREKLİ — bu madde kapatılmamıştır.**
-*(Parolanın kendisi bilinçli olarak hiçbir dokümana yazılmadı.)*
-
-**Çözüm:** SA parolasını döndür (rotate). Geçmiş temizliği için `git filter-repo` gerekebilir.
-Ayrıntı: [`known-issues.md`](known-issues.md) madde 3.
+**Çözüm (plan):** Sunucudaki SA parolasını döndür. Geçmiş temizliği için `git filter-repo`
+gerekebilir ama minimum aksiyon rotasyondur.
 
 ---
 
