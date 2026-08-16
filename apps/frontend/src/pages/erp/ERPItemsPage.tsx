@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Settings2, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ERPItemsTable } from '@/features/data-management/imports/components/ERPItemsTable';
-import { ERP_SETTINGS_ROUTE, ERP_TERM } from '@/lib/config/erpTerms';
 import { isCompanyAdminRole, useAuthStore } from '@/lib/store/useAuthStore';
 
 function ERPAccessLocked() {
@@ -40,16 +39,6 @@ export function ERPItemsPage() {
             ERP ile senkronize ettiğiniz ürünleri inceleyin ve Cargo Pilot ürünlerine aktarın.
           </p>
         </div>
-        {canManageErp && (
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to={ERP_SETTINGS_ROUTE.connection}>
-                <Settings2 className="mr-1.5 h-3.5 w-3.5" />
-                {ERP_TERM.settings}
-              </Link>
-            </Button>
-          </div>
-        )}
       </div>
       {canManageErp ? <ERPItemsTable /> : <ERPAccessLocked />}
     </div>

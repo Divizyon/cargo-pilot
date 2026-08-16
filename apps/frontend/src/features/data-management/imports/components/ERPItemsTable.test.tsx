@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { useErpTransferStore } from '@/lib/store/useErpTransferStore';
 import type { ReactNode } from 'react';
 import type { DraftItem, DraftItemsParams } from '@/lib/api/useDraftItems';
-import type { EditableRow } from './BulkImportDialog';
 
 const mocks = vi.hoisted(() => ({
   connection: vi.fn(),
@@ -111,21 +111,22 @@ vi.mock('@/lib/api/useDraftItems', async (importOriginal) => {
   };
 });
 
-interface BulkImportDialogStubProps {
-  open: boolean;
-  initialRows: EditableRow[];
-  draftItemIds: Record<string, string>;
-}
+/**
+ * /erp/aktar rotasının yerine geçen sonda. Aktarım ekranı artık modal değil rota
+ * olduğu için, taşınan satırlar prop'tan değil store'dan okunur; testlerin sorduğu
+ * soru aynı kalıyor: hangi kayıtlar aktarıma gitti?
+ */
+function TransferProbe() {
+  const rows = useErpTransferStore((s) => s.rows);
+  const draftItemIds = useErpTransferStore((s) => s.draftItemIds);
 
-vi.mock('./BulkImportDialog', () => ({
-  BulkImportDialog: ({ open, initialRows, draftItemIds }: BulkImportDialogStubProps) =>
-    open ? (
-      <div data-testid="bulk-import-dialog">
-        <span data-testid="dialog-row-names">{initialRows.map((r) => r.name).join('|')}</span>
-        <span data-testid="dialog-draft-ids">{Object.values(draftItemIds).join('|')}</span>
-      </div>
-    ) : null,
-}));
+  return (
+    <div data-testid="bulk-import-dialog">
+      <span data-testid="dialog-row-names">{rows.map((r) => r.name).join('|')}</span>
+      <span data-testid="dialog-draft-ids">{Object.values(draftItemIds).join('|')}</span>
+    </div>
+  );
+}
 
 const { ERPItemsTable } = await import('./ERPItemsTable');
 
@@ -133,7 +134,12 @@ function renderTable(node: ReactNode = <ERPItemsTable />) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{node}</MemoryRouter>
+      <MemoryRouter initialEntries={['/erp']}>
+        <Routes>
+          <Route path="/erp" element={node} />
+          <Route path="/erp/aktar" element={<TransferProbe />} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -238,6 +244,8 @@ const draftItems: DraftItem[] = [
 describe('ERPItemsTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Store oturum deposuna yazıyor; testler arası sızmasın.
+    useErpTransferStore.getState().clear();
     mocks.draftItemsState.isLoading = false;
     mocks.draftItemsState.isEmpty = false;
     mocks.draftItemsState.error = null;
@@ -264,6 +272,15 @@ describe('ERPItemsTable', () => {
     expect(screen.getByText('Palet Kasa 60x40')).toBeInTheDocument();
     expect(screen.getByText('KOL-3020')).toBeInTheDocument();
     expect(screen.queryByText('Aktarilmis Urun')).not.toBeInTheDocument();
+  });
+
+  it('araç çubuğu ERP ayarları köprüsünü taşır', () => {
+    renderTable();
+
+    expect(screen.getByRole('link', { name: /ERP Ayarları/ })).toHaveAttribute(
+      'href',
+      '/settings?tab=erp',
+    );
   });
 
   it('tip sütunu ERP productType alanını değil gerçek kategoriyi gösterir', () => {
@@ -498,6 +515,28 @@ describe('ERPItemsTable', () => {
 
     expect(mocks.bulkReject).toHaveBeenCalledTimes(1);
     expect(mocks.bulkReject.mock.calls[0][0]).toEqual(['11111111-1111-4111-8111-111111111111']);
+  });
+
+  /**
+   * Güncelleme reddi ayrı bir backend geçişi: taslak `Rejected` değil `UpdateDismissed`
+   * olur ve 'Reddedilenler' sorgusu iki durumu birden döndürür. Frontend'in bu yolda da
+   * aynı toplu ret ucunu çağırdığı doğrulanmazsa, geçiş sessizce kopabilir.
+   */
+  it('Güncellemeler sekmesinden reddetme de toplu ret ucunu çağırır', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole('button', { name: /Güncellemeler/ }));
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Guncellenecek Urun A güncelleme seç' }),
+    );
+    await user.click(screen.getByRole('button', { name: /^Reddet/ }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Reddet' }));
+
+    expect(mocks.bulkReject).toHaveBeenCalledTimes(1);
+    expect(mocks.bulkReject.mock.calls[0][0]).toEqual(['77777777-7777-4777-8777-777777777777']);
   });
 
   it('Reddedilenler sekmesi reddedilen kayıtları ve geri alma yolunu gösterir', async () => {
