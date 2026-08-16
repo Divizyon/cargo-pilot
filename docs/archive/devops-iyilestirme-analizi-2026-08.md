@@ -25,7 +25,7 @@ Bu dosya artık yalnızca kanıt gövdesini ve 2026-08-03 tablosunu saklar.
 > 2026-08-15 ölçümü **9,652 GiB / 10 GiB, 228 giriş (%96,5)** verdi
 > (`gh cache list --repo Divizyon/cargo-pilot --limit 500`). İkisi de kendi gününde doğrudur.
 >
-> Güncel durum için: `devops-audit-raporu.md`, `docs/devops/known-issues.md`,
+> Güncel durum için: `docs/devops/denetim-raporu-2026-08-13.md`, `docs/devops/known-issues.md`,
 > `docs/devops/devops-backlog.md`.
 
 > ### ✅ Triyaj yapıldı — 2026-08-16

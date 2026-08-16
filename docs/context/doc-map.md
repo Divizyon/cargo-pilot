@@ -33,7 +33,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 >
 > **Revizyon 2026-08-13:** indeks yeniden ölçüldü; bayat satır sayıları ve iddialar
 > düzeltildi. Yeni girenler: `docs/COORDINATE_STANDARD.md`, `docs/archive/koordinat-denetimi-2026-08-12.md`
-> (2026-08-12), `devops-audit-raporu.md` ve `.github/SECURITY.md` (2026-08-13).
+> (2026-08-12), `docs/devops/denetim-raporu-2026-08-13.md` ve `.github/SECURITY.md` (2026-08-13).
 
 > **Revizyon 2026-08-08:** doküman yapısı yeniden kuruldu (kök sadeleşti, `docs/archive/`
 > açıldı, kebab-case adlandırma, standart şablon). Taşınanlar:
@@ -55,7 +55,9 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 | `CONTRIBUTING.md` | 63 | Katkı rehberi: kurulum, üç dallı branch modeli, commit kuralları, kod standartları, PR süreci (**zorunlu review yok** — CI kapıları geçen PR merge edilebilir; UI ekran görüntüsü zorunlu), yeni doküman eklerken güncellenecek dosyalar | Repoya ilk katkıdan önce |
 | `SUMMARY.md` | 55 | GitBook içindekiler tablosu. Bölümler: Başlangıç (3), Geliştirme Kuralları (4), DevOps (10), Backend (7), Proje Bağlamı (5), Arşiv (5) | Yeni doküman eklerken (buraya da satır eklenmeli) |
 | `CLAUDE.md` | 147 | **Frontend** geliştirme kuralları (AI asistan talimatı). Kapsam, stack, sınırlar, veri kuralları, 3D invariant'ları, kalite kapıları; Git konusunda `docs/conventions/`e yönlendirir | Frontend'e kod yazmadan önce |
-| `devops-audit-raporu.md` | 522 | **DevOps denetim raporu (2026-08-13)** — 7 paralel ajanla yapılan denetim; sağlık skoru, rollback/tedarik zinciri/güvenlik görünürlüğü bulguları, öncelik matrisi, "denetim anı → bugünkü durum" karşılaştırması | DevOps risk ve öncelik sorularında — en güncel denetim |
+
+Kökte yalnızca konvansiyonel dosyalar durur. `devops-audit-raporu.md` 2026-08-16'da
+`docs/devops/denetim-raporu-2026-08-13.md` adıyla `docs/devops/`'a taşındı.
 
 ## .github
 
@@ -90,6 +92,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
+| `denetim-raporu-2026-08-13.md` | 522 | **DevOps denetim raporu (2026-08-13)** — 7 paralel ajanla yapılan denetim; sağlık skoru, rollback/tedarik zinciri/güvenlik görünürlüğü bulguları, öncelik matrisi, "denetim anı → bugünkü durum" karşılaştırması. 2026-08-16'da repo kökünden buraya taşındı | DevOps risk ve öncelik sorularında — en güncel denetim |
 | `deployment.md` | 176 | Test/prod servis adresleri, compose başlat-durdur komutları, sunucudaki env yolları, migration'ı SDK container'ı ile çalıştırma, container operasyonları, CI/CD akış tablosu, **Production Durumu** (stack hiç deploy edilmedi, `v*` etiketi tüketilmiyor) | Deploy / sunucu operasyonu |
 | `server-requirements.md` | 99 | Sunucu donanımı (8 vCPU/16 GB/147 GB), bileşen bazlı CPU-RAM-disk gereksinimleri, ortam-port matrisi, aktif servis listesi | Kapasite planlama |
 | `server-access.md` | 252 | SSH erişimi ve yetkili key'ler, UFW port tablosu, fail2ban, nginx reverse proxy path'leri (`/api/`, `/media/`, `/`), ağ diyagramı, monitoring stack başlatma, DIVIZYON ERP DB restore, DB yedekleme cron'ları, GitHub Actions deploy key | Sunucuya bağlanma, ağ/proxy sorunu |
