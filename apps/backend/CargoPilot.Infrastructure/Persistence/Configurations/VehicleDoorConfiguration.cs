@@ -20,6 +20,21 @@ internal sealed class VehicleDoorConfiguration : IEntityTypeConfiguration<Vehicl
 
         builder.HasKey(door => door.Id);
 
+        // Anahtar istemci tarafinda uretiliyor (VehicleDoor yapicisinda).
+        //
+        // Bu satir olmadan EF, Guid anahtarli bir varligi varsayilan olarak
+        // "store-generated" sayar ve anahtari DOLU gelen kaydi "veritabaninda
+        // zaten var" diye yorumlar. Izlenen bir Vehicle'in Doors koleksiyonuna
+        // yeni kapi eklendiginde varlik Added yerine Modified olarak izleniyor,
+        // EF de INSERT yerine UPDATE uretiyordu: olmayan satiri guncelledigi icin
+        // 0 satir etkileniyor ve arac guncelleme DbUpdateConcurrencyException ile
+        // 500 donuyordu.
+        //
+        // Arac OLUSTURULURKEN sorun cikmiyordu; orada Vehicle'in kendisi de Added
+        // oldugu icin tum graf Added'a dusuyor. Hata yalnizca mevcut aracin
+        // kapilari degistirildiginde ortaya cikiyordu.
+        builder.Property(door => door.Id).ValueGeneratedNever();
+
         builder.Property(door => door.VehicleId)
             .IsRequired();
 
