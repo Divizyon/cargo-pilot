@@ -475,6 +475,9 @@ describe('BulkImportDialog — ürün formu kuralları', () => {
     const user = userEvent.setup();
     renderCreateDialog([makeRow('a')]);
 
+    // Rotasyon kutucukları satırın ek alanlarında; kilit kuralı değişmedi, yeri değişti.
+    await user.click(screen.getByRole('button', { name: 'Urun a — ek alanlar' }));
+
     expect(screen.getByRole('checkbox', { name: 'Urun a — Z ekseni' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Urun a — Yük Kısıtları: Normal' }));

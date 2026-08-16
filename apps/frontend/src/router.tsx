@@ -10,6 +10,7 @@ import {
   ContactPage,
   DashboardPage,
   ERPItemsPage,
+  ErpTransferPage,
   ErrorPage,
   ForceChangePasswordPage,
   ForgotPasswordPage,
@@ -280,6 +281,16 @@ export const router = createBrowserRouter([
                 element: (
                   <PageSuspense>
                     <ERPItemsPage />
+                  </PageSuspense>
+                ),
+              },
+              {
+                // Seçilen taslakların düzenlendiği aktarım ekranı; ürün/araç ekleme
+                // sayfalarıyla aynı sabit yükseklikli kabuğu kullanır.
+                path: '/erp/aktar',
+                element: (
+                  <PageSuspense>
+                    <ErpTransferPage />
                   </PageSuspense>
                 ),
               },

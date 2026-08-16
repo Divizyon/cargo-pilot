@@ -38,23 +38,11 @@ describe('ERPItemsPage', () => {
     expect(screen.queryByRole('link', { name: /Genel Bakış/ })).not.toBeInTheDocument();
   });
 
-  it('şirket yöneticisine ERP ayarları köprüsü gösterir', () => {
-    signInAs(USER_ROLES.CompanyAdmin);
-    renderPage();
-
-    expect(screen.getByRole('link', { name: /ERP Ayarları/ })).toHaveAttribute(
-      'href',
-      '/settings?tab=erp',
-    );
-  });
-
-  it('yetkisiz kullanıcıya ayarlar köprüsü göstermez', () => {
-    signInAs(USER_ROLES.CompanyWorker);
-    renderPage();
-
-    expect(screen.queryByRole('link', { name: /ERP Ayarları/ })).not.toBeInTheDocument();
-  });
-
+  /**
+   * ERP ayarları köprüsü, ürün/araç ekranlarındaki gibi tablo araç çubuğuna taşındı;
+   * köprünün kendisi ERPItemsTable testinde doğrulanır. Yetkisiz kullanıcıda tablo hiç
+   * çizilmediği için köprü de çizilmez — aşağıdaki test bunun tek güvencesi.
+   */
   it('yetkisiz kullanıcıya tablo yerine kilit mesajı gösterir', () => {
     signInAs(USER_ROLES.CompanyWorker);
     renderPage();

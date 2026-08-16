@@ -365,6 +365,7 @@ const FIXED_HEIGHT_ROUTE_PATTERNS = [
   /^\/products\/[^/]+\/edit$/,
   /^\/vehicles\/new$/,
   /^\/vehicles\/[^/]+\/edit$/,
+  /^\/erp\/aktar$/,
 ];
 
 function checkIsFixedHeightRoute(pathname: string): boolean {
