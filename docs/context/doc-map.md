@@ -22,12 +22,12 @@ orada tek nüsha duruyordu ve dosya listesiyle birlikte iki ayrı yerde bayatlı
 
 ---
 
-**Toplam 47 dosya / 12.322 satır** (git ile izlenen tüm `.md` dosyaları).
+**Toplam 47 dosya / 12.342 satır** (git ile izlenen tüm `.md` dosyaları).
 Son tarama: **2026-08-16 (konsolidasyon turu)**. Ölçüm komutu — bir sonraki okuyucu bayatlığı böyle kontrol eder:
 
 ```bash
 git ls-files '*.md' | wc -l                 # → 47
-git ls-files '*.md' | xargs wc -l | tail -1 # → 12322
+git ls-files '*.md' | xargs wc -l | tail -1 # → 12342
 ```
 
 > **Revizyon 2026-08-16 (konsolidasyon):** dosya sayısı değişmedi (**47**), yerleşim değişti.
