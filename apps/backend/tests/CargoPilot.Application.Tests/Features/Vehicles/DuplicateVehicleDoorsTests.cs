@@ -123,4 +123,85 @@ public sealed class DuplicateVehicleDoorsTests
         duplicate.Doors.Should().OnlyContain(d => d.VehicleId == duplicate.Id);
         duplicate.Id.Should().NotBe(SourceId);
     }
+
+    /// <remarks>
+    /// Plakasiz arac (konteyner) kopyalanabilmeli. Kopyalama diyalogu "Plaka
+    /// opsiyoneldir" diyip bos gonderiyordu ama istek DTO'su [Required] tasidigi
+    /// icin model baglamada 400'e dusuyordu; plakasiz arac hic kopyalanamiyordu.
+    /// Denetim kapsaminin disinda, kullanici testinde cikti.
+    /// </remarks>
+    [Fact]
+    public async Task Plakasiz_Arac_Kopyalanabilir()
+    {
+        var source = SourceVehicle();
+        source.ReplaceDoors([(DoorType.Small, DoorFace.LengthZ)]);
+
+        _vehicleRepository.GetByIdAsync(SourceId, CompanyId, Arg.Any<CancellationToken>()).Returns(source);
+
+        Vehicle? added = null;
+        _vehicleRepository.When(r => r.Add(Arg.Any<Vehicle>())).Do(call => added = call.Arg<Vehicle>());
+
+        var result = await CreateSut().Handle(
+            new DuplicateVehicleCommand(SourceId, "Kopya Konteyner", PlateNumber: null),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        added!.PlateNumber.Should().BeNull();
+    }
+
+    /// <remarks>
+    /// Bos plaka NULL olarak saklanir; bos dize kaydedilseydi plakasiz iki arac
+    /// birbirinin "ayni plakalisi" sayilirdi.
+    /// </remarks>
+    [Fact]
+    public async Task Bos_Plaka_Null_Olarak_Saklanir()
+    {
+        var source = SourceVehicle();
+        _vehicleRepository.GetByIdAsync(SourceId, CompanyId, Arg.Any<CancellationToken>()).Returns(source);
+
+        Vehicle? added = null;
+        _vehicleRepository.When(r => r.Add(Arg.Any<Vehicle>())).Do(call => added = call.Arg<Vehicle>());
+
+        var result = await CreateSut().Handle(
+            new DuplicateVehicleCommand(SourceId, "Kopya", "   "),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        added!.PlateNumber.Should().BeNull();
+    }
+
+    /// <remarks>
+    /// Plaka verilmediginde benzersizlik hic sorulmamali; aksi halde plakasiz
+    /// araclar birbiriyle catisiyor gorunurdu.
+    /// </remarks>
+    [Fact]
+    public async Task Plaka_Yokken_Benzersizlik_Sorgulanmaz()
+    {
+        var source = SourceVehicle();
+        _vehicleRepository.GetByIdAsync(SourceId, CompanyId, Arg.Any<CancellationToken>()).Returns(source);
+
+        await CreateSut().Handle(
+            new DuplicateVehicleCommand(SourceId, "Kopya", null),
+            CancellationToken.None);
+
+        await _vehicleRepository.DidNotReceive().ExistsByPlateNumberAsync(
+            Arg.Any<string>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Gercek_Plaka_Verildiginde_Benzersizlik_Korunur()
+    {
+        var source = SourceVehicle();
+        _vehicleRepository.GetByIdAsync(SourceId, CompanyId, Arg.Any<CancellationToken>()).Returns(source);
+        _vehicleRepository
+            .ExistsByPlateNumberAsync("34XYZ789", CompanyId, Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var result = await CreateSut().Handle(
+            new DuplicateVehicleCommand(SourceId, "Kopya", "34XYZ789"),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Code.Should().Be("Vehicle.PlateNumberAlreadyExists");
+    }
 }

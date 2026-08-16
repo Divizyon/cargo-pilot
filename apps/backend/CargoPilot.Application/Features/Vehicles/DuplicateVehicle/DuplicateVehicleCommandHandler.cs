@@ -26,17 +26,27 @@ public sealed class DuplicateVehicleCommandHandler : IRequestHandler<DuplicateVe
             return Result<Guid>.Failure(
                 new Error(ErrorType.NotFound, "Vehicle.NotFound", "Araç bulunamadı."));
 
-        var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
-            request.PlateNumber, companyId, cancellationToken);
-        if (plateExists)
-            return Result<Guid>.Failure(
-                new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));
+        // Bos plaka NULL olarak saklanir; bos dize kaydetmek plakasiz araclari
+        // birbirinin "ayni plakali"si yapardi.
+        var plateNumber = string.IsNullOrWhiteSpace(request.PlateNumber)
+            ? null
+            : request.PlateNumber.Trim();
+
+        // Benzersizlik yalnizca gercek bir plaka verildiginde aranir. Aksi halde
+        // plakasiz iki arac catisiyor gorunurdu.
+        if (plateNumber is not null) {
+            var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
+                plateNumber, companyId, cancellationToken);
+            if (plateExists)
+                return Result<Guid>.Failure(
+                    new Error(ErrorType.Conflict, "Vehicle.PlateNumberAlreadyExists", "Bu plaka zaten kullanımda."));
+        }
 
         var duplicate = new Vehicle(
             id: Guid.NewGuid(),
             vehicleName: request.VehicleName,
             vehicleType: source.VehicleType,
-            plateNumber: request.PlateNumber,
+            plateNumber: plateNumber,
             internalWidth: source.InternalWidth,
             internalHeight: source.InternalHeight,
             internalLength: source.InternalLength,
