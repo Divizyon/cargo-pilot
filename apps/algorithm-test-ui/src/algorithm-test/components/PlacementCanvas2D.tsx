@@ -273,7 +273,7 @@ export function PlacementCanvas2D({
     drawZones(ctx, { zones, config, spanH, spanV, scale, toX, toY, palette });
 
     // Kameradan uzaktan yakına çizilir: yakındaki kutu üstte kalır, aksi hâlde
-    // dizi sırası derinlik ipucunu bozar.
+    // dizi sırası yakınlık ipucunu bozar.
     const order = placements
       .map((_, index) => index)
       .sort((a, b) => {

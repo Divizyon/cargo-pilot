@@ -80,7 +80,7 @@ dönüşüm görülürse hatadır.
 
 Kurallar:
 
-- **Kapılar liste olarak modellenir** (⚠️ kodda henüz tekil enum var — bkz. bölüm 10). Bir araçta aynı anda birden fazla kapı
+- **Kapılar liste olarak modellenir.** Bir araçta aynı anda birden fazla kapı
   bulunabildiği için kapı bilgisi tekil bir enum değeri değil, yüz bilgisiyle birlikte bir
   listedir:
 
@@ -97,8 +97,10 @@ Kurallar:
   bakışlarını adlandırmak için kullanılır (bkz. bölüm 6).
 - **"ön kapı" / "front door" diye bir kavram yoktur.** TIR'da `z = 0` kabin ucudur;
   düz konteynerde `z = 0` yalnızca karşı küçük yüzdür.
-- **top door** üçüncü bir kapı tipidir ve `y = height` yüzünde bulunur
-  (⚠️ kodda henüz uygulanmadı — bkz. bölüm 10). Yükleme
+- **Her tipten en fazla bir kapı bulunabilir.** İki small ya da iki big door,
+  ilgili eksende serbest köşe bırakmaz ve yüklemenin başlayacağı nokta kalmaz
+  (bölüm 7). Kural veritabanında `IX_VehicleDoors_TekKapiTipi` ile zorlanır.
+- **top door** üçüncü bir kapı tipidir ve `y = height` yüzünde bulunur. Yükleme
   yukarıdan yapıldığı için katman ekseni `y`'dir; aynı kattaki sıralama yine
   yükleme yönünü (`z` küçük→büyük) izler.
 
@@ -300,22 +302,25 @@ Top door başlangıç köşesini etkilemez: `y = height` yüzü zemindeki köşe
 
 ## 10. Karara bağlanan konular
 
-> **Bu belge standardı tanımlar, kodun bugünkü hâlini değil.** Aşağıdaki 2 ve 3
-> numaralı kararlar **kodda henüz uygulanmamıştır**; bölüm 4 ve 7'deki ilgili
-> tanımlar hedefi anlatır. Uygulama durumu "Kodda" sütununda.
+> **Bu belge standardı tanımlar.** Aşağıdaki kararların tamamı koda uygulanmıştır;
+> "Kodda" sütunu uygulamanın nerede olduğunu gösterir.
 
 | # | Konu | Karar | Kodda |
 |---|------|-------|-------|
-| 1 | **Small door'u olmayan konteyner** | Origin geometrik köşedir, kapıya bağlı değildir: small door olmasa da `z=0` uzak yüz, `x=0` sol yüz, `y=0` zemindir. Emsali yükleme başlangıcı kuralı — kapı origin'e değdiğinde origin taşınmaz, başlangıç köşesi değişir. Bölüm 2. | ✅ **uygulandı** (kod zaten böyle çalışıyor) |
-| 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4. | ❌ **uygulanmadı** |
-| 3 | **Yükleme başlangıç köşesi** | Açıklık payı diye bir kavram yok. Yükleme kapının olduğu yüzden başlamaz; başlangıç köşesi kapı listesinden türetilir. Bölüm 7. | ✅ **uygulandı** |
+| 1 | **Small door'u olmayan konteyner** | Origin geometrik köşedir, kapıya bağlı değildir: small door olmasa da `z=0` uzak yüz, `x=0` sol yüz, `y=0` zemindir. Yükleme başlangıcı kuralı ayrıdır — kapı origin'e değdiğinde origin taşınmaz, başlangıç köşesi değişir. Bölüm 2. | ✅ `OptimizationEngine.cs` |
+| 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4. | ✅ `DoorType.Top`, `VehicleDoors` tablosu |
+| 3 | **Yükleme başlangıç köşesi** | Açıklık payı diye bir kavram yok. Yükleme kapının olduğu yüzden başlamaz; başlangıç köşesi kapı listesinden türetilir. Bölüm 7. | ✅ `LoadingCorner.cs`, `OptimizationEngine.cs:47` |
+| 4 | **Her tipten tek kapı** | İki small ya da iki big door serbest köşe bırakmaz; araç tanımlanırken seçilemez. Bölüm 4. | ✅ `IX_VehicleDoors_TekKapiTipi`, `VehicleDoorRules` |
 
 ### Kodun bugünkü hâli
 
 | Standartta yazan | Kodda karşılığı |
 |---|---|
-| `doors: [{ type, face }]` listesi | Yok. Tekil `LoadingType` enum'u: `Rear/SideRight/SideLeft/SideBoth/Top` (`CargoPilot.Domain/Enums/LoadingType.cs`) |
-| top door: katman ekseni `y`, aynı katta `z` küçük→büyük | Motorda üstten yükleme mantığı yok. `LifoPlacement.ComputeGroupZones` yalnız `LoadingType.Rear` için bölge üretiyor — beş yükleme tipinin dördünde bölge hiç oluşmuyor (bkz. `docs/context/kod-taramasi-2026-08.md`, **OPT-10**) |
+| `doors: [{ type, face }]` listesi | ✅ `VehicleDoors` tablosu; `VehicleDoor(Type, Face)` entity'si. API sözleşmesinde `Doors` (araç detay/liste, plan detay, paylaşım). Frontend `lib/types/vehicle.ts` |
+| top door: katman ekseni `y`, aynı katta `z` küçük→büyük | ✅ Frontend `loadOrder.ts`. Motorda üstten yükleme için ayrı bir yerleştirme stratejisi yok; üst kapı bölge ayrımını etkilemiyor (`LifoPlacement.ComputeGroupZones` referans kapıya bakıyor) |
+| Bölge ayrımı yalnızca referans kapılı araçta | ✅ `OptimizationInput.ZonesApply` → `LoadingCorner.HasReferenceDoor` |
+| Yükleme başlangıç köşesi | ✅ `OptimizationInput.FillsFromMaxX` → `LoadingCorner.FillFromMaxX` |
 
-Bu tablo, kapı modeli geçişi (`doors` listesi) tamamlandığında
-güncellenir. **Bekleyen açık konu kalmadı**; 2 ve 3 yalnızca kodda uygulanmayı bekliyor.
+**Geçiş kalıntısı:** tekil `LoadingType` kolonu hâlâ duruyor ama artık türetilmiş
+bir değerdir — `Vehicle.SyncLoadingTypeFromDoors()` her kayıtta kapı listesinden
+yeniden hesaplar. Tamamen kaldırılması ayrı bir migration'a bırakıldı.

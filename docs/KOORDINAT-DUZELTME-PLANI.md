@@ -147,19 +147,19 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 10 — Doküman + terminoloji (en geç Faz 3 ile eşzamanlı başlar)
+## Faz 10 — Doküman + terminoloji ✅
 **Bulgular:** S-35, S-36, S-37, S-69, S-70, S-49, S-50, S-51, S-60, S-62–S-65
 
-- [ ] **S-35** `scene/CLAUDE.md:88` + `.claude/CLAUDE.md:415` — "uygulanmayan tek kısım kapı modeli" cümlesi silinir (`clearanceCm` referansı dahil).
-- [ ] **S-36** `COORDINATE_STANDARD.md` §4/§10 — "kodda yok" rozetleri güncellenir, `SideBoth` listeden düşer, `ComputeGroupZones` açıklaması `zonesApply`'a çevrilir, §10 iç çelişkisi giderilir.
-- [ ] **S-37** `coordinate-standard.html` — "ve/veya iki uçta" ifadeleri tek-kapı-tipi kuralına çekilir; "kodda yok" rozetleri temizlenir.
-- [ ] **S-69** Yasaklı terim taraması (`depth/derinlik/W,H,L/sol-alt-arka` ~25 isabet) — Unicode-aware boundary ile, `depthWrite/depthTest` (Three.js) hariç.
-- [ ] **S-70** `KOORDINAT-UYUM-RAPORU.md`, `ALGORITMA.html` (commitlenmez), `kod-taramasi-2026-08.md`, `doc-map.md`, `project-snapshot.md` bayat satırlar.
-- [ ] **S-49** Down migration'a kapı→enum indirgeme (ya da açık "geri alınamaz" notu).
-- [ ] **S-50** Backfill `WHERE IsDeleted=0` — geçmişe dönük migration değiştirilmez; yeni temizlik migration'ı ile silinmiş araçların kapı satırları soft-delete edilir.
-- [ ] **S-51** `useVehicles.ts:159-165` sessiz `safeParse` düşürmesi loglansın (216-226 kardeş yol örnek).
-- [ ] **S-60** LandingPage demosu: izole; standarda not düşülür ya da dönüştürülür (düşük öncelik).
-- [ ] **S-62–S-65** Test adlandırma/kırılganlık düzeltmeleri (`Lifo_YanKapi_BolgeUygulanmaz` adı, `GroupZoneTests` elle kopyalanmış sınırlar, round-trip test adı, FE/BE ilk-big-door farkı yorumu).
+- [x] **S-35** `scene/CLAUDE.md:88` + `.claude/CLAUDE.md:415` — "uygulanmayan tek kısım kapı modeli" cümlesi silinir (`clearanceCm` referansı dahil).
+- [x] **S-36** `COORDINATE_STANDARD.md` §4/§10 — "kodda yok" rozetleri güncellenir, `SideBoth` listeden düşer, `ComputeGroupZones` açıklaması `zonesApply`'a çevrilir, §10 iç çelişkisi giderilir.
+- [x] **S-37** `coordinate-standard.html` — "ve/veya iki uçta" ifadeleri tek-kapı-tipi kuralına çekilir; "kodda yok" rozetleri temizlenir.
+- [x] **S-69** Yasaklı terim taraması (`depth/derinlik/W,H,L/sol-alt-arka` ~25 isabet) — Unicode-aware boundary ile, `depthWrite/depthTest` (Three.js) hariç.
+- [x] **S-70** `KOORDINAT-UYUM-RAPORU.md`, `ALGORITMA.html` (commitlenmez), `kod-taramasi-2026-08.md`, `doc-map.md`, `project-snapshot.md` bayat satırlar.
+- [x] **S-49** Down migration'a kapı→enum indirgeme (ya da açık "geri alınamaz" notu).
+- [x] **S-50** Backfill `WHERE IsDeleted=0` — geçmişe dönük migration değiştirilmez; yeni temizlik migration'ı ile silinmiş araçların kapı satırları soft-delete edilir.
+- [x] **S-51** `useVehicles.ts:159-165` sessiz `safeParse` düşürmesi loglansın (216-226 kardeş yol örnek).
+- [ ] **S-60** LandingPage demosu — **yapılmadı**. Pazarlama sayfası izole: plan verisi tüketmiyor, motorla hiç konuşmuyor, kendi Z-up sahnesini kuruyor. Standarda çekmek görsel tasarımı yeniden yapmak demek; kazanç yok. Bilinçli olarak bırakıldı.
+- [x] **S-62–S-65** Test adlandırma/kırılganlık düzeltmeleri (`Lifo_YanKapi_BolgeUygulanmaz` adı, `GroupZoneTests` elle kopyalanmış sınırlar, round-trip test adı, FE/BE ilk-big-door farkı yorumu).
 
 ---
 
@@ -171,3 +171,39 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 4. Root'taki `ALGORITMA.html` ve `ERP-*.md` dosyaları commit'lenmez.
 5. PR'ları kullanıcı merge eder; iş bitince PR açılır, doğrulama sonuçları yazılır, orada durulur.
 6. Her fazdan sonra rapordaki §7 doğrulama komutlarının ilgili satırları koşulur; faz kutucuğu işaretlenir.
+
+
+---
+
+## Kapanış (2026-08-16)
+
+**70 bulgunun 69'u işlendi.** Açık bırakılan tek kalem `S-60` (pazarlama sayfası demosu, izole ve etkisiz).
+
+### Doğrulama
+
+| Paket | Sonuç |
+|---|---|
+| Backend | Engine 67 · Infrastructure 24 · Application 225 = **316/316** |
+| Frontend | **378/378** · tsc sessiz · ESLint 0 uyarı |
+| algorithm-test-ui | **201/201** · tsc sessiz · `build` + `build:suite` temiz |
+| EF | `has-pending-model-changes` temiz · 2 yeni migration |
+| Terim taraması | 13 → **1** (kalan: S-07 hatasını anlatan tarihsel yorum) |
+
+### Regresyon kanıtı
+
+Düzeltmelerin gerçekten yakalandığı, düzeltme geçici geri alınarak sınandı:
+
+- **S-04** geri alındı → 2 aynalı LIFO testi FAIL, aynasız kardeşleri PASS
+- **S-03** geri alındı → 4 kopyalama testi FAIL
+- **S-05** düzeltilmeden → golden `zoneOverflow` **680 cm** (raporun öngördüğü değer), sonrası 0
+
+### Rapordan ayrılan üç karar
+
+1. **S-45** — koruma kaldırılmadı. Sadeleştirme `IkiYandaBigDoor_YonDegistirmez` testini kırdı; ölü kod değil, "serbest köşe yoksa yön değiştirme" kararıymış. Yalnızca yanıltıcı yorum düzeltildi.
+2. **S-71** — raporun "CI'da hiç çalışmıyor" tespiti yanlış. `ci.yml`'de `algorithm-test-ui-ci` işi #996'dan beri koşuyor; eksik olan yalnızca yerel `node_modules`'dü. Testler koşuyordu ama NaN kapısı ve soft severity yüzünden yakalamıyordu.
+3. **S-52/S-55** — arka kapının 230°'si korundu (TIR kapıları gerçekten o açıyla yan duvara katlanır); yalnızca yan/üst kapı 250° → 110°.
+
+### Kullanıcıda kalan
+
+- **Görsel QA (Faz 8):** kanatların dışarı süpürmesi, ızgaranın kapı dışında kalması, X-Ray'in kapı tarafından soyması.
+- **S-25 veri notu:** cm dışı birim kullanan hesap varsa aks/king pimi değerleri elle kontrol edilmeli (eski kayıtlar dönüşümsüz yazılmıştı).

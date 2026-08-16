@@ -161,7 +161,16 @@ export async function fetchAllVehicles(
     if (Array.isArray(rawItems)) {
       for (const item of rawItems) {
         const result = vehicleListApiItemSchema.safeParse(item);
-        if (result.success) items.push(fromApiVehicleListItem(result.data));
+        if (result.success) {
+          items.push(fromApiVehicleListItem(result.data));
+        } else {
+          // Sessizce düşürmek, eksik bir aracı "silinmiş" gibi gösteriyordu ve
+          // hiçbir iz bırakmıyordu. Kardeş yol (tenant sorgusu) zaten logluyor.
+          console.error(
+            '[useVehicles] araç veri doğrulama hatası — öğe göz ardı edildi',
+            result.error,
+          );
+        }
       }
     }
     return items;

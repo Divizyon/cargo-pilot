@@ -148,12 +148,30 @@ describe('buildCreateVehiclePayload — kapı listesi asıl alandır', () => {
     expect(buildCreateVehiclePayload(makeFormValues({ doors: [TOP] })).loadingType).toBe(4);
   });
 
-  it('round-trip: kapı listesi API’ye gidip geri geldiğinde korunur', () => {
+  /**
+   * Ad "round-trip" ama kaybın oluştuğu yolu geçmiyor: `doors` alanı dolu
+   * döndüğü için `loadingType` hiç okunmuyor. Kayıplı yol ayrıca test edildi
+   * (`resolveDoors` — liste boşsa tekil alandan türetiliyor). İki testin
+   * neyi kapsadığı ayrı yazıldı ki biri diğerinin güvencesi sanılmasın
+   * (denetim S-64).
+   */
+  it('round-trip: kapı listesi dolu dönünce olduğu gibi korunur', () => {
     const doors = [REAR, SIDE_LEFT];
     const payload = buildCreateVehiclePayload(makeFormValues({ doors }));
     const vehicle = fromApiVehicle(
       makeApiVehicle({ doors: payload.doors, loadingType: payload.loadingType }),
     );
     expect(vehicle.doors).toEqual(doors);
+  });
+
+  it('round-trip: kapı listesi boş dönerse ikinci kapı kaybolur (kayıplı yol)', () => {
+    const doors = [REAR, SIDE_LEFT];
+    const payload = buildCreateVehiclePayload(makeFormValues({ doors }));
+
+    // Kapı listesi taşımayan eski bir uç: tekil alandan yalnızca yan kapı türetilir.
+    const vehicle = fromApiVehicle(makeApiVehicle({ loadingType: payload.loadingType }));
+
+    expect(vehicle.doors).toEqual([SIDE_LEFT]);
+    expect(vehicle.doors).not.toEqual(doors);
   });
 });

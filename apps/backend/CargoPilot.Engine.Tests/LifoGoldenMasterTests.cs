@@ -58,14 +58,16 @@ public sealed class LifoGoldenMasterTests
     }
 
     /// <summary>
-    /// Yan kapı yüklemesi: gruplar tanımlı olsa da bölge ayrımı yalnızca arka kapıda
-    /// geçerlidir, kutular kapıdan itibaren sıkıştırılır.
+    /// Referans kapısı olmayan araç: gruplar tanımlı olsa da bölge ayrımı
+    /// oluşmaz. Belirleyici olan "yan kapı var" değil, "small door yok" —
+    /// arka + yan kapılı araçta bölgeler geçerli kalır
+    /// (<c>LoadingCorner.HasReferenceDoor</c>).
     /// </summary>
     [Fact]
-    public void Lifo_YanKapi_BolgeUygulanmaz()
+    public void Lifo_ReferansKapiYok_BolgeUygulanmaz()
     {
         EngineScenario.Verify(
-            nameof(Lifo_YanKapi_BolgeUygulanmaz),
+            nameof(Lifo_ReferansKapiYok_BolgeUygulanmaz),
             CorridorVehicle(ThreeGroupItems(), LoadingType.SideRight));
     }
 

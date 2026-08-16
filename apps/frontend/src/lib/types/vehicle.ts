@@ -117,6 +117,11 @@ export function findDoor(doors: readonly VehicleDoor[], type: DoorType): Vehicle
  * köşe karşı tarafta kalır, doldurma ters yönde ilerler.
  */
 export function fillsFromMaxX(doors: readonly VehicleDoor[]): boolean {
+  // Backend (`LoadingCorner.FillFromMaxX`) ayrıca "x = width'te de big door var
+  // mı" diye bakar; burada gerek yok çünkü her tipten tek kapı kuralı
+  // veritabanında zorlanıyor (IX_VehicleDoors_TekKapiTipi) ve iki big door'lu
+  // liste bu katmana hiç ulaşamaz. Backend'deki koruma kısıt gevşerse
+  // davranışın tanımsız kalmaması için duruyor (denetim S-65).
   return findDoor(doors, DoorType.Big)?.face === DoorFace.ZeroX;
 }
 

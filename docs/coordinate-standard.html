@@ -325,12 +325,12 @@
                 <span style="color: var(--ink-soft)">küçük kapı</span>
               </td>
               <td><code>width × height</code></td>
-              <td><code>z = length</code> ve/veya <code>z = 0</code></td>
+              <td><code>z = length</code></td>
               <td>
                 Yalnızca <code>z = length</code> — <strong>back door</strong>.
                 <code>z = 0</code> kabin ucudur, kapı olmaz.
               </td>
-              <td>İki uçta da olabilir; referans olan <code>z = length</code>'tedir.</td>
+              <td>Yalnızca <code>z = length</code>; yükleme her zaman uzak yüzden başlar.</td>
             </tr>
             <tr>
               <td>
@@ -338,15 +338,14 @@
                 <span style="color: var(--ink-soft)">büyük kapı</span>
               </td>
               <td><code>length × height</code></td>
-              <td><code>x = 0</code> ve/veya <code>x = width</code></td>
-              <td>Olabilir — tek tarafta ya da iki tarafta</td>
-              <td>Olabilir — tek tarafta ya da iki tarafta</td>
+              <td><code>x = 0</code> <strong>veya</strong> <code>x = width</code> (ikisi birden değil)</td>
+              <td>Olabilir — tek tarafta</td>
+              <td>Olabilir — tek tarafta</td>
             </tr>
             <tr>
               <td>
                 <strong>top door</strong><br />
                 <span style="color: var(--ink-soft)">üst kapı</span><br />
-                <span class="pill">kodda yok</span>
               </td>
               <td><code>width × length</code></td>
               <td><code>y = height</code></td>
@@ -357,9 +356,11 @@
         </table>
 
         <p class="note">
-          <span class="pill">kodda yok</span> <strong>Kapılar liste olarak modellenir.</strong> Bir araçta aynı anda birden fazla kapı
-          bulunabildiği için (ör. back door + iki big door) kapı bilgisi tekil bir enum değeri değil,
-          yüz bilgisiyle birlikte bir liste olmalıdır:<br />
+          <strong>Kapılar liste olarak modellenir.</strong> Bir araçta aynı anda birden fazla kapı
+          bulunabildiği için (ör. back door + bir big door) kapı bilgisi tekil bir enum değeri değil,
+          yüz bilgisiyle birlikte bir listedir. <strong>Her tipten en fazla bir kapı</strong>
+          bulunabilir: iki small ya da iki big door, ilgili eksende serbest köşe bırakmaz ve
+          yüklemenin başlayacağı nokta kalmaz.<br />
           <code>doors: [{ type: 'small', face: 'z=length' }, { type: 'big', face: 'x=0' }, { type: 'top', face: 'y=height' }]</code>
         </p>
 
@@ -456,7 +457,8 @@
           (<code>z = 0</code>, kabin ucu) ve sol yüz gizlidir. Origin, uzak-sol-alt köşe olduğu için
           bu bakışta <strong>kutunun arkasında kalır</strong> — kesikli halka ve kesikli eksen okları
           bunu gösterir. TIR konteynerinde <strong>ön kapı yoktur</strong>; ancak yan yüzlerde
-          (<code>x = 0</code> ve/veya <code>x = width</code>) <strong>big door</strong> bulunabilir.
+          (<code>x = 0</code> <strong>veya</strong> <code>x = width</code>) tek bir
+          <strong>big door</strong> bulunabilir.
         </p>
       </div>
 
@@ -558,7 +560,7 @@
 
           <line x1="400" y1="150" x2="500" y2="92" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 4" />
           <text class="svg-label" x="505" y="74" text-anchor="start">UZAK KÜÇÜK YÜZ · z = 0</text>
-          <text class="svg-label small" x="505" y="88" text-anchor="start">burada ikinci bir small door olabilir</text>
+          <text class="svg-label small" x="505" y="88" text-anchor="start">kabin ucu — burada kapı olmaz</text>
 
           <g stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="7 4">
             <line x1="340" y1="190" x2="422" y2="237.4" stroke="var(--axis-x)" marker-end="url(#ah-x3)" />
@@ -579,9 +581,9 @@
         <p class="caption">
           Düz konteynerde <strong>ön/arka/sağ/sol kapı diye bir sınıflandırma yoktur</strong>;
           yalnızca <strong>small door</strong> (kısa yüzde, <code>width × height</code>) ve
-          <strong>big door</strong> (uzun yan yüzde, <code>length × height</code>) vardır. İki kısa
-          yüzde de small door, iki uzun yüzde de big door bulunabilir. Referans olan, bakılan /
-          yükleme yapılan small door'dur ve <code>z = length</code> yüzünde kabul edilir.
+          <strong>big door</strong> (uzun yan yüzde, <code>length × height</code>) vardır. Her
+          tipten en fazla bir kapı bulunabilir. Referans olan, bakılan / yükleme yapılan
+          small door'dur ve <code>z = length</code> yüzünde kabul edilir.
         </p>
       </div>
 
@@ -796,11 +798,8 @@
       <h2>8. Karara bağlanan konular</h2>
 
       <div class="card">
-        <p class="note warn">
-          <strong>Bu belge standardı tanımlar, kodun bugünkü hâlini değil.</strong> 2 ve 3
-          numaralı kararlar <strong>kodda henüz uygulanmamıştır</strong>; bölüm 2 ve 5'teki
-          <span class="pill">kodda yok</span> işaretli tanımlar hedefi anlatır. Bekleyen açık
-          konu kalmadı.
+        <p class="note">
+          <strong>Kararların tamamı koda uygulanmıştır.</strong> Bekleyen açık konu kalmadı.
         </p>
 
         <ol class="assumptions">
@@ -813,22 +812,32 @@
             ve konteyner döndürülmez, yalnızca başlangıç köşesi değişir.
           </li>
           <li>
-            <strong>Üst kapı (top door)</strong> — karara bağlandı, <strong>kodda yok</strong><br />
+            <strong>Üst kapı (top door)</strong> — karara bağlandı, <strong>kodda
+            uygulanıyor</strong><br />
             Üçüncü kapı tipi olarak modellenir: <code>{ type: 'top', face: 'y=height' }</code>.
-            Motorda üstten yükleme mantığı bulunmuyor; bölge kısıtı yalnızca
-            <code>LoadingType.Rear</code>'ı kapsıyor (OPT-10).
+            <code>DoorType.Top</code> ve <code>VehicleDoors</code> tablosunda canlı. Motorda
+            üstten yükleme için ayrı bir yerleştirme stratejisi yok; bölge ayrımı referans
+            kapıya bakıyor (<code>LoadingCorner.HasReferenceDoor</code>).
           </li>
           <li>
             <strong>Yükleme başlangıç köşesi</strong> — karara bağlandı,
             <strong>kodda uygulanıyor</strong><br />
             Açıklık payı diye bir kavram yok. Yükleme kapının olduğu yüzden başlamaz; başlangıç
-            köşesi kapı listesinden türetilir.
+            köşesi kapı listesinden türetilir (<code>LoadingCorner.FillFromMaxX</code>).
+          </li>
+          <li>
+            <strong>Her tipten tek kapı</strong> — karara bağlandı, <strong>kodda
+            uygulanıyor</strong><br />
+            İki small ya da iki big door, ilgili eksende serbest köşe bırakmaz ve yüklemenin
+            başlayacağı nokta kalmaz. Araç tanımlanırken seçilemez; veritabanında
+            <code>IX_VehicleDoors_TekKapiTipi</code> ile zorlanır.
           </li>
         </ol>
 
         <p class="note">
-          Kapı modeli geçişi (<code>doors</code> listesi) tamamlandığında bu bölüm ve yukarıdaki
-          işaretler güncellenir.
+          Tekil <code>LoadingType</code> kolonu geriye dönük uyumluluk için duruyor ama artık
+          türetilmiş bir değerdir: <code>Vehicle.SyncLoadingTypeFromDoors()</code> her kayıtta
+          kapı listesinden yeniden hesaplar.
         </p>
       </div>
 

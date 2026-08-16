@@ -19,7 +19,7 @@ namespace CargoPilot.Application.Common.Optimization;
 internal static class BalanceScoring
 {
     // Kalibre edilmiş katsayılar. VolumeFirst'te denge yalnızca eşit hacim
-    // puanlı adaylar arasında ayrım yapar; WeightBalance'ta ise derinlik/genişlik
+    // puanlı adaylar arasında ayrım yapar; WeightBalance'ta ise uzunluk/genişlik
     // tercihlerini bastıracak kadar baskındır.
     private const decimal VolumeFirstCoefficient = 500m;
     private const decimal WeightBalanceCoefficient = 900_000m;

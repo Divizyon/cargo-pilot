@@ -118,8 +118,8 @@ OPT-01 ve OPT-02 kararlarının **bilinçli olarak kapsam dışı** bıraktıkla
 
 | # | Konum | Borç | Durum |
 |---|---|---|---|
-| OPT-14 | `OptimizationEngine.cs:72` | `item.UnloadingOrder ?? -1` sentinel'i `GroupId` kontrolü yapmıyor — grubu olmayan ama boşaltma sırası olan kutu yanlış bölgeye eşlenebilir | ⚠️ açık (satır **değişmedi**) |
-| OPT-10 | `LifoPlacement.cs:63` | Bölge kısıtı yalnız `LoadingType.Rear`'ı kapsıyor (`if (!enabled \|\| loadingType != LoadingType.Rear) return [];`); 5 yükleme tipinin **4'ünde bölge hiç oluşmuyor** | ⚠️ açık (eski satır 53 → **63**) |
+| OPT-14 | `OptimizationEngine.cs:81` | `item.UnloadingOrder ?? -1` sentinel'i `GroupId` kontrolü yapmıyor — grubu olmayan ama boşaltma sırası olan kutu yanlış bölgeye eşlenebilir | ⚠️ açık (satır 72 → **81**) |
+| OPT-10 | `LifoPlacement.cs:64` | ~~Bölge kısıtı yalnız `LoadingType.Rear`'ı kapsıyor~~ | ✅ **kapandı** (2026-08-16) — koşul artık `if (!enabled \|\| !zonesApply)`; `zonesApply` kapı listesinden türetiliyor (`LoadingCorner.HasReferenceDoor`), yani arka + yan kapılı araçta da bölge oluşuyor |
 | — | `LifoPlacement.cs:76` | Eşit bölge bölme kusuru: `var zoneSize = vehicleLength / orders.Count;` — bölge dar kaldığında yedek kademe devreye giriyor ve ihlal **raporlanmadan** sürüyor | ⚠️ açık (eski satır 66 → **76**) |
 | — | (çıktı katmanı) | Yedek kademeye düşen yerleşim hiçbir yere yazılmıyor; bir uyarı mekanizması gerekiyor. **Yeni `UnplacedReason` değil** — kutu yerleşiyor, yalnız bölge dışına düşüyor (bilinçli karar) | ⚠️ açık — `grep -rn "UnplacedReason\|LoadingPlanWarnings" apps/backend` yedek kademe için yazıcı göstermiyor |
 | OPT-01 | `CargoPilot.Engine.Tests` | `ViolatesLoadAbove` için kırılganlık / `MaxWeightOnTop` odaklı **doğrudan takas testi yok**; mevcut kapsam dolaylı | ✅ **kapandı** — #989 ile `BalanceSwapSupportTests.cs` ve `PlacementValidatorSupportTests.cs` eklendi (git'te izlenen dosyalar) |

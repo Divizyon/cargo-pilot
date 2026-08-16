@@ -245,7 +245,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     //
     // TOPLAMA SIRASI KRİTİKTİR: decimal toplamada sıra değişirse yuvarlama
     // farkı en-iyi-aday seçimini kaydırabilir. Tek bir sabit sıra kullanılır —
-    // yerçekimi → derinlik → denge → genişlik → bölge — ve bu sıra her kriterin
+    // yerçekimi → uzunluk → denge → genişlik → bölge — ve bu sıra her kriterin
     // bugünkü ifadesindeki sıfır olmayan terimlerin göreli sırasıyla birebir
     // aynıdır:
     //   VolumeFirst  : ey*1e6 + ez*1e3 + denge*500     + ex + bölge

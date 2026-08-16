@@ -1,5 +1,5 @@
 {
-  "Scenario": "Lifo_YanKapi_BolgeUygulanmaz",
+  "Scenario": "Lifo_ReferansKapiYok_BolgeUygulanmaz",
   "Vehicle": {
     "Width": 100,
     "Height": 100,

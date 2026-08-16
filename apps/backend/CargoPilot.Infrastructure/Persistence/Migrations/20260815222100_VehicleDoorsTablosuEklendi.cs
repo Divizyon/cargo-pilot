@@ -92,6 +92,12 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            ArgumentNullException.ThrowIfNull(migrationBuilder);
+
+            // Kapi listesi tekil LoadingType'a indirgenmez: kolon zaten dolu ve
+            // Vehicle.SyncLoadingTypeFromDoors her kayitta guncelliyor, yani
+            // bilgi kaybi yok. Kayip olan yalnizca tekil alanin ifade edemedigi
+            // ikinci kapidir — geri alma bunu kurtaramaz (denetim S-49).
             migrationBuilder.DropTable(
                 name: "VehicleDoors");
         }

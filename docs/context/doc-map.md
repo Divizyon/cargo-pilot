@@ -68,8 +68,8 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
-| `COORDINATE_STANDARD.md` | 280 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12, §10 #1004 ile güncellendi): eksen/boyut terimleri, cm birimi, **X=width / Y=height / Z=length** (`depth` terimi yasak), kutu origin'i `(min x, min y, min z)`, referans kapı `z = length`, API sözleşmesi. §10 "Kodun bugünkü hâli" tablosu neyin uygulandığını söyler. Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
-| `KOORDINAT-UYUM-RAPORU.md` | 377 | **Yalnızca rapor** (2026-08-15) — 7 alanlı uyum denetimi, 177 tekil dosya:satır bulgusu (24 High). **§0** PR #997/#1004 sonrası hangi bulguların kapandığını kanıtla verir; z-yönü bulgularının çoğu kapandı, kapı modeli açık | Koordinat uyumsuzluğunun güncel durumunu sorarken |
+| `COORDINATE_STANDARD.md` | 326 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12, §10 #1004 ile güncellendi): eksen/boyut terimleri, cm birimi, **X=width / Y=height / Z=length** (`depth` terimi yasak), kutu origin'i `(min x, min y, min z)`, referans kapı `z = length`, API sözleşmesi. §10 kararların koddaki karşılığını gösterir (2026-08-16 itibarıyla hepsi uygulandı). Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
+| `KOORDINAT-UYUM-RAPORU.md` | 385 | **Yalnızca rapor** (2026-08-15) — 7 alanlı uyum denetimi, 177 tekil dosya:satır bulgusu (24 High). **§0** PR #997/#1004 sonrası hangi bulguların kapandığını kanıtla verir. ⚠️ **Bayat** — kapı modeli de kapandı; güncel durum `KOORDINAT-BRANCH-DENETIMI-2026-08-16.md` | Koordinat uyumsuzluğunun güncel durumunu sorarken |
 | `COORDINATE_AUDIT.md` | 742 | **Yalnızca rapor** (2026-08-12, sürüm 2) — kodun o günkü standarda göre denetimi, dosya:satır kanıtlı sapma listesi. ⚠️ **Bayat** — `KOORDINAT-UYUM-RAPORU.md` bunun yerini aldı, z-yönü/`depth` bulguları artık geçersiz | Yalnızca tarihsel karşılaştırma için |
 
 ## docs/conventions
