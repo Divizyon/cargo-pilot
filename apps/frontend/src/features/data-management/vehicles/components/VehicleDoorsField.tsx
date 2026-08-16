@@ -27,9 +27,9 @@ const DOOR_SET_OPTIONS: { value: DoorSetKey; label: string; hasBigDoor: boolean 
   { value: 'both', label: 'Küçük ve büyük kapı', hasBigDoor: true },
 ];
 
-const BIG_DOOR_FACE_OPTIONS: { value: DoorFace; label: string; hint: string }[] = [
-  { value: DoorFace.ZeroX, label: 'Sol', hint: 'x = 0 yüzü' },
-  { value: DoorFace.WidthX, label: 'Sağ', hint: 'x = genişlik yüzü' },
+const BIG_DOOR_FACE_OPTIONS: { value: DoorFace; label: string }[] = [
+  { value: DoorFace.ZeroX, label: 'Sol' },
+  { value: DoorFace.WidthX, label: 'Sağ' },
 ];
 
 function buildDoors(setKey: DoorSetKey, bigDoorFace: DoorFace): VehicleDoor[] {
@@ -125,13 +125,8 @@ export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
                           </span>
                         </PopoverTrigger>
 
-                        <PopoverContent className="w-56 space-y-3" align="center">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">Büyük kapı tarafı</p>
-                            <p className="text-xs text-muted-foreground">
-                              Yükleme, kapıya değmeyen köşeden başlar.
-                            </p>
-                          </div>
+                        <PopoverContent className="w-44 space-y-2.5" align="center">
+                          <p className="text-sm font-medium">Kapı yönü</p>
 
                           <RadioGroup
                             value={bigDoorFace}
@@ -149,9 +144,6 @@ export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
                               >
                                 <RadioGroupItem id={`big-door-${face.value}`} value={face.value} />
                                 <span className="text-sm">{face.label}</span>
-                                <span className="ml-auto text-xs text-muted-foreground">
-                                  {face.hint}
-                                </span>
                               </label>
                             ))}
                           </RadioGroup>
