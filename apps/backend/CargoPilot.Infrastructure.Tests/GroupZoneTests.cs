@@ -16,12 +16,11 @@ public sealed class GroupZoneTests
     private const decimal VehicleHeight = 100m;
     private const decimal VehicleLength = 300m;
     private const decimal BoxLength = 50m;
-    private const decimal ZoneSize = VehicleLength / 3m;
 
     [Fact]
     public void Lifo_IlkInecekGrup_KapiyaEnYakinBolgeyeYerlesir()
     {
-        var (result, itemsByOrder) = RunWithThreeGroups();
+        var (result, itemsByOrder, _) = RunWithThreeGroups();
 
         var zByOrder = itemsByOrder.ToDictionary(
             pair => pair.Key,
@@ -36,14 +35,21 @@ public sealed class GroupZoneTests
     [Fact]
     public void Lifo_HerGrup_KendiBolgesininSinirlariIcindeKalir()
     {
-        var (result, itemsByOrder) = RunWithThreeGroups();
+        var (result, itemsByOrder, input) = RunWithThreeGroups();
+
+        var zones = LifoPlacement.ComputeGroupZones(
+            input.Items,
+            input.VehicleLength,
+            OptimizationModules.Resolve(input).UseLifo);
+
+        Assert.NotEmpty(zones);
 
         foreach (var (unloadingOrder, itemId) in itemsByOrder)
         {
-            // Bolgeler kapidan geriye dagitilir: ilk inecek grup (order=1) kapi
-            // ucundaki [length-zoneSize, length] bolgesini alir.
-            var zoneStart = VehicleLength - unloadingOrder * ZoneSize;
-            var zoneEnd = VehicleLength - (unloadingOrder - 1) * ZoneSize;
+            // Bolge sinirlari uretim fonksiyonundan okunur, testte ikinci kez
+            // yazilmaz: formul degistiginde test eski kurala gore olcup sahte
+            // ihlal ya da sahte basari raporlardi (denetim S-63).
+            var (zoneStart, zoneEnd) = zones[unloadingOrder];
             var placement = SinglePlacement(result, itemId);
 
             Assert.True(placement.Z >= zoneStart && placement.Z + placement.Length <= zoneEnd,
@@ -52,7 +58,7 @@ public sealed class GroupZoneTests
         }
     }
 
-    private static (OptimizationResult Result, Dictionary<int, Guid> ItemsByOrder) RunWithThreeGroups()
+    private static (OptimizationResult Result, Dictionary<int, Guid> ItemsByOrder, OptimizationInput Input) RunWithThreeGroups()
     {
         var itemsByOrder = new Dictionary<int, Guid>();
         var items = new List<OptimizationItemInput>();
@@ -73,7 +79,7 @@ public sealed class GroupZoneTests
             LoadingPlanOptimizationCriteria.Lifo,
             LoadingType.Rear);
 
-        return (new OptimizationEngine().Run(input), itemsByOrder);
+        return (new OptimizationEngine().Run(input), itemsByOrder, input);
     }
 
     private static PlacedItemResult SinglePlacement(OptimizationResult result, Guid itemId)

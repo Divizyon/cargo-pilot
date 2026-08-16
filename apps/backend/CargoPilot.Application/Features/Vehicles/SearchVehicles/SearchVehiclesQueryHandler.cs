@@ -85,7 +85,8 @@ public sealed class SearchVehiclesQueryHandler : IRequestHandler<SearchVehiclesQ
                     v.AdditionalAxleTareWeightKg,
                     v.AdditionalAxleMaxLoadKg,
                     ResolveAuditUser(v, userMap),
-                    v.Status);
+                    v.Status,
+                    [.. v.Doors.Select(VehicleDoorDto.FromEntity)]);
             })
             .ToList();
 

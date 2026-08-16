@@ -1,4 +1,5 @@
 using CargoPilot.Application.Common.Interfaces;
+using CargoPilot.Application.Features.Vehicles;
 using CargoPilot.Application.Features.Shares.CreateShareLink;
 using CargoPilot.Application.Features.Shares.GetSharePlanByToken;
 using CargoPilot.Domain.Entities;
@@ -29,6 +30,7 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
             .AsNoTracking()
             .Include(sl => sl.Plan)
                 .ThenInclude(p => p.Vehicle)
+                    .ThenInclude(v => v.Doors)
             .FirstOrDefaultAsync(
                 sl => sl.Token == token && (sl.ExpiresAt == null || sl.ExpiresAt > now),
                 cancellationToken);
@@ -84,7 +86,7 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
             vehicle.InternalWidth,
             vehicle.InternalHeight,
             vehicle.InternalLength,
-            MapDoorDirection(vehicle.LoadingType),
+            [.. vehicle.Doors.Select(VehicleDoorDto.FromEntity)],
             MapVehicleType(vehicle.VehicleType));
 
         return new SharePlanDto(
@@ -171,16 +173,6 @@ internal sealed class ShareLinkRepository : IShareLinkRepository
             LoadingPlanPlacementRotation.YawPitch   => (height, length,  width),
             LoadingPlanPlacementRotation.RollYaw    => (length, width,   height),
             _                                       => (width,  height,  length),
-        };
-
-    private static string MapDoorDirection(LoadingType loadingType)
-        => loadingType switch
-        {
-            LoadingType.Rear     => "rear",
-            LoadingType.SideRight or LoadingType.SideLeft => "side",
-            LoadingType.SideBoth => "rearAndSide",
-            LoadingType.Top      => "top",
-            _                    => "rear",
         };
 
     private static string? MapVehicleType(VehicleType vehicleType)

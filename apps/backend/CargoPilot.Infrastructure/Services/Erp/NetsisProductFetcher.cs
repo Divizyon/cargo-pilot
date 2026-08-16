@@ -123,7 +123,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
         var stokAdi = await reader.IsDBNullAsync(1, cancellationToken) ? stokKodu : reader.GetString(1);
         var weight = await reader.IsDBNullAsync(2, cancellationToken) ? 0m : reader.GetDecimal(2);
         var width = await reader.IsDBNullAsync(3, cancellationToken) ? 0m : reader.GetDecimal(3);
-        var depth = await reader.IsDBNullAsync(4, cancellationToken) ? 0m : reader.GetDecimal(4);
+        var length = await reader.IsDBNullAsync(4, cancellationToken) ? 0m : reader.GetDecimal(4);
         var height = await reader.IsDBNullAsync(5, cancellationToken) ? 0m : reader.GetDecimal(5);
         var grupKodu = await reader.IsDBNullAsync(6, cancellationToken) ? null : reader.GetString(6);
         var depoKodu = await reader.IsDBNullAsync(7, cancellationToken)
@@ -139,7 +139,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
             StokKodu = stokKodu,
             StokAdi = stokAdi,
             En = width,
-            Boy = depth,
+            Boy = length,
             Genislik = height,
             BirimAgirlik = weight,
             GrupKodu = grupKodu,
@@ -154,7 +154,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
             ProductType: "General",
             Width: width,
             Height: height,
-            Length: depth,
+            Length: length,
             Weight: weight,
             GroupCode: grupKodu,
             Warehouse: depoKodu,
@@ -162,7 +162,7 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
             Diameter: null,
             ErpConstraints: new Dictionary<string, string?>(),
             RawDataJson: JsonSerializer.Serialize(rawData),
-            MissingFields: CollectMissingFields(width, height, depth, weight));
+            MissingFields: CollectMissingFields(width, height, length, weight));
     }
 
     private static void AddFilterParameters(SqlCommand cmd, string? categoryFilter, string? warehouseFilter)
@@ -331,13 +331,13 @@ internal sealed class NetsisProductFetcher : IErpProductFetcher
     private static List<string> CollectMissingFields(
         decimal width,
         decimal height,
-        decimal depth,
+        decimal length,
         decimal weight)
     {
         var missing = new List<string>();
         if (width <= 0) missing.Add(DraftItemField.Width);
         if (height <= 0) missing.Add(DraftItemField.Height);
-        if (depth <= 0) missing.Add(DraftItemField.Length);
+        if (length <= 0) missing.Add(DraftItemField.Length);
         if (weight <= 0) missing.Add(DraftItemField.Weight);
         return missing;
     }

@@ -8,7 +8,7 @@ namespace CargoPilot.Infrastructure.Tests;
 /// OptimizationEngine.cs:52 - bölge eşleşmesi olmayan kutularda fantom ceza
 /// düzeltmesini doğrular. Eşleşme olmadığında (TryGetValue false döndüğünde)
 /// zoneStart/zoneEnd artık null kalır; eskiden default (0,0) struct değeri
-/// kullanılıyordu ve bu, kutuları Z=0'a (kapıya) zorlayan devasa bir ceza
+/// kullanılıyordu ve bu, kutuları Z=0'a (uzak yüze) zorlayan devasa bir ceza
 /// üretiyordu.
 /// </summary>
 public sealed class OptimizationEngineTests
@@ -56,7 +56,7 @@ public sealed class OptimizationEngineTests
     /// hâlâ uygulandığını doğrular (regresyon testi). Bu, F0-03 düzeltmesinin
     /// geçerli bölge eşleşmelerini bozmadığını garanti eder.
     ///
-    /// Kasıtlı olarak yöne bağımsızdır: hangi grubun kapıya (Z=0) yakın bölgeye
+    /// Kasıtlı olarak yöne bağımsızdır: hangi grubun kapıya (Z=length) yakın bölgeye
     /// düştüğü F0-01'in sorumluluğudur ve orada (GroupZoneTests) doğrulanır.
     /// Burada yalnızca her grubun kendi UnloadingOrder'ına ait, zoneSize
     /// genişliğindeki dilime toplandığı ve iki grubun farklı, çakışmayan

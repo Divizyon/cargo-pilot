@@ -7,7 +7,8 @@
     "MaxWeight": 2000,
     "Criteria": "VolumeFirst",
     "LoadingType": "Rear",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false
   },
   "Items": [
     {

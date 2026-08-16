@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { useVehicles, useToggleFavorite, fetchAllVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import { formatDimensionDisplay, formatWeightDisplay } from '@/lib/utils/format/unitConversion';
+import { DoorType, formatDoorSummary } from '@/lib/types/vehicle';
 import type { Vehicle, VehicleType } from '@/lib/types/vehicle';
 import { exportVehiclesToExcel } from '@/lib/utils/export/exportVehiclesToExcel';
 import { SearchInput } from '@/components/shared/SearchInput';
@@ -193,13 +194,7 @@ function applySortToVehicles(vehicles: Vehicle[], key: VehicleSortKey): Vehicle[
 
 // ─── Door direction config ────────────────────────────────────────────────────
 
-const DOOR_CONFIG: Record<string, { label: string }> = {
-  front: { label: 'Ön' },
-  rear: { label: 'Arka' },
-  side: { label: 'Yan' },
-  top: { label: 'Üst' },
-  rearAndSide: { label: 'Arka + Yan' },
-};
+// Kapı etiketi kapı listesinden türetilir; formatDoorSummary tek kaynaktır.
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
 
@@ -213,15 +208,21 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
   { value: 'Konteyner', label: 'Konteyner' },
 ];
 
-// ─── Door direction filter ────────────────────────────────────────────────────
+// ─── Door filter ──────────────────────────────────────────────────────────────
 
-type DoorFilter = 'rear' | 'side' | 'top' | 'rearAndSide';
+// Filtre kapı tipine göredir: küçük + büyük kapılı araç iki filtreye de girer.
+type DoorFilter = DoorType;
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: 'rear', label: 'Arka Kapı' },
-  { value: 'side', label: 'Yan Kapı' },
-  { value: 'top', label: 'Üst Kapı' },
+  { value: DoorType.Small, label: 'Küçük' },
+  { value: DoorType.Big, label: 'Büyük' },
+  { value: DoorType.Top, label: 'Üst' },
 ];
+
+function matchesDoorFilters(vehicle: Vehicle, filters: ReadonlySet<DoorFilter>): boolean {
+  if (filters.size === 0) return true;
+  return (vehicle.doors ?? []).some((door) => filters.has(door.type));
+}
 
 // ─── Status filter ────────────────────────────────────────────────────────────
 
@@ -295,7 +296,7 @@ interface VehicleRowProps {
 function VehicleRow({ vehicle, onDelete, onToggleFavorite }: VehicleRowProps) {
   const navigate = useNavigate();
   const cfg = TYPE_CONFIG[vehicle.vehicleType];
-  const door = DOOR_CONFIG[vehicle.doorDirection] ?? { label: vehicle.doorDirection };
+  const door = { label: formatDoorSummary(vehicle.doors) };
   const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
   const weightUnit = useUnitStore((s) => s.weightUnit);
   const cell = 'py-0 px-3';
@@ -488,7 +489,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
       const doorFiltered =
         doorFilters.size === 0
           ? allVehicles
-          : allVehicles.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
+          : allVehicles.filter((v) => matchesDoorFilters(v, doorFilters));
       exportVehiclesToExcel(applySortToVehicles(doorFiltered, sortKey), {});
     } catch {
       toast.error('Dışa aktarma başarısız. Lütfen tekrar deneyin.', { position: 'bottom-right' });
@@ -544,10 +545,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
     setPage(1);
   }
 
-  const doorFilteredVehicles =
-    doorFilters.size === 0
-      ? vehicles
-      : vehicles.filter((v) => doorFilters.has(v.doorDirection as DoorFilter));
+  const doorFilteredVehicles = vehicles.filter((v) => matchesDoorFilters(v, doorFilters));
 
   const filteredVehicles = applySortToVehicles(doorFilteredVehicles, sortKey);
 
@@ -658,7 +656,7 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                 </div>
 
                 <p className="mb-2 mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Kapı Yönü
+                  Kapılar
                 </p>
                 <div className="space-y-2">
                   {DOOR_FILTER_OPTIONS.map(({ value, label }) => (
@@ -672,9 +670,9 @@ export function VehicleTable({ onCreateClick }: VehicleTableProps) {
                       />
                       <span
                         className={cn('inline-block h-2 w-2 rounded-full', {
-                          'bg-zinc-400': value === 'rear' || value === 'rearAndSide',
-                          'bg-teal-500': value === 'side',
-                          'bg-violet-500': value === 'top',
+                          'bg-zinc-400': value === DoorType.Small,
+                          'bg-teal-500': value === DoorType.Big,
+                          'bg-violet-500': value === DoorType.Top,
                         })}
                       />
                       <span className="text-xs">{label}</span>

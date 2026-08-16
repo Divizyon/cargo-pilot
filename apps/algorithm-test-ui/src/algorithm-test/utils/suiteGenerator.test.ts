@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Item } from '@/lib/types/item';
-import { DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { DoorFace, DoorType, type Vehicle } from '@/lib/types/vehicle';
 import { MAX_TOTAL_BOX_COUNT } from '../schemas/algorithmTestRequestSchema';
 import { createRng } from './seededRandom';
 import { generateSuite } from './suiteGenerator';
@@ -13,7 +13,7 @@ function vehicle(id: string, length: number): Vehicle {
     height: 260,
     length,
     maxCargoWeight: 20000,
-    doorDirection: DoorDirection.Rear,
+    doors: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
   };
 }
 

@@ -23,7 +23,7 @@ export const ERP_SOURCE_MISSING = { label: '?', hint: 'ERP kaynağında bu alan 
 
 /**
  * Kutu kenarları sahne sözleşmesiyle aynı adla anılır (scene-config: X = genişlik,
- * Y = yükseklik, Z = derinlik); ekranlar ve Excel şablonu bu adlardan beslenir.
+ * Y = yükseklik, Z = uzunluk); ekranlar ve Excel şablonu bu adlardan beslenir.
  */
 export const DIMENSION_LABEL = {
   width: 'Genişlik (X)',

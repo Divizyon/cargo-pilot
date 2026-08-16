@@ -7,7 +7,7 @@ import { VehicleIdentityFields } from './VehicleIdentityFields';
 import { VehiclePlateOrSerialField } from './VehiclePlateOrSerialField';
 
 import { VehicleDimensionsFields } from './VehicleDimensionsFields';
-import { VehicleDoorDirectionField } from './VehicleDoorDirectionField';
+import { VehicleDoorsField } from './VehicleDoorsField';
 import { VehicleWeightFields } from './VehicleWeightFields';
 import { VehicleAxleBSection } from './VehicleAxleBSection';
 import {
@@ -93,10 +93,6 @@ export function VehicleForm({
                 if (val === VehicleType.Konteyner) {
                   form.setValue('plate', '');
                   form.clearErrors('plate');
-                  const dir = form.getValues('doorDirection');
-                  if (dir === 'rearAndSide') {
-                    form.setValue('doorDirection', 'rear');
-                  }
                 } else {
                   form.setValue('serialNumber', '');
                   form.clearErrors('serialNumber');
@@ -174,10 +170,10 @@ export function VehicleForm({
         </div>
       )}
 
-      {/* 6. KAPI YÖNÜ */}
+      {/* 6. KAPILAR */}
       <div className="space-y-4 py-6">
-        <SectionTitle>Kapı Yönü</SectionTitle>
-        <VehicleDoorDirectionField form={form} vehicleType={vehicleType} />
+        <SectionTitle>Kapılar</SectionTitle>
+        <VehicleDoorsField form={form} />
       </div>
 
       {/* ÖZEL TAŞIMA NOTLARI */}

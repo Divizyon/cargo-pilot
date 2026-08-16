@@ -94,8 +94,8 @@ Kökte yalnızca konvansiyonel dosyalar durur. `devops-audit-raporu.md` 2026-08-
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
-| `COORDINATE_STANDARD.md` | 280 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12, §10 #1004 ile güncellendi): eksen/boyut terimleri, cm birimi, **X=width / Y=height / Z=length** (`depth` terimi yasak), kutu origin'i `(min x, min y, min z)`, referans kapı `z = length`, API sözleşmesi. §10 "Kodun bugünkü hâli" tablosu neyin uygulandığını söyler. Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
-| `KOORDINAT-UYUM-RAPORU.md` | 377 | **Yalnızca rapor** (2026-08-15) — 7 alanlı uyum denetimi, 177 tekil dosya:satır bulgusu (24 High). **§0** PR #997/#1004 sonrası hangi bulguların kapandığını kanıtla verir; z-yönü bulgularının çoğu kapandı, kapı modeli açık | Koordinat uyumsuzluğunun güncel durumunu sorarken |
+| `COORDINATE_STANDARD.md` | 346 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12, §4/§10 2026-08-16'da güncellendi): eksen/boyut terimleri, cm birimi, **X=width / Y=height / Z=length** (`depth` terimi yasak), kutu origin'i `(min x, min y, min z)`, referans kapı `z = length`, kapı modeli ve arayüz adlandırması, API sözleşmesi. §10 kararların koddaki karşılığını gösterir (hepsi uygulandı). Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
+| `KOORDINAT-UYUM-RAPORU.md` | 392 | **Yalnızca rapor** (2026-08-15) — 7 alanlı uyum denetimi, 177 tekil dosya:satır bulgusu (24 High). ⚠️ **Bayat** — kapı modeli de kapandı; güncel durum `KOORDINAT-BRANCH-DENETIMI-2026-08-16.md` ve `KOORDINAT-DUZELTME-PLANI.md` | Koordinat uyumsuzluğunun güncel durumunu sorarken |
 
 `docs/coordinate-standard.html` (36 KB) standardın görsel sürümüdür ve `.md` sayımına girmez.
 

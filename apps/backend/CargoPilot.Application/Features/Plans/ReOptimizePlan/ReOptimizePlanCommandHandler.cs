@@ -2,6 +2,7 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -179,6 +180,10 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             vehicle.InternalHeight.GetValueOrDefault(),
             vehicle.InternalLength.GetValueOrDefault(),
             vehicle.MaxWeightCapacity.GetValueOrDefault(),
-            inputs, criteria, vehicle.LoadingType, clusterGroups);
+            inputs, criteria, vehicle.LoadingType, clusterGroups,
+            Modules: null,
+            // Yukleme kapinin oldugu yuzden baslamaz; baslangic kosesi kapi
+            // listesinden turetilir.
+            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors));
     }
 }

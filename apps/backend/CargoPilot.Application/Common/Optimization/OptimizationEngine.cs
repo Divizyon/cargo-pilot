@@ -30,30 +30,43 @@ internal sealed class OptimizationEngine : IOptimizationEngine
 
         var instances = ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups);
 
-        var halfW = input.VehicleWidth  / 2m;
+        // Yukleme kapinin oldugu yuzden baslamaz (docs/COORDINATE_STANDARD.md §7).
+        // Big door x = 0 yuzundeyse baslangic kosesi (width, 0, 0) olur; kutu
+        // kapinin onune yigilirsa operator kendi actigi kapidan iceri giremez.
+        // Kapi yoksa baslangic origin kosesidir — bugunku davranis.
+        var fillFromMaxX = input.FillsFromMaxX;
+
+        var halfW = input.VehicleWidth / 2m;
         var halfL = input.VehicleLength / 2m;
 
         // ── Extreme-point tohumu ──────────────────────────────────────────────
         // WeightBalance: aracın 4 kat-zemin köşesi tohumlanır; aksi hâlde greedy
         // her zaman (0,0,0) yakınına yığılır ve ön-arka/sol-sağ denge bozulur.
-        var extremePoints = new HashSet<(decimal x, decimal y, decimal z)> { (0m, 0m, 0m) };
+        // Sagdan doldururken tohum sag duvardir; kutunun sol kenari genislige gore
+        // geriye hesaplanir.
+        var startX = fillFromMaxX ? input.VehicleWidth : 0m;
+        var extremePoints = new HashSet<(decimal x, decimal y, decimal z)> { (startX, 0m, 0m) };
         if (useWeightBalance
             && input.Criteria == LoadingPlanOptimizationCriteria.WeightBalance
             && halfW > 0m && halfL > 0m)
         {
-            extremePoints.Add((halfW, 0m, 0m));    // arka-sağ
-            extremePoints.Add((0m,    0m, halfL)); // ön-sol
-            extremePoints.Add((halfW, 0m, halfL)); // ön-sağ
+            extremePoints.Add((halfW, 0m, 0m));    // uzak yüz, orta
+            extremePoints.Add((startX, 0m, halfL)); // kapı tarafı, başlangıç yanı
+            extremePoints.Add((halfW, 0m, halfL)); // kapı tarafı, orta
         }
 
-        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, input.LoadingType, modules.UseLifo);
+        var groupZones = LifoPlacement.ComputeGroupZones(instances, input.VehicleLength, modules.UseLifo);
 
         // LIFO bölgeleri de aynı nedenle tohumlanır: aday noktalar yalnızca
         // yerleştirilmiş kutulara komşu doğduğu için her grup Z=0'a, yani uzak
         // yüze yığılıyordu. Her bölgenin başlangıcı aday yapılınca grup kendi
         // bölgesinden başlayarak dolar.
+        // Tohumun x'i baslangic kosesiyle ayni olmali. Sabit 0m yazilsaydi
+        // aynalanmis modda (fillFromMaxX) her tohum icin ex = 0 - width < 0
+        // olur ve tohumlar her yonelimde elenirdi; bolge disiplini sessizce
+        // devre disi kalirdi.
         foreach (var zoneStart in groupZones.Values.Select(z => z.ZStart).Where(z => z > 0m))
-            extremePoints.Add((0m, 0m, zoneStart));
+            extremePoints.Add((startX, 0m, zoneStart));
 
         foreach (var item in instances)
         {
@@ -91,11 +104,24 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             // sert kısıtları geçmiş bir aday elendiğinde kalkar
             var blockedByFragility = false;
 
-            foreach (var (ex, ey, ez) in extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x))
+            // Esitlik bozucu yon-farkinda: aynalanmis modda tarama sag duvardan
+            // baslar, aksi halde ayni plan aynalandiginda farkli kutu kazanir ve
+            // ayna simetrisi bozulurdu.
+            var orderedPoints = fillFromMaxX
+                ? extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenByDescending(p => p.x)
+                : extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x);
+
+            foreach (var (ax, ey, ez) in orderedPoints)
             {
                 foreach (var (width, height, length, rotation) in PlacementValidator.GetOrientations(item))
                 {
-                    if (ex + width > input.VehicleWidth)  continue;
+                    // Aday noktalar kutunun origin'e en yakin kosesini tasir. Sagdan
+                    // doldururken nokta kutunun SAG kenaridir, sol kenar genislige
+                    // gore geriye hesaplanir; aksi halde ilk kutu duvardan tasar ve
+                    // hicbir aday gecerli olmaz.
+                    var ex = fillFromMaxX ? ax - width : ax;
+                    if (ex < 0m) continue;
+                    if (ex + width > input.VehicleWidth) continue;
                     if (ey + height > input.VehicleHeight) continue;
                     if (ez + length > input.VehicleLength) continue;
 
@@ -118,7 +144,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                         item.Weight, totalWeight,
                         momentX, momentZ,
                         halfW, halfL,
-                        zoneStart, zoneEnd);
+                        zoneStart, zoneEnd,
+                        input.VehicleWidth, fillFromMaxX);
 
                     if (score < bestScore)
                     {
@@ -154,12 +181,16 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             momentX += best.Weight * (best.X + best.Width / 2m);
             momentZ += best.Weight * (best.Z + best.Length / 2m);
 
-            extremePoints.Add((best.X + best.Width, best.Y, best.Z));
-            extremePoints.Add((best.X, best.Y + best.Height, best.Z));
-            extremePoints.Add((best.X, best.Y, best.Z + best.Length));
+            // X ekseninde bir sonraki capa, doldurma yonunun ilerledigi kenardir.
+            var nextAnchorX = fillFromMaxX ? best.X : best.X + best.Width;
+            var sideAnchorX = fillFromMaxX ? best.X + best.Width : best.X;
+
+            extremePoints.Add((nextAnchorX, best.Y, best.Z));
+            extremePoints.Add((sideAnchorX, best.Y + best.Height, best.Z));
+            extremePoints.Add((sideAnchorX, best.Y, best.Z + best.Length));
 
             extremePoints.RemoveWhere(p =>
-                p.x >= input.VehicleWidth  ||
+                (fillFromMaxX ? p.x <= 0m : p.x >= input.VehicleWidth) ||
                 p.y >= input.VehicleHeight ||
                 p.z >= input.VehicleLength);
         }
@@ -214,7 +245,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     //
     // TOPLAMA SIRASI KRİTİKTİR: decimal toplamada sıra değişirse yuvarlama
     // farkı en-iyi-aday seçimini kaydırabilir. Tek bir sabit sıra kullanılır —
-    // yerçekimi → derinlik → denge → genişlik → bölge — ve bu sıra her kriterin
+    // yerçekimi → uzunluk → denge → genişlik → bölge — ve bu sıra her kriterin
     // bugünkü ifadesindeki sıfır olmayan terimlerin göreli sırasıyla birebir
     // aynıdır:
     //   VolumeFirst  : ey*1e6 + ez*1e3 + denge*500     + ex + bölge
@@ -243,7 +274,8 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL,
-        decimal? zoneStart, decimal? zoneEnd)
+        decimal? zoneStart, decimal? zoneEnd,
+        decimal vehicleWidth, bool fillFromMaxX)
     {
         // Yerçekimi terimi her kriterde ortaktır ve kapatılamaz: alçak nokta
         // her zaman baskın tercihtir.
@@ -259,7 +291,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             momentX, momentZ,
             halfW, halfL);
 
-        var widthTerm = VolumeScoring.WidthTerm(useVolume, ex);
+        var widthTerm = VolumeScoring.WidthTerm(useVolume, ex, width, vehicleWidth, fillFromMaxX);
 
         var zoneTerm = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, length);
 

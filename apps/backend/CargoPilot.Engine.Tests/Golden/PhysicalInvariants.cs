@@ -13,7 +13,7 @@ namespace CargoPilot.Engine.Tests.Golden;
 /// bozulduğunda testi de birlikte bozardı. Eşik ve karşılaştırma operatörü
 /// üretimdekiyle birebir aynıdır (<c>&gt;= 0.80</c>).
 ///
-/// Sahne sözleşmesi: santimetre, X=genişlik, Y=yükseklik, Z=derinlik; kutu
+/// Sahne sözleşmesi: santimetre, X=genişlik, Y=yükseklik, Z=uzunluk; kutu
 /// konumu bottom-left-rear köşesidir.
 /// </summary>
 internal static class PhysicalInvariants

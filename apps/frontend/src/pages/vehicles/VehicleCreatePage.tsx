@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { VehicleForm } from '@/features/data-management/vehicles/components/VehicleForm';
 import { useCreateVehicle } from '@/lib/api/useVehicles';
+import { DoorType, DoorFace } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 
 export function VehicleCreatePage() {
@@ -24,8 +25,7 @@ export function VehicleCreatePage() {
             length: 1200,
             width: 240,
             height: 260,
-            doorDirection: 'side',
-            doorSide: 'right',
+            doors: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
           }}
           isSubmitting={createVehicle.isPending}
           onCancel={() => navigate('/vehicles')}

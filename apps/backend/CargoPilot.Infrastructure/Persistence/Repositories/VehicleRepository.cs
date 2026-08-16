@@ -25,6 +25,7 @@ internal sealed class VehicleRepository : IVehicleRepository {
         bool? isDraft = null,
         CancellationToken cancellationToken = default) {
         var query = _context.Vehicles.AsNoTracking()
+            .Include(v => v.Doors)
             .Where(v => v.CompanyId == companyId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm)) {
@@ -69,7 +70,10 @@ internal sealed class VehicleRepository : IVehicleRepository {
     }
 
     public async Task<Vehicle?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default) {
+        // Kapilar Include edilmezse koleksiyon bos gelir ve motor aciklik payini
+        // (x0) her zaman 0 okur; alan sessizce olu kalirdi.
         return await _context.Vehicles
+            .Include(v => v.Doors)
             .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId, cancellationToken);
     }
 

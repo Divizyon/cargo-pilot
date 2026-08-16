@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Item } from '@/lib/types/item';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
-import { DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { DoorFace, DoorType, type Vehicle } from '@/lib/types/vehicle';
 import { GENERATOR_VERSION, generateSuite } from '../utils/suiteGenerator';
 import { SUITE_RUN_VERSION } from '../utils/suiteStorage';
 import { runSuite, type SuiteClock } from './runSuite';
@@ -23,7 +23,7 @@ function vehicle(): Vehicle {
     height: 260,
     length: 1360,
     maxCargoWeight: 20000,
-    doorDirection: DoorDirection.Rear,
+    doors: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
   };
 }
 

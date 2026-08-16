@@ -2,6 +2,8 @@ using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Features.Vehicles.CreateVehicle;
 
+// Doors: aracin kapilari (docs/COORDINATE_STANDARD.md §4). Verilmezse tekil
+// LoadingType'dan turetilir; gecis tamamlanana kadar iki yol da desteklenir.
 public sealed record CreateVehicleRequest(
     string VehicleName,
     string? Description,
@@ -22,4 +24,5 @@ public sealed record CreateVehicleRequest(
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
     decimal? AdditionalAxleMaxLoadKg,
-    bool? IsDraft = null);
+    bool? IsDraft = null,
+    IReadOnlyList<VehicleDoorDto>? Doors = null);

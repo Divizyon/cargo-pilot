@@ -5,6 +5,7 @@ import {
   checkFragility,
   checkLifoVertical,
   checkLifoZone,
+  checkLoadingCorner,
   checkOverlap,
   checkRotation,
   checkStackCount,
@@ -37,6 +38,7 @@ const CHECKS = [
   checkTotalWeight,
   checkCogMismatch,
   checkLifoZone,
+  checkLoadingCorner,
 ] as const;
 
 export function runChecks(input: CheckInput): CheckResult[] {

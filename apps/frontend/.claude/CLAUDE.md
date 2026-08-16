@@ -412,7 +412,7 @@ const fragility = useWatch({ control: form.control, name: "fragility" });
 
 > **Uygulama durumu (2026-08-15, ikinci ölçüm):** Yukarıdaki tablo hem standardı hem **kodun bugünkü hâlini** anlatır. `docs/COORDINATE_STANDARD.md`'nin eksen/terim kısmı PR #997 ve #1004 ile fiilen uygulandı: `PlacedBox.cs` artık `Width, Height, Length` taşıyor (`W,H,D` kalmadı), `BoxWrapper.tsx`'te boyut anlamında `depth` yok (`grep -rn -i depth apps/frontend/src` → kalanların tamamı Three.js malzeme özelliği `depthWrite`/`depthTest`, `scene-config.ts:95` `STAGING_DEPTH_CM` sabiti ve `usePlanStore.ts` içindeki yerel `rowDepth` değişkenleridir). Backend'de kalan tek yer `NetsisProductFetcher.cs`'teki yerel `depth` değişkeni — hedef alan adı zaten `Length`.
 >
-> Henüz uygulanmayan tek kısım kapı modelidir: `doors` listesi, `top door` ve `clearanceCm` kodda yok — bkz. `COORDINATE_STANDARD.md` §10 "Kodun bugünkü hâli" tablosu. Bir önceki turun (PR #993) buraya koyduğu "standart henüz hiçbir yerde uygulanmamıştır" notu **artık geçersizdi**, bu satırla değiştirildi.
+> **Uygulama durumu (2026-08-16):** Standardın tamamı uygulandı. Kapı modeli (`doors` listesi, `VehicleDoors` tablosu, small/big/top tipleri) backend'de, API sözleşmesinde ve arayüzde canlı. `clearanceCm` kavramı standarttan **kaldırıldı** — yükleme başlangıç köşesi kapı listesinden türetiliyor (`LoadingCorner`, §7), açıklık payı diye bir alan yok. Tekil `LoadingType` yalnızca geriye dönük uyumluluk için duruyor ve kapı listesinden türetiliyor.
 
 Koordinat mapping'i `lib/config/scene-config.ts` dosyasında merkezi olarak tanımlanır.
 

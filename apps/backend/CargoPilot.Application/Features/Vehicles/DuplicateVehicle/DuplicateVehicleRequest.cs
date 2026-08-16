@@ -7,6 +7,9 @@ public sealed record DuplicateVehicleRequest(
     [StringLength(200, ErrorMessage = "Araç adı en fazla 200 karakter olabilir.")]
     string VehicleName,
 
-    [Required(ErrorMessage = "Plaka zorunludur.")]
+    // Plaka opsiyonel: konteynerin plakasi yoktur (o alan seri numarasi tasir)
+    // ve kopyalama diyalogu da "Plaka opsiyoneldir" diyerek bos gonderiyor.
+    // [Required] bos dizeyi reddettigi icin istek model baglamada 400'e
+    // dusuyordu — plakasiz arac hic kopyalanamiyordu.
     [StringLength(50, ErrorMessage = "Plaka en fazla 50 karakter olabilir.")]
-    string PlateNumber);
+    string? PlateNumber);
