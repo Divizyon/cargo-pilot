@@ -331,7 +331,7 @@ gerekmiyor, kayıt amaçlı):
 ## Kategori 6 — DevOps Taraması Bulguları (D-01 … D-51)
 
 **Kaynak:** 2026-08-03 tarihli dört paralel DevOps taraması
-([`iyilestirme-analizi-2026-08.md`](iyilestirme-analizi-2026-08.md), 51 madde).
+([`../archive/devops-iyilestirme-analizi-2026-08.md`](../archive/devops-iyilestirme-analizi-2026-08.md), 51 madde).
 O doküman bir **anlık görüntü**dür ve canlı takip yapmaz; bulguların açık olanları
 izlenebilirlik için **D-kodları korunarak** buraya taşındı (triyaj tarihi: 2026-08-16).
 Her satırın kanıtı `dosya:satır` düzeyinde yeniden doğrulandı — kapananlar aşağıda değil,

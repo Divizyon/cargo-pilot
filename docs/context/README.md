@@ -13,7 +13,7 @@ Aynı günün erken saatinde yazılan 45 değeri PR #993 anına aitti; 37 değer
 
 1. Önce `project-snapshot.md` okunur — teknik gerçekler, ortamlar, portlar, açık riskler.
 2. Detay gerekiyorsa `doc-map.md`'den **hangi dosyanın** okunacağı bulunur, sadece o dosya açılır.
-3. Branch / PR durumu için `branch-audit.md`.
+3. Branch / PR durumu için `docs/archive/branch-denetimi-2026-08-03.md`.
 4. Tarihsel öneriler ve yürürlükten kalkmış planlar `docs/archive/` altındadır.
 
 ## İçindekiler
@@ -23,7 +23,7 @@ Aynı günün erken saatinde yazılan 45 değeri PR #993 anına aitti; 37 değer
 | [project-snapshot.md](project-snapshot.md) | Stack, ortamlar, portlar, CI/CD, açık riskler — tek sayfa | Her oturum başında |
 | [doc-map.md](doc-map.md) | Repodaki 47 `.md` dosyasının haritası + özeti | "Bu bilgi nerede yazıyor?" sorusunda |
 | [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md) | 6 kategoride kod tabanı taraması: gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde; algoritma/test/devops durumu sorulduğunda |
-| [branch-audit.md](branch-audit.md) | 30 remote branch + açık PR analizi, temizlik kararları | Branch/PR temizliği yaparken |
+| [branch-denetimi-2026-08-03.md](../archive/branch-denetimi-2026-08-03.md) | 30 remote branch + açık PR analizi, temizlik kararları | Branch/PR temizliği yaparken |
 
 > Tarihsel öneriler (ör. trunk stratejisi önerisi) `docs/archive/` altında tutulur; bu tablo
 > yalnızca yürürlükteki bağlam dosyalarını listeler.
@@ -34,7 +34,7 @@ Aynı günün erken saatinde yazılan 45 değeri PR #993 anına aitti; 37 değer
 |-------------|---------------------|
 | Yeni `.md` eklendi / silindi | `doc-map.md` |
 | Ortam, port, servis, CI değişti | `project-snapshot.md` |
-| Branch temizliği yapıldı | `branch-audit.md` (karar sütunu → uygulandı) |
+| Branch temizliği yapıldı | `docs/archive/branch-denetimi-2026-08-03.md` (karar sütunu → uygulandı) |
 | Branch stratejisi değişti | `docs/conventions/branching.md` (+ eski karar kaydı: `docs/archive/branching-proposal-2026-08.md`) |
 
 > Bu klasör kaynak değil, **indeks**tir. Çelişki durumunda orijinal doküman geçerlidir;

@@ -1,6 +1,22 @@
 # Branch & PR Denetimi
 
-**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+{% hint style="info" %}
+**🗄 Arşiv — 2026-08-16'da `docs/context/`'ten buraya taşındı.**
+
+**Neden arşivde:** Tek seferlik bir temizlik denetimidir ve **uygulanmıştır** (§1–§6).
+Envanter tablosu bugün geçerli değil — 2026-08-16 ölçümü: **20 remote branch** (belge "3"
+diyor), **28 `archive/*` tag'i** (belge "26" diyor), **0 açık PR** (belge "2" diyor).
+
+**Silinmedi çünkü:** §7 (kök neden) ve §8 (trunk geçişi ve neden geri alındığı) repodaki
+**tekil kayıttır** — "neden trunk'a geçmiyoruz?" sorusunun tek gerekçe belgesi. §9'daki üç
+dallı modelin yürürlükteki hâli ise
+[`branching.md`](../conventions/branching.md) ve
+[`project-snapshot.md`](../context/project-snapshot.md) §6'dadır; **çelişki hâlinde onlar kazanır.**
+
+**Yansıttığı durum:** 2026-08-03, `origin/test` @ `3c42f65a`.
+{% endhint %}
+
+**Son güncelleme:** 2026-08-03 · **Durum:** 🗄 Arşiv (uygulandı)
 
 30 remote branch ve açık PR'ların denetimi, temizlik kararları ve uygulanan üç dallı terfi modelinin kaydı.
 
@@ -173,7 +189,7 @@ Her adım ayrı ve geri alınabilir tutulmalı.
 | 5 | §5'teki 4 branch için sahipleriyle karar | Yok | ⏳ Ekipte |
 | 6 | §4.3'teki 4 story'yi backlog'a yaz, sonra branch'leri sil | Düşük | ⏳ |
 | 7 | `delete_branch_on_merge` ayarını **açık** hale getir | Yok — birikmeyi kökten keser | ⏳ |
-| 8 | Branch stratejisi kararı → [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md) | — | ⏳ |
+| 8 | Branch stratejisi kararı → [branching-proposal-2026-08.md](branching-proposal-2026-08.md) | — | ⏳ |
 
 > `dev`'de kurtarılacak iş bulunmadığı için (§3.1) ayrı bir taşıma adımı gerekmiyor.
 
@@ -212,7 +228,7 @@ Kurtarma kararı verilmeden silinen, `test`'te karşılığı olmayan işler —
 
 ## 8. Trunk Geçişi — 2026-08-03
 
-Temizlikten sonra [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md) uygulandı.
+Temizlikten sonra [branching-proposal-2026-08.md](branching-proposal-2026-08.md) uygulandı.
 
 | Adım | Durum |
 |------|-------|
@@ -305,4 +321,4 @@ Bu tablonun 26 iş branch'iyle oluşmasının üç nedeni var; hiçbiri kişi ka
 3. **Uzun ömürlü branch'ler** → 1000+ commit geride kalan branch rebase edilemiyor, kimse silmeye de
    cesaret edemiyor, süresiz duruyor.
 
-Üçünün de yapısal karşılığı [branching-proposal-2026-08.md](../archive/branching-proposal-2026-08.md)'de.
+Üçünün de yapısal karşılığı [branching-proposal-2026-08.md](branching-proposal-2026-08.md)'de.

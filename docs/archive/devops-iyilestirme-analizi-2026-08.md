@@ -1,5 +1,17 @@
 # DevOps İyileştirme Analizi — 2026-08-03 (anlık görüntü)
 
+{% hint style="info" %}
+**🗄 Arşiv — 2026-08-16'da `docs/devops/`'tan buraya taşındı.**
+
+**Neden arşivde:** Dosya zaten kendini "canlı belge değildir" ilan ediyordu ama canlı
+klasörde duruyordu; 45 açık bulgu bu yüzden fiilen takipsiz kalmıştı. Taşımadan **önce**
+triyaj yapıldı — açık bulgular D-kodları korunarak
+[`devops-backlog.md`](../devops/devops-backlog.md) **Kategori 6**'ya aktarıldı.
+Bu dosya artık yalnızca kanıt gövdesini ve 2026-08-03 tablosunu saklar.
+
+**Yansıttığı durum:** 2026-08-03 (ölçüm günü). Sayıların hiçbiri bugünü göstermez.
+{% endhint %}
+
 **Ölçüm tarihi:** 2026-08-03 · **Durum:** 🗄 **Arşiv / anlık görüntü** — canlı belge değildir
 
 > ### ⚠️ Bu bir zaman-damgalı anlık görüntüdür
@@ -21,7 +33,7 @@
 > 51 D-bulgusunun tamamı bugünkü kodla yeniden doğrulandı.
 > **6'sı kapandı:** D-01, D-05, D-07, D-10, D-11, D-16 (aşağıda tek tek işaretli).
 > **45'i açık** ve D-kodları korunarak
-> [`devops-backlog.md`](devops-backlog.md) **Kategori 6**'ya taşındı — canlı takip artık orada.
+> [`devops-backlog.md`](../devops/devops-backlog.md) **Kategori 6**'ya taşındı — canlı takip artık orada.
 > Bu dosya bundan sonra yalnızca 2026-08-03'teki tabloyu ve kanıt gövdesini saklar.
 
 Bu doküman dört paralel tarama (CI/CD süresi · Docker image · Altyapı & observability · Sunucu operasyonu) ile tespit edilen 51 maddelik DevOps bulgu listesini, doğrulama durumlarını ve uygulama sırasını içerir.
@@ -30,7 +42,7 @@ Bu doküman dört paralel tarama (CI/CD süresi · Docker image · Altyapı & ob
 **Analiz durumu (2026-08-03):** 📋 Hiçbir madde uygulanmamıştı, öncelik kararı bekleniyordu.
 **Bugünkü durum:** yukarıdaki triyaj notuna bakın — 6 madde kapandı, 45'i backlog'a taşındı.
 
-> Bu doküman [`known-issues.md`](known-issues.md) ve [`devops-backlog.md`](devops-backlog.md)
+> Bu doküman [`known-issues.md`](../devops/known-issues.md) ve [`devops-backlog.md`](../devops/devops-backlog.md)
 > yerine geçmez; onların **üstüne** gelen bir tarama sonucudur. Zaten kayıtlı olan maddeler
 > "kayıtlı" işaretiyle ayrılmıştır.
 

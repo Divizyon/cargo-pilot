@@ -25,7 +25,7 @@ Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR
 | 3 | **Kırılganlık (fragility) optimizasyona hiç girmiyor** — `Item.FragilityType` entity'de var ama `OptimizationItemInput`'a taşınmıyor; `UnplacedReason.FragilityOrHandlingConstraint` hiçbir yerde üretilmiyor. Yüzey/rotasyon kısıtı yalnızca frontend'de | Algoritma | 3D invariant "kırılganlık zayıflatılmaz" backend'de karşılıksız |
 | 4 | **Manuel 3D düzenlemeler kalıcı değil** — hiçbir endpoint placement pozisyonu kabul etmiyor; `updatePlacementPosition`/`setOrientation` sadece Zustand'a yazıyor, kaydetmenin tek yolu re-optimize (manuel düzen kaybolur) | Algoritma/FE | Kullanıcının el emeği sessizce kayboluyor |
 | 5 | **Frontend sürümleri dokümanlardan ileride** — Vite **8**, React Router **7**, Zustand **5**, zod **4** kurulu; dokümanlar v5/v6/v4/v3 diyor. i18next + react-i18next aktif kullanımda ama hiçbir dokümanda geçmiyor | Frontend | Snapshot güncellendi (bu taramayla) |
-| 6 | **Tüm portlar dışa açık** — hiçbir compose dosyasında `127.0.0.1:` öneki yok (MSSQL, MinIO Console, Grafana, Prometheus dahil); hiçbir serviste kaynak limiti (`mem_limit`/`cpus`) ve `logging:` bloğu yok | DevOps | `iyilestirme-analizi-2026-08.md`'de detaylı; tek sunucuda prod+test OOM riski somut |
+| 6 | **Tüm portlar dışa açık** — hiçbir compose dosyasında `127.0.0.1:` öneki yok (MSSQL, MinIO Console, Grafana, Prometheus dahil); hiçbir serviste kaynak limiti (`mem_limit`/`cpus`) ve `logging:` bloğu yok | DevOps | `docs/archive/devops-iyilestirme-analizi-2026-08.md`'de detaylı; tek sunucuda prod+test OOM riski somut |
 | 7 | **Rollback tag/SHA uyumsuzluğu** — `release-tag.yml` etiketleri `main` merge commit'lerine işaret ediyor; `rollback.sh` `test-{sha}` image'ı türetiyor ama bu SHA'lar `test` dalında yok → rollback `manifest unknown` ile stack kapalıyken başarısız olabilir | DevOps | Rollback güvencesi kâğıt üzerinde |
 
 ---
@@ -141,7 +141,7 @@ OPT-01 ve OPT-02 kararlarının **bilinçli olarak kapsam dışı** bıraktıkla
 
 ## 6. DevOps
 
-Detaylı 51 bulgu: `docs/devops/iyilestirme-analizi-2026-08.md`. Bu taramanın eklediği/teyit ettiği başlıklar:
+Detaylı 51 bulgu: `docs/archive/devops-iyilestirme-analizi-2026-08.md`. Bu taramanın eklediği/teyit ettiği başlıklar:
 
 - **Compose:** test + prod + 2 monitoring dosyası; frontend'de healthcheck hiçbir ortamda yok, monitoring'in 6 servisinde de yok. Portlar `0.0.0.0`, kaynak limiti ve `logging:` bloğu hiçbir serviste yok, MSSQL `user: root`.
 - **CI/CD:** `test`'e push → GHCR `:test` + `:test-{sha}` → SSH deploy. `main` push sadece `v0.<n>.0` tag'i atar; **prod image/pipeline yok** (`v*` tag hiçbir workflow tetiklemiyor). `rollback.yml`'de `target_ref` doğrudan shell'e gömülü (injection riski); `test-deploy.yml`'de secret yoksa açık metin fallback parolalar kullanılıyor.
@@ -179,7 +179,7 @@ Detaylı 51 bulgu: `docs/devops/iyilestirme-analizi-2026-08.md`. Bu taramanın e
 | Doküman | Sorun | Durum |
 |---------|-------|-------|
 | `docs/context/project-snapshot.md` §2 | MediatR/sürümler/i18n/test satırı eskiydi | ✅ Bu taramayla güncellendi |
-| `docs/context/doc-map.md` | `iyilestirme-analizi-2026-08.md` ve 3 algoritma tasarım arşivi listede yoktu | ✅ Bu taramayla güncellendi |
+| `docs/context/doc-map.md` | `docs/archive/devops-iyilestirme-analizi-2026-08.md` ve 3 algoritma tasarım arşivi listede yoktu | ✅ Bu taramayla güncellendi |
 | `apps/backend/docs/architecture.md` | "MediatR yok" iddiası, kurgusal `Cargo` örnekleri, çalışmayan InMemory bölümü | ✅ 2026-08-04'te kod gerçeğine göre düzeltildi |
 | `docs/devops/devops-backlog.md` 1.2-1.4 | PR #908 ile kapanan maddeler hâlâ "Açık" işaretli | ✅ 2026-08-04'te işaretlendi; 2.4 SMTP kapsamıyla güncellendi |
 | `docs/devops/known-issues.md` :148 | "max-size: 100m tanımlı" iddiası gerçek dışı (hiçbir compose'da logging yok) | ✅ 2026-08-04'te düzeltildi |

@@ -32,7 +32,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 > bilinçli olarak indeks dışıdır — test klasörü içi teknik not.
 >
 > **Revizyon 2026-08-13:** indeks yeniden ölçüldü; bayat satır sayıları ve iddialar
-> düzeltildi. Yeni girenler: `docs/COORDINATE_STANDARD.md`, `docs/COORDINATE_AUDIT.md`
+> düzeltildi. Yeni girenler: `docs/COORDINATE_STANDARD.md`, `docs/archive/koordinat-denetimi-2026-08-12.md`
 > (2026-08-12), `devops-audit-raporu.md` ve `.github/SECURITY.md` (2026-08-13).
 
 > **Revizyon 2026-08-08:** doküman yapısı yeniden kuruldu (kök sadeleşti, `docs/archive/`
@@ -70,7 +70,8 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 |-------|------:|------|--------------|
 | `COORDINATE_STANDARD.md` | 280 | **Tek yetkili koordinat sistemi tanımı** (2026-08-12, §10 #1004 ile güncellendi): eksen/boyut terimleri, cm birimi, **X=width / Y=height / Z=length** (`depth` terimi yasak), kutu origin'i `(min x, min y, min z)`, referans kapı `z = length`, API sözleşmesi. §10 "Kodun bugünkü hâli" tablosu neyin uygulandığını söyler. Çelişki hâlinde bu belge kazanır | 3D, API veya rapor tarafında koordinat/boyut sorusu |
 | `KOORDINAT-UYUM-RAPORU.md` | 377 | **Yalnızca rapor** (2026-08-15) — 7 alanlı uyum denetimi, 177 tekil dosya:satır bulgusu (24 High). **§0** PR #997/#1004 sonrası hangi bulguların kapandığını kanıtla verir; z-yönü bulgularının çoğu kapandı, kapı modeli açık | Koordinat uyumsuzluğunun güncel durumunu sorarken |
-| `COORDINATE_AUDIT.md` | 742 | **Yalnızca rapor** (2026-08-12, sürüm 2) — kodun o günkü standarda göre denetimi, dosya:satır kanıtlı sapma listesi. ⚠️ **Bayat** — `KOORDINAT-UYUM-RAPORU.md` bunun yerini aldı, z-yönü/`depth` bulguları artık geçersiz | Yalnızca tarihsel karşılaştırma için |
+
+`docs/coordinate-standard.html` (36 KB) standardın görsel sürümüdür ve `.md` sayımına girmez.
 
 ## docs/conventions
 
@@ -95,8 +96,7 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 11956
 | `secret-management.md` | 223 | "Repoya secret girmez" kuralı, env dosya tablosu, GHCR public durumu, backend local secret yöntemleri (User Secrets / Local JSON), GitHub Actions secret listesi, Google OAuth + Resend değişkenleri, ihlal prosedürü | Secret ekleme/döndürme |
 | `monitoring-setup.md` | 257 | Prometheus/Loki/Promtail/Grafana mimarisi, ilk kurulum, toplanan metrikler, alert kuralları, sorun giderme (Loki log şişmesi dahil) | Alert/dashboard işleri |
 | `known-issues.md` | 229 | 0–8 numaralı 9 madde; 0 (bayat GHCR kimliği), 5 (prod compose) ve 6 (`dev` gerileme riski) ✅ çözüldü → **fiilen 6 açık**: Resend domain, prod stack, SA parolası, Node 20 uyarısı, log rotation, image CVE'leri + çözülenler tablosu | **Her sprint başında.** Özeti: `project-snapshot.md` §5 |
-| `devops-backlog.md` | 333 | 11 maddelik öncelik matrisi + kategori bazlı detay (uyumsuzluklar, eksikler, güncellenecekler, GHCR, operasyonel) | DevOps planlaması |
-| `iyilestirme-analizi-2026-08.md` | 864 | **51 bulguluk** kapsamlı devops analizi (2026-08-03): compose, CI/CD, güvenlik, monitoring, doküman tutarsızlıkları; bazı bulgular "doğrulanmadı" işaretli | DevOps iyileştirme planlarken — en güncel ve en detaylı kaynak |
+| `devops-backlog.md` | 508 | 18 maddelik öncelik matrisi + kategori bazlı detay (uyumsuzluklar, eksikler, güncellenecekler, GHCR, operasyonel) ve **Kategori 6** — 2026-08-03 taramasının 45 açık D-bulgusu, D-kodları korunarak | DevOps planlaması — **açık DevOps işi için tek canlı kaynak** |
 
 ## docs/archive
 
@@ -107,6 +107,9 @@ güncel davranışın kaynağı değildir.
 |-------|------:|------|--------------|
 | `audit-test-plani-2026-08.md` | 502 | `chore/AUDIT-test-birlesik` dalının (AUDIT-01…07, 09, 10, 11) manuel QA test planı: otomatik kapılar (tsc, eslint, vitest, build, `dotnet build`), 26 rotanın duman testi, düzeltme bazlı senaryolar | AUDIT birleşik dalının kapsamını geriye dönük incelerken |
 | `branching-proposal-2026-08.md` | 175 | 5 kişilik ekip için önerilen trunk stratejisi. **Yürürlükte değil** — aynı gün geri alındı, üç dallı modele dönüldü | Strateji kararının gerekçesi sorulduğunda |
+| `koordinat-denetimi-2026-08-12.md` | 742 | **Yalnızca rapor** (2026-08-12, sürüm 2) — kodun o günkü standarda göre denetimi, dosya:satır kanıtlı sapma listesi. ⚠️ **Bayat** — `KOORDINAT-UYUM-RAPORU.md` bunun yerini aldı, z-yönü/`depth` bulguları artık geçersiz. **Tekil değeri:** §3 "standarda uygun dosyalar" ve §4 "artık uyumlu — dokunulmayacak" listeleri | Doğru olan kodu bozmamak için düzeltmeden önce · tarihsel karşılaştırma |
+| `devops-iyilestirme-analizi-2026-08.md` | 864 | **51 bulguluk** devops taraması (2026-08-03): compose, CI/CD, güvenlik, monitoring, doküman tutarsızlıkları. ⚠️ **Anlık görüntü, canlı değil.** 2026-08-16 triyajında 6 bulgu kapandı, 45'i `devops-backlog.md` Kategori 6'ya taşındı | Bir D-bulgusunun kanıt gövdesini okurken — **açık iş listesi için değil** |
+| `branch-denetimi-2026-08-03.md` | 308 | 30 remote branch + açık PR analizi ve temizlik kararları. **Uygulandı** ve envanteri bayat (bugün 20 dal). **Tekil değeri:** §7 kök neden + §8 trunk geçişinin neden geri alındığı | "Neden trunk'a geçmiyoruz?" sorusunda |
 | `algoritma-tasarimi/matematiksel-model.md` | 442 | **Tasarım arşivi** — bin packing matematiksel modeli (EP, dominance, maliyet fonksiyonu). Kod hem ileride hem geride. Fark listesi: `../kod-taramasi-2026-08.md` §4 | Algoritma tarihçesi |
 | `algoritma-tasarimi/sistem-mimarisi.md` | 348 | **Tasarım arşivi** — planlanan packing mimarisi; `PackingEngine` sınıfı hiç yazılmadı, gerçek motor `Application/Common/Optimization/` (7 dosya) | Algoritma tarihçesi |
 | `algoritma-tasarimi/bin-packing-uygulama-plani.md` | 422 | **Tasarım arşivi** — uygulama faz planı; güncel implementasyonla birebir değil | Algoritma tarihçesi |
@@ -119,7 +122,6 @@ güncel davranışın kaynağı değildir.
 | `project-snapshot.md` | 174 | Stack, ortamlar, portlar, CI/CD, açık riskler, branch modeli, squad haritası — tek sayfa teknik anlık görüntü | **Her oturum başında** |
 | `doc-map.md` | bu dosya | Repodaki 47 `.md` dosyasının haritası + özeti + doküman sağlığı tablosu | "Bu bilgi nerede yazıyor?" |
 | `kod-taramasi-2026-08.md` | 187 | 6 kategoride kod tabanı taraması (frontend, backend, algoritma, devops, veritabanı, test/kalite): gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde |
-| `branch-audit.md` | 308 | 30 remote branch + açık PR analizi ve temizlik kararları. **Durum: uygulandı** — 29 branch → 3, 26 `archive/*` tag'i; §9 yürürlükteki üç dallı modeli anlatır | Branch/PR temizliği yaparken |
 
 ## infra
 
