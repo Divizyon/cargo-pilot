@@ -6,6 +6,22 @@ Repodaki tüm `.md` dosyaları, ne içerdikleri ve hangi soruda açılacakları.
 
 ---
 
+## Güncelleme Sorumluluğu
+
+Hangi olayda hangi bağlam dosyasının güncelleneceğini bu matris tanımlar.
+(`CONTRIBUTING.md:58-63` yalnız `SUMMARY.md` + bu dosyayı şart koşar; matris onun üstüne
+iki tetikleyici daha ekler. 2026-08-16'da `docs/context/README.md`'den buraya taşındı —
+orada tek nüsha duruyordu ve dosya listesiyle birlikte iki ayrı yerde bayatlıyordu.)
+
+| Tetikleyici | Güncellenecek dosya |
+|-------------|---------------------|
+| Yeni `.md` eklendi / silindi / taşındı | `doc-map.md` (+ `SUMMARY.md`) |
+| Ortam, port, servis, CI değişti | `project-snapshot.md` |
+| Branch temizliği yapıldı | `docs/archive/branch-denetimi-2026-08-03.md` (karar sütunu → uygulandı) |
+| Branch stratejisi değişti | `docs/conventions/branching.md` (+ eski karar kaydı: `docs/archive/branching-proposal-2026-08.md`) |
+
+---
+
 **Toplam 47 dosya / 11.956 satır** (git ile izlenen tüm `.md` dosyaları, `dev` @ `96e9fd8b`).
 Son tarama: **2026-08-15 (ikinci ölçüm)**. Ölçüm komutu — bir sonraki okuyucu bayatlığı böyle kontrol eder:
 
@@ -121,7 +137,7 @@ güncel davranışın kaynağı değildir.
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
-| `README.md` | 39 | Bağlam kütüphanesinin kullanım kuralı, içindekiler tablosu, güncelleme sorumluluğu matrisi | Bu klasöre ilk girişte |
+| `README.md` | 30 | Klasörün giriş sayfası: okuma sırası (kullanım kuralı) ve `doc-map`'e yönlendirme. Dosya listesi ve güncelleme sorumluluğu matrisi 2026-08-16'da buraya taşındı — tekrar bırakılmadı | Bu klasöre ilk girişte |
 | `project-snapshot.md` | 174 | Stack, ortamlar, portlar, CI/CD, açık riskler, branch modeli, squad haritası — tek sayfa teknik anlık görüntü | **Her oturum başında** |
 | `doc-map.md` | bu dosya | Repodaki 47 `.md` dosyasının haritası + özeti + doküman sağlığı tablosu | "Bu bilgi nerede yazıyor?" |
 | `kod-taramasi-2026-08.md` | 187 | 6 kategoride kod tabanı taraması (frontend, backend, algoritma, devops, veritabanı, test/kalite): gerçek stack, algoritma analizi, doküman-kod çelişkileri, riskler | Kod gerçeği ile doküman iddiası çeliştiğinde |
