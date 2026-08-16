@@ -33,25 +33,25 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
 };
 // Kapı kümesi tek sütunda taşınır; seçenekler formdaki geçerli beş
 // kombinasyonun aynısıdır (docs/COORDINATE_STANDARD.md §4).
-const DOOR_SET_OPTIONS = ['rear', 'rear+left', 'rear+right', 'left', 'right'] as const;
+const DOOR_SET_OPTIONS = ['small', 'small+left', 'small+right', 'left', 'right'] as const;
 
 type DoorSetKey = (typeof DOOR_SET_OPTIONS)[number];
 
 const DOOR_SET_LABELS: Record<string, string> = {
-  rear: 'Arka',
-  'rear+left': 'Arka + Yan (sol)',
-  'rear+right': 'Arka + Yan (sağ)',
-  left: 'Yan (sol)',
-  right: 'Yan (sağ)',
+  small: 'Küçük kapı',
+  'small+left': 'Küçük ve büyük kapı (sol)',
+  'small+right': 'Küçük ve büyük kapı (sağ)',
+  left: 'Büyük kapı (sol)',
+  right: 'Büyük kapı (sağ)',
 };
 
 const DOOR_SET_TO_DOORS: Record<DoorSetKey, VehicleDoor[]> = {
-  rear: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
-  'rear+left': [
+  small: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  'small+left': [
     { type: DoorType.Small, face: DoorFace.LengthZ },
     { type: DoorType.Big, face: DoorFace.ZeroX },
   ],
-  'rear+right': [
+  'small+right': [
     { type: DoorType.Small, face: DoorFace.LengthZ },
     { type: DoorType.Big, face: DoorFace.WidthX },
   ],
@@ -106,7 +106,7 @@ function validateRow(row: EditableRow): RowErrors {
   if (!row.height || Number(row.height) <= 0) e.height = 'Pozitif sayı';
   if (!row.maxCargoWeight || Number(row.maxCargoWeight) <= 0) e.maxCargoWeight = 'Pozitif sayı';
   if (!DOOR_SET_OPTIONS.includes(row.doorSet as DoorSetKey)) {
-    e.doorSet = 'arka / arka+sol / arka+sağ / sol / sağ';
+    e.doorSet = 'küçük / küçük+sol / küçük+sağ / sol / sağ';
   }
   return e;
 }
@@ -129,32 +129,47 @@ function normalizeType(raw: unknown): string {
 }
 
 const DOOR_SET_ALIASES: Record<string, DoorSetKey> = {
-  arka: 'rear',
-  rear: 'rear',
-  'arka+sol': 'rear+left',
-  'arka + sol': 'rear+left',
-  'rear+left': 'rear+left',
-  'arka+sağ': 'rear+right',
-  'arka + sağ': 'rear+right',
-  'arka+sag': 'rear+right',
-  'rear+right': 'rear+right',
+  // Standart yazım: kapı tipi boyuta göre, büyük kapıda taraf ayrı.
+  küçük: 'small',
+  kucuk: 'small',
+  small: 'small',
+  'küçük+sol': 'small+left',
+  'kucuk+sol': 'small+left',
+  'küçük + sol': 'small+left',
+  'küçük+sağ': 'small+right',
+  'kucuk+sag': 'small+right',
+  'küçük + sağ': 'small+right',
   sol: 'left',
   left: 'left',
   sağ: 'right',
   sag: 'right',
   right: 'right',
 
-  // Eski şablonun "Kapı Yönü" değerleri. Tanınmasalardı satır sessizce
-  // 'arka'ya düşüyordu; yan kapılı araç filo dosyasından arka kapılı olarak
-  // içeri giriyordu (denetim S-27).
-  yan: 'rear+right',
-  side: 'rear+right',
-  'arka + yan': 'rear+right',
-  'arka+yan': 'rear+right',
-  rearandside: 'rear+right',
-  üst: 'rear',
-  ust: 'rear',
-  top: 'rear',
+  // Eski şablonların yön adları. Tanınmasalardı satır sessizce varsayılana
+  // düşüyordu; büyük kapılı araç filo dosyasından küçük kapılı olarak içeri
+  // giriyordu (denetim S-27).
+  arka: 'small',
+  rear: 'small',
+  'arka+sol': 'small+left',
+  'arka + sol': 'small+left',
+  'rear+left': 'small+left',
+  'arka+sağ': 'small+right',
+  'arka + sağ': 'small+right',
+  'arka+sag': 'small+right',
+  'rear+right': 'small+right',
+  yan: 'small+right',
+  side: 'small+right',
+  'arka + yan': 'small+right',
+  'arka+yan': 'small+right',
+  rearandside: 'small+right',
+
+  // Taraf belirtilmemiş "küçük + büyük" yazımı: standardın varsayılanı olan
+  // origin'e değmeyen yüz (sağ) uygulanır — DEFAULT_BIG_DOOR_FACE ile aynı.
+  'küçük + büyük': 'small+right',
+  'küçük+büyük': 'small+right',
+  üst: 'small',
+  ust: 'small',
+  top: 'small',
 };
 
 /**
@@ -189,11 +204,12 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       // Eski şablonun "Kapı Yönü" sütunu da okunur; boş bırakılan hücre
       // varsayılana düşer ama tanınmayan bir DEĞER hata olarak gösterilir.
       doorSet: normalizeDoorSet(
-        r['Kapılar (arka/arka+sol/arka+sağ/sol/sağ)'] ??
+        r['Kapılar (küçük/küçük+sol/küçük+sağ/sol/sağ)'] ??
+          r['Kapılar (arka/arka+sol/arka+sağ/sol/sağ)'] ??
           r['Kapılar'] ??
           r['Kapı Yönü (rear/side/top/rearAndSide)'] ??
           r['Kapı Yönü'] ??
-          'arka',
+          'küçük',
       ),
     }),
   );
@@ -210,7 +226,7 @@ function emptyRow(): EditableRow {
     width: '',
     height: '',
     maxCargoWeight: '',
-    doorSet: 'rear',
+    doorSet: 'small',
   });
 }
 

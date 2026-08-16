@@ -32,7 +32,7 @@ export function computeGroupZones(
   criteria: OptimizationCriteria,
 ): LifoZone[] {
   if (criteria !== OptimizationCriteria.Lifo) return [];
-  // Bölge ayrımı referans kapıya bağlı, "yan kapı değil"e değil: arka + yan
+  // Bölge ayrımı referans kapıya bağlı, "büyük kapı değil"e değil: küçük + büyük
   // kapılı araçta bölgeler geçerli kalır (LoadingCorner.HasReferenceDoor).
   if (!hasReferenceDoor(doors)) return [];
 

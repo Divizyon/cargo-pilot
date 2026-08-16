@@ -34,7 +34,7 @@ export function buildDoors(
  * Kapı listesinden üç seçenekten hangisinin aktif olduğunu bulur.
  *
  * Yalnızca üst kapısı olan araçta hiçbiri seçili değildir (`null`) — bu doğru:
- * üç seçenek arka/yan kapıyı anlatıyor, üst kapı formda sorulmuyor. O araçta
+ * üç seçenek küçük/büyük kapıyı anlatıyor, üst kapı formda sorulmuyor. O araçta
  * kullanıcı bir seçim yaparsa üst kapı `buildDoors` sayesinde korunur.
  */
 export function resolveSetKey(doors: readonly VehicleDoor[]): DoorSetKey | null {

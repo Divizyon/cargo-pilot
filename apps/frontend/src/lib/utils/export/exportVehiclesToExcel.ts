@@ -13,12 +13,12 @@ import { DoorFace, DoorType, type VehicleDoor } from '@/lib/types/vehicle';
 function doorSetKey(doors: readonly VehicleDoor[] | undefined): string {
   if (!doors || doors.length === 0) return '';
 
-  const arka = doors.some((d) => d.type === DoorType.Small);
-  const yan = doors.find((d) => d.type === DoorType.Big);
+  const kucuk = doors.some((d) => d.type === DoorType.Small);
+  const buyuk = doors.find((d) => d.type === DoorType.Big);
 
-  if (arka && yan) return yan.face === DoorFace.ZeroX ? 'arka+sol' : 'arka+sağ';
-  if (yan) return yan.face === DoorFace.ZeroX ? 'sol' : 'sağ';
-  if (arka) return 'arka';
+  if (kucuk && buyuk) return buyuk.face === DoorFace.ZeroX ? 'küçük+sol' : 'küçük+sağ';
+  if (buyuk) return buyuk.face === DoorFace.ZeroX ? 'sol' : 'sağ';
+  if (kucuk) return 'küçük';
   return '';
 }
 
@@ -36,7 +36,7 @@ export function exportVehiclesToExcel(vehicles: Vehicle[], _filters?: VehicleFil
     'Yükseklik (cm)': v.height,
     'Maks Yük (kg)': v.maxCargoWeight,
     'Boş Ağırlık (kg)': v.tareWeight ?? '',
-    'Kapılar (arka/arka+sol/arka+sağ/sol/sağ)': doorSetKey(v.doors),
+    'Kapılar (küçük/küçük+sol/küçük+sağ/sol/sağ)': doorSetKey(v.doors),
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);

@@ -153,8 +153,8 @@ export function AlgorithmTestForm({
   );
 
   // LIFO bölgeleri yalnızca referans kapı + en az 2 farklı boşaltılma sırasıyla
-  // devreye girer (LifoPlacement.ComputeGroupZones). Yan kapı bölgeleri kapatmaz;
-  // belirleyici olan araçta arka kapı bulunup bulunmadığıdır.
+  // devreye girer (LifoPlacement.ComputeGroupZones). Büyük kapı bölgeleri
+  // kapatmaz; belirleyici olan araçta küçük kapı bulunup bulunmadığıdır.
   const lifoZonesActive =
     selectedVehicle !== undefined &&
     hasReferenceDoor(selectedVehicle.doors) &&
@@ -422,7 +422,7 @@ export function AlgorithmTestForm({
 
       {usedGroupNumbers.length > 0 && !lifoZonesActive && (
         <p className="text-xs text-muted-foreground">
-          LIFO bölgeleri devre dışı: arka kapılı araç ve en az iki farklı grup gerekir.
+          LIFO bölgeleri devre dışı: küçük kapılı araç ve en az iki farklı grup gerekir.
         </p>
       )}
 

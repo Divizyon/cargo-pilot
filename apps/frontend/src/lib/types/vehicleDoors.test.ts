@@ -72,8 +72,8 @@ describe('validateDoors — formdaki üç seçenek geçerli', () => {
   });
 
   it('aynı tipten iki kapı reddedilir', () => {
-    expect(validateDoors([BIG_LEFT, BIG_RIGHT])).toContain('yan kapı');
-    expect(validateDoors([SMALL, SMALL])).toContain('arka kapı');
+    expect(validateDoors([BIG_LEFT, BIG_RIGHT])).toContain('büyük kapı');
+    expect(validateDoors([SMALL, SMALL])).toContain('küçük kapı');
   });
 
   it('tipe uymayan yüz reddedilir', () => {
@@ -83,12 +83,18 @@ describe('validateDoors — formdaki üç seçenek geçerli', () => {
 });
 
 describe('formatDoorSummary', () => {
+  /**
+   * Adlandırma boyuta göre (docs/COORDINATE_STANDARD.md §4); büyük kapıda taraf
+   * parantez içinde. Yön adı ("arka"/"yan") bir kapı tipi değildir.
+   */
   it('kapı kümesini tek satıra indirger', () => {
-    expect(formatDoorSummary([SMALL])).toBe('Arka');
-    expect(formatDoorSummary([SMALL, BIG_LEFT])).toBe('Arka + Yan (sol)');
-    expect(formatDoorSummary([SMALL, BIG_RIGHT])).toBe('Arka + Yan (sağ)');
-    expect(formatDoorSummary([BIG_LEFT])).toBe('Yan (sol)');
-    expect(formatDoorSummary([SMALL, BIG_RIGHT, TOP])).toBe('Arka + Yan (sağ) + Üst');
+    expect(formatDoorSummary([SMALL])).toBe('Küçük kapı');
+    expect(formatDoorSummary([BIG_LEFT])).toBe('Büyük kapı (sol)');
+    expect(formatDoorSummary([BIG_RIGHT])).toBe('Büyük kapı (sağ)');
+    expect(formatDoorSummary([SMALL, BIG_LEFT])).toBe('Küçük ve büyük kapı (sol)');
+    expect(formatDoorSummary([SMALL, BIG_RIGHT])).toBe('Küçük ve büyük kapı (sağ)');
+    expect(formatDoorSummary([SMALL, BIG_RIGHT, TOP])).toBe('Küçük ve büyük kapı (sağ) + Üst kapı');
+    expect(formatDoorSummary([TOP])).toBe('Üst kapı');
   });
 
   it('kapı yoksa tire döner', () => {

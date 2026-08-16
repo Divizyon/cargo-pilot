@@ -113,7 +113,7 @@ internal static class LifoPlacement
 
     /// <summary>
     /// Aday pozisyon tamamen kendi grubunun bölgesinin içinde mi? Bölge tanımlı
-    /// değilse (modül kapalı, arka kapı dışı yükleme, gruplanmamış ürün) kısıt
+    /// değilse (modül kapalı, küçük kapısız araç, gruplanmamış ürün) kısıt
     /// yoktur ve yüklem her zaman doğrudur.
     ///
     /// Motor bu yüklemi <see cref="ZonePenalty"/> ile birlikte kullanır: önce

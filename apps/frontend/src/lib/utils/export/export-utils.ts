@@ -252,9 +252,9 @@ export function downloadVehicleImportTemplate(): void {
     'Genişlik (cm)',
     'Yükseklik (cm)',
     'Maks Yük (kg)',
-    'Kapılar (arka/arka+sol/arka+sağ/sol/sağ)',
+    'Kapılar (küçük/küçük+sol/küçük+sağ/sol/sağ)',
   ];
-  const example = ['Tır', 'Ana Dorse', '34ABC123', '', '1360', '240', '270', '26000', 'arka'];
+  const example = ['Tır', 'Ana Dorse', '34ABC123', '', '1360', '240', '270', '26000', 'küçük'];
 
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
   const wb = XLSX.utils.book_new();

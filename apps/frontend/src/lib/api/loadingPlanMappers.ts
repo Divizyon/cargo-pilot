@@ -387,7 +387,7 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
   const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
   const createdAt = normalizeUtcDatetime(rawCreatedAt);
   // Plan detayı ve liste ucu kapı listesini taşıyor (VehicleInPlanDto.Doors).
-  // Eski `loadingType` türetimi kayıplıydı: arka + yan kapılı araçta ikinci
+  // Eski `loadingType` türetimi kayıplıydı: küçük + büyük kapılı araçta ikinci
   // kapı düşüyordu, o yüzden geri düşme yolu bilinçli olarak kaldırıldı.
   const doors = v?.doors ?? [];
   return {

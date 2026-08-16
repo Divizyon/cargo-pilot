@@ -36,7 +36,7 @@ const CRITERIA_BY_NAME: Record<string, OptimizationCriteria> = {
 };
 
 /**
- * LoadingType.cs → kapı listesi. Yan kapı varyantları artık tek değere inmiyor:
+ * LoadingType.cs → kapı listesi. Büyük kapı varyantları artık tek değere inmiyor:
  * x = 0 ile x = width ayrımı başlangıç köşesini belirliyor.
  * Snapshot `FillFromMaxX`/`HasReferenceDoor` de taşıdığı için senaryonun gerçek
  * kapı kümesi bu iki alandan kurulur; `LoadingType` yalnızca geri uyum.

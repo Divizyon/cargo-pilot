@@ -6,7 +6,7 @@ import { DoorFace, DoorType, type Vehicle, type VehicleDoor } from '@/lib/types/
  * Backend: Rear=0, SideRight=1, SideLeft=2, Top=4 (SideBoth=3 kaldırıldı).
  *
  * Yalnızca `doors` alanı boş gelen kayıtlar için kullanılır. Eskiden mapper
- * kapıyı hep bu alandan türetiyor ve yan kapı varyantlarını tek bir `Side`
+ * kapıyı hep bu alandan türetiyor ve büyük kapı varyantlarını tek bir `Side`
  * değerine indiriyordu; x = 0 ile x = width ayrımı kaybolduğu için başlangıç
  * köşesi doğrulaması hiç yapılamıyordu (denetim S-12/S-38/S-43).
  */

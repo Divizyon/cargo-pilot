@@ -87,7 +87,7 @@ describe('doorsFromLoadingType — eski tekil alandan kapı listesi', () => {
 
 describe('resolveDoors — liste varsa liste, yoksa eski alan', () => {
   it('kapı listesi doluysa loadingType yok sayılır', () => {
-    // Çelişkili veri: liste yan kapı der, eski alan arka kapı (0) der.
+    // Çelişkili veri: liste büyük kapı der, eski alan küçük kapı (0) der.
     expect(resolveDoors([SIDE_LEFT], 0)).toEqual([SIDE_LEFT]);
   });
 
@@ -99,12 +99,12 @@ describe('resolveDoors — liste varsa liste, yoksa eski alan', () => {
 });
 
 describe('loadingTypeFromDoors — geçiş boyunca tekil alanı besler', () => {
-  it('yan kapı varsa yüzüne göre SideLeft/SideRight', () => {
+  it('büyük kapı varsa yüzüne göre SideLeft/SideRight', () => {
     expect(loadingTypeFromDoors([REAR, SIDE_LEFT])).toBe(2);
     expect(loadingTypeFromDoors([REAR, SIDE_RIGHT])).toBe(1);
   });
 
-  it('yan kapı yoksa arka kapı (Rear=0) baskındır', () => {
+  it('büyük kapı yoksa küçük kapı (Rear=0) baskındır', () => {
     expect(loadingTypeFromDoors([REAR])).toBe(0);
     expect(loadingTypeFromDoors([REAR, TOP])).toBe(0);
   });
@@ -168,7 +168,7 @@ describe('buildCreateVehiclePayload — kapı listesi asıl alandır', () => {
     const doors = [REAR, SIDE_LEFT];
     const payload = buildCreateVehiclePayload(makeFormValues({ doors }));
 
-    // Kapı listesi taşımayan eski bir uç: tekil alandan yalnızca yan kapı türetilir.
+    // Kapı listesi taşımayan eski bir uç: tekil alandan yalnızca büyük kapı türetilir.
     const vehicle = fromApiVehicle(makeApiVehicle({ loadingType: payload.loadingType }));
 
     expect(vehicle.doors).toEqual([SIDE_LEFT]);

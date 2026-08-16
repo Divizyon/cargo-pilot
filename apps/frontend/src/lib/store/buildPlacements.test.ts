@@ -64,18 +64,18 @@ function staging(overrides: Partial<PlacementWithDimensions> = {}): PlacementWit
 }
 
 describe('buildPlacements — başlangıç köşesi kapıya bağlı', () => {
-  it('yan kapı yokken x = 0’dan başlar', () => {
+  it('büyük kapı yokken x = 0’dan başlar', () => {
     const { placed } = buildPlacements(item(), 1, '#fff', vehicle([SMALL]), []);
     expect(placed[0].positionX).toBe(0);
   });
 
-  it('yan kapı x = 0 iken karşı duvardan başlar', () => {
+  it('büyük kapı x = 0 iken karşı duvardan başlar', () => {
     const { placed } = buildPlacements(item(), 1, '#fff', vehicle([SMALL, BIG_LEFT]), []);
     // Araç 200 geniş, kutu 100 geniş → sol kenar 100, sağ kenar 200.
     expect(placed[0].positionX).toBe(100);
   });
 
-  it('yan kapı x = width iken origin köşesinden başlar', () => {
+  it('büyük kapı x = width iken origin köşesinden başlar', () => {
     const { placed } = buildPlacements(item(), 1, '#fff', vehicle([SMALL, BIG_RIGHT]), []);
     expect(placed[0].positionX).toBe(0);
   });

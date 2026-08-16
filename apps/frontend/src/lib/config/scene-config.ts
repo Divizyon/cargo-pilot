@@ -65,15 +65,15 @@ export const SCENE = {
   },
 
   /**
-   * Referans kapı kanadı açılma açısı. TIR arka kapıları gerçekten 230°'ye
+   * Referans kapı kanadı açılma açısı. TIR'ın arkadaki küçük kapısı gerçekten 230°'ye
    * kadar açılıp yan duvara katlanır, bu değer fiziksel.
    */
   DOOR_REAR_OPEN_ANGLE: Math.PI * (230 / 180),
 
   /**
-   * Yan ve üst kapı açılma açısı.
+   * Büyük ve üst kapı açılma açısı.
    *
-   * 250° idi: yan kapı o açıda aracın gövdesinin içinden geçiyor, üst kapı ise
+   * 250° idi: büyük kapı o açıda aracın gövdesinin içinden geçiyor, üst kapı ise
    * tavanın metrelerce altına iniyordu (denetim S-52/S-55). İkisi de menteşeden
    * dışa açılan tek kanatlar; 110° hem fiziksel hem yükleme açıklığını
    * gösterecek kadar geniş.

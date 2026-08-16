@@ -450,12 +450,12 @@ describe('checkLoadingCorner', () => {
     return input({ vehicle: { ...vehicle, doors }, placements });
   }
 
-  it('yan kapı yokken x = 0 duvarına dayanan kutu yeterli', () => {
+  it('büyük kapı yokken x = 0 duvarına dayanan kutu yeterli', () => {
     const result = checkLoadingCorner(withDoors([REAR], [box({ positionX: 0 })]));
     expect(result.status).toBe('pass');
   });
 
-  it('yan kapı x = 0 iken yükleme karşı duvardan başlamalı', () => {
+  it('büyük kapı x = 0 iken yükleme karşı duvardan başlamalı', () => {
     // Araç 100 geniş, kutu 10 geniş → sağ kenar 90 + 10 = 100.
     const dogru = checkLoadingCorner(withDoors([REAR, SIDE_LEFT], [box({ positionX: 90 })]));
     expect(dogru.status).toBe('pass');
@@ -465,7 +465,7 @@ describe('checkLoadingCorner', () => {
     expect(yanlis.severity).toBe('hard');
   });
 
-  it('yan kapı x = width iken yükleme origin köşesinden başlamalı', () => {
+  it('büyük kapı x = width iken yükleme origin köşesinden başlamalı', () => {
     expect(checkLoadingCorner(withDoors([REAR, SIDE_RIGHT], [box({ positionX: 0 })])).status).toBe(
       'pass',
     );

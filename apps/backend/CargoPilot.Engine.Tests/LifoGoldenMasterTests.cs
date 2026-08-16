@@ -59,8 +59,8 @@ public sealed class LifoGoldenMasterTests
 
     /// <summary>
     /// Referans kapısı olmayan araç: gruplar tanımlı olsa da bölge ayrımı
-    /// oluşmaz. Belirleyici olan "yan kapı var" değil, "small door yok" —
-    /// arka + yan kapılı araçta bölgeler geçerli kalır
+    /// oluşmaz. Belirleyici olan "büyük kapı var" değil, "küçük kapı yok" —
+    /// küçük + büyük kapılı araçta bölgeler geçerli kalır
     /// (<c>LoadingCorner.HasReferenceDoor</c>).
     /// </summary>
     [Fact]

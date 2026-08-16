@@ -7,7 +7,7 @@ const BIG_LEFT: VehicleDoor = { type: DoorType.Big, face: DoorFace.ZeroX };
 const BIG_RIGHT: VehicleDoor = { type: DoorType.Big, face: DoorFace.WidthX };
 const TOP: VehicleDoor = { type: DoorType.Top, face: DoorFace.HeightY };
 
-describe('buildDoors — formda sorulmayan kapılar korunur', () => {
+describe('buildDoors — formda sorulmabüyük kapılar korunur', () => {
   /** Denetim S-26: üst kapı ilk tıklamada sessizce siliniyordu. */
   it('mevcut üst kapı seçim değiştirilince kaybolmaz', () => {
     expect(buildDoors('small', DoorFace.WidthX, [SMALL, TOP])).toEqual([SMALL, TOP]);
@@ -15,7 +15,7 @@ describe('buildDoors — formda sorulmayan kapılar korunur', () => {
     expect(buildDoors('both', DoorFace.WidthX, [TOP])).toEqual([SMALL, BIG_RIGHT, TOP]);
   });
 
-  it('arka ve yan kapı seçime göre yeniden kurulur', () => {
+  it('arka ve büyük kapı seçime göre yeniden kurulur', () => {
     expect(buildDoors('small', DoorFace.WidthX, [BIG_LEFT])).toEqual([SMALL]);
     expect(buildDoors('big', DoorFace.WidthX, [SMALL])).toEqual([BIG_RIGHT]);
   });

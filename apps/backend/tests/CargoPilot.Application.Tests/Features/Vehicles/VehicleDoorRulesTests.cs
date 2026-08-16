@@ -48,14 +48,14 @@ public sealed class VehicleDoorRulesTests
     public void Iki_yan_kapi_reddedilir()
     {
         VehicleDoorRules.Validate([SideLeft, SideRight])
-            .Should().Be("Aynı tipten birden fazla kapı tanımlanamaz: yan kapı.");
+            .Should().Be("Aynı tipten birden fazla kapı tanımlanamaz: büyük kapı.");
     }
 
     [Fact]
     public void Iki_arka_kapi_reddedilir()
     {
         VehicleDoorRules.Validate([Rear, Rear])
-            .Should().Be("Aynı tipten birden fazla kapı tanımlanamaz: arka kapı.");
+            .Should().Be("Aynı tipten birden fazla kapı tanımlanamaz: küçük kapı.");
     }
 
     [Theory]

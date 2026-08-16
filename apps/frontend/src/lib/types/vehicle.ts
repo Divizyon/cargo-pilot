@@ -50,9 +50,14 @@ export const ALLOWED_DOOR_FACES: Record<DoorType, readonly DoorFace[]> = {
   [DoorType.Top]: [DoorFace.HeightY],
 };
 
+/**
+ * Kapı tipleri boyuta göre adlandırılır (docs/COORDINATE_STANDARD.md §4):
+ * yön adı bir sınıflandırma değildir. Büyük kapının bulunduğu taraf ayrı bir
+ * bilgi olarak eklenir — bkz. formatDoorSummary.
+ */
 const DOOR_TYPE_LABELS: Record<DoorType, string> = {
-  [DoorType.Small]: 'arka kapı',
-  [DoorType.Big]: 'yan kapı',
+  [DoorType.Small]: 'küçük kapı',
+  [DoorType.Big]: 'büyük kapı',
   [DoorType.Top]: 'üst kapı',
 };
 
@@ -81,18 +86,26 @@ export function validateDoors(doors: readonly VehicleDoor[]): string | null {
 
 /**
  * Kapı listesini kullanıcıya gösterilecek tek satıra indirger.
- * "sol/sağ" yalnızca arayüz metnidir; kayıtta yüz değeri (ZeroX/WidthX) durur.
+ *
+ * Adlandırma boyuta göredir; büyük kapıda taraf parantez içinde eklenir
+ * ("Küçük ve büyük kapı (sol)"). "sol/sağ" yalnızca arayüz metnidir, kayıtta
+ * yüz değeri (ZeroX/WidthX) durur.
  */
 export function formatDoorSummary(doors: readonly VehicleDoor[] | undefined): string {
   if (!doors || doors.length === 0) return '—';
 
+  const hasSmall = doors.some((door) => door.type === DoorType.Small);
+  const big = doors.find((door) => door.type === DoorType.Big);
+  const hasTop = doors.some((door) => door.type === DoorType.Top);
+
+  const side = big ? (big.face === DoorFace.ZeroX ? ' (sol)' : ' (sağ)') : '';
+
   const parts: string[] = [];
-  if (doors.some((door) => door.type === DoorType.Small)) parts.push('Arka');
+  if (hasSmall && big) parts.push(`Küçük ve büyük kapı${side}`);
+  else if (hasSmall) parts.push('Küçük kapı');
+  else if (big) parts.push(`Büyük kapı${side}`);
 
-  const side = doors.find((door) => door.type === DoorType.Big);
-  if (side) parts.push(side.face === DoorFace.ZeroX ? 'Yan (sol)' : 'Yan (sağ)');
-
-  if (doors.some((door) => door.type === DoorType.Top)) parts.push('Üst');
+  if (hasTop) parts.push('Üst kapı');
 
   return parts.length > 0 ? parts.join(' + ') : '—';
 }
@@ -113,7 +126,7 @@ export function findDoor(doors: readonly VehicleDoor[], type: DoorType): Vehicle
 /**
  * Yüklemenin başladığı köşe x = width tarafında mı?
  *
- * Yükleme kapıya değmeyen köşeden başlar (§7). Yan kapı x = 0'daysa serbest
+ * Yükleme kapıya değmeyen köşeden başlar (§7). Büyük kapı x = 0'daysa serbest
  * köşe karşı tarafta kalır, doldurma ters yönde ilerler.
  */
 export function fillsFromMaxX(doors: readonly VehicleDoor[]): boolean {
@@ -125,7 +138,7 @@ export function fillsFromMaxX(doors: readonly VehicleDoor[]): boolean {
   return findDoor(doors, DoorType.Big)?.face === DoorFace.ZeroX;
 }
 
-/** Araçta referans kapı (arka kapı) var mı? LIFO bölge ayrımının ön koşulu. */
+/** Araçta referans kapı (küçük kapı) var mı? LIFO bölge ayrımının ön koşulu. */
 export function hasReferenceDoor(doors: readonly VehicleDoor[]): boolean {
   return doors.some((door) => door.type === DoorType.Small);
 }

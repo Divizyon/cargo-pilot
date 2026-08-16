@@ -536,8 +536,8 @@ function offsetDelta(cogAxis: number, halfSpan: number, backendOffset: number | 
  * (denetim S-67): motor aynalanmış modda yanlış köşeden doldursa bile araç
  * sessizce yeşil veriyordu.
  *
- * Kural, kutuların x eksenindeki dayanma duvarını ölçer. Yan kapı x = 0'daysa
- * en az bir kutunun sağ kenarı x = width duvarına dayanmalı; yan kapı yoksa ya
+ * Kural, kutuların x eksenindeki dayanma duvarını ölçer. Büyük kapı x = 0'daysa
+ * en az bir kutunun sağ kenarı x = width duvarına dayanmalı; büyük kapı yoksa ya
  * da x = width'teyse en az bir kutu x = 0'a dayanmalıdır. "Hepsi" değil "en az
  * biri": greedy motor kalan boşluğu doldurmak için karşı tarafa da kutu koyar,
  * ölçülen şey doldurmanın hangi uçtan BAŞLADIĞIDIR.

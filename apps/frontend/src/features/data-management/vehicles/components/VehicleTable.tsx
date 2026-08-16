@@ -210,12 +210,12 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 
 // ─── Door filter ──────────────────────────────────────────────────────────────
 
-// Filtre kapı tipine göredir: arka + yan kapısı olan araç iki filtreye de girer.
+// Filtre kapı tipine göredir: küçük + büyük kapılı araç iki filtreye de girer.
 type DoorFilter = DoorType;
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: DoorType.Small, label: 'Arka Kapı' },
-  { value: DoorType.Big, label: 'Yan Kapı' },
+  { value: DoorType.Small, label: 'Küçük Kapı' },
+  { value: DoorType.Big, label: 'Büyük Kapı' },
   { value: DoorType.Top, label: 'Üst Kapı' },
 ];
 

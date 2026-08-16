@@ -16,7 +16,7 @@ describe('computeGroupZones', () => {
     ).toEqual([]);
   });
 
-  it('arka kapı dışında bölge oluşmaz', () => {
+  it('küçük kapı dışında bölge oluşmaz', () => {
     expect(computeGroupZones([1, 2], 300, SIDE, LIFO)).toEqual([]);
     expect(computeGroupZones([1, 2], 300, TOP, LIFO)).toEqual([]);
   });

@@ -95,6 +95,14 @@ Kurallar:
 - **"sağ kapı" / "sol kapı" diye bir kavram yoktur.** Kapılar `small` / `big` olarak
   sınıflanır, konumları eksen değeriyle yazılır. "sağ" ve "sol" yalnızca kamera
   bakışlarını adlandırmak için kullanılır (bkz. bölüm 6).
+- **Arayüz adlandırması:** son kullanıcıya gösterilen metinde kapı tipi yine
+  boyutla anılır — *küçük kapı* / *büyük kapı* / *üst kapı*. Büyük kapının
+  bulunduğu taraf **tip adının parçası değil**, parantez içinde eklenen ayrı bir
+  bilgidir: "Küçük ve büyük kapı (sol)". Kayıtta ve API'de taraf her zaman yüz
+  değeriyle (`ZeroX` / `WidthX`) tutulur; "sol/sağ" yalnızca ekran metnidir.
+  Excel şablonunda da aynı yazım kullanılır (`küçük`, `küçük+sol`, `sağ` …);
+  eski dosyaların yön adları (`arka`, `yan`, `rearAndSide`) içe aktarımda
+  tanınmaya devam eder.
 - **"ön kapı" / "front door" diye bir kavram yoktur.** TIR'da `z = 0` kabin ucudur;
   düz konteynerde `z = 0` yalnızca karşı küçük yüzdür.
 - **Her tipten en fazla bir kapı bulunabilir.** İki small ya da iki big door,

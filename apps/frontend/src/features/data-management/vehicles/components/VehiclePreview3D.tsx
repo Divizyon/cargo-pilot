@@ -357,7 +357,7 @@ function DoorFaceIndicator({
   const sideDoor = findDoor(doors, DoorType.Big);
   const topDoor = findDoor(doors, DoorType.Top);
 
-  // Yan kapı x = 0 yüzünde (-X) ya da x = width yüzünde (+X) olabilir.
+  // Büyük kapı x = 0 yüzünde (-X) ya da x = width yüzünde (+X) olabilir.
   const sideX = sideDoor?.face === DoorFace.ZeroX ? -DOOR_PANEL_T / 2 : width + DOOR_PANEL_T / 2;
 
   return (
@@ -369,7 +369,7 @@ function DoorFaceIndicator({
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
       )}
-      {/* Yan kapı — yüzüne göre sol (X=0) veya sağ (X=width) */}
+      {/* Büyük kapı — yüzüne göre sol (X=0) veya sağ (X=width) */}
       {sideDoor && (
         <mesh position={[sideX, height / 2, length / 2]}>
           <boxGeometry args={[DOOR_PANEL_T, height, length]} />

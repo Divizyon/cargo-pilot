@@ -37,7 +37,7 @@ const vehicleModalSchema = z.object({
   width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   layerCount: z.number({ error: 'Sayı giriniz' }).int().min(1, 'En az 1'),
-  loadingArea: z.enum(['arka', 'yan', 'ust']),
+  loadingArea: z.enum(['small', 'both', 'top']),
 });
 
 type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
@@ -51,7 +51,7 @@ const EMPTY_DEFAULTS: VehicleModalValues = {
   width: 248,
   height: 270,
   layerCount: 3,
-  loadingArea: 'arka',
+  loadingArea: 'small',
 };
 
 // ─── Vehicle type config ──────────────────────────────────────────────────────
@@ -67,15 +67,18 @@ const VEHICLE_TYPES: Array<{
   { value: 'konteyner', label: 'Konteyner', Icon: Package2 },
 ];
 
-// ─── Loading area config ──────────────────────────────────────────────────────
+// ─── Kapı seçimi ──────────────────────────────────────────────────────────────
 
+// Kapı tipi boyutla anılır (docs/COORDINATE_STANDARD.md §4); "arka/yan" bir tip
+// adı değildir. Büyük kapının tarafı bu hızlı formda sorulmaz, standardın
+// varsayılanı (origin'e değmeyen yüz) uygulanır.
 const LOADING_AREAS: Array<{
-  value: 'arka' | 'yan' | 'ust';
+  value: DoorSetKey;
   label: string;
 }> = [
-  { value: 'arka', label: 'Yalnızca Arka' },
-  { value: 'yan', label: 'Yan Kapı' },
-  { value: 'ust', label: 'Üst Kapak' },
+  { value: 'small', label: 'Küçük kapı' },
+  { value: 'both', label: 'Küçük ve büyük kapı' },
+  { value: 'top', label: 'Üst kapı' },
 ];
 
 // ─── AddVehicleModal ──────────────────────────────────────────────────────────
@@ -98,19 +101,22 @@ const FORM_VEHICLE_TYPE: Record<string, VehicleType> = {
 };
 
 /**
- * Yükleme alanı seçimi → kapı listesi.
+ * Kapı seçimi → kapı listesi.
  *
- * "Yan" seçimi eskiden sessizce SideRight'a sabitleniyordu. Artık standardın
- * varsayılanı uygulanır: büyük kapı origin'e değmeyen yüze (x = width) konur,
- * böylece yükleme origin köşesinden başlar (docs/COORDINATE_STANDARD.md §7).
+ * Büyük kapı seçimi eskiden sessizce SideRight'a sabitleniyordu. Artık
+ * standardın varsayılanı uygulanır: büyük kapı origin'e değmeyen yüze
+ * (x = width) konur, böylece yükleme origin köşesinden başlar
+ * (docs/COORDINATE_STANDARD.md §7).
  */
-const LOADING_AREA_DOORS: Record<string, VehicleDoor[]> = {
-  arka: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
-  yan: [
+type DoorSetKey = 'small' | 'both' | 'top';
+
+const LOADING_AREA_DOORS: Record<DoorSetKey, VehicleDoor[]> = {
+  small: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  both: [
     { type: DoorType.Small, face: DoorFace.LengthZ },
     { type: DoorType.Big, face: DEFAULT_BIG_DOOR_FACE },
   ],
-  ust: [{ type: DoorType.Top, face: DoorFace.HeightY }],
+  top: [{ type: DoorType.Top, face: DoorFace.HeightY }],
 };
 
 export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleModalProps) {
@@ -148,7 +154,7 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
 
   async function onSubmit(data: VehicleModalValues) {
     try {
-      const doors = LOADING_AREA_DOORS[data.loadingArea] ?? LOADING_AREA_DOORS.arka;
+      const doors = LOADING_AREA_DOORS[data.loadingArea] ?? LOADING_AREA_DOORS.small;
       const vehicleType = FORM_VEHICLE_TYPE[data.vehicleType] ?? VehicleType.Kamyon;
 
       const newId = await createVehicle.mutateAsync({

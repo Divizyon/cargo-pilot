@@ -8,9 +8,9 @@ import { DoorType, findDoor, fillsFromMaxX, type VehicleDoor } from '@/lib/types
  * Referans kapı z = length'tedir, bu yüzden Z her zaman küçük→büyük ilerler:
  * uzak yüzdeki (z = 0) kutular önce girer, kapıya en yakın olanlar en son.
  *
- * Yan kapı yalnızca X'in hangi uçtan başlayacağını belirler:
- * - yan kapı x = width'te ya da hiç yoksa → X küçük→büyük (x = 0 duvarı önce)
- * - yan kapı x = 0'da                     → X büyük→küçük (x = width duvarı önce)
+ * Büyük kapı yalnızca X'in hangi uçtan başlayacağını belirler:
+ * - büyük kapı x = width'te ya da hiç yoksa → X küçük→büyük (x = 0 duvarı önce)
+ * - büyük kapı x = 0'da                     → X büyük→küçük (x = width duvarı önce)
  *
  * Yalnızca üst kapısı olan araçta yükleme yukarıdan yapılır: alt kat önce girer.
  *

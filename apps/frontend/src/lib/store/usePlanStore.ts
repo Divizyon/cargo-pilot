@@ -107,7 +107,7 @@ export function buildPlacements(
 
   // Yükleme kapıya değmeyen köşeden başlar (docs/COORDINATE_STANDARD.md §7).
   // Motor bunu `LoadingCorner.FillFromMaxX` ile yapıyor; manuel yerleşim imleci
-  // ise sabit x = 0'dan başlıyordu, yani yan kapısı x = 0 olan araçta kutuları
+  // ise sabit x = 0'dan başlıyordu, yani büyük kapısı x = 0 olan araçta kutuları
   // kapının tam önüne diziyordu (denetim S-18).
   const fromMaxX = fillsFromMaxX(vehicle.doors ?? []);
   const rowStartX = fromMaxX ? vehicle.width - width : 0;

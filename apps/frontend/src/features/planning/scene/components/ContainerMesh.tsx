@@ -310,7 +310,7 @@ function renderDoors(doors: readonly VehicleDoor[], width: number, height: numbe
   // kapalı duvardan giriyormuş gibi görünürdü (denetim S-56).
   const referenceDoor = findDoor(doors, DoorType.Small) ?? (doors.length === 0 ? true : undefined);
 
-  // Kapılar bir liste: bir araçta aynı anda arka ve yan kapı bulunabilir, bu
+  // Kapılar bir liste: bir araçta aynı anda küçük ve büyük kapı bulunabilir, bu
   // yüzden dallar birbirini dışlamaz (docs/COORDINATE_STANDARD.md §4).
   return (
     <>

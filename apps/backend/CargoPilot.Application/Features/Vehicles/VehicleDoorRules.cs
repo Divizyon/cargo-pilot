@@ -53,9 +53,14 @@ public static class VehicleDoorRules {
         return null;
     }
 
+    /// <remarks>
+    /// Kapi tipleri boyuta gore adlandirilir (docs/COORDINATE_STANDARD.md §4);
+    /// yon adi bir siniflandirma degildir. Buyuk kapinin bulundugu taraf ayri
+    /// bir bilgidir ve arayuzde parantez icinde gosterilir.
+    /// </remarks>
     private static string DoorTypeLabel(DoorType type) => type switch {
-        DoorType.Small => "arka kapı",
-        DoorType.Big   => "yan kapı",
+        DoorType.Small => "küçük kapı",
+        DoorType.Big   => "büyük kapı",
         DoorType.Top   => "üst kapı",
         _              => "kapı",
     };
