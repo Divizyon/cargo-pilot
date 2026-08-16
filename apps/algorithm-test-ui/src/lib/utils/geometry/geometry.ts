@@ -2,7 +2,8 @@ import type { Placement } from '@/lib/types/loadingPlan';
 
 /**
  * İki eksen hizalı kutunun AABB kesişim kontrolü.
- * Konumlar sol-alt-arka köşe, santimetre cinsinden. Yalnızca yüzey paylaşan
+ * Konumlar kutunun origin'e en yakın köşesi (min x, min y, min z), santimetre
+ * cinsinden. Yalnızca yüzey paylaşan
  * (değen ama içine girmeyen) kutular kesişmiş sayılmaz.
  */
 export function boxesIntersect(a: Placement, b: Placement): boolean {
@@ -11,8 +12,8 @@ export function boxesIntersect(a: Placement, b: Placement): boolean {
     b.positionX < a.positionX + a.width &&
     a.positionY < b.positionY + b.height &&
     b.positionY < a.positionY + a.height &&
-    a.positionZ < b.positionZ + b.depth &&
-    b.positionZ < a.positionZ + a.depth
+    a.positionZ < b.positionZ + b.length &&
+    b.positionZ < a.positionZ + a.length
   );
 }
 

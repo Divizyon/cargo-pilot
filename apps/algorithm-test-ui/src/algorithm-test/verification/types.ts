@@ -22,6 +22,7 @@ export const CHECK_IDS = [
   'totalWeight',
   'cogMismatch',
   'lifoZone',
+  'loadingCorner',
 ] as const;
 
 export type CheckId = (typeof CHECK_IDS)[number];

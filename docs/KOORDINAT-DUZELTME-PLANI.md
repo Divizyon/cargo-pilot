@@ -46,25 +46,29 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 - [x] **S-22** `loadingTypeFromDoors` boş listede `0` uyduruyor — boş liste durumunda çağıran tarafta guard (`doors.length === 0` ise alan gönderme) ya da açık yorum; davranış değişikliği migration sonrası değerlendirilir.
 - [x] **S-47** `VehicleDoorRules.Validate` imzasına `VehicleType` ekle: Container + `DoorType.Top` reddi (eski enum kuralının doors karşılığı). İki validator'da da kullan.
 - [x] **S-48** `DoorFace.ZeroZ` hiçbir tipte geçerli değil: backend enum'dan **silme** (EF string saklıyor, veri yok, güvenli) + `vehicle.ts`'ten çıkar. Silme riskliyse `[Obsolete]` + zod'dan çıkarma; karar commit'e yazılır.
-- [ ] **S-66** `algorithm-test-ui/.../vehicleMappers.ts:18-21` ölü `3: Side` anahtarı → **Faz 4'e alındı** (aynı dosyalar).
+- [x] **S-66** `algorithm-test-ui/.../vehicleMappers.ts:18-21` ölü `3: Side` anahtarı → **Faz 4'e alındı** (aynı dosyalar).
 
 **Doğrulama:** `dotnet ef migrations has-pending-model-changes` temiz; Application testleri; migration'ı test DB'ye uygula, `SELECT COUNT(*) WHERE LoadingType=3` → 0.
 
 ---
 
-## Faz 4 — `algorithm-test-ui` doğrulama aracını canlandır (paralel gidebilir)
+## Faz 4 — `algorithm-test-ui` doğrulama aracını canlandır ✅
 **Bulgular:** S-71 → S-07 → S-05+S-06 → S-12, S-38–S-43, S-67, S-68
 **Zorunlu sıra:** S-71 (bağımlılık kurulumu) ve S-07 (NaN kapısı) düzelmeden S-05'in düzeldiği görülemez. S-05 ile S-06 **aynı commit'te** — biri diğerini kırar.
 
-- [ ] **S-71** `apps/algorithm-test-ui` bağımlılıklarını kur, kök workspace'e/CI'a bağla; `test:ci` gerçekten çalışsın.
-- [ ] **S-07** `goldenCrossCheck.test.ts` — `Depth` → `Length`; `as Snapshot` cast'ini zod parse'a çevir; `Lifo_*` fixture'ları için `zoneOverflow === 0` assertion'ı.
-- [ ] **S-05+S-06** `lifoZones.ts` — `zStart: vehicleLength-(index+1)*zoneSize, zEnd: vehicleLength-index*zoneSize`; test beklentileri backend `LifoPlacement.cs:83` aynasına çevrilir.
-- [ ] **S-12/S-38/S-43** Mapper `doors` okusun; `DoorDirection` enum'u yerine `doors: VehicleDoor[]`; bölge kapısı `HasReferenceDoor` aynası.
-- [ ] **S-39** `depth` → `length` (tip + 12 kullanım + `ROTATION_LABEL` W,H,L → G,Y,U).
-- [ ] **S-40/S-41/S-42** `PlacementCanvas2D` — etiket "0 = uzak yüz"; `perpAscending` kamera z=length'e göre `true`; "Üstten" görünümün +X yönü front paneliyle tutarlı.
-- [ ] **S-67/S-68** Yön/başlangıç köşesi doğrulayan kural ekle; "sol-alt-arka" metinleri temizle.
+- [x] **S-71** `apps/algorithm-test-ui` bağımlılıklarını kur, kök workspace'e/CI'a bağla; `test:ci` gerçekten çalışsın.
+- [x] **S-07** `goldenCrossCheck.test.ts` — `Depth` → `Length`; `as Snapshot` cast'ini zod parse'a çevir; `Lifo_*` fixture'ları için `zoneOverflow === 0` assertion'ı.
+- [x] **S-05+S-06** `lifoZones.ts` — `zStart: vehicleLength-(index+1)*zoneSize, zEnd: vehicleLength-index*zoneSize`; test beklentileri backend `LifoPlacement.cs:83` aynasına çevrilir.
+- [x] **S-12/S-38/S-43** Mapper `doors` okusun; `DoorDirection` enum'u yerine `doors: VehicleDoor[]`; bölge kapısı `HasReferenceDoor` aynası.
+- [x] **S-39** `depth` → `length` (tip + 12 kullanım + `ROTATION_LABEL` W,H,L → G,Y,U).
+- [x] **S-40/S-41/S-42** `PlacementCanvas2D` — etiket "0 = uzak yüz"; `perpAscending` kamera z=length'e göre `true`; "Üstten" görünümün +X yönü front paneliyle tutarlı.
+- [x] **S-67/S-68** Yön/başlangıç köşesi doğrulayan kural ekle; "sol-alt-arka" metinleri temizle.
 
-**Doğrulama:** `npx tsc --noEmit && npx vitest run` (algorithm-test-ui) — S-07 sonrası mevcut fixture'larla koş; S-05 düzeltmesi öncesi kasıtlı fail görülmeli, sonrası yeşil.
+**Doğrulama:** tamamlandı — tsc sessiz, 201/201 test, `npm run build` + `build:suite` temiz.
+
+**Rapor düzeltmesi (S-71):** denetim "yerelde de CI'da da hiç çalıştırılmıyor" diyordu; CI yanlış. `.github/workflows/ci.yml`'de `algorithm-test-ui-ci` işi mevcut ve `npm ci` + `build` + `test:ci` koşuyor (#996'dan beri). Eksik olan yalnızca **yerel** `node_modules`'dü. Yani S-05/S-06/S-07 CI'da koşuyordu ama yakalanmıyordu — çünkü NaN kapısı ve `lifoZone`'un soft severity'si testleri yeşil tutuyordu. Bulgunun özü doğru, nedeni farklı.
+
+**S-07 sonrası beklenen fail görülmedi:** `checkLifoZone` soft severity taşıdığı için golden testi ("sert kural ihlali yok") bölge yönünü hiç ölçmüyordu. Raporun önerdiği `zoneOverflow === 0` iddiası eklenince ters ayna açığa çıktı — tam olarak raporun öngördüğü **680 cm**. Düzeltme sonrası 0.
 
 ---
 

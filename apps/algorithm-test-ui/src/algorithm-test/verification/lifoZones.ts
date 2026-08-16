@@ -1,13 +1,17 @@
-import { DoorDirection } from '@/lib/types/vehicle';
+import { hasReferenceDoor, type VehicleDoor } from '@/lib/types/vehicle';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
 
 /**
  * Motorun LIFO grup bölgelerinin istemci aynası — `LifoPlacement.ComputeGroupZones`
  * (apps/backend/CargoPilot.Application/Common/Optimization/LifoPlacement.cs:44-73).
  *
- * Arka kapı Z=0'dadır. UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya en
- * yakın (en küçük Z) bölgeye düşer. Distinct değerler ASC sıralanır ve araç
- * uzunluğu eşit bölümlere ayrılır.
+ * Referans kapı z = length'tedir, uzak yüz z = 0 (docs/COORDINATE_STANDARD.md §2).
+ * UnloadingOrder=1 ilk inecek gruptur, bu yüzden kapıya en yakın (en BÜYÜK Z)
+ * bölgeye düşer; indeks büyüdükçe bölge uzak yüze kayar. Distinct değerler ASC
+ * sıralanır ve araç uzunluğu eşit bölümlere ayrılır.
+ *
+ * Bu ayna eskiden ters kuruluydu (order 1 → z=0): kusursuz bir LIFO planında
+ * 680 cm taşma raporluyor, gerçekten bozuk bir planı ise temiz gösteriyordu.
  */
 export interface LifoZone {
   unloadingOrder: number;
@@ -17,18 +21,20 @@ export interface LifoZone {
 
 /**
  * Bölgeler yalnızca üç koşul birlikte sağlandığında oluşur (motorla aynı kapı):
- * modül açık (varsayılan türetmede yalnızca Lifo kriteri), arka kapı yüklemesi,
- * ve en az 2 farklı unloadingOrder. Aksi hâlde boş sözlük — ne bölge tohumlaması
- * ne bölge cezası oluşur.
+ * modül açık (varsayılan türetmede yalnızca Lifo kriteri), araçta referans kapı
+ * bulunması, ve en az 2 farklı unloadingOrder. Aksi hâlde boş sözlük — ne bölge
+ * tohumlaması ne bölge cezası oluşur.
  */
 export function computeGroupZones(
   unloadingOrders: readonly number[],
   vehicleLength: number,
-  doorDirection: DoorDirection,
+  doors: readonly VehicleDoor[],
   criteria: OptimizationCriteria,
 ): LifoZone[] {
   if (criteria !== OptimizationCriteria.Lifo) return [];
-  if (doorDirection !== DoorDirection.Rear) return [];
+  // Bölge ayrımı referans kapıya bağlı, "yan kapı değil"e değil: arka + yan
+  // kapılı araçta bölgeler geçerli kalır (LoadingCorner.HasReferenceDoor).
+  if (!hasReferenceDoor(doors)) return [];
 
   const orders = [...new Set(unloadingOrders)].sort((a, b) => a - b);
   if (orders.length <= 1) return [];
@@ -37,8 +43,11 @@ export function computeGroupZones(
 
   return orders.map((unloadingOrder, index) => ({
     unloadingOrder,
-    zStart: index * zoneSize,
-    zEnd: (index + 1) * zoneSize,
+    // Son bölgenin başlangıcı 0'a sabitlenir: bölme tam kapanmadığında
+    // (250/3) kalıntı bir taşma gibi ölçülürdü. Motor da aynısını yapıyor
+    // (LifoPlacement.ComputeGroupZones).
+    zStart: index === orders.length - 1 ? 0 : vehicleLength - (index + 1) * zoneSize,
+    zEnd: vehicleLength - index * zoneSize,
   }));
 }
 
@@ -51,9 +60,9 @@ export function computeGroupZones(
  * bölgeye taşar. Bu yüzden taşma bir ihlal olarak raporlanmaz, ölçüt olarak
  * raporlanır.
  */
-export function zoneOverflowCm(positionZ: number, depth: number, zone: LifoZone): number {
+export function zoneOverflowCm(positionZ: number, length: number, zone: LifoZone): number {
   const overStart = Math.max(0, zone.zStart - positionZ);
-  const overEnd = Math.max(0, positionZ + depth - zone.zEnd);
+  const overEnd = Math.max(0, positionZ + length - zone.zEnd);
   return overStart + overEnd;
 }
 
@@ -71,7 +80,7 @@ export interface ZoneOverflowMeasurement {
  * arası eğrisini çiziyor. İki yerde ayrı hesaplanırsa rapor ile ekran ayrışır.
  */
 export function measureZoneOverflow(
-  placements: readonly { positionZ: number; depth: number; itemId: string }[],
+  placements: readonly { positionZ: number; length: number; itemId: string }[],
   zones: readonly LifoZone[],
   unloadingOrderByItemId: ReadonlyMap<string, number>,
   epsilonCm: number,
@@ -86,7 +95,7 @@ export function measureZoneOverflow(
     const zone = zoneByOrder.get(order);
     if (!zone) continue;
 
-    const overflow = zoneOverflowCm(placements[i].positionZ, placements[i].depth, zone);
+    const overflow = zoneOverflowCm(placements[i].positionZ, placements[i].length, zone);
     if (overflow > epsilonCm) {
       overflowingIndices.push(i);
       totalOverflowCm += overflow;

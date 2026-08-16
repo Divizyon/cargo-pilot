@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Item } from '@/lib/types/item';
 import { OptimizationCriteria, type Placement } from '@/lib/types/loadingPlan';
-import { DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { DoorFace, DoorType, type Vehicle } from '@/lib/types/vehicle';
 import {
   checkBounds,
   checkCogMismatch,
@@ -9,6 +9,7 @@ import {
   checkFragility,
   checkLifoVertical,
   checkLifoZone,
+  checkLoadingCorner,
   checkOverlap,
   checkRotation,
   checkStackCount,
@@ -32,7 +33,7 @@ const vehicle: Vehicle = {
   height: 100,
   length: 300,
   maxCargoWeight: 1000,
-  doorDirection: DoorDirection.Rear,
+  doors: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
 };
 
 function box(overrides: Partial<Placement> = {}): Placement {
@@ -43,7 +44,7 @@ function box(overrides: Partial<Placement> = {}): Placement {
     positionZ: 0,
     width: 10,
     height: 10,
-    depth: 10,
+    length: 10,
     rotation: 0,
     isViolation: false,
     ...overrides,
@@ -437,5 +438,50 @@ describe('checkLifoZone', () => {
     expect(result.status).toBe('fail');
     // Motor bölge dışına çıkmayı yasaklamaz, skor cezasıyla caydırır.
     expect(result.severity).toBe('soft');
+  });
+});
+
+describe('checkLoadingCorner', () => {
+  const SIDE_LEFT = { type: DoorType.Big, face: DoorFace.ZeroX } as const;
+  const SIDE_RIGHT = { type: DoorType.Big, face: DoorFace.WidthX } as const;
+  const REAR = { type: DoorType.Small, face: DoorFace.LengthZ } as const;
+
+  function withDoors(doors: Vehicle['doors'], placements: Placement[]): CheckInput {
+    return input({ vehicle: { ...vehicle, doors }, placements });
+  }
+
+  it('yan kapı yokken x = 0 duvarına dayanan kutu yeterli', () => {
+    const result = checkLoadingCorner(withDoors([REAR], [box({ positionX: 0 })]));
+    expect(result.status).toBe('pass');
+  });
+
+  it('yan kapı x = 0 iken yükleme karşı duvardan başlamalı', () => {
+    // Araç 100 geniş, kutu 10 geniş → sağ kenar 90 + 10 = 100.
+    const dogru = checkLoadingCorner(withDoors([REAR, SIDE_LEFT], [box({ positionX: 90 })]));
+    expect(dogru.status).toBe('pass');
+
+    const yanlis = checkLoadingCorner(withDoors([REAR, SIDE_LEFT], [box({ positionX: 0 })]));
+    expect(yanlis.status).toBe('fail');
+    expect(yanlis.severity).toBe('hard');
+  });
+
+  it('yan kapı x = width iken yükleme origin köşesinden başlamalı', () => {
+    expect(checkLoadingCorner(withDoors([REAR, SIDE_RIGHT], [box({ positionX: 0 })])).status).toBe(
+      'pass',
+    );
+    expect(checkLoadingCorner(withDoors([REAR, SIDE_RIGHT], [box({ positionX: 90 })])).status).toBe(
+      'fail',
+    );
+  });
+
+  it('karşı tarafa da kutu konması ihlal değil — ölçülen başlangıç ucudur', () => {
+    const result = checkLoadingCorner(
+      withDoors([REAR, SIDE_LEFT], [box({ positionX: 90 }), box({ positionX: 0 })]),
+    );
+    expect(result.status).toBe('pass');
+  });
+
+  it('yerleşim yoksa atlanır, sahte geçer vermez', () => {
+    expect(checkLoadingCorner(withDoors([REAR], [])).status).toBe('skipped');
   });
 });

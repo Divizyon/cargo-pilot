@@ -23,4 +23,5 @@ export const CHECK_LABEL: Record<CheckId, string> = {
   totalWeight: 'Araç ağırlık kapasitesi',
   cogMismatch: 'CoG çapraz kontrolü',
   lifoZone: 'LIFO bölge uyumu',
+  loadingCorner: 'Yükleme başlangıç köşesi',
 };

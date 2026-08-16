@@ -1,5 +1,6 @@
 /**
- * Backend yerleştirmeyi bottom-left-rear köşe konumu + rotasyon enum'u olarak döner;
+ * Backend yerleştirmeyi kutunun origin'e en yakın köşesi (min x, min y, min z)
+ * + rotasyon enum'u olarak döner;
  * gerçek kenar uzunlukları `loadingPlanMappers.placedDimensions` ile türetilir.
  * Bu yüzden burada rotasyon değil, doğrudan yerleşmiş boyutlar tutulur.
  */
@@ -10,7 +11,7 @@ export interface Placement {
   positionZ: number;
   width: number;
   height: number;
-  depth: number;
+  length: number;
   /**
    * Motorun seçtiği rotasyon (0-5). Kenar uzunlukları buna göre türetilmiş
    * olsa da enum ayrıca tutulur: hangi yönelimin seçildiği algoritma testinde
@@ -21,14 +22,18 @@ export interface Placement {
   color?: string;
 }
 
-/** LoadingPlanPlacementRotation.cs sırası; kenar eşlemesi placedDimensions'ta. */
+/**
+ * LoadingPlanPlacementRotation.cs sırası; kenar eşlemesi placedDimensions'ta.
+ * Etiketler ürünün hangi kenarının hangi eksene geldiğini gösterir:
+ * genişlik (G) = x, yükseklik (Y) = y, uzunluk (U) = z.
+ */
 export const ROTATION_LABEL: Record<number, string> = {
-  0: 'NoRotation (W,H,L)',
-  1: 'Yaw (L,H,W)',
-  2: 'Pitch (W,L,H)',
-  3: 'Roll (H,W,L)',
-  4: 'YawPitch (H,L,W)',
-  5: 'RollYaw (L,W,H)',
+  0: 'NoRotation (G,Y,U)',
+  1: 'Yaw (U,Y,G)',
+  2: 'Pitch (G,U,Y)',
+  3: 'Roll (Y,G,U)',
+  4: 'YawPitch (Y,U,G)',
+  5: 'RollYaw (U,G,Y)',
 };
 
 export const OptimizationCriteria = {

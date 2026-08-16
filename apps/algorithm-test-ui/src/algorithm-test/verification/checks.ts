@@ -8,6 +8,7 @@ import {
   restsDirectlyOn,
   topY,
 } from './geometryPredicates';
+import { fillsFromMaxX } from '@/lib/types/vehicle';
 import { measureZoneOverflow } from './lifoZones';
 import type { CheckInput, CheckResult } from './types';
 import { CHECK_LABEL } from './checkLabels';
@@ -125,7 +126,7 @@ export function checkBounds(input: CheckInput): CheckResult {
       p.positionZ < -CONTACT_EPSILON_CM ||
       p.positionX + p.width > vehicle.width + CONTACT_EPSILON_CM ||
       p.positionY + p.height > vehicle.height + CONTACT_EPSILON_CM ||
-      p.positionZ + p.depth > vehicle.length + CONTACT_EPSILON_CM;
+      p.positionZ + p.length > vehicle.length + CONTACT_EPSILON_CM;
     if (overflows) failed.push(i);
   }
 
@@ -169,7 +170,7 @@ export function checkSupport(input: CheckInput): CheckResult {
     const p = placements[i];
     if (p.positionY <= CONTACT_EPSILON_CM) continue;
 
-    const footprint = p.width * p.depth;
+    const footprint = p.width * p.length;
     if (footprint === 0) continue;
 
     let supported = 0;
@@ -475,7 +476,7 @@ export function checkCogMismatch(input: CheckInput): CheckResult {
     const weight = itemOf(p, itemsById)?.weight ?? 0;
     moment.x += weight * (p.positionX + p.width / 2);
     moment.y += weight * (p.positionY + p.height / 2);
-    moment.z += weight * (p.positionZ + p.depth / 2);
+    moment.z += weight * (p.positionZ + p.length / 2);
   }
 
   const clientCog = {
@@ -528,6 +529,50 @@ function offsetDelta(cogAxis: number, halfSpan: number, backendOffset: number | 
 // LifoPlacement.cs:44-90 — bölge dışına çıkmak SKOR CEZASIDIR, yasak değil.
 // Boş yer kalmadığında motor bilinçli olarak taşırır; bu yüzden ihlal değil
 // ölçüt olarak raporlanır.
+/**
+ * Yükleme, kapıya değmeyen köşeden başlar (docs/COORDINATE_STANDARD.md §7).
+ *
+ * On üç kuralın hiçbiri yükleme yönünü ya da başlangıç köşesini doğrulamıyordu
+ * (denetim S-67): motor aynalanmış modda yanlış köşeden doldursa bile araç
+ * sessizce yeşil veriyordu.
+ *
+ * Kural, kutuların x eksenindeki dayanma duvarını ölçer. Yan kapı x = 0'daysa
+ * en az bir kutunun sağ kenarı x = width duvarına dayanmalı; yan kapı yoksa ya
+ * da x = width'teyse en az bir kutu x = 0'a dayanmalıdır. "Hepsi" değil "en az
+ * biri": greedy motor kalan boşluğu doldurmak için karşı tarafa da kutu koyar,
+ * ölçülen şey doldurmanın hangi uçtan BAŞLADIĞIDIR.
+ */
+export function checkLoadingCorner(input: CheckInput): CheckResult {
+  const id = 'loadingCorner' as const;
+  const label = CHECK_LABEL.loadingCorner;
+  const sourceRef = 'LoadingCorner.cs + OptimizationEngine.cs:47';
+  const { placements, vehicle } = input;
+
+  if (vehicle === null) return skipped(id, label, sourceRef, 'Araç bilgisi yok');
+  if (placements.length === 0) return skipped(id, label, sourceRef, 'Yerleşim yok');
+
+  const fromMaxX = fillsFromMaxX(vehicle.doors);
+  const beklenenDuvar = fromMaxX ? 'x = genişlik' : 'x = 0';
+
+  const dayanan = placements.some((p) =>
+    fromMaxX
+      ? Math.abs(p.positionX + p.width - vehicle.width) <= CONTACT_EPSILON_CM
+      : Math.abs(p.positionX) <= CONTACT_EPSILON_CM,
+  );
+
+  return {
+    id,
+    label,
+    status: dayanan ? 'pass' : 'fail',
+    severity: 'hard',
+    failedPlacementIndices: dayanan ? [] : placements.map((_, i) => i),
+    detail: dayanan
+      ? `Yükleme ${beklenenDuvar} duvarından başlıyor`
+      : `Hiçbir kutu ${beklenenDuvar} duvarına dayanmıyor — başlangıç köşesi ters`,
+    sourceRef,
+  };
+}
+
 export function checkLifoZone(input: CheckInput): CheckResult {
   const id = 'lifoZone' as const;
   const label = CHECK_LABEL.lifoZone;

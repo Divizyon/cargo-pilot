@@ -2,10 +2,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import type { Item } from '@/lib/types/item';
 import { OptimizationCriteria, type Placement } from '@/lib/types/loadingPlan';
-import { DoorDirection, type Vehicle } from '@/lib/types/vehicle';
-import { computeGroupZones } from './lifoZones';
+import { DoorFace, DoorType, type Vehicle, type VehicleDoor } from '@/lib/types/vehicle';
+import { computeGroupZones, measureZoneOverflow } from './lifoZones';
 import { runChecks } from './runChecks';
 import type { CheckInput } from './types';
 
@@ -34,14 +35,37 @@ const CRITERIA_BY_NAME: Record<string, OptimizationCriteria> = {
   VolumeFirst: OptimizationCriteria.VolumeFirst,
 };
 
-/** LoadingType.cs → DoorDirection; yan kapı varyantları tek yöne iner. */
-const DOOR_BY_LOADING_TYPE: Record<string, DoorDirection> = {
-  Rear: DoorDirection.Rear,
-  SideRight: DoorDirection.Side,
-  SideLeft: DoorDirection.Side,
-  SideBoth: DoorDirection.Side,
-  Top: DoorDirection.Top,
+/**
+ * LoadingType.cs → kapı listesi. Yan kapı varyantları artık tek değere inmiyor:
+ * x = 0 ile x = width ayrımı başlangıç köşesini belirliyor.
+ * Snapshot `FillFromMaxX`/`HasReferenceDoor` de taşıdığı için senaryonun gerçek
+ * kapı kümesi bu iki alandan kurulur; `LoadingType` yalnızca geri uyum.
+ */
+const DOORS_BY_LOADING_TYPE: Record<string, readonly VehicleDoor[]> = {
+  Rear: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  SideRight: [{ type: DoorType.Big, face: DoorFace.WidthX }],
+  SideLeft: [{ type: DoorType.Big, face: DoorFace.ZeroX }],
+  Top: [{ type: DoorType.Top, face: DoorFace.HeightY }],
 };
+
+/**
+ * Snapshot'ın kapı kümesi: motor kararını `FillFromMaxX` ve `HasReferenceDoor`
+ * üzerinden verdiği için ayna da bu iki alandan kurulur.
+ */
+function doorsFromSnapshot(vehicle: Snapshot['Vehicle']): VehicleDoor[] {
+  const doors: VehicleDoor[] = [];
+
+  const referenceDoor = vehicle.HasReferenceDoor ?? vehicle.LoadingType === 'Rear';
+  if (referenceDoor) doors.push({ type: DoorType.Small, face: DoorFace.LengthZ });
+
+  if (vehicle.FillFromMaxX) {
+    doors.push({ type: DoorType.Big, face: DoorFace.ZeroX });
+  } else if (!referenceDoor) {
+    doors.push(...(DOORS_BY_LOADING_TYPE[vehicle.LoadingType] ?? []));
+  }
+
+  return doors;
+}
 
 /** LoadingPlanPlacementRotation.cs sırası. */
 const ROTATION_BY_NAME: Record<string, number> = {
@@ -64,57 +88,72 @@ const ALLOWED_ROTATIONS_BY_NAME: Record<string, number> = {
   RollOnly: 5,
 };
 
-interface SnapshotItem {
-  ItemId: string;
-  Sku: string;
-  Width: number;
-  Height: number;
-  Length: number;
-  Weight: number;
-  IsStackable: boolean;
-  MaxStackCount: number;
-  MaxWeightOnTop: number;
-  AllowedRotations: string;
-  Quantity: number;
-  GroupId: string | null;
-  UnloadingOrder: number | null;
-}
+/**
+ * Snapshot şeması zod ile doğrulanır.
+ *
+ * Önceden yapısal `interface` + `as Snapshot` cast'i vardı: fixture `Length`
+ * yazarken test `Depth` okuyordu ve TypeScript uyarmıyordu. Her yerleştirme
+ * `length: undefined` ile giriyor, tüm Z tabanlı karşılaştırmalar `NaN` üretiyor
+ * ve `NaN > eşik` her zaman `false` döndüğü için çakışma, Z taşması, ağırlık
+ * merkezi ve bölge kuralları sessizce "pass" veriyordu (denetim S-07).
+ * Şema artık alan adı kaymasını yükleme anında yakalar.
+ */
+const snapshotItemSchema = z.object({
+  ItemId: z.string(),
+  Sku: z.string(),
+  Width: z.number(),
+  Height: z.number(),
+  Length: z.number(),
+  Weight: z.number(),
+  IsStackable: z.boolean(),
+  MaxStackCount: z.number(),
+  MaxWeightOnTop: z.number(),
+  AllowedRotations: z.string(),
+  Quantity: z.number(),
+  GroupId: z.string().nullable(),
+  UnloadingOrder: z.number().nullable(),
+});
 
-interface SnapshotPlacement {
-  Order: number;
-  ItemId: string;
-  X: number;
-  Y: number;
-  Z: number;
-  Width: number;
-  Height: number;
-  Depth: number;
-  Rotation: string;
-  Weight: number;
-}
+const snapshotPlacementSchema = z.object({
+  Order: z.number(),
+  ItemId: z.string(),
+  X: z.number(),
+  Y: z.number(),
+  Z: z.number(),
+  Width: z.number(),
+  Height: z.number(),
+  Length: z.number(),
+  Rotation: z.string(),
+  Weight: z.number(),
+});
 
-interface Snapshot {
-  Scenario: string;
-  Vehicle: {
-    Width: number;
-    Height: number;
-    Length: number;
-    MaxWeight: number;
-    Criteria: string;
-    LoadingType: string;
-    ClusterGroups: boolean;
-  };
-  Items: SnapshotItem[];
-  Outcome: {
-    TotalWeight: number;
-    CenterOfGravityX: number | null;
-    CenterOfGravityY: number | null;
-    CenterOfGravityZ: number | null;
-    WeightBalanceOffsetX: number | null;
-    WeightBalanceOffsetZ: number | null;
-    Placements: SnapshotPlacement[];
-  };
-}
+const snapshotSchema = z.object({
+  Scenario: z.string(),
+  Vehicle: z.object({
+    Width: z.number(),
+    Height: z.number(),
+    Length: z.number(),
+    MaxWeight: z.number(),
+    Criteria: z.string(),
+    LoadingType: z.string(),
+    ClusterGroups: z.boolean(),
+    FillFromMaxX: z.boolean(),
+    HasReferenceDoor: z.boolean().nullable(),
+  }),
+  Items: z.array(snapshotItemSchema),
+  Outcome: z.object({
+    TotalWeight: z.number(),
+    CenterOfGravityX: z.number().nullable(),
+    CenterOfGravityY: z.number().nullable(),
+    CenterOfGravityZ: z.number().nullable(),
+    WeightBalanceOffsetX: z.number().nullable(),
+    WeightBalanceOffsetZ: z.number().nullable(),
+    Placements: z.array(snapshotPlacementSchema),
+  }),
+});
+
+type SnapshotItem = z.infer<typeof snapshotItemSchema>;
+type Snapshot = z.infer<typeof snapshotSchema>;
 
 function toVehicle(snapshot: Snapshot): Vehicle {
   return {
@@ -124,7 +163,7 @@ function toVehicle(snapshot: Snapshot): Vehicle {
     height: snapshot.Vehicle.Height,
     length: snapshot.Vehicle.Length,
     maxCargoWeight: snapshot.Vehicle.MaxWeight,
-    doorDirection: DOOR_BY_LOADING_TYPE[snapshot.Vehicle.LoadingType] ?? DoorDirection.Rear,
+    doors: doorsFromSnapshot(snapshot.Vehicle),
   };
 }
 
@@ -161,7 +200,7 @@ function toCheckInput(snapshot: Snapshot): CheckInput {
     positionZ: p.Z,
     width: p.Width,
     height: p.Height,
-    depth: p.Depth,
+    length: p.Length,
     rotation: ROTATION_BY_NAME[p.Rotation] ?? 0,
     isViolation: false,
   }));
@@ -178,7 +217,7 @@ function toCheckInput(snapshot: Snapshot): CheckInput {
   const zones = computeGroupZones(
     [...unloadingOrderByItemId.values()],
     vehicle.length,
-    vehicle.doorDirection,
+    vehicle.doors,
     criteria,
   );
 
@@ -210,7 +249,7 @@ function loadSnapshots(): Snapshot[] {
   return readdirSync(SNAPSHOT_DIR)
     .filter((file) => file.endsWith('.json'))
     .sort()
-    .map((file) => JSON.parse(readFileSync(path.join(SNAPSHOT_DIR, file), 'utf8')) as Snapshot);
+    .map((file) => snapshotSchema.parse(JSON.parse(readFileSync(path.join(SNAPSHOT_DIR, file), 'utf8'))));
 }
 
 const snapshots = loadSnapshots();
@@ -232,6 +271,35 @@ describe('golden fixture çapraz kontrolü', () => {
       expect(hardFailures).toEqual([]);
     },
   );
+
+  /**
+   * LIFO bölge aynasının yön doğrulaması.
+   *
+   * `checkLifoZone` soft severity taşıdığı için yukarıdaki "sert kural ihlali
+   * yok" testi bölge yönünü hiç ölçmüyor: ayna ters kurulsa da golden yeşil
+   * kalıyordu (denetim S-05/S-06). Motor bu fixture'ları kendi bölge disiplinine
+   * uyarak ürettiğine göre taşma tam olarak 0 olmalı.
+   */
+  it.each(
+    snapshots
+      .filter((s) => s.Scenario.startsWith('Lifo_') && s.Scenario.includes('Bolge'))
+      .map((s) => [s.Scenario, s] as const),
+  )('%s — bölge taşması yok (ayna yönü motorla aynı)', (_scenario, snapshot) => {
+    const input = toCheckInput(snapshot);
+    if (input.zones.length === 0) return; // bölge kurulmayan senaryo
+
+    const { totalOverflowCm, overflowingIndices } = measureZoneOverflow(
+      input.placements,
+      input.zones,
+      input.unloadingOrderByItemId,
+      0,
+    );
+
+    expect({ totalOverflowCm, tasanKutuSayisi: overflowingIndices.length }).toEqual({
+      totalOverflowCm: 0,
+      tasanKutuSayisi: 0,
+    });
+  });
 
   it('en az bir fixture istif adedi kuralını gerçekten koşturur', () => {
     // Hiçbir fixture kuralı tetiklemiyorsa çapraz kontrol boş güvence verir.
