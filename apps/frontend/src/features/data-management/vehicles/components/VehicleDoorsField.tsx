@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import { Settings2 } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 import { FormItem } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -121,7 +121,7 @@ export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
                               toggleFacePicker(event);
                             }}
                           >
-                            <Settings2 className="h-4 w-4" />
+                            <ArrowLeftRight className="h-4 w-4" />
                           </span>
                         </PopoverTrigger>
 
