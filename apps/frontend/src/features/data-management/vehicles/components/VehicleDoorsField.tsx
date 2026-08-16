@@ -1,94 +1,173 @@
+import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
+import { Settings2 } from 'lucide-react';
 import { FormItem } from '@/components/ui/form';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { DoorType, DoorFace, findDoor, type VehicleDoor } from '@/lib/types/vehicle';
+import {
+  DoorType,
+  DoorFace,
+  DEFAULT_BIG_DOOR_FACE,
+  findDoor,
+  type VehicleDoor,
+} from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleDoorsFieldProps {
   form: UseFormReturn<VehicleFormValues>;
 }
 
-/**
- * Yan kapı seçenekleri. Kullanıcıya "sol/sağ" gösterilir, kayda yüz değeri gider;
- * standart yön adlandırması kullanmaz (docs/COORDINATE_STANDARD.md §4).
- */
-const SIDE_OPTIONS = [
-  { value: 'none', label: 'Yok' },
-  { value: DoorFace.ZeroX, label: 'Sol' },
-  { value: DoorFace.WidthX, label: 'Sağ' },
-] as const;
+type DoorSetKey = 'small' | 'big' | 'both';
 
-function buildDoors(hasRear: boolean, sideFace: DoorFace | null): VehicleDoor[] {
+const DOOR_SET_OPTIONS: { value: DoorSetKey; label: string; hasBigDoor: boolean }[] = [
+  { value: 'small', label: 'Küçük kapı', hasBigDoor: false },
+  { value: 'big', label: 'Büyük kapı', hasBigDoor: true },
+  { value: 'both', label: 'Küçük ve büyük kapı', hasBigDoor: true },
+];
+
+const BIG_DOOR_FACE_OPTIONS: { value: DoorFace; label: string; hint: string }[] = [
+  { value: DoorFace.ZeroX, label: 'Sol', hint: 'x = 0 yüzü' },
+  { value: DoorFace.WidthX, label: 'Sağ', hint: 'x = genişlik yüzü' },
+];
+
+function buildDoors(setKey: DoorSetKey, bigDoorFace: DoorFace): VehicleDoor[] {
   const doors: VehicleDoor[] = [];
-  if (hasRear) doors.push({ type: DoorType.Small, face: DoorFace.LengthZ });
-  if (sideFace) doors.push({ type: DoorType.Big, face: sideFace });
+  if (setKey === 'small' || setKey === 'both') {
+    doors.push({ type: DoorType.Small, face: DoorFace.LengthZ });
+  }
+  if (setKey === 'big' || setKey === 'both') {
+    doors.push({ type: DoorType.Big, face: bigDoorFace });
+  }
   return doors;
 }
 
+function resolveSetKey(doors: readonly VehicleDoor[]): DoorSetKey | null {
+  const hasSmall = findDoor(doors, DoorType.Small) !== undefined;
+  const hasBig = findDoor(doors, DoorType.Big) !== undefined;
+
+  if (hasSmall && hasBig) return 'both';
+  if (hasBig) return 'big';
+  if (hasSmall) return 'small';
+  return null;
+}
+
 export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
+  const [openFacePicker, setOpenFacePicker] = useState(false);
+
   return (
     <Controller
       control={form.control}
       name="doors"
       render={({ field, fieldState }) => {
         const doors = field.value ?? [];
-        const hasRear = findDoor(doors, DoorType.Small) !== undefined;
-        const sideFace = findDoor(doors, DoorType.Big)?.face ?? null;
+        const setKey = resolveSetKey(doors);
+        const bigDoorFace = findDoor(doors, DoorType.Big)?.face ?? DEFAULT_BIG_DOOR_FACE;
 
-        const update = (nextRear: boolean, nextSide: DoorFace | null) => {
-          field.onChange(buildDoors(nextRear, nextSide));
+        const update = (nextSetKey: DoorSetKey, nextFace: DoorFace) => {
+          field.onChange(buildDoors(nextSetKey, nextFace));
           form.clearErrors('doors');
         };
 
-        return (
-          <FormItem className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              <Checkbox
-                id="door-rear"
-                checked={hasRear}
-                onCheckedChange={(checked) => update(checked === true, sideFace)}
-              />
-              <label
-                htmlFor="door-rear"
-                className="cursor-pointer text-sm font-medium leading-none"
-              >
-                Arka kapı
-              </label>
-            </div>
+        const toggleFacePicker = (event: {
+          preventDefault: () => void;
+          stopPropagation: () => void;
+        }) => {
+          // ToggleGroup'un kendi seçimini tetiklememesi için olay burada durur;
+          // ikon yalnızca yüz seçicisini açar.
+          event.preventDefault();
+          event.stopPropagation();
+          setOpenFacePicker((prev) => !prev);
+        };
 
-            <div className="space-y-2">
-              <span className="text-sm font-medium leading-none text-muted-foreground">
-                Yan kapı
-              </span>
-              <ToggleGroup
-                type="single"
-                value={sideFace ?? 'none'}
-                onValueChange={(val) => {
-                  if (!val) return;
-                  update(hasRear, val === 'none' ? null : (val as DoorFace));
-                }}
-                className="flex gap-2"
-              >
-                {SIDE_OPTIONS.map((option) => (
+        return (
+          <FormItem className="space-y-3">
+            <ToggleGroup
+              type="single"
+              value={setKey ?? ''}
+              onValueChange={(val) => {
+                if (!val) return;
+                // Yüz seçimi kullanıcı açıkça değiştirmediği sürece korunur;
+                // hiç seçilmediyse origin'e değmeyen yüz uygulanır.
+                update(val as DoorSetKey, bigDoorFace);
+              }}
+              className="flex gap-2"
+            >
+              {DOOR_SET_OPTIONS.map((option) => {
+                const isSelected = setKey === option.value;
+                const showFacePicker = isSelected && option.hasBigDoor;
+
+                return (
                   <ToggleGroupItem
                     key={option.value}
                     value={option.value}
-                    aria-label={`Yan kapı: ${option.label}`}
-                    className="h-12 flex-1 flex-row gap-2.5 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+                    aria-label={option.label}
+                    className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-md px-4 text-sm font-medium text-muted-foreground data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
                   >
                     {option.label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
 
-            {/* Bölge ayrımı referans kapıya bağlıdır: arka kapı yoksa LIFO
+                    {showFacePicker && (
+                      <Popover open={openFacePicker} onOpenChange={setOpenFacePicker}>
+                        <PopoverTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Büyük kapının tarafını seç"
+                            className="inline-flex cursor-pointer rounded p-0.5 hover:bg-primary/15"
+                            onClick={toggleFacePicker}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter' && event.key !== ' ') return;
+                              toggleFacePicker(event);
+                            }}
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </span>
+                        </PopoverTrigger>
+
+                        <PopoverContent className="w-56 space-y-3" align="center">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">Büyük kapı tarafı</p>
+                            <p className="text-xs text-muted-foreground">
+                              Yükleme, kapıya değmeyen köşeden başlar.
+                            </p>
+                          </div>
+
+                          <RadioGroup
+                            value={bigDoorFace}
+                            onValueChange={(face) => {
+                              update(option.value, face as DoorFace);
+                              setOpenFacePicker(false);
+                            }}
+                            className="gap-2"
+                          >
+                            {BIG_DOOR_FACE_OPTIONS.map((face) => (
+                              <label
+                                key={face.value}
+                                htmlFor={`big-door-${face.value}`}
+                                className="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-muted"
+                              >
+                                <RadioGroupItem id={`big-door-${face.value}`} value={face.value} />
+                                <span className="text-sm">{face.label}</span>
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                  {face.hint}
+                                </span>
+                              </label>
+                            ))}
+                          </RadioGroup>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </ToggleGroupItem>
+                );
+              })}
+            </ToggleGroup>
+
+            {/* Bölge ayrımı referans kapıya bağlıdır: küçük kapı yoksa LIFO
                 kriteri sessizce etkisiz kalır, kullanıcı bunu önden bilmeli. */}
-            {!hasRear && sideFace !== null && (
+            {setKey === 'big' && (
               <p className="text-sm text-muted-foreground">
-                Arka kapı olmadan yükleme sırası LIFO bölgelerine ayrılamaz; plan oluştururken LIFO
+                Küçük kapı olmadan yükleme sırası LIFO bölgelerine ayrılamaz; plan oluştururken LIFO
                 kriteri devre dışı kalır.
               </p>
             )}

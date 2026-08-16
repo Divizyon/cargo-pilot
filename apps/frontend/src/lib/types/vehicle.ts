@@ -98,6 +98,15 @@ export function formatDoorSummary(doors: readonly VehicleDoor[] | undefined): st
   return parts.length > 0 ? parts.join(' + ') : '—';
 }
 
+/**
+ * Büyük kapının varsayılan yüzü: origin'e değmeyen taraf.
+ *
+ * Origin (0,0,0) x = 0 yüzündedir. Kapı oraya konursa yükleme kapının dibinden
+ * başlar; x = width yüzü seçilince origin köşesi serbest kalır ve motor
+ * yüklemeyi oradan başlatır (docs/COORDINATE_STANDARD.md §7).
+ */
+export const DEFAULT_BIG_DOOR_FACE: DoorFace = DoorFace.WidthX;
+
 export function findDoor(doors: readonly VehicleDoor[], type: DoorType): VehicleDoor | undefined {
   return doors.find((door) => door.type === type);
 }
