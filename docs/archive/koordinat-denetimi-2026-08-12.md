@@ -1,7 +1,20 @@
 # Koordinat Sistemi Denetimi (Coordinate Audit)
 
-**Referans standart:** [`COORDINATE_STANDARD.md`](./COORDINATE_STANDARD.md) ·
-[`coordinate-standard.html`](./coordinate-standard.html)
+{% hint style="info" %}
+**🗄 Arşiv — 2026-08-16'da `docs/` kökünden buraya taşındı.**
+
+**Neden arşivde:** Bu belge **2026-08-12 tarihli** bir anlık görüntüdür ve 32 bulgu içerir.
+Yerini 177 bulgulu [`KOORDINAT-UYUM-RAPORU.md`](../KOORDINAT-UYUM-RAPORU.md) aldı; canlı
+denetim kaydı artık odur. Silinmedi çünkü iki bölümünün başka hiçbir yerde karşılığı yok:
+**§3 "Standarda uygun dosyalar"** ve **§4 "Artık uyumlu — dokunulmayacak"**. Bu ikisi
+"yanlışlıkla doğru kodu bozma" koruması; UYUM-RAPORU yalnızca ihlalleri sayar.
+
+**Yansıttığı durum:** 2026-08-12, `docs/COORDINATE_STANDARD.md` sürüm 2.
+Bağlayıcı kural belgesi hâlâ [`COORDINATE_STANDARD.md`](../COORDINATE_STANDARD.md)'dir.
+{% endhint %}
+
+**Referans standart:** [`COORDINATE_STANDARD.md`](../COORDINATE_STANDARD.md) ·
+[`coordinate-standard.html`](../coordinate-standard.html)
 **Tarih:** 2026-08-12 · **Sürüm:** 2 (yeni standarda göre baştan yazıldı)
 **Kapsam:** `apps/frontend/src`, `apps/backend`, repo kökündeki prototip HTML,
 `.claude` doküman dosyaları

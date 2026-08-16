@@ -1,5 +1,17 @@
 # DevOps İyileştirme Analizi — 2026-08-03 (anlık görüntü)
 
+{% hint style="info" %}
+**🗄 Arşiv — 2026-08-16'da `docs/devops/`'tan buraya taşındı.**
+
+**Neden arşivde:** Dosya zaten kendini "canlı belge değildir" ilan ediyordu ama canlı
+klasörde duruyordu; 45 açık bulgu bu yüzden fiilen takipsiz kalmıştı. Taşımadan **önce**
+triyaj yapıldı — açık bulgular D-kodları korunarak
+[`devops-backlog.md`](../devops/devops-backlog.md) **Kategori 6**'ya aktarıldı.
+Bu dosya artık yalnızca kanıt gövdesini ve 2026-08-03 tablosunu saklar.
+
+**Yansıttığı durum:** 2026-08-03 (ölçüm günü). Sayıların hiçbiri bugünü göstermez.
+{% endhint %}
+
 **Ölçüm tarihi:** 2026-08-03 · **Durum:** 🗄 **Arşiv / anlık görüntü** — canlı belge değildir
 
 > ### ⚠️ Bu bir zaman-damgalı anlık görüntüdür
@@ -13,15 +25,24 @@
 > 2026-08-15 ölçümü **9,652 GiB / 10 GiB, 228 giriş (%96,5)** verdi
 > (`gh cache list --repo Divizyon/cargo-pilot --limit 500`). İkisi de kendi gününde doğrudur.
 >
-> Güncel durum için: `devops-audit-raporu.md`, `docs/devops/known-issues.md`,
+> Güncel durum için: `docs/devops/denetim-raporu-2026-08-13.md`, `docs/devops/known-issues.md`,
 > `docs/devops/devops-backlog.md`.
+
+> ### ✅ Triyaj yapıldı — 2026-08-16
+>
+> 51 D-bulgusunun tamamı bugünkü kodla yeniden doğrulandı.
+> **6'sı kapandı:** D-01, D-05, D-07, D-10, D-11, D-16 (aşağıda tek tek işaretli).
+> **45'i açık** ve D-kodları korunarak
+> [`devops-backlog.md`](../devops/devops-backlog.md) **Kategori 6**'ya taşındı — canlı takip artık orada.
+> Bu dosya bundan sonra yalnızca 2026-08-03'teki tabloyu ve kanıt gövdesini saklar.
 
 Bu doküman dört paralel tarama (CI/CD süresi · Docker image · Altyapı & observability · Sunucu operasyonu) ile tespit edilen 51 maddelik DevOps bulgu listesini, doğrulama durumlarını ve uygulama sırasını içerir.
 
 **Kapsam:** Yalnızca DevOps. Uygulama kodu, iş mantığı ve 3D katmanı kapsam dışı.
-**Analiz durumu:** 📋 **Hiçbir madde uygulanmadı.** Öncelik kararı bekleniyor.
+**Analiz durumu (2026-08-03):** 📋 Hiçbir madde uygulanmamıştı, öncelik kararı bekleniyordu.
+**Bugünkü durum:** yukarıdaki triyaj notuna bakın — 6 madde kapandı, 45'i backlog'a taşındı.
 
-> Bu doküman [`known-issues.md`](known-issues.md) ve [`devops-backlog.md`](devops-backlog.md)
+> Bu doküman [`known-issues.md`](../devops/known-issues.md) ve [`devops-backlog.md`](../devops/devops-backlog.md)
 > yerine geçmez; onların **üstüne** gelen bir tarama sonucudur. Zaten kayıtlı olan maddeler
 > "kayıtlı" işaretiyle ayrılmıştır.
 
@@ -148,7 +169,10 @@ temizliyor, nedeni değil.
 **Düzeltme:** `main` push'unda (veya nightly) her iki image'ı tüm scope'lara build edip
 `cache-to` yapan bir seed job. `main`'e zaten haftada bir terfi ediliyor; nightly daha güvenli.
 
-### D-09 · `ci.yml`'daki `docker-build` job'u gereksiz 📄
+### D-09 · `ci.yml`'daki `docker-build` job'u gereksiz 📄 — ◐ **KISMEN KAPANDI (PR #992)**
+
+> Doğrulama 2026-08-16: `ci.yml:204` — job artık yalnızca `dev` PR'ında koşuyor;
+> iş branch'i push'undaki kopya build kaldırıldı. Takip: `devops-backlog.md` 6.4.
 
 `ci.yml:130-178`, ortalama **4.6 dk**, toplam compute'un %26.1'i.
 
@@ -158,7 +182,11 @@ image'ı build edip compose ile **ayağa kaldırıyor** (`test-deploy.yml:257-28
 
 **Kazanç: değişiklik başına wall −9.0 dk.** Risk: PR→dev'de ayrı bir docker kapısı kalmıyor.
 
-### D-10 · Aynı image eşzamanlı iki kez build ediliyor 📄
+### D-10 · Aynı image eşzamanlı iki kez build ediliyor — ✅ **KAPANDI (PR #992)**
+
+> Doğrulama 2026-08-16: `test-deploy.yml:152` → `deploy` job'u artık
+> `needs: [migration-check, build]`. Build önce bitiyor, `deploy` onun yazdığı cache
+> scope'undan okuyor (`test-deploy.yml:205-206` açıklaması).
 
 `test-deploy.yml:143-146` — `deploy` job'u `needs: [migration-check]`, `build`'e **bağlı değil**.
 İkisi aynı GHA scope'unu kullanıyor ama paralel koştukları için cache henüz yazılmamış oluyor.
@@ -174,7 +202,11 @@ Deploy (Test)  Frontend +189s .. +319s (130s)   ← örtüşüyor
 
 Tek run'da **~8 dk mükerrer soğuk build.** Sıcak durumda tesadüfen ucuz — garanti değil.
 
-### D-11 · Geçici stack doğrulaması, gerçek deploy'dan SONRA bitiyor 📄
+### D-11 · Geçici stack doğrulaması, gerçek deploy'dan SONRA bitiyor — ✅ **KAPANDI (PR #991/#992)**
+
+> Doğrulama 2026-08-16: `test-deploy.yml:418` → `deploy-test-server`,
+> `needs: [migration-check, build, deploy]`. Sunucu artık geçici stack doğrulaması
+> yeşillenmeden güncellenmiyor.
 
 Run `30833011722` (test push):
 
@@ -191,7 +223,11 @@ Kapı olarak işlevsiz. Test push'ta bu job kaldırılabilir; `Deploy (Test Serv
 çıktısına bağımlı değil (kendi context'ini kendi build ediyor), ama +1.3…+1.6 dk offsetle başlıyor.
 **Kazanç: wall −2.8 dk.**
 
-### D-13 · Küçük CI kalemleri 📄
+### D-13 · Küçük CI kalemleri 📄 — ◐ **KISMEN KAPANDI**
+
+> Doğrulama 2026-08-16: `build-push-action` 6 kullanımda v7.3.0'a pinlendi, ama
+> `test-deploy.yml:327,340` hâlâ v5.4.0. NuGet cache ve çifte Release derlemesi duruyor.
+> Takip: `devops-backlog.md` 6.4.
 
 - `ci.yml:158` `build-push-action@v6` vs `test-deploy.yml:110` `@v5`. v6 otomatik
   `--attest type=provenance,mode=max` ekliyor → gereksiz ek yük
@@ -213,7 +249,11 @@ Kapı olarak işlevsiz. Test push'ta bu job kaldırılabilir; `Deploy (Test Serv
 
 ## 3. Güvenlik
 
-### D-02 · Yedi port internete açık ✅ · **Kritik**
+### D-02 · Yedi port internete açık ✅ · **Kritik** — ◐ **KISMEN KAPANDI (PR #991)**
+
+> Doğrulama 2026-08-16: 5 servis `127.0.0.1:` ön ekine alındı.
+> Açık kalanlar: `docker-compose.monitoring.test.yml:89` Grafana `3002:3000` ve
+> `docker-compose.test.yml:127` ERP MSSQL `1435:1433`. Takip: `devops-backlog.md` 6.1.
 
 Kendi makinemden TCP bağlantısı kuruldu, hepsi cevap verdi:
 
@@ -246,7 +286,11 @@ Geliştirici erişimi SSH tüneliyle sürer:
 > vuruyor. Backend kapatılırken bu adım SSH oturumu içine (`localhost:8081`) taşınmalı,
 > yoksa deploy kırılır.
 
-### D-07 · İki ölü secret ✅ · **Yüksek**
+### D-07 · İki ölü secret — ✅ **KAPANDI**
+
+> Doğrulama 2026-08-16: `gh secret list --repo Divizyon/cargo-pilot` çıktısında `TEST_GHCR_PAT`
+> ve `TEST_GHCR_USER` **yok**. Kalan iş doküman tarafında: `secret-management.md:107-114`
+> hâlâ ikisini aktif secret sayıyor (bkz. `devops-backlog.md` Kategori 6.7).
 
 `TEST_GHCR_PAT` ve `TEST_GHCR_USER` repo secret'ı olarak duruyor ama **hiçbir workflow'da
 geçmiyor** (grep sıfır sonuç). PAT login #483 ile kaldırılmıştı.
@@ -292,7 +336,11 @@ ama `secret-management.md:12`'deki "JWT secret asla repoya girmemeli" kuralıyla
 ⚠️ **Doğrulanmadı:** Sunucudaki `.env.test`'te aynı değerlerin kullanılıp kullanılmadığı.
 Kullanılıyorsa risk seviyesi Kritik'e çıkar. **Önce bu teyit edilmeli.**
 
-### D-16 · SA parolası `ps` çıktısında görünüyor 📄 · **Yüksek**
+### D-16 · SA parolası `ps` çıktısında görünüyor — ✅ **KAPANDI (PR #994)**
+
+> Doğrulama 2026-08-16: `backup-db.sh:46,58`, `restore-db.sh:51,89,103,120`,
+> `verify-backup.sh:90` → `export SQLCMDPASSWORD` + `docker exec -e SQLCMDPASSWORD`;
+> `-P` bayrağı kalmadı.
 
 `backup-db.sh:54`, `restore-db.sh:86,100,117`, `verify-backup.sh:86,100` — `sqlcmd ... -P "${SA_PASSWORD}"`.
 Host'ta `ps aux` çalıştırabilen herkes görür.
@@ -308,7 +356,11 @@ volume izinlerinin bir kez düzeltilmesi yeterli. Prod'a geçmeden yapılmalı.
 
 ## 4. Yedekleme ve Veri Kaybı
 
-### D-01 · Script'lerin execute biti git'te yok ✅ · **Kritik**
+### D-01 · Script'lerin execute biti git'te yok — ✅ **KAPANDI (PR #994)**
+
+> Doğrulama 2026-08-16: `git ls-files -s infra/scripts/` → altı script de `100755`.
+> Cron satırlarına `bash` öneki de eklendi (`setup-backup-cron.sh:38-55`).
+> Aşağıdaki metin 2026-08-03 durumunu yansıtır.
 
 ```
 100644  infra/scripts/backup-db.sh          ← execute biti YOK
@@ -358,7 +410,11 @@ Kurtarma yolu yok. **Fiili RPO = ∞.**
 
 **Düzeltme:** DB listesini diziye çevir, döngüye al.
 
-### D-19 · Yedek doğrulaması yüzeysel 📄 · Yüksek
+### D-19 · Yedek doğrulaması yüzeysel 📄 · Yüksek — ◐ **KISMEN KAPANDI (PR #994)**
+
+> Doğrulama 2026-08-16: `WITH CHECKSUM` hem yedekte (`backup-db.sh:61`) hem doğrulamada
+> (`verify-backup.sh:98`) var; checksum'suz eski yedekler için geri düşüş de yazılmış.
+> **Açık:** gerçek restore tatbikatı yok, yalnızca en son yedek kontrol ediliyor.
 
 `verify-backup.sh:87` → `RESTORE VERIFYONLY`. Dosya boyutundan fazlası, ama gerçek restore testi değil:
 
@@ -423,7 +479,11 @@ Dosya tüm müşteri verisini içerir; host'taki her kullanıcı okuyabilir.
 
 ## 5. Rollback ve Deploy Güvenliği
 
-### D-05 · Rollback `v0.<n>.0` etiketleriyle çalışmıyor ✅ · **Kritik**
+### D-05 · Rollback `v0.<n>.0` etiketleriyle çalışmıyor — ✅ **KAPANDI (PR #994)**
+
+> Doğrulama 2026-08-16: `rollback.sh:72-73` artık `${TARGET_REF}^2` (merge commit'in test head'i)
+> üzerinden türetiyor, tek-parent push'ta commit'in kendisine düşüyor.
+> **Kalan iş D-29'da:** `pull` hâlâ `down`'dan sonra (`:65` → `:80`) ve tatbikat yapılmadı.
 
 `rollback.sh:69` → `IMAGE_TAG="test-$(git rev-parse --short=7 ${TARGET_REF})"`.
 
@@ -513,7 +573,11 @@ Düzeltmeler sonrası test ortamında planlı bir tatbikat gerekli.
 
 ## 6. Docker Image ve Build
 
-### D-08 · Frontend'de 41 MB israf ✅ · Yüksek
+### D-08 · Frontend'de 41 MB israf ✅ · Yüksek — ◐ **KISMEN KAPANDI (PR #995)**
+
+> Doğrulama 2026-08-16: (a) `public/textures/` silindi.
+> (b) **Açık:** `src/assets/textures/container-steel/normal.jpg` hâlâ 19.4 MB
+> 16-bit RGBA PNG. Takip: `devops-backlog.md` 6.5.
 
 **İki ayrı sorun:**
 
@@ -560,7 +624,11 @@ Mevcut yapı bu mekanizmayı tamamen boşa çıkarıyor.
 ⚠️ **NuGet cache mount önerilmiyor:** BuildKit cache mount içerikleri `type=gha`'ya export
 edilmez; ephemeral runner'da her koşuda boş başlar. Doğru araç katman ayrımı.
 
-### D-31 · `nginx:1.27-alpine` → `1.29-alpine-slim` 📄 · Yüksek
+### D-31 · `nginx:1.27-alpine` → `1.29-alpine-slim` 📄 · Yüksek — ◐ **KISMEN KAPANDI**
+
+> Doğrulama 2026-08-16: `apps/frontend/Dockerfile:21` artık `nginx:1.31-alpine`
+> (Dependabot ile yükseldi). **Açık:** hâlâ `alpine`, `alpine-slim` değil — njs ve onunla
+> gelen `libxml2`/`libxslt` duruyor. Takip: `devops-backlog.md` 6.5.
 
 `apps/frontend/Dockerfile:21`. İki kazanç:
 
