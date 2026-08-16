@@ -53,8 +53,8 @@ export function VehicleEditPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex shrink-0 items-start justify-between gap-4">
+    <div className="flex h-full flex-col gap-6">
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Araç Detayı</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
