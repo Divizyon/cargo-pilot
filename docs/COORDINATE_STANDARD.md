@@ -5,7 +5,9 @@
 > kazanır.
 >
 > Görsel/etkileşimli sürüm: [`coordinate-standard.html`](./coordinate-standard.html)
-> Mevcut kodun bu standarda göre denetimi: [`COORDINATE_AUDIT.md`](./COORDINATE_AUDIT.md)
+> Mevcut kodun bu standarda göre denetimi: [`KOORDINAT-UYUM-RAPORU.md`](./KOORDINAT-UYUM-RAPORU.md)
+> (canlı kayıt). 2026-08-12 tarihli önceki denetim arşivdedir:
+> [`archive/koordinat-denetimi-2026-08-12.md`](./archive/koordinat-denetimi-2026-08-12.md)
 >
 > **Terim dili:** eksen ve boyut terimleri **İngilizce** yazılır — `width`, `height`,
 > `length`. Türkçe karşılıklar (genişlik, yükseklik, uzunluk) yalnızca son kullanıcıya
@@ -30,9 +32,23 @@
 Bu kural her iki araç tipinde aynıdır. Referans kapı, TIR konteynerinde back door, düz
 konteynerde small door'dur.
 
-Konteynerin iki kısa yüzünde de small door bulunması kuralı değiştirmez: hangisinden
-bakılırsa bakılsın tanım aynı şekilde işler ve tutarlı bir sistem üretir. Referans kapı,
-bakılan / yükleme yapılan kapıdır ve her zaman `z = length` yüzünde kabul edilir.
+Referans kapı, bakılan / yükleme yapılan kapıdır ve her zaman `z = length` yüzünde kabul
+edilir. Fiziksel olarak konteynerin diğer kısa yüzünde de bir kapı bulunabilir; kayıtta
+referans olan, yükleme yapılan kapıdır.
+
+**Origin geometrik bir köşedir; kapının varlığına bağlı değildir.** Referans kapı yalnızca
+"hangi yüzden bakıyoruz" sorusunu adlandırır, origin'in sayısal yerini belirlemez. Bir
+konteynerde small door hiç bulunmasa da (yalnızca big door'u olan araç) eksen tanımı
+değişmez: `z = 0` uzak yüz, `x = 0` sol yüz, `y = 0` zemindir.
+
+Bunun emsali yükleme başlangıcı kuralıdır (bölüm 7): big door origin'in bulunduğu `x = 0`
+yüzündeyse **origin taşınmaz ve konteyner döndürülmez**, yalnızca yüklemenin başladığı köşe
+değişir. Kapı origin köşesine değdiğinde değişen şey doldurma yönüdür, koordinat sisteminin
+kendisi değil.
+
+Origin köşesini içeren yüzler: `z = 0` (ikinci small door burada olabilir) ve `x = 0`
+(big door burada olabilir). `z = length`, `x = width` ve `y = height` yüzleri origin'e
+değmez.
 
 ---
 
@@ -60,8 +76,9 @@ dönüşüm görülürse hatadır.
 
 | Door           | Yüz (face)        | Olabileceği konumlar          | TIR konteyneri                                  | Düz konteyner                          |
 | -------------- | ----------------- | ----------------------------- | ----------------------------------------------- | -------------------------------------- |
-| **small door** | `width × height`  | `z = length` ve/veya `z = 0`  | Yalnızca `z = length` (**back door**). `z = 0` kabin ucudur, kapı olmaz. | İki uçta da olabilir; referans `z = length`'tedir. |
-| **big door**   | `length × height` | `x = 0` ve/veya `x = width`   | Olabilir — tek tarafta ya da iki tarafta          | Olabilir — tek tarafta ya da iki tarafta |
+| **small door** | `width × height`  | `z = length` | Yalnızca `z = length` (**back door**). `z = 0` kabin ucudur, kapı olmaz. | `z = length` — yükleme yapılan yüz. |
+| **big door**   | `length × height` | `x = 0` **veya** `x = width` (ikisi birden değil) | Olabilir — tek tarafta | Olabilir — tek tarafta |
+| **top door**   | `width × length`  | `y = height`                  | Olabilir                                          | Olabilir                                |
 
 Kurallar:
 
@@ -73,15 +90,38 @@ Kurallar:
   doors: [
     { type: 'small', face: 'z=length' },
     { type: 'big',   face: 'x=0' },
-    { type: 'big',   face: 'x=width' },
+    { type: 'top',   face: 'y=height' },
   ]
   ```
 
 - **"sağ kapı" / "sol kapı" diye bir kavram yoktur.** Kapılar `small` / `big` olarak
   sınıflanır, konumları eksen değeriyle yazılır. "sağ" ve "sol" yalnızca kamera
   bakışlarını adlandırmak için kullanılır (bkz. bölüm 6).
+- **Arayüz adlandırması:** son kullanıcıya gösterilen metinde kapı tipi yine
+  boyutla anılır — *küçük* / *büyük* / *üst*. Tipler `+` ile birleştirilir,
+  "kapı" kelimesi tekrarlanmaz, büyük kapının bulunduğu taraf **tip adının
+  parçası değil**, parantez içinde eklenen ayrı bir bilgidir:
+
+  ```
+  Küçük
+  Büyük (sağ)
+  Küçük + büyük (sol)
+  Küçük + büyük (sağ) + üst
+  ```
+
+  Kayıtta ve API'de taraf her zaman yüz değeriyle (`ZeroX` / `WidthX`) tutulur;
+  "sol/sağ" yalnızca ekran metnidir.
+  Excel şablonunda da aynı yazım kullanılır (`küçük`, `küçük+sol`, `sağ` …);
+  eski dosyaların yön adları (`arka`, `yan`, `rearAndSide`) içe aktarımda
+  tanınmaya devam eder.
 - **"ön kapı" / "front door" diye bir kavram yoktur.** TIR'da `z = 0` kabin ucudur;
   düz konteynerde `z = 0` yalnızca karşı küçük yüzdür.
+- **Her tipten en fazla bir kapı bulunabilir.** İki small ya da iki big door,
+  ilgili eksende serbest köşe bırakmaz ve yüklemenin başlayacağı nokta kalmaz
+  (bölüm 7). Kural veritabanında `IX_VehicleDoors_TekKapiTipi` ile zorlanır.
+- **top door** üçüncü bir kapı tipidir ve `y = height` yüzünde bulunur. Yükleme
+  yukarıdan yapıldığı için katman ekseni `y`'dir; aynı kattaki sıralama yine
+  yükleme yönünü (`z` küçük→büyük) izler.
 
 ---
 
@@ -117,24 +157,22 @@ Sayfada `z` aşağı doğru, referans kapıya doğru artar. Gözlemci sayfanın 
 ```
             x (width) ────────────────────────►
 
-    O ═══════╤═══════════════════════════════════════╗  ← z = 0 (uzak yüz)
-    │        ┊                                       ║
-    │  x₀ →  ┊                                       ║
-    ║        ┊                                       ║
-    ║ BIG    ┊                                       ║      │
-    ║ DOOR   ┊             yük alanı                 ║      │  z
-    ║ x = 0  ┊                                       ║      │  (length)
-    ║        ┊                                       ║      ▼
-    ║        ┊                                       ║
-    ║        ┊                                       ║
-    ╚════════╧═══════════════════════════════════════╝
-    ▲        ▲        REFERANS KAPI · z = length
-    │        │
-    │        └── YÜKLEME BAŞLANGICI (x₀, 0, 0)
-    └── ORIGIN (0,0,0) — uzak sol-alt köşe
+    O ══════════════════════════════════════════════╗ ◄── YÜKLEME BAŞLANGICI
+    │                                               ║     (width, 0, 0)
+    ║                                               ║
+    ║ BIG                                           ║      │
+    ║ DOOR         yük alanı        ◄── doldurma    ║      │  z
+    ║ x = 0                             yönü        ║      │  (length)
+    ║                                               ║      ▼
+    ║                                               ║
+    ╚═══════════════════════════════════════════════╝
+    ▲                 REFERANS KAPI · z = length
+    │
+    └── ORIGIN (0,0,0) — uzak sol-alt köşe; big door bu yüzde
+        olduğu için yükleme buradan BAŞLAMAZ
 ```
 
-`║` = big door'un bulunduğu uzun yüz · `╤┄┄` = big door açıklık payı `x₀`
+`║` = big door'un bulunduğu uzun yüz. Kapı origin köşesine değdiği için yükleme karşı köşeden başlar ve kapıya doğru ilerler.
 
 ### 5.3 Isometric — referans kamera: kapı tarafı + sağ + üst (`+z, +x, +y`)
 
@@ -194,18 +232,56 @@ tarafıdır. Üstten veya karşıdan bakışta ekranda görünen sol/sağ ile ka
 
 ## 7. Yükleme başlangıcı
 
-Yükleme normalde **origin'den** başlar. **Big door origin'in bulunduğu `x = 0`
-yüzündeyse** yükleme origin'den değil, `x` ekseninde `x₀` kadar kaymış noktadan başlar.
+**Yükleme, kapının bulunduğu yüzden başlamaz.** Başlangıç noktası hiçbir kapıya değmeyen
+köşedir; doldurma oradan kapıya doğru ilerler. Gerekçe pratiktir: kutu kapının önüne
+yığılırsa operatör kendi açtığı kapıdan içeri giremez.
 
-| Durum | Yükleme başlangıç noktası | Kullanılabilir `x` aralığı |
-| ----- | ------------------------- | -------------------------- |
-| Big door yok | `(0, 0, 0)` | `0 → width` |
-| Big door `x = 0` yüzünde | `(x₀, 0, 0)` | `x₀ → width` |
-| Big door `x = width` yüzünde | `(0, 0, 0)` | `0 → width − x₀` ⚠️ onay bekliyor |
-| Big door iki yüzde de | `(x₀, 0, 0)` | `x₀ → width − x₀` ⚠️ onay bekliyor |
+Kapının yanında boş bırakılan bir pay **yoktur** — kutu duvara dayanır. Değişen tek şey
+hangi duvardan başlandığıdır.
 
-⚠️ **`x₀` değeri henüz tanımlı değildir** (bkz. bölüm 10). Son iki satır verilen kuraldan
-türetilmiş önerilerdir, onay bekliyor.
+### Köşeler
+
+Zemindeki dört köşe ve değdikleri yüzler:
+
+| Köşe | Değdiği yüzler |
+| ---- | -------------- |
+| `(0, 0, 0)` | `x = 0`, `z = 0` |
+| `(width, 0, 0)` | `x = width`, `z = 0` |
+| `(0, 0, length)` | `x = 0`, `z = length` |
+| `(width, 0, length)` | `x = width`, `z = length` |
+
+Referans kapı her zaman `z = length` yüzünde olduğu için alttaki iki köşe baştan elenir.
+Bu, `z` ekseninde yönün sabit olması demektir: yükleme `z = 0`'dan başlar, kapıya doğru
+ilerler. Değişken olan `x` eksenidir.
+
+### Başlangıç köşesi
+
+| Big door | Başlangıç köşesi | `x` doldurma yönü |
+| -------- | ---------------- | ----------------- |
+| yok | `(0, 0, 0)` | `0 → width` |
+| `x = width` yüzünde | `(0, 0, 0)` | `0 → width` |
+| `x = 0` yüzünde | `(width, 0, 0)` | `width → 0` |
+
+### Serbest köşe her zaman vardır
+
+Kural, kapı kombinasyonlarının **her zaman en az bir serbest köşe bırakmasına** dayanır.
+Bunu sağlayan iki kısıt araç tanımında zorlanır:
+
+**1. Her tipten en fazla bir kapı.** Bir small, bir big, bir top. İki small door `z`
+ekseninde, iki big door `x` ekseninde serbest köşe bırakmazdı.
+
+**2. Her tip yalnızca kendi yüzünde.** Small door `z = length`, big door `x = 0` veya
+`x = width`, top door `y = height`.
+
+Seçilebilir kombinasyonlar bu yüzden sınırlıdır:
+
+| Kapılar | Serbest köşe | Başlangıç |
+| ------- | ------------ | --------- |
+| small | `(0,0,0)` ve `(width,0,0)` | `(0, 0, 0)` |
+| small + big (`x = width`) | `(0,0,0)` | `(0, 0, 0)` |
+| small + big (`x = 0`) | `(width,0,0)` | `(width, 0, 0)` |
+
+Top door başlangıç köşesini etkilemez: `y = height` yüzü zemindeki köşelere değmez.
 
 ---
 
@@ -215,8 +291,9 @@ türetilmiş önerilerdir, onay bekliyor.
 | ---- | ----- |
 | Birim | Santimetre (`cm`). Dönüşüm yalnızca API sınırında yapılır. |
 | Kutu pozisyonu | `positionX/Y/Z`, kutunun **origin'e en yakın köşesidir**: `(min x, min y, min z)`. Mesh merkezi değildir. |
-| Kutu sınırları | `x … x + width` · `y … y + height` · `z … z + length`. Hepsi araç iç ölçüsü içinde kalmalı; big door payı varsa `x` alt sınırı `x₀`'dır. |
+| Kutu sınırları | `x … x + width` · `y … y + height` · `z … z + length`. Hepsi araç iç ölçüsü içinde kalmalı. |
 | Yükleme yönü | Yükleme referans kapıdan yapılır: `z = 0` (uzak yüz) tarafındaki kutular önce yerleşir, kapıya en yakın olanlar (`z → length`) en son. |
+| LIFO bölgeleri | Bölge ayrımı **kapı listesinden bağımsızdır**: yalnızca LIFO kriteri ve en az iki boşaltma sırası gerekir. İlk inecek grup `z = length` ucundaki bölgeyi alır. Yalnızca büyük kapısı olan araçta da geçerlidir — boşaltma sırasının bir ucu vardır, kapının fiziken orada olması gerekmez. |
 | Three.js pivot | Backend köşe verir, Three.js mesh merkezini bekler. Dönüşüm tek noktada: `center = position + boyut / 2`. |
 | Terminoloji | Yalnızca `width`, `height`, `length`. |
 
@@ -238,17 +315,32 @@ türetilmiş önerilerdir, onay bekliyor.
 | 10 | **`y` aşağı artar** | 2D canvas alışkanlığı | `y` zeminden yukarı artar. |
 | 11 | **Gizli telafi dönüşümü** | `scale.x = -1`, `rotation.y = Math.PI`, `length - z` gibi düzeltmeler | Standart right-handed olduğu için Three.js'te **hiçbir aynalama gerekmez**. Böyle bir düzeltme, altta yatan konvansiyon uyuşmazlığının işaretidir. |
 | 12 | **Mesh merkezi ↔ köşe karışması** | Backend köşe verirken `position=[x,y,z]` doğrudan verilir | `+boyut/2` offset'i uygulanmadan kutular yarım boy kayar. |
-| 13 | **Big door payının atlanması** | Yükleme her zaman `x = 0`'dan başlar | Big door `x = 0` yüzündeyse başlangıç `(x₀, 0, 0)`'dır. |
+| 13 | **Kapının olduğu yüzden yükleme** | Yükleme her zaman `x = 0`'dan başlar | Big door `x = 0` yüzündeyse başlangıç `(width, 0, 0)`'dır ve doldurma kapıya doğru ilerler. |
 | 14 | **Birim karışması** | Metre ve santimetre aynı sahnede | Standart birim cm'dir; dönüşüm yalnızca API sınırında. |
 
 ---
 
-## 10. Beklemedeki konular
+## 10. Karara bağlanan konular
 
-| # | Konu | Durum |
-|---|------|-------|
-| 1 | **Small door'u olmayan konteyner** — yalnızca big door'u olan konteynerde origin kuralı tanımsız | Sektör araştırması bekliyor |
-| 2 | **Üst kapı (top door)** — mevcut sistemde `top` kapı yönü var; yeni adlandırmada karşılığı belirsiz | Sektör araştırması bekliyor |
-| 3 | **`x₀` — big door açıklık payı** — kaç cm, nereden geliyor (sabit / araç kaydı / kanat ölçüsü); `x = width` tarafına da uygulanacak mı | Değer ve onay bekliyor |
+> **Bu belge standardı tanımlar.** Aşağıdaki kararların tamamı koda uygulanmıştır;
+> "Kodda" sütunu uygulamanın nerede olduğunu gösterir.
 
-Bu üç konu netleşene kadar ilgili kod değişiklikleri başlatılmaz.
+| # | Konu | Karar | Kodda |
+|---|------|-------|-------|
+| 1 | **Small door'u olmayan konteyner** | Origin geometrik köşedir, kapıya bağlı değildir: small door olmasa da `z=0` uzak yüz, `x=0` sol yüz, `y=0` zemindir. Yükleme başlangıcı kuralı ayrıdır — kapı origin'e değdiğinde origin taşınmaz, başlangıç köşesi değişir. Bölüm 2. | ✅ `OptimizationEngine.cs` |
+| 2 | **Üst kapı (top door)** | Üçüncü kapı tipi olarak modellenir: `{ type: 'top', face: 'y=height' }`. Bölüm 4. | ✅ `DoorType.Top`, `VehicleDoors` tablosu |
+| 3 | **Yükleme başlangıç köşesi** | Açıklık payı diye bir kavram yok. Yükleme kapının olduğu yüzden başlamaz; başlangıç köşesi kapı listesinden türetilir. Bölüm 7. | ✅ `LoadingCorner.cs`, `OptimizationEngine.cs:47` |
+| 4 | **Her tipten tek kapı** | İki small ya da iki big door serbest köşe bırakmaz; araç tanımlanırken seçilemez. Bölüm 4. | ✅ `IX_VehicleDoors_TekKapiTipi`, `VehicleDoorRules` |
+
+### Kodun bugünkü hâli
+
+| Standartta yazan | Kodda karşılığı |
+|---|---|
+| `doors: [{ type, face }]` listesi | ✅ `VehicleDoors` tablosu; `VehicleDoor(Type, Face)` entity'si. API sözleşmesinde `Doors` (araç detay/liste, plan detay, paylaşım). Frontend `lib/types/vehicle.ts` |
+| top door: katman ekseni `y`, aynı katta `z` küçük→büyük | ✅ Frontend `loadOrder.ts`. Motorda üstten yükleme için ayrı bir yerleştirme stratejisi yok |
+| LIFO bölge ayrımı kapı listesinden bağımsız | ✅ `LifoPlacement.ComputeGroupZones` yalnızca LIFO modülüne ve grup sayısına bakar |
+| Yükleme başlangıç köşesi | ✅ `OptimizationInput.FillsFromMaxX` → `LoadingCorner.FillFromMaxX` |
+
+**Geçiş kalıntısı:** tekil `LoadingType` kolonu hâlâ duruyor ama artık türetilmiş
+bir değerdir — `Vehicle.SyncLoadingTypeFromDoors()` her kayıtta kapı listesinden
+yeniden hesaplar. Tamamen kaldırılması ayrı bir migration'a bırakıldı.

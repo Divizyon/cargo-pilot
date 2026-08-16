@@ -58,7 +58,7 @@ import {
   VehicleType,
   type Vehicle,
   type VehicleType as VehicleTypeValue,
-  type DoorDirection,
+  formatDoorSummary,
 } from '@/lib/types/vehicle';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useUnitStore } from '@/lib/store/useUnitStore';
@@ -73,14 +73,6 @@ const VEHICLE_TYPE_META: Record<VehicleTypeValue, { label: string; icon: typeof 
   [VehicleType.Kamyon]: { label: 'Kamyon', icon: Truck },
   [VehicleType.Kamposet]: { label: 'Kamposet', icon: Truck },
   [VehicleType.Konteyner]: { label: 'Konteyner', icon: Container },
-};
-
-const DOOR_LABEL: Record<DoorDirection, string> = {
-  front: 'Ön',
-  rear: 'Arka',
-  side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka + Yan',
 };
 
 // ─── VehicleListItem ──────────────────────────────────────────────────────────
@@ -185,7 +177,7 @@ function VehicleListItem({
             <div className="flex items-center justify-between py-0.5">
               <span className="text-[11px] text-muted-foreground">Kapı Yönü</span>
               <span className="text-[11px] text-muted-foreground">
-                {DOOR_LABEL[vehicle.doorDirection] ?? vehicle.doorDirection}
+                {formatDoorSummary(vehicle.doors)}
               </span>
             </div>
           </div>
@@ -318,7 +310,7 @@ function PlanSummaryPanel() {
     const insidePlacements = debouncedPlacements.filter((p) => !p.isStagingArea);
     const weightMap = new Map(selectedItems.map(({ item }) => [item.id, item.weight]));
 
-    const cargoVolCm3 = insidePlacements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
+    const cargoVolCm3 = insidePlacements.reduce((s, p) => s + p.width * p.height * p.length, 0);
     const totalWeight = insidePlacements.reduce((s, p) => s + (weightMap.get(p.itemId) ?? 0), 0);
 
     const volumePct =
@@ -491,7 +483,7 @@ function SelectedVehicleCard({
             <div className="flex items-center justify-between py-0.5">
               <span className="text-[11px] text-muted-foreground">Kapı Yönü</span>
               <span className="text-[11px] text-muted-foreground">
-                {DOOR_LABEL[vehicle.doorDirection] ?? vehicle.doorDirection}
+                {formatDoorSummary(vehicle.doors)}
               </span>
             </div>
           </div>

@@ -13,7 +13,7 @@ function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): Placem
     isViolation: false,
     width: 50,
     height: 50,
-    depth: 50,
+    length: 50,
     weight: 10,
     ...overrides,
   };
@@ -25,31 +25,37 @@ const EMPTY_STATE = {
   hiddenItemIds: [] as string[],
 };
 
-describe('isGhosted', () => {
-  it('activeLayer = 0 (default) → hiçbir kutu ghost değil', () => {
-    expect(isGhosted({ positionZ: 0, depth: 50 }, 0)).toBe(false);
-    expect(isGhosted({ positionZ: 500, depth: 50 }, 0)).toBe(false);
+describe('isGhosted — X-Ray kapı tarafından soyar', () => {
+  const VEHICLE_LENGTH = 400;
+
+  it('peel = 0 (varsayılan) → hiçbir kutu ghost değil', () => {
+    expect(isGhosted({ positionZ: 0, length: 50 }, 0, null, VEHICLE_LENGTH)).toBe(false);
+    expect(isGhosted({ positionZ: 350, length: 50 }, 0, null, VEHICLE_LENGTH)).toBe(false);
   });
 
-  it('positionZ < activeLayer → ghost', () => {
-    expect(isGhosted({ positionZ: 100, depth: 50 }, 200)).toBe(true);
+  it('kapıya en yakın kutu önce soyulur', () => {
+    // Kapı z = 400; 100 cm soyulunca z = 300..400 aralığı ghost olur.
+    expect(isGhosted({ positionZ: 350, length: 50 }, 100, null, VEHICLE_LENGTH)).toBe(true);
+    expect(isGhosted({ positionZ: 0, length: 50 }, 100, null, VEHICLE_LENGTH)).toBe(false);
   });
 
-  it('positionZ === activeLayer → ghost değil (tam sınırda normal)', () => {
-    expect(isGhosted({ positionZ: 200, depth: 50 }, 200)).toBe(false);
+  it('uzak yüzdeki kutu en son soyulur', () => {
+    expect(isGhosted({ positionZ: 0, length: 50 }, 350, null, VEHICLE_LENGTH)).toBe(false);
+    expect(isGhosted({ positionZ: 0, length: 50 }, 400, null, VEHICLE_LENGTH)).toBe(true);
   });
 
-  it('positionZ > activeLayer → ghost değil', () => {
-    expect(isGhosted({ positionZ: 300, depth: 50 }, 200)).toBe(false);
+  it('tam sınırdaki kutu ghost değil', () => {
+    // Kutunun kapıya bakan yüzü tam eşikte: henüz soyulmadı.
+    expect(isGhosted({ positionZ: 250, length: 50 }, 100, null, VEHICLE_LENGTH)).toBe(false);
   });
 
-  it('negatif activeLayer → hiçbir kutu ghost değil', () => {
-    expect(isGhosted({ positionZ: 0, depth: 50 }, -1)).toBe(false);
+  it('negatif peel → hiçbir kutu ghost değil', () => {
+    expect(isGhosted({ positionZ: 0, length: 50 }, -1, null, VEHICLE_LENGTH)).toBe(false);
   });
 
-  it('slider max (vehicle.length) → tüm kutular ghost', () => {
-    expect(isGhosted({ positionZ: 0, depth: 50 }, 600)).toBe(true);
-    expect(isGhosted({ positionZ: 550, depth: 50 }, 600)).toBe(true);
+  it('araç uzunluğu verilmezse eski (uzak yüzden) davranış korunur', () => {
+    expect(isGhosted({ positionZ: 100, length: 50 }, 200)).toBe(true);
+    expect(isGhosted({ positionZ: 300, length: 50 }, 200)).toBe(false);
   });
 });
 
@@ -94,7 +100,7 @@ describe('isPlacementVisible', () => {
   });
 
   it('activeLayer ghost mode isPlacementVisible etkilemez — ghost ayrı mesh, gizleme değil', () => {
-    const p = makePlacement({ positionZ: 0, depth: 50 });
+    const p = makePlacement({ positionZ: 0, length: 50 });
     expect(isPlacementVisible(p, 0, EMPTY_STATE)).toBe(true);
   });
 });

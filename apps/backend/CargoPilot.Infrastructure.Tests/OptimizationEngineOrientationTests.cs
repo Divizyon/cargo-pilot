@@ -133,7 +133,7 @@ public class OptimizationEngineOrientationTests
 
         var orientations = PlacementValidator.GetOrientations(item);
 
-        Assert.All(orientations, o => Assert.Equal(item.Width, o.w));
+        Assert.All(orientations, o => Assert.Equal(item.Width, o.width));
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class OptimizationEngineOrientationTests
 
         var orientations = PlacementValidator.GetOrientations(item);
 
-        Assert.All(orientations, o => Assert.Equal(item.Length, o.d));
+        Assert.All(orientations, o => Assert.Equal(item.Length, o.length));
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class OptimizationEngineOrientationTests
 
         var orientations = PlacementValidator.GetOrientations(item);
 
-        Assert.All(orientations, o => Assert.Equal(item.Height, o.h));
+        Assert.All(orientations, o => Assert.Equal(item.Height, o.height));
     }
 
     // ── Yasak eksen sızıntısı yok ────────────────────────────────────────────
@@ -182,6 +182,6 @@ public class OptimizationEngineOrientationTests
 
         Assert.Equal(6, orientations.Length);
         Assert.Equal(6, orientations.Select(o => o.rotation).Distinct().Count());
-        Assert.All(orientations, o => Assert.Equal((40m, 40m, 40m), (o.w, o.h, o.d)));
+        Assert.All(orientations, o => Assert.Equal((40m, 40m, 40m), (o.width, o.height, o.length)));
     }
 }

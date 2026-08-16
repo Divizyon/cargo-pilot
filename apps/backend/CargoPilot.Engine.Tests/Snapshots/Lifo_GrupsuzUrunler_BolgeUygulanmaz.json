@@ -7,7 +7,8 @@
     "MaxWeight": 10000,
     "Criteria": "Lifo",
     "LoadingType": "Rear",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false
   },
   "Items": [
     {
@@ -73,7 +74,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -85,7 +86,7 @@
         "Z": 40,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -97,7 +98,7 @@
         "Z": 80,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -109,7 +110,7 @@
         "Z": 120,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -121,7 +122,7 @@
         "Z": 160,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -133,7 +134,7 @@
         "Z": 200,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       }

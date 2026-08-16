@@ -26,4 +26,5 @@ public sealed record UpdateVehicleCommand(
     decimal? AdditionalAxleDistanceMm,
     decimal? AdditionalAxleTareWeightKg,
     decimal? AdditionalAxleMaxLoadKg,
-    bool? IsDraft = null) : IRequest<Result<Guid>>;
+    bool? IsDraft = null,
+    IReadOnlyList<VehicleDoorDto>? Doors = null) : IRequest<Result<Guid>>;

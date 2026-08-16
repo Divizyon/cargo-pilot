@@ -7,35 +7,91 @@ alwaysApply: true
 
 ## scene-config.ts
 
-Tüm sabitler `lib/config/scene-config.ts`'te — bileşene hardcoded değer yazılmaz:
+Tüm sabitler `lib/config/scene-config.ts`'te — bileşene hardcoded değer yazılmaz.
+
+> **Bu bölüm 2026-08-15'te gerçek dosyadan yeniden üretildi.** Önceki örnek uydurma değerler
+> içeriyordu (`CAMERA_POSITION: [0,8,14]`, `ORBIT_MIN/MAX: 2/50`, `VIOLATION: 0xdc2626`) ve
+> sahne birimi cm olduğu için tamamen yanlış ölçekteydi. Aşağısı `scene-config.ts`'in **kısaltılmış**
+> özetidir; gerçek dosyada ~50 anahtar vardır — tek doğru kaynak dosyanın kendisidir.
 
 ```ts
+// lib/config/scene-config.ts — kısaltılmış özet (birim: cm)
 export const SCENE = {
-  CAMERA_POSITION: [0, 8, 14] as const,
+  CAMERA_POSITION: [0, 300, 600] as const,
   CAMERA_FOV: 50,
-  ORBIT_MIN_DISTANCE: 2,
-  ORBIT_MAX_DISTANCE: 50,
+  CAMERA_NEAR: 1,
+  CAMERA_FAR: 20000,
+
+  ORBIT_MIN_DISTANCE: 50,
+  ORBIT_MAX_DISTANCE: 4000,
+  ORBIT_MAX_POLAR_ANGLE: Math.PI / 2,
+  ORBIT_AUTO_ROTATE_SPEED: 0.6,
+  ORBIT_DAMPING_FACTOR: 0.05,
+
   LOAD_INTERVAL_MS: 380,
   DROP_EASING: 0.12,
   DROP_GLOW: 0.25,
   IDLE_GLOW: 0.06,
+
+  AMBIENT_INTENSITY: 0.6,
+  DIRECTIONAL_INTENSITY: 1,
+  DIRECTIONAL_POSITION: [800, 1000, 500] as const,
+  RIM_INTENSITY: 0.3,
+  RIM_POSITION: [-600, 400, -500] as const,
+  RIM_COLOR: 0x4488ff,
+
+  BACKGROUND_COLOR: '#f3f4f6',
+  CONTACT_SHADOW_OPACITY: 0.4,
+  CONTACT_SHADOW_BLUR: 2.5,
+  CONTACT_SHADOW_SCALE_FACTOR: 2,
+
   COLORS: {
-    VIOLATION: 0xdc2626,
-    SELECTED: 0xfbbf24,
+    VIOLATION: 0xe11d48,        // + VIOLATION_STR
+    SELECTED: 0xa7f3d0,         // + SELECTED_STR
+    COG_NORMAL: 0xfbbf24,
+    COG_WARNING: 0xe11d48,
+    NORMAL: 0x2dd4bf,           // + NORMAL_STR
+    CONTAINER_EDGE / CONTAINER_DOOR / CONTAINER_INSIDE / GRID,
     GROUPS: { A: 0xef4444, B: 0x3b82f6, C: 0xf59e0b, D: 0x22c55e },
+    SKU_PALETTE: [ /* 13 renklik fallback paleti */ ],
   },
+
+  DOOR_REAR_OPEN_ANGLE / DOOR_SIDE_OPEN_ANGLE / DOOR_EASING
+    / DOOR_THICKNESS_CM: 5 / DOOR_SIDE_PANEL_W_CM: 15,
+
   INSTANCED_THRESHOLD: 50,
+
+  // Yükleme animasyonu (adaptive schedule)
+  ANIM_BASE_MS: 2000, ANIM_PER_BOX_MS: 70,
+  ANIM_MIN_MS: 2500,  ANIM_MAX_MS: 4500,
+  ANIM_FLIGHT_MIN_MS: 500, ANIM_FLIGHT_MAX_MS: 900, ANIM_FLIGHT_RATIO: 1.8,
+  ANIM_DOOR_OFFSET_CM: 200, LANDING_START_OFFSET: 150,
+
+  GRID_STEP_CM: 50, LEVEL_FILTER_STEP_CM: 10, DRAG_SNAP_THRESHOLD_CM: 15,
+  STAGING_GAP_CM: 150, STAGING_INTER_GAP_CM: 10,
+  STAGING_WIDTH_CM: 600, STAGING_DEPTH_CM: 400,
+
+  SHADOW_MAP_SIZE: 2048, SHADOW_CAMERA_SIZE: 1500,
+  SHADOW_CAMERA_NEAR: 1, SHADOW_CAMERA_FAR: 5000,
+
+  CAMERA_TRANSITION_S: 0.8, CAMERA_DISTANCE_FACTOR: 1.5,
+  CAMERA_PRESETS: { TOP, FRONT, BACK, SIDE_RIGHT, SIDE_LEFT, ISO },  // { dir, label }
 } as const;
 ```
 
 ## Koordinat & BoxWrapper
 
-X=Genişlik · Y=Yükseklik · Z=Derinlik · Origin=Sol-Alt-Arka · Rotasyon=Derece
+X=width (kapıdan bakışta sağa) · Y=height (yukarı) · Z=length (uzak yüz `z=0` → referans kapı `z=length`) · Origin=uzak-sol-alt köşe `(0,0,0)` · Kutu pozisyonu=origin'e en yakın köşe · Rotasyon=Derece
+
+Right-handed (Three.js varsayılanı) — aynalama/telafi dönüşümü yasak. Kapılar small/big + face listesidir ("ön/sağ/sol kapı" yoktur). Bağlayıcı: `docs/COORDINATE_STANDARD.md`.
+
+> **Uygulama durumu (2026-08-15, ikinci ölçüm):** Yukarıdaki satır hem standardı hem kodun bugünkü hâlini anlatır — eksen yönü ve `depth`→`length` adlandırması PR #997/#1004 ile uygulandı. Sahnede boyut anlamında `depth` kalmadı; `grep -rn -i depth apps/frontend/src` çıktısındaki isabetlerin tamamı Three.js malzeme özelliği (`depthWrite`/`depthTest`), `scene-config.ts:95` `STAGING_DEPTH_CM` sabiti veya `usePlanStore.ts` yerel değişkenleridir. Kapı modeli de uygulandı: `doors` listesi, small/big/top tipleri ve `VehicleDoors` tablosu canlı. `clearanceCm` standarttan kaldırıldı — yükleme başlangıç köşesi kapı listesinden türetiliyor (§7), açıklık payı diye bir alan yok.
+
 
 `<mesh position={[p.x,p.y,p.z]}>` yasak — `BoxWrapper` zorunlu:
 
 ```tsx
-<mesh position={[positionX+width/2, positionY+height/2, positionZ+depth/2]}>
+<mesh position={[positionX+width/2, positionY+height/2, positionZ+length/2]}>
 ```
 
 Animasyonda başlangıç ve hedefe offset uygulanır. 50+ kutuda `InstancedMesh` kullan, offset `setMatrixAt()` içinde.
@@ -49,15 +105,15 @@ Animasyonda başlangıç ve hedefe offset uygulanır. 50+ kutuda `InstancedMesh`
   shadows
   style={{ width: '100%', height: '100%' }}
 >
-  <ambientLight intensity={0.6} />
-  <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
-  <pointLight position={[-8, 4, -6]} intensity={0.3} color={0x4488ff} />
+  <ambientLight intensity={SCENE.AMBIENT_INTENSITY} />
+  <directionalLight position={SCENE.DIRECTIONAL_POSITION} intensity={SCENE.DIRECTIONAL_INTENSITY} castShadow />
+  <pointLight position={SCENE.RIM_POSITION} intensity={SCENE.RIM_INTENSITY} color={SCENE.RIM_COLOR} />
   <OrbitControls
     ref={orbitRef}
     enableDamping
-    dampingFactor={0.05}
+    dampingFactor={SCENE.ORBIT_DAMPING_FACTOR}
     autoRotate
-    autoRotateSpeed={0.6}
+    autoRotateSpeed={SCENE.ORBIT_AUTO_ROTATE_SPEED}
     minDistance={SCENE.ORBIT_MIN_DISTANCE}
     maxDistance={SCENE.ORBIT_MAX_DISTANCE}
     onStart={() => {

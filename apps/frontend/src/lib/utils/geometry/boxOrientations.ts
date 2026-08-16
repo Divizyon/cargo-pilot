@@ -14,6 +14,17 @@ interface OrientationDef {
   requiredAxis: 'x' | 'z' | null;
 }
 
+/**
+ * Etiketlerdeki yüz adları kutunun KENDİ yüzleridir, aracın değil:
+ * "ön" = kutunun z ekseninde küçük değerdeki yüzü (`allowFaceFront`),
+ * "arka" = büyük değerdeki yüzü (`allowFaceBack`). Araç koordinatlarındaki
+ * uzak yüz / referans kapı ayrımıyla karıştırılmamalı.
+ *
+ * Eşleme bugün etkisiz: `allowFace*` alanları her yerde `true` (isOrientationAllowed
+ * yoksa true kabul ediyor), yani hiçbir yönelim bu bayrakla elenmiyor. Ürün
+ * yüzey kısıtları uygulandığında (F2.1) burası kilit noktası olacak — o yüzden
+ * eşleme belirsiz bırakılmadı (denetim S-59).
+ */
 export const BOX_ORIENTATIONS: readonly OrientationDef[] = [
   { idx: 0, label: 'Alt yüz altta', euler: [0, 0, 0], requiredAxis: null },
   { idx: 1, label: 'Üst yüz altta', euler: [Math.PI, 0, 0], requiredAxis: 'x' },
@@ -63,7 +74,7 @@ export function allowedOrientations(item: RotateConstraints): OrientationIndex[]
 export interface RotatedDimensions {
   width: number;
   height: number;
-  depth: number;
+  length: number;
 }
 
 // Rotasyon sonrası kutunun world eksenlerinde kapladığı boyut.
@@ -71,19 +82,19 @@ export interface RotatedDimensions {
 export function rotatedDimensions(
   baseWidth: number,
   baseHeight: number,
-  baseDepth: number,
+  baseLength: number,
   idx: OrientationIndex,
 ): RotatedDimensions {
   switch (idx) {
     case 0:
     case 1:
-      return { width: baseWidth, height: baseHeight, depth: baseDepth };
+      return { width: baseWidth, height: baseHeight, length: baseLength };
     case 2:
     case 3:
-      return { width: baseWidth, height: baseDepth, depth: baseHeight };
+      return { width: baseWidth, height: baseLength, length: baseHeight };
     case 4:
     case 5:
-      return { width: baseHeight, height: baseWidth, depth: baseDepth };
+      return { width: baseHeight, height: baseWidth, length: baseLength };
   }
 }
 

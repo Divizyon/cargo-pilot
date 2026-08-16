@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useCreateVehicle } from '@/lib/api/useVehicles';
 import { downloadVehicleImportTemplate } from '@/lib/utils/export/export-utils';
+import { DoorType, DoorFace, type VehicleDoor } from '@/lib/types/vehicle';
 
 interface VehicleBulkImportDialogProps {
   open: boolean;
@@ -30,13 +31,32 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   Kamposet: 'Römork',
   Konteyner: 'Konteyner',
 };
-const DOOR_DIRECTION_OPTIONS = ['rear', 'side', 'top', 'rearAndSide'] as const;
+// Kapı kümesi tek sütunda taşınır; seçenekler formdaki geçerli beş
+// kombinasyonun aynısıdır (docs/COORDINATE_STANDARD.md §4).
+const DOOR_SET_OPTIONS = ['small', 'small+left', 'small+right', 'left', 'right'] as const;
 
-const DOOR_DIRECTION_LABELS: Record<string, string> = {
-  rear: 'Arka',
-  side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka + Yan',
+type DoorSetKey = (typeof DOOR_SET_OPTIONS)[number];
+
+const DOOR_SET_LABELS: Record<string, string> = {
+  small: 'Küçük',
+  'small+left': 'Küçük + büyük (sol)',
+  'small+right': 'Küçük + büyük (sağ)',
+  left: 'Büyük (sol)',
+  right: 'Büyük (sağ)',
+};
+
+const DOOR_SET_TO_DOORS: Record<DoorSetKey, VehicleDoor[]> = {
+  small: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  'small+left': [
+    { type: DoorType.Small, face: DoorFace.LengthZ },
+    { type: DoorType.Big, face: DoorFace.ZeroX },
+  ],
+  'small+right': [
+    { type: DoorType.Small, face: DoorFace.LengthZ },
+    { type: DoorType.Big, face: DoorFace.WidthX },
+  ],
+  left: [{ type: DoorType.Big, face: DoorFace.ZeroX }],
+  right: [{ type: DoorType.Big, face: DoorFace.WidthX }],
 };
 
 const editableRowSchema = z.object({
@@ -49,7 +69,7 @@ const editableRowSchema = z.object({
   width: z.string(),
   height: z.string(),
   maxCargoWeight: z.string(),
-  doorDirection: z.string(),
+  doorSet: z.string(),
 });
 
 type EditableRow = z.infer<typeof editableRowSchema>;
@@ -64,7 +84,7 @@ type RowErrors = Partial<
     | 'width'
     | 'height'
     | 'maxCargoWeight'
-    | 'doorDirection',
+    | 'doorSet',
     string
   >
 >;
@@ -85,10 +105,8 @@ function validateRow(row: EditableRow): RowErrors {
   if (!row.width || Number(row.width) <= 0) e.width = 'Pozitif sayı';
   if (!row.height || Number(row.height) <= 0) e.height = 'Pozitif sayı';
   if (!row.maxCargoWeight || Number(row.maxCargoWeight) <= 0) e.maxCargoWeight = 'Pozitif sayı';
-  if (
-    !DOOR_DIRECTION_OPTIONS.includes(row.doorDirection as (typeof DOOR_DIRECTION_OPTIONS)[number])
-  ) {
-    e.doorDirection = 'rear / side / top / rearAndSide';
+  if (!DOOR_SET_OPTIONS.includes(row.doorSet as DoorSetKey)) {
+    e.doorSet = 'küçük / küçük+sol / küçük+sağ / sol / sağ';
   }
   return e;
 }
@@ -110,15 +128,62 @@ function normalizeType(raw: unknown): string {
   return TYPE_MAP[s] ?? String(raw ?? '');
 }
 
-function normalizeDoor(raw: unknown): string {
+const DOOR_SET_ALIASES: Record<string, DoorSetKey> = {
+  // Standart yazım: kapı tipi boyuta göre, büyük kapıda taraf ayrı.
+  küçük: 'small',
+  kucuk: 'small',
+  small: 'small',
+  'küçük+sol': 'small+left',
+  'kucuk+sol': 'small+left',
+  'küçük + sol': 'small+left',
+  'küçük+sağ': 'small+right',
+  'kucuk+sag': 'small+right',
+  'küçük + sağ': 'small+right',
+  sol: 'left',
+  left: 'left',
+  sağ: 'right',
+  sag: 'right',
+  right: 'right',
+
+  // Eski şablonların yön adları. Tanınmasalardı satır sessizce varsayılana
+  // düşüyordu; büyük kapılı araç filo dosyasından küçük kapılı olarak içeri
+  // giriyordu (denetim S-27).
+  arka: 'small',
+  rear: 'small',
+  'arka+sol': 'small+left',
+  'arka + sol': 'small+left',
+  'rear+left': 'small+left',
+  'arka+sağ': 'small+right',
+  'arka + sağ': 'small+right',
+  'arka+sag': 'small+right',
+  'rear+right': 'small+right',
+  yan: 'small+right',
+  side: 'small+right',
+  'arka + yan': 'small+right',
+  'arka+yan': 'small+right',
+  rearandside: 'small+right',
+
+  // Taraf belirtilmemiş "küçük + büyük" yazımı: standardın varsayılanı olan
+  // origin'e değmeyen yüz (sağ) uygulanır — DEFAULT_BIG_DOOR_FACE ile aynı.
+  'küçük + büyük': 'small+right',
+  'küçük+büyük': 'small+right',
+  üst: 'small',
+  ust: 'small',
+  top: 'small',
+};
+
+/**
+ * Şablon değerini geçerli anahtara çevirir.
+ *
+ * Tanınmayan değer olduğu gibi geri döner ve `validateRow` onu hata olarak
+ * işaretler. Eskiden `?? 'arka'` ile sessizce varsayılana düşüyordu, yani
+ * yanlış yazılmış bir sütun kullanıcıya hiç gösterilmeden kabul ediliyordu.
+ */
+function normalizeDoorSet(raw: unknown): string {
   const s = String(raw ?? '')
     .toLowerCase()
     .trim();
-  if (s === 'ön' || s === 'on' || s === 'arka' || s === 'rear') return 'rear';
-  if (s === 'yan' || s === 'side') return 'side';
-  if (s === 'üst' || s === 'ust' || s === 'top') return 'top';
-  if (s === 'rearandside' || s === 'arka+yan' || s === 'arka + yan') return 'rearAndSide';
-  return String(raw ?? '');
+  return DOOR_SET_ALIASES[s] ?? String(raw ?? '');
 }
 
 function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
@@ -136,8 +201,15 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       width: String(r['Genişlik (cm)'] ?? ''),
       height: String(r['Yükseklik (cm)'] ?? ''),
       maxCargoWeight: String(r['Maks Yük (kg)'] ?? ''),
-      doorDirection: normalizeDoor(
-        r['Kapı Yönü (rear/side/top/rearAndSide)'] ?? r['Kapı Yönü'] ?? 'rear',
+      // Eski şablonun "Kapı Yönü" sütunu da okunur; boş bırakılan hücre
+      // varsayılana düşer ama tanınmayan bir DEĞER hata olarak gösterilir.
+      doorSet: normalizeDoorSet(
+        r['Kapılar (küçük/küçük+sol/küçük+sağ/sol/sağ)'] ??
+          r['Kapılar (arka/arka+sol/arka+sağ/sol/sağ)'] ??
+          r['Kapılar'] ??
+          r['Kapı Yönü (rear/side/top/rearAndSide)'] ??
+          r['Kapı Yönü'] ??
+          'küçük',
       ),
     }),
   );
@@ -154,7 +226,7 @@ function emptyRow(): EditableRow {
     width: '',
     height: '',
     maxCargoWeight: '',
-    doorDirection: 'rear',
+    doorSet: 'small',
   });
 }
 
@@ -230,7 +302,13 @@ export function VehicleBulkImportDialog({ open, onOpenChange }: VehicleBulkImpor
             width: Number(row.width),
             height: Number(row.height),
             maxCargoWeight: Number(row.maxCargoWeight),
-            doorDirection: row.doorDirection as 'rear' | 'side' | 'top' | 'rearAndSide',
+            doors: DOOR_SET_TO_DOORS[row.doorSet as DoorSetKey],
+            // Şablon sütunları cm/kg etiketli, yani satırlar zaten kayıt
+            // biriminde. Bu bayrak olmadan `buildCreateVehiclePayload` değerleri
+            // kullanıcının görüntü birimiyle bir daha çeviriyordu: mm+ton ayarlı
+            // kullanıcıda 1360 cm'lik dorse 136 cm, 26.000 kg 26.000.000 kg
+            // olarak kaydediliyordu (S-10).
+            unitsAreStorage: true,
           },
           {
             onSuccess: () => resolve(),
@@ -380,7 +458,7 @@ export function VehicleBulkImportDialog({ open, onOpenChange }: VehicleBulkImpor
                 <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Genişlik *</th>
                 <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">Yükseklik *</th>
                 <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">Maks Yük *</th>
-                <th className="w-[13%] whitespace-nowrap border-b px-2 py-1.5">Kapı Yönü *</th>
+                <th className="w-[13%] whitespace-nowrap border-b px-2 py-1.5">Kapılar *</th>
                 <th className="w-8 border-b px-1 py-1.5" />
               </tr>
             </thead>
@@ -493,28 +571,26 @@ export function VehicleBulkImportDialog({ open, onOpenChange }: VehicleBulkImpor
                       />
                     </td>
 
-                    {/* Kapı Yönü */}
+                    {/* Kapılar */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <Select
-                        value={row.doorDirection}
-                        onValueChange={(v) => patchRow(row._id, { doorDirection: v })}
+                        value={row.doorSet}
+                        onValueChange={(v) => patchRow(row._id, { doorSet: v })}
                       >
                         <SelectTrigger
                           className={cn(
                             'h-7 border px-1 text-xs',
-                            errs.doorDirection
+                            errs.doorSet
                               ? 'border-destructive bg-destructive/5 text-destructive'
                               : 'border-border bg-background',
                           )}
                         >
-                          <SelectValue>
-                            {DOOR_DIRECTION_LABELS[row.doorDirection] ?? row.doorDirection}
-                          </SelectValue>
+                          <SelectValue>{DOOR_SET_LABELS[row.doorSet] ?? row.doorSet}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {DOOR_DIRECTION_OPTIONS.map((d) => (
+                          {DOOR_SET_OPTIONS.map((d) => (
                             <SelectItem key={d} value={d}>
-                              {DOOR_DIRECTION_LABELS[d]}
+                              {DOOR_SET_LABELS[d]}
                             </SelectItem>
                           ))}
                         </SelectContent>

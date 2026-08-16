@@ -6,7 +6,7 @@ export interface CogInput {
   positionZ: number;
   width: number;
   height: number;
-  depth: number;
+  length: number;
   weight: number;
 }
 
@@ -32,9 +32,13 @@ export interface BalanceResult {
   lateralBias: number;
   /** CoG Z offset from container center, as fraction of container length (−1..1) */
   longitudinalBias: number;
-  /** Front axle load share (0..1) — Z=0 is rear, Z=containerLength is front */
+  /** Front axle load share (0..1) — z=0 is the cab/front end, z=length the reference door */
   frontAxleShare: number;
   rearAxleShare: number;
+  /** Load share on the x=0 (left, kapı görünümünde sol) half — 0..1 */
+  leftShare: number;
+  /** Load share on the x=width (right) half — 0..1 */
+  rightShare: number;
   lateralLevel: BalanceLevel;
   longitudinalLevel: BalanceLevel;
   isLateralWarning: boolean;
@@ -43,7 +47,8 @@ export interface BalanceResult {
 
 /**
  * Calculates center of gravity from a list of placements with weight.
- * Positions are bottom-left-rear (BLR); CoG is computed at box center.
+ * Positions are the corner closest to the origin (min x, min y, min z);
+ * CoG is computed at box center.
  */
 export function calcCenterOfGravity(inputs: CogInput[]): CogResult | null {
   if (inputs.length === 0) return null;
@@ -58,7 +63,7 @@ export function calcCenterOfGravity(inputs: CogInput[]): CogResult | null {
     totalWeight += w;
     sumX += (p.positionX + p.width / 2) * w;
     sumY += (p.positionY + p.height / 2) * w;
-    sumZ += (p.positionZ + p.depth / 2) * w;
+    sumZ += (p.positionZ + p.length / 2) * w;
   }
 
   if (totalWeight === 0) return null;
@@ -85,7 +90,7 @@ export function buildCogInputs(
     positionZ: p.positionZ,
     width: p.width,
     height: p.height,
-    depth: p.depth,
+    length: p.length,
     weight: weightByItemId[p.itemId] ?? 0,
   }));
 }
@@ -98,14 +103,73 @@ function toBalanceLevel(absBias: number): BalanceLevel {
 }
 
 /**
+ * Aracın kayıtlı aks bilgisinden dayanak açıklığını türetir.
+ *
+ * İkisi de yoksa `undefined` döner ve `calcBalance` kasa uçlarına düşer —
+ * aks bilgisi girilmemiş araçlarda uydurma bir açıklık kurmak, bugünkü kaba
+ * tahminden daha yanıltıcı olurdu.
+ */
+export function buildAxleSpan(vehicle: {
+  kingpin?: { distance: number } | undefined;
+  axleB?: { distance: number } | undefined;
+}): AxleSpan | undefined {
+  const frontZ = vehicle.kingpin?.distance;
+  const rearZ = vehicle.axleB?.distance;
+
+  if (frontZ === undefined || rearZ === undefined) return undefined;
+  if (rearZ <= frontZ) return undefined;
+
+  return { frontZ, rearZ };
+}
+
+/**
+ * Ön dayanağın taşıdığı yük oranı.
+ *
+ * Yük iki dayanak arasındaysa moment dengesi doğrusaldır: arka payı, yükün ön
+ * dayanağa uzaklığının açıklığa oranıdır. Yük açıklığın dışına taşarsa oran
+ * [0,1] aralığına kırpılır — negatif aks yükü fiziksel olarak kaldırma kuvveti
+ * demek olurdu ve arayüzde anlamsız bir sayı üretirdi.
+ */
+function computeFrontAxleShare(
+  cogZ: number,
+  containerLength: number,
+  axleSpan: AxleSpan | undefined,
+): number {
+  const front = axleSpan?.frontZ ?? 0;
+  const rear = axleSpan?.rearZ ?? containerLength;
+  const span = rear - front;
+
+  if (span <= 0) return 0.5;
+
+  const rearShare = (cogZ - front) / span;
+  return Math.min(1, Math.max(0, 1 - rearShare));
+}
+
+/**
  * Computes full balance analysis for a given CoG and container dimensions.
- * containerLength: Z axis (rear=0, front=containerLength).
+ * containerLength: z axis — z=0 is the far face (cab/front end), z=containerLength
+ * is the reference door (rear). See docs/COORDINATE_STANDARD.md.
  * containerWidth: X axis.
  */
+/**
+ * Yükü taşıyan iki dayanak noktası (cm, z ekseninde).
+ *
+ * Kasa uçları değil gerçek aks konumları kullanılır: king pimi ~360 cm'de,
+ * ana aks ~900 cm'de duruyorsa kaldıraç kolu kasa boyundan kısa ve kaymıştır.
+ * Uçlardan hesaplamak sistematik olarak ~%8 sapma üretiyordu (denetim S-33).
+ */
+export interface AxleSpan {
+  /** Ön dayanak: king pimi (TIR/römork) ya da ön aks (kamyon). */
+  frontZ: number;
+  /** Arka dayanak: ana aks (B). */
+  rearZ: number;
+}
+
 export function calcBalance(
   cog: CogResult,
   containerWidth: number,
   containerLength: number,
+  axleSpan?: AxleSpan,
 ): BalanceResult {
   const centerX = containerWidth / 2;
   const centerZ = containerLength / 2;
@@ -116,9 +180,21 @@ export function calcBalance(
   const lateralLevel = toBalanceLevel(Math.abs(lateralBias));
   const longitudinalLevel = toBalanceLevel(Math.abs(longitudinalBias));
 
-  // Moment-based axle shares: rear axle at Z=0, front axle at Z=containerLength
-  const frontAxleShare = containerLength > 0 ? cog.z / containerLength : 0.5;
+  // Moment-based axle shares. z=0 is the cab end, so the front axle carries more
+  // as the CoG moves toward z=0 — the share is the complement of the normalised z.
+  // Ters yazildiginda arayuz kabine yigilmis yuku "arka aks yuklu" diye
+  // raporluyordu; mevzuat acisindan yanlis tarafi uyaran bir hataydi.
+  //
+  // Aks konumları biliniyorsa kaldıraç onlar arasında kurulur; bilinmiyorsa
+  // kasa uçlarına düşülür (aracın aks bilgisi girilmemiş olabilir).
+  const frontAxleShare = computeFrontAxleShare(cog.z, containerLength, axleSpan);
   const rearAxleShare = 1 - frontAxleShare;
+
+  // Sağ/sol yalnızca x ekseninden okunur. Arayüz bu satırda z tabanlı aks payını
+  // gösteriyordu; iki satır aynı büyüklüğün tümleyeniydi ve lateral denge hiç
+  // görünmüyordu. Sağ = x=width tarafı (kapı görünümündeki gözlemciye göre).
+  const rightShare = containerWidth > 0 ? cog.x / containerWidth : 0.5;
+  const leftShare = 1 - rightShare;
 
   return {
     cog,
@@ -126,6 +202,8 @@ export function calcBalance(
     longitudinalBias,
     frontAxleShare,
     rearAxleShare,
+    leftShare,
+    rightShare,
     lateralLevel,
     longitudinalLevel,
     isLateralWarning: lateralLevel !== 'ideal',

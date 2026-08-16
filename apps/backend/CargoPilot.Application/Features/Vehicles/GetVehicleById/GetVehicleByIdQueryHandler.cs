@@ -68,7 +68,8 @@ public sealed class GetVehicleByIdQueryHandler : IRequestHandler<GetVehicleByIdQ
             ResolveUser(vehicle.CreatedBy, userMap),
             vehicle.UpdatedAtUtc,
             ResolveUser(vehicle.UpdatedBy, userMap),
-            vehicle.Status);
+            vehicle.Status,
+            [.. vehicle.Doors.Select(VehicleDoorDto.FromEntity)]);
 
         return Result<VehicleDetailDto>.Success(dto);
     }

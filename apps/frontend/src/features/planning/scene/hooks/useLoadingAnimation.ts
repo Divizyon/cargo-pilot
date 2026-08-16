@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useSceneStore } from '@/lib/store/useSceneStore';
 import { SCENE } from '@/lib/config/scene-config';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
-import type { DoorDirection } from '@/lib/types/vehicle';
+import { DoorType, DoorFace, findDoor, type VehicleDoor } from '@/lib/types/vehicle';
 
 interface AnimEntry {
   startAt: number;
@@ -55,21 +55,26 @@ function computeScheduleParams(count: number): { staggerMs: number; flightMs: nu
  * Hook caller-agnostic: her kutu için `setPosition(index, x, y, z)` callback'ini çağırır.
  * Caller bunu `setMatrixAt` veya `mesh.position` ile uygular.
  */
+/**
+ * Varsayılan parametre olarak `[]` yazılamaz: her render yeni bir dizi üretir,
+ * effect bağımlılığı her seferinde değişir ve animasyon sürekli baştan
+ * kurulurdu (denetim S-57). Modül düzeyinde tek örnek.
+ */
+const EMPTY_DOORS: readonly VehicleDoor[] = [];
+
 export function useLoadingAnimation(
   placements: PlacementWithDimensions[],
   loadOrder: number[],
   setPosition: (globalIdx: number, x: number, y: number, z: number) => void,
   onFrameUpdate: () => void,
   /** Araç Z derinliği (cm) — kapı Z konumu için */
-  vehicleDepth?: number,
+  vehicleLength?: number,
   /** Araç X genişliği (cm) — kapı merkezi için */
   vehicleWidth?: number,
   /** Araç Y yüksekliği (cm) — üst kapı için */
   vehicleHeight?: number,
-  /** Kapı yönü — animasyon başlangıç noktasını belirler */
-  doorDirection?: DoorDirection,
-  /** Yan kapı tarafı */
-  doorSide?: 'right' | 'left',
+  /** Araç kapıları — kutuların hangi yüzden girdiğini belirler */
+  doors: readonly VehicleDoor[] = EMPTY_DOORS,
 ) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const animationStep = useSceneStore((s) => s.animationStep);
@@ -87,10 +92,14 @@ export function useLoadingAnimation(
 
     const { staggerMs, flightMs } = computeScheduleParams(loadOrder.length);
 
-    const depth = vehicleDepth ?? 0;
+    const length = vehicleLength ?? 0;
     const width = vehicleWidth ?? 0;
     const height = vehicleHeight ?? 0;
     const OFFSET = SCENE.ANIM_DOOR_OFFSET_CM;
+
+    const referenceDoor = findDoor(doors, DoorType.Small);
+    const sideDoor = findDoor(doors, DoorType.Big);
+    const topDoor = findDoor(doors, DoorType.Top);
 
     const schedule = new Map<number, AnimEntry>();
     loadOrder.forEach((globalIdx, seqIdx) => {
@@ -99,7 +108,7 @@ export function useLoadingAnimation(
 
       const cx = p.positionX + p.width / 2;
       const cy = p.positionY + p.height / 2;
-      const cz = p.positionZ + p.depth / 2;
+      const cz = p.positionZ + p.length / 2;
 
       // Her kutu kapı ekseninde dışarıdan başlar, diğer eksenlerde hedef pozisyonunda.
       // Böylece kutular kapı açıklığından düz çizgi halinde içeri kayar.
@@ -107,35 +116,30 @@ export function useLoadingAnimation(
       let fromY: number;
       let fromZ: number;
 
-      switch (doorDirection) {
-        case 'side':
-          // Yan kapı: kapı X ekseninde, kutu Y/Z hedefinde başlar
-          fromX = doorSide === 'right' ? width + OFFSET : -OFFSET;
-          fromY = cy;
-          fromZ = cz;
-          break;
-        case 'top':
-          // Üst kapı: tavan Y + offset'ten iner, X/Z hedefinde
-          fromX = cx;
-          fromY = height + OFFSET;
-          fromZ = cz;
-          break;
-        case 'rear':
-          // Arka kapı: Z=0 önünden girer
-          fromX = cx;
-          fromY = cy;
-          fromZ = -OFFSET;
-          break;
-        case 'rearAndSide':
-          fromX = cx;
-          fromY = cy;
-          fromZ = -OFFSET;
-          break;
-        default:
-          // 'front' veya undefined — Z=depth önünden girer
-          fromX = cx;
-          fromY = cy;
-          fromZ = depth + OFFSET;
+      // Kutu, gerçekte kullanılan kapının önünden girer. Birden fazla kapı
+      // varsa referans kapı önceliklidir: yükleme sırası da ona göre kurulur.
+      if (referenceDoor) {
+        // Referans kapı z = length yüzündedir. z = 0 uzak yüzdür (TIR'da kabin
+        // ucu), oradan giriş fiziksel olarak imkânsız.
+        fromX = cx;
+        fromY = cy;
+        fromZ = length + OFFSET;
+      } else if (sideDoor) {
+        fromX = sideDoor.face === DoorFace.ZeroX ? -OFFSET : width + OFFSET;
+        fromY = cy;
+        fromZ = cz;
+      } else if (topDoor) {
+        fromX = cx;
+        fromY = height + OFFSET;
+        fromZ = cz;
+      } else {
+        // Kapı listesi boş: ContainerMesh de hiçbir kapı çizmiyor, yani kutunun
+        // gireceği bir açıklık yok. Kutu yine de bir yerden gelmeli; referans
+        // kapı yüzü seçilir çünkü mesh'in kapı çizdiği tek yüz orası ve iki
+        // bileşen aynı varsayımı paylaşmalı (denetim S-56).
+        fromX = cx;
+        fromY = cy;
+        fromZ = length + OFFSET;
       }
 
       schedule.set(globalIdx, {
@@ -148,16 +152,7 @@ export function useLoadingAnimation(
 
     scheduleRef.current = schedule;
     startTimeRef.current = null;
-  }, [
-    animationMode,
-    loadOrder,
-    placements,
-    vehicleDepth,
-    vehicleWidth,
-    vehicleHeight,
-    doorDirection,
-    doorSide,
-  ]);
+  }, [animationMode, loadOrder, placements, vehicleLength, vehicleWidth, vehicleHeight, doors]);
 
   useFrame(() => {
     if (animationMode === 'stepped') {
@@ -168,7 +163,7 @@ export function useLoadingAnimation(
           globalIdx,
           p.positionX + p.width / 2,
           p.positionY + p.height / 2,
-          p.positionZ + p.depth / 2,
+          p.positionZ + p.length / 2,
         );
       });
       onFrameUpdate();

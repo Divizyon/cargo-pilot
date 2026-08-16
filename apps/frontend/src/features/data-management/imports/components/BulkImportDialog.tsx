@@ -98,7 +98,7 @@ function rowToPayload(row: EditableRow): Omit<CreateItemRequest, 'sku' | 'name'>
     category: toCategory(narrowTip(row.tip)),
     width,
     height: isPalet ? Number(row.height) + PALLET_HEIGHT_CM : Number(row.height),
-    // Varilde genişlik hücresi çapı taşır; derinlik ondan türetilir.
+    // Varilde genişlik hücresi çapı taşır; uzunluk ondan türetilir.
     length: isVaril ? width : Number(row.length),
     diameter: isVaril ? width : null,
     weight,
@@ -860,7 +860,7 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* Derinlik (Z) — varilde çap genişlikten okunur, hücre düzenlenmez. */}
+                    {/* Uzunluk (Z) — varilde çap genişlikten okunur, hücre düzenlenmez. */}
                     <td className="border-b border-border/40 px-2 py-0.5">
                       <TextCell
                         value={row.tip === 'varil' ? row.width : row.length}

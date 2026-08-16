@@ -8,8 +8,8 @@ import type {
 import { ErpExportStatus } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
-import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
-import { VEHICLE_TYPE_FROM_INT, resolveLoadingType } from './vehicleMappers';
+import { VehicleType, vehicleDoorSchema } from '@/lib/types/vehicle';
+import { VEHICLE_TYPE_FROM_INT } from './vehicleMappers';
 import { type OrientationIndex } from '@/lib/utils/geometry/boxOrientations';
 import { resolveProductColor, COLOR_FALLBACK } from '@/lib/config/productColors';
 
@@ -28,6 +28,7 @@ const planVehicleApiSchema = z
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
     loadingType: z.number().int().nullable().optional(),
+    doors: z.array(vehicleDoorSchema).optional().nullable(),
   })
   .nullable()
   .optional();
@@ -94,19 +95,19 @@ export type ParsedListResponse = {
 export function extractListData(
   parsed: z.infer<typeof planListApiResponseSchema>,
 ): ParsedListResponse {
-  const d = parsed.data;
-  if (Array.isArray(d)) {
-    return { rawItems: d, totalCount: d.length };
+  const length = parsed.data;
+  if (Array.isArray(length)) {
+    return { rawItems: length, totalCount: length.length };
   }
   const rawItems =
-    (d.items as unknown[] | undefined) ??
-    (d.loadingPlans as unknown[] | undefined) ??
-    (d.plans as unknown[] | undefined) ??
+    (length.items as unknown[] | undefined) ??
+    (length.loadingPlans as unknown[] | undefined) ??
+    (length.plans as unknown[] | undefined) ??
     [];
   const totalCount =
-    (d.totalCount as number | undefined) ??
-    (d.total as number | undefined) ??
-    (d.count as number | undefined) ??
+    (length.totalCount as number | undefined) ??
+    (length.total as number | undefined) ??
+    (length.count as number | undefined) ??
     rawItems.length;
   return { rawItems, totalCount };
 }
@@ -319,29 +320,30 @@ export function fromApiDetailPlacements(rawPlacements: PlacementItemApi[]): Plan
 // ─── Mapper: API placements → PlacementWithDimensions[] ─────────────────────
 // Backend PlacementDto: { itemId, positionX/Y/Z, rotation(0-5), item: { width, height, length, weight, sku } }
 // rotation enum maps to placed dimensions:
-//   0=NoRotation(W,H,L)  1=Yaw(L,H,W)  2=Pitch(W,L,H)
-//   3=Roll(H,W,L)        4=YawPitch(H,L,W)  5=RollYaw(L,W,H)
+//   0=NoRotation(width,height,length)  1=Yaw(length,height,width)
+//   2=Pitch(width,length,height)       3=Roll(height,width,length)
+//   4=YawPitch(height,length,width)    5=RollYaw(length,width,height)
 // We store placed dims directly and orientationIndex=0 so rendering needs no further rotation.
 
 function placedDimensions(
-  w: number,
-  h: number,
-  l: number,
+  width: number,
+  height: number,
+  length: number,
   rotation: number,
-): { pw: number; ph: number; pd: number } {
+): { width: number; height: number; length: number } {
   switch (rotation) {
     case 1:
-      return { pw: l, ph: h, pd: w }; // Yaw
+      return { width: length, height: height, length: width }; // Yaw
     case 2:
-      return { pw: w, ph: l, pd: h }; // Pitch
+      return { width: width, height: length, length: height }; // Pitch
     case 3:
-      return { pw: h, ph: w, pd: l }; // Roll
+      return { width: height, height: width, length: length }; // Roll
     case 4:
-      return { pw: h, ph: l, pd: w }; // YawPitch
+      return { width: height, height: length, length: width }; // YawPitch
     case 5:
-      return { pw: l, ph: w, pd: h }; // RollYaw
+      return { width: length, height: width, length: height }; // RollYaw
     default:
-      return { pw: w, ph: h, pd: l }; // NoRotation
+      return { width: width, height: height, length: length }; // NoRotation
   }
 }
 
@@ -384,7 +386,10 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     0;
   const rawCreatedAt = api.createdAt ?? api.createdAtUtc ?? new Date(0).toISOString();
   const createdAt = normalizeUtcDatetime(rawCreatedAt);
-  const loadingTypeInfo = resolveLoadingType(v?.loadingType);
+  // Plan detayı ve liste ucu kapı listesini taşıyor (VehicleInPlanDto.Doors).
+  // Eski `loadingType` türetimi kayıplıydı: küçük + büyük kapılı araçta ikinci
+  // kapı düşüyordu, o yüzden geri düşme yolu bilinçli olarak kaldırıldı.
+  const doors = v?.doors ?? [];
   return {
     id: api.id,
     planCode: api.planCode ?? `PLN-${api.id.slice(0, 8).toUpperCase()}`,
@@ -400,12 +405,11 @@ export function fromApiPlanListItem(api: PlanListApiItem): LoadingPlanListItem {
     vehicleCapacityKg: v?.maxWeightCapacity ?? 1,
     fillPercentage: Math.round((api.fillRate ?? 0) * 100),
     volumeFillPercentage: Math.round((api.volumeFillRate ?? api.fillRate ?? 0) * 100),
-    interiorWidthM: v?.internalWidth ?? 0,
-    interiorHeightM: v?.internalHeight ?? 0,
-    interiorDepthM: v?.internalLength ?? 0,
+    interiorWidthCm: v?.internalWidth ?? 0,
+    interiorHeightCm: v?.internalHeight ?? 0,
+    interiorLengthCm: v?.internalLength ?? 0,
     vehicleType: v?.vehicleType != null ? VEHICLE_TYPE_FROM_INT[v.vehicleType] : undefined,
-    doorDirection: loadingTypeInfo?.direction,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     thumbnailUrl: (() => {
       const raw = ((api as Record<string, unknown>)['thumbnailUrl'] ??
         (api as Record<string, unknown>)['snapshotUrl'] ??
@@ -487,6 +491,7 @@ const planVehicleInPlanSchema = z
     maxWeightCapacity: z.number().optional(),
     vehicleType: z.number().int().optional(),
     loadingType: z.number().int().nullable().optional(),
+    doors: z.array(vehicleDoorSchema).optional().nullable(),
     vehicleId: z.string().uuid().optional(),
     sortOrder: z.number().int().optional(),
   })
@@ -567,7 +572,7 @@ function apiVehicleToVehicle(
   v: z.infer<typeof planVehicleApiSchema> & { vehicleId?: string },
 ): Vehicle {
   const id = v.vehicleId ?? v.id ?? '';
-  const loadingTypeInfo = resolveLoadingType(v.loadingType);
+  const doors = v.doors ?? [];
   return {
     id,
     name: v.vehicleName ?? v.name ?? '—',
@@ -580,8 +585,7 @@ function apiVehicleToVehicle(
       v.vehicleType != null
         ? (VEHICLE_TYPE_FROM_INT[v.vehicleType] ?? VehicleType.Tir)
         : VehicleType.Tir,
-    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     isFavorite: false,
     isActive: true,
     isDeleted: false,
@@ -645,11 +649,12 @@ export function fromApiFullDetail(
   }
 
   const placements: PlacementWithDimensions[] = (data.placements ?? []).map((p: PlacementFull) => {
-    const {
-      pw: width,
-      ph: height,
-      pd: depth,
-    } = placedDimensions(p.item.width, p.item.height, p.item.length, p.rotation);
+    const { width, height, length } = placedDimensions(
+      p.item.width,
+      p.item.height,
+      p.item.length,
+      p.rotation,
+    );
     const itemSku = p.item.sku || p.item.sKU || p.itemId;
     const rawType = p.item.productType?.toLowerCase();
     const productType = rawType === 'varil' ? 'varil' : rawType === 'palet' ? 'palet' : 'koli';
@@ -667,7 +672,7 @@ export function fromApiFullDetail(
       isViolation: false,
       width,
       height,
-      depth,
+      length,
       weight: p.item.weight,
       color,
       productType,

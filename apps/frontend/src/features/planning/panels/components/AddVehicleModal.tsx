@@ -11,6 +11,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useCreatePlanVehicle } from '@/lib/api/useVehicles';
+import { VEHICLE_TYPE_INT, loadingTypeFromDoors } from '@/lib/api/vehicleMappers';
+import {
+  DEFAULT_BIG_DOOR_FACE,
+  DoorFace,
+  DoorType,
+  VehicleType,
+  type VehicleDoor,
+} from '@/lib/types/vehicle';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import {
+  toCentimeters,
+  toKilograms,
+  type WeightUnitKey,
+} from '@/features/data-management/products/schemas/productSchema';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -23,7 +37,7 @@ const vehicleModalSchema = z.object({
   width: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   height: z.number({ error: 'Sayı giriniz' }).positive('Pozitif olmalı'),
   layerCount: z.number({ error: 'Sayı giriniz' }).int().min(1, 'En az 1'),
-  loadingArea: z.enum(['arka', 'yan', 'ust']),
+  loadingArea: z.enum(['small', 'both', 'top']),
 });
 
 type VehicleModalValues = z.infer<typeof vehicleModalSchema>;
@@ -37,7 +51,7 @@ const EMPTY_DEFAULTS: VehicleModalValues = {
   width: 248,
   height: 270,
   layerCount: 3,
-  loadingArea: 'arka',
+  loadingArea: 'small',
 };
 
 // ─── Vehicle type config ──────────────────────────────────────────────────────
@@ -53,15 +67,18 @@ const VEHICLE_TYPES: Array<{
   { value: 'konteyner', label: 'Konteyner', Icon: Package2 },
 ];
 
-// ─── Loading area config ──────────────────────────────────────────────────────
+// ─── Kapı seçimi ──────────────────────────────────────────────────────────────
 
+// Kapı tipi boyutla anılır (docs/COORDINATE_STANDARD.md §4); "arka/yan" bir tip
+// adı değildir. Büyük kapının tarafı bu hızlı formda sorulmaz, standardın
+// varsayılanı (origin'e değmeyen yüz) uygulanır.
 const LOADING_AREAS: Array<{
-  value: 'arka' | 'yan' | 'ust';
+  value: DoorSetKey;
   label: string;
 }> = [
-  { value: 'arka', label: 'Yalnızca Arka' },
-  { value: 'yan', label: 'Yan Kapı' },
-  { value: 'ust', label: 'Üst Kapak' },
+  { value: 'small', label: 'Küçük' },
+  { value: 'both', label: 'Küçük + büyük' },
+  { value: 'top', label: 'Üst' },
 ];
 
 // ─── AddVehicleModal ──────────────────────────────────────────────────────────
@@ -72,23 +89,40 @@ interface AddVehicleModalProps {
   onCreated: (id: string | null) => void;
 }
 
-const FORM_VEHICLE_TYPE_INT: Record<string, number> = {
-  tir: 0,
-  kamyon: 1,
-  kamposet: 2,
-  konteyner: 3,
+// Form değeri → `VehicleType` sabiti. Eşleme tablosu yerel olarak yazılıydı ve
+// kamposet/konteyner ters düşüyordu (backend: Container=2, Romork=3), yani
+// "Kamposet" seçen kullanıcının aracı Konteyner olarak kaydediliyordu (S-09).
+// Ortak `VEHICLE_TYPE_INT` tek kaynak.
+const FORM_VEHICLE_TYPE: Record<string, VehicleType> = {
+  tir: VehicleType.Tir,
+  kamyon: VehicleType.Kamyon,
+  kamposet: VehicleType.Kamposet,
+  konteyner: VehicleType.Konteyner,
 };
 
-// Backend LoadingType: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4.
-// Bu modalde sağ/sol kapı seçimi yok; "yan" seçimi varsayılan olarak SideRight'a eşlenir.
-const LOADING_AREA_INT: Record<string, number> = {
-  arka: 0,
-  yan: 1,
-  ust: 4,
+/**
+ * Kapı seçimi → kapı listesi.
+ *
+ * Büyük kapı seçimi eskiden sessizce SideRight'a sabitleniyordu. Artık
+ * standardın varsayılanı uygulanır: büyük kapı origin'e değmeyen yüze
+ * (x = width) konur, böylece yükleme origin köşesinden başlar
+ * (docs/COORDINATE_STANDARD.md §7).
+ */
+type DoorSetKey = 'small' | 'both' | 'top';
+
+const LOADING_AREA_DOORS: Record<DoorSetKey, VehicleDoor[]> = {
+  small: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  both: [
+    { type: DoorType.Small, face: DoorFace.LengthZ },
+    { type: DoorType.Big, face: DEFAULT_BIG_DOOR_FACE },
+  ],
+  top: [{ type: DoorType.Top, face: DoorFace.HeightY }],
 };
 
 export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleModalProps) {
   const createVehicle = useCreatePlanVehicle();
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const {
     register,
@@ -120,16 +154,22 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
 
   async function onSubmit(data: VehicleModalValues) {
     try {
+      const doors = LOADING_AREA_DOORS[data.loadingArea] ?? LOADING_AREA_DOORS.small;
+      const vehicleType = FORM_VEHICLE_TYPE[data.vehicleType] ?? VehicleType.Kamyon;
+
       const newId = await createVehicle.mutateAsync({
         vehicleName: data.name,
         plateNumber: data.plateNumber,
-        vehicleType: FORM_VEHICLE_TYPE_INT[data.vehicleType] ?? 1,
-        internalWidth: Math.round(data.width),
-        internalHeight: Math.round(data.height),
-        internalLength: Math.round(data.length),
-        maxWeightCapacity: Math.round(data.payload),
+        vehicleType: VEHICLE_TYPE_INT[vehicleType],
+        // Alan ekleri kullanıcının görüntü birimini gösteriyor; kayıt cm/kg.
+        // Dönüşüm olmadan mm ayarlı kullanıcının aracı 10 kat küçülüyordu (S-24).
+        internalWidth: Math.round(toCentimeters(data.width, dimensionUnit)),
+        internalHeight: Math.round(toCentimeters(data.height, dimensionUnit)),
+        internalLength: Math.round(toCentimeters(data.length, dimensionUnit)),
+        maxWeightCapacity: Math.round(toKilograms(data.payload, weightUnit as WeightUnitKey)),
         layerCount: data.layerCount,
-        loadingType: LOADING_AREA_INT[data.loadingArea] ?? 0,
+        doors,
+        loadingType: loadingTypeFromDoors(doors),
       });
 
       onCreated(newId);

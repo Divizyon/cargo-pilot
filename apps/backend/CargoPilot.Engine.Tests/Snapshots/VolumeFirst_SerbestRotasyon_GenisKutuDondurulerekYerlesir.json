@@ -7,7 +7,8 @@
     "MaxWeight": 2000,
     "Criteria": "VolumeFirst",
     "LoadingType": "Rear",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false
   },
   "Items": [
     {
@@ -58,7 +59,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 300,
+        "Length": 300,
         "Rotation": "Yaw",
         "Weight": 120
       },
@@ -70,7 +71,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 300,
+        "Length": 300,
         "Rotation": "Yaw",
         "Weight": 120
       },
@@ -82,7 +83,7 @@
         "Z": 300,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 40
       },
@@ -94,7 +95,7 @@
         "Z": 300,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 40
       }

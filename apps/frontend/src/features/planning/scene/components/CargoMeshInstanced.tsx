@@ -106,22 +106,22 @@ const _CYL_AXIS_Z = new THREE.Vector3(0, 0, 1);
 // When the barrel lies along X: rotate -90° around Z so local Y → world X.
 // When the barrel lies along Z: rotate +90° around X so local Y → world Z.
 function applyVarilOrientation(
-  p: { width: number; height: number; depth: number },
+  p: { width: number; height: number; length: number },
   quaternion: THREE.Quaternion,
 ): { sw: number; sh: number; sd: number } {
-  if (p.width > p.height && p.width > p.depth) {
+  if (p.width > p.height && p.width > p.length) {
     quaternion.setFromAxisAngle(_CYL_AXIS_Z, -Math.PI / 2);
-    const d = Math.min(p.height, p.depth);
+    const d = Math.min(p.height, p.length);
     return { sw: d, sh: p.width, sd: d };
   }
-  if (p.depth > p.height && p.depth > p.width) {
+  if (p.length > p.height && p.length > p.width) {
     quaternion.setFromAxisAngle(_CYL_AXIS_X, Math.PI / 2);
     const d = Math.min(p.width, p.height);
-    return { sw: d, sh: p.depth, sd: d };
+    return { sw: d, sh: p.length, sd: d };
   }
   // standing upright
   quaternion.identity();
-  const d = Math.min(p.width, p.depth);
+  const d = Math.min(p.width, p.length);
   return { sw: d, sh: p.height, sd: d };
 }
 
@@ -150,6 +150,8 @@ function buildEdgesGeometry(
     activeLayer: number;
     focusedGroupItemIds: string[] | null;
     showCog: boolean;
+    /** X-Ray soyma yönü kapıdan başlar; araç uzunluğu olmadan hesaplanamaz. */
+    vehicleLength?: number;
   },
 ): { normal: THREE.BufferGeometry; dim: THREE.BufferGeometry } {
   const {
@@ -159,6 +161,7 @@ function buildEdgesGeometry(
     activeLayer,
     focusedGroupItemIds,
     showCog,
+    vehicleLength,
   } = opts;
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
@@ -171,7 +174,7 @@ function buildEdgesGeometry(
   placements.forEach((p, i) => {
     if (p.productType === 'palet') return;
     const visible = isPlacementVisible(p, i, { selectedInstanceId, selectedItemId, hiddenItemIds });
-    const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+    const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicleLength);
     if (!visible || ghosted) return;
 
     const selDimmed = isSelectionDimmed(p, i, {
@@ -183,10 +186,10 @@ function buildEdgesGeometry(
       selectedInstanceId !== null || selectedItemId !== null || focusedGroupItemIds !== null;
     const dimmed = selDimmed || (showCog && !hasSelection);
 
-    const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+    const base = rotatedDimensions(p.width, p.height, p.length, p.orientationIndex);
     applyOrientationQuaternion(quaternion, p.orientationIndex);
-    position.set(p.positionX + p.width / 2, p.positionY + p.height / 2, p.positionZ + p.depth / 2);
-    scale.set(base.width, base.height, base.depth);
+    position.set(p.positionX + p.width / 2, p.positionY + p.height / 2, p.positionZ + p.length / 2);
+    scale.set(base.width, base.height, base.length);
     matrix.compose(position, quaternion, scale);
 
     const target = dimmed ? dimPositions : normalPositions;
@@ -281,8 +284,8 @@ function InstancedBoxes() {
 
   // Animasyon için yükleme sırası (arka→ön, alt→üst, sol→sağ)
   const loadOrder = useMemo(
-    () => buildLoadOrder(placements, vehicle?.doorDirection, vehicle?.doorSide),
-    [placements, vehicle?.doorDirection, vehicle?.doorSide],
+    () => buildLoadOrder(placements, vehicle?.doors),
+    [placements, vehicle?.doors],
   );
 
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
@@ -485,7 +488,7 @@ function InstancedBoxes() {
         }
 
         const animPos = animPositionsRef.current.get(globalIdx);
-        const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+        const base = rotatedDimensions(p.width, p.height, p.length, p.orientationIndex);
         applyOrientationQuaternion(boxQuat, p.orientationIndex);
 
         let cx: number, cy: number, cz: number;
@@ -496,13 +499,13 @@ function InstancedBoxes() {
         } else {
           cx = p.positionX + p.width / 2;
           cy = p.positionY + p.height / 2;
-          cz = p.positionZ + p.depth / 2;
+          cz = p.positionZ + p.length / 2;
         }
 
         const eps = 0.5; // z-fighting önleme (cm)
         const hw = base.width / 2 + eps;
         const hh = base.height / 2 + eps;
-        const hd = base.depth / 2 + eps;
+        const hd = base.length / 2 + eps;
 
         // Her 6 yüz için ayrı matrix yaz
         FACE_CONFIGS.forEach((face, faceIdx) => {
@@ -518,10 +521,10 @@ function InstancedBoxes() {
           position.set(cx + offset.x, cy + offset.y, cz + offset.z);
 
           // Plane scale: yüze göre boyut
-          // +Z/-Z: width × height  |  +X/-X: depth × height  |  +Y/-Y: width × depth
+          // +Z/-Z: width × height  |  +X/-X: length × height  |  +Y/-Y: width × length
           if (face.oz !== 0) scale.set(base.width, base.height, 1);
-          else if (face.ox !== 0) scale.set(base.depth, base.height, 1);
-          else scale.set(base.width, base.depth, 1);
+          else if (face.ox !== 0) scale.set(base.length, base.height, 1);
+          else scale.set(base.width, base.length, 1);
 
           matrix.compose(position, quaternion, scale);
           labelPlaneRef.current!.setMatrixAt(baseInstanceIdx + faceIdx, matrix);
@@ -562,7 +565,7 @@ function InstancedBoxes() {
       const gRef = isVaril ? ghostWireCylRef : ghostWireRef;
       const vRef = isVaril ? violationCylRef : violationRef;
 
-      const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+      const base = rotatedDimensions(p.width, p.height, p.length, p.orientationIndex);
       let sw: number, sh: number, sd: number;
       if (isVaril) {
         ({ sw, sh, sd } = applyVarilOrientation(p, quaternion));
@@ -570,7 +573,7 @@ function InstancedBoxes() {
         applyOrientationQuaternion(quaternion, p.orientationIndex);
         sw = base.width;
         sh = base.height;
-        sd = base.depth;
+        sd = base.length;
       }
 
       // stepped: sadece animationStep'e kadar olanlar görünür
@@ -589,7 +592,7 @@ function InstancedBoxes() {
           position.set(
             p.positionX + p.width / 2,
             p.positionY + p.height / 2,
-            p.positionZ + p.depth / 2,
+            p.positionZ + p.length / 2,
           );
         }
         scale.set(sw, sh, sd);
@@ -597,7 +600,7 @@ function InstancedBoxes() {
         position.set(
           p.positionX + p.width / 2,
           p.positionY + p.height / 2,
-          p.positionZ + p.depth / 2,
+          p.positionZ + p.length / 2,
         );
         scale.copy(SCALE_ZERO);
       }
@@ -665,8 +668,7 @@ function InstancedBoxes() {
     vehicle?.length,
     vehicle?.width,
     vehicle?.height,
-    vehicle?.doorDirection,
-    vehicle?.doorSide,
+    vehicle?.doors,
   );
 
   // Animasyon idle'a döndüğünde pozisyon cache'ini temizle
@@ -722,7 +724,7 @@ function InstancedBoxes() {
         selectedItemId,
         hiddenItemIds,
       });
-      const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+      const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicle?.length);
       const selectionDimmed = isSelectionDimmed(p, globalIdx, {
         selectedInstanceId,
         selectedItemId,
@@ -733,7 +735,7 @@ function InstancedBoxes() {
         selectedInstanceId !== null || selectedItemId !== null || focusedGroupItemIds !== null;
       const dimmed = selectionDimmed || (showCog && !hasSelection);
 
-      const base = rotatedDimensions(p.width, p.height, p.depth, p.orientationIndex);
+      const base = rotatedDimensions(p.width, p.height, p.length, p.orientationIndex);
       let sw: number, sh: number, sd: number;
       if (isVaril) {
         ({ sw, sh, sd } = applyVarilOrientation(p, quaternion));
@@ -741,12 +743,12 @@ function InstancedBoxes() {
         applyOrientationQuaternion(quaternion, p.orientationIndex);
         sw = base.width;
         sh = base.height;
-        sd = base.depth;
+        sd = base.length;
       }
       position.set(
         p.positionX + p.width / 2,
         p.positionY + p.height / 2,
-        p.positionZ + p.depth / 2,
+        p.positionZ + p.length / 2,
       );
 
       const oRef = isVaril ? opaqueCylRef : opaqueRef;
@@ -816,6 +818,9 @@ function InstancedBoxes() {
     xRayMode,
     focusedGroupItemIds,
     showCog,
+    // X-Ray eşiği araç uzunluğuna göre hesaplanıyor; araç değişince matrisler
+    // yeniden yazılmalı.
+    vehicle?.length,
   ]);
 
   // Label plane matrislerini idle'da veya atlas/placements değişince güncelle
@@ -843,6 +848,7 @@ function InstancedBoxes() {
       activeLayer,
       focusedGroupItemIds,
       showCog,
+      vehicleLength: vehicle?.length,
     });
   }, [
     placements,
@@ -852,6 +858,7 @@ function InstancedBoxes() {
     activeLayer,
     focusedGroupItemIds,
     showCog,
+    vehicle?.length,
   ]);
 
   useEffect(
@@ -1038,7 +1045,7 @@ function InstancedBoxes() {
           hiddenItemIds,
         });
         if (!visible) return null;
-        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicle?.length);
         const selDimmedPalet = isSelectionDimmed(p, globalIdx, {
           selectedInstanceId,
           selectedItemId,
@@ -1062,14 +1069,14 @@ function InstancedBoxes() {
         const animPos = isAnimActive ? animPositionsRef.current.get(globalIdx) : undefined;
         const px = animPos ? animPos.x - p.width / 2 : p.positionX;
         const py = animPos ? animPos.y - p.height / 2 : p.positionY;
-        const pz = animPos ? animPos.z - p.depth / 2 : p.positionZ;
+        const pz = animPos ? animPos.z - p.length / 2 : p.positionZ;
 
         return (
           <BoxWrapper
             key={`palet-${globalIdx}`}
             width={p.width}
             height={p.height}
-            depth={p.depth}
+            length={p.length}
             positionX={px}
             positionY={py}
             positionZ={pz}
@@ -1113,7 +1120,7 @@ function InstancedBoxes() {
             key={`glow-${idx}`}
             width={p.width}
             height={p.height}
-            depth={p.depth}
+            length={p.length}
             positionX={p.positionX}
             positionY={p.positionY}
             positionZ={p.positionZ}
@@ -1177,8 +1184,8 @@ function BoxPathBoxes() {
   );
 
   const loadOrder = useMemo(
-    () => buildLoadOrder(placements, vehicle?.doorDirection, vehicle?.doorSide),
-    [placements, vehicle?.doorDirection, vehicle?.doorSide],
+    () => buildLoadOrder(placements, vehicle?.doors),
+    [placements, vehicle?.doors],
   );
   const isAnimActive = animationMode === 'playing' || animationMode === 'stepped';
 
@@ -1288,8 +1295,7 @@ function BoxPathBoxes() {
     vehicle?.length,
     vehicle?.width,
     vehicle?.height,
-    vehicle?.doorDirection,
-    vehicle?.doorSide,
+    vehicle?.doors,
   );
 
   return (
@@ -1297,7 +1303,7 @@ function BoxPathBoxes() {
       {placements.map((p, i) => {
         const isInstanceSelected = selectedInstanceId === i;
         const isItemSelected = p.itemId === selectedItemId;
-        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicle?.length);
         const selDimmed = isSelectionDimmed(p, i, {
           selectedInstanceId,
           selectedItemId,
@@ -1322,7 +1328,7 @@ function BoxPathBoxes() {
         if (animPos) {
           px = animPos.x - p.width / 2;
           py = animPos.y - p.height / 2;
-          pz = animPos.z - p.depth / 2;
+          pz = animPos.z - p.length / 2;
         } else {
           px = p.positionX;
           py = p.positionY;
@@ -1334,7 +1340,7 @@ function BoxPathBoxes() {
             key={`${p.itemId}-${i}`}
             width={p.width}
             height={p.height}
-            depth={p.depth}
+            length={p.length}
             positionX={px}
             positionY={py}
             positionZ={pz}

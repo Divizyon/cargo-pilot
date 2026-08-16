@@ -12,7 +12,7 @@
 > test ortamı müşteriye gösterilen yüzey ve ayrı bir QA adımı var. Dondurulabilir bir dal gerekiyor.
 >
 > Yürürlükteki kurallar: [`docs/conventions/branching.md`](../conventions/branching.md)
-> Karar geçmişi: [branch-audit.md](../context/branch-audit.md) §8–§9
+> Karar geçmişi: [branch-denetimi-2026-08-03.md](branch-denetimi-2026-08-03.md) §8–§9
 >
 > §1'deki ölçümler (2 PR/iş, 10/30 kapatılmış PR) hâlâ geçerli ve yeni modelde
 > **terfi PR'ı** düzeniyle giderildi: iş branch'i yalnızca `dev`'e PR açar.
@@ -86,12 +86,14 @@ Branch'i role göre bölmek yerine **sahipliği CODEOWNERS ile** tanımla. Yeni 
 apps/frontend/                @frontend-gelistirici
 apps/backend/                 @backend-gelistirici
 apps/backend/**/Packing/      @algoritma-gelistirici
-apps/backend/**/Services/OptimizationEngine.cs  @algoritma-gelistirici
+apps/backend/**/Common/Optimization/           @algoritma-gelistirici
 infra/  .github/  database/   @devops
 docs/                         @takim-lideri
 ```
 
 Böylece PR açıldığında doğru kişi otomatik reviewer olur — kimin bakacağı tartışılmaz.
+
+> **Yol düzeltmesi (2026-08-15):** öneri metnindeki motor yolu önce `apps/backend/**/Services/OptimizationEngine.cs` yazıyordu; motor `caab495d` (2026-08-11) ile `CargoPilot.Application/Common/Optimization/` altına (7 dosya) taşındığı için yol güncellendi. Öneri zaten yürürlükte değildir, CODEOWNERS hiç uygulanmadı — bu düzeltme yalnız yanlış yol izlenmesin diyedir.
 
 | Rol | Tipik branch | Notu |
 |-----|--------------|------|
@@ -135,7 +137,7 @@ Koruma zaten **repository ruleset** ile yapılıyor (`main-protection`, `test-pr
 | 3 | `main`'e branch protection uygula (§4) | GitHub API / UI |
 | 4 | Workflow tetikleyicilerini güncelle | `ci.yml`, `test-deploy.yml`: `test`/`dev` → `main`; `enforce-test-base` job'unu **sil** |
 | 5 | Production pipeline'ı ekle | `v*` tag → prod image build + `production` environment ile deploy |
-| 6 | Branch temizliğini uygula | `branch-audit.md` §6 |
+| 6 | Branch temizliğini uygula | `branch-denetimi-2026-08-03.md` §6 |
 | 7 | `test` ve `dev` branch'lerini arşivle | `git tag archive/test origin/test`, sonra branch'leri sil |
 | 8 | `branching.md`'yi yeni modelle yeniden yaz | `docs/conventions/branching.md` |
 | 9 | Ekibe 15 dk'lık aktarım | — |
@@ -144,7 +146,7 @@ Koruma zaten **repository ruleset** ile yapılıyor (`main-protection`, `test-pr
 5. adım tamamlanana kadar production deploy'u zaten manuel; yeni model bunu kötüleştirmiyor.
 
 `dev`'in kapatılması kod kaybı doğurmaz: `dev` ile `test` ağaçları bugün birebir aynı
-(`branch-audit.md` §3.1).
+(`branch-denetimi-2026-08-03.md` §3.1).
 
 ---
 

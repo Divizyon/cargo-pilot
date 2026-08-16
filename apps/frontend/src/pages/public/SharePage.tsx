@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useShareByToken, useRecordShareView, isShareExpiredError } from '@/lib/api/useShareLinks';
 import { usePlanStore } from '@/lib/store/usePlanStore';
 import { NewPlanPage } from '@/pages/plans/NewPlanPage';
-import { VehicleType, DoorDirection } from '@/lib/types/vehicle';
+import { VehicleType } from '@/lib/types/vehicle';
 import { ProductType } from '@/lib/types/item';
 import type { AxiosError } from 'axios';
 import type { SharePlan } from '@/lib/types/share';
@@ -58,7 +58,9 @@ function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
       width: vd.width ?? 100,
       height: vd.height ?? 100,
       maxCargoWeight: plan.vehicleCapacityKg,
-      doorDirection: (vd.doorDirection as Vehicle['doorDirection']) ?? DoorDirection.Rear,
+      // Paylaşım DTO'su kapı listesini taşıyor; kapısı olmayan araç için
+      // varsayılan kapı uydurulmaz, liste boş kalır.
+      doors: vd.doors ?? [],
       plate: plan.vehiclePlate ?? undefined,
       isFavorite: false,
       isActive: true,
@@ -74,7 +76,7 @@ function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
       positionZ: p.positionZ,
       width: p.width,
       height: p.height,
-      depth: p.depth,
+      length: p.length,
       orientationIndex: p.orientationIndex as PlacementWithDimensions['orientationIndex'],
       layer: Math.max(1, p.layer),
       isViolation: p.isViolation,
@@ -108,7 +110,7 @@ function SharePlanLoader({ plan, onLoaded }: SharePlanLoaderProps) {
             productType: resolveProductType(p.productType),
             width: p.width,
             height: p.height,
-            length: p.depth,
+            length: p.length,
             weight: Math.max(0.001, p.weight),
             isStackable: true,
             maxStackCount: 1,

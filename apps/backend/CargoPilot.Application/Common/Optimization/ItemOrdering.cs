@@ -18,7 +18,7 @@ internal static class ItemOrdering
     // ── Grup-bilinçli sıralama ────────────────────────────────────────────────
     // GroupId'si olan items yükleme sırasına göre sıralanır:
     // yüksek UnloadingOrder = en son inecek grup = kapıdan en uzak bölge
-    // (arka kapıda Z=length tarafı) = önce yüklenir (DESC sıra).
+    // (uzak yüz, z = 0 tarafı) = önce yüklenir (DESC sıra).
     // GroupId'si olmayan items en sona eklenir.
     // Grup yoksa mevcut criteria-based sıralama uygulanır.
     //

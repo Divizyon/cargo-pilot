@@ -22,6 +22,11 @@ internal sealed record SnapshotPayload(
             SnapshotOutcome.From(result));
 }
 
+/// <remarks>
+/// <c>FillFromMaxX</c> kapi listesinden turetilen bir girdidir ve motor yonunu
+/// belirler. Snapshot'ta saklanmasaydi aynalanmis yol golden kapsaminin tamamen
+/// disinda kalirdi (denetim: S-34).
+/// </remarks>
 internal sealed record SnapshotVehicle(
     decimal Width,
     decimal Height,
@@ -29,7 +34,8 @@ internal sealed record SnapshotVehicle(
     decimal MaxWeight,
     string Criteria,
     string LoadingType,
-    bool ClusterGroups)
+    bool ClusterGroups,
+    bool FillFromMaxX)
 {
     public static SnapshotVehicle From(OptimizationInput input)
         => new(
@@ -39,7 +45,8 @@ internal sealed record SnapshotVehicle(
             input.VehicleMaxWeight,
             input.Criteria.ToString(),
             input.LoadingType.ToString(),
-            input.ClusterGroups);
+            input.ClusterGroups,
+            input.FillsFromMaxX);
 }
 
 internal sealed record SnapshotItem(
@@ -87,7 +94,7 @@ internal sealed record SnapshotPlacement(
     decimal Z,
     decimal Width,
     decimal Height,
-    decimal Depth,
+    decimal Length,
     string Rotation,
     decimal Weight)
 {
@@ -100,7 +107,7 @@ internal sealed record SnapshotPlacement(
             placement.Z,
             placement.Width,
             placement.Height,
-            placement.Depth,
+            placement.Length,
             placement.Rotation.ToString(),
             placement.Weight);
 }

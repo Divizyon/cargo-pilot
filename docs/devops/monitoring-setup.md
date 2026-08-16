@@ -70,8 +70,15 @@ docker compose \
 
 **3. Grafana'ya gir:**
 
-- URL: `http://104.247.163.42:3002`
+- URL: `http://104.247.163.42:3002` — **test ortamının host portu 3002'dir** (container içi port her
+  iki ortamda da 3000; eşleme `docker-compose.monitoring.test.yml:89` → `"3002:3000"`).
 - Kullanıcı: `admin` / Şifre: env dosyasındaki değer
+
+> **Not (2026-08-15):** Bu dokümanda Grafana için iki farklı port geçer ve **bu bir çelişki değil,
+> ortam farkıdır** — test 3002, production 3000. Kanıt: `docker-compose.monitoring.test.yml:89`
+> (`"3002:3000"`) ve `docker-compose.monitoring.prod.yml:87` (`"3000:3000"`).
+> Canlı probda (2026-08-15) test sunucusunda 3002 açık, 3000 kapalıydı — prod monitoring stack'i
+> henüz deploy edilmemiştir.
 {% endtab %}
 
 {% tab title="🚀 Production" %}
@@ -95,7 +102,9 @@ docker compose \
 
 **3. Grafana'ya gir:**
 
-- URL: `http://104.247.163.42:3000`
+- URL: `http://104.247.163.42:3000` — **production'ın host portu 3000'dir**
+  (`docker-compose.monitoring.prod.yml:87` → `"3000:3000"`). Test ortamıyla karıştırmayın: orada 3002.
+  Bu stack 2026-08-15 itibarıyla **henüz deploy edilmemiştir** (port kapalı).
 {% endtab %}
 {% endtabs %}
 

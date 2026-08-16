@@ -2,6 +2,7 @@ using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using MediatR;
@@ -91,6 +92,16 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
             loadingType: request.LoadingType,
             companyId: companyId,
             isDraft: request.IsDraft);
+
+        // Istemci kapi listesi gonderdiyse o gecerlidir; gondermediyse liste
+        // tekil LoadingType'dan turetilir (eski istemciler icin gecis yolu).
+        if (request.Doors is { Count: > 0 })
+            vehicle.ReplaceDoors(request.Doors.Select(door => (door.Type, door.Face)));
+        else
+            DoorSetFactory.EnsureDoors(vehicle);
+
+        // Tekil alan kapi listesinden turetilir; iki kaynak ayrismasin.
+        vehicle.SyncLoadingTypeFromDoors();
 
         _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);

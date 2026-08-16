@@ -8,7 +8,7 @@ namespace CargoPilot.Infrastructure.Tests;
 /// OptimizationEngine.cs:52 - bölge eşleşmesi olmayan kutularda fantom ceza
 /// düzeltmesini doğrular. Eşleşme olmadığında (TryGetValue false döndüğünde)
 /// zoneStart/zoneEnd artık null kalır; eskiden default (0,0) struct değeri
-/// kullanılıyordu ve bu, kutuları Z=0'a (kapıya) zorlayan devasa bir ceza
+/// kullanılıyordu ve bu, kutuları Z=0'a (uzak yüze) zorlayan devasa bir ceza
 /// üretiyordu.
 /// </summary>
 public sealed class OptimizationEngineTests
@@ -56,7 +56,7 @@ public sealed class OptimizationEngineTests
     /// hâlâ uygulandığını doğrular (regresyon testi). Bu, F0-03 düzeltmesinin
     /// geçerli bölge eşleşmelerini bozmadığını garanti eder.
     ///
-    /// Kasıtlı olarak yöne bağımsızdır: hangi grubun kapıya (Z=0) yakın bölgeye
+    /// Kasıtlı olarak yöne bağımsızdır: hangi grubun kapıya (Z=length) yakın bölgeye
     /// düştüğü F0-01'in sorumluluğudur ve orada (GroupZoneTests) doğrulanır.
     /// Burada yalnızca her grubun kendi UnloadingOrder'ına ait, zoneSize
     /// genişliğindeki dilime toplandığı ve iki grubun farklı, çakışmayan
@@ -98,13 +98,13 @@ public sealed class OptimizationEngineTests
         // tek kutusu o dilimin dışına taşmamalı.
         var group1Zone = ZoneIndex(group1Placement.Z, zoneSize);
         Assert.True(WithinZone(group1Placement, group1Zone, zoneSize),
-            $"Grup 1 kutusu kendi bölge dilimi [{group1Zone * zoneSize},{(group1Zone + 1) * zoneSize}] dışında: Z={group1Placement.Z}, derinlik={group1Placement.Depth}");
+            $"Grup 1 kutusu kendi bölge dilimi [{group1Zone * zoneSize},{(group1Zone + 1) * zoneSize}] dışında: Z={group1Placement.Z}, uzunluk={group1Placement.Length}");
 
         foreach (var placement in group2Placements)
         {
             var group2Zone = ZoneIndex(placement.Z, zoneSize);
             Assert.True(WithinZone(placement, group2Zone, zoneSize),
-                $"Grup 2 kutusu kendi bölge dilimi [{group2Zone * zoneSize},{(group2Zone + 1) * zoneSize}] dışında: Z={placement.Z}, derinlik={placement.Depth}");
+                $"Grup 2 kutusu kendi bölge dilimi [{group2Zone * zoneSize},{(group2Zone + 1) * zoneSize}] dışında: Z={placement.Z}, uzunluk={placement.Length}");
 
             // İki grup, aynı bölge dilimini paylaşmamalı (bölge cezası ayrıştırıyor).
             Assert.NotEqual(group1Zone, group2Zone);
@@ -114,7 +114,7 @@ public sealed class OptimizationEngineTests
     private static int ZoneIndex(decimal z, decimal zoneSize) => (int)(z / zoneSize);
 
     private static bool WithinZone(PlacedItemResult placement, int zoneIndex, decimal zoneSize)
-        => placement.Z >= zoneIndex * zoneSize && placement.Z + placement.Depth <= (zoneIndex + 1) * zoneSize;
+        => placement.Z >= zoneIndex * zoneSize && placement.Z + placement.Length <= (zoneIndex + 1) * zoneSize;
 
     private static OptimizationItemInput CreateItem(decimal weight, int? unloadingOrder, Guid? groupId)
         => new(

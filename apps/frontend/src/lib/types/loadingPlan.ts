@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ProductType, type Item } from '@/lib/types/item';
+import { vehicleDoorSchema } from '@/lib/types/vehicle';
 
 // 0: alt yüz · 1: üst yüz · 2: ön yüz · 3: arka yüz · 4: sol yüz · 5: sağ yüz altta.
 // Detay: lib/utils/boxOrientations.ts → BOX_ORIENTATIONS
@@ -26,7 +27,7 @@ export const placementWithDimensionsSchema = placementSchema.extend({
   vehicleId: z.string().optional(),
   width: z.number().positive(),
   height: z.number().positive(),
-  depth: z.number().positive(),
+  length: z.number().positive(),
   weight: z.number().nonnegative().default(0),
   color: z.string().optional(),
   productType: z.enum([ProductType.Koli, ProductType.Varil, ProductType.Palet]).optional(),
@@ -93,12 +94,11 @@ export const loadingPlanListItemSchema = z.object({
   vehicleCapacityKg: z.number().positive(),
   fillPercentage: z.number().min(0),
   volumeFillPercentage: z.number().min(0),
-  interiorWidthM: z.number().positive(),
-  interiorHeightM: z.number().positive(),
-  interiorDepthM: z.number().positive(),
+  interiorWidthCm: z.number().positive(),
+  interiorHeightCm: z.number().positive(),
+  interiorLengthCm: z.number().positive(),
   vehicleType: z.enum(['Tir', 'Kamyon', 'Kamposet', 'Konteyner']).optional(),
-  doorDirection: z.enum(['front', 'rear', 'side', 'top', 'rearAndSide']).optional(),
-  doorSide: z.enum(['right', 'left']).optional(),
+  doors: z.array(vehicleDoorSchema).default([]),
   thumbnailUrl: z.string().nullable().optional(),
   // ERP aktarım durumu yalnızca plan detay ucundan gelir; liste ucunda alan yoktur.
   erpExportStatus: erpExportStatusSchema.nullable().optional(),

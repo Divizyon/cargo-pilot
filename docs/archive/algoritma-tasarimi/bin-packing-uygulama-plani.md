@@ -3,10 +3,13 @@
 **Son güncelleme:** 2026-08-04 · **Durum:** Arşiv
 
 {% hint style="warning" %}
-Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir. `feature/3D_Packing_Algorithm` branch'inde (2026-05-05) üretildi; `test` branch'teki `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` tarafından geride bırakıldı.
+Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir. `feature/3D_Packing_Algorithm` branch'inde (2026-05-05) üretildi; güncel implementasyon tarafından geride bırakıldı.
+
+> **Yönlendirme düzeltmesi (2026-08-15):** bu satır önce okuyucuyu `CargoPilot.Infrastructure/Services/OptimizationEngine.cs` yoluna gönderiyordu; o yol `caab495d` (2026-08-11) refactor'ünden beri **yoktur**. Güncel motor: `apps/backend/CargoPilot.Application/Common/Optimization/` — 7 dosya (`OptimizationEngine.cs`, `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`, `VolumeScoring.cs`, `PlacedBox.cs`). Dosyanın geri kalanı tarihsel kayıttır, değiştirilmedi.
 
 **Bilinen farklar:**
-- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = genişlik, Y = yükseklik, Z = derinlik**, origin kutunun **sol-alt-arka** köşesi (`apps/frontend/.claude/CLAUDE.md`, `lib/config/scene-config.ts`).
+- Koordinat ekseni adlandırması farklıdır. Güncel sözleşme: **X = width (genişlik), Y = height (yükseklik), Z = length (uzunluk)**; origin kutunun **origin'e en yakın köşesi** `(min x, min y, min z)`, araçta uzak yüzdeki (`z = 0`) sol-alt köşedir. Bağlayıcı tanım: `docs/COORDINATE_STANDARD.md`.
+  *(2026-08-16: standardın eksen ve terim kısmı PR #997/#1004 ile koda uygulandı — `depth`/"derinlik" boyut terimi kaldırıldı, referans kapı `z = length`. Aynı düzeltme kardeş dosya `sistem-mimarisi.md`'ye #1007'de yapılmış, bu dosya atlanmıştı. Dosyanın kendisi tarihsel arşivdir; yalnız bu yönlendirme satırı güncellendi.)*
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
 

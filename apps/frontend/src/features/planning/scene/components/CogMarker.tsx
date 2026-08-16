@@ -6,6 +6,7 @@ import { useSceneStore } from '@/lib/store/useSceneStore';
 import {
   calcCenterOfGravity,
   calcBalance,
+  buildAxleSpan,
   buildCogInputs,
 } from '@/lib/utils/geometry/calcCenterOfGravity';
 import { SCENE } from '@/lib/config/scene-config';
@@ -96,7 +97,7 @@ export function CogMarker() {
     const cog = calcCenterOfGravity(inputs);
     if (!cog) return null;
 
-    return calcBalance(cog, vehicle.width, vehicle.length);
+    return calcBalance(cog, vehicle.width, vehicle.length, buildAxleSpan(vehicle));
   }, [placements, selectedItems, vehicle]);
 
   if (!balance || !showCog) return null;

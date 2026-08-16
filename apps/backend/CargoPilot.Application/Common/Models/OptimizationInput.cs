@@ -12,6 +12,13 @@ namespace CargoPilot.Application.Common.Models;
 /// <param name="LoadingType">Yükleme kapısı yönü.</param>
 /// <param name="ClusterGroups">Gruplu ürünlerin bir arada tutulup tutulmayacağı.</param>
 /// <param name="Modules">Modül bayrakları. Verilmezse kriterden türetilir.</param>
+/// <param name="FillFromMaxX">
+/// Yukleme <c>x = width</c> tarafindan mi baslasin. Kapinin oldugu yuzden yukleme
+/// baslamaz (docs/COORDINATE_STANDARD.md §7): big door <c>x = 0</c> yuzundeyse
+/// baslangic kosesi <c>(width, 0, 0)</c> olur ve doldurma kapiya dogru ilerler.
+/// Verilmezse <see cref="LoadingType"/>'dan turetilir; motor <see cref="FillsFromMaxX"/>
+/// okur.
+/// </param>
 public sealed record OptimizationInput(
     decimal VehicleWidth,
     decimal VehicleHeight,
@@ -21,7 +28,16 @@ public sealed record OptimizationInput(
     LoadingPlanOptimizationCriteria Criteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
-    OptimizationModules? Modules = null);
+    OptimizationModules? Modules = null,
+    bool? FillFromMaxX = null)
+{
+    /// <summary>
+    /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.
+    /// Kapı listesi verilmediyse tekil alandan türetilir; böylece <c>doors</c>
+    /// henüz doldurulmamış çağrı yolları bugünkü davranışı korur.
+    /// </summary>
+    public bool FillsFromMaxX => FillFromMaxX ?? (LoadingType == LoadingType.SideLeft);
+}
 
 /// <summary>
 /// Optimizasyon modüllerinin açık/kapalı durumu. Verilmezse kriterden türetilir

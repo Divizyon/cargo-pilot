@@ -19,7 +19,7 @@ namespace CargoPilot.Application.Common.Optimization;
 internal static class BalanceScoring
 {
     // Kalibre edilmiş katsayılar. VolumeFirst'te denge yalnızca eşit hacim
-    // puanlı adaylar arasında ayrım yapar; WeightBalance'ta ise derinlik/genişlik
+    // puanlı adaylar arasında ayrım yapar; WeightBalance'ta ise uzunluk/genişlik
     // tercihlerini bastıracak kadar baskındır.
     private const decimal VolumeFirstCoefficient = 500m;
     private const decimal WeightBalanceCoefficient = 900_000m;
@@ -32,7 +32,7 @@ internal static class BalanceScoring
     internal static decimal Term(
         bool enabled,
         LoadingPlanOptimizationCriteria criteria,
-        decimal ex, decimal ez, decimal w, decimal d,
+        decimal ex, decimal ez, decimal width, decimal length,
         decimal itemWeight, decimal totalWeight,
         decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL)
@@ -50,7 +50,7 @@ internal static class BalanceScoring
         if (coefficient == 0m)
             return 0m;
 
-        return BalancePenalty(ex, ez, w, d, itemWeight, totalWeight, momentX, momentZ, halfW, halfL)
+        return BalancePenalty(ex, ez, width, length, itemWeight, totalWeight, momentX, momentZ, halfW, halfL)
              * coefficient;
     }
 
@@ -60,7 +60,7 @@ internal static class BalanceScoring
     /// (Y) dengeye katılmaz.
     /// </summary>
     internal static decimal BalancePenalty(
-        decimal ex, decimal ez, decimal w, decimal d,
+        decimal ex, decimal ez, decimal width, decimal length,
         decimal itemWeight, decimal totalWeight, decimal momentX, decimal momentZ,
         decimal halfW, decimal halfL)
     {
@@ -69,8 +69,8 @@ internal static class BalanceScoring
         decimal normDevX = 0m, normDevZ = 0m;
         if (newTotal > 0m && halfW > 0m && halfL > 0m)
         {
-            var newCogX = (momentX + itemWeight * (ex + w / 2m)) / newTotal;
-            var newCogZ = (momentZ + itemWeight * (ez + d / 2m)) / newTotal;
+            var newCogX = (momentX + itemWeight * (ex + width / 2m)) / newTotal;
+            var newCogZ = (momentZ + itemWeight * (ez + length / 2m)) / newTotal;
             normDevX = Math.Abs(newCogX - halfW) / halfW;
             normDevZ = Math.Abs(newCogZ - halfL) / halfL;
         }
@@ -81,8 +81,9 @@ internal static class BalanceScoring
     // ── İkinci geçiş: greedy swap balance iyileştirici ───────────────────────
     //
     // Her turda tüm kutu çiftleri taranır. İki kutu pozisyon değiştirdiğinde
-    // denge cezası azalıyorsa ve takas geçerliyse (sınır + çakışma + destek)
-    // takas kabul edilir. En fazla maxPasses tur çalışır.
+    // denge cezası azalıyorsa ve takas geçerliyse (sınır + çakışma + destek +
+    // istif/kırılganlık kısıtları + üstteki kutuların desteği) takas kabul edilir.
+    // En fazla maxPasses tur çalışır.
     internal static List<PlacedBox> ImproveBalance(
         List<PlacedBox> placements,
         decimal vW, decimal vH, decimal vL,
@@ -108,9 +109,9 @@ internal static class BalanceScoring
                     var b = current[j];
 
                     // Sınır kontrolü: a, b'nin yerine sığıyor mu?
-                    if (b.X + a.W > vW || b.Y + a.H > vH || b.Z + a.D > vL) continue;
+                    if (b.X + a.Width > vW || b.Y + a.Height > vH || b.Z + a.Length > vL) continue;
                     // Sınır kontrolü: b, a'nın yerine sığıyor mu?
-                    if (a.X + b.W > vW || a.Y + b.H > vH || a.Z + b.D > vL) continue;
+                    if (a.X + b.Width > vW || a.Y + b.Height > vH || a.Z + b.Length > vL) continue;
 
                     var swapped = current.ToList();
                     swapped[i] = a with { X = b.X, Y = b.Y, Z = b.Z };
@@ -135,57 +136,69 @@ internal static class BalanceScoring
     }
 
     // Takas sonrası i ve j kutularının geçerli olup olmadığını doğrular:
-    // çakışma yok + zemin üzerinde veya %80 destek alıyor.
+    // çakışma yok + zemin üzerinde veya %80 destek alıyor + istif/kırılganlık
+    // kısıtları hem aşağı hem yukarı yönde sağlanıyor + eski üst yüzeylerde
+    // duran kutuların desteği korunuyor.
     private static bool SwapIsValid(
         List<PlacedBox> placements, int i, int j)
     {
         var a = placements[i];
         var b = placements[j];
 
-        // Diğer kutularla çakışma kontrolü (i ve j hariç)
+        // a ve b takas sonrası birbirinin üstünde, altında ya da yanında olabilir;
+        // bu yüzden her kutu DİĞERİNİ GÖREREK doğrulanır. othersA yalnızca a'yı,
+        // othersB yalnızca b'yi dışlar — böylece a↔b ilişkisi altı kısıtın
+        // tamamında test edilir.
+        var othersA = placements.Where((_, k) => k != i).ToList();
+        var othersB = placements.Where((_, k) => k != j).ToList();
+
+        // Çakışma kontrolü. a↔b çifti birinci taramada zaten test edilir; ikinci
+        // taramadaki tekrar zararsızdır.
+        if (othersA.Exists(c => PlacementValidator.BoxesOverlap(a, c))) return false;
+        if (othersB.Exists(c => PlacementValidator.BoxesOverlap(b, c))) return false;
+
+        // Destek kontrolü
+        if (!PlacementValidator.HasSupportFor(a, othersA)) return false;
+        if (!PlacementValidator.HasSupportFor(b, othersB)) return false;
+
+        // Takas sonrası istif kısıtı kontrolü. İstiflenebilirlik de burada
+        // doğrulanır; aksi hâlde denge iyileştirmesi bir kutuyu istiflenemez
+        // kutunun üstüne taşıyabiliyordu.
+        if (PlacementValidator.ViolatesStackability(othersA, a.X, a.Y, a.Z, a.Width, a.Length)) return false;
+        if (PlacementValidator.ViolatesStackability(othersB, b.X, b.Y, b.Z, b.Width, b.Length)) return false;
+        if (PlacementValidator.ViolatesStackCount(othersA, a.X, a.Y, a.Z, a.Width, a.Length)) return false;
+        if (PlacementValidator.ViolatesStackCount(othersB, b.X, b.Y, b.Z, b.Width, b.Length)) return false;
+        if (PlacementValidator.ViolatesStackWeight(othersA, a.X, a.Y, a.Z, a.Width, a.Length, a.Weight)) return false;
+        if (PlacementValidator.ViolatesStackWeight(othersB, b.X, b.Y, b.Z, b.Width, b.Length, b.Weight)) return false;
+
+        // Kırılganlık da sert kısıttır: takas bir kutuyu kırılgan kutunun üstüne
+        // taşıyamaz. Motorun aday taramasındaki kuralın aynısı burada da geçerlidir
+        if (PlacementValidator.ViolatesFragility(othersA, a.X, a.Y, a.Z, a.Width, a.Length)) return false;
+        if (PlacementValidator.ViolatesFragility(othersB, b.X, b.Y, b.Z, b.Width, b.Length)) return false;
+
+        // Yukarıdaki dört kısıt yalnızca AŞAĞI bakar (bkz. PlacementValidator
+        // satır 100/128/156/198). Takas bir kutuyu var olan bir yığının ALTINA
+        // taşıyabildiği için taşıyıcı yönü de sorulmalıdır.
+        if (PlacementValidator.ViolatesLoadAbove(othersA, a)) return false;
+        if (PlacementValidator.ViolatesLoadAbove(othersB, b)) return false;
+
+        // Takas yalnızca a ve b'nin ESKİ üst yüzeylerindeki desteği azaltabilir,
+        // yeni üst yüzeylerde destek yalnızca eklenir. Takas sonrası a, B'nin eski
+        // yüksekliğine oturduğu için aşağıdaki iki seviye A ve B'nin eski üst
+        // yüzeyleridir, simetrik olarak b için de aynısı geçerlidir. Bu iki
+        // seviyelik küme tamdır, ama yükseklikler eşit olsa bile kontrol
+        // atlanamaz çünkü kutuların taban ALANI birbirinden farklı olabilir.
+        var oldATopY = b.Y + a.Height;
+        var oldBTopY = a.Y + b.Height;
+
         for (int k = 0; k < placements.Count; k++)
         {
             if (k == i || k == j) continue;
             var c = placements[k];
+            if (c.Y != oldATopY && c.Y != oldBTopY) continue;
 
-            if (PlacementValidator.BoxesOverlap(a, c) || PlacementValidator.BoxesOverlap(b, c)) return false;
-        }
-
-        // Destek kontrolü
-        var others = placements.Where((_, k) => k != i && k != j).ToList();
-        if (!PlacementValidator.HasSupportFor(a, others)) return false;
-        if (!PlacementValidator.HasSupportFor(b, others)) return false;
-
-        // Takas sonrası istif kısıtı kontrolü: i ve j kendileri hariç tutularak
-        // kontrol edilir (others zaten bu listeyi oluşturmuş durumda).
-        // İstiflenebilirlik de burada doğrulanır; aksi hâlde denge iyileştirmesi
-        // bir kutuyu istiflenemez kutunun üstüne taşıyabiliyordu.
-        if (PlacementValidator.ViolatesStackability(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesStackability(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (PlacementValidator.ViolatesStackCount(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesStackCount(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-        if (PlacementValidator.ViolatesStackWeight(others, a.X, a.Y, a.Z, a.W, a.D, a.Weight)) return false;
-        if (PlacementValidator.ViolatesStackWeight(others, b.X, b.Y, b.Z, b.W, b.D, b.Weight)) return false;
-
-        // Kırılganlık da sert kısıttır: takas bir kutuyu kırılgan kutunun üstüne
-        // taşıyamaz. Motorun aday taramasındaki kuralın aynısı burada da geçerlidir
-        if (PlacementValidator.ViolatesFragility(others, a.X, a.Y, a.Z, a.W, a.D)) return false;
-        if (PlacementValidator.ViolatesFragility(others, b.X, b.Y, b.Z, b.W, b.D)) return false;
-
-        // Yükseklikler farklıysa: eski konumların üstündeki kutular havada kalabilir.
-        // a, B'nin eski Y'sindedir (a.Y = B_eski.Y); a.H = A'nın yüksekliği → A'nın eski üst yüzeyi = b.Y + a.H
-        // b, A'nın eski Y'sindedir (b.Y = A_eski.Y); b.H = B'nin yüksekliği → B'nin eski üst yüzeyi = a.Y + b.H
-        if (a.H != b.H)
-        {
-            var oldATopY = b.Y + a.H;
-            var oldBTopY = a.Y + b.H;
-
-            foreach (var c in others)
-            {
-                if (c.Y != oldATopY && c.Y != oldBTopY) continue;
-                var supportersOfC = others.Where(p => p != c).Append(a).Append(b).ToList();
-                if (!PlacementValidator.HasSupportFor(c, supportersOfC)) return false;
-            }
+            var supportersOfC = placements.Where((_, m) => m != k).ToList();
+            if (!PlacementValidator.HasSupportFor(c, supportersOfC)) return false;
         }
 
         return true;
@@ -200,8 +213,8 @@ internal static class BalanceScoring
         decimal halfW, decimal halfL)
     {
         if (totalWeight == 0m || halfW == 0m || halfL == 0m) return 0m;
-        var cogX = placements.Sum(p => p.Weight * (p.X + p.W / 2m)) / totalWeight;
-        var cogZ = placements.Sum(p => p.Weight * (p.Z + p.D / 2m)) / totalWeight;
+        var cogX = placements.Sum(p => p.Weight * (p.X + p.Width / 2m)) / totalWeight;
+        var cogZ = placements.Sum(p => p.Weight * (p.Z + p.Length / 2m)) / totalWeight;
         return Math.Abs(cogX - halfW) / halfW + Math.Abs(cogZ - halfL) / halfL;
     }
 }

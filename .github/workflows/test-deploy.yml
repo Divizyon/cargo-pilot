@@ -124,7 +124,7 @@ jobs:
             DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
             DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
           cache-from: type=gha,scope=backend-test
-          cache-to: type=gha,mode=max,scope=backend-test
+          cache-to: type=gha,mode=min,scope=backend-test
 
       - name: Frontend image build ve GHCR push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -149,13 +149,14 @@ jobs:
     name: Deploy (Test)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [migration-check]
+    needs: [migration-check, build]
     permissions:
       contents: read
       packages: read
     if: |
       always() &&
       (needs.migration-check.result == 'success' || needs.migration-check.result == 'skipped') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
       (
         (github.event_name == 'pull_request' && github.base_ref == 'test') ||
         (github.event_name == 'push')
@@ -201,7 +202,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Deploy kendi image'larını inline build eder; build job ile aynı GHA cache
-      # scope'u kullanıldığı için, build job da koştuysa ikinci build cache'ten döner.
+      # scope'u kullanılır ve deploy artık build job'undan SONRA başlar (needs: build),
+      # bu yüzden cache-from build job'un yazdığı katmanlara gerçekten isabet alır.
+      # Deploy kendisi cache'e YAZMAZ — tek yazıcı build job'dur.
       # Tag'ler docker-compose.test.yml'deki image: alanlarıyla eşleşmeli.
       # load: true → image'ı local Docker daemon'a yükle (no push)
       - name: Backend image build (deploy için)
@@ -216,7 +219,6 @@ jobs:
             DOTNET_SDK_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
             DOTNET_ASPNET_IMAGE=ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
           cache-from: type=gha,scope=backend-test
-          cache-to: type=gha,mode=max,scope=backend-test
 
       - name: Frontend image build (deploy için)
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -233,32 +235,6 @@ jobs:
             VITE_APP_ENV=test
             VITE_APP_VERSION=${{ github.sha }}
           cache-from: type=gha,scope=frontend-test
-          cache-to: type=gha,mode=max,scope=frontend-test
-
-      # Infrastructure image'ları (MSSQL ~490MB, MinIO ~100MB) cache'lenir.
-      - name: Infrastructure image cache'i kontrol et
-        id: infra-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: /tmp/infra-images
-          key: infra-images-mssql2022-minio-release-2022-v1
-
-      - name: Infrastructure image'larını pull et ve cache'e kaydet
-        if: steps.infra-cache.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /tmp/infra-images
-          docker pull mcr.microsoft.com/mssql/server:2022-latest
-          docker pull quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
-          docker save mcr.microsoft.com/mssql/server:2022-latest \
-            | gzip > /tmp/infra-images/mssql.tar.gz
-          docker save quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z \
-            | gzip > /tmp/infra-images/minio.tar.gz
-
-      - name: Infrastructure image'larını cache'den yükle
-        if: steps.infra-cache.outputs.cache-hit == 'true'
-        run: |
-          docker load < /tmp/infra-images/mssql.tar.gz
-          docker load < /tmp/infra-images/minio.tar.gz
 
       - name: Servisleri ayağa kaldır ve hazır olmasını bekle
         run: |
@@ -335,20 +311,20 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Docker Buildx kur
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: GHCR'a giriş yap
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Backend image build (e2e için)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
@@ -361,7 +337,7 @@ jobs:
           cache-from: type=gha,scope=backend-test
 
       - name: Frontend image build (e2e için)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
@@ -375,7 +351,7 @@ jobs:
           cache-from: type=gha,scope=frontend-test
 
       - name: Node.js kur
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           cache: 'npm'
@@ -418,7 +394,7 @@ jobs:
 
       - name: Playwright raporunu yükle
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report
           path: apps/frontend/playwright-report
@@ -439,11 +415,12 @@ jobs:
     name: Deploy (Test Server)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [migration-check, build]
+    needs: [migration-check, build, deploy]
     if: |
       always() &&
       (needs.migration-check.result == 'success') &&
       (needs.build.result == 'success') &&
+      (needs.deploy.result == 'success') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/test'
 
@@ -496,17 +473,10 @@ jobs:
             echo "==> Kullanılmayan eski image'lar temizleniyor..."
             docker image prune -f
 
-      - name: Test backend health check
-        run: |
-          echo "Test backend'in ayağa kalkması bekleniyor..."
-          sleep 20
-          for i in $(seq 1 10); do
-            if curl -sf http://${{ secrets.TEST_SSH_HOST }}:8081/health; then
-              echo "Test backend hazır."
-              exit 0
-            fi
-            echo "Deneme $i/10..."
-            sleep 10
-          done
-          echo "::error::Test backend health check başarısız oldu."
-          exit 1
+            echo "==> Backend health (loopback) bekleniyor..."
+            for i in $(seq 1 20); do
+              curl -sf http://127.0.0.1:8081/health >/dev/null && break
+              if [ "$i" = "20" ]; then echo "Backend loopback health basarisiz"; exit 1; fi
+              sleep 5
+            done
+            echo "Backend loopback health OK."

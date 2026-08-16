@@ -2,7 +2,7 @@ import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
 
 interface PositionedBox {
   positionZ: number;
-  depth: number;
+  length: number;
   itemId: string;
 }
 
@@ -10,20 +10,33 @@ interface PositionedBox {
  * Ghost mode filtresi — iki ayrı koşuldan biri ghost'u tetikler:
  *
  * 1. Grup fokus: focusedGroupItemIds dolu ise, grupta olmayan kutular ghost olur.
- * 2. Layer filtresi: activeLayer > 0 ise, positionZ < activeLayer olan kutular ghost olur.
+ * 2. X-Ray: `peelFromDoorCm > 0` ise, referans kapıdan itibaren o kadar
+ *    santimetrelik dilim ghost olur.
  *
- * Grup fokus, layer filtresinden önce değerlendirilir.
+ * Grup fokus, X-Ray'den önce değerlendirilir.
+ *
+ * Soyma yönü kapı tarafındandır (z = length). Eskiden uzak yüzden (z = 0)
+ * soyuyordu: kamera kapı tarafında olduğu için kullanıcı zaten gördüğü kutuları
+ * yerinde bırakıp arkadakileri siliyordu, yani X-Ray hiçbir şeyi açığa
+ * çıkarmıyordu (denetim S-31).
+ *
+ * `vehicleLength` verilmezse eski (uzak yüzden) davranış korunur; araç bilgisi
+ * olmayan çağrı yolları sessizce yanlış yöne dönmesin diye açık parametre.
  */
 export function isGhosted(
   box: PositionedBox,
-  activeLayer: number,
+  peelFromDoorCm: number,
   focusedGroupItemIds: string[] | null = null,
+  vehicleLength?: number,
 ): boolean {
   if (focusedGroupItemIds !== null) {
     return !focusedGroupItemIds.includes(box.itemId);
   }
-  if (activeLayer <= 0) return false;
-  return box.positionZ < activeLayer;
+  if (peelFromDoorCm <= 0) return false;
+  if (vehicleLength === undefined) return box.positionZ < peelFromDoorCm;
+
+  // Kapıya en yakın dilim önce soyulur: kutunun kapıya bakan yüzü eşiği aşıyorsa.
+  return box.positionZ + box.length > vehicleLength - peelFromDoorCm;
 }
 
 /**

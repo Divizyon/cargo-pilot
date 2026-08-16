@@ -3,30 +3,30 @@ import type { Vehicle } from '@/lib/types/vehicle';
 
 /**
  * Dikdörtgenler prizması collision — tüm ürün tipleri için geçerli.
- * Varil: width=depth=çap, height=yükseklik olarak çağrılır.
+ * Varil: width=length=çap, height=yükseklik olarak çağrılır.
  */
 export function fitsInVehicle(
   posX: number,
   posY: number,
   posZ: number,
-  w: number,
-  h: number,
-  d: number,
+  width: number,
+  height: number,
+  length: number,
   vehicle: Vehicle,
 ): boolean {
   return (
     posX >= 0 &&
     posY >= 0 &&
     posZ >= 0 &&
-    posX + w <= vehicle.width &&
-    posY + h <= vehicle.height &&
-    posZ + d <= vehicle.length
+    posX + width <= vehicle.width &&
+    posY + height <= vehicle.height &&
+    posZ + length <= vehicle.length
   );
 }
 
 // Sol-alt-arka origin: kutunun bounds'u positionX..positionX+width gibi.
 export function isInsideContainer(p: PlacementWithDimensions, vehicle: Vehicle): boolean {
-  return fitsInVehicle(p.positionX, p.positionY, p.positionZ, p.width, p.height, p.depth, vehicle);
+  return fitsInVehicle(p.positionX, p.positionY, p.positionZ, p.width, p.height, p.length, vehicle);
 }
 
 /**

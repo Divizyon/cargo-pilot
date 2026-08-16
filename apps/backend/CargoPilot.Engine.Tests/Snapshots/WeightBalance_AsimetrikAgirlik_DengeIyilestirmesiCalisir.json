@@ -7,7 +7,8 @@
     "MaxWeight": 5000,
     "Criteria": "WeightBalance",
     "LoadingType": "Rear",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false
   },
   "Items": [
     {
@@ -58,7 +59,7 @@
         "Z": 300,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 400
       },
@@ -70,7 +71,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 400
       },
@@ -82,7 +83,7 @@
         "Z": 200,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 20
       },
@@ -94,7 +95,7 @@
         "Z": 300,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 20
       },
@@ -106,7 +107,7 @@
         "Z": 200,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 20
       },
@@ -118,7 +119,7 @@
         "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 20
       },
@@ -130,7 +131,7 @@
         "Z": 100,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 20
       },
@@ -142,7 +143,7 @@
         "Z": 100,
         "Width": 100,
         "Height": 100,
-        "Depth": 100,
+        "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 20
       }

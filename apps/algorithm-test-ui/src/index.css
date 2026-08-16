@@ -1,0 +1,169 @@
+/* Üretim uygulamasının kesimi (apps/frontend/src/index.css:1). Test aracı ondan
+ * bağımsız çalışır ama aynı ürünün parçası gibi görünmeli. Sayılar `font-mono`
+ * ile sistem mono yığınına gider — üretimde de böyle, ayrı bir mono kesimi yok. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * Paylaşılan token'lar üretim uygulamasından birebir alınmıştır
+   * (apps/frontend/src/index.css). Test aracı ayrı bir uygulama ama aynı ürünün
+   * parçası gibi görünmeli; sapma olursa iki ekran arasında geçiş yapan kişi
+   * başka bir yazılıma girdiğini sanıyor.
+   *
+   * Yalnızca üretimde karşılığı olmayan iki grup burada tanımlıdır: kural
+   * denetiminin durum renkleri ve canvas'ın çizim renkleri. İkisinin de
+   * değerleri üretimin diline dayanır (scene-config.ts), uydurulmamıştır.
+   */
+  :root {
+    color-scheme: light;
+
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 244 81% 4.1%; /* #030213 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4.8% 93.1%;
+    --secondary-foreground: 244 81% 4.1%;
+
+    --muted: 240 12% 93.3%; /* #ececf0 */
+    --muted-foreground: 240 7% 47.6%; /* #717182 */
+
+    --accent: 220 16% 92.5%; /* #e9ebef */
+    --accent-foreground: 244 81% 4.1%;
+
+    --destructive: 348 80% 46.3%; /* #d4183d */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 70.8%;
+
+    /* Sidebar — üretimdeki DashboardLayout ile aynı değerler. */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 240 10% 3.9%;
+    --sidebar-accent: 0 0% 97%;
+    --sidebar-accent-foreground: 0 0% 20.5%;
+    --sidebar-border: 0 0% 92.2%;
+
+    --input-background: 240 9% 95.7%; /* #f3f3f5 */
+    /* Kart dışı sayfa zemini; üretimdeki DashboardLayout ile aynı ayrım. */
+    --page-background: 0 0% 96.1%; /* #F5F5F5 */
+
+    --radius: 0.625rem;
+    --radius-xl: 1rem;
+
+    /*
+     * Kural denetiminin üç durumu. Üretimde karşılığı yok — orada kural denetimi
+     * diye bir ekran yok — bu yüzden değerler 3D sahnenin paletinden alındı:
+     * yeşil SCENE.COLORS.GROUPS.D, amber COG_NORMAL, kırmızı ise arayüzün kendi
+     * `--destructive`'i (ayrı bir kırmızı daha eklemek renk sayısını artırırdı).
+     */
+    --state-pass: 142 71% 45%; /* #22C55E */
+    --state-warn: 43 96% 56%; /* #FBBF24 */
+    --state-fail: 348 80% 46.3%;
+
+    /*
+     * Çizim yüzeyi: canvas bunları okur, tema değişince çizim de döner.
+     * ink ve box üretimdeki sahneden (CONTAINER_EDGE, NORMAL Industrial Teal).
+     */
+    --draw-ink: 215 25% 27%; /* #334155 */
+    --draw-box: 172 66% 50%; /* #2DD4BF */
+    --draw-grid: 213 27% 84%;
+    --draw-zone: 258 90% 66%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  /*
+   * Belge hiç kaymaz: kaydırma uygulama kabuğunun içinde, panel panel yapılır.
+   * Aksi hâlde kabuk tam ekran yüksekliğindeyken bile gövdeye taşan herhangi
+   * bir öğe sayfayı uzatıyor ve içeriğin altında boş bir bant açıyordu.
+   */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  #root {
+    height: 100%;
+  }
+}
+
+/*
+ * Koyu tema bilinçli olarak `@layer base` DIŞINDA: Tailwind, katman içindeki
+ * sınıf seçicilerini içerikte o sınıf geçmiyorsa çıktıdan eliyor. Uygulamada
+ * henüz `dark` sınıfını yazan bir tema anahtarı yok, dolayısıyla blok katman
+ * içindeyken derlemeden sessizce düşüyordu. Katman dışında her zaman üretilir.
+ *
+ * Özgüllük eşit (`:root` ve `.dark` ikisi de 0,1,0); bu blok sonra geldiği için
+ * kazanıyor.
+ */
+.dark {
+  color-scheme: dark;
+
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+
+  --card: 240 5.9% 10%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 20.5%;
+
+  --secondary: 0 0% 26.9%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted: 0 0% 26.9%;
+  --muted-foreground: 0 0% 70.8%;
+
+  --accent: 0 0% 26.9%;
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 26.9%;
+  --input: 0 0% 26.9%;
+  --ring: 0 0% 43.9%;
+
+  --sidebar: 0 0% 20.5%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-accent: 0 0% 26.9%;
+  --sidebar-accent-foreground: 0 0% 98.5%;
+  --sidebar-border: 0 0% 26.9%;
+
+  --input-background: 0 0% 20%;
+  --page-background: 240 10% 8%;
+
+  /* Koyu zeminde durum renkleri açılır; üretimin koyu `--destructive`'i
+   * (30.6% açıklık) bir uyarı için fazla soluk kaldığından ihlal rengi burada
+   * ayrışıyor. */
+  --state-pass: 142 71% 45%;
+  --state-warn: 43 96% 56%;
+  --state-fail: 0 72% 51%;
+
+  --draw-ink: 0 0% 70.8%;
+  --draw-box: 172 66% 50%;
+  --draw-grid: 0 0% 26.9%;
+  --draw-zone: 258 90% 72%;
+}

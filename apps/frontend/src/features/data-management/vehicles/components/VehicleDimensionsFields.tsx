@@ -7,6 +7,7 @@ import { calcVolume } from '@/lib/utils/geometry/calcVolume';
 import { formatVolumeDisplay } from '@/lib/utils/format/unitConversion';
 import { useUnitStore } from '@/lib/store/useUnitStore';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
+import { toCentimeters } from '@/features/data-management/products/schemas/productSchema';
 
 interface VehicleDimensionsFieldsProps {
   form: UseFormReturn<VehicleFormValues>;
@@ -26,21 +27,28 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
   const [heightDisplay, setHeightDisplay] = useState(() => toStr(form.getValues('height')));
   const [widthDisplay, setWidthDisplay] = useState(() => toStr(form.getValues('width')));
 
+  // formatVolumeDisplay cm³ bekliyor; form değerleri görüntü biriminde olduğu
+  // için önce cm'e çevrilir. Eskiden ham değer veriliyordu ve mm ayarında hacim
+  // 1000 kat şişiyordu (S-29).
   const volume = useMemo(() => {
     if (!length || !width || !height) return null;
-    return calcVolume(length, width, height);
-  }, [length, width, height]);
+    return calcVolume(
+      toCentimeters(length, dimensionUnit),
+      toCentimeters(width, dimensionUnit),
+      toCentimeters(height, dimensionUnit),
+    );
+  }, [length, width, height, dimensionUnit]);
 
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-3">
-        {/* X — Uzunluk */}
+        {/* Z — Uzunluk */}
         <FormField
           control={form.control}
           name="length"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Uzunluk/Çap (X)</FormLabel>
+              <FormLabel>Uzunluk/Çap (Z)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -104,13 +112,13 @@ export function VehicleDimensionsFields({ form }: VehicleDimensionsFieldsProps) 
             </FormItem>
           )}
         />
-        {/* Z — Derinlik */}
+        {/* X — Genişlik */}
         <FormField
           control={form.control}
           name="width"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Derinlik (Z)</FormLabel>
+              <FormLabel>Genişlik (X)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input

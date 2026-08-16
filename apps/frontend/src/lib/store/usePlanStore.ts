@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Item } from '@/lib/types/item';
+import { fillsFromMaxX } from '@/lib/types/vehicle';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type {
   OptimizationCriteria,
@@ -43,14 +44,14 @@ interface BuildResult {
 function gravityY(
   x: number,
   z: number,
-  w: number,
-  d: number,
+  width: number,
+  length: number,
   others: PlacementWithDimensions[],
 ): number {
   let maxY = 0;
   for (const o of others) {
-    const xOv = x < o.positionX + o.width && o.positionX < x + w;
-    const zOv = z < o.positionZ + o.depth && o.positionZ < z + d;
+    const xOv = x < o.positionX + o.width && o.positionX < x + width;
+    const zOv = z < o.positionZ + o.length && o.positionZ < z + length;
     if (xOv && zOv) {
       const top = o.positionY + o.height;
       if (top > maxY) maxY = top;
@@ -63,7 +64,7 @@ function maxZInLayer(placements: PlacementWithDimensions[], y: number): number {
   let max = 0;
   for (const p of placements) {
     if (!p.isViolation && p.positionY === y) {
-      const zEnd = p.positionZ + p.depth;
+      const zEnd = p.positionZ + p.length;
       if (zEnd > max) max = zEnd;
     }
   }
@@ -83,28 +84,38 @@ function maxTopInLayer(placements: PlacementWithDimensions[], y: number): number
   return max;
 }
 
-function buildPlacements(
+export function buildPlacements(
   item: Item,
   qty: number,
   color: string,
   vehicle: Vehicle,
   existingPlacements: PlacementWithDimensions[],
 ): BuildResult {
-  const w = item.width;
-  const h = item.height;
-  const d = item.length;
+  const width = item.width;
+  const height = item.height;
+  const length = item.length;
 
-  // Violation'ları hariç tut — cursor hesabı için sadece geçerli yerleşimler
-  const valid = existingPlacements.filter((p) => !p.isViolation);
+  // Cursor ve ağırlık hesabı yalnızca araca GİREN kutulara bakar. Bekleme
+  // alanındaki kutular araç dışında duruyor (z = length + offset); sayılırsa
+  // imleç boş araçta bile ileriden başlıyor ve ağırlık limiti erken doluyordu
+  // (denetim S-19).
+  const valid = existingPlacements.filter((p) => !p.isViolation && !p.isStagingArea);
 
   // En üst katmandan devam et
   const curY_init = valid.length > 0 ? Math.max(...valid.map((p) => p.positionY)) : 0;
   const curZ_init = maxZInLayer(valid, curY_init);
 
-  let curX = 0;
+  // Yükleme kapıya değmeyen köşeden başlar (docs/COORDINATE_STANDARD.md §7).
+  // Motor bunu `LoadingCorner.FillFromMaxX` ile yapıyor; manuel yerleşim imleci
+  // ise sabit x = 0'dan başlıyordu, yani büyük kapısı x = 0 olan araçta kutuları
+  // kapının tam önüne diziyordu (denetim S-18).
+  const fromMaxX = fillsFromMaxX(vehicle.doors ?? []);
+  const rowStartX = fromMaxX ? vehicle.width - width : 0;
+
+  let curX = rowStartX;
   let curY = curY_init;
   let curZ = curZ_init;
-  let rowMaxDepth = d;
+  let rowMaxDepth = length;
 
   const unfitByReason: Partial<Record<UnfitReason, number>> = {};
   function addUnfit(reason: UnfitReason) {
@@ -124,29 +135,29 @@ function buildPlacements(
     }
 
     // Z overflow → new layer (only if stackable)
-    if (curZ + d > vehicle.length) {
+    if (curZ + length > vehicle.length) {
       if (!item.isStackable) {
         addUnfit(UnfitReasonConst.Stacking);
         continue;
       }
       const allSoFar = [...valid, ...result.filter((p) => !p.isViolation)];
       const newLayerY = maxTopInLayer(allSoFar, curY);
-      if (newLayerY + h > vehicle.height) {
+      if (newLayerY + height > vehicle.height) {
         addUnfit(UnfitReasonConst.Volume);
         continue;
       }
       curY = newLayerY;
-      curX = 0;
+      curX = rowStartX;
       curZ = maxZInLayer(allSoFar, curY);
-      rowMaxDepth = d;
+      rowMaxDepth = length;
     }
 
-    rowMaxDepth = Math.max(rowMaxDepth, d);
+    rowMaxDepth = Math.max(rowMaxDepth, length);
 
     const soFar = [...valid, ...result.filter((p) => !p.isViolation)];
-    const posY = gravityY(curX, curZ, w, d, soFar);
+    const posY = gravityY(curX, curZ, width, length, soFar);
 
-    if (!fitsInVehicle(curX, posY, curZ, w, h, d, vehicle)) {
+    if (!fitsInVehicle(curX, posY, curZ, width, height, length, vehicle)) {
       addUnfit(UnfitReasonConst.Volume);
       continue;
     }
@@ -157,22 +168,25 @@ function buildPlacements(
       positionY: posY,
       positionZ: curZ,
       orientationIndex: 0,
-      layer: Math.round(posY / h) + 1,
+      layer: Math.round(posY / height) + 1,
       isViolation: false,
-      width: w,
-      height: h,
-      depth: d,
+      width: width,
+      height: height,
+      length: length,
       weight: item.weight,
       color,
       productType: item.productType,
     });
 
     cumulativeWeight += item.weight;
-    curX += w;
-    if (curX + w > vehicle.width) {
-      curX = 0;
+
+    // Sıra, başlangıç köşesinden karşı duvara doğru ilerler.
+    curX = fromMaxX ? curX - width : curX + width;
+    const satirBitti = fromMaxX ? curX < 0 : curX + width > vehicle.width;
+    if (satirBitti) {
+      curX = rowStartX;
       curZ += rowMaxDepth;
-      rowMaxDepth = d;
+      rowMaxDepth = length;
     }
   }
 
@@ -190,9 +204,9 @@ function buildStagingPlacements(
   const maxX = originX + SCENE.STAGING_WIDTH_CM;
   const maxZ = SCENE.STAGING_DEPTH_CM;
   const gap = SCENE.STAGING_INTER_GAP_CM;
-  const w = item.width;
-  const h = item.height;
-  const d = item.length;
+  const width = item.width;
+  const height = item.height;
+  const length = item.length;
 
   const existing = existingPlacements.filter((p) => p.isStagingArea);
 
@@ -213,18 +227,18 @@ function buildStagingPlacements(
     }
     if (p.positionY === curY) {
       layerHeight = Math.max(layerHeight, p.height);
-      if (p.positionZ + p.depth > curZ + rowDepth) rowDepth = p.positionZ + p.depth - curZ;
+      if (p.positionZ + p.length > curZ + rowDepth) rowDepth = p.positionZ + p.length - curZ;
       if (p.positionX + p.width + gap > curX) curX = p.positionX + p.width + gap;
     }
   }
   // Cursor X taşmışsa yeni Z satırına geç
-  if (existing.length > 0 && curX + w > maxX) {
+  if (existing.length > 0 && curX + width > maxX) {
     curX = originX;
     curZ += rowDepth + gap;
     rowDepth = 0;
   }
   // Cursor Z taşmışsa yeni Y katına çık
-  if (existing.length > 0 && curZ + d > maxZ) {
+  if (existing.length > 0 && curZ + length > maxZ) {
     curY += layerHeight + gap;
     curX = originX;
     curZ = 0;
@@ -243,24 +257,24 @@ function buildStagingPlacements(
       layer: 1,
       isViolation: false,
       isStagingArea: true,
-      width: w,
-      height: h,
-      depth: d,
+      width: width,
+      height: height,
+      length: length,
       weight: item.weight,
       color,
       productType: item.productType,
     });
 
-    rowDepth = Math.max(rowDepth, d);
-    layerHeight = Math.max(layerHeight, h);
-    curX += w + gap;
+    rowDepth = Math.max(rowDepth, length);
+    layerHeight = Math.max(layerHeight, height);
+    curX += width + gap;
 
-    if (curX + w > maxX) {
+    if (curX + width > maxX) {
       curX = originX;
       curZ += rowDepth + gap;
       rowDepth = 0;
 
-      if (curZ + d > maxZ) {
+      if (curZ + length > maxZ) {
         curY += layerHeight + gap;
         curZ = 0;
         layerHeight = 0;
@@ -705,16 +719,16 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const base = rotatedDimensions(
         target.width,
         target.height,
-        target.depth,
+        target.length,
         target.orientationIndex,
       );
-      const next = rotatedDimensions(base.width, base.height, base.depth, idx);
+      const next = rotatedDimensions(base.width, base.height, base.length, idx);
       const updated: PlacementWithDimensions = {
         ...target,
         orientationIndex: idx,
         width: next.width,
         height: next.height,
-        depth: next.depth,
+        length: next.length,
       };
       const placements = s.placements.map((p, i) => (i === instanceId ? updated : p));
       const collisionChecked = computeViolations(placements);
@@ -796,7 +810,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
           ...p,
           width: item.width,
           height: item.height,
-          depth: item.length,
+          length: item.length,
           weight: item.weight,
           color,
         }));

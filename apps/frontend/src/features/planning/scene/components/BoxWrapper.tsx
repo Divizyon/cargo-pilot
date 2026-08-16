@@ -8,7 +8,7 @@ const CYLINDER_SEGMENTS = 16;
 interface BoxWrapperProps {
   width: number;
   height: number;
-  depth: number;
+  length: number;
   positionX: number;
   positionY: number;
   positionZ: number;
@@ -59,7 +59,7 @@ function PaletMat({
 function PaletContent({
   width,
   height,
-  depth,
+  length,
   color,
   opacity,
   isSelected,
@@ -69,7 +69,7 @@ function PaletContent({
 }: {
   width: number;
   height: number;
-  depth: number;
+  length: number;
   color: string;
   opacity: number;
   isSelected: boolean;
@@ -89,8 +89,8 @@ function PaletContent({
   const xUnit = width / 23;
   const slatW = 3 * xUnit;
 
-  // Derinlik: 3 stringer
-  const yUnit = depth / 3.5;
+  // Uzunluk ekseni: 3 stringer
+  const yUnit = length / 3.5;
   const crossD = 0.5 * yUnit;
 
   // 6 üst tahta merkez X (center-relative, tüm bounding box merkezine göre)
@@ -102,10 +102,10 @@ function PaletContent({
 
   // 3 stringer merkez Z (center-relative)
   const crossCentersZ = useMemo(() => {
-    const unit = depth / 3.5;
+    const unit = length / 3.5;
     const cd = 0.5 * unit;
-    return Array.from({ length: 3 }, (_, i) => -depth / 2 + i * (cd + unit) + cd / 2);
-  }, [depth]);
+    return Array.from({ length: 3 }, (_, i) => -length / 2 + i * (cd + unit) + cd / 2);
+  }, [length]);
 
   // Bounding box merkezi = Y:0. Palet altta, kargo üstte.
   // Palet alt kenarı: -height/2, üst kenarı: -height/2 + paletH
@@ -120,7 +120,7 @@ function PaletContent({
   if (isGhosted) {
     return (
       <mesh>
-        <boxGeometry args={[width, height, depth]} />
+        <boxGeometry args={[width, height, length]} />
         <meshBasicMaterial
           color="#94a3b8"
           wireframe
@@ -137,7 +137,7 @@ function PaletContent({
       {/* Üst deck: 6 tahta */}
       {slatCentersX.map((bx, i) => (
         <mesh key={`ts${i}`} position={[bx, topDeckY, 0]}>
-          <boxGeometry args={[slatW, deckH, depth]} />
+          <boxGeometry args={[slatW, deckH, length]} />
           <PaletMat
             color={PALLET_WOOD_COLOR}
             opacity={opacity}
@@ -175,7 +175,7 @@ function PaletContent({
       {/* Kargo kutusu: palet üstünde, taban hariç 5 yüze label */}
       {cargoH > 0 && (
         <mesh position={[0, cargoCenterY, 0]}>
-          <boxGeometry args={[width, cargoH, depth]} />
+          <boxGeometry args={[width, cargoH, length]} />
           {labelTexture ? (
             // BoxGeometry yüz sırası: +X(0), -X(1), +Y(2), -Y(3/taban), +Z(4), -Z(5)
             // Taban (-Y, index 3) düz renk; diğer 5 yüze texture
@@ -215,7 +215,7 @@ function PaletContent({
 export function BoxWrapper({
   width,
   height,
-  depth,
+  length,
   positionX,
   positionY,
   positionZ,
@@ -232,21 +232,21 @@ export function BoxWrapper({
 }: BoxWrapperProps) {
   const cx = positionX + width / 2;
   const cy = positionY + height / 2;
-  const cz = positionZ + depth / 2;
+  const cz = positionZ + length / 2;
 
   const isPalet = productType === 'palet';
   const isVaril = productType === 'varil';
 
   // Cylinder orientation: long axis determines rotation and radius.
   // cylinderGeometry axis is local Y; rotate so it aligns with world X or Z when laid on side.
-  const isVarilLongX = isVaril && width > height && width > depth;
-  const isVarilLongZ = isVaril && depth > height && depth > width;
-  const cylLen = isVarilLongX ? width : isVarilLongZ ? depth : height;
+  const isVarilLongX = isVaril && width > height && width > length;
+  const isVarilLongZ = isVaril && length > height && length > width;
+  const cylLen = isVarilLongX ? width : isVarilLongZ ? length : height;
   const cylRadius = isVarilLongX
-    ? Math.min(height, depth) / 2
+    ? Math.min(height, length) / 2
     : isVarilLongZ
       ? Math.min(width, height) / 2
-      : Math.min(width, depth) / 2;
+      : Math.min(width, length) / 2;
   // Euler rotation to align cylinder Y-axis with the correct world axis
   const cylRotation: [number, number, number] = isVarilLongX
     ? [0, 0, -Math.PI / 2]
@@ -263,11 +263,11 @@ export function BoxWrapper({
       cyl.dispose();
       return edges;
     }
-    const box = new THREE.BoxGeometry(width, height, depth);
+    const box = new THREE.BoxGeometry(width, height, length);
     const edges = new THREE.EdgesGeometry(box);
     box.dispose();
     return edges;
-  }, [isPalet, isVaril, cylRadius, cylLen, width, height, depth]);
+  }, [isPalet, isVaril, cylRadius, cylLen, width, height, length]);
 
   useEffect(
     () => () => {
@@ -326,7 +326,7 @@ export function BoxWrapper({
         <PaletContent
           width={width}
           height={height}
-          depth={depth}
+          length={length}
           color={color}
           opacity={opacity}
           isSelected={isSelected}
@@ -345,7 +345,7 @@ export function BoxWrapper({
           {isVaril ? (
             <cylinderGeometry args={[cylRadius, cylRadius, cylLen, CYLINDER_SEGMENTS]} />
           ) : (
-            <boxGeometry args={[width, height, depth]} />
+            <boxGeometry args={[width, height, length]} />
           )}
           {!boxMaterials && (
             <meshStandardMaterial

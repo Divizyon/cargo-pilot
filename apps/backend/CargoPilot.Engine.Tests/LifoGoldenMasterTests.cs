@@ -7,7 +7,8 @@ namespace CargoPilot.Engine.Tests;
 /// <summary>
 /// LIFO kriterinin mevcut davranışını kilitler: ComputeGroupZones bölge ayrımı,
 /// bölge tohumlaması ve "geç inen, erken inenin üstüne konamaz" istif kuralı.
-/// Sahne sözleşmesi: arka kapı Z=0, araç önü Z=Length.
+/// Koordinat sözleşmesi (docs/COORDINATE_STANDARD.md): uzak yüz Z=0, referans
+/// kapı (TIR'da back door) Z=Length. İlk inecek grup kapıya en yakın bölgededir.
 /// </summary>
 public sealed class LifoGoldenMasterTests
 {
@@ -57,14 +58,18 @@ public sealed class LifoGoldenMasterTests
     }
 
     /// <summary>
-    /// Yan kapı yüklemesi: gruplar tanımlı olsa da bölge ayrımı yalnızca arka kapıda
-    /// geçerlidir, kutular kapıdan itibaren sıkıştırılır.
+    /// Yalnızca büyük kapısı olan araç: bölge ayrımı yine uygulanır.
+    ///
+    /// Önceden referans kapı (small door) aranıyordu ve bu araçta bölgeler hiç
+    /// kurulmuyordu; kullanıcı LIFO'yu seçebiliyor, sıralama işliyor ama bölge
+    /// kısıtı sessizce devre dışı kalıyordu. Boşaltma sırasının bir ucu vardır
+    /// ve gruplar o uca göre ayrılır — kapının fiziken orada olması gerekmez.
     /// </summary>
     [Fact]
-    public void Lifo_YanKapi_BolgeUygulanmaz()
+    public void Lifo_YalnizcaBuyukKapi_BolgeSirasiKorunur()
     {
         EngineScenario.Verify(
-            nameof(Lifo_YanKapi_BolgeUygulanmaz),
+            nameof(Lifo_YalnizcaBuyukKapi_BolgeSirasiKorunur),
             CorridorVehicle(ThreeGroupItems(), LoadingType.SideRight));
     }
 
@@ -109,6 +114,28 @@ public sealed class LifoGoldenMasterTests
                 vehicleMaxWeight: 10_000m,
                 loadingType: LoadingType.Rear,
                 clusterGroups: false));
+    }
+
+    /// <summary>
+    /// Aynalanmis yukleme: big door x = 0, small door z = length. Baslangic
+    /// kosesi (width, 0, 0) olur, bolge ayrimi referans kapi sayesinde gecerli
+    /// kalir. Golden kapsaminda bu bayragi gecen tek senaryo (denetim: S-34) —
+    /// olmadan aynalanmis yol tamamen kilitsizdi.
+    /// </summary>
+    [Fact]
+    public void Lifo_UcGrup_AynalanmisYukleme_BolgeSirasiKorunur()
+    {
+        EngineScenario.Verify(
+            nameof(Lifo_UcGrup_AynalanmisYukleme_BolgeSirasiKorunur),
+            EngineScenario.Input(
+                ThreeGroupItems(),
+                Criteria,
+                vehicleWidth: 200m,
+                vehicleHeight: EngineScenario.CorridorHeight,
+                vehicleLength: EngineScenario.CorridorLength,
+                loadingType: LoadingType.Rear,
+                clusterGroups: true,
+                fillFromMaxX: true));
     }
 
     private static List<OptimizationItemInput> ThreeGroupItems()

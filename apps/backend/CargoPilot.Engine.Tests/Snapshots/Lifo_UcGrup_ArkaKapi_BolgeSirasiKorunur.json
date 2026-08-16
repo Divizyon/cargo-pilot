@@ -7,7 +7,8 @@
     "MaxWeight": 10000,
     "Criteria": "Lifo",
     "LoadingType": "Rear",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false
   },
   "Items": [
     {
@@ -70,10 +71,10 @@
         "ItemId": "00000000-0000-0000-0000-000000000003",
         "X": 0,
         "Y": 0,
-        "Z": 200,
+        "Z": 0,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -82,10 +83,10 @@
         "ItemId": "00000000-0000-0000-0000-000000000003",
         "X": 0,
         "Y": 0,
-        "Z": 240,
+        "Z": 40,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -97,7 +98,7 @@
         "Z": 100,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -109,7 +110,7 @@
         "Z": 140,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -118,10 +119,10 @@
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 0,
+        "Z": 200,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       },
@@ -130,10 +131,10 @@
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 40,
+        "Z": 240,
         "Width": 100,
         "Height": 100,
-        "Depth": 40,
+        "Length": 40,
         "Rotation": "NoRotation",
         "Weight": 100
       }

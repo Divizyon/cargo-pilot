@@ -1,6 +1,6 @@
 # CargoPilot Backend Mimari Rehberi
 
-**Son güncelleme:** 2026-08-04 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-15 · **Durum:** Aktif
 
 Bu doküman, backend projesinin katmanlı yapısını ve temel mimari kararlarını özetler. Amaç; ekip içinde tek bir referans nokta tanımlamak ve yeni geliştirmelerin aynı standartla yapılmasını sağlamaktır.
 
@@ -61,6 +61,29 @@ Kurallar:
 - Validator'lar aynı klasör altında `<UseCase>CommandValidator.cs` olarak durur.
 - Repository soyutlamaları `Common/Interfaces/` altında yaşar (`I*Repository`, aggregate-specific).
 - Ortak modeller `Common/Models/` altında (`Result<T>`, `Error`, `OptimizationInput/Result`).
+- **Yük yerleştirme motoru** `Common/Optimization/` altındadır — **7 dosya**: `OptimizationEngine.cs`,
+  `PlacementValidator.cs`, `BalanceScoring.cs`, `LifoPlacement.cs`, `ItemOrdering.cs`,
+  `VolumeScoring.cs`, `PlacedBox.cs`. `caab495d` (2026-08-11) ile Infrastructure katmanından
+  buraya taşındı ve tek dosyadan 7 dosyaya bölündü.
+  *Ölçüm 2026-08-15 (ikinci ölçüm), `dev` @ `96e9fd8b`:
+  `wc -l apps/backend/CargoPilot.Application/Common/Optimization/*.cs` → toplam **1036 satır**
+  (BalanceScoring 220 · ItemOrdering 71 · LifoPlacement 118 · OptimizationEngine 268 ·
+  PlacedBox 17 · PlacementValidator 314 · VolumeScoring 28). Aynı gün erken saatte ölçülen
+  915 satır değeri, OPT-01 (#989) ve OPT-02 (#990) `dev`'e alınmadan öncesine aitti ve artık
+  bayattır. Satır sayısı yeniden ölçülmeden alıntılanmamalıdır.*
+- **LIFO boşaltma bölgesi kısıtı** (`LifoPlacement.cs`) PR **#990** ile **iki kademeli sert kısıt**
+  oldu: motor önce bölge içindeki geçerli adaylar arasından seçer
+  (`OptimizationEngine.cs:131` → `LifoPlacement.IsInsideZone`), bölge içinde hiç aday yoksa
+  cezalı skorlamaya düşer (yedek kademe, `OptimizationEngine.cs:264` → `ZonePenalty`).
+  Ceza katsayısı **2 000'de bırakıldı** (`LifoPlacement.cs:30`) ama artık yalnızca yedek
+  kademedeki adayları kendi aralarında sıralar — "bölge ihlali cezalandırılır" tarifi
+  **geçersizdir**, bölge içi aday varken ihlal hiç seçilemez. Bölge haritası PR **#997** ile
+  ters çevrildi: referans kapı `z = length`, ilk inecek grup kapıya en yakın bölgeyi alır
+  (`LifoPlacement.cs:82`). Ayrıntı ve ölçümler: `docs/context/kod-taramasi-2026-08.md` §4.1.
+- **Denge takası destek doğrulaması** PR **#989** ile eklendi: `BalanceScoring` greedy-swap'i
+  artık takas edilen her iki kutu için `PlacementValidator.ViolatesLoadAbove` çağırıyor
+  (`BalanceScoring.cs:182-183`) ve takas sonrası eski üst yüzeylerdeki desteği yeniden
+  denetliyor. Önceki hâlde takas yalnız aşağı bakan kısıtları kontrol ediyordu.
 
 Örnek klasör (gerçek koddan):
 ```
@@ -78,7 +101,8 @@ Features/
 - `Persistence/AppDbContext.cs` (25 DbSet; audit alanları `SaveChanges` override'inda otomatik dolar)
 - `Persistence/Repositories/<Entity>Repository.cs`
 - `Persistence/Configurations/` — entity konfigürasyonları + soft delete global query filter
-- `Services/` — `OptimizationEngine` (yük yerleştirme motoru), `ResendEmailService`, ERP connector'ları (`LogoErpConnector`, `NetsisErpConnector`)
+- `Services/` — `ResendEmailService`, ERP connector'ları (`LogoErpConnector`, `NetsisErpConnector`)
+  - ⚠️ Yük yerleştirme motoru **artık burada değil**: `caab495d` (2026-08-11) ile Application katmanına taşındı → `CargoPilot.Application/Common/Optimization/`, 7 dosya. Bkz. §2.2.
 - `Jobs/` — Hangfire job'ları (`ErpExportJob`, trial expiry, notification cleanup)
 - EF Core + SQL Server sağlayıcısı kullanılır.
 
@@ -130,15 +154,19 @@ Not: Ortak API response envelope'u US-Story 8 kapsamında olgunlaştırılacakt�
 Her katman kendi `DependencyInjection.cs` dosyasını sunar; `Program.cs` yalnızca orkestrasyon yapar.
 
 ```csharp
+// Program.cs:23-28 (gerçek kod, 2026-08-15)
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
+
 builder.Services
     .AddApplication()
-    .AddInfrastructure(builder.Configuration, useInMemoryRepository: builder.Environment.IsDevelopment())
-    .AddPresentation();
+    .AddInfrastructure(builder.Configuration, useInMemoryRepository: useInMemory)
+    .AddPresentation(builder.Configuration, useInMemoryRepository: useInMemory);
 ```
 
 Kurallar:
 - `Program.cs` concrete tip veya EF Core referansı içermez.
-- Ortam bazlı kararlar (`IsDevelopment`) `Program.cs`'de alınır; Infrastructure, Hosting soyutlamasına bağımlı olmaz.
+- Ortam bazlı kararlar `Program.cs`'de alınır; Infrastructure, Hosting soyutlamasına bağımlı olmaz.
+- ⚠️ *2026-08-15 düzeltmesi:* örnek kod önce `useInMemoryRepository: builder.Environment.IsDevelopment()` yazıyordu. Gerçek kod bayrağı **`UseInMemoryDatabase` konfigürasyon anahtarından** okur ve varsayılanı **`false`**'tur (`Infrastructure/DependencyInjection.cs:28`). Ayrıca §3.6'da anlatıldığı gibi bu bayrak fiilen çalışmaz.
 - Middleware zinciri `UsePresentation()` üzerinden kurulur.
 
 ### 3.6 ~~Development'ta Veritabansız Çalışma~~ (çalışmıyor — kullanmayın)

@@ -53,27 +53,27 @@ describe('rotatedDimensions', () => {
   const L = 200;
 
   it('idx 0: base dims aynı kalır', () => {
-    expect(rotatedDimensions(W, H, L, 0)).toEqual({ width: W, height: H, depth: L });
+    expect(rotatedDimensions(W, H, L, 0)).toEqual({ width: W, height: H, length: L });
   });
 
   it('idx 1: 180° X dönüşü dims aynı bırakır', () => {
-    expect(rotatedDimensions(W, H, L, 1)).toEqual({ width: W, height: H, depth: L });
+    expect(rotatedDimensions(W, H, L, 1)).toEqual({ width: W, height: H, length: L });
   });
 
-  it('idx 2: ön yüz altta — height ile depth takas', () => {
-    expect(rotatedDimensions(W, H, L, 2)).toEqual({ width: W, height: L, depth: H });
+  it('idx 2: ön yüz altta — height ile length takas', () => {
+    expect(rotatedDimensions(W, H, L, 2)).toEqual({ width: W, height: L, length: H });
   });
 
-  it('idx 3: arka yüz altta — height ile depth takas', () => {
-    expect(rotatedDimensions(W, H, L, 3)).toEqual({ width: W, height: L, depth: H });
+  it('idx 3: arka yüz altta — height ile length takas', () => {
+    expect(rotatedDimensions(W, H, L, 3)).toEqual({ width: W, height: L, length: H });
   });
 
   it('idx 4: sol yüz altta — width ile height takas', () => {
-    expect(rotatedDimensions(W, H, L, 4)).toEqual({ width: H, height: W, depth: L });
+    expect(rotatedDimensions(W, H, L, 4)).toEqual({ width: H, height: W, length: L });
   });
 
   it('idx 5: sağ yüz altta — width ile height takas', () => {
-    expect(rotatedDimensions(W, H, L, 5)).toEqual({ width: H, height: W, depth: L });
+    expect(rotatedDimensions(W, H, L, 5)).toEqual({ width: H, height: W, length: L });
   });
 });
 

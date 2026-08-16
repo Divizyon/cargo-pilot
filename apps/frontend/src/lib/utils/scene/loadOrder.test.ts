@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlacementWithDimensions } from '@/lib/types/loadingPlan';
+import { DoorType, DoorFace, type VehicleDoor } from '@/lib/types/vehicle';
 import { buildLoadOrder } from './loadOrder';
 
 function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): PlacementWithDimensions {
@@ -13,49 +14,78 @@ function makePlacement(overrides: Partial<PlacementWithDimensions> = {}): Placem
     isViolation: false,
     width: 50,
     height: 50,
-    depth: 50,
+    length: 50,
     weight: 10,
     ...overrides,
   };
 }
 
-describe('buildLoadOrder — yan kapı (side) sağ/sol dalı', () => {
+const REAR: VehicleDoor = { type: DoorType.Small, face: DoorFace.LengthZ };
+const SIDE_RIGHT: VehicleDoor = { type: DoorType.Big, face: DoorFace.WidthX };
+const SIDE_LEFT: VehicleDoor = { type: DoorType.Big, face: DoorFace.ZeroX };
+const TOP: VehicleDoor = { type: DoorType.Top, face: DoorFace.HeightY };
+
+describe('buildLoadOrder — büyük kapının X yönüne etkisi', () => {
   // Aynı Y ve Z'de, X=0 (sol duvar) ve X=100 (sağ duvar) kutuları.
   const leftBox = makePlacement({ positionX: 0 });
   const rightBox = makePlacement({ positionX: 100 });
   const placements = [rightBox, leftBox]; // index 0 = sağdaki, index 1 = soldaki
 
-  it('doorSide=right → kapı X=width, sol duvar (X küçük) önce girer', () => {
-    const order = buildLoadOrder(placements, 'side', 'right');
-    // leftBox (index 1, X=0) sağ kapıya en uzak → önce girer
-    expect(order).toEqual([1, 0]);
+  it('büyük kapı x = width → yükleme x = 0 köşesinden başlar', () => {
+    // Serbest köşe (0,0,0): soldaki kutu (index 1) önce girer.
+    expect(buildLoadOrder(placements, [REAR, SIDE_RIGHT])).toEqual([1, 0]);
   });
 
-  it('doorSide=left → kapı X=0, sağ duvar (X büyük) önce girer', () => {
-    const order = buildLoadOrder(placements, 'side', 'left');
-    // rightBox (index 0, X=100) sol kapıya en uzak → önce girer
-    expect(order).toEqual([0, 1]);
+  it('büyük kapı x = 0 → yükleme x = width köşesinden başlar', () => {
+    // Serbest köşe (width,0,0): sağdaki kutu (index 0) önce girer.
+    expect(buildLoadOrder(placements, [REAR, SIDE_LEFT])).toEqual([0, 1]);
   });
 
-  it('doorSide belirtilmemiş → sağ kapı varsayımına düşer (SideBoth eşlemesiyle tutarlı)', () => {
-    const withoutSide = buildLoadOrder(placements, 'side', undefined);
-    const withRight = buildLoadOrder(placements, 'side', 'right');
-    expect(withoutSide).toEqual(withRight);
+  it('büyük kapı yoksa X küçük→büyük ilerler', () => {
+    expect(buildLoadOrder(placements, [REAR])).toEqual([1, 0]);
+    expect(buildLoadOrder(placements, [])).toEqual([1, 0]);
   });
 });
 
-describe('buildLoadOrder — rear ve top dalları (referans, regresyon koruması)', () => {
-  it('rear: Z büyükten küçüğe sıralanır (kapıya en uzak önce)', () => {
-    const near = makePlacement({ positionZ: 0 });
-    const far = makePlacement({ positionZ: 200 });
-    const order = buildLoadOrder([near, far], 'rear');
-    expect(order).toEqual([1, 0]);
+describe('buildLoadOrder — Z yönü kapıdan bağımsızdır', () => {
+  const nearDoorBox = makePlacement({ positionZ: 200 });
+  const farFaceBox = makePlacement({ positionZ: 0 });
+
+  it('uzak yüzdeki (z = 0) kutu her zaman önce girer', () => {
+    // Referans kapı z = length'te; yükleme z = 0'dan kapıya doğru ilerler.
+    const rear = buildLoadOrder([nearDoorBox, farFaceBox], [REAR]);
+    expect(rear).toEqual([1, 0]);
+    expect(buildLoadOrder([nearDoorBox, farFaceBox], [REAR, SIDE_RIGHT])).toEqual(rear);
+    expect(buildLoadOrder([nearDoorBox, farFaceBox], [SIDE_LEFT])).toEqual(rear);
+    expect(buildLoadOrder([nearDoorBox, farFaceBox], [])).toEqual(rear);
   });
 
-  it('top: Y küçükten büyüğe sıralanır (zemin katı önce)', () => {
-    const bottom = makePlacement({ positionY: 0 });
-    const top = makePlacement({ positionY: 100 });
-    const order = buildLoadOrder([top, bottom], 'top');
-    expect(order).toEqual([1, 0]);
+  it('yalnızca üst kapı varsa katman ekseni Y olur', () => {
+    const lower = makePlacement({ positionY: 0, positionZ: 200 });
+    const upper = makePlacement({ positionY: 100, positionZ: 0 });
+    // Tavandan yüklemede alt kat önce girer; Z ikincil kalır.
+    expect(buildLoadOrder([upper, lower], [TOP])).toEqual([1, 0]);
+  });
+
+  it('üst kapı küçük kapıyla birlikteyse yükleme yine zeminden ilerler', () => {
+    const lower = makePlacement({ positionY: 0, positionZ: 200 });
+    const upper = makePlacement({ positionY: 100, positionZ: 0 });
+    // Z birincil: z = 0'daki üst kutu (index 0) önce girer.
+    expect(buildLoadOrder([upper, lower], [REAR, TOP])).toEqual([0, 1]);
+  });
+});
+
+describe('buildLoadOrder — bekleme alanı kutuları sıraya girmez', () => {
+  it('staging kutuları listeden düşer, indeksler kaymaz', () => {
+    const staging = makePlacement({ positionZ: 0, isStagingArea: true });
+    const aracIci = makePlacement({ positionZ: 100 });
+
+    // index 0 = staging, index 1 = araç içi → yalnızca 1 dönmeli.
+    expect(buildLoadOrder([staging, aracIci], [REAR])).toEqual([1]);
+  });
+
+  it('hepsi bekleme alanındaysa sıra boş kalır', () => {
+    const staging = makePlacement({ isStagingArea: true });
+    expect(buildLoadOrder([staging, staging], [REAR])).toEqual([]);
   });
 });

@@ -4,11 +4,15 @@
 
 Bu doküman açık ve çözülmüş devops sorunlarını, kök nedenlerini ve uygulanan/uygulanacak çözümlerini listeler.
 
-> Geliştirme backlog'u ve iyileştirme maddeleri için bkz. [DevOps Backlog](devops-backlog.md).
+> **Rol ayrımı (2026-08-16):** Burası **sorun sicilidir** — belirti, etki ve kök neden burada
+> durur; madde numaraları başka dokümanlardan referans verildiği için sabittir.
+> **Ne yapılacağı** [`devops-backlog.md`](devops-backlog.md)'de planlanır. Çakışan maddelerde
+> tam kayıt burada, plan orada; tekrar bırakılmaz (eşleme tablosu backlog'un başındadır).
 >
-> 2026-08-03 tarihli kapsamlı DevOps taraması ve 51 maddelik bulgu listesi için bkz.
-> [İyileştirme Analizi](iyilestirme-analizi-2026-08.md). O doküman bu dosyadaki bazı
-> maddelerin kapsamını düzeltiyor (özellikle madde 7 — log rotation).
+> 2026-08-03 tarihli DevOps taramasının 45 açık bulgusu D-kodlarıyla
+> [`devops-backlog.md`](devops-backlog.md) **Kategori 6**'dadır. Taramanın kanıt gövdesi
+> arşivdedir: [İyileştirme Analizi](../archive/devops-iyilestirme-analizi-2026-08.md)
+> (madde 7'nin — log rotation — kapsam düzeltmesi oradan gelmişti).
 
 ---
 
@@ -60,7 +64,22 @@ Sunucuda `.env.prod` dosyası ve production stack hiç kurulmamıştır.
 
 **Etkisi:** Geçmişe erişimi olan biri eski parolayı görebilir.
 
-**Kalıcı çözüm:** Sunucudaki SA parolasını döndür (rotate). Geçmiş temizliği için `git filter-repo` kullanılabilir; ancak tüm klonların güncellenmesi gerekir. **Minimum aksyon: parolayı döndür.**
+`appsettings.Development.json` **ve** `PRODUCTION_DEPLOYMENT_INFO.md` — parola iki ayrı dosyada commit edilmişti.
+
+**Yeniden doğrulama — 2026-08-15.** Bu uyarının "çürütüldü / yalnız `.env.dev.example`'daydı"
+şeklinde kapatıldığı bir not dolaşıyordu; **o not yanlıştır.** Bağımsız `git log --all -S <parola>`
+taraması parolanın gerçekten commit edildiğini gösterdi:
+
+| Commit | Dosya |
+|---|---|
+| `fe4c7a65` (ekleyen) → `998e04ba` (kaldıran) | `apps/backend/CargoPilot.WebAPI/appsettings.Development.json` |
+| `e46dde04` (ekleyen) → `520da7ae` (kaldıran) | `PRODUCTION_DEPLOYMENT_INFO.md` |
+
+Yani parola **iki ayrı dosyada** geçmişte duruyor; dosyaların bugünkü hâli temiz olsa da
+`git log -p` ile hâlâ okunabilir. **Parola rotasyonu HÂLÂ GEREKLİ — bu madde kapatılmamıştır.**
+*(Parolanın kendisi bilinçli olarak hiçbir dokümana yazılmadı.)*
+
+**Kalıcı çözüm:** Sunucudaki SA parolasını döndür (rotate). Geçmiş temizliği için `git filter-repo` kullanılabilir; ancak tüm klonların güncellenmesi gerekir. **Minimum aksiyon: parolayı döndür.**
 
 ---
 

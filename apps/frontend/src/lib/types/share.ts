@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { vehicleDoorSchema } from '@/lib/types/vehicle';
 
 export const ShareValidity = {
   H24: '24h',
@@ -43,7 +44,7 @@ export const sharePlanSchema = z.object({
       length: z.number().optional(),
       width: z.number().optional(),
       height: z.number().optional(),
-      doorDirection: z.string().optional(),
+      doors: z.array(vehicleDoorSchema).optional().nullable(),
       maxCargoWeight: z.number().optional(),
     })
     .optional()
@@ -57,7 +58,7 @@ export const sharePlanSchema = z.object({
         positionZ: z.number(),
         width: z.number(),
         height: z.number(),
-        depth: z.number(),
+        length: z.number(),
         orientationIndex: z.number().int().min(0).max(5),
         layer: z.number().int().min(0),
         isViolation: z.boolean(),
