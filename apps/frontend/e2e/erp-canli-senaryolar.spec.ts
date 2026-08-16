@@ -84,10 +84,13 @@ test.describe('ERP canlı senaryoları', () => {
     await page.getByLabel(`${FAKE_ERP_ROWS.transferred.name} satırını seç`).first().check();
     await page.getByRole('button', { name: 'Ürünlere Aktar' }).click();
 
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
+    // Aktarım ekranı modal değil, kendi rotası: ürün ve araç ekleme sayfalarıyla
+    // aynı kabuğu kullanıyor.
+    await expect(page).toHaveURL(/\/erp\/aktar$/);
+    const editor = page.getByRole('table');
+    await expect(editor).toBeVisible();
     // Satırda iki açılır liste var (Tip ve Yük Grubu); tip ilk sıradadır.
-    await expect(dialog.getByRole('combobox').first()).toHaveText('Koli');
+    await expect(editor.getByRole('combobox').first()).toHaveText('Koli');
   });
 
   // (4) Sunucuda FourHours kayıtlıysa senkronizasyon sekmesi Günlük göstermez.
