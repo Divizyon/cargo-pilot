@@ -39,7 +39,11 @@ if [[ ! -f "${ENV_FILE}" ]]; then
     echo "[ERROR] Env dosyası bulunamadı: ${ENV_FILE}"
     exit 1
 fi
-SA_PASSWORD=$(grep -E '^MSSQL_SA_PASSWORD=' "${ENV_FILE}" | cut -d= -f2- | tr -d '"' | tr -d "'")
+# `|| true` şart: `set -euo pipefail` altında grep eşleşme bulamazsa (satır yoksa)
+# pipeline 1 döner ve script tam bu atama satırında, hiçbir mesaj basmadan ölür.
+# Aşağıdaki anlamlı hata bloğuna hiç gelinmez. `|| true` ile boş değer atanır,
+# hatayı `if [[ -z ]]` kontrolü açıkça raporlar.
+SA_PASSWORD=$(grep -E '^MSSQL_SA_PASSWORD=' "${ENV_FILE}" | cut -d= -f2- | tr -d '"' | tr -d "'" || true)
 
 if [[ -z "${SA_PASSWORD}" ]]; then
     echo "[ERROR] MSSQL_SA_PASSWORD env dosyasında bulunamadı."

@@ -91,7 +91,16 @@ fi
 echo "[$(date)] Sağlık kontrolü bekleniyor (60s)..."
 sleep 20
 
-BACKEND_PORT=$(grep -E '^BACKEND_PORT=' "${ENV_FILE}" | cut -d= -f2 | tr -d '"')
+# `|| true` şart: `set -euo pipefail` altında grep eşleşme bulamazsa pipeline 1 döner
+# ve script tam burada, stack yeniden başlatıldıktan sonra sessizce ölür — operatör
+# rollback'in nerede kaldığını göremez. Boş değeri aşağıda açıkça raporluyoruz.
+BACKEND_PORT=$(grep -E '^BACKEND_PORT=' "${ENV_FILE}" | cut -d= -f2 | tr -d '"' || true)
+if [[ -z "${BACKEND_PORT}" ]]; then
+    echo "[ERROR] BACKEND_PORT ${ENV_FILE} içinde bulunamadı — sağlık kontrolü yapılamıyor."
+    echo "        Stack ${TARGET_REF} sürümüyle başlatıldı; durumu elle doğrulayın."
+    exit 1
+fi
+
 for i in $(seq 1 8); do
     if curl -sf "http://localhost:${BACKEND_PORT}/health" > /dev/null 2>&1; then
         echo "[$(date)] Rollback başarılı — backend sağlıklı (${TARGET_REF})"
