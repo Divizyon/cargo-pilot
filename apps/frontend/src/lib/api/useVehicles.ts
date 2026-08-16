@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import axios from 'axios';
-import { VehicleType, DoorDirection, type Vehicle } from '@/lib/types/vehicle';
+import { VehicleType, vehicleDoorSchema, type Vehicle } from '@/lib/types/vehicle';
 import type { VehicleFormValues } from '@/features/data-management/vehicles/schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { axiosInstance } from './axiosInstance';
@@ -13,9 +13,10 @@ import {
   fromApiVehicle,
   fromApiVehicleDetail,
   buildCreateVehiclePayload,
+  buildUpdateVehiclePayloadFromVehicle,
   VEHICLE_TYPE_INT,
   VEHICLE_TYPE_FROM_INT,
-  resolveLoadingType,
+  resolveDoors,
 } from './vehicleMappers';
 
 // ─── List API response schema ─────────────────────────────────────────────────
@@ -32,6 +33,7 @@ const vehicleListApiItemSchema = z.object({
   maxWeightCapacity: z.number(),
   layerCount: z.number().int().nullable().optional(),
   loadingType: z.number().int().nullable().optional(),
+  doors: z.array(vehicleDoorSchema).optional().nullable(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
   status: z.string().optional(),
@@ -50,7 +52,7 @@ const vehicleListApiItemSchema = z.object({
 type VehicleListApiItem = z.infer<typeof vehicleListApiItemSchema>;
 
 function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
-  const loadingTypeInfo = resolveLoadingType(api.loadingType);
+  const doors = resolveDoors(api.doors, api.loadingType);
   const kingpin =
     api.kingPinDistanceMm != null && api.kingPinMaxLoadKg != null
       ? {
@@ -87,8 +89,7 @@ function fromApiVehicleListItem(api: VehicleListApiItem): Vehicle {
     length: api.internalLength,
     maxCargoWeight: api.maxWeightCapacity,
     maxLayerCount: api.layerCount ?? undefined,
-    doorDirection: loadingTypeInfo?.direction ?? DoorDirection.Rear,
-    doorSide: loadingTypeInfo?.doorSide,
+    doors,
     kingpin,
     axleB,
     axles: additionalAxle ? [additionalAxle] : undefined,
@@ -160,7 +161,16 @@ export async function fetchAllVehicles(
     if (Array.isArray(rawItems)) {
       for (const item of rawItems) {
         const result = vehicleListApiItemSchema.safeParse(item);
-        if (result.success) items.push(fromApiVehicleListItem(result.data));
+        if (result.success) {
+          items.push(fromApiVehicleListItem(result.data));
+        } else {
+          // Sessizce düşürmek, eksik bir aracı "silinmiş" gibi gösteriyordu ve
+          // hiçbir iz bırakmıyordu. Kardeş yol (tenant sorgusu) zaten logluyor.
+          console.error(
+            '[useVehicles] araç veri doğrulama hatası — öğe göz ardı edildi',
+            result.error,
+          );
+        }
       }
     }
     return items;
@@ -325,23 +335,8 @@ export function useDeleteVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vehicle: Vehicle) => {
-      const payload = buildCreateVehiclePayload({
-        vehicleType: vehicle.vehicleType,
-        name: vehicle.name,
-        description: vehicle.description ?? '',
-        plate: vehicle.plate ?? '',
-        serialNumber: vehicle.serialNumber ?? '',
-        length: vehicle.length,
-        width: vehicle.width,
-        height: vehicle.height,
-        maxCargoWeight: vehicle.maxCargoWeight,
-        grossWeight: vehicle.grossWeight,
-        tareWeight: vehicle.tareWeight,
-        maxLayerCount: vehicle.maxLayerCount,
-        doorDirection: vehicle.doorDirection,
-        isActive: false,
-        status: vehicle.status,
-      } as VehicleFormValues);
+      // Kayıtlı değerler zaten cm/kg; birim dönüşümünden geçirilmez.
+      const payload = buildUpdateVehiclePayloadFromVehicle(vehicle, { isActive: false });
       await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
     },
     onSuccess: () => {
@@ -354,23 +349,8 @@ export function useArchiveVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vehicle: Vehicle) => {
-      const payload = buildCreateVehiclePayload({
-        vehicleType: vehicle.vehicleType,
-        name: vehicle.name,
-        description: vehicle.description ?? '',
-        plate: vehicle.plate ?? '',
-        serialNumber: vehicle.serialNumber ?? '',
-        length: vehicle.length,
-        width: vehicle.width,
-        height: vehicle.height,
-        maxCargoWeight: vehicle.maxCargoWeight,
-        grossWeight: vehicle.grossWeight,
-        tareWeight: vehicle.tareWeight,
-        maxLayerCount: vehicle.maxLayerCount,
-        doorDirection: vehicle.doorDirection,
-        isActive: false,
-        status: vehicle.status,
-      } as VehicleFormValues);
+      // Kayıtlı değerler zaten cm/kg; birim dönüşümünden geçirilmez.
+      const payload = buildUpdateVehiclePayloadFromVehicle(vehicle, { isActive: false });
       await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
     },
     onSuccess: () => {
@@ -495,6 +475,9 @@ export const planVehicleCreatePayloadSchema = z.object({
   maxWeightCapacity: z.number(),
   layerCount: z.number().int(),
   loadingType: z.number().int(),
+  // Kapı listesi şemada yoksa `.parse()` alanı sessizce düşürüyor ve plan
+  // sihirbazından eklenen araç kapısız kaydediliyordu (S-23).
+  doors: z.array(vehicleDoorSchema),
 });
 
 export type PlanVehicleCreatePayload = z.infer<typeof planVehicleCreatePayloadSchema>;

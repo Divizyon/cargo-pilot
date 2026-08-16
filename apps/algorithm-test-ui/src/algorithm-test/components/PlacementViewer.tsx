@@ -96,7 +96,7 @@ export function PlacementViewer({
             <span className="text-muted-foreground">
               Kenar{' '}
               <span className="font-mono tabular-nums text-foreground">
-                {selected.width}×{selected.height}×{selected.depth}
+                {selected.width}×{selected.height}×{selected.length}
               </span>
             </span>
             <span className="text-muted-foreground">
@@ -110,7 +110,7 @@ export function PlacementViewer({
         ) : (
           <p className="shrink-0 text-xs text-muted-foreground">
             Kutuya tıklayarak konum, kenar uzunlukları ve seçilen rotasyonu görebilirsiniz.
-            Konumlar sol-alt-arka köşedir.
+            Konumlar kutunun origin'e en yakın köşesidir (min x, min y, min z).
           </p>
         )}
       </CardContent>

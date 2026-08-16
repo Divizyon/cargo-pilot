@@ -85,7 +85,7 @@ X=width (kapıdan bakışta sağa) · Y=height (yukarı) · Z=length (uzak yüz 
 
 Right-handed (Three.js varsayılanı) — aynalama/telafi dönüşümü yasak. Kapılar small/big + face listesidir ("ön/sağ/sol kapı" yoktur). Bağlayıcı: `docs/COORDINATE_STANDARD.md`.
 
-> **Uygulama durumu (2026-08-15, ikinci ölçüm):** Yukarıdaki satır hem standardı hem kodun bugünkü hâlini anlatır — eksen yönü ve `depth`→`length` adlandırması PR #997/#1004 ile uygulandı. Sahnede boyut anlamında `depth` kalmadı; `grep -rn -i depth apps/frontend/src` çıktısındaki isabetlerin tamamı Three.js malzeme özelliği (`depthWrite`/`depthTest`), `scene-config.ts:95` `STAGING_DEPTH_CM` sabiti veya `usePlanStore.ts` yerel değişkenleridir. Uygulanmayan tek kısım kapı modelidir (`doors` listesi, `top door`, `clearanceCm`) — bkz. `COORDINATE_STANDARD.md` §10. Bir önceki turun (PR #993) buraya koyduğu "standart henüz hiçbir yerde uygulanmamıştır" notu artık geçersizdi, bu satırla değiştirildi.
+> **Uygulama durumu (2026-08-15, ikinci ölçüm):** Yukarıdaki satır hem standardı hem kodun bugünkü hâlini anlatır — eksen yönü ve `depth`→`length` adlandırması PR #997/#1004 ile uygulandı. Sahnede boyut anlamında `depth` kalmadı; `grep -rn -i depth apps/frontend/src` çıktısındaki isabetlerin tamamı Three.js malzeme özelliği (`depthWrite`/`depthTest`), `scene-config.ts:95` `STAGING_DEPTH_CM` sabiti veya `usePlanStore.ts` yerel değişkenleridir. Kapı modeli de uygulandı: `doors` listesi, small/big/top tipleri ve `VehicleDoors` tablosu canlı. `clearanceCm` standarttan kaldırıldı — yükleme başlangıç köşesi kapı listesinden türetiliyor (§7), açıklık payı diye bir alan yok.
 
 
 `<mesh position={[p.x,p.y,p.z]}>` yasak — `BoxWrapper` zorunlu:

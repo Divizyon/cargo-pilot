@@ -1727,6 +1727,59 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.VehicleDoor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Face")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("IX_VehicleDoors_TekKapiTipi")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("VehicleDoors", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_VehicleDoors_TipYuzEslesmesi", "([Type] = 'Small' AND [Face] = 'LengthZ') OR ([Type] = 'Big' AND [Face] IN ('ZeroX', 'WidthX')) OR ([Type] = 'Top' AND [Face] = 'HeightY')");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
                 {
                     b.Property<int>("Id")
@@ -2047,6 +2100,17 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                     b.Navigation("Integration");
                 });
 
+            modelBuilder.Entity("CargoPilot.Domain.Entities.VehicleDoor", b =>
+                {
+                    b.HasOne("CargoPilot.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("Doors")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("CargoPilot.Domain.Entities.AppUser", b =>
                 {
                     b.Navigation("UserLogins");
@@ -2068,6 +2132,11 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CargoPilot.Domain.Entities.Integration", b =>
                 {
                     b.Navigation("SyncLogs");
+                });
+
+            modelBuilder.Entity("CargoPilot.Domain.Entities.Vehicle", b =>
+                {
+                    b.Navigation("Doors");
                 });
 #pragma warning restore 612, 618
         }

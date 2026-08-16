@@ -25,7 +25,21 @@ public sealed class Vehicle : BaseEntity {
 
 #pragma warning restore S1144
     public int LayerCount { get; private set; }
+
+    /// <summary>
+    /// Tekil kapi yonu. <see cref="Doors"/> listesine gecis tamamlanana kadar
+    /// korunuyor; motor ve API hala bu alani okuyor.
+    /// </summary>
     public LoadingType LoadingType { get; private set; }
+
+    /// <summary>
+    /// Aracin kapilari (docs/COORDINATE_STANDARD.md §4). Bir aracta ayni anda
+    /// small door ve big door bulunabildigi icin kapi bilgisi listedir; tekil
+    /// <see cref="LoadingType"/> "hangi kapidan yukleniyor" sorusunu yanitliyordu,
+    /// "aracta hangi kapilar var" sorusunu degil. Her tipten en fazla bir kapi
+    /// olabilir (VehicleDoorRules).
+    /// </summary>
+    public ICollection<VehicleDoor> Doors { get; } = [];
     public Guid? CompanyId { get; private set; }
     public string? ErpId { get; private set; }
     public Guid? IntegrationId { get; private set; }
@@ -181,5 +195,48 @@ public sealed class Vehicle : BaseEntity {
         LoadingType = loadingType;
         CompanyId = companyId;
         IsDraft = isDraft;
+    }
+
+    /// <summary>
+    /// Aracin kapi listesini verilen kumeyle degistirir. Eski kapilar iliskiden
+    /// dusurulur; VehicleDoor bagimsiz bir kayit degil, aracin bir parcasidir.
+    /// </summary>
+    public void ReplaceDoors(IEnumerable<(DoorType Type, DoorFace Face)> doors) {
+        Doors.Clear();
+        foreach (var (type, face) in doors)
+            Doors.Add(new VehicleDoor(Guid.NewGuid(), Id, type, face));
+    }
+
+    /// <summary>
+    /// Tekil <see cref="LoadingType"/> alanini kapi listesinden turetir.
+    ///
+    /// Kayipli bir indirgemedir: tek deger birden fazla kapiyi ifade edemez, bu
+    /// yuzden yuklemeyi fiilen belirleyen kapi secilir. Oncelik yan kapidadir
+    /// cunku x eksenindeki baslangic kosesini o cevirir; sonra referans kapi,
+    /// en son ust kapi.
+    ///
+    /// Kolon hala zorunlu oldugu icin (3/3c'de tamamen kalkacak) kapi listesi
+    /// her degistiginde bu deger de guncellenir; aksi halde iki kaynak
+    /// birbirinden bagimsiz yazilir ve ayrisirdi — motor kapilardan, paylasim
+    /// ve eski istemciler tekil alandan okuyor.
+    /// </summary>
+    public void SyncLoadingTypeFromDoors() {
+        var big = Doors.FirstOrDefault(door => door.Type == DoorType.Big);
+        if (big is not null) {
+            LoadingType = big.Face == DoorFace.ZeroX ? LoadingType.SideLeft : LoadingType.SideRight;
+            return;
+        }
+
+        if (Doors.Any(door => door.Type == DoorType.Small)) {
+            LoadingType = LoadingType.Rear;
+            return;
+        }
+
+        if (Doors.Any(door => door.Type == DoorType.Top)) {
+            LoadingType = LoadingType.Top;
+            return;
+        }
+
+        LoadingType = LoadingType.Rear;
     }
 }

@@ -7,20 +7,10 @@ import { Switch } from '@/components/ui/switch';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import {
-  formatDimensionDisplay,
-  formatWeightDisplay,
-  formatVolumeDisplay,
-} from '@/lib/utils/format/unitConversion';
+import { formatVolumeDisplay } from '@/lib/utils/format/unitConversion';
 import { formatAuditDate } from '@/lib/utils/format/formatAuditDate';
-import type { Vehicle } from '@/lib/types/vehicle';
-
-const DOOR_LABELS: Record<string, string> = {
-  rear: 'Arka',
-  side: 'Yan',
-  top: 'Üst',
-  rearAndSide: 'Arka + Yan',
-};
+import { formatDoorSummary, type Vehicle } from '@/lib/types/vehicle';
+import { toCentimeters } from '@/features/data-management/products/schemas/productSchema';
 
 const TYPE_LABELS: Record<string, string> = {
   Tir: 'Tır',
@@ -52,12 +42,10 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
     maxCargoWeight,
     grossWeight,
     tareWeight,
-    doorDirection,
-    doorSide,
+    doors,
     description,
     axles,
     axleB,
-    kingpin,
     isActive,
   ] = useWatch({
     control,
@@ -70,25 +58,30 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
       'maxCargoWeight',
       'grossWeight',
       'tareWeight',
-      'doorDirection',
-      'doorSide',
+      'doors',
       'description',
       'axles',
       'axleB',
-      'kingpin',
       'isActive',
     ],
   });
 
+  // Form değerleri zaten kullanıcının görüntü biriminde tutuluyor (şema cm/kg
+  // değil, girilen birimle çalışır). `format*Display` girdiyi cm/kg sayıp bir
+  // daha çeviriyordu, yani mm ayarında ölçüler 10 kat şişiyordu (S-28).
   const dimsRaw =
-    length && width && height
-      ? `${formatDimensionDisplay(length, dimensionUnit)} × ${formatDimensionDisplay(height, dimensionUnit)} × ${formatDimensionDisplay(width, dimensionUnit)}`
-      : '—';
-  const cargo = maxCargoWeight ? formatWeightDisplay(Number(maxCargoWeight), weightUnit) : '—';
-  const gross = grossWeight ? formatWeightDisplay(Number(grossWeight), weightUnit) : '—';
-  const tare = tareWeight ? formatWeightDisplay(Number(tareWeight), weightUnit) : '—';
+    length && width && height ? `${length} × ${height} × ${width} ${dimensionUnit}` : '—';
+  const cargo = maxCargoWeight ? `${maxCargoWeight} ${weightUnit}` : '—';
+  const gross = grossWeight ? `${grossWeight} ${weightUnit}` : '—';
+  const tare = tareWeight ? `${tareWeight} ${weightUnit}` : '—';
   const axleCount = 1 + (axleB ? 1 : 0) + (axles ?? []).length;
-  const volumeCm3 = length && width && height ? length * width * height : null;
+  // Hacim formatlayıcısı cm³ bekliyor; form değerleri önce cm'e çevrilir.
+  const volumeCm3 =
+    length && width && height
+      ? toCentimeters(length, dimensionUnit) *
+        toCentimeters(width, dimensionUnit) *
+        toCentimeters(height, dimensionUnit)
+      : null;
 
   const currentUserName = currentUser?.fullName ?? '—';
   const isPassive = isActive === false || vehicle?.isActive === false;
@@ -96,10 +89,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
   const summaryRows = [
     { label: 'Araç Adı', value: name || '—', bold: true },
     { label: 'Tip', value: TYPE_LABELS[vehicleType] ?? vehicleType ?? '—' },
-    {
-      label: 'Kapı Yönü',
-      value: doorDirection ? (DOOR_LABELS[doorDirection] ?? doorDirection) : '—',
-    },
+    { label: 'Kapılar', value: formatDoorSummary(doors) },
     { label: 'Ölçüler', value: dimsRaw },
     { label: 'Maks. Kargo', value: cargo },
     { label: 'Brüt Ağırlık', value: gross },
@@ -149,9 +139,7 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
             length={length ?? 0}
             width={width ?? 0}
             height={height ?? 0}
-            doorDirection={doorDirection}
-            doorSide={doorSide}
-            kingpinDistance={kingpin?.distance}
+            doors={doors}
             axleBDistance={axleB?.distance}
             axleDistances={(axles ?? []).map((a) => a?.distance).filter((d): d is number => d > 0)}
           />

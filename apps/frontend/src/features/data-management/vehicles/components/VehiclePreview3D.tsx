@@ -5,7 +5,8 @@ import { OrbitControls, ContactShadows } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { SCENE } from '@/lib/config/scene-config';
 import { VehicleType } from '@/lib/types/vehicle';
-import type { VehicleType as VehicleTypeValue, DoorDirection } from '@/lib/types/vehicle';
+import { DoorType, DoorFace, findDoor, type VehicleDoor } from '@/lib/types/vehicle';
+import type { VehicleType as VehicleTypeValue } from '@/lib/types/vehicle';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -31,9 +32,7 @@ export interface VehiclePreview3DProps {
   length: number;
   width: number;
   height: number;
-  doorDirection?: DoorDirection;
-  doorSide?: 'left' | 'right';
-  kingpinDistance?: number;
+  doors?: readonly VehicleDoor[];
   axleBDistance?: number;
   axleDistances?: number[];
 }
@@ -209,9 +208,21 @@ function CabMesh({
       10, 11, 9, 10, 9, 8,
     ];
 
+    // Kabin uzak yüz (z = 0) tarafında durur ve burnu −z'ye bakar. Geometri
+    // okunabilirlik için +z'de kurulup burada çevrilir: z bileşenleri negatiflenir,
+    // üçgen sarımı terslenir. Sarım terslenmezse computeVertexNormals normalleri
+    // içe çevirir ve kabin ters aydınlanır.
+    //
+    // Sahneye rotation/scale uygulanmaz: standart §9-11 `rotation.y = Math.PI` ve
+    // `scale.x = -1` gibi telafi dönüşümlerini ihlal sayıyor.
+    for (let i = 2; i < positions.length; i += 3) positions[i] = -positions[i];
+    const wound = [];
+    for (let i = 0; i < indices.length; i += 3)
+      wound.push(indices[i], indices[i + 2], indices[i + 1]);
+
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setIndex(indices);
+    geo.setIndex(wound);
     geo.computeVertexNormals();
 
     const edges = new THREE.EdgesGeometry(geo);
@@ -233,6 +244,7 @@ function CabMesh({
       hfL + ins + slideY,
       dmL + ins + slideZ,
     ]);
+    for (let i = 2; i < lPts.length; i += 3) lPts[i] = -lPts[i];
     const leftWin = new THREE.BufferGeometry();
     leftWin.setAttribute('position', new THREE.BufferAttribute(lPts, 3));
     leftWin.computeVertexNormals();
@@ -249,6 +261,7 @@ function CabMesh({
       hfL + ins + slideY,
       dmL + ins + slideZ,
     ]);
+    for (let i = 2; i < rPts.length; i += 3) rPts[i] = -rPts[i];
     const rightWin = new THREE.BufferGeometry();
     rightWin.setAttribute('position', new THREE.BufferAttribute(rPts, 3));
     rightWin.computeVertexNormals();
@@ -279,10 +292,9 @@ function CabMesh({
   const winOffsetZ = (3 * cabH) / slopeNorm;
 
   // Kabin uzak yüz (z = 0) tarafındadır: TIR'da z = 0 kabin ucudur, referans kapı
-  // z = length'tedir. Geometri yerelde +z'ye uzandığı için grup y ekseninde 180°
-  // döndürülür — aynalama (scale = -1) değil, gerçek bir dönüş.
+  // z = length'tedir. Geometri zaten −z'ye kurulduğu için grup yalnızca ötelenir.
   return (
-    <group position={[width, 0, -gapLength]} rotation={[0, Math.PI, 0]}>
+    <group position={[0, 0, -gapLength]}>
       <mesh castShadow geometry={cabGeo}>
         <meshStandardMaterial color={CAB_COLOR} metalness={0.2} roughness={0.7} />
       </mesh>
@@ -290,11 +302,11 @@ function CabMesh({
         <lineBasicMaterial color={SCENE.COLORS.CONTAINER_EDGE} />
       </lineSegments>
 
-      {/* Ön cam — dikdörtgen, eğimli üst yüzeye (z=dm→d) oturur */}
+      {/* Ön cam — dikdörtgen, eğimli üst yüzeye (z=−dm→−d) oturur */}
       {frontWinW > 0 && frontWinSlopeH > 0 && (
         <mesh
-          position={[width / 2, (cabH * 3) / 4 + winOffsetY, (d * 3) / 4 + winOffsetZ]}
-          rotation={[slopeRotX, 0, 0]}
+          position={[width / 2, (cabH * 3) / 4 + winOffsetY, -((d * 3) / 4 + winOffsetZ)]}
+          rotation={[-slopeRotX, 0, 0]}
         >
           <planeGeometry args={[frontWinW, frontWinSlopeH]} />
           <meshStandardMaterial
@@ -334,42 +346,37 @@ function DoorFaceIndicator({
   width,
   height,
   length,
-  doorDirection,
-  doorSide,
+  doors,
 }: {
   width: number;
   height: number;
   length: number;
-  doorDirection: DoorDirection;
-  doorSide?: 'left' | 'right';
+  doors: readonly VehicleDoor[];
 }) {
-  // 'front' standartta bir kapı değil; eski veriyle gelen bu değer de referans
-  // kapıya (z = length) düşer. Böylece iki dal aynı yüzü çizer.
-  const isReferenceDoor =
-    doorDirection === 'front' || doorDirection === 'rear' || doorDirection === 'rearAndSide';
-  const isSide = doorDirection === 'side' || doorDirection === 'rearAndSide';
-  const isTop = doorDirection === 'top';
+  const referenceDoor = findDoor(doors, DoorType.Small);
+  const sideDoor = findDoor(doors, DoorType.Big);
+  const topDoor = findDoor(doors, DoorType.Top);
 
-  // doorSide: 'right' → X=width yüzü (+X), 'left' veya undefined → X=0 yüzü (-X)
-  const sideX = doorSide === 'right' ? width + DOOR_PANEL_T / 2 : -DOOR_PANEL_T / 2;
+  // Büyük kapı x = 0 yüzünde (-X) ya da x = width yüzünde (+X) olabilir.
+  const sideX = sideDoor?.face === DoorFace.ZeroX ? -DOOR_PANEL_T / 2 : width + DOOR_PANEL_T / 2;
 
   return (
     <>
       {/* Referans kapı — z = length yüzü */}
-      {isReferenceDoor && (
+      {referenceDoor && (
         <mesh position={[width / 2, height / 2, length + DOOR_PANEL_T / 2]}>
           <boxGeometry args={[width, height, DOOR_PANEL_T]} />
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
       )}
-      {/* Yan kapı — doorSide'a göre sol (X=0) veya sağ (X=width) yüzü */}
-      {isSide && (
+      {/* Büyük kapı — yüzüne göre sol (X=0) veya sağ (X=width) */}
+      {sideDoor && (
         <mesh position={[sideX, height / 2, length / 2]}>
           <boxGeometry args={[DOOR_PANEL_T, height, length]} />
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
         </mesh>
       )}
-      {isTop && (
+      {topDoor && (
         <mesh position={[width / 2, height + DOOR_PANEL_T / 2, length / 2]}>
           <boxGeometry args={[width, DOOR_PANEL_T, length]} />
           <meshStandardMaterial color={SCENE.COLORS.CONTAINER_DOOR} transparent opacity={0.6} />
@@ -459,8 +466,7 @@ function VehicleScene({
   length,
   width,
   height,
-  doorDirection,
-  doorSide,
+  doors,
   axleBDistance,
   axleDistances,
 }: VehiclePreview3DProps) {
@@ -510,14 +516,8 @@ function VehicleScene({
 
       {hasCab && <CabMesh width={width} height={height} cabLength={cabLength} gapLength={cabGap} />}
 
-      {doorDirection && (
-        <DoorFaceIndicator
-          width={width}
-          height={height}
-          length={length}
-          doorDirection={doorDirection}
-          doorSide={doorSide}
-        />
+      {doors && doors.length > 0 && (
+        <DoorFaceIndicator width={width} height={height} length={length} doors={doors} />
       )}
 
       {hasKingpin && <KingPinMesh width={width} zPos={kingpinZ} kingpinHeight={kingpinHeight} />}

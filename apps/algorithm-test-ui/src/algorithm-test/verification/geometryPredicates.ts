@@ -26,7 +26,7 @@ export function footprintOverlapArea(a: Placement, b: Placement): number {
   );
   const overlapZ = Math.max(
     0,
-    Math.min(a.positionZ + a.depth, b.positionZ + b.depth) - Math.max(a.positionZ, b.positionZ),
+    Math.min(a.positionZ + a.length, b.positionZ + b.length) - Math.max(a.positionZ, b.positionZ),
   );
   return overlapX * overlapZ;
 }

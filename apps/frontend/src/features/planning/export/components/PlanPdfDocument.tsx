@@ -4,6 +4,7 @@ import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import type { DateFormat } from '@/lib/store/useReportingSettingsStore';
 import { formatDate, formatTimestamp } from '@/lib/utils/export/pdfDateUtils';
+import { buildPdfSummaryRows, sumPlacementWeight } from './planPdfSummary';
 
 // ─── Font sanitizer ───────────────────────────────────────────────────────────
 // Helvetica (built-in PDF font) uses Latin-1 encoding. Turkish chars ı (U+0131),
@@ -338,31 +339,11 @@ export function PlanPdfDocument({
     return vehicleVolume > 0 ? (placedVolume / vehicleVolume) * 100 : 0;
   })();
 
-  const totalWeight = placements.reduce((sum, p) => {
-    const item = items.find((i) => i.id === p.itemId);
-    return sum + (item?.weight ?? 0);
-  }, 0);
+  const totalWeight = sumPlacementWeight(placements, items);
 
-  const grouped = placements.reduce<
-    Map<string, { name: string; count: number; weight: number; violations: number; dims: string }>
-  >((acc, p) => {
-    const item = items.find((i) => i.id === p.itemId);
-    const existing = acc.get(p.itemId);
-    if (existing) {
-      existing.count += 1;
-      existing.weight += item?.weight ?? 0;
-      if (p.isViolation) existing.violations += 1;
-    } else {
-      acc.set(p.itemId, {
-        name: item?.name ?? '-',
-        count: 1,
-        weight: item?.weight ?? 0,
-        violations: p.isViolation ? 1 : 0,
-        dims: `${p.width}×${p.height}×${p.length}`,
-      });
-    }
-    return acc;
-  }, new Map());
+  // Gruplama saf fonksiyonda: satır toplamı ile plan özetinin eşitliği
+  // testle kilitli (planPdfSummary.test.ts).
+  const grouped = buildPdfSummaryRows(placements, items);
 
   const groupedRows = Array.from(grouped.values());
 
@@ -442,7 +423,10 @@ export function PlanPdfDocument({
                   {row.dims}
                 </Text>
                 <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
-                  {(row.weight * row.count).toFixed(1)}
+                  {/* row.weight zaten grup toplamı: yukarıda her yerleşim için
+                      birim ağırlık eklendi. count ile bir daha çarpılınca N²·w
+                      çıkıyordu — 5 kg × 10 adet satırda 500 kg (denetim S-08). */}
+                  {row.weight.toFixed(1)}
                 </Text>
                 <Text
                   style={[

@@ -109,7 +109,7 @@ export function useAlgorithmTestRun(): UseAlgorithmTestRunResult {
           ? computeGroupZones(
               (request.groups ?? []).map((g) => g.unloadingOrder),
               detail.vehicle.length,
-              detail.vehicle.doorDirection,
+              detail.vehicle.doors,
               request.optimizationCriteria,
             )
           : [];
@@ -160,7 +160,7 @@ export function useAlgorithmTestRun(): UseAlgorithmTestRunResult {
           vehicleVolume > 0 ? (volumeCm3 / vehicleVolume) * 100 : 0;
 
         const usedVolume = placements.reduce(
-          (sum, p) => sum + calcVolume(p.depth, p.width, p.height),
+          (sum, p) => sum + calcVolume(p.length, p.width, p.height),
           0,
         );
 

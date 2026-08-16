@@ -197,7 +197,7 @@ async function runScenario(
       ? computeGroupZones(
           [...groupIdByNumber.keys()],
           detail.vehicle.length,
-          detail.vehicle.doorDirection,
+          detail.vehicle.doors,
           criteria,
         )
       : [];

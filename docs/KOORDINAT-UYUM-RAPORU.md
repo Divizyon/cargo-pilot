@@ -3,7 +3,17 @@
 **Tarih:** 2026-08-15
 **Kapsam:** Backend (optimizasyon motoru, sözleşmeler, migrations, ERP), Frontend (tip/API/store, 3D sahne, geometri, UI/form), dokümantasyon ve testler — 7 alan, ayrı ajanlarca doğrulanmış tarama.
 **Referans standart:** `docs/COORDINATE_STANDARD.md` (projenin tek yetkili koordinat sistemi tanımı). Çelişki hâlinde bu belge kazanır.
-**Not:** Bu belge salt bir denetim raporudur. Bu tur içinde **kaynak kod değiştirilmemiştir** — yalnızca `CLAUDE.md` dosyalarına standardın özeti işlenmiş ve kod tabanı taranmıştır. Aşağıdaki tüm bulgular ayrı doğrulama ajanları tarafından dosya:satır düzeyinde kanıt alıntısıyla teyit edilmiştir.
+**Not:** Bu belge bir denetim raporudur; yazıldığı turda kaynak kod değiştirilmemişti.
+
+> **Uygulama durumu (2026-08-15):** Bulguların bir kısmı bu tarihten sonra düzeltildi.
+> **Kapatıldı:** KN-1 (z ekseni yönü — LIFO bölgeleri, dingil yükü, yükleme sırası,
+> animasyon, kapı/kabin konumu), KN-3 (terminoloji: `depth` → `length`, `w/h/d/l`),
+> KN-5 (birim: `Vehicle.Volume` böleni, demo seed), UI etiketleri (M-45…M-64).
+> **Güncelleme (2026-08-16):** KN-2 (kapı modeli) de kapandı — `doors` listesi,
+> `VehicleDoors` tablosu ve top door uygulandı; `x₀`/açıklık payı kavramı
+> standarttan kaldırıldı. Bu belgedeki "açık" işaretleri 2026-08-15 ölçümünü
+> yansıtır; güncel durum için `docs/KOORDINAT-BRANCH-DENETIMI-2026-08-16.md` ve
+> `docs/KOORDINAT-DUZELTME-PLANI.md`. Aşağıdaki tüm bulgular ayrı doğrulama ajanları tarafından dosya:satır düzeyinde kanıt alıntısıyla teyit edilmiştir.
 
 ---
 
@@ -22,7 +32,7 @@
 | H-10, H-14 | ✅ **kapandı** | `useLoadingAnimation.ts:129` `fromZ = length + OFFSET` |
 | H-16 | ✅ **kapandı** | `calcCenterOfGravity.ts:129` `frontAxleShare = 1 - cog.z / containerLength` |
 | H-11, H-12, H-17, H-18 | ✅ **kapandı** (sahne/UI tarafı) | `ContainerMesh.tsx:336` ve `VehiclePreview3D.tsx:281` yorumları `z = 0` uzak yüz sözleşmesine göre yeniden yazıldı; `CameraPresetButtons.tsx:217` lateral denge ayrımını anlatıyor |
-| H-04 … H-08 | ⚠️ **açık** — kapı modeli geçişi yapılmadı | `vehicle.ts:11` hâlâ `DoorDirection = front\|rear\|side\|top\|…`; `doors: [{type, face, clearanceCm}]` listesi hiçbir katmanda yok (`COORDINATE_STANDARD.md` §10 "Kodun bugünkü hâli") |
+| H-04 … H-08 | ✅ **kapandı** (2026-08-16) | `vehicle.ts` artık `DoorType`/`DoorFace` tanımlıyor; `doors: [{type, face}]` listesi backend, API ve arayüzde canlı. `clearanceCm` standarttan kaldırıldı |
 | H-22, H-23, H-24 | ⚠️ **açık** — prototip HTML, üretim dışı, öncelik düşük | değişmedi |
 | M-/L- bulguları | ⏸ **bu turda yeniden taranmadı** — durumları doğrulanamadı, tabloları olduğu gibi bırakıldı | — |
 
@@ -296,7 +306,12 @@ Tekrar ve hacim nedeniyle alan bazında kompakt tablo olarak listelenmiştir; he
 
 ## 6. Bloke bulgular (20 adet)
 
-Aşağıdaki bulgular doğrulanmış ancak **standardın kendisinde bekleyen bir karara bağlı** olduğu için şu an uygulanamaz durumda (blocked=true). Standardın §10 bölümünde işaretlenen üç bekleyen konudan birine bağlanır:
+Aşağıdaki bulgular doğrulanmış ancak **standardın kendisinde bekleyen bir karara bağlı** olduğu için şu an uygulanamaz durumda (blocked=true). Standardın §10 bölümünde işaretlenen üç bekleyen konudan birine bağlanır.
+
+> **Yetkili kayıt:** Bekleyen kararların tanımı ve durumu
+> [`COORDINATE_STANDARD.md`](./COORDINATE_STANDARD.md) **§10**'dadır; aşağıdaki üç madde
+> yalnızca bu tablonun okunabilmesi için özetlenmiştir. Çelişki hâlinde §10 kazanır.
+> (Aynı liste 2026-08-16'ya kadar üç ayrı dosyada tutuluyordu; üçüncüsü arşive alındı.)
 
 - **[x₀]** — Big door varlığında yükleme başlangıç ofseti (x₀) değeri henüz tanımlanmamış.
 - **[top-door]** — Üst kapı (top door) için standartta karşılık yok, sektör araştırması bekliyor.

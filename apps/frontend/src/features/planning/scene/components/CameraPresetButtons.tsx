@@ -7,8 +7,8 @@ import {
   Layers,
   MoveLeft,
   MoveRight,
+  DoorClosed,
   DoorOpen,
-  Undo2,
   X,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -21,13 +21,17 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
   calcCenterOfGravity,
   calcBalance,
+  buildAxleSpan,
   buildCogInputs,
 } from '@/lib/utils/geometry/calcCenterOfGravity';
 
+// FRONT kamerayı uzak yüze (z = 0) götürür; orada kapı yoktur — TIR'da kabin
+// ucudur. Kapı ikonu oradaydı ve kullanıcıya yanlış yüzü işaret ediyordu
+// (denetim S-58). Referans kapıyı gören preset BACK'tir.
 const PRESETS: { key: CameraPreset; icon: typeof Box }[] = [
   { key: 'TOP', icon: ArrowDownToLine },
-  { key: 'FRONT', icon: DoorOpen },
-  { key: 'BACK', icon: Undo2 },
+  { key: 'FRONT', icon: DoorClosed },
+  { key: 'BACK', icon: DoorOpen },
   { key: 'SIDE_RIGHT', icon: MoveRight },
   { key: 'SIDE_LEFT', icon: MoveLeft },
   { key: 'ISO', icon: Box },
@@ -81,7 +85,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
     );
     const cog = calcCenterOfGravity(inputs);
     if (!cog) return null;
-    return calcBalance(cog, vehicle.width, vehicle.length);
+    return calcBalance(cog, vehicle.width, vehicle.length, buildAxleSpan(vehicle));
   }, [placements, selectedItems, vehicle]);
 
   function togglePanel(panel: 'xray' | 'cog') {

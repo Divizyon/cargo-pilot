@@ -1,5 +1,4 @@
 using CargoPilot.Application.Common.Models;
-using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization;
 
@@ -54,13 +53,18 @@ internal static class LifoPlacement
     internal static Dictionary<int, (decimal ZStart, decimal ZEnd)> ComputeGroupZones(
         IReadOnlyList<OptimizationItemInput> items,
         decimal vehicleLength,
-        LoadingType loadingType,
         bool enabled)
     {
-        // Zone ayrımı yalnızca modül açıkken ve arka kapı yüklemesinde geçerli.
-        // Kapı yönü bir modül tercihi değil fiziksel gerçektir, bu yüzden bayrak
-        // ondan bağımsız kontrol edilir.
-        if (!enabled || loadingType != LoadingType.Rear)
+        // Bölge ayrımı kapı listesinden bağımsızdır: yalnızca LIFO modülü açık
+        // olmalı. Önceden referans kapı (small door) aranıyordu ve yalnızca yan
+        // kapısı olan araçta bölgeler hiç kurulmuyordu — kullanıcı LIFO'yu
+        // seçebiliyor, sıralama işliyor ama bölge kısıtı sessizce devre dışı
+        // kalıyordu.
+        //
+        // Bölgeler z ekseni boyunca dizilir ve ilk inecek grup z = length ucunu
+        // alır. Bu, kapının fiziken orada olmasını gerektirmez; boşaltma
+        // sırasının bir ucu vardır ve gruplar o uca göre ayrılır.
+        if (!enabled)
             return [];
 
         var orders = items
@@ -78,8 +82,17 @@ internal static class LifoPlacement
 
         // i = 0 (ilk inecek grup) kapı ucundaki bölgeyi alır; indeks büyüdükçe
         // bölge uzak yüze kayar.
+        //
+        // Son bölgenin başlangıcı 0'a sabitlenir: vehicleLength / orders.Count
+        // bölünmesi decimal'de tam kapanmayabilir (250/3 → son bölge ZStart
+        // 1E-26). Kalıntı sıfırdan büyük olduğu anda bölge sert kısıt olmaktan
+        // çıkıp yumuşak cezaya düşerdi.
         for (int i = 0; i < orders.Count; i++)
-            zones[orders[i]] = (vehicleLength - (i + 1) * zoneSize, vehicleLength - i * zoneSize);
+        {
+            var isLast = i == orders.Count - 1;
+            var zStart = isLast ? 0m : vehicleLength - (i + 1) * zoneSize;
+            zones[orders[i]] = (zStart, vehicleLength - i * zoneSize);
+        }
 
         return zones;
     }
@@ -103,7 +116,7 @@ internal static class LifoPlacement
 
     /// <summary>
     /// Aday pozisyon tamamen kendi grubunun bölgesinin içinde mi? Bölge tanımlı
-    /// değilse (modül kapalı, arka kapı dışı yükleme, gruplanmamış ürün) kısıt
+    /// değilse (modül kapalı, küçük kapısız araç, gruplanmamış ürün) kısıt
     /// yoktur ve yüklem her zaman doğrudur.
     ///
     /// Motor bu yüklemi <see cref="ZonePenalty"/> ile birlikte kullanır: önce

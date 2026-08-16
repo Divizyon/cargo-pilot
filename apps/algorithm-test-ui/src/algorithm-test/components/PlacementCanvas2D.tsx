@@ -38,17 +38,23 @@ export const VIEW_CONFIG: Record<ProjectionView, ViewConfig> = {
   // 13.6 m'lik bir dorse dikey çizilince ekranı boydan boya kaplayıp okunmaz
   // hâle geliyordu. Yandan görünümle aynı yatay ekseni paylaşması, iki görünümü
   // alt alta karşılaştırmayı da kolaylaştırıyor.
+  //
+  // flipV: ekran y'si aşağı doğru büyür. Gerçekten yukarıdan bakan bir görünümde
+  // sağ +Z iken yukarı +X olmalıdır (right × up = izleyiciye doğru = +Y). flipV
+  // kapalıyken +X ekranda aşağı iniyordu, yani görünüm aslında ALTTAN bakıştı ve
+  // önden görünümle çelişiyordu (denetim S-42).
   plan: {
     h: 'z',
     v: 'x',
     perp: 'y',
-    flipV: false,
+    flipV: true,
     perpAscending: true,
     label: 'Üstten (Z×X)',
-    hLabel: 'Z derinlik — 0 arka kapı',
+    hLabel: 'Z uzunluk — 0 uzak yüz',
     vLabel: 'X genişlik',
   },
-  // Kamera sağ yandan bakar: X arttıkça yaklaşır. Z=0 (arka kapı) solda.
+  // Kamera sağ yandan bakar: X arttıkça yaklaşır. Uzak yüz (Z=0) solda,
+  // referans kapı (Z=length) sağda.
   side: {
     h: 'z',
     v: 'y',
@@ -56,16 +62,18 @@ export const VIEW_CONFIG: Record<ProjectionView, ViewConfig> = {
     flipV: true,
     perpAscending: true,
     label: 'Yandan (Z×Y)',
-    hLabel: 'Z derinlik — 0 arka kapı',
+    hLabel: 'Z uzunluk — 0 uzak yüz',
     vLabel: 'Y yükseklik',
   },
-  // Kamera arka kapıdan bakar: Z küçüldükçe yaklaşır.
+  // Kamera referans kapıdan bakar. Kapı z = length'te olduğu için Z BÜYÜDÜKÇE
+  // kameraya yaklaşır; perpAscending false iken uzaktaki kutu yakındakinin
+  // üstüne çiziliyor ve tıklama yanlış kutuyu seçiyordu (denetim S-41).
   front: {
     h: 'x',
     v: 'y',
     perp: 'z',
     flipV: true,
-    perpAscending: false,
+    perpAscending: true,
     label: 'Önden (X×Y)',
     hLabel: 'X genişlik',
     vLabel: 'Y yükseklik',
@@ -123,7 +131,7 @@ function axisPosition(placement: Placement, axis: Axis): number {
 function axisSize(placement: Placement, axis: Axis): number {
   if (axis === 'x') return placement.width;
   if (axis === 'y') return placement.height;
-  return placement.depth;
+  return placement.length;
 }
 
 function vehicleSpan(vehicle: Vehicle, axis: Axis): number {
@@ -265,7 +273,7 @@ export function PlacementCanvas2D({
     drawZones(ctx, { zones, config, spanH, spanV, scale, toX, toY, palette });
 
     // Kameradan uzaktan yakına çizilir: yakındaki kutu üstte kalır, aksi hâlde
-    // dizi sırası derinlik ipucunu bozar.
+    // dizi sırası yakınlık ipucunu bozar.
     const order = placements
       .map((_, index) => index)
       .sort((a, b) => {

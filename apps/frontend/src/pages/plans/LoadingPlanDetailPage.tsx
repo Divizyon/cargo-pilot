@@ -389,7 +389,11 @@ function ThreeDPlannerContent({
   function handlePlay() {
     startAnimation();
   }
-  const totalVolume = plan.interiorWidthCm * plan.interiorHeightCm * plan.interiorLengthCm;
+  // Araç ölçüleri cm; m³ göstermek için 1e6'ya bölünür. Eskiden cm³ değeri
+  // doğrudan "m³" etiketiyle basılıyordu (S-21).
+  const CM3_PER_M3 = 1_000_000;
+  const totalVolume =
+    (plan.interiorWidthCm * plan.interiorHeightCm * plan.interiorLengthCm) / CM3_PER_M3;
   const loadedVolume = (plan.volumeFillPercentage / 100) * totalVolume;
   const remainingVolume = totalVolume - loadedVolume;
   const remainingWeight = plan.vehicleCapacityKg - plan.totalWeightKg;

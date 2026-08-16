@@ -1,14 +1,31 @@
 # Koordinat Sistemi Denetimi (Coordinate Audit)
 
-**Referans standart:** [`COORDINATE_STANDARD.md`](./COORDINATE_STANDARD.md) ·
-[`coordinate-standard.html`](./coordinate-standard.html)
+{% hint style="info" %}
+**🗄 Arşiv — 2026-08-16'da `docs/` kökünden buraya taşındı.**
+
+**Neden arşivde:** Bu belge **2026-08-12 tarihli** bir anlık görüntüdür ve 32 bulgu içerir.
+Yerini 177 bulgulu [`KOORDINAT-UYUM-RAPORU.md`](../KOORDINAT-UYUM-RAPORU.md) aldı; canlı
+denetim kaydı artık odur. Silinmedi çünkü iki bölümünün başka hiçbir yerde karşılığı yok:
+**§3 "Standarda uygun dosyalar"** ve **§4 "Artık uyumlu — dokunulmayacak"**. Bu ikisi
+"yanlışlıkla doğru kodu bozma" koruması; UYUM-RAPORU yalnızca ihlalleri sayar.
+
+**Yansıttığı durum:** 2026-08-12, `docs/COORDINATE_STANDARD.md` sürüm 2.
+Bağlayıcı kural belgesi hâlâ [`COORDINATE_STANDARD.md`](../COORDINATE_STANDARD.md)'dir.
+{% endhint %}
+
+**Referans standart:** [`COORDINATE_STANDARD.md`](../COORDINATE_STANDARD.md) ·
+[`coordinate-standard.html`](../coordinate-standard.html)
 **Tarih:** 2026-08-12 · **Sürüm:** 2 (yeni standarda göre baştan yazıldı)
 **Kapsam:** `apps/frontend/src`, `apps/backend`, repo kökündeki prototip HTML,
 `.claude` doküman dosyaları
 **Kapsam dışı:** `node_modules`, `bin`/`obj`, EF Core migration snapshot'ları,
 `.claude/worktrees` kopyaları
 
-> Bu denetim **yalnızca rapordur** — hiçbir kaynak dosya değiştirilmemiştir.
+> **Durum (2026-08-15):** Bu belge yazıldığında salt rapordu; o zamandan beri bulguların
+> bir kısmı düzeltildi. Kapatılanlar: `z` ekseni yönü (H-01…H-06), dingil yükü payı (H-05),
+> eksen etiketleri (H-10), `depth` terimi (M-00, M-11, M-12), kamera adlandırması (M-03),
+> birim tutarsızlığı. Açık kalanlar: kapı modeli (H-07, M-01, M-02), `x₀`'ın koda
+> uygulanması (H-09), prototip HTML (M-14). Güncel durum: `docs/KOORDINAT-UYUM-RAPORU.md`.
 
 > **⚠️ Bayatlık uyarısı (2026-08-15, ikinci ölçüm):** Bu belge 2026-08-12 tarihli **anlık
 > görüntüdür**. Daha yeni ve daha geniş tarama `docs/KOORDINAT-UYUM-RAPORU.md`'dir; onun

@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { useVehicles } from '@/lib/api/useVehicles';
 import { useItems } from '@/lib/api/useItems';
 import { OptimizationCriteria } from '@/lib/types/loadingPlan';
-import { DoorDirection } from '@/lib/types/vehicle';
+import { formatDoorSummary } from '@/lib/types/vehicle';
 import {
   algorithmTestRequestSchema,
   MAX_TOTAL_BOX_COUNT,
@@ -152,10 +152,9 @@ export function AlgorithmTestForm({
     [selection],
   );
 
-  // LIFO bölgeleri yalnızca arka kapı + en az 2 farklı boşaltılma sırasıyla devreye girer
-  // (LifoPlacement.ComputeGroupZones).
-  const lifoZonesActive =
-    selectedVehicle?.doorDirection === DoorDirection.Rear && usedGroupNumbers.length >= 2;
+  // LIFO bölgeleri yalnızca en az 2 farklı boşaltılma sırasıyla devreye girer
+  // (LifoPlacement.ComputeGroupZones). Kapı listesi bölgeleri etkilemez.
+  const lifoZonesActive = selectedVehicle !== undefined && usedGroupNumbers.length >= 2;
 
   function addItem(itemId: string) {
     setSelection((prev) =>
@@ -273,7 +272,7 @@ export function AlgorithmTestForm({
           <p className="text-xs text-muted-foreground">
             {selectedVehicle.width}×{selectedVehicle.height}×{selectedVehicle.length} cm ·{' '}
             {selectedVehicle.maxCargoWeight} kg ·{' '}
-            {selectedVehicle.doorDirection === DoorDirection.Rear ? 'arka kapı' : 'yan/üst kapı'}
+            {formatDoorSummary(selectedVehicle.doors)}
           </p>
         )}
       </div>
@@ -419,7 +418,7 @@ export function AlgorithmTestForm({
 
       {usedGroupNumbers.length > 0 && !lifoZonesActive && (
         <p className="text-xs text-muted-foreground">
-          LIFO bölgeleri devre dışı: arka kapılı araç ve en az iki farklı grup gerekir.
+          LIFO bölgeleri devre dışı: en az iki farklı grup gerekir.
         </p>
       )}
 

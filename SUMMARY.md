@@ -13,7 +13,7 @@
 * [Branch Stratejisi](docs/conventions/branching.md)
 * [Commit Kuralları](docs/conventions/commits.md)
 * [Koordinat Sistemi Standardı](docs/COORDINATE_STANDARD.md)
-* [Koordinat Sistemi Denetimi](docs/COORDINATE_AUDIT.md)
+* [Koordinat Uyum Raporu](docs/KOORDINAT-UYUM-RAPORU.md)
 
 ## 🛠️ DevOps
 
@@ -24,8 +24,7 @@
 * [Monitoring & Alerting](docs/devops/monitoring-setup.md)
 * [Bilinen Sorunlar](docs/devops/known-issues.md)
 * [DevOps Backlog](docs/devops/devops-backlog.md)
-* [İyileştirme Analizi — Ağustos 2026](docs/devops/iyilestirme-analizi-2026-08.md)
-* [DevOps Denetim Raporu — 2026-08-13](devops-audit-raporu.md)
+* [DevOps Denetim Raporu — 2026-08-13](docs/devops/denetim-raporu-2026-08-13.md)
 * [Güvenlik Politikası](.github/SECURITY.md)
 
 ## 🧱 Backend
@@ -44,12 +43,14 @@
 * [Proje Anlık Görüntüsü](docs/context/project-snapshot.md)
 * [Doküman Haritası](docs/context/doc-map.md)
 * [Kod Taraması — Ağustos 2026](docs/context/kod-taramasi-2026-08.md)
-* [Branch & PR Denetimi](docs/context/branch-audit.md)
 
 ## 🗄️ Arşiv
 
 * [Denetim Test Planı — Ağustos 2026](docs/archive/audit-test-plani-2026-08.md)
 * [Branch Stratejisi Önerisi — Ağustos 2026](docs/archive/branching-proposal-2026-08.md)
+* [Branch & PR Denetimi — 2026-08-03](docs/archive/branch-denetimi-2026-08-03.md)
+* [Koordinat Sistemi Denetimi — 2026-08-12](docs/archive/koordinat-denetimi-2026-08-12.md)
+* [DevOps İyileştirme Analizi — 2026-08-03](docs/archive/devops-iyilestirme-analizi-2026-08.md)
 * [Matematiksel Model](docs/archive/algoritma-tasarimi/matematiksel-model.md)
 * [Sistem Mimarisi](docs/archive/algoritma-tasarimi/sistem-mimarisi.md)
 * [Bin Packing Uygulama Planı](docs/archive/algoritma-tasarimi/bin-packing-uygulama-plani.md)

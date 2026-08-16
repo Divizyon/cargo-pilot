@@ -14,10 +14,10 @@ public sealed class DuplicateVehicleCommandValidator : AbstractValidator<Duplica
             .MaximumLength(200)
             .WithMessage("Araç adı en fazla 200 karakter olabilir.");
 
+        // Plaka opsiyonel; yalnizca verildiginde uzunluk sinirlanir.
         RuleFor(x => x.PlateNumber)
-            .NotEmpty()
-            .WithMessage("Plaka zorunludur.")
             .MaximumLength(50)
-            .WithMessage("Plaka en fazla 50 karakter olabilir.");
+            .WithMessage("Plaka en fazla 50 karakter olabilir.")
+            .When(x => !string.IsNullOrWhiteSpace(x.PlateNumber));
     }
 }

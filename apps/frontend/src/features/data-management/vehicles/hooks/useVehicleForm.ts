@@ -1,3 +1,4 @@
+import { DoorType, DoorFace } from '@/lib/types/vehicle';
 import { useForm } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import type { Resolver } from 'react-hook-form';
@@ -18,7 +19,7 @@ export function useVehicleForm(
       status: 'active',
       isActive: true,
       vehicleType: 'Tir',
-      doorDirection: 'front',
+      doors: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
       ...defaultValues,
     },
     mode: 'onSubmit',

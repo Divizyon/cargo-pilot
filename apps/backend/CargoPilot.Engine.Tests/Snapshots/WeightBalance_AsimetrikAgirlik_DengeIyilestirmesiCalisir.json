@@ -7,7 +7,8 @@
     "MaxWeight": 5000,
     "Criteria": "WeightBalance",
     "LoadingType": "Rear",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false
   },
   "Items": [
     {

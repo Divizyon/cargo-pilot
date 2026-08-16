@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import type { Placement } from '@/lib/types/loadingPlan';
 import type { Vehicle } from '@/lib/types/vehicle';
-import { resolveDoorDirection } from './vehicleMappers';
+import { DoorFace, DoorType } from '@/lib/types/vehicle';
+import { resolveDoors } from './vehicleMappers';
 
 // ─── GET /api/v1/loading-plans/{id} şeması ────────────────────────────────────
 // Karşılığı: CargoPilot.Application/Features/Plans/GetPlanById/PlanDetailDto.cs
@@ -18,6 +19,15 @@ const planVehicleSchema = z
     internalLength: z.number().optional(),
     maxWeightCapacity: z.number().optional(),
     loadingType: z.number().int().nullable().optional(),
+    doors: z
+      .array(
+        z.object({
+          type: z.enum(Object.values(DoorType) as [DoorType, ...DoorType[]]),
+          face: z.enum(Object.values(DoorFace) as [DoorFace, ...DoorFace[]]),
+        }),
+      )
+      .nullable()
+      .optional(),
   })
   .passthrough()
   .nullable()
@@ -112,8 +122,8 @@ export interface PlanDetail {
 
 // ─── Rotasyon → yerleşmiş kenar uzunlukları ───────────────────────────────────
 // CargoPilot.Domain/Enums/LoadingPlanPlacementRotation.cs:
-//   0=NoRotation(W,H,L)  1=Yaw(L,H,W)     2=Pitch(W,L,H)
-//   3=Roll(H,W,L)        4=YawPitch(H,L,W) 5=RollYaw(L,W,H)
+//   0=NoRotation(G,Y,U)  1=Yaw(U,Y,G)     2=Pitch(G,U,Y)
+//   3=Roll(Y,G,U)        4=YawPitch(Y,U,G) 5=RollYaw(U,G,Y)
 // Motor gerçek kenarları hesaplıyor ama LoadingPlanRepository bunları kaydetmiyor
 // (yalnız rotasyon enum'u saklanıyor), bu yüzden istemci tarafında yeniden türetiyoruz.
 function placedDimensions(
@@ -121,20 +131,20 @@ function placedDimensions(
   h: number,
   l: number,
   rotation: number,
-): { width: number; height: number; depth: number } {
+): { width: number; height: number; length: number } {
   switch (rotation) {
     case 1:
-      return { width: l, height: h, depth: w };
+      return { width: l, height: h, length: w };
     case 2:
-      return { width: w, height: l, depth: h };
+      return { width: w, height: l, length: h };
     case 3:
-      return { width: h, height: w, depth: l };
+      return { width: h, height: w, length: l };
     case 4:
-      return { width: h, height: l, depth: w };
+      return { width: h, height: l, length: w };
     case 5:
-      return { width: l, height: w, depth: h };
+      return { width: l, height: w, length: h };
     default:
-      return { width: w, height: h, depth: l };
+      return { width: w, height: h, length: l };
   }
 }
 
@@ -147,7 +157,7 @@ function toVehicle(raw: NonNullable<z.infer<typeof planVehicleSchema>>): Vehicle
     height: raw.internalHeight ?? 0,
     length: raw.internalLength ?? 0,
     maxCargoWeight: raw.maxWeightCapacity ?? 0,
-    doorDirection: resolveDoorDirection(raw.loadingType),
+    doors: resolveDoors(raw.doors, raw.loadingType),
   };
 }
 

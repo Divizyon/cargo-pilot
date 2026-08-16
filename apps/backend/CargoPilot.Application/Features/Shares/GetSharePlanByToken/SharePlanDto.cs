@@ -1,10 +1,17 @@
+using CargoPilot.Application.Features.Vehicles;
+
 namespace CargoPilot.Application.Features.Shares.GetSharePlanByToken;
 
+/// <remarks>
+/// <c>Doors</c> tekil yon alaninin yerini alir: paylasilan sayfa kapiyi dogru
+/// yuzde cizmek ve yukleme sirasini dogru yonde gostermek icin hem kapi tipini
+/// hem yuzunu bilmek zorunda (docs/COORDINATE_STANDARD.md §4).
+/// </remarks>
 public sealed record ShareVehicleDataDto(
     decimal? Width,
     decimal? Height,
     decimal? Length,
-    string DoorDirection,
+    IReadOnlyList<VehicleDoorDto> Doors,
     string? VehicleType);
 
 public sealed record SharePlacementDetailDto(

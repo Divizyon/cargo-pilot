@@ -28,4 +28,5 @@ public sealed record VehicleSummaryDto(
     decimal? AdditionalAxleTareWeightKg,
     decimal? AdditionalAxleMaxLoadKg,
     AuditUserDto? LastModifiedBy,
-    string? Status);
+    string? Status,
+    IReadOnlyList<VehicleDoorDto> Doors);
