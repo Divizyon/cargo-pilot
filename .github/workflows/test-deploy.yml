@@ -470,9 +470,6 @@ jobs:
               --env-file infra/env/.env.test \
               up -d --no-build --remove-orphans
 
-            echo "==> Kullanılmayan eski image'lar temizleniyor..."
-            docker image prune -f
-
             echo "==> Backend health (loopback) bekleniyor..."
             for i in $(seq 1 20); do
               curl -sf http://127.0.0.1:8081/health >/dev/null && break
@@ -480,3 +477,9 @@ jobs:
               sleep 5
             done
             echo "Backend loopback health OK."
+
+            # Prune yalnız health doğrulandıktan SONRA çalışır: aksi hâlde bir önceki
+            # sürümün image'ı (aynı tag yeniden push edildiyse dangling'e düşer)
+            # silinir ve geri dönüş için GHCR'dan tekrar pull gerekir.
+            echo "==> Kullanılmayan eski image'lar temizleniyor..."
+            docker image prune -f
