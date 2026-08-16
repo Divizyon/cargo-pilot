@@ -452,6 +452,13 @@ jobs:
             echo "==> Bayat GHCR kimlik bilgisi temizleniyor..."
             docker logout ghcr.io >/dev/null 2>&1 || true
 
+            # Geri alma çıpası: hâlihazırda çalışan backend konteynerinin image
+            # referansından mevcut tag türetilir (ör. ghcr.io/...:test-abc1234 -> test-abc1234).
+            # Konteyner yoksa (ilk deploy) boş kalır ve geri alma denenmez.
+            PREV_IMAGE_REF="$(docker inspect --format '{{.Config.Image}}' cargo-pilot-backend-test 2>/dev/null || true)"
+            PREV_IMAGE_TAG="${PREV_IMAGE_REF##*:}"
+            echo "==> Geri alma çıpası: PREV_IMAGE_TAG=${PREV_IMAGE_TAG:-<yok>}"
+
             echo "==> Image'lar GHCR'dan çekiliyor (tag: ${IMAGE_TAG})..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
@@ -471,11 +478,37 @@ jobs:
               up -d --no-build --remove-orphans
 
             echo "==> Backend health (loopback) bekleniyor..."
+            HEALTH_OK=0
             for i in $(seq 1 20); do
-              curl -sf http://127.0.0.1:8081/health >/dev/null && break
-              if [ "$i" = "20" ]; then echo "Backend loopback health basarisiz"; exit 1; fi
+              if curl -sf http://127.0.0.1:8081/health >/dev/null; then HEALTH_OK=1; break; fi
               sleep 5
             done
+
+            # Health düşerse bir önceki image tag'ine tek seferlik geri dönülür.
+            # Geri alma sonucundan bağımsız olarak job kırmızı bırakılır (exit 1):
+            # başarılı bir geri alma "deploy başarılı" anlamına gelmez.
+            # Geri almanın kendisi için ikinci bir geri alma denenmez -> döngü yok.
+            if [ "${HEALTH_OK}" != "1" ]; then
+              echo "Backend loopback health basarisiz (tag: ${IMAGE_TAG})."
+              if [ -n "${PREV_IMAGE_TAG}" ] && [ "${PREV_IMAGE_TAG}" != "${IMAGE_TAG}" ]; then
+                echo "==> Otomatik geri alma: ${PREV_IMAGE_TAG}"
+                IMAGE_TAG="${PREV_IMAGE_TAG}" docker compose \
+                  -f infra/compose/docker-compose.test.yml \
+                  --env-file infra/env/.env.test \
+                  up -d --no-build --remove-orphans || echo "Geri alma komutu hata verdi."
+                for i in $(seq 1 12); do
+                  if curl -sf http://127.0.0.1:8081/health >/dev/null; then
+                    echo "Geri alma tamamlandi, backend ${PREV_IMAGE_TAG} ile saglikli."
+                    break
+                  fi
+                  sleep 5
+                done
+              else
+                echo "Geri donulecek onceki image yok; stack oldugu gibi birakildi."
+              fi
+              echo "Deploy basarisiz."
+              exit 1
+            fi
             echo "Backend loopback health OK."
 
             # Prune yalnız health doğrulandıktan SONRA çalışır: aksi hâlde bir önceki
