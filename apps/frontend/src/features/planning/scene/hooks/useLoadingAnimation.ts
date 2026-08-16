@@ -55,6 +55,13 @@ function computeScheduleParams(count: number): { staggerMs: number; flightMs: nu
  * Hook caller-agnostic: her kutu için `setPosition(index, x, y, z)` callback'ini çağırır.
  * Caller bunu `setMatrixAt` veya `mesh.position` ile uygular.
  */
+/**
+ * Varsayılan parametre olarak `[]` yazılamaz: her render yeni bir dizi üretir,
+ * effect bağımlılığı her seferinde değişir ve animasyon sürekli baştan
+ * kurulurdu (denetim S-57). Modül düzeyinde tek örnek.
+ */
+const EMPTY_DOORS: readonly VehicleDoor[] = [];
+
 export function useLoadingAnimation(
   placements: PlacementWithDimensions[],
   loadOrder: number[],
@@ -67,7 +74,7 @@ export function useLoadingAnimation(
   /** Araç Y yüksekliği (cm) — üst kapı için */
   vehicleHeight?: number,
   /** Araç kapıları — kutuların hangi yüzden girdiğini belirler */
-  doors: readonly VehicleDoor[] = [],
+  doors: readonly VehicleDoor[] = EMPTY_DOORS,
 ) {
   const animationMode = useSceneStore((s) => s.animationMode);
   const animationStep = useSceneStore((s) => s.animationStep);
@@ -126,7 +133,10 @@ export function useLoadingAnimation(
         fromY = height + OFFSET;
         fromZ = cz;
       } else {
-        // Kapı bilgisi yoksa referans kapı varsayılır (§7).
+        // Kapı listesi boş: ContainerMesh de hiçbir kapı çizmiyor, yani kutunun
+        // gireceği bir açıklık yok. Kutu yine de bir yerden gelmeli; referans
+        // kapı yüzü seçilir çünkü mesh'in kapı çizdiği tek yüz orası ve iki
+        // bileşen aynı varsayımı paylaşmalı (denetim S-56).
         fromX = cx;
         fromY = cy;
         fromZ = length + OFFSET;

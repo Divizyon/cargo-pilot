@@ -22,10 +22,13 @@ function DoorPanel({
   width,
   height,
   length = 0.1,
+  sign = 1,
 }: {
   width: number;
   height: number;
   length?: number;
+  /** Panel menteşeden hangi yöne uzanıyor: +1 = +X, -1 = -X. */
+  sign?: 1 | -1;
 }) {
   const [normalMap, roughnessMap, aoMap] = useTexture([normalUrl, roughnessUrl, aoUrl]);
 
@@ -38,8 +41,11 @@ function DoorPanel({
     }
   }, [width, height, normalMap, roughnessMap, aoMap]);
 
+  // Yön `scale.x = -1` ile değil öteleme ile veriliyor: negatif determinantlı
+  // grup standartta yasak (docs/COORDINATE_STANDARD.md §9-11) ve kutu geometrisi
+  // zaten simetrik olduğu için aynalamaya gerek yok (denetim S-54).
   return (
-    <mesh position={[width / 2, height / 2, 0]}>
+    <mesh position={[(sign * width) / 2, height / 2, 0]}>
       <boxGeometry args={[width, height, length]} />
       <meshStandardMaterial
         normalMap={normalMap}
@@ -90,7 +96,9 @@ const DOOR_EASING = SCENE.DOOR_EASING;
 function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
     const step = SCENE.GRID_STEP_CM;
-    const z = -(DOOR_THICKNESS + 0.5);
+    // Referans kapı z = length yüzünde; dış taraf +Z. Ofset eskiden -Z idi
+    // (kapı z = 0'dayken doğruydu) ve ızgara kargonun içine düşüyordu (S-53).
+    const z = DOOR_THICKNESS + 0.5;
     const pts: number[] = [];
 
     for (let x = 0; x <= panelW; x += step) {
@@ -114,7 +122,7 @@ function RearDoorGrid({ panelW, height, sign }: { panelW: number; height: number
 
 function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   const geometry = useMemo(() => {
-    const z = -(DOOR_THICKNESS + 0.5);
+    const z = DOOR_THICKNESS + 0.5;
     const ex = sign * panelW;
     const pts = [
       0,
@@ -157,9 +165,7 @@ function RearDoorFrame({ panelW, height, sign }: { panelW: number; height: numbe
 function RearDoorPanel({ panelW, height, sign }: { panelW: number; height: number; sign: 1 | -1 }) {
   return (
     <group>
-      <group scale={[sign, 1, 1]}>
-        <DoorPanel width={panelW} height={height} />
-      </group>
+      <DoorPanel width={panelW} height={height} sign={sign} />
       <RearDoorGrid panelW={panelW} height={height} sign={sign} />
       <RearDoorFrame panelW={panelW} height={height} sign={sign} />
     </group>
@@ -175,8 +181,11 @@ function RearDoors({ width, height }: { width: number; height: number }) {
     const diff = DOOR_OPEN_ANGLE - angleRef.current;
     if (Math.abs(diff) > 0.0005) {
       angleRef.current += diff * DOOR_EASING;
-      if (leftRef.current) leftRef.current.rotation.y = angleRef.current;
-      if (rightRef.current) rightRef.current.rotation.y = -angleRef.current;
+      // İşaretler kapı z = 0 yüzündeyken doğruydu; kapı z = length'e taşınınca
+      // ters düştü ve kanatlar açılırken kargonun içinden süpürüyordu (S-30).
+      // Bu yönde kanat dışarı açılıp aracın yan duvarına katlanıyor.
+      if (leftRef.current) leftRef.current.rotation.y = -angleRef.current;
+      if (rightRef.current) rightRef.current.rotation.y = angleRef.current;
     }
   });
 
@@ -293,9 +302,13 @@ function TopDoor({ width, length }: { width: number; length: number }) {
 // ─── ContainerMesh ─────────────────────────────────────────────────────────────
 
 function renderDoors(doors: readonly VehicleDoor[], width: number, height: number, length: number) {
-  const referenceDoor = findDoor(doors, DoorType.Small);
   const sideDoor = findDoor(doors, DoorType.Big);
   const topDoor = findDoor(doors, DoorType.Top);
+
+  // Kapı listesi tamamen boşsa referans kapı çizilir: useLoadingAnimation da
+  // aynı varsayımla kutuları o yüzden içeri alıyor. İkisi ayrışırsa kutular
+  // kapalı duvardan giriyormuş gibi görünürdü (denetim S-56).
+  const referenceDoor = findDoor(doors, DoorType.Small) ?? (doors.length === 0 ? true : undefined);
 
   // Kapılar bir liste: bir araçta aynı anda arka ve yan kapı bulunabilir, bu
   // yüzden dallar birbirini dışlamaz (docs/COORDINATE_STANDARD.md §4).

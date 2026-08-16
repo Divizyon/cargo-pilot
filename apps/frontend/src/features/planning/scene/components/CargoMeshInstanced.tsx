@@ -150,6 +150,8 @@ function buildEdgesGeometry(
     activeLayer: number;
     focusedGroupItemIds: string[] | null;
     showCog: boolean;
+    /** X-Ray soyma yönü kapıdan başlar; araç uzunluğu olmadan hesaplanamaz. */
+    vehicleLength?: number;
   },
 ): { normal: THREE.BufferGeometry; dim: THREE.BufferGeometry } {
   const {
@@ -159,6 +161,7 @@ function buildEdgesGeometry(
     activeLayer,
     focusedGroupItemIds,
     showCog,
+    vehicleLength,
   } = opts;
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
@@ -171,7 +174,7 @@ function buildEdgesGeometry(
   placements.forEach((p, i) => {
     if (p.productType === 'palet') return;
     const visible = isPlacementVisible(p, i, { selectedInstanceId, selectedItemId, hiddenItemIds });
-    const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+    const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicleLength);
     if (!visible || ghosted) return;
 
     const selDimmed = isSelectionDimmed(p, i, {
@@ -721,7 +724,7 @@ function InstancedBoxes() {
         selectedItemId,
         hiddenItemIds,
       });
-      const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+      const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicle?.length);
       const selectionDimmed = isSelectionDimmed(p, globalIdx, {
         selectedInstanceId,
         selectedItemId,
@@ -815,6 +818,9 @@ function InstancedBoxes() {
     xRayMode,
     focusedGroupItemIds,
     showCog,
+    // X-Ray eşiği araç uzunluğuna göre hesaplanıyor; araç değişince matrisler
+    // yeniden yazılmalı.
+    vehicle?.length,
   ]);
 
   // Label plane matrislerini idle'da veya atlas/placements değişince güncelle
@@ -842,6 +848,7 @@ function InstancedBoxes() {
       activeLayer,
       focusedGroupItemIds,
       showCog,
+      vehicleLength: vehicle?.length,
     });
   }, [
     placements,
@@ -851,6 +858,7 @@ function InstancedBoxes() {
     activeLayer,
     focusedGroupItemIds,
     showCog,
+    vehicle?.length,
   ]);
 
   useEffect(
@@ -1037,7 +1045,7 @@ function InstancedBoxes() {
           hiddenItemIds,
         });
         if (!visible) return null;
-        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicle?.length);
         const selDimmedPalet = isSelectionDimmed(p, globalIdx, {
           selectedInstanceId,
           selectedItemId,
@@ -1295,7 +1303,7 @@ function BoxPathBoxes() {
       {placements.map((p, i) => {
         const isInstanceSelected = selectedInstanceId === i;
         const isItemSelected = p.itemId === selectedItemId;
-        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds);
+        const ghosted = isGhosted(p, activeLayer, focusedGroupItemIds, vehicle?.length);
         const selDimmed = isSelectionDimmed(p, i, {
           selectedInstanceId,
           selectedItemId,

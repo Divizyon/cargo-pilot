@@ -115,19 +115,23 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 8 — Sahne yön türevleri (tek görsel QA turu)
+## Faz 8 — Sahne yön türevleri ✅ (görsel QA kullanıcıda)
 **Bulgular:** S-30, S-53, S-31, S-56, S-57, S-52, S-55, S-54, S-58
 
-- [ ] **S-30** Referans kapı kanat dönüş işaretleri z=length yüzüne göre (dışarı süpürsün).
-- [ ] **S-53** Izgara/çerçeve `-Z` ofseti kapının yeni yüzüne göre dışarı.
-- [ ] **S-31** `sceneFilter` X-Ray z=length (kamera tarafı) yönünden soysun; test gerçek yön beklentisiyle güncellenir.
-- [ ] **S-56** Boş `doors`'ta mesh ile animasyon aynı varsayımı kullansın (ikisi de referans kapı varsay).
-- [ ] **S-57** `useLoadingAnimation` — `doors = []` parametre varsayılanı her render yeni dizi: modül sabiti `EMPTY_DOORS` kullan.
-- [ ] **S-52/S-55** Yan/üst kapı açıları fiziksel aralığa (≤ ~110°) çekilir (main'den beri var, regresyon değil).
-- [ ] **S-54** Sağ kanat `scale={[-1,1,1]}` yerine geometriyi gerçek dönüşle kur (standart lafzı).
-- [ ] **S-58** FRONT preset ikonundan `DoorOpen` kalkar (kapısız yüz).
+- [x] **S-30** Referans kapı kanat dönüş işaretleri z=length yüzüne göre (dışarı süpürsün).
+- [x] **S-53** Izgara/çerçeve `-Z` ofseti kapının yeni yüzüne göre dışarı.
+- [x] **S-31** `sceneFilter` X-Ray z=length (kamera tarafı) yönünden soysun; test gerçek yön beklentisiyle güncellenir.
+- [x] **S-56** Boş `doors`'ta mesh ile animasyon aynı varsayımı kullansın (ikisi de referans kapı varsay).
+- [x] **S-57** `useLoadingAnimation` — `doors = []` parametre varsayılanı her render yeni dizi: modül sabiti `EMPTY_DOORS` kullan.
+- [x] **S-52/S-55** Yan/üst kapı açıları fiziksel aralığa (≤ ~110°) çekilir (main'den beri var, regresyon değil).
+- [x] **S-54** Sağ kanat `scale={[-1,1,1]}` yerine geometriyi gerçek dönüşle kur (standart lafzı).
+- [x] **S-58** FRONT preset ikonundan `DoorOpen` kalkar (kapısız yüz).
 
-**Doğrulama:** tsc + vitest; **kullanıcı görsel QA yapar** (kanatlar dışarı, ızgara dışarıda, X-Ray doğru taraftan).
+**Doğrulama:** tsc sessiz, 363/363, ESLint 0. `sceneFilter.test.ts` X-Ray yönünü kilitliyor (12 test).
+
+**Görsel QA hâlâ kullanıcıda** — kod tarafı doğrulanamayan üç şey: kanatların dışarı süpürmesi, ızgaranın kapı dışında kalması, yan/üst kapı açılarının 110°'de fiziksel görünmesi.
+
+**S-52/S-55 kararı:** `DOOR_REAR_OPEN_ANGLE` 230° **korundu** — TIR arka kapıları gerçekten o açıda yan duvara katlanır, fiziksel. Yalnızca `DOOR_SIDE_OPEN_ANGLE` 250° → 110° indirildi (yan kapı gövdenin içinden geçiyordu, üst kapı tavanın metrelerce altına iniyordu).
 
 ---
 
