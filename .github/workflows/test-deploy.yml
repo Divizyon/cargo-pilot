@@ -458,17 +458,17 @@ jobs:
               --env-file infra/env/.env.test \
               pull backend frontend
 
-            echo "==> Eski stack temizleniyor..."
-            docker compose \
-              -f infra/compose/docker-compose.test.yml \
-              --env-file infra/env/.env.test \
-              down --remove-orphans 2>/dev/null || true
-
-            echo "==> Stack ayağa kaldırılıyor (tag: ${IMAGE_TAG})..."
+            # Tüm stack'i `down` etmek mssql ve minio'yu da kapatıyordu; deploy edilen
+            # yalnız backend/frontend olduğu hâlde her deploy 2-3 dk kesinti üretiyordu.
+            # `up -d` yalnız image digest'i veya servis tanımı değişen konteynerleri
+            # yeniden yaratır: backend + frontend yeni tag'e geçer, mssql/minio/ağ/volume
+            # dokunulmadan ayakta kalır. `--remove-orphans` semantiği korunuyor —
+            # compose dosyasından çıkarılmış servislerin artık konteynerleri yine silinir.
+            echo "==> Stack güncelleniyor (tag: ${IMAGE_TAG})..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
-              up -d --no-build
+              up -d --no-build --remove-orphans
 
             echo "==> Kullanılmayan eski image'lar temizleniyor..."
             docker image prune -f
