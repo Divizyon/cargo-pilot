@@ -13,6 +13,10 @@ mkdir -p "${LOG_DIR}"
 mkdir -p "${BACKUP_DIR}/mssql/prod"
 mkdir -p "${BACKUP_DIR}/mssql/test"
 
+# Yedek dizinleri tüm müşteri verisini barındırır; host'taki diğer kullanıcılara
+# kapalı olmalı (backup-db.sh de her koşumda aynı izni uygular).
+chmod 700 "${BACKUP_DIR}" "${BACKUP_DIR}/mssql" "${BACKUP_DIR}/mssql/prod" "${BACKUP_DIR}/mssql/test"
+
 # Scriptleri çalıştırılabilir yap
 chmod +x "${DEPLOY_DIR}/infra/scripts/backup-db.sh"
 chmod +x "${DEPLOY_DIR}/infra/scripts/rollback.sh"

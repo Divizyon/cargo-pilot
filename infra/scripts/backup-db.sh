@@ -9,6 +9,11 @@
 
 set -euo pipefail
 
+# Yedek dosyalari tum musteri verisini icerir. Varsayilan umask ile dizin 755,
+# .bak 644 olur; host'taki her kullanici okuyabilir. 077 ile bu script'in
+# urettigi her sey sahibine ozel (dizin 700, dosya 600) yaratilir.
+umask 077
+
 ENVIRONMENT="${1:-prod}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_DIR="/opt/cargo-pilot/backups/mssql/${ENVIRONMENT}"
@@ -50,6 +55,9 @@ fi
 export SQLCMDPASSWORD="${SA_PASSWORD}"
 
 mkdir -p "${BACKUP_DIR}"
+# umask yalnizca yeni yaratilanlari kapsar; onceki kosumlardan kalan gevsek
+# izinli dizinleri de her calismada duzeltiyoruz.
+chmod 700 "${BACKUP_DIR}"
 
 BACKUP_FILE="${BACKUP_DIR}/${DATABASE}_${TIMESTAMP}.bak"
 
@@ -66,6 +74,8 @@ docker exec -e SQLCMDPASSWORD "${CONTAINER}" \
 
 # Container'dan host'a kopyala
 docker cp "${CONTAINER}:/var/opt/mssql/backup/${DATABASE}_${TIMESTAMP}.bak" "${BACKUP_FILE}"
+# `docker cp` dosya iznini kaynaktan tasiyabilir; umask'e guvenmeyip acikca daraltiyoruz.
+chmod 600 "${BACKUP_FILE}"
 
 # Container içindeki geçici yedeği temizle
 docker exec "${CONTAINER}" rm -f "/var/opt/mssql/backup/${DATABASE}_${TIMESTAMP}.bak"
