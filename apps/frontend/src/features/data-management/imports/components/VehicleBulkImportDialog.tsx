@@ -106,7 +106,7 @@ function validateRow(row: EditableRow): RowErrors {
   if (!row.height || Number(row.height) <= 0) e.height = 'Pozitif sayı';
   if (!row.maxCargoWeight || Number(row.maxCargoWeight) <= 0) e.maxCargoWeight = 'Pozitif sayı';
   if (!DOOR_SET_OPTIONS.includes(row.doorSet as DoorSetKey)) {
-    e.doorSet = DOOR_SET_OPTIONS.join(' / ');
+    e.doorSet = 'arka / arka+sol / arka+sağ / sol / sağ';
   }
   return e;
 }
@@ -143,8 +143,27 @@ const DOOR_SET_ALIASES: Record<string, DoorSetKey> = {
   sağ: 'right',
   sag: 'right',
   right: 'right',
+
+  // Eski şablonun "Kapı Yönü" değerleri. Tanınmasalardı satır sessizce
+  // 'arka'ya düşüyordu; yan kapılı araç filo dosyasından arka kapılı olarak
+  // içeri giriyordu (denetim S-27).
+  yan: 'rear+right',
+  side: 'rear+right',
+  'arka + yan': 'rear+right',
+  'arka+yan': 'rear+right',
+  rearandside: 'rear+right',
+  üst: 'rear',
+  ust: 'rear',
+  top: 'rear',
 };
 
+/**
+ * Şablon değerini geçerli anahtara çevirir.
+ *
+ * Tanınmayan değer olduğu gibi geri döner ve `validateRow` onu hata olarak
+ * işaretler. Eskiden `?? 'arka'` ile sessizce varsayılana düşüyordu, yani
+ * yanlış yazılmış bir sütun kullanıcıya hiç gösterilmeden kabul ediliyordu.
+ */
 function normalizeDoorSet(raw: unknown): string {
   const s = String(raw ?? '')
     .toLowerCase()
@@ -167,8 +186,14 @@ function xlsxToRows(ws: XLSX.WorkSheet): EditableRow[] {
       width: String(r['Genişlik (cm)'] ?? ''),
       height: String(r['Yükseklik (cm)'] ?? ''),
       maxCargoWeight: String(r['Maks Yük (kg)'] ?? ''),
+      // Eski şablonun "Kapı Yönü" sütunu da okunur; boş bırakılan hücre
+      // varsayılana düşer ama tanınmayan bir DEĞER hata olarak gösterilir.
       doorSet: normalizeDoorSet(
-        r['Kapılar (arka/arka+sol/arka+sağ/sol/sağ)'] ?? r['Kapılar'] ?? 'arka',
+        r['Kapılar (arka/arka+sol/arka+sağ/sol/sağ)'] ??
+          r['Kapılar'] ??
+          r['Kapı Yönü (rear/side/top/rearAndSide)'] ??
+          r['Kapı Yönü'] ??
+          'arka',
       ),
     }),
   );

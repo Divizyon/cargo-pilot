@@ -77,7 +77,7 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 - [x] **S-11** `useVehicles.ts` arşivle/sil — tam-üstüne-yazan PUT yerine dönüşümsüz `buildUpdateVehiclePayloadFromVehicle(vehicle)` (cm/kg değerleri olduğu gibi, `layerCount` doğru anahtar, kingpin/aks korunur); `as VehicleFormValues` cast'i kalkar. Alternatif: backend'e minimal `PATCH`-vari uç — kapsamı büyütmeden mevcut PUT ile dönüşümsüz payload tercih edilir.
 - [x] **S-10** Toplu araç import'u cm/kg sabit: `buildCreateVehiclePayload`'a `unit: 'raw-cm'` parametresi ya da doğrudan `CreateVehicleRequest` kur.
-- [ ] **S-24** `AddVehicleModal` ölçüleri `toCentimeters`/`toKilograms`'tan geçir → **Faz 6'ya alındı** (aynı dosyada S-09/S-23 ile birlikte).
+- [x] **S-24** `AddVehicleModal` ölçüleri `toCentimeters`/`toKilograms`'tan geçir → **Faz 6'ya alındı** (aynı dosyada S-09/S-23 ile birlikte).
 - [x] **S-25** Kingpin/aks: form değeri görüntü biriminde → `*Mm` alanına yazarken çevir (adı `Mm` ama cm taşıyorsa önce gerçek semantiği koddan doğrula, karar commit'e yazılır); okuma yolu simetrik.
 - [x] **S-28** `VehiclePreviewPanel` çift dönüşüm kalkar (form değeri zaten görüntü biriminde).
 - [x] **S-29** `VehicleDimensionsFields` — `calcVolume`'a cm verilecek şekilde çevir.
@@ -90,13 +90,14 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 6 — Plan sihirbazı + form kayıpları
-**Bulgular:** S-09, S-23, S-26, S-27
+## Faz 6 — Plan sihirbazı + form kayıpları ✅
+**Bulgular:** S-09, S-23, S-24, S-26, S-27
+**Durum:** tamamlandı. Frontend 355/355. `buildDoors`/`resolveSetKey` `vehicleDoorSelection.ts`'e taşındı (bileşen dosyasından fonksiyon dışa aktarmak `react-refresh` kuralını bozuyordu).
 
-- [ ] **S-09** `AddVehicleModal` yerel `FORM_VEHICLE_TYPE_INT` silinir → `VEHICLE_TYPE_INT` import (Kamposet/Konteyner ters kaydediliyor).
-- [ ] **S-23** Modal `doors` göndersin; `useVehicles.ts:488-497` şemasına `doors` alanı (yoksa `.parse()` düşürüyor); "yan" seçimi sessizce `SideRight`e sabitlenmesin — varsayılan `DEFAULT_BIG_DOOR_FACE`.
-- [ ] **S-26** `VehicleDoorsField` — mevcut `Top` kapı korunmalı: `buildDoors` bilinmeyen tipleri (Top) geçirsin, `resolveSetKey` top-only araçta da anlamlı durum göstersin (üç seçenek UI'ı değişmez; Top formda sorulmuyor ama silinmemeli).
-- [ ] **S-27** Toplu import: eski şablonun `Kapı Yönü` sütunu ve `side`/`rearAndSide`/`top` değerleri tanınsın (alias tablosuna eklenir), tanınmayan değer `'arka'`ya sessiz düşmesin — satır hatası göstersin.
+- [x] **S-09** `AddVehicleModal` yerel `FORM_VEHICLE_TYPE_INT` silinir → `VEHICLE_TYPE_INT` import (Kamposet/Konteyner ters kaydediliyor).
+- [x] **S-23** Modal `doors` göndersin; `useVehicles.ts:488-497` şemasına `doors` alanı (yoksa `.parse()` düşürüyor); "yan" seçimi sessizce `SideRight`e sabitlenmesin — varsayılan `DEFAULT_BIG_DOOR_FACE`.
+- [x] **S-26** `VehicleDoorsField` — mevcut `Top` kapı korunmalı: `buildDoors` bilinmeyen tipleri (Top) geçirsin, `resolveSetKey` top-only araçta da anlamlı durum göstersin (üç seçenek UI'ı değişmez; Top formda sorulmuyor ama silinmemeli).
+- [x] **S-27** Toplu import: eski şablonun `Kapı Yönü` sütunu ve `side`/`rearAndSide`/`top` değerleri tanınsın (alias tablosuna eklenir), tanınmayan değer `'arka'`ya sessiz düşmesin — satır hatası göstersin.
 
 **Doğrulama:** vitest + manuel: eski şablon dosyasıyla import denemesi.
 

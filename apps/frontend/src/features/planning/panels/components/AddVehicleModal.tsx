@@ -11,6 +11,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useCreatePlanVehicle } from '@/lib/api/useVehicles';
+import { VEHICLE_TYPE_INT, loadingTypeFromDoors } from '@/lib/api/vehicleMappers';
+import {
+  DEFAULT_BIG_DOOR_FACE,
+  DoorFace,
+  DoorType,
+  VehicleType,
+  type VehicleDoor,
+} from '@/lib/types/vehicle';
+import { useUnitStore } from '@/lib/store/useUnitStore';
+import {
+  toCentimeters,
+  toKilograms,
+  type WeightUnitKey,
+} from '@/features/data-management/products/schemas/productSchema';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -72,23 +86,37 @@ interface AddVehicleModalProps {
   onCreated: (id: string | null) => void;
 }
 
-const FORM_VEHICLE_TYPE_INT: Record<string, number> = {
-  tir: 0,
-  kamyon: 1,
-  kamposet: 2,
-  konteyner: 3,
+// Form değeri → `VehicleType` sabiti. Eşleme tablosu yerel olarak yazılıydı ve
+// kamposet/konteyner ters düşüyordu (backend: Container=2, Romork=3), yani
+// "Kamposet" seçen kullanıcının aracı Konteyner olarak kaydediliyordu (S-09).
+// Ortak `VEHICLE_TYPE_INT` tek kaynak.
+const FORM_VEHICLE_TYPE: Record<string, VehicleType> = {
+  tir: VehicleType.Tir,
+  kamyon: VehicleType.Kamyon,
+  kamposet: VehicleType.Kamposet,
+  konteyner: VehicleType.Konteyner,
 };
 
-// Backend LoadingType: Rear=0, SideRight=1, SideLeft=2, SideBoth=3, Top=4.
-// Bu modalde sağ/sol kapı seçimi yok; "yan" seçimi varsayılan olarak SideRight'a eşlenir.
-const LOADING_AREA_INT: Record<string, number> = {
-  arka: 0,
-  yan: 1,
-  ust: 4,
+/**
+ * Yükleme alanı seçimi → kapı listesi.
+ *
+ * "Yan" seçimi eskiden sessizce SideRight'a sabitleniyordu. Artık standardın
+ * varsayılanı uygulanır: büyük kapı origin'e değmeyen yüze (x = width) konur,
+ * böylece yükleme origin köşesinden başlar (docs/COORDINATE_STANDARD.md §7).
+ */
+const LOADING_AREA_DOORS: Record<string, VehicleDoor[]> = {
+  arka: [{ type: DoorType.Small, face: DoorFace.LengthZ }],
+  yan: [
+    { type: DoorType.Small, face: DoorFace.LengthZ },
+    { type: DoorType.Big, face: DEFAULT_BIG_DOOR_FACE },
+  ],
+  ust: [{ type: DoorType.Top, face: DoorFace.HeightY }],
 };
 
 export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleModalProps) {
   const createVehicle = useCreatePlanVehicle();
+  const dimensionUnit = useUnitStore((s) => s.dimensionUnit);
+  const weightUnit = useUnitStore((s) => s.weightUnit);
 
   const {
     register,
@@ -120,16 +148,22 @@ export function AddVehicleModal({ open, onOpenChange, onCreated }: AddVehicleMod
 
   async function onSubmit(data: VehicleModalValues) {
     try {
+      const doors = LOADING_AREA_DOORS[data.loadingArea] ?? LOADING_AREA_DOORS.arka;
+      const vehicleType = FORM_VEHICLE_TYPE[data.vehicleType] ?? VehicleType.Kamyon;
+
       const newId = await createVehicle.mutateAsync({
         vehicleName: data.name,
         plateNumber: data.plateNumber,
-        vehicleType: FORM_VEHICLE_TYPE_INT[data.vehicleType] ?? 1,
-        internalWidth: Math.round(data.width),
-        internalHeight: Math.round(data.height),
-        internalLength: Math.round(data.length),
-        maxWeightCapacity: Math.round(data.payload),
+        vehicleType: VEHICLE_TYPE_INT[vehicleType],
+        // Alan ekleri kullanıcının görüntü birimini gösteriyor; kayıt cm/kg.
+        // Dönüşüm olmadan mm ayarlı kullanıcının aracı 10 kat küçülüyordu (S-24).
+        internalWidth: Math.round(toCentimeters(data.width, dimensionUnit)),
+        internalHeight: Math.round(toCentimeters(data.height, dimensionUnit)),
+        internalLength: Math.round(toCentimeters(data.length, dimensionUnit)),
+        maxWeightCapacity: Math.round(toKilograms(data.payload, weightUnit as WeightUnitKey)),
         layerCount: data.layerCount,
-        loadingType: LOADING_AREA_INT[data.loadingArea] ?? 0,
+        doors,
+        loadingType: loadingTypeFromDoors(doors),
       });
 
       onCreated(newId);

@@ -466,6 +466,9 @@ export const planVehicleCreatePayloadSchema = z.object({
   maxWeightCapacity: z.number(),
   layerCount: z.number().int(),
   loadingType: z.number().int(),
+  // Kapı listesi şemada yoksa `.parse()` alanı sessizce düşürüyor ve plan
+  // sihirbazından eklenen araç kapısız kaydediliyordu (S-23).
+  doors: z.array(vehicleDoorSchema),
 });
 
 export type PlanVehicleCreatePayload = z.infer<typeof planVehicleCreatePayloadSchema>;

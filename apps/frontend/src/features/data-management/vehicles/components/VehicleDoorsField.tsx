@@ -6,20 +6,13 @@ import { FormItem } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import {
-  DoorType,
-  DoorFace,
-  DEFAULT_BIG_DOOR_FACE,
-  findDoor,
-  type VehicleDoor,
-} from '@/lib/types/vehicle';
+import { DoorType, DoorFace, DEFAULT_BIG_DOOR_FACE, findDoor } from '@/lib/types/vehicle';
+import { buildDoors, resolveSetKey, type DoorSetKey } from './vehicleDoorSelection';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 
 interface VehicleDoorsFieldProps {
   form: UseFormReturn<VehicleFormValues>;
 }
-
-type DoorSetKey = 'small' | 'big' | 'both';
 
 const DOOR_SET_OPTIONS: { value: DoorSetKey; label: string; hasBigDoor: boolean }[] = [
   { value: 'small', label: 'Küçük kapı', hasBigDoor: false },
@@ -32,27 +25,13 @@ const BIG_DOOR_FACE_OPTIONS: { value: DoorFace; label: string }[] = [
   { value: DoorFace.WidthX, label: 'Sağ' },
 ];
 
-function buildDoors(setKey: DoorSetKey, bigDoorFace: DoorFace): VehicleDoor[] {
-  const doors: VehicleDoor[] = [];
-  if (setKey === 'small' || setKey === 'both') {
-    doors.push({ type: DoorType.Small, face: DoorFace.LengthZ });
-  }
-  if (setKey === 'big' || setKey === 'both') {
-    doors.push({ type: DoorType.Big, face: bigDoorFace });
-  }
-  return doors;
-}
-
-function resolveSetKey(doors: readonly VehicleDoor[]): DoorSetKey | null {
-  const hasSmall = findDoor(doors, DoorType.Small) !== undefined;
-  const hasBig = findDoor(doors, DoorType.Big) !== undefined;
-
-  if (hasSmall && hasBig) return 'both';
-  if (hasBig) return 'big';
-  if (hasSmall) return 'small';
-  return null;
-}
-
+/**
+ * Seçimi kapı listesine çevirir.
+ *
+ * Formda sorulmayan kapı tipleri (bugün yalnızca üst kapı) olduğu gibi taşınır.
+ * Eskiden liste sıfırdan kuruluyordu, yani üst kapısı olan bir araç formda ilk
+ * tıklamada o kapıyı sessizce kaybediyordu (denetim S-26).
+ */
 export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
   const [openFacePicker, setOpenFacePicker] = useState(false);
 
@@ -66,7 +45,7 @@ export function VehicleDoorsField({ form }: VehicleDoorsFieldProps) {
         const bigDoorFace = findDoor(doors, DoorType.Big)?.face ?? DEFAULT_BIG_DOOR_FACE;
 
         const update = (nextSetKey: DoorSetKey, nextFace: DoorFace) => {
-          field.onChange(buildDoors(nextSetKey, nextFace));
+          field.onChange(buildDoors(nextSetKey, nextFace, doors));
           form.clearErrors('doors');
         };
 
