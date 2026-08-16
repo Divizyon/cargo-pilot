@@ -96,10 +96,19 @@ Kurallar:
   sınıflanır, konumları eksen değeriyle yazılır. "sağ" ve "sol" yalnızca kamera
   bakışlarını adlandırmak için kullanılır (bkz. bölüm 6).
 - **Arayüz adlandırması:** son kullanıcıya gösterilen metinde kapı tipi yine
-  boyutla anılır — *küçük kapı* / *büyük kapı* / *üst kapı*. Büyük kapının
-  bulunduğu taraf **tip adının parçası değil**, parantez içinde eklenen ayrı bir
-  bilgidir: "Küçük ve büyük kapı (sol)". Kayıtta ve API'de taraf her zaman yüz
-  değeriyle (`ZeroX` / `WidthX`) tutulur; "sol/sağ" yalnızca ekran metnidir.
+  boyutla anılır — *küçük* / *büyük* / *üst*. Tipler `+` ile birleştirilir,
+  "kapı" kelimesi tekrarlanmaz, büyük kapının bulunduğu taraf **tip adının
+  parçası değil**, parantez içinde eklenen ayrı bir bilgidir:
+
+  ```
+  Küçük
+  Büyük (sağ)
+  Küçük + büyük (sol)
+  Küçük + büyük (sağ) + üst
+  ```
+
+  Kayıtta ve API'de taraf her zaman yüz değeriyle (`ZeroX` / `WidthX`) tutulur;
+  "sol/sağ" yalnızca ekran metnidir.
   Excel şablonunda da aynı yazım kullanılır (`küçük`, `küçük+sol`, `sağ` …);
   eski dosyaların yön adları (`arka`, `yan`, `rearAndSide`) içe aktarımda
   tanınmaya devam eder.

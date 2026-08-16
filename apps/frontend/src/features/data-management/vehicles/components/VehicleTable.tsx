@@ -214,9 +214,9 @@ const CATEGORY_TABS: { value: CategoryFilter; label: string }[] = [
 type DoorFilter = DoorType;
 
 const DOOR_FILTER_OPTIONS: { value: DoorFilter; label: string }[] = [
-  { value: DoorType.Small, label: 'Küçük Kapı' },
-  { value: DoorType.Big, label: 'Büyük Kapı' },
-  { value: DoorType.Top, label: 'Üst Kapı' },
+  { value: DoorType.Small, label: 'Küçük' },
+  { value: DoorType.Big, label: 'Büyük' },
+  { value: DoorType.Top, label: 'Üst' },
 ];
 
 function matchesDoorFilters(vehicle: Vehicle, filters: ReadonlySet<DoorFilter>): boolean {

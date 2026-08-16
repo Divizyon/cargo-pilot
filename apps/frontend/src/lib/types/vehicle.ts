@@ -87,27 +87,27 @@ export function validateDoors(doors: readonly VehicleDoor[]): string | null {
 /**
  * Kapı listesini kullanıcıya gösterilecek tek satıra indirger.
  *
- * Adlandırma boyuta göredir; büyük kapıda taraf parantez içinde eklenir
- * ("Küçük ve büyük kapı (sol)"). "sol/sağ" yalnızca arayüz metnidir, kayıtta
- * yüz değeri (ZeroX/WidthX) durur.
+ * Yazım: tipler `+` ile birleşir, "kapı" kelimesi tekrarlanmaz, büyük kapının
+ * tarafı parantez içinde gelir — "Küçük + büyük (sağ)". Adlandırma boyuta
+ * göredir (docs/COORDINATE_STANDARD.md §4); "sol/sağ" yalnızca arayüz metnidir,
+ * kayıtta yüz değeri (ZeroX/WidthX) durur.
  */
 export function formatDoorSummary(doors: readonly VehicleDoor[] | undefined): string {
   if (!doors || doors.length === 0) return '—';
 
-  const hasSmall = doors.some((door) => door.type === DoorType.Small);
   const big = doors.find((door) => door.type === DoorType.Big);
-  const hasTop = doors.some((door) => door.type === DoorType.Top);
-
   const side = big ? (big.face === DoorFace.ZeroX ? ' (sol)' : ' (sağ)') : '';
 
   const parts: string[] = [];
-  if (hasSmall && big) parts.push(`Küçük ve büyük kapı${side}`);
-  else if (hasSmall) parts.push('Küçük kapı');
-  else if (big) parts.push(`Büyük kapı${side}`);
+  if (doors.some((door) => door.type === DoorType.Small)) parts.push('Küçük');
+  if (big) parts.push(`büyük${side}`);
+  if (doors.some((door) => door.type === DoorType.Top)) parts.push('üst');
 
-  if (hasTop) parts.push('Üst kapı');
+  if (parts.length === 0) return '—';
 
-  return parts.length > 0 ? parts.join(' + ') : '—';
+  // Tek kapılı araçta baştaki tip zaten büyük harfle başlamalı.
+  const [first, ...rest] = parts;
+  return [first.charAt(0).toLocaleUpperCase('tr') + first.slice(1), ...rest].join(' + ');
 }
 
 /**

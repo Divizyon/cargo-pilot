@@ -15,9 +15,9 @@ interface VehicleDoorsFieldProps {
 }
 
 const DOOR_SET_OPTIONS: { value: DoorSetKey; label: string; hasBigDoor: boolean }[] = [
-  { value: 'small', label: 'Küçük kapı', hasBigDoor: false },
-  { value: 'big', label: 'Büyük kapı', hasBigDoor: true },
-  { value: 'both', label: 'Küçük ve büyük kapı', hasBigDoor: true },
+  { value: 'small', label: 'Küçük', hasBigDoor: false },
+  { value: 'big', label: 'Büyük', hasBigDoor: true },
+  { value: 'both', label: 'Küçük + büyük', hasBigDoor: true },
 ];
 
 const BIG_DOOR_FACE_OPTIONS: { value: DoorFace; label: string }[] = [

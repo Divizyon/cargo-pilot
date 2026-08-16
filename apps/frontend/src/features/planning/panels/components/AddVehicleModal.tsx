@@ -76,9 +76,9 @@ const LOADING_AREAS: Array<{
   value: DoorSetKey;
   label: string;
 }> = [
-  { value: 'small', label: 'Küçük kapı' },
-  { value: 'both', label: 'Küçük ve büyük kapı' },
-  { value: 'top', label: 'Üst kapı' },
+  { value: 'small', label: 'Küçük' },
+  { value: 'both', label: 'Küçük + büyük' },
+  { value: 'top', label: 'Üst' },
 ];
 
 // ─── AddVehicleModal ──────────────────────────────────────────────────────────

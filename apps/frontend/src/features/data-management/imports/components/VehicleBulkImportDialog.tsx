@@ -38,11 +38,11 @@ const DOOR_SET_OPTIONS = ['small', 'small+left', 'small+right', 'left', 'right']
 type DoorSetKey = (typeof DOOR_SET_OPTIONS)[number];
 
 const DOOR_SET_LABELS: Record<string, string> = {
-  small: 'Küçük kapı',
-  'small+left': 'Küçük ve büyük kapı (sol)',
-  'small+right': 'Küçük ve büyük kapı (sağ)',
-  left: 'Büyük kapı (sol)',
-  right: 'Büyük kapı (sağ)',
+  small: 'Küçük',
+  'small+left': 'Küçük + büyük (sol)',
+  'small+right': 'Küçük + büyük (sağ)',
+  left: 'Büyük (sol)',
+  right: 'Büyük (sağ)',
 };
 
 const DOOR_SET_TO_DOORS: Record<DoorSetKey, VehicleDoor[]> = {
