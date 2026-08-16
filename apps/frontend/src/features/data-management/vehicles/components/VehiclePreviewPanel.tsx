@@ -7,13 +7,10 @@ import { Switch } from '@/components/ui/switch';
 import type { VehicleFormValues } from '../schemas/vehicleSchema';
 import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useUnitStore } from '@/lib/store/useUnitStore';
-import {
-  formatDimensionDisplay,
-  formatWeightDisplay,
-  formatVolumeDisplay,
-} from '@/lib/utils/format/unitConversion';
+import { formatVolumeDisplay } from '@/lib/utils/format/unitConversion';
 import { formatAuditDate } from '@/lib/utils/format/formatAuditDate';
 import { formatDoorSummary, type Vehicle } from '@/lib/types/vehicle';
+import { toCentimeters } from '@/features/data-management/products/schemas/productSchema';
 
 const TYPE_LABELS: Record<string, string> = {
   Tir: 'Tır',
@@ -71,15 +68,22 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
     ],
   });
 
+  // Form değerleri zaten kullanıcının görüntü biriminde tutuluyor (şema cm/kg
+  // değil, girilen birimle çalışır). `format*Display` girdiyi cm/kg sayıp bir
+  // daha çeviriyordu, yani mm ayarında ölçüler 10 kat şişiyordu (S-28).
   const dimsRaw =
-    length && width && height
-      ? `${formatDimensionDisplay(length, dimensionUnit)} × ${formatDimensionDisplay(height, dimensionUnit)} × ${formatDimensionDisplay(width, dimensionUnit)}`
-      : '—';
-  const cargo = maxCargoWeight ? formatWeightDisplay(Number(maxCargoWeight), weightUnit) : '—';
-  const gross = grossWeight ? formatWeightDisplay(Number(grossWeight), weightUnit) : '—';
-  const tare = tareWeight ? formatWeightDisplay(Number(tareWeight), weightUnit) : '—';
+    length && width && height ? `${length} × ${height} × ${width} ${dimensionUnit}` : '—';
+  const cargo = maxCargoWeight ? `${maxCargoWeight} ${weightUnit}` : '—';
+  const gross = grossWeight ? `${grossWeight} ${weightUnit}` : '—';
+  const tare = tareWeight ? `${tareWeight} ${weightUnit}` : '—';
   const axleCount = 1 + (axleB ? 1 : 0) + (axles ?? []).length;
-  const volumeCm3 = length && width && height ? length * width * height : null;
+  // Hacim formatlayıcısı cm³ bekliyor; form değerleri önce cm'e çevrilir.
+  const volumeCm3 =
+    length && width && height
+      ? toCentimeters(length, dimensionUnit) *
+        toCentimeters(width, dimensionUnit) *
+        toCentimeters(height, dimensionUnit)
+      : null;
 
   const currentUserName = currentUser?.fullName ?? '—';
   const isPassive = isActive === false || vehicle?.isActive === false;

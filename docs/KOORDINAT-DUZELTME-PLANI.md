@@ -72,19 +72,21 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 5 — Birim sınırını tekilleştir
+## Faz 5 — Birim sınırını tekilleştir ✅ (S-24 → Faz 6)
 **Bulgular:** S-11 (önce — kalıcı veri bozuyor), S-10, S-24, S-25, S-28, S-29, S-21, S-32
 
-- [ ] **S-11** `useVehicles.ts` arşivle/sil — tam-üstüne-yazan PUT yerine dönüşümsüz `buildUpdateVehiclePayloadFromVehicle(vehicle)` (cm/kg değerleri olduğu gibi, `layerCount` doğru anahtar, kingpin/aks korunur); `as VehicleFormValues` cast'i kalkar. Alternatif: backend'e minimal `PATCH`-vari uç — kapsamı büyütmeden mevcut PUT ile dönüşümsüz payload tercih edilir.
-- [ ] **S-10** Toplu araç import'u cm/kg sabit: `buildCreateVehiclePayload`'a `unit: 'raw-cm'` parametresi ya da doğrudan `CreateVehicleRequest` kur.
-- [ ] **S-24** `AddVehicleModal` ölçüleri `toCentimeters`/`toKilograms`'tan geçir.
-- [ ] **S-25** Kingpin/aks: form değeri görüntü biriminde → `*Mm` alanına yazarken çevir (adı `Mm` ama cm taşıyorsa önce gerçek semantiği koddan doğrula, karar commit'e yazılır); okuma yolu simetrik.
-- [ ] **S-28** `VehiclePreviewPanel` çift dönüşüm kalkar (form değeri zaten görüntü biriminde).
-- [ ] **S-29** `VehicleDimensionsFields` — `calcVolume`'a cm verilecek şekilde çevir.
-- [ ] **S-21** `LoadingPlanDetailPage` — cm³ değeri m³'e çevirip göster (÷1e6) ya da etiketi düzelt; m³ tercih.
-- [ ] **S-32** Excel export başlıkları "İç ..." + importer başlıklarıyla ve kapı sözlüğüyle round-trip uyumu.
+- [x] **S-11** `useVehicles.ts` arşivle/sil — tam-üstüne-yazan PUT yerine dönüşümsüz `buildUpdateVehiclePayloadFromVehicle(vehicle)` (cm/kg değerleri olduğu gibi, `layerCount` doğru anahtar, kingpin/aks korunur); `as VehicleFormValues` cast'i kalkar. Alternatif: backend'e minimal `PATCH`-vari uç — kapsamı büyütmeden mevcut PUT ile dönüşümsüz payload tercih edilir.
+- [x] **S-10** Toplu araç import'u cm/kg sabit: `buildCreateVehiclePayload`'a `unit: 'raw-cm'` parametresi ya da doğrudan `CreateVehicleRequest` kur.
+- [ ] **S-24** `AddVehicleModal` ölçüleri `toCentimeters`/`toKilograms`'tan geçir → **Faz 6'ya alındı** (aynı dosyada S-09/S-23 ile birlikte).
+- [x] **S-25** Kingpin/aks: form değeri görüntü biriminde → `*Mm` alanına yazarken çevir (adı `Mm` ama cm taşıyorsa önce gerçek semantiği koddan doğrula, karar commit'e yazılır); okuma yolu simetrik.
+- [x] **S-28** `VehiclePreviewPanel` çift dönüşüm kalkar (form değeri zaten görüntü biriminde).
+- [x] **S-29** `VehicleDimensionsFields` — `calcVolume`'a cm verilecek şekilde çevir.
+- [x] **S-21** `LoadingPlanDetailPage` — cm³ değeri m³'e çevirip göster (÷1e6) ya da etiketi düzelt; m³ tercih.
+- [x] **S-32** Excel export başlıkları "İç ..." + importer başlıklarıyla ve kapı sözlüğüyle round-trip uyumu.
 
-**Doğrulama:** vitest mapper/format testleri; manuel: mm+ton ayarıyla araç arşivle → ölçüler değişmemeli.
+**Doğrulama:** tamamlandı. `vehicleUnitBoundary.test.ts` (10 test) mm+ton ayarında arşiv turunu, aks dönüşümünü ve `unitsAreStorage` yolunu kilitliyor. Frontend 350/350.
+
+**S-25 kararı:** `*Mm` alan adları API sözleşmesinde korunuyor ama **içerik cm**. Backend bu alanlarla hesap yapmıyor (saf saklama), o yüzden ad değişikliği gereksiz risk. Not: cm dışı birim kullanan bir hesapta eski kayıtlar dönüşümsüz yazılmıştı; varsayılan cm olduğu için etki beklenmiyor, ancak mm/inç kullanan hesap varsa aks değerleri elle kontrol edilmeli.
 
 ---
 

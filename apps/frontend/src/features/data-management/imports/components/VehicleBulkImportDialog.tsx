@@ -262,6 +262,12 @@ export function VehicleBulkImportDialog({ open, onOpenChange }: VehicleBulkImpor
             height: Number(row.height),
             maxCargoWeight: Number(row.maxCargoWeight),
             doors: DOOR_SET_TO_DOORS[row.doorSet as DoorSetKey],
+            // Şablon sütunları cm/kg etiketli, yani satırlar zaten kayıt
+            // biriminde. Bu bayrak olmadan `buildCreateVehiclePayload` değerleri
+            // kullanıcının görüntü birimiyle bir daha çeviriyordu: mm+ton ayarlı
+            // kullanıcıda 1360 cm'lik dorse 136 cm, 26.000 kg 26.000.000 kg
+            // olarak kaydediliyordu (S-10).
+            unitsAreStorage: true,
           },
           {
             onSuccess: () => resolve(),

@@ -13,6 +13,7 @@ import {
   fromApiVehicle,
   fromApiVehicleDetail,
   buildCreateVehiclePayload,
+  buildUpdateVehiclePayloadFromVehicle,
   VEHICLE_TYPE_INT,
   VEHICLE_TYPE_FROM_INT,
   resolveDoors,
@@ -325,23 +326,8 @@ export function useDeleteVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vehicle: Vehicle) => {
-      const payload = buildCreateVehiclePayload({
-        vehicleType: vehicle.vehicleType,
-        name: vehicle.name,
-        description: vehicle.description ?? '',
-        plate: vehicle.plate ?? '',
-        serialNumber: vehicle.serialNumber ?? '',
-        length: vehicle.length,
-        width: vehicle.width,
-        height: vehicle.height,
-        maxCargoWeight: vehicle.maxCargoWeight,
-        grossWeight: vehicle.grossWeight,
-        tareWeight: vehicle.tareWeight,
-        maxLayerCount: vehicle.maxLayerCount,
-        doors: vehicle.doors,
-        isActive: false,
-        status: vehicle.status,
-      } as VehicleFormValues);
+      // Kayıtlı değerler zaten cm/kg; birim dönüşümünden geçirilmez.
+      const payload = buildUpdateVehiclePayloadFromVehicle(vehicle, { isActive: false });
       await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
     },
     onSuccess: () => {
@@ -354,23 +340,8 @@ export function useArchiveVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vehicle: Vehicle) => {
-      const payload = buildCreateVehiclePayload({
-        vehicleType: vehicle.vehicleType,
-        name: vehicle.name,
-        description: vehicle.description ?? '',
-        plate: vehicle.plate ?? '',
-        serialNumber: vehicle.serialNumber ?? '',
-        length: vehicle.length,
-        width: vehicle.width,
-        height: vehicle.height,
-        maxCargoWeight: vehicle.maxCargoWeight,
-        grossWeight: vehicle.grossWeight,
-        tareWeight: vehicle.tareWeight,
-        maxLayerCount: vehicle.maxLayerCount,
-        doors: vehicle.doors,
-        isActive: false,
-        status: vehicle.status,
-      } as VehicleFormValues);
+      // Kayıtlı değerler zaten cm/kg; birim dönüşümünden geçirilmez.
+      const payload = buildUpdateVehiclePayloadFromVehicle(vehicle, { isActive: false });
       await axiosInstance.put<unknown>(`/api/v1/vehicles/${vehicle.id}`, payload);
     },
     onSuccess: () => {

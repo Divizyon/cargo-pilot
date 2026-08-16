@@ -299,6 +299,24 @@ export function fromApiVehicle(api: VehicleApi): Vehicle {
   };
 }
 
+interface AxleValues {
+  distance: number;
+  tareWeight: number;
+  maxLoad: number;
+}
+
+function toDisplayAxle(
+  axle: AxleValues,
+  dimensionUnit: Parameters<typeof fromCentimeters>[1],
+  weightUnit: WeightUnitKey,
+): AxleValues {
+  return {
+    distance: fromCentimeters(axle.distance, dimensionUnit),
+    tareWeight: fromKilograms(axle.tareWeight, weightUnit),
+    maxLoad: fromKilograms(axle.maxLoad, weightUnit),
+  };
+}
+
 export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
   const { dimensionUnit, weightUnit } = useUnitStore.getState();
   return {
@@ -321,9 +339,10 @@ export function vehicleToFormValues(v: Vehicle): Partial<VehicleFormValues> {
         : v.tareWeight,
     layerCount: v.maxLayerCount,
     doors: v.doors,
-    kingpin: v.kingpin,
-    axleB: v.axleB,
-    axles: v.axles,
+    // Kayıt cm/kg; form görüntü biriminde çalışır — yazma yolunun aynası.
+    kingpin: v.kingpin && toDisplayAxle(v.kingpin, dimensionUnit, weightUnit as WeightUnitKey),
+    axleB: v.axleB && toDisplayAxle(v.axleB, dimensionUnit, weightUnit as WeightUnitKey),
+    axles: v.axles?.map((axle) => toDisplayAxle(axle, dimensionUnit, weightUnit as WeightUnitKey)),
     isActive: v.isActive,
     status: v.status,
   };
@@ -356,7 +375,11 @@ export interface CreateVehicleRequest {
 }
 
 export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehicleRequest {
-  const { dimensionUnit, weightUnit } = useUnitStore.getState();
+  const store = useUnitStore.getState();
+
+  // Toplu içe aktarma satırları zaten cm/kg; ikinci dönüşüm yapılmaz.
+  const dimensionUnit = values.unitsAreStorage ? 'cm' : store.dimensionUnit;
+  const weightUnit = values.unitsAreStorage ? 'kg' : store.weightUnit;
   const rawPlate =
     values.vehicleType === VehicleType.Konteyner
       ? values.serialNumber?.trim()
@@ -383,21 +406,84 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     doors: values.doors ?? [],
     loadingType: loadingTypeFromDoors(values.doors ?? []),
     isActive: values.isActive ?? true,
-    kingPinDistanceMm: Number.isFinite(values.kingpin?.distance) ? values.kingpin!.distance : null,
-    kingPinTareWeightKg: Number.isFinite(values.kingpin?.tareWeight)
-      ? values.kingpin!.tareWeight
+    // Aks ve king pimi uzaklıkları da diğer ölçülerle aynı sınırda cm'e çevrilir.
+    // Form eki `{dimensionUnit}` gösteriyor, yani kullanıcı görüntü biriminde
+    // giriyor; eskiden dönüşümsüz yazıldığı için mm ayarlı kullanıcıda alan
+    // adıyla (`*Mm`) da içerikle de çelişen bir değer kaydediliyordu (S-25).
+    // Alan adları geriye dönük uyumluluk için korunuyor; içerik cm.
+    kingPinDistanceMm: Number.isFinite(values.kingpin?.distance)
+      ? toCentimeters(values.kingpin!.distance, dimensionUnit)
       : null,
-    kingPinMaxLoadKg: Number.isFinite(values.kingpin?.maxLoad) ? values.kingpin!.maxLoad : null,
-    mainAxleDistanceMm: Number.isFinite(values.axleB?.distance) ? values.axleB!.distance : null,
-    mainAxleTareWeightKg: values.axleB != null ? (values.axleB.tareWeight ?? 0) : null,
-    mainAxleMaxLoadKg: Number.isFinite(values.axleB?.maxLoad) ? values.axleB!.maxLoad : null,
+    kingPinTareWeightKg: Number.isFinite(values.kingpin?.tareWeight)
+      ? toKilograms(values.kingpin!.tareWeight, weightUnit as WeightUnitKey)
+      : null,
+    kingPinMaxLoadKg: Number.isFinite(values.kingpin?.maxLoad)
+      ? toKilograms(values.kingpin!.maxLoad, weightUnit as WeightUnitKey)
+      : null,
+    mainAxleDistanceMm: Number.isFinite(values.axleB?.distance)
+      ? toCentimeters(values.axleB!.distance, dimensionUnit)
+      : null,
+    mainAxleTareWeightKg:
+      values.axleB != null
+        ? toKilograms(values.axleB.tareWeight ?? 0, weightUnit as WeightUnitKey)
+        : null,
+    mainAxleMaxLoadKg: Number.isFinite(values.axleB?.maxLoad)
+      ? toKilograms(values.axleB!.maxLoad, weightUnit as WeightUnitKey)
+      : null,
     additionalAxleDistanceMm: Number.isFinite(values.axles?.[0]?.distance)
-      ? values.axles![0].distance
+      ? toCentimeters(values.axles![0].distance, dimensionUnit)
       : null,
     additionalAxleTareWeightKg:
-      values.axles?.[0] != null ? (values.axles[0].tareWeight ?? 0) : null,
+      values.axles?.[0] != null
+        ? toKilograms(values.axles[0].tareWeight ?? 0, weightUnit as WeightUnitKey)
+        : null,
     additionalAxleMaxLoadKg: Number.isFinite(values.axles?.[0]?.maxLoad)
-      ? values.axles![0].maxLoad
+      ? toKilograms(values.axles![0].maxLoad, weightUnit as WeightUnitKey)
       : null,
+  };
+}
+
+/**
+ * Kayıtlı bir araçtan güncelleme payload'ı üretir — **birim dönüşümü yapmadan**.
+ *
+ * `buildCreateVehiclePayload` form değerleri için yazıldı: girdiyi kullanıcının
+ * görüntü biriminde varsayıp cm/kg'a çevirir. Arşivle/sil akışları ise zaten
+ * cm/kg olan kayıtlı değerleri veriyordu, yani mm ayarlı bir kullanıcıda
+ * 1360 cm'lik dorse 136 cm'e düşüyordu. Aynı çağrıda `maxLayerCount` anahtarı
+ * şemadaki `layerCount` ile eşleşmediği için katman sayısı her seferinde 1'e,
+ * kingpin/aks alanları da payload'da hiç bulunmadığı için NULL'a çekiliyordu
+ * (denetim S-11).
+ *
+ * Backend PUT'u patch değil tam üstüne yazma olduğu için tüm alanlar
+ * gönderilmek zorunda; bu fonksiyon onları kayıttan olduğu gibi taşır.
+ */
+export function buildUpdateVehiclePayloadFromVehicle(
+  vehicle: Vehicle,
+  overrides: { isActive?: boolean; isDraft?: boolean } = {},
+): CreateVehicleRequest {
+  const isContainer = vehicle.vehicleType === VehicleType.Konteyner;
+
+  return {
+    vehicleName: vehicle.name,
+    vehicleType: VEHICLE_TYPE_INT[vehicle.vehicleType],
+    description: vehicle.description ?? '',
+    plateNumber: (isContainer ? vehicle.serialNumber : vehicle.plate) || undefined,
+    internalLength: vehicle.length,
+    internalWidth: vehicle.width,
+    internalHeight: vehicle.height,
+    maxWeightCapacity: vehicle.maxCargoWeight,
+    layerCount: vehicle.maxLayerCount ?? 1,
+    doors: vehicle.doors ?? [],
+    loadingType: loadingTypeFromDoors(vehicle.doors ?? []),
+    isActive: overrides.isActive ?? vehicle.isActive,
+    kingPinDistanceMm: vehicle.kingpin?.distance ?? null,
+    kingPinTareWeightKg: vehicle.kingpin?.tareWeight ?? null,
+    kingPinMaxLoadKg: vehicle.kingpin?.maxLoad ?? null,
+    mainAxleDistanceMm: vehicle.axleB?.distance ?? null,
+    mainAxleTareWeightKg: vehicle.axleB?.tareWeight ?? null,
+    mainAxleMaxLoadKg: vehicle.axleB?.maxLoad ?? null,
+    additionalAxleDistanceMm: vehicle.axles?.[0]?.distance ?? null,
+    additionalAxleTareWeightKg: vehicle.axles?.[0]?.tareWeight ?? null,
+    additionalAxleMaxLoadKg: vehicle.axles?.[0]?.maxLoad ?? null,
   };
 }

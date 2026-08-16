@@ -102,6 +102,14 @@ export const vehicleFormSchema = z
 
     // VY-15: Operasyonel uygunluk
     isActive: z.boolean().optional(),
+
+    /**
+     * Değerler zaten kayıt biriminde (cm/kg) mi. Toplu içe aktarma şablonu
+     * sütunları cm/kg etiketli olduğu için o yol bunu `true` gönderir ve
+     * payload üretilirken ikinci bir dönüşüm yapılmaz. Formdan gelen satırlarda
+     * alan yoktur; kullanıcı görüntü biriminde girer.
+     */
+    unitsAreStorage: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     // VY-07: En az bir kapı seçilmeli; kapısı olmayan araca yük giremez.
