@@ -34,11 +34,22 @@ internal static class VolumeScoring
     /// tercih edilir. Kapinin oldugu yuzden yukleme baslamaz — kutu kapinin
     /// onune yigilirsa operator kendi actigi kapidan iceri giremez.
     /// </summary>
-    internal static decimal WidthTerm(bool enabled, decimal ex, decimal vehicleWidth, bool fillFromMaxX)
+    /// <param name="enabled">Hacim modulu acik mi.</param>
+    /// <param name="ex">Kutunun origin'e en yakin kosesinin x'i (min x).</param>
+    /// <param name="boxWidth">
+    /// Kutunun yerlesim genisligi. Aynalanmis modda mesafe kutunun SAG kenarindan
+    /// olculur; <c>ex</c> min kose oldugu icin genislik eklenmezse terim ayni
+    /// noktada duran genis ve dar kutulara farkli puan verir ve secim yonelime
+    /// bagli hale gelirdi.
+    /// </param>
+    /// <param name="vehicleWidth">Aracin ic genisligi.</param>
+    /// <param name="fillFromMaxX">Yukleme x = width tarafindan mi basliyor.</param>
+    internal static decimal WidthTerm(
+        bool enabled, decimal ex, decimal boxWidth, decimal vehicleWidth, bool fillFromMaxX)
     {
         if (!enabled)
             return 0m;
 
-        return fillFromMaxX ? vehicleWidth - ex : ex;
+        return fillFromMaxX ? vehicleWidth - (ex + boxWidth) : ex;
     }
 }

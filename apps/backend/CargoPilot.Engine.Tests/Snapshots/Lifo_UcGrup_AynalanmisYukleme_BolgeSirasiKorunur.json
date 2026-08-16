@@ -1,15 +1,15 @@
 {
-  "Scenario": "Lifo_UcGrup_ArkaKapi_BolgeSirasiKorunur",
+  "Scenario": "Lifo_UcGrup_AynalanmisYukleme_BolgeSirasiKorunur",
   "Vehicle": {
-    "Width": 100,
+    "Width": 200,
     "Height": 100,
     "Length": 300,
-    "MaxWeight": 10000,
+    "MaxWeight": 2000,
     "Criteria": "Lifo",
     "LoadingType": "Rear",
     "ClusterGroups": true,
-    "FillFromMaxX": false,
-    "HasReferenceDoor": null
+    "FillFromMaxX": true,
+    "HasReferenceDoor": true
   },
   "Items": [
     {
@@ -60,17 +60,17 @@
   ],
   "Outcome": {
     "TotalWeight": 600,
-    "FillRate": 0.8,
-    "CenterOfGravityX": 50,
+    "FillRate": 0.4,
+    "CenterOfGravityX": 100,
     "CenterOfGravityY": 50,
-    "CenterOfGravityZ": 140,
+    "CenterOfGravityZ": 120,
     "WeightBalanceOffsetX": 0,
-    "WeightBalanceOffsetZ": 6.7,
+    "WeightBalanceOffsetZ": 20.0,
     "Placements": [
       {
         "Order": 0,
         "ItemId": "00000000-0000-0000-0000-000000000003",
-        "X": 0,
+        "X": 100,
         "Y": 0,
         "Z": 0,
         "Width": 100,
@@ -84,7 +84,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000003",
         "X": 0,
         "Y": 0,
-        "Z": 40,
+        "Z": 0,
         "Width": 100,
         "Height": 100,
         "Length": 40,
@@ -94,7 +94,7 @@
       {
         "Order": 2,
         "ItemId": "00000000-0000-0000-0000-000000000002",
-        "X": 0,
+        "X": 100,
         "Y": 0,
         "Z": 100,
         "Width": 100,
@@ -108,7 +108,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000002",
         "X": 0,
         "Y": 0,
-        "Z": 140,
+        "Z": 100,
         "Width": 100,
         "Height": 100,
         "Length": 40,
@@ -118,7 +118,7 @@
       {
         "Order": 4,
         "ItemId": "00000000-0000-0000-0000-000000000001",
-        "X": 0,
+        "X": 100,
         "Y": 0,
         "Z": 200,
         "Width": 100,
@@ -132,7 +132,7 @@
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 240,
+        "Z": 200,
         "Width": 100,
         "Height": 100,
         "Length": 40,

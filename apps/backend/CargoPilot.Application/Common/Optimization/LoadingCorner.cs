@@ -21,8 +21,11 @@ public static class LoadingCorner
     /// <c>x = 0</c> yuzundeyse evet; o yuz kapali oldugu icin karsi kose serbesttir.
     ///
     /// Iki yanda da big door bulunan aracta serbest kose kalmaz. Bu kombinasyon
-    /// arac formunda secilemez; eski veriden gelirse bugunku davranis korunur ve
-    /// yukleme origin kosesinden baslar.
+    /// bugun uretilemez — IX_VehicleDoors_TekKapiTipi her tipten tek kapiya izin
+    /// veriyor ve arac formunda da secilemiyor — yani <c>atWidthX</c> kontrolu
+    /// ulasilamaz durumda. Yine de birakildi: kural bir geri-uyum yolu degil,
+    /// "serbest kose yoksa yon degistirme" karari; kisit gevserse davranis
+    /// tanimsiz kalmasin.
     /// </summary>
     public static bool FillFromMaxX(ICollection<VehicleDoor>? doors)
     {

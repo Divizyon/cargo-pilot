@@ -61,8 +61,12 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // yerleştirilmiş kutulara komşu doğduğu için her grup Z=0'a, yani uzak
         // yüze yığılıyordu. Her bölgenin başlangıcı aday yapılınca grup kendi
         // bölgesinden başlayarak dolar.
+        // Tohumun x'i baslangic kosesiyle ayni olmali. Sabit 0m yazilsaydi
+        // aynalanmis modda (fillFromMaxX) her tohum icin ex = 0 - width < 0
+        // olur ve tohumlar her yonelimde elenirdi; bolge disiplini sessizce
+        // devre disi kalirdi.
         foreach (var zoneStart in groupZones.Values.Select(z => z.ZStart).Where(z => z > 0m))
-            extremePoints.Add((0m, 0m, zoneStart));
+            extremePoints.Add((startX, 0m, zoneStart));
 
         foreach (var item in instances)
         {
@@ -100,7 +104,14 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             // sert kısıtları geçmiş bir aday elendiğinde kalkar
             var blockedByFragility = false;
 
-            foreach (var (ax, ey, ez) in extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x))
+            // Esitlik bozucu yon-farkinda: aynalanmis modda tarama sag duvardan
+            // baslar, aksi halde ayni plan aynalandiginda farkli kutu kazanir ve
+            // ayna simetrisi bozulurdu.
+            var orderedPoints = fillFromMaxX
+                ? extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenByDescending(p => p.x)
+                : extremePoints.OrderBy(p => p.y).ThenBy(p => p.z).ThenBy(p => p.x);
+
+            foreach (var (ax, ey, ez) in orderedPoints)
             {
                 foreach (var (width, height, length, rotation) in PlacementValidator.GetOrientations(item))
                 {
@@ -280,7 +291,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             momentX, momentZ,
             halfW, halfL);
 
-        var widthTerm = VolumeScoring.WidthTerm(useVolume, ex, vehicleWidth, fillFromMaxX);
+        var widthTerm = VolumeScoring.WidthTerm(useVolume, ex, width, vehicleWidth, fillFromMaxX);
 
         var zoneTerm = LifoPlacement.ZonePenalty(zoneStart, zoneEnd, ez, length);
 

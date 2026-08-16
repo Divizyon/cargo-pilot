@@ -79,8 +79,17 @@ internal static class LifoPlacement
 
         // i = 0 (ilk inecek grup) kapı ucundaki bölgeyi alır; indeks büyüdükçe
         // bölge uzak yüze kayar.
+        //
+        // Son bölgenin başlangıcı 0'a sabitlenir: vehicleLength / orders.Count
+        // bölünmesi decimal'de tam kapanmayabilir (250/3 → son bölge ZStart
+        // 1E-26). Kalıntı sıfırdan büyük olduğu anda bölge sert kısıt olmaktan
+        // çıkıp yumuşak cezaya düşerdi.
         for (int i = 0; i < orders.Count; i++)
-            zones[orders[i]] = (vehicleLength - (i + 1) * zoneSize, vehicleLength - i * zoneSize);
+        {
+            var isLast = i == orders.Count - 1;
+            var zStart = isLast ? 0m : vehicleLength - (i + 1) * zoneSize;
+            zones[orders[i]] = (zStart, vehicleLength - i * zoneSize);
+        }
 
         return zones;
     }

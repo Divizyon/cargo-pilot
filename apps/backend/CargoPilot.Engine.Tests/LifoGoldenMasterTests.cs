@@ -112,6 +112,29 @@ public sealed class LifoGoldenMasterTests
                 clusterGroups: false));
     }
 
+    /// <summary>
+    /// Aynalanmis yukleme: big door x = 0, small door z = length. Baslangic
+    /// kosesi (width, 0, 0) olur, bolge ayrimi referans kapi sayesinde gecerli
+    /// kalir. Golden kapsaminda bu bayragi gecen tek senaryo (denetim: S-34) —
+    /// olmadan aynalanmis yol tamamen kilitsizdi.
+    /// </summary>
+    [Fact]
+    public void Lifo_UcGrup_AynalanmisYukleme_BolgeSirasiKorunur()
+    {
+        EngineScenario.Verify(
+            nameof(Lifo_UcGrup_AynalanmisYukleme_BolgeSirasiKorunur),
+            EngineScenario.Input(
+                ThreeGroupItems(),
+                Criteria,
+                vehicleWidth: 200m,
+                vehicleHeight: EngineScenario.CorridorHeight,
+                vehicleLength: EngineScenario.CorridorLength,
+                loadingType: LoadingType.Rear,
+                clusterGroups: true,
+                fillFromMaxX: true,
+                hasReferenceDoor: true));
+    }
+
     private static List<OptimizationItemInput> ThreeGroupItems()
         => new()
         {

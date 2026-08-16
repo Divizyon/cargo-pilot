@@ -67,7 +67,10 @@ internal static class InvariantScenarioSource
             payload.Items.Select(ToItem).ToList(),
             Enum.Parse<LoadingPlanOptimizationCriteria>(payload.Vehicle.Criteria),
             Enum.Parse<LoadingType>(payload.Vehicle.LoadingType),
-            payload.Vehicle.ClusterGroups);
+            payload.Vehicle.ClusterGroups,
+            Modules: null,
+            FillFromMaxX: payload.Vehicle.FillFromMaxX,
+            HasReferenceDoor: payload.Vehicle.HasReferenceDoor);
     }
 
     /// <summary>

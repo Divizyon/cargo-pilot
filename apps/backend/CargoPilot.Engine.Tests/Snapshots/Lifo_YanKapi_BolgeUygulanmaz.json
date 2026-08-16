@@ -7,7 +7,9 @@
     "MaxWeight": 10000,
     "Criteria": "Lifo",
     "LoadingType": "SideRight",
-    "ClusterGroups": true
+    "ClusterGroups": true,
+    "FillFromMaxX": false,
+    "HasReferenceDoor": null
   },
   "Items": [
     {

@@ -22,6 +22,11 @@ internal sealed record SnapshotPayload(
             SnapshotOutcome.From(result));
 }
 
+/// <remarks>
+/// <c>FillFromMaxX</c> ve <c>HasReferenceDoor</c> kapi listesinden turetilen
+/// girdilerdir ve motor yonunu belirler. Snapshot'ta saklanmasalardi aynalanmis
+/// yol golden kapsaminin tamamen disinda kalirdi (denetim: S-34).
+/// </remarks>
 internal sealed record SnapshotVehicle(
     decimal Width,
     decimal Height,
@@ -29,7 +34,9 @@ internal sealed record SnapshotVehicle(
     decimal MaxWeight,
     string Criteria,
     string LoadingType,
-    bool ClusterGroups)
+    bool ClusterGroups,
+    bool FillFromMaxX,
+    bool? HasReferenceDoor)
 {
     public static SnapshotVehicle From(OptimizationInput input)
         => new(
@@ -39,7 +46,9 @@ internal sealed record SnapshotVehicle(
             input.VehicleMaxWeight,
             input.Criteria.ToString(),
             input.LoadingType.ToString(),
-            input.ClusterGroups);
+            input.ClusterGroups,
+            input.FillFromMaxX,
+            input.HasReferenceDoor);
 }
 
 internal sealed record SnapshotItem(

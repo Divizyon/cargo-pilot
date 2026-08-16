@@ -72,6 +72,94 @@ public sealed class LifoBolgeKisitiTests
         Assert.Equal(0.2125m, result.FillRate);
     }
 
+    /// <summary>
+    /// P3 — Aynalanmis yukleme (big door x = 0, small door z = length): baslangic
+    /// kosesi (width, 0, 0), bolge ayrimi yine gecerli.
+    ///
+    /// Bolge tohumlari x'i sabit 0m ile ekiliyordu; aynalanmis modda aday
+    /// <c>ex = 0 - width &lt; 0</c> oldugu icin her yonelimde eleniyordu. Kutu
+    /// bolge boyundan kisa oldugunda (3 grup x 40 cm, bolge 100 cm) tohum tek
+    /// basina bolgeyi baslatan aday olur; tohumsuz kalinca sonraki grup bir
+    /// onceki grubun bittigi yere yigilir ve bolgeler ic ice girer
+    /// (denetim: S-04). Motor derleniyor, diger tum testler geciyordu.
+    /// </summary>
+    [Fact]
+    public void Lifo_AynalanmisYukleme_UcGrup_HicbirKutuBolgeDisinaTasmaz()
+    {
+        var items = new List<OptimizationItemInput>
+        {
+            Box(index: 1, width: 100m, height: 100m, length: 40m, quantity: 2, unloadingOrder: 1),
+            Box(index: 2, width: 100m, height: 100m, length: 40m, quantity: 2, unloadingOrder: 2),
+            Box(index: 3, width: 100m, height: 100m, length: 40m, quantity: 2, unloadingOrder: 3),
+        };
+
+        var input = Vehicle(items, fillFromMaxX: true, vehicleLength: 300m);
+        var result = EngineScenario.Run(input);
+
+        AssertAllPlacementsInsideZone(input, result);
+
+        Assert.Equal(6, result.Placements.Count);
+    }
+
+    /// <summary>
+    /// Ayni senaryonun aynasiz hali: bolge disiplini iki modda da ayni sonucu
+    /// vermeli. Ikisi birlikte, duzeltmenin yonu degil yalnizca eksik tohumu
+    /// onardigini gosterir.
+    /// </summary>
+    [Fact]
+    public void Lifo_AynasizYukleme_UcGrup_HicbirKutuBolgeDisinaTasmaz()
+    {
+        var items = new List<OptimizationItemInput>
+        {
+            Box(index: 1, width: 100m, height: 100m, length: 40m, quantity: 2, unloadingOrder: 1),
+            Box(index: 2, width: 100m, height: 100m, length: 40m, quantity: 2, unloadingOrder: 2),
+            Box(index: 3, width: 100m, height: 100m, length: 40m, quantity: 2, unloadingOrder: 3),
+        };
+
+        var input = Vehicle(items, vehicleLength: 300m);
+        var result = EngineScenario.Run(input);
+
+        AssertAllPlacementsInsideZone(input, result);
+
+        Assert.Equal(6, result.Placements.Count);
+    }
+
+    /// <summary>
+    /// Aynalanmis modda yukleme sag duvardan baslar. Arac 200 genis, kutu 100
+    /// genis; her bolgede tek kutu oldugu icin dogru davranista tum kutular
+    /// x = 100'dedir (kutunun sag kenari duvara dayanir).
+    ///
+    /// Ayni senaryonun aynasiz hali kardes testte x = 0 bekler; ikisi birlikte
+    /// baslangic kosesinin gercekten kapiya gore dondugunu kilitler.
+    /// </summary>
+    [Fact]
+    public void Lifo_AynalanmisYukleme_KutularSagDuvardan_Baslar()
+    {
+        var input = Vehicle(SingleBoxPerZone(), vehicleWidth: 200m, fillFromMaxX: true);
+        var result = EngineScenario.Run(input);
+
+        Assert.Equal(2, result.Placements.Count);
+        Assert.All(result.Placements, p => Assert.Equal(100m, p.X));
+    }
+
+    /// <summary>Aynasiz karsiligi: yukleme origin kosesinden, x = 0'dan baslar.</summary>
+    [Fact]
+    public void Lifo_AynasizYukleme_KutularSolDuvardan_Baslar()
+    {
+        var input = Vehicle(SingleBoxPerZone(), vehicleWidth: 200m);
+        var result = EngineScenario.Run(input);
+
+        Assert.Equal(2, result.Placements.Count);
+        Assert.All(result.Placements, p => Assert.Equal(0m, p.X));
+    }
+
+    private static List<OptimizationItemInput> SingleBoxPerZone()
+        => new()
+        {
+            Box(index: 1, width: 100m, height: 50m, length: 100m, quantity: 1, unloadingOrder: 1),
+            Box(index: 2, width: 100m, height: 50m, length: 100m, quantity: 1, unloadingOrder: 2),
+        };
+
     private static OptimizationItemInput Box(
         int index,
         decimal width,
@@ -90,15 +178,23 @@ public sealed class LifoBolgeKisitiTests
             groupIndex: index,
             unloadingOrder: unloadingOrder);
 
-    private static OptimizationInput Vehicle(IReadOnlyList<OptimizationItemInput> items)
+    private static OptimizationInput Vehicle(
+        IReadOnlyList<OptimizationItemInput> items,
+        bool fillFromMaxX = false,
+        decimal vehicleWidth = VehicleWidth,
+        decimal vehicleLength = VehicleLength)
         => EngineScenario.Input(
             items,
             Criteria,
-            vehicleWidth: VehicleWidth,
+            vehicleWidth: vehicleWidth,
             vehicleHeight: VehicleHeight,
-            vehicleLength: VehicleLength,
+            vehicleLength: vehicleLength,
             loadingType: LoadingType.Rear,
-            clusterGroups: true);
+            clusterGroups: true,
+            fillFromMaxX: fillFromMaxX,
+            // Referans kapi (small door, z = length) var: bolgeler uygulanir.
+            // Aynalanmis mod bu kapiyla birlikte olusur — big door x = 0'da.
+            hasReferenceDoor: true);
 
     /// <summary>
     /// Bölge sınırlarını ve "içeride mi" yüklemini motorun kendi kodundan alır:
