@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildAxleSpan,
   calcCenterOfGravity,
   calcBalance,
   buildCogInputs,
@@ -208,5 +209,74 @@ describe('buildCogInputs', () => {
     ];
     const inputs = buildCogInputs(placements, {});
     expect(inputs[0].weight).toBe(0);
+  });
+});
+
+describe('calcBalance — aks payları gerçek aks konumundan', () => {
+  const cog = (z: number) => ({ x: 100, y: 50, z, totalWeight: 1000 });
+
+  /**
+   * Denetim S-33: paylar kasa uçlarından hesaplanıyordu. Gerçek TIR'da king
+   * pimi ~360 cm, ana aks ~900 cm'de; kaldıraç kolu kasa boyundan hem kısa
+   * hem kaymış olduğu için sistematik sapma oluşuyordu.
+   */
+  const SPAN = { frontZ: 360, rearZ: 900 };
+
+  it('yük tam iki aks ortasındaysa paylar eşit', () => {
+    const r = calcBalance(cog(630), 200, 1360, SPAN);
+    expect(r.frontAxleShare).toBeCloseTo(0.5, 5);
+    expect(r.rearAxleShare).toBeCloseTo(0.5, 5);
+  });
+
+  it('yük king pimi üzerindeyse tamamı ön dayanakta', () => {
+    const r = calcBalance(cog(360), 200, 1360, SPAN);
+    expect(r.frontAxleShare).toBeCloseTo(1, 5);
+  });
+
+  it('yük ana aks üzerindeyse tamamı arka dayanakta', () => {
+    const r = calcBalance(cog(900), 200, 1360, SPAN);
+    expect(r.rearAxleShare).toBeCloseTo(1, 5);
+  });
+
+  it('açıklık dışındaki yük [0,1] aralığına kırpılır', () => {
+    // Negatif aks yükü kaldırma kuvveti demek olurdu.
+    const onde = calcBalance(cog(0), 200, 1360, SPAN);
+    expect(onde.frontAxleShare).toBe(1);
+    expect(onde.rearAxleShare).toBe(0);
+
+    const arkada = calcBalance(cog(1360), 200, 1360, SPAN);
+    expect(arkada.frontAxleShare).toBe(0);
+    expect(arkada.rearAxleShare).toBe(1);
+  });
+
+  it('aks bilgisi yoksa kasa uçlarına düşer', () => {
+    const r = calcBalance(cog(340), 200, 1360);
+    expect(r.frontAxleShare).toBeCloseTo(0.75, 5);
+  });
+
+  it('aks konumu hesabı gerçekten değiştirir', () => {
+    // Aynı CoG, iki farklı dayanak modeli → farklı pay.
+    const ucalardan = calcBalance(cog(500), 200, 1360);
+    const akslardan = calcBalance(cog(500), 200, 1360, SPAN);
+    expect(akslardan.frontAxleShare).not.toBeCloseTo(ucalardan.frontAxleShare, 3);
+  });
+});
+
+describe('buildAxleSpan', () => {
+  it('king pimi ve ana aks varsa açıklık kurar', () => {
+    expect(buildAxleSpan({ kingpin: { distance: 360 }, axleB: { distance: 900 } })).toEqual({
+      frontZ: 360,
+      rearZ: 900,
+    });
+  });
+
+  it('eksik bilgide undefined döner — uydurma açıklık kurmaz', () => {
+    expect(buildAxleSpan({ kingpin: { distance: 360 } })).toBeUndefined();
+    expect(buildAxleSpan({ axleB: { distance: 900 } })).toBeUndefined();
+    expect(buildAxleSpan({})).toBeUndefined();
+  });
+
+  it('sıralaması bozuk veriyi reddeder', () => {
+    expect(buildAxleSpan({ kingpin: { distance: 900 }, axleB: { distance: 360 } })).toBeUndefined();
   });
 });

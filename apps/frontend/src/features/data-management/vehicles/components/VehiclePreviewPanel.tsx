@@ -46,7 +46,6 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
     description,
     axles,
     axleB,
-    kingpin,
     isActive,
   ] = useWatch({
     control,
@@ -63,7 +62,6 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
       'description',
       'axles',
       'axleB',
-      'kingpin',
       'isActive',
     ],
   });
@@ -142,7 +140,6 @@ export function VehiclePreviewPanel({ form, vehicle, isCreateMode = false }: Pro
             width={width ?? 0}
             height={height ?? 0}
             doors={doors}
-            kingpinDistance={kingpin?.distance}
             axleBDistance={axleB?.distance}
             axleDistances={(axles ?? []).map((a) => a?.distance).filter((d): d is number => d > 0)}
           />

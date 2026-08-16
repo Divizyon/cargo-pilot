@@ -33,7 +33,6 @@ export interface VehiclePreview3DProps {
   width: number;
   height: number;
   doors?: readonly VehicleDoor[];
-  kingpinDistance?: number;
   axleBDistance?: number;
   axleDistances?: number[];
 }

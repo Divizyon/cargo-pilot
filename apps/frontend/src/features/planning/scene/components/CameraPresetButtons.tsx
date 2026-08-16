@@ -21,6 +21,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
   calcCenterOfGravity,
   calcBalance,
+  buildAxleSpan,
   buildCogInputs,
 } from '@/lib/utils/geometry/calcCenterOfGravity';
 
@@ -84,7 +85,7 @@ export function CameraPresetButtons({ className }: CameraPresetButtonsProps) {
     );
     const cog = calcCenterOfGravity(inputs);
     if (!cog) return null;
-    return calcBalance(cog, vehicle.width, vehicle.length);
+    return calcBalance(cog, vehicle.width, vehicle.length, buildAxleSpan(vehicle));
   }, [placements, selectedItems, vehicle]);
 
   function togglePanel(panel: 'xray' | 'cog') {

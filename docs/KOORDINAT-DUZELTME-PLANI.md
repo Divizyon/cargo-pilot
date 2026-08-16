@@ -135,14 +135,15 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 9 — Export/rapor
+## Faz 9 — Export/rapor ✅
 **Bulgular:** S-08, S-33, S-59, S-61
+**Durum:** tamamlandı. Frontend 377/377. Gruplama `planPdfSummary.ts`'e çıkarıldı (bileşen içindeyken test edilemiyordu, mevcut test bileşeni `() => null` ile mock'luyordu). S-33 için `buildAxleSpan`: aks bilgisi eksikse uydurma açıklık kurulmaz, kasa uçlarına düşülür.
 **Bağımlılık:** S-33, Faz 5'teki S-25 bitmeden yapılmaz (aks uzaklıkları birim tuzağı).
 
-- [ ] **S-08** `PlanPdfDocument.tsx:445` — `row.weight * row.count` → `row.weight` (weight zaten N kez birikti). `totalWeight == Σ grup` birim testi.
-- [ ] **S-33** `calcCenterOfGravity` aks payları kingpin/axleB uzaklıklarından (kasa uçları değil).
-- [ ] **S-59** `boxOrientations` ön/arka yüz etiketleri ↔ `allowFaceFront/Back` eşlemesi netleştirilir (bugün etkisiz, yorum yeterli olabilir).
-- [ ] **S-61** `VehiclePreview3D` ölü `kingpinDistance` prop'u: ya kullan (gerçek konum) ya kaldır.
+- [x] **S-08** `PlanPdfDocument.tsx:445` — `row.weight * row.count` → `row.weight` (weight zaten N kez birikti). `totalWeight == Σ grup` birim testi.
+- [x] **S-33** `calcCenterOfGravity` aks payları kingpin/axleB uzaklıklarından (kasa uçları değil).
+- [x] **S-59** `boxOrientations` ön/arka yüz etiketleri ↔ `allowFaceFront/Back` eşlemesi netleştirilir (bugün etkisiz, yorum yeterli olabilir).
+- [x] **S-61** `VehiclePreview3D` ölü `kingpinDistance` prop'u: ya kullan (gerçek konum) ya kaldır.
 
 ---
 
