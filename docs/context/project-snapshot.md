@@ -6,7 +6,10 @@ Stack, ortamlar, portlar, CI/CD ve açık risklerin tek sayfalık teknik anlık 
 
 ---
 
-**Kaynak tarama:** 2026-08-03 · `test` @ `3c42f65a` · Repodaki 25 `.md` dosyası okundu.
+**Kaynak tarama:** 2026-08-03 · `test` @ `3c42f65a`.
+**Doküman envanteri (2026-08-16 ölçümü):** repoda **47** `.md` dosyası / 12.342 satır
+(`git ls-files '*.md' | wc -l`). Bu satırdaki eski "25 dosya" değeri 2026-08-03 anına aitti.
+Güncel harita: [doc-map.md](doc-map.md).
 **Kod taraması:** 2026-08-04 · 6 kategoride kod tabanı tarandı, §2 kodla doğrulanıp düzeltildi.
 Detaylı bulgular: [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md).
 
@@ -116,7 +119,7 @@ geri-merge zorunlu olurdu.
 
 ## 5. Açık Riskler (docs/devops/known-issues.md + devops-backlog.md özeti)
 
-> Ayrıca: 51 bulguluk detaylı analiz `docs/devops/iyilestirme-analizi-2026-08.md`'de;
+> Ayrıca: 51 bulguluk detaylı analiz `docs/archive/devops-iyilestirme-analizi-2026-08.md`'de;
 > 2026-08-04 kod taramasının kategoriler arası kritik bulguları [kod-taramasi-2026-08.md](kod-taramasi-2026-08.md) §1'de.
 
 | # | Risk | Seviye |
@@ -160,7 +163,7 @@ feat/* ──PR(squash)──► dev ──PR(merge)──► test ──PR(merg
 
 **Not:** 2026-08-03 sabahı kısa süreliğine trunk modeline (`main` tek dal) geçildi, aynı gün
 üç dallı modele dönüldü. Gerekçe: test ortamı fiilen müşteriye gösterilen yüzey ve ayrı bir
-QA adımı var — dondurulabilir bir dal gerekiyor. Detay: [branch-audit.md](branch-audit.md) §8–§9.
+QA adımı var — dondurulabilir bir dal gerekiyor. Detay: [branch-denetimi-2026-08-03.md](../archive/branch-denetimi-2026-08-03.md) §8–§9.
 
 ---
 

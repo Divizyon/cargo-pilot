@@ -306,7 +306,12 @@ Tekrar ve hacim nedeniyle alan bazında kompakt tablo olarak listelenmiştir; he
 
 ## 6. Bloke bulgular (20 adet)
 
-Aşağıdaki bulgular doğrulanmış ancak **standardın kendisinde bekleyen bir karara bağlı** olduğu için şu an uygulanamaz durumda (blocked=true). Standardın §10 bölümünde işaretlenen üç bekleyen konudan birine bağlanır:
+Aşağıdaki bulgular doğrulanmış ancak **standardın kendisinde bekleyen bir karara bağlı** olduğu için şu an uygulanamaz durumda (blocked=true). Standardın §10 bölümünde işaretlenen üç bekleyen konudan birine bağlanır.
+
+> **Yetkili kayıt:** Bekleyen kararların tanımı ve durumu
+> [`COORDINATE_STANDARD.md`](./COORDINATE_STANDARD.md) **§10**'dadır; aşağıdaki üç madde
+> yalnızca bu tablonun okunabilmesi için özetlenmiştir. Çelişki hâlinde §10 kazanır.
+> (Aynı liste 2026-08-16'ya kadar üç ayrı dosyada tutuluyordu; üçüncüsü arşive alındı.)
 
 - **[x₀]** — Big door varlığında yükleme başlangıç ofseti (x₀) değeri henüz tanımlanmamış.
 - **[top-door]** — Üst kapı (top door) için standartta karşılık yok, sektör araştırması bekliyor.

@@ -5,7 +5,9 @@
 > kazanır.
 >
 > Görsel/etkileşimli sürüm: [`coordinate-standard.html`](./coordinate-standard.html)
-> Mevcut kodun bu standarda göre denetimi: [`COORDINATE_AUDIT.md`](./COORDINATE_AUDIT.md)
+> Mevcut kodun bu standarda göre denetimi: [`KOORDINAT-UYUM-RAPORU.md`](./KOORDINAT-UYUM-RAPORU.md)
+> (canlı kayıt). 2026-08-12 tarihli önceki denetim arşivdedir:
+> [`archive/koordinat-denetimi-2026-08-12.md`](./archive/koordinat-denetimi-2026-08-12.md)
 >
 > **Terim dili:** eksen ve boyut terimleri **İngilizce** yazılır — `width`, `height`,
 > `length`. Türkçe karşılıklar (genişlik, yükseklik, uzunluk) yalnızca son kullanıcıya

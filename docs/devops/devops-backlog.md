@@ -1,8 +1,22 @@
 # DevOps Backlog
 
-**Son güncelleme:** 2026-08-13 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
+**Son güncelleme:** 2026-08-16 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
 
 Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini önceliklendirilmiş şekilde takip eder.
+
+**Rol ayrımı (2026-08-16):** Bu dosya **canlı plandır** — ne yapılacağını, hangi öncelikle
+ve hangi bağımlılıkla yapılacağını tutar. Bir sorunun **belirtisi, etkisi ve kök nedeni**
+[`known-issues.md`](known-issues.md)'de, numaralı sicilde durur. Çakışan maddelerde tam
+kayıt orada, plan burada; ikisi arasında tekrar bırakılmaz.
+
+| Konu | Sorun kaydı | Plan |
+|---|---|---|
+| Resend domain doğrulaması | `known-issues.md` #1 | madde 2.7 |
+| Production stack kurulmadı | `known-issues.md` #2 | madde 2.1–2.3 |
+| MSSQL SA parolası git geçmişinde | `known-issues.md` #3 | madde 2.6 |
+| Node.js 20 deprecation | `known-issues.md` #4 | Kategori 3 |
+| Log rotation yok | `known-issues.md` #7 | Kategori 6.6 (D-40) |
+| Image CVE'leri | `known-issues.md` #8 | Kategori 6.5 (D-31, D-32) |
 
 ---
 
@@ -24,6 +38,13 @@ Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini ön
 | 12 | xlsx → exceljs geçişi (Dependabot izlenebilirliği) | 🟡 Orta | ⚠️ Açık |
 | 13 | three.js r162 → r185 yükseltmesi (3D QA'li) | 🟡 Orta | ⚠️ Açık |
 | 14 | CORS `AllowAnyOrigin()` geri dönüş yolu — fail-fast'e çevrilmeli | 🟠 Güvenlik | ⚠️ Açık |
+| 15 | Yedekleme veri kaybı kümesi — D-03 (MinIO yedeği), D-04 (off-site), D-20 (bildirim) | 🔴 Kritik | ⚠️ Açık |
+| 16 | Kaynak limitleri — D-38 (limit yok), D-39 (`MSSQL_MEMORY_LIMIT_MB`) | 🔴 Kritik | ⚠️ Açık |
+| 17 | Prod öncesi zorunlular — D-47 (prod nginx conf), D-50 (port/path uyumsuzluğu) | 🟠 Yüksek | ⚠️ Açık |
+| 18 | Rollback güvenliği — D-24 (migration geri alınmıyor), D-25, D-27, D-29 (tatbikat) | 🟠 Yüksek | ⚠️ Açık |
+
+Kategori 6, 2026-08-03 taramasının **45 açık** D-bulgusunu D-kodlarıyla birlikte listeler;
+yukarıdaki matris yalnızca kritik kümeleri özetler.
 
 ---
 
@@ -93,6 +114,9 @@ Sunucuda production ortamı hiç kurulmamış. `.env.prod` yok, compose hiç ça
 
 **Çözüm:** `.env.prod.example` → `.env.prod` oluşturulmalı, değerler doldurulmalı, prod compose ayağa kaldırılmalı.
 
+**Ön koşul:** Kategori 6.8 — D-38, D-39, D-47, D-50 bu maddeden önce kapatılmalı.
+Ayrıca `.env.prod` yokluğu D-21'deki gece cron hatalarının da kaynağıdır.
+
 ---
 
 ### 2.2 Production CI/CD Pipeline Yok
@@ -133,6 +157,10 @@ ama gönderemiyor.
 **Çözüm:** Grafana servisine `GF_SMTP_HOST/USER/PASSWORD/FROM_ADDRESS` env var'ları eklenmeli
 ve test bildirimi doğrulanmalı.
 
+**D-41** (2026-08-03 taraması) bu maddenin kanıt kaydıdır — kapsam düzeltmesi oradan geldi.
+D-20 (yedek başarısızlığı alert'i) bu maddeye bağımlıdır: çalışan bir bildirim kanalı olmadan
+yedek alert'i sessiz kalır.
+
 ---
 
 ### 2.5 `test` Branch Direct Push Koruması
@@ -151,24 +179,13 @@ Branch protection ve required status check'ler aktif.
 **⚠️ Açık — Güvenlik**
 {% endhint %}
 
-`appsettings.Development.json` **ve** `PRODUCTION_DEPLOYMENT_INFO.md` içindeki eski SA parolası
-git geçmişinde görünür durumdadır.
+Sorunun tam kaydı — iki dosya, dört commit, 2026-08-15 yeniden doğrulaması —
+[`known-issues.md`](known-issues.md) **madde 3**'tedir; burada tekrarlanmaz.
 
-**Yeniden doğrulama — 2026-08-15.** Bu uyarının "çürütüldü / yalnız `.env.dev.example`'daydı"
-şeklinde kapatıldığı bir not dolaşıyordu; **o not yanlıştır.** Bağımsız `git log --all -S <parola>`
-taraması parolanın gerçekten commit edildiğini gösterdi:
+**Rotasyon hâlâ yapılmadı.** Bu madde kapatılmamıştır.
 
-| Commit | Dosya |
-|---|---|
-| `fe4c7a65` (ekleyen) → `998e04ba` (kaldıran) | `apps/backend/CargoPilot.WebAPI/appsettings.Development.json` |
-| `e46dde04` (ekleyen) → `520da7ae` (kaldıran) | `PRODUCTION_DEPLOYMENT_INFO.md` |
-
-Yani parola **iki ayrı dosyada** geçmişte duruyor; dosyaların bugünkü hâli temiz olsa da
-`git log -p` ile hâlâ okunabilir. **Parola rotasyonu HÂLÂ GEREKLİ — bu madde kapatılmamıştır.**
-*(Parolanın kendisi bilinçli olarak hiçbir dokümana yazılmadı.)*
-
-**Çözüm:** SA parolasını döndür (rotate). Geçmiş temizliği için `git filter-repo` gerekebilir.
-Ayrıntı: [`known-issues.md`](known-issues.md) madde 3.
+**Çözüm (plan):** Sunucudaki SA parolasını döndür. Geçmiş temizliği için `git filter-repo`
+gerekebilir ama minimum aksiyon rotasyondur.
 
 ---
 
@@ -266,7 +283,7 @@ Bu, **derleyicinin yakalayabildiği tek sorun**; r163→r185 aralığı TypeScri
 - `scene-config.ts` koordinat/pivot eşlemesi — sahne sözleşmesi (cm, X=width, Y=height, Z=length)
   bozulmamalı
 - `InstancedMesh` ile çizilen kutular: konum, rotasyon, renk ve seçim (raycast) davranışı
-- `BoxWrapper` pivot offset'i — backend pozisyonları origin'e en yakın köşe (min x, min y, min z) referanslı
+- `BoxWrapper` pivot offset'i — backend pozisyonları origin'e en yakın köşe `(min x, min y, min z)` referanslı
 - Zemin ızgarası shader'ı (`fwidth` tabanlı) — kırılmanın tespit edildiği kod yolu
 - Manuel edit akışı: sürükleme, çakışma/violation geri bildirimi
 - Bellek: manuel oluşturulan Three.js kaynaklarının dispose'u (`ResourceTracker`)
@@ -311,6 +328,113 @@ gerekmiyor, kayıt amaçlı):
   ifadeyi statik olarak çözemiyor. Sabit `true` yazmak lokal HTTP geliştirmeyi kırardı.
 - `MinioHealthCheck` S5332 — küme içi ağda MinIO sağlık ucuna düz HTTP; istek konteyner
   ağından dışarı çıkmıyor.
+
+---
+
+## Kategori 6 — DevOps Taraması Bulguları (D-01 … D-51)
+
+**Kaynak:** 2026-08-03 tarihli dört paralel DevOps taraması
+([`../archive/devops-iyilestirme-analizi-2026-08.md`](../archive/devops-iyilestirme-analizi-2026-08.md), 51 madde).
+O doküman bir **anlık görüntü**dür ve canlı takip yapmaz; bulguların açık olanları
+izlenebilirlik için **D-kodları korunarak** buraya taşındı (triyaj tarihi: 2026-08-16).
+Her satırın kanıtı `dosya:satır` düzeyinde yeniden doğrulandı — kapananlar aşağıda değil,
+kaynak dokümanda `✅` ile işaretlidir.
+
+**Triyaj sonucu:** 51 bulgudan **6'sı kapandı** (D-01, D-05, D-07, D-10, D-11, D-16),
+**45'i açık** (6'sı kısmen kapandı, kalan kapsamıyla listede duruyor).
+
+### 6.1 Güvenlik
+
+| Kod | Bulgu | Bugünkü kanıt (2026-08-16) | Öncelik |
+|---|---|---|---|
+| D-02 | Servis portları internete açık — **kısmen kapandı** (#991) | Kalan: `infra/compose/docker-compose.monitoring.test.yml:89` Grafana `3002:3000`, `infra/compose/docker-compose.test.yml:127` ERP MSSQL `1435:1433` | 🔴 Kritik |
+| D-14 | `rollback.yml`'de shell injection | `.github/workflows/rollback.yml:40,62,74` — `${{ github.event.inputs.target_ref }}` doğrudan shell gövdesinde; sunucuda root olarak koşar | 🟠 Yüksek |
+| D-15 | Workflow'da hardcoded fallback parolalar | `.github/workflows/test-deploy.yml:172,176,179,181,183` — `gh secret list`'te `TEST_MSSQL_SA_PASSWORD`/`TEST_MINIO_*`/`SEED_*` yok → fallback'ler her koşuda fiilen kullanılıyor | 🟠 Yüksek |
+| D-17 | MSSQL container'ı root çalışıyor | `docker-compose.test.yml:90,118,147`, `docker-compose.prod.yml:92` — `user: root`. Prod'a geçmeden düzeltilmeli | 🟢 Düşük |
+
+### 6.2 Yedekleme ve veri kaybı
+
+| Kod | Bulgu | Bugünkü kanıt | Öncelik |
+|---|---|---|---|
+| D-03 | MinIO verisi hiç yedeklenmiyor | `infra/scripts/*.sh` içinde `minio` geçmiyor; yedeklenen tek şey MSSQL. DB restore edilse bile görsel/PDF referansları kırık gelir | 🔴 Kritik |
+| D-04 | Yedeklerin off-site kopyası yok | `restic`/`rclone`/`s3 sync` repoda hiç geçmiyor; yedekler DB ile aynı diskte, retention 7 gün → fiili RPO = ∞ | 🔴 Kritik |
+| D-18 | ERP `DIVIZYON` veritabanı yedek kapsamı dışında | `infra/scripts/backup-db.sh:21,25` tek DB adı (`CargoPilot`/`CargoPilotTest`); `DIVIZYON` aynı container'da ama yedeklenmiyor | 🟠 Yüksek |
+| D-19 | Yedek doğrulaması yüzeysel — **kısmen kapandı** (#994) | `WITH CHECKSUM` eklendi (`backup-db.sh:61`, `verify-backup.sh:98`). Kalan: gerçek restore tatbikatı yok, yalnızca **en son** yedek kontrol ediliyor | 🟠 Yüksek |
+| D-20 | Yedek başarısızlığında hiçbir bildirim yok | Script'lerde `node_exporter`/textfile metriği yok, Prometheus'ta yedek alert kuralı yok, `MAILTO` yok → 42 günlük olay sessizce tekrar edebilir. **Ön koşul:** D-41 | 🔴 Kritik |
+| D-21 | Prod cron'ları her gece hata basıyor | `infra/scripts/setup-backup-cron.sh:41-55` prod için 3 cron kuruyor; `.env.prod` sunucuda yok (madde 2.1 / known-issues #2) → alarm yorgunluğu | 🟠 Yüksek |
+| D-22 | Ölü hata blokları — parola okunamazsa sessiz çıkış | `backup-db.sh:36`, `restore-db.sh:41`, `verify-backup.sh:42` — `set -euo pipefail` altında grep boş dönerse atama satırında ölünür, alttaki `if` bloğuna hiç gelinmez. Düzeltme: `$(grep … \|\| true)` | 🟡 Orta |
+| D-23 | Yedek dosya izinleri sıkı değil | `backup-db.sh:48` `mkdir -p` varsayılan umask ile; `.bak` tüm müşteri verisini içeriyor. Düzeltme: dizin `700`, dosya `600` | 🟡 Orta |
+
+### 6.3 Rollback ve deploy güvenliği
+
+| Kod | Bulgu | Bugünkü kanıt | Öncelik |
+|---|---|---|---|
+| D-24 | DB migration'ları geri alınmıyor ve hiçbir yerde yazmıyor | `DbInitializer.cs` `MigrateAsync()` yalnız ileri yönlü; `infra/scripts/rollback.sh` içinde "migration" kelimesi hiç geçmiyor, rollback runbook'u yok | 🟠 Yüksek |
+| D-25 | Yedeksiz rollback devam ediyor | `infra/scripts/rollback.sh:53-55` — `backup-db.sh … \|\| { echo "[WARN] Yedek alınamadı, devam ediliyor..."; }` | 🟠 Yüksek |
+| D-26 | Deploy'da `down` + `up` → her seferinde 2-3 dk kesinti | `.github/workflows/test-deploy.yml:465` `down --remove-orphans` mssql ve minio'yu da kapatıyor. `up -d --no-build --remove-orphans` yeterli → kesinti ~10-20 sn | 🟠 Yüksek |
+| D-27 | Health check başarısızsa otomatik geri alma yok | `test-deploy.yml:476-483` — health başarısızsa job kırmızı olur, sunucu bozuk image ile çalışmaya devam eder | 🟠 Yüksek |
+| D-28 | `docker image prune` health check'ten önce çalışıyor | `test-deploy.yml:474` prune, `476`'daki health check'ten önce → hızlı geri dönüş için GHCR'dan tekrar pull gerekir | 🟡 Orta |
+| D-29 | Rollback hiç denenmedi | `rollback.yml` bugüne kadar hiç çalıştırılmadı; D-24 + D-25 + `pull`'un `down`'dan sonra gelmesi (`rollback.sh:65` → `:80`) birlikte ilk gerçek olayda ortamı bozar. **Planlı tatbikat gerekli** | 🟠 Yüksek |
+
+### 6.4 CI/CD süresi
+
+| Kod | Bulgu | Bugünkü kanıt | Öncelik |
+|---|---|---|---|
+| D-06 | Default branch'te GHA cache hiç yazılmıyor | Default branch `main`; hiçbir workflow `main` push'unda build etmiyor (`ci.yml:6-20`, `test-deploy.yml:13`) → `cache-from` iş branch'lerinde soğuk başlar. Düzeltme: nightly veya `main` push'unda seed job | 🟡 Orta |
+| D-09 | `ci.yml`'daki `docker-build` job'u — **kısmen kapandı** (#992) | Artık yalnızca `dev` PR'ında koşuyor (`ci.yml:204`); iş branch'i push'undaki kopya build kaldırıldı. Kalan soru: `dev` kapısındaki build'in değeri | 🟢 Düşük |
+| D-12 | Gereksiz seri `needs:` zinciri | `ci.yml:196` — `docker-build`, `needs: [frontend-ci, backend-ci]`; docker build bu job'ların çıktısına bağımlı değil | 🟢 Düşük |
+| D-13 | Küçük CI kalemleri | (a) `test-deploy.yml:327,340` hâlâ `build-push-action` **v5.4.0**, diğer 6 kullanım v7.3.0 — sürüm ayrışması; (b) `setup-dotnet`'te NuGet cache yok (`ci.yml:168`, `test-deploy.yml:48`); (c) `migration-check` + `backend-ci` aynı solution'ı Release'de iki kez derliyor; (d) frontend scope'ları hâlâ `mode=max` (`ci.yml:240`, `test-deploy.yml:145`) | 🟡 Orta |
+
+### 6.5 Docker image ve build
+
+| Kod | Bulgu | Bugünkü kanıt | Öncelik |
+|---|---|---|---|
+| D-08 | Frontend texture israfı — **kısmen kapandı** (#995) | (a) `public/textures/` silindi. (b) **Kalan:** `apps/frontend/src/assets/textures/container-steel/normal.jpg` gerçekte **19.4 MB, 2048×2048 16-bit RGBA PNG** (`file` çıktısı); kardeşleri 87–539 KB gerçek JPEG. JPEG q92'ye kodlanırsa ~890 KB | 🟠 Yüksek |
+| D-30 | Backend restore katmanı hiç cache'lenmiyor | `apps/backend/Dockerfile:7` — `COPY . .` restore'dan önce; tek `.cs` değişikliği `dotnet restore`'u sıfırdan koşturuyor. Düzeltme: csproj-only restore katmanı + `--no-restore` | 🟠 Yüksek |
+| D-31 | nginx base image — **kısmen kapandı** | `apps/frontend/Dockerfile:21` artık `nginx:1.31-alpine` (1.27'den yükseltildi). **Kalan:** `alpine` varyantı njs → `libxml2`/`libxslt` getiriyor; `alpine-slim`'e geçilirse known-issues #8'deki o CVE sınıfı paket ortadan kalktığı için kapanır (~−36 MB) | 🟠 Yüksek |
+| D-32 | Base image mirror'ı bayat + .NET 8 EOL | `sync-base-images.yml` haftalık (Pazar) koşuyor, Microsoft patch'leri ayın 2. Salı'sı çıkıyor → 5 güne kadar bayat. **Stratejik:** .NET 8 desteği **2026-11-10**'da bitiyor; .NET 10 LTS geçiş planı gerekli | 🟠 Yüksek |
+| D-33 | `sync-base-images.yml` verimsiz | `pull` + `tag` + `push` tüm layer'ları runner'a indiriyor ve **multi-arch manifest'i kaybediyor**. `docker buildx imagetools create` layer indirmez, manifest list'i korur | 🟡 Orta |
+| D-34 | `npm install` → `npm ci` | `apps/frontend/Dockerfile:5` — `npm install --ignore-scripts` lock'u yazabilir; image içi bağımlılıklar CI'daki `npm ci` sonucundan sapabilir | 🟡 Orta |
+| D-35 | Docker build'de statik analiz koşuyor | `Directory.Build.props:20,26,52` — `EnforceCodeStyleInBuild`, `TreatWarningsAsErrors`, SonarAnalyzer 10.32. Kalite kapısı zaten `backend-ci`'de. ⚠️ `test-deploy.yml` build job'unda `needs: [backend-ci]` yok → kaldırılırsa `test` push'unda analyzer hiç koşmaz | 🟡 Orta |
+| D-36 | Tek parça ~3.35 MB JS chunk | `apps/frontend/src/router.tsx` — `lazy(` sayısı **0**; three.js + recharts + xlsx + framer-motion + 37 sayfa tek chunk'ta. Frontend task'ı, Docker task'ı değil | 🟡 Orta |
+| D-37 | `.dockerignore` boşlukları | `apps/frontend/.dockerignore` yalnız 4 satır (`node_modules`, `dist`, `.env*.local`, `*.log`); `.claude`, `coverage`, `**/*.test.tsx` yok. Değeri boyut değil, `COPY . .` katmanının test dosyasında invalidate olmaması | 🟢 Düşük |
+
+### 6.6 Altyapı ve gözlemlenebilirlik
+
+| Kod | Bulgu | Bugünkü kanıt | Öncelik |
+|---|---|---|---|
+| D-38 | Hiçbir serviste kaynak limiti yok | `infra/compose/` içinde `mem_limit`/`cpus`/`pids_limit`/`deploy:` hiç geçmiyor → tek kaçak servis sunucuyu götürür. **Prod öncesi zorunlu** | 🔴 Kritik |
+| D-39 | `MSSQL_MEMORY_LIMIT_MB` ana MSSQL'de tanımlı değil | Yalnız ERP servisinde var (`docker-compose.test.yml:125`); ana `mssql` servislerinde yok → SQL Server host RAM'inin %80'ini hedefler. `server-requirements.md:43`'teki "MSSQL × 2 ≈ 4 GB" varsayımı bu yüzden yanlış. **Prod öncesi zorunlu** | 🔴 Kritik |
+| D-40 | Log rotation hiçbir serviste yok | `infra/` altında `logging:`/`max-size` hiç geçmiyor — 16 servisin tamamı etkileniyor. **known-issues #7 ile aynı konu**; o madde kapsamı bu bulguya göre düzeltilmişti. ⚠️ Sunucuda `/etc/docker/daemon.json` global rotation olabilir, önce bakılmalı | 🟠 Yüksek |
+| D-41 | Grafana SMTP hiç yapılandırılmamış | `infra/` altında `GF_SMTP` hiç geçmiyor; contact point ve notification policy dosyaları **mevcut**. **Bu madde 2.4'ün kanıtıdır** — teşhis oraya işlendi. Resend doğrulaması (known-issues #1) bitene kadar Slack/Discord webhook daha güvenli seçim | 🟠 Yüksek |
+| D-42 | Prod monitoring, test alert kurallarını da yüklüyor | `docker-compose.monitoring.prod.yml:83` alerting dizininin tamamını mount ediyor; dizinde `*.test.yml` dosyaları da var → prod Grafana `prometheus-test` UID'lerine bakan kuralları yükler, contact point UID'leri çakışır | 🟠 Yüksek |
+| D-43 | Eksik alert kuralları | `alert-rules.yml` 6 kural içeriyor. Eksik: MSSQL/MinIO container down, disk %90 critical, yedek başarısızlığı (D-20), monitoring'in kendi sağlığı, SSL bitiş tarihi. `monitoring-setup.md:157-161` hâlâ 3 kural listeliyor | 🟡 Orta |
+| D-44 | Prometheus/Loki retention ve limitler | `docker-compose.monitoring.*.yml:61` yalnız `--storage.tsdb.retention.time=30d`, **boyut tavanı yok**; Prometheus kendini/Grafana'yı/Loki'yi/MinIO'yu scrape etmiyor; Loki `limits_config`'te ingestion rate limit yok | 🟡 Orta |
+| D-45 | Promtail sadece 2 container'ı topluyor | `infra/docker/promtail/promtail.{test,prod}.yml:19` — yalnız backend/frontend. MSSQL, MinIO ve monitoring logları hiç toplanmıyor. Ayrıca `:6` `positions.filename: /tmp/positions.yaml` volume'suz → her restart'ta pozisyon kaybı | 🟡 Orta |
+| D-46 | Nginx eksikleri | `infra/nginx/cargopilot-test.conf` — `/api/` altında `client_max_body_size` **yok** (nginx default 1 MB → Excel/ERP import 413); `limit_req` yok (brute-force); HSTS/CSP/Referrer-Policy/Permissions-Policy yok; `:58` `proxy_read_timeout 60s` uzun optimizasyonda 504; gzip/brotli yok; `server_tokens off` yok | 🟠 Yüksek |
+| D-47 | Prod nginx conf'u yok, setup script'i sabit test conf'u kopyalıyor | `infra/nginx/` yalnız `cargopilot-test.conf` içeriyor; `infra/scripts/setup-nginx.sh:12` sabit olarak onu gösteriyor → prod sunucusunda çalıştırılırsa prod domain'i test container'larına proxy eder. **Prod öncesi zorunlu** | 🟠 Yüksek |
+| D-48 | `setup-nginx.sh` canlı config'i test etmeden üzerine yazıyor | `:52` `cp`, `:65` `nginx -t` — sıra ters; bozuk config yerinde kalır, sonraki reload nginx'i düşürür. Ayrıca `:72` `ufw status \| grep 443`, UFW pasifse `set -e` altında exit 1 → restart adımına hiç gelinmez | 🟡 Orta |
+| D-49 | Healthcheck kapsamı eksik | `docker-compose.test.yml` 4 healthcheck; `docker-compose.monitoring.{test,prod}.yml` **0**. Frontend'de de yok. Grafana `depends_on: [prometheus, loki]` koşulsuz | 🟡 Orta |
+| D-50 | `.env.prod.example` port ve path uyumsuzlukları | `:22` `FRONTEND_PORT=80` — nginx host'ta 80/443 dinliyor → port çakışması; `:46` `MINIO_PUBLIC_ENDPOINT=…/files` ama nginx'te tanımlı path `/media/` → tüm dosya linkleri 404. **Prod öncesi zorunlu** | 🟠 Yüksek |
+| D-51 | Ölü konfigürasyon dosyaları | `infra/docker/minio/config/init-bucket.sh` ve `infra/docker/mssql/init/init.sql` hiçbir compose'da mount edilmiyor (`grep` sıfır sonuç) | 🟢 Düşük |
+
+### 6.7 Doküman düzeltmeleri (kaynak §8)
+
+| Kod | Dosya | Sorun | Durum |
+|---|---|---|---|
+| — | `known-issues.md:100` | "diğer container'larda log rotation tanımlı" ifadesi | ✅ Düzeltildi |
+| — | `devops-backlog.md` 2.4 + `monitoring-setup.md:164` | "Contact point yok" — var; gerçek eksik SMTP | ✅ 2.4 düzeltildi · `monitoring-setup.md:164` **açık** |
+| — | `devops-backlog.md` 1.2/1.3/1.4 | PR #908 ile kapandı | ✅ Düzeltildi |
+| — | `monitoring-setup.md:157-161` | 3 kural yazıyor, dosyada 6 var | ⚠️ Açık |
+| — | `server-requirements.md:43` | "MSSQL × 2 ≈ 4 GB" varsayımı D-39 ile çelişiyor | ⚠️ Açık |
+| — | `secret-management.md:107-114` | `TEST_GHCR_*`'ı aktif secret olarak listeliyor — secret'lar silindi (D-07) | ⚠️ Açık |
+| — | `server-access.md` | `SSH_HOST`/`SSH_PRIVATE_KEY` diyor; gerçek adlar `TEST_SSH_*` | ⚠️ Açık |
+| D-24 | — | Rollback runbook'u yok | ⚠️ Açık |
+
+### 6.8 Prod sunucusu kurulmadan önce zorunlu
+
+**D-38, D-39, D-47, D-50** — bunlar olmadan prod stack kalkarsa ya port çakışır ya OOM olur.
+Madde 2.1 (Production Stack Deploy) bu dördüne bağımlıdır.
 
 ---
 
