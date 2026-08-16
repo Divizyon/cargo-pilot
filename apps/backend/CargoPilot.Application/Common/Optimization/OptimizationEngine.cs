@@ -34,7 +34,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // Big door x = 0 yuzundeyse baslangic kosesi (width, 0, 0) olur; kutu
         // kapinin onune yigilirsa operator kendi actigi kapidan iceri giremez.
         // Kapi yoksa baslangic origin kosesidir — bugunku davranis.
-        var fillFromMaxX = input.FillFromMaxX;
+        var fillFromMaxX = input.FillsFromMaxX;
 
         var halfW = input.VehicleWidth / 2m;
         var halfL = input.VehicleLength / 2m;

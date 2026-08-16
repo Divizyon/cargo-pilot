@@ -47,7 +47,7 @@ internal sealed record SnapshotVehicle(
             input.Criteria.ToString(),
             input.LoadingType.ToString(),
             input.ClusterGroups,
-            input.FillFromMaxX,
+            input.FillsFromMaxX,
             input.HasReferenceDoor);
 }
 

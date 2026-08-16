@@ -24,8 +24,7 @@ export type DoorType = (typeof DoorType)[keyof typeof DoorType];
 
 /** Kapının bulunduğu yüz, eksen değeriyle yazılır. */
 export const DoorFace = {
-  /** Uzak yüz. TIR'da kabin ucudur, orada kapı olmaz. */
-  ZeroZ: 'ZeroZ',
+  // Uzak yüz (z = 0) bilinçli olarak yok: hiçbir kapı tipi orada bulunamaz.
   /** Referans kapı yüzü. */
   LengthZ: 'LengthZ',
   /** Origin'in bulunduğu uzun yan yüz. */

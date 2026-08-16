@@ -1,6 +1,7 @@
 using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using MediatR;
 
 namespace CargoPilot.Application.Features.Vehicles.UpdateVehicle;
@@ -61,6 +62,13 @@ public sealed class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleC
         // degil, o yuzden mevcut kapilar korunur.
         if (request.Doors is not null)
             vehicle.ReplaceDoors(request.Doors.Select(door => (door.Type, door.Face)));
+        else
+            DoorSetFactory.EnsureDoors(vehicle);
+
+        // Kapi listesi asil kaynak; tekil alan ondan turetilir. Ikisi bagimsiz
+        // yazilsaydi arac guncellendikce ayrisirlardi: motor kapilardan,
+        // paylasim ve eski istemciler tekil alandan okuyor.
+        vehicle.SyncLoadingTypeFromDoors();
 
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 

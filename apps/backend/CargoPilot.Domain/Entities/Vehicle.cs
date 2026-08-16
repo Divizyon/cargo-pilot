@@ -206,4 +206,37 @@ public sealed class Vehicle : BaseEntity {
         foreach (var (type, face) in doors)
             Doors.Add(new VehicleDoor(Guid.NewGuid(), Id, type, face));
     }
+
+    /// <summary>
+    /// Tekil <see cref="LoadingType"/> alanini kapi listesinden turetir.
+    ///
+    /// Kayipli bir indirgemedir: tek deger birden fazla kapiyi ifade edemez, bu
+    /// yuzden yuklemeyi fiilen belirleyen kapi secilir. Oncelik yan kapidadir
+    /// cunku x eksenindeki baslangic kosesini o cevirir; sonra referans kapi,
+    /// en son ust kapi.
+    ///
+    /// Kolon hala zorunlu oldugu icin (3/3c'de tamamen kalkacak) kapi listesi
+    /// her degistiginde bu deger de guncellenir; aksi halde iki kaynak
+    /// birbirinden bagimsiz yazilir ve ayrisirdi — motor kapilardan, paylasim
+    /// ve eski istemciler tekil alandan okuyor.
+    /// </summary>
+    public void SyncLoadingTypeFromDoors() {
+        var big = Doors.FirstOrDefault(door => door.Type == DoorType.Big);
+        if (big is not null) {
+            LoadingType = big.Face == DoorFace.ZeroX ? LoadingType.SideLeft : LoadingType.SideRight;
+            return;
+        }
+
+        if (Doors.Any(door => door.Type == DoorType.Small)) {
+            LoadingType = LoadingType.Rear;
+            return;
+        }
+
+        if (Doors.Any(door => door.Type == DoorType.Top)) {
+            LoadingType = LoadingType.Top;
+            return;
+        }
+
+        LoadingType = LoadingType.Rear;
+    }
 }

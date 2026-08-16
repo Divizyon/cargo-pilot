@@ -35,17 +35,18 @@ Her fazın sonunda dar doğrulama: ilgili `dotnet test` filtresi + `npx tsc --no
 
 ---
 
-## Faz 3 — Tek kaynak + geriye uyum (migration içerir)
-**Bulgular:** S-13, S-15, S-16, S-17, S-22, S-47, S-48, S-66
+## Faz 3 — Tek kaynak + geriye uyum (migration içerir) ✅
+**Bulgular:** S-13, S-15, S-16, S-17, S-22, S-47, S-48 (S-66 → Faz 4)
+**Durum:** tamamlandı. **Karar: `LoadingType` doors'tan türetiliyor** (planın tercih ettiği seçenek) — `Vehicle.SyncLoadingTypeFromDoors()`, create/update handler'larında çağrılıyor. Migration `20260816133226_SideBothKalintisiNormalizeEdildi` test DB'ye uygulandı, `LoadingType=3` sayısı 0. `DoorFace.ZeroZ` **silindi** (EF string saklıyor, hiçbir satırda geçemezdi). Backend 316/316.
 
-- [ ] **S-13** Yeni migration: `UPDATE [Vehicles] SET [LoadingType] = 1 WHERE [LoadingType] = 3;` (backfill'in kendi `3 → Big@WidthX` seçimiyle tutarlı). Ölü `3` anahtarlarını temizle: `vehicleMappers.ts:47-52` yorumu, `goldenCrossCheck.test.ts:38-44`, `AddVehicleModal.tsx:82`.
-- [ ] **S-15** `UpdateVehicleCommandHandler` — `Doors` gönderilmediyse `EnsureDoors` geri düşmesi; `LoadingType` ile `Doors` birlikte gönderildiyse validator'da çapraz kural (`loadingTypeFromDoors(Doors) == LoadingType` ya da `LoadingType`'ı yok sayıp doors'tan türet — **türetme tercih edilir**, karar commit mesajına yazılır).
-- [ ] **S-16** `LoadingCorner.FillFromMaxX` → `bool?` dönsün, boş listede `null`; çağıran `?? (vehicle.LoadingType == LoadingType.SideLeft)` ile eşlesin (HasReferenceDoor ile aynı semantik).
-- [ ] **S-17** `VehicleConfiguration` — `LoadingType` kolonu türetilmiş değer olarak kalır (3/3c'de tamamen kalkacak); şimdilik yalnızca yorum + validator senkronu.
-- [ ] **S-22** `loadingTypeFromDoors` boş listede `0` uyduruyor — boş liste durumunda çağıran tarafta guard (`doors.length === 0` ise alan gönderme) ya da açık yorum; davranış değişikliği migration sonrası değerlendirilir.
-- [ ] **S-47** `VehicleDoorRules.Validate` imzasına `VehicleType` ekle: Container + `DoorType.Top` reddi (eski enum kuralının doors karşılığı). İki validator'da da kullan.
-- [ ] **S-48** `DoorFace.ZeroZ` hiçbir tipte geçerli değil: backend enum'dan **silme** (EF string saklıyor, veri yok, güvenli) + `vehicle.ts`'ten çıkar. Silme riskliyse `[Obsolete]` + zod'dan çıkarma; karar commit'e yazılır.
-- [ ] **S-66** `algorithm-test-ui/.../vehicleMappers.ts:18-21` ölü `3: Side` anahtarı (Faz 4 ile birleşebilir).
+- [x] **S-13** Yeni migration: `UPDATE [Vehicles] SET [LoadingType] = 1 WHERE [LoadingType] = 3;` (backfill'in kendi `3 → Big@WidthX` seçimiyle tutarlı). Ölü `3` anahtarlarını temizle: `vehicleMappers.ts:47-52` yorumu, `goldenCrossCheck.test.ts:38-44`, `AddVehicleModal.tsx:82`.
+- [x] **S-15** `UpdateVehicleCommandHandler` — `Doors` gönderilmediyse `EnsureDoors` geri düşmesi; `LoadingType` ile `Doors` birlikte gönderildiyse validator'da çapraz kural (`loadingTypeFromDoors(Doors) == LoadingType` ya da `LoadingType`'ı yok sayıp doors'tan türet — **türetme tercih edilir**, karar commit mesajına yazılır).
+- [x] **S-16** `LoadingCorner.FillFromMaxX` → `bool?` dönsün, boş listede `null`; çağıran `?? (vehicle.LoadingType == LoadingType.SideLeft)` ile eşlesin (HasReferenceDoor ile aynı semantik).
+- [x] **S-17** `VehicleConfiguration` — `LoadingType` kolonu türetilmiş değer olarak kalır (3/3c'de tamamen kalkacak); şimdilik yalnızca yorum + validator senkronu.
+- [x] **S-22** `loadingTypeFromDoors` boş listede `0` uyduruyor — boş liste durumunda çağıran tarafta guard (`doors.length === 0` ise alan gönderme) ya da açık yorum; davranış değişikliği migration sonrası değerlendirilir.
+- [x] **S-47** `VehicleDoorRules.Validate` imzasına `VehicleType` ekle: Container + `DoorType.Top` reddi (eski enum kuralının doors karşılığı). İki validator'da da kullan.
+- [x] **S-48** `DoorFace.ZeroZ` hiçbir tipte geçerli değil: backend enum'dan **silme** (EF string saklıyor, veri yok, güvenli) + `vehicle.ts`'ten çıkar. Silme riskliyse `[Obsolete]` + zod'dan çıkarma; karar commit'e yazılır.
+- [ ] **S-66** `algorithm-test-ui/.../vehicleMappers.ts:18-21` ölü `3: Side` anahtarı → **Faz 4'e alındı** (aynı dosyalar).
 
 **Doğrulama:** `dotnet ef migrations has-pending-model-changes` temiz; Application testleri; migration'ı test DB'ye uygula, `SELECT COUNT(*) WHERE LoadingType=3` → 0.
 

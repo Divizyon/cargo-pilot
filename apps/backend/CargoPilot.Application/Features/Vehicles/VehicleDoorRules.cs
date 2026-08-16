@@ -21,7 +21,15 @@ public static class VehicleDoorRules {
     /// Listeyi dogrular; sorun varsa kullaniciya gosterilecek mesaji, yoksa
     /// <c>null</c> dondurur.
     /// </summary>
-    public static string? Validate(IReadOnlyList<(DoorType Type, DoorFace Face)> doors) {
+    /// <param name="doors">Aracin kapi listesi.</param>
+    /// <param name="vehicleType">
+    /// Arac tipi. Konteynerde ust yukleme yapilamaz; bu kural eskiden yalnizca
+    /// tekil <c>LoadingType</c> uzerinden zorlaniyordu ve kapi listesiyle
+    /// birlikte Container + Top kombinasyonu dogrulamadan geciyordu.
+    /// </param>
+    public static string? Validate(
+        IReadOnlyList<(DoorType Type, DoorFace Face)> doors,
+        VehicleType? vehicleType = null) {
         // Kapisiz arac yuklenemez: yukun girecegi bir acikligi yoktur.
         if (doors.Count == 0)
             return "Araçta en az bir kapı bulunmalıdır.";
@@ -38,6 +46,9 @@ public static class VehicleDoorRules {
             if (!AllowedFaces(type).Contains(face))
                 return $"{DoorTypeLabel(type)} bu yüze yerleştirilemez.";
         }
+
+        if (vehicleType == VehicleType.Container && doors.Any(door => door.Type == DoorType.Top))
+            return "Konteynerde üst kapı tanımlanamaz.";
 
         return null;
     }

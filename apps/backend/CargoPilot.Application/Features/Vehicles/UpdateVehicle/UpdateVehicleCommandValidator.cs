@@ -89,7 +89,9 @@ public sealed class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehi
         // istemciler tekil LoadingType yolundan devam eder.
         When(x => x.Doors is not null, () =>
             RuleFor(x => x.Doors!)
-                .Must(doors => VehicleDoorRules.Validate([.. doors.Select(d => (d.Type, d.Face))]) is null)
-                .WithMessage(x => VehicleDoorRules.Validate([.. x.Doors!.Select(d => (d.Type, d.Face))])));
+                .Must((command, doors) => VehicleDoorRules.Validate(
+                    [.. doors.Select(d => (d.Type, d.Face))], command.VehicleType) is null)
+                .WithMessage(x => VehicleDoorRules.Validate(
+                    [.. x.Doors!.Select(d => (d.Type, d.Face))], x.VehicleType)));
     }
 }

@@ -21,6 +21,8 @@ namespace CargoPilot.Application.Common.Models;
 /// Yukleme <c>x = width</c> tarafindan mi baslasin. Kapinin oldugu yuzden yukleme
 /// baslamaz (docs/COORDINATE_STANDARD.md §7): big door <c>x = 0</c> yuzundeyse
 /// baslangic kosesi <c>(width, 0, 0)</c> olur ve doldurma kapiya dogru ilerler.
+/// Verilmezse <see cref="LoadingType"/>'dan turetilir; motor <see cref="FillsFromMaxX"/>
+/// okur.
 /// </param>
 public sealed record OptimizationInput(
     decimal VehicleWidth,
@@ -32,7 +34,7 @@ public sealed record OptimizationInput(
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
-    bool FillFromMaxX = false,
+    bool? FillFromMaxX = null,
     bool? HasReferenceDoor = null)
 {
     /// <summary>
@@ -41,6 +43,13 @@ public sealed record OptimizationInput(
     /// bugünkü davranışı korur.
     /// </summary>
     public bool ZonesApply => HasReferenceDoor ?? (LoadingType == LoadingType.Rear);
+
+    /// <summary>
+    /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.
+    /// <see cref="ZonesApply"/> ile aynı kalıp: kapı listesi verilmediyse tekil
+    /// alandan türetilir, böylece iki alanın geri-uyum semantiği ayrışmaz.
+    /// </summary>
+    public bool FillsFromMaxX => FillFromMaxX ?? (LoadingType == LoadingType.SideLeft);
 }
 
 /// <summary>

@@ -26,11 +26,16 @@ public static class LoadingCorner
     /// ulasilamaz durumda. Yine de birakildi: kural bir geri-uyum yolu degil,
     /// "serbest kose yoksa yon degistirme" karari; kisit gevserse davranis
     /// tanimsiz kalmasin.
+    ///
+    /// Kapi listesi bos ise <c>null</c> doner: <see cref="HasReferenceDoor"/> ile
+    /// ayni semantik. Duz <c>false</c> donseydi kapilari henuz doldurulmamis
+    /// arac "yan kapisi yok" saydirilir, oysa dogru cevap "bilinmiyor"dur ve
+    /// cagiran taraf tekil alandan turetebilir.
     /// </summary>
-    public static bool FillFromMaxX(ICollection<VehicleDoor>? doors)
+    public static bool? FillFromMaxX(ICollection<VehicleDoor>? doors)
     {
         if (doors is null || doors.Count == 0)
-            return false;
+            return null;
 
         var atZeroX = Has(doors, DoorType.Big, DoorFace.ZeroX);
         var atWidthX = Has(doors, DoorType.Big, DoorFace.WidthX);

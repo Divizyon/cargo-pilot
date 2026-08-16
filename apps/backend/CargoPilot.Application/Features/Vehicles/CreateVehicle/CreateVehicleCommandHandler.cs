@@ -100,6 +100,9 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
         else
             DoorSetFactory.EnsureDoors(vehicle);
 
+        // Tekil alan kapi listesinden turetilir; iki kaynak ayrismasin.
+        vehicle.SyncLoadingTypeFromDoors();
+
         _vehicleRepository.Add(vehicle);
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 

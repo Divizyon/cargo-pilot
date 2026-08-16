@@ -22,8 +22,10 @@ public enum DoorType
 /// </summary>
 public enum DoorFace
 {
-    /// <summary>Uzak yuz. TIR'da kabin ucudur, orada kapi olmaz.</summary>
-    ZeroZ = 0,
+    // Uzak yuz (z = 0) bilincli olarak yoktur: hicbir kapi tipi orada
+    // bulunamaz (TIR'da kabin ucudur ve yukleme her zaman oradan baslar,
+    // docs/COORDINATE_STANDARD.md §7). Enum'da tanimliyken hicbir tiple
+    // eslesmedigi icin her istekte 400 uretiyordu.
 
     /// <summary>Referans kapi yuzu.</summary>
     LengthZ = 1,

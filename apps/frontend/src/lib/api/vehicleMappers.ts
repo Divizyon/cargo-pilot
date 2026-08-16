@@ -81,6 +81,13 @@ export function resolveDoors(
  * Öncelik sırası kayıplı bir indirgemedir: tek değer birden fazla kapıyı
  * ifade edemez, o yüzden yüklemeyi fiilen belirleyen kapı seçilir — önce yan
  * kapı (X yönünü çevirir), sonra referans kapı, en son üst kapı.
+ *
+ * Boş listede `0` (Rear) döner. Bu bir varsayım değil, alanın zorunlu
+ * olmasından gelen savunmacı varsayılandır: kapısız araç zaten hem formda hem
+ * backend doğrulamasında reddediliyor, yani bu değer kayda geçmez. Backend
+ * ayrıca `SyncLoadingTypeFromDoors` ile alanı kapı listesinden yeniden türetir;
+ * buradaki değer yalnızca eski istemci sözleşmesini karşılar ve 3/3c'de
+ * tamamen kalkacak.
  */
 export function loadingTypeFromDoors(doors: readonly VehicleDoor[]): number {
   const big = doors.find((door) => door.type === DoorType.Big);

@@ -59,7 +59,6 @@ public sealed class VehicleDoorRulesTests
     }
 
     [Theory]
-    [InlineData(DoorType.Small, DoorFace.ZeroZ)]
     [InlineData(DoorType.Small, DoorFace.WidthX)]
     [InlineData(DoorType.Big, DoorFace.LengthZ)]
     [InlineData(DoorType.Big, DoorFace.HeightY)]
@@ -71,13 +70,43 @@ public sealed class VehicleDoorRulesTests
 
     /// <remarks>
     /// Uzak yuzde (z = 0) kapi olamaz: TIR'da kabin ucudur ve yukleme her zaman
-    /// oradan baslar (§7).
+    /// oradan baslar (§7). Bu yuz artik enum'da da yok, o yuzden kural
+    /// "tanimli her yuz en az bir tiple eslesir" seklinde dogrulanir: sozlesmede
+    /// hicbir tiple eslesmeyen bir yuz kalmamali.
     /// </remarks>
     [Fact]
-    public void Uzak_yuzde_kapi_tanimlanamaz()
+    public void Sozlesmede_hicbir_tiple_eslesmeyen_yuz_yok()
     {
-        VehicleDoorRules.AllowedFaces(DoorType.Small).Should().NotContain(DoorFace.ZeroZ);
-        VehicleDoorRules.AllowedFaces(DoorType.Big).Should().NotContain(DoorFace.ZeroZ);
-        VehicleDoorRules.AllowedFaces(DoorType.Top).Should().NotContain(DoorFace.ZeroZ);
+        var kullanilanYuzler = Enum.GetValues<DoorType>()
+            .SelectMany(VehicleDoorRules.AllowedFaces)
+            .Distinct();
+
+        kullanilanYuzler.Should().BeEquivalentTo(Enum.GetValues<DoorFace>());
+    }
+
+    /// <remarks>
+    /// Denetim S-47: "Konteynerde ust yukleme olmaz" kurali yalnizca tekil
+    /// LoadingType uzerinden zorlaniyordu; kapi listesiyle gonderildiginde
+    /// Container + Top dogrulamadan geciyordu.
+    /// </remarks>
+    [Fact]
+    public void Konteynerde_ust_kapi_reddedilir()
+    {
+        VehicleDoorRules.Validate([Rear, Top], VehicleType.Container)
+            .Should().Be("Konteynerde üst kapı tanımlanamaz.");
+    }
+
+    [Fact]
+    public void Ust_kapi_diger_arac_tiplerinde_serbest()
+    {
+        VehicleDoorRules.Validate([Rear, Top], VehicleType.Trailer).Should().BeNull();
+        VehicleDoorRules.Validate([Rear, Top], VehicleType.Truck).Should().BeNull();
+    }
+
+    [Fact]
+    public void Arac_tipi_verilmezse_ust_kapi_kurali_uygulanmaz()
+    {
+        // Tip bilinmiyorsa kural sessizce uydurulmaz; cagiran taraf gonderir.
+        VehicleDoorRules.Validate([Rear, Top]).Should().BeNull();
     }
 }
