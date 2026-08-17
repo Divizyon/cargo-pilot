@@ -124,7 +124,8 @@ Bölge terimi iki kademeli seçim sayesinde sert kısıt gibi davranır; katsay�
 
 **Fizik (kapatılamaz):**
 `R-A01` Kutular çakışamaz (temas çakışma değildir).
-`R-A02` Havada kutu olmaz — taban alanının ≥ %80'i destekli.
+`R-A02` Havada kutu olmaz — taban alanının ≥ %80'i destekli. *(Eşiğin kendisi literatürde mutlak
+değildir; bkz. `DR-16` — değiştirilmesi müşteri kararına bağlıdır. Kural bugün yürürlüktedir.)*
 `R-A03` `IsStackable=false` üstüne kutu konamaz.
 `R-A04` `MaxStackCount` ve `MaxWeightOnTop` **sütun geneli**.
 `R-A05` Kırılgan ürünün üstüne hiçbir yük konmaz.
@@ -275,6 +276,18 @@ uyar").
 
 `R-C08` **Duvar tanımı.** Duvar = `[zStart, zEnd)` aralığında, tüm `x`/`y` boyunca yerleşen kutular kümesi. `zEnd - zStart` = duvara ilk yerleştirilen kutunun `z` boyutu (G&R kuralı). Alternatif derinlik kuralı ("kalan kutuların en küçük boyutunun en büyüğü") `WallDepthRule` parametresi ile seçilir; **varsayılan G&R**.
 `R-C09` **Duvar içi doldurma.** Duvar yatay şeritlere bölünür (şerit yüksekliği = şeride ilk giren kutunun `y`'si). Şerit `x` boyunca greedy doldurulur; knapsack-optimal şerit Faz 2 opsiyonudur. Şerit ve duvar artıkları **maximal-space** listesine devredilir; sonraki kutular önce mevcut duvarın boşluklarını, sonra yeni duvarı dener.
+`R-C09a` **Destek-farkında boşluk (F2a).** Boşluk üretilirken tabanın yalnız **desteklenen** kısmı
+alınır; kısmen havada kalan taban kullanılabilir tabandan düşülür (ya da boşluk destekli
+alt-dikdörtgene kırpılır). Gerekçe ölçülmüştür: yerleşemeyen kutuların %73'ü bir boşluğa geometrik
+olarak sığıyor ama yalnızca %2,5'i orada destek buluyor — defter "sığar ama desteklenmez" adayı
+üretiyor ve arama onu boşuna deniyor. Kaynak: Parreño vd. 2008 maximal-space; Zhu/Oon/Lim/Weng 2012.
+
+`R-C09b` **Yerel düzlük terimi (F2b).** Yerleştirme skoru 2.5D yükseklik haritası üzerinden bir
+düzlük bileşeni taşır: `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h` (Ojha vd. 2020, WallE).
+`G_var` **yerel** komşuluktaki yükseklik varyansıdır — küresel hizalama denendi ve kaybetti
+(−0,55 puan, engebe kötüleşti): küresel referans tüm sütunları tek düzleme zorlayıp yerel uyumu
+bozuyor. Başlangıç katsayıları α₁=0,75 α₂=1 α₃=1 α₄=0,01 α₅=1; veri-bağımlıdır, kalibre edilir.
+
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
 `R-C11` **Boşluk güncelleme.** Yerleşim sonrası kesişen boşluklar silinir, yerine ≤6 yeni prizmatik boşluk üretilir; kalan kutuların en küçük boyutuna sığmayan boşluk `rejected`; `rejected` boşlukların komşuyla birleştirilmesi (amalgamation) `EnableAmalgamation` bayrağı ile (varsayılan kapalı, ölçülünce açılır).
 `R-C12` **Sert kapılar.** Her aday `PlacementValidator` 7 kapısından geçer (`R-C01`). Wall-Builder kendi "destek" tanımı yazmaz; `%80` kuralı oradadır.
@@ -288,6 +301,12 @@ uyar").
 ## C4. GWCA (sıralama) kuralları
 
 `R-C15` **Kodlama.** Birey = `double[2N]`: ilk N eleman random-key (sıralayınca permütasyon), ikinci N eleman yönelim anahtarı (`[0,1)` → `AllowedRotations` içinde indeks). GWCA denklemleri bu sürekli vektör üzerinde çalışır (B2). Sınır dışı değerler `[0,1)`'e katlanır (`reflect`), kırpılmaz (kırpma çeşitliliği öldürür). OBL (karşıt birey `1 - x`) başlangıçta ve her K iterasyonda popülasyonun %P'sine uygulanır — Faz 3 parametresi, varsayılan kapalı.
+`R-C15a` **Decoder kromozomda (F3a).** Kromozom yalnız sırayı değil **yerleştirme kararını** da
+kodlar: maximal-space seçim kuralı seçici anahtarı ve düzlük/derinlik ağırlıkları (`R-C09b`
+α'ları). Gerekçe ölçülmüştür: sıra araması +1,5 puanda doyuyor ve 10 kat bütçe yalnız +0,73
+getiriyor — bu **decoder kararsızlığının** klasik belirtisidir, yerleştirici sıra sinyalini
+yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.009).
+
 `R-C16` **Başlangıç popülasyonu.** En az 3 birey sezgisel tohumdur: (a) hacim-azalan, (b) taban-alanı-azalan, (c) ağırlık-azalan (WeightBalance'ta) — LIFO'da grup kümelemesi korunarak. Kalanı seedli rastgele; iyi nokta kümesi (good point set) başlatma Faz 3 opsiyonu.
 `R-C17` **Roller ve güncelleme.** B2 denklemleri; rol ataması seedli rastgele; liderler fitness sırasına göre; eleme oranı `EliminationRate` (varsayılan %10, elenenler yeniden başlatılır). Hız $v_i$ ilk iterasyonda 0.
 `R-C18` **Fitness (maliyet, düşük kazanır) — terim toplamı, sabit sırada:**
@@ -394,6 +413,10 @@ uyar").
 | DR-10 ⏳ | **Sanal duvar kapsaması = tam ayak izi** `[z, z+length)` (`R-C13a`) | Greedy `IsInsideZone` ile tek semantik; iki farklı kural doğmasın |
 | DR-11 ⏳ | **`AvgWallFlushness`: `[0,1]`, `WallCount==0` → `1.0`, NaN yasak** (`R-C14a`) | `UnplacedCount` ile çift cezalandırmayı önler; arama NaN ile çökmez |
 | **DR-12** | **Katman (layer) inşası kalıcı olarak kapsam dışı** (`R-C07a`) | Müşteri reddetti: kesit boyu katman sahada yüklenemez. Doluluk kazancı gerekçe sayılmaz — çıktı yüklenebilir olmak zorunda |
+| **DR-13** | **GWCA sequencer olarak emekli, GRASP devralır** | 300 senaryo, aynı bütçe: GWCA her eksende kaybetti (ortalama, medyan, süre, p95). `DR-03`'ün koşulu sağlanmadı. GWCA ve GA kodda referans kalır |
+| **DR-14** | **Birincil ölçüm BR1-BR7'ye taşınır**; giyotin korpus regresyon testi olur | Giyotin korpus %100 ulaşılabilir doluluk sunuyor ama gerçek dağılımı temsil etmiyor; iyileştirmeler yanıltıcı ölçülüyor. BR'de kutular konteynerden bağımsız üretildiği için %100 zaten mümkün değil (Parreño 2008: ort. %99,46, sığma garantisi yok) |
+| **DR-15** | **%90-95 hedefi korpus adıyla birlikte söylenir** | Literatürün en iyileri BR1-BR7'de ~%92-93. "Hedef %90-95" hangi korpusta dendiği belirtilmeden anlamsız |
+| **DR-16 ⏳** | **%80 destek eşiği artık teknik kısıt değil, politika kararı** | Hemminki vd. 1989 sarılı palette %70'i yeterli buluyor; Ramos vd. 2016 statik mekanik denge kriterinin tam destekten daha iyi hacim verdiğini ve 15 sınıfın 8'inde best-in-class'ı geçtiğini gösteriyor. **Müşteri onayı bekliyor** |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

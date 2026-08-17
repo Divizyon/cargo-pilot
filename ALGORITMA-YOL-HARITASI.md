@@ -15,6 +15,85 @@
 
 ---
 
+## 0.1 GÜNCEL DURUM VE REVİZE FAZ PLANI (17 Ağustos 2026)
+
+> Bu bölüm §1'in yerine geçer. §1 ve sonrası **tarihsel kayıt** olarak duruyor; F0/F1'in
+> tamamlanma biçimi ve F2/F3'ün gerçek sonuçları aşağıdadır. Revizyonun dayanağı:
+> 22 ölçülmüş deneme (`ALGORITMA-GELISTIRME-LOG.md`) + dış araştırma
+> (`ALGORITMA-ARASTIRMA-ONERISI.md`).
+
+### Tamamlananlar
+
+| Faz | Durum | Sonuç |
+|---|---|---|
+| **F0** Hazırlık | ✅ | Strateji/sequencer/seed sözleşmesi; 17 snapshot bayt bayt aynı; deneysel yollar bayrakla kapalı |
+| **F1** Loop harness | ✅ | 1.275 ms → 54 ms; soak kipi + üç teşhis katmanı (planda yoktu) |
+| **F2** Wall-Builder | 🔶 | Çekirdek çalışıyor, 0 sert ihlal, KK-06a tuttu (3,4 ms). Doluluk %75,99 — greedy ile başa baş, hedefin 14 puan altında |
+| **F3** Arama + kıyas | 🔶 | Üç sequencer yazıldı, 300 senaryoda kıyaslandı. **DR-03 sonucu: GWCA her eksende kaybetti** |
+
+### Araştırmanın değiştirdiği üç şey
+
+**1. Hedef yeniden çerçevelendi.** Literatürün en iyileri BR1-BR7'de **%92-93**; bizim %90-95
+hedefimiz *kendi korpusumuzda* konuşuluyordu ve o korpus **yapay derecede kolay** (giyotin bölünmüş
+= %100 ulaşılabilir). BR setinde kutular konteynerden bağımsız üretildiği için %100 zaten mümkün
+değil (Parreño vd. 2008: ortalama %99,46 hacim, sığma garantisi yok). Yani "%90-95" ancak
+**hangi korpusta** dendiği söylenerek anlamlıdır.
+
+**2. Aramanın doyması bir semptom, sebep değil.** Sıra araması +1,5'te doyuyor çünkü
+**decoder kararsız**: yerleştirici sıra sinyalini yutuyor. Literatürdeki standart çözüm
+yerleştirme kararını da kromozoma taşımak (Gonçalves & Resende BRKGA). Bizim "kazananların hepsi
+kaçırılan adayı geri kazanma türünde" gözlemimiz bunu doğruluyor.
+
+**3. %80 destek eşiği mutlak değil.** Rulebook'ta fiziksel/gevşetilemez sayılmıştı; literatür
+aksini söylüyor: Hemminki vd. (1989) sarılı paletlerde %70'i yeterli buluyor, Ramos vd. (2016)
+statik mekanik denge kriterinin tam destekten **daha iyi** olduğunu ve 15 sınıfın 8'inde
+best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, teknik kısıt değil.
+
+### Revize faz planı
+
+| Faz | İçerik | Çıkış eşiği | Dayanak |
+|---|---|---|---|
+| **F2a** · Destek-farkında defter | Boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınır; kısmen havada kalan taban düşülür | "Sığan ama desteksiz" oranı %73 → <%20 | Öneri 3 · Parreño 2008 |
+| **F2b** · Yerel düzlük terimi | 2.5D yükseklik haritası; skor `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h`. Başlangıç: α₁=0,75 α₂=1 α₃=1 α₄=0,01 α₅=1 | **Üst yüzey SS 58,5 cm → <30 cm** ve **ölü hava %15,8 → <%8** | Öneri 1 · Ojha vd. 2020 |
+| **F2c** · BR benchmark geçişi | Birincil ölçüm BR1-BR7 + BR8-BR15; giyotin korpus yalnız regresyon | BR1-BR7 ortalaması raporlanabilir | Öneri (d) |
+| **F3a** · Decoder'ı kromozoma taşı | Kromozom: sıra anahtarları + maximal-space seçim kuralı + düzlük/derinlik ağırlıkları (α'lar) | Arama kazancı +1,5'ten yukarı | Öneri 4 · G&R BRKGA 2012 |
+| **F3b** · GWCA emekli, GRASP devralır | `DR-03` uygulanır; GWCA ve GA referans olarak kodda kalır | Varsayılan sequencer GRASP | DR-03 · 300 senaryo ölçümü |
+| **F4a** · Kule/sütun inşası | Aynı ayak izli kutular dikey kuleye yığılır, kule duvara tek katı birim olarak konur | Engebe metriğinde iyileşme; yatay stabilite bozulmamalı | Öneri 2 · Gehring & Bortfeldt 1997 |
+| **F4b** · Dinamik duvar derinliği | Çoklu aday derinlik + sığ ağaç araması | +1-2 puan | Öneri 5 · Pisinger 2002 |
+| **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | KK-06b, KK-07 | Eski F4 |
+
+### Sıra ve gerekçe
+
+**Kritik yol F2a → F2b.** İkisi de salt yerleştirici/temsil değişikliği: duvar disiplinini bozmaz,
+yükleme pratiğini etkilemez, `DR-12` yasağına takılmaz. Ölçüm doğrudan bunları işaret ediyor
+(%73 sığıyor / %2,5 destekli).
+
+**F2c paralel yürür.** Ölçüm geçerliliği için: kendi korpusumuzdaki kazanç literatürle
+kıyaslanamıyor. BR1-BR7'de <%85 alırsak sorun hâlâ yerleştiricide, >%88 ise decoder/arama
+katmanında demektir — bu tek başına bir teşhis aracı.
+
+**F3a ondan sonra.** Yerleştirici düzelmeden decoder'ı zenginleştirmek, kararsız bir decoder'a
+daha çok parametre vermek olur.
+
+**F4a koşullu:** kutu seti zayıf-heterojense değerli, güçlü-heterojende kule kurmak zorlaşır.
+BR8-BR15 ölçümü bu kararı verecek.
+
+### Bekleyen politika kararı
+
+**Destek eşiği (Öneri 6).** %80 → %75 ya da yüzde tabanlı kuraldan **statik mekanik denge**
+kriterine geçiş. Ramos vd. (2016) bunun tam destekten daha iyi hacim verdiğini ve stabiliteyi yine
+garanti ettiğini gösteriyor. Teknik olarak kapıdan-içeri yüklemeyle uyumlu. **Müşteri onayı
+gerektirir** — tek başına en büyük hamle olabilir.
+
+### Bekleyen teknik borç
+
+`OPT-15` — ana yerleştirme döngüsü yalnızca aşağı bakıyor; sonradan gelen kutu var olan yığının
+altına konabiliyor ve kendi `MaxStackCount`/`MaxWeightOnTop`/kırılganlık kısıtları hiç sorulmuyor.
+**Kanıtlanmış motor hatası**, snapshot kaydıracağı için ertelenmişti. F2a ile birlikte ele
+alınmalı: destek-farkında defter zaten aynı bölgeye dokunuyor.
+
+---
+
 ## 1. Faz Planı
 
 ### F0 — Hazırlık: Model, şema, sözleşme, tanım borçları
