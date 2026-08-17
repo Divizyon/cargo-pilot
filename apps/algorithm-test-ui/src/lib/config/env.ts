@@ -8,10 +8,20 @@ import { z } from 'zod';
 const DEFAULT_API_TIMEOUT_MS = 60_000;
 
 const envSchema = z.object({
+  /**
+   * Backend kök adresi. Boş bırakılırsa istekler göreli gider ve Vite'ın
+   * `/api` proxy'si devreye girer — yerel geliştirmenin normal hâli budur.
+   *
+   * Tanımsız değer de boş sayılır: depoda `.env` dosyası yok (`.env.local`
+   * yoksayılıyor), yani şema `undefined`'ı reddettiğinde temiz bir checkout'ta
+   * arayüz hiç açılmıyordu. "Ayar verilmemiş" ile "ayar boş verilmiş" burada
+   * aynı şeydir.
+   */
   VITE_API_BASE_URL: z
     .string()
     .url('VITE_API_BASE_URL geçerli bir URL olmalıdır')
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .default(''),
   VITE_API_TIMEOUT_MS: z.coerce
     .number()
     .int()
