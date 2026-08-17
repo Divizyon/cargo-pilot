@@ -25,7 +25,8 @@ public sealed record BenchOptions(
     int Iterations,
     int MaxScenarios,
     int BrSet,
-    BrCorpus.OrientationMode BrOrientation)
+    BrCorpus.OrientationMode BrOrientation,
+    string? BaselinePath)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -55,6 +56,7 @@ public sealed record BenchOptions(
         var maxScenarios = 0;
         var brSet = 0;
         var brOrientation = BrCorpus.OrientationMode.Strict;
+        string? baselinePath = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -121,6 +123,9 @@ public sealed record BenchOptions(
                 case "--orientation":
                     brOrientation = ParseOrientation(value, arg);
                     break;
+                case "--baseline":
+                    baselinePath = value;
+                    break;
                 case "--help":
                 case "-h":
                     break;
@@ -135,7 +140,8 @@ public sealed record BenchOptions(
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
             Math.Max(0, maxScenarios),
             Math.Clamp(brSet, 0, 7),
-            brOrientation);
+            brOrientation,
+            baselinePath);
     }
 
     public static int PrintUsage()
@@ -168,6 +174,8 @@ public sealed record BenchOptions(
               --max-scenarios N soak kipinde tam olarak N senaryo, br kipinde kume basina N ornek
               --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
               --orientation S  br kipinde strict | free (varsayilan strict, alt sinir)
+              --baseline DOSYA br kipinde referansla kiyasla; gerileme varsa hata koduyla cik
+              --report DOSYA   br kipinde JSON rapor yolu (soak kipinde de gecerli)
             """);
 
         return ExitOk;

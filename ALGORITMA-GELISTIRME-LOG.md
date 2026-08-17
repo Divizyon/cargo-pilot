@@ -771,3 +771,35 @@ Doluluk hiç değişmedi ve snapshot'lar kaydı **çünkü** her iki korpusta da
 (`MaxStackCount 0`, `IsStackable true`, `NonFragile`) — kapı orada hiç ateşlenmiyor. Yani düzeltme
 yalnızca gerçekten geçersiz olan yerleşimleri reddediyor, başka hiçbir şeye dokunmuyor. Erteleme
 gerekçesi ("snapshot kaydırır") ölçümle geçersiz çıktı.
+
+---
+
+## F5 · Gecelik doluluk kapısı
+
+Bu oturumda kurulan ölçüm düzeneği elle koşulduğu sürece çürür: kapı olmadan doluluk düşüşü ancak
+birisi aynı komutu tekrar koştuğunda fark edilir.
+
+`br` komutuna `--report` (JSON çıktı) ve `--baseline` (referansla karşılaştır, gerilemede hata
+koduyla çık) eklendi. Karşılaştırma mantığı YAML'da değil C#'ta (`BrBaseline`) — tipli ve
+denenebilir.
+
+**Kapı yalnızca statik sequencer'ı ölçer.** Arama katmanının bütçesi duvar saatidir
+(`SearchBudget.MaxDurationMs`), yani yavaş bir koşucu daha az iterasyon yapar ve sonuç makineye
+bağlı çıkar; kapı gürültüden kalırdı. Statik yol saf hesaptır — aynı girdi her makinede bit
+birebir aynı sonucu verir, dolayısıyla **her düşüş gerçek bir gerilemedir** ve tolerans
+(0,05 puan) yalnızca JSON yuvarlamasına karşı.
+
+**Referanslar** `docs/algorithm/` altında, iki strateji için ayrı: greedy %75,23 (bugünkü üretim
+yolu) ve duvar örücü %79,86 (bayrak açıldığında koşacak olan). Birinin gerilemesi ötekini
+gizlememeli.
+
+Kapı üç şeyi reddediyor: küme ortalamasının düşmesi, örnek sayısının değişmesi ve referansın
+**başka bir yapılandırmaya** ait olması — sonuncusu denendi, `WallBuilder/Static/Strict` referansı
+greedy koşusunu doğru şekilde reddetti.
+
+Kapı bir **iyileşmeyi** de bildiriyor ("referans tazelenmeli"): kazanç kaydedilmezse yeni taban
+oluşmaz ve bir sonraki gerileme geç fark edilir.
+
+`engine-bench.yml`: motor dosyaları değiştiğinde push/PR'da, ayrıca her gece 03:00 UTC
+(`algorithm-suite` 02:00'de koştuğu için çakışmıyor). Release yapılandırmasında doğrulandı,
+sayılar Debug ile birebir aynı.

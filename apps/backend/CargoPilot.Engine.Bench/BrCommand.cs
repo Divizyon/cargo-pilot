@@ -31,6 +31,7 @@ public static class BrCommand
         Console.WriteLine("kume  ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  medyan ms");
 
         var all = new List<decimal>();
+        var setResults = new List<BrBaseline.SetResult>();
         var waste = new List<WasteDiagnostics.Breakdown>();
         var spaces = new List<SpaceDiagnostics.Spaces>();
         var shape = new List<CorpusDiagnostics.Shape>();
@@ -75,6 +76,7 @@ public static class BrCommand
             }
 
             all.AddRange(fills);
+            setResults.Add(new BrBaseline.SetResult(set, limit, Math.Round(Mean(fills), 2)));
 
             var sample = instances[0];
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
@@ -87,7 +89,20 @@ public static class BrCommand
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"BR1-BR7 ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)"));
 
-        return BenchOptions.ExitOk;
+        var report = new BrBaseline.Report(
+            options.Strategy.ToString(),
+            options.Sequencer.ToString(),
+            mode.ToString(),
+            Math.Round(Mean(all), 2),
+            setResults);
+
+        if (options.ReportPath is not null) BrBaseline.Write(options.ReportPath, report);
+
+        if (options.BaselinePath is null) return BenchOptions.ExitOk;
+
+        Console.WriteLine();
+
+        return BrBaseline.Matches(options.BaselinePath, report) ? BenchOptions.ExitOk : BenchOptions.ExitFailed;
     }
 
     /// <summary>
