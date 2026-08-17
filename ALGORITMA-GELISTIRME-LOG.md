@@ -997,3 +997,38 @@ arama tek bir tepede sıkışıyor. Taban çizgiden yeniden başlamak GRASP'ın 
 On üç denemeden **üçü** tutuldu (D14 gen, D17 GRASP sabitleri, D18 iterasyon tavanı); onu
 reddedildi. Kazancın neredeyse tamamı D17'den geldi — yerleştirici tarafında onlarca deneme
 yapılırken hiç ayarlanmamış iki sabitten.
+
+---
+
+## ① K-Means ön kümeleme (`R-B4`) — **iddia ölçüldü, doluluk tarafı yanlış**
+
+Rulebook §B4'te duran en iddialı ölçülmemiş madde buydu:
+
+> K-Means ile kutuları boyuta göre ön kümeleyip Wall-Builder'a vermek **30–35× hızlanma ve %15'e
+> varan doluluk artışı** sağlamıştır *(tek kaynaklı iddia, ölçülecek)*.
+
+Uygulandı: kümeleme **tip** üzerinde yapılıyor (birim üzerinde değil — aynı ürünün 40 kopyası
+merkezleri kendi tarafına çekerdi), ölçüler `[0,1]`'e normalize ediliyor, başlangıç merkezleri
+hacim sırasından eşit aralıklarla seçiliyor ve iterasyon sayısı sabit — determinizm sözleşmesi
+(`R-C02`) gereği hiçbir adımı rastgele değil. Kümeler ortalama hacme göre azalan, küme içinde
+hacim-azalan. Yalnızca hacim önceliğinde ve grup yokken devrede; LIFO/grup sırası boşaltma sözü
+taşıyor, kümeleme onu bozardı.
+
+| Küme sayısı | BR1-BR7 | Giyotin | Giyotin medyan süre |
+|---|---|---|---|
+| **Taban çizgi (kümeleme yok)** | **%79,86** | **%76,29** | 52 ms |
+| k = 3 | %79,39 | %72,46 | 28 ms |
+| k = 8 | %79,83 | %73,02 | 22 ms |
+| k = √tip (≈11) | %79,34 | %73,39 | 25 ms |
+| k = 30 | %79,86 | %74,85 | 23 ms |
+
+**Doluluk her `k` değerinde taban çizginin altında.** `k` büyüdükçe sonuç taban çizgiye
+yaklaşıyor — beklendiği gibi, çünkü her tip kendi kümesi olduğunda sıralama hacim-azalana döner.
+Yani kümelemenin kendisi zarar veriyor, ayarı değil.
+
+**Hız iddiası kısmen doğru:** giyotin korpusunda medyan süre 52 → 22-28 ms, yaklaşık **2×**.
+Ama 30-35× değil, ve sebebi kazanç değil kayıp: benzer ölçüler bir arada geldiğinde daha az
+boşluk hayatta kalıyor, defter taraması kısalıyor — **doluluğun düşme sebebi de tam olarak bu**.
+
+**Karar: reddedildi, kod silindi.** `R-B4`'teki "%15 doluluk artışı" iddiası bizim yerleştiricimiz
+için geçersiz. Hızlanma gerçek ama doluluk pahasına, ve bizim darboğazımız hız değil.

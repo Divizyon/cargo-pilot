@@ -184,7 +184,7 @@ $S = -\alpha_1 G_{var} + \alpha_2 G_{high} + \alpha_3 G_{flush} - \alpha_4(i+j) 
 
 ## B4. Sıralama (sequencing) kriterleri — literatür özeti
 
-Hacme göre azalan (en yaygın), taban alanına göre azalan (LAFF, stabilite), en küçük boyutun en büyüğü (G&R katman derinliği), ağırlık/yük taşıma kapasitesine göre (py3dbp `loadbear`, `level`), teslimat sırasına göre (multi-drop LIFO). Pratikte kanıtlanmış mimari: **sıralama (meta-sezgisel/GRASP/GA) + yerleştirme (wall/layer) ayrımı** (Renault/ESICUP 2015; Correcher vd. 2020 — 12 pratik kısıtın formülasyonu). K-Means ile kutuları boyuta göre ön kümeleyip Wall-Builder'a vermek 2. rapora göre 30–35× hızlanma ve %15'e varan doluluk artışı sağlamıştır (**tek kaynaklı iddia, ölçülecek**).
+Hacme göre azalan (en yaygın), taban alanına göre azalan (LAFF, stabilite), en küçük boyutun en büyüğü (G&R katman derinliği), ağırlık/yük taşıma kapasitesine göre (py3dbp `loadbear`, `level`), teslimat sırasına göre (multi-drop LIFO). Pratikte kanıtlanmış mimari: **sıralama (meta-sezgisel/GRASP/GA) + yerleştirme (wall/layer) ayrımı** (Renault/ESICUP 2015; Correcher vd. 2020 — 12 pratik kısıtın formülasyonu). K-Means ile kutuları boyuta göre ön kümeleyip Wall-Builder'a vermek 2. rapora göre 30–35× hızlanma ve %15'e varan doluluk artışı sağlamıştır — **ÖLÇÜLDÜ VE REDDEDİLDİ (`DR-33`)**: doluluk her küme sayısında düştü (BR %79,86 → %79,34-79,86, giyotin %76,29 → %72,46-74,85), hızlanma ise 30-35× değil ~2× ve sebebi kayıp (daha az boşluk hayatta kalıyor).
 
 ## B5. Makale listesi
 
@@ -458,6 +458,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-30** | **GRASP sabitleri ölçüldü: `Alpha` 0,30 → 0,45 · `SwapsPerRound` 12 → 72** | Hiç taranmamışlardı. Eski takas sayısı arama bütçesinin büyük kısmını harcamadan bitiriyordu. BR1-BR7 (GRASP, 175 örnek) %85,38 → **%86,24**; statik yol birebir aynı, giyotin −0,12 (gürültü). İki parametre etkileşiyor, optimum iki turda bulundu |
 | **DR-31** | **GRASP her turu taban çizgiden başlatır, bulunan en iyiden değil** | Ölçüldü: en iyiden başlatmak −0,62 puan. Çeşitlendirme kayboluyor ve arama tek tepede sıkışıyor. Klasik GRASP tasarımı doğruymuş; `Alpha` da bu tasarıma göre kalibre |
 | **DR-32** | **Arama tohumları üçte kalır** | Tohumlar bütçe içinde değerlendiriliyor; her ek tohum bir tam yerleştirme koşusu ve o süre arama turlarından çalınıyor. Altı tohum −0,11, tek ek tohum −0,10 |
+| **DR-33** | **K-Means ön kümeleme reddedildi** (`R-B4` iddiası) | Doluluk her `k` değerinde taban çizginin altında; `k` büyüdükçe taban çizgiye yaklaşıyor, yani zarar veren kümelemenin kendisi. Hız 2× artıyor ama sebebi kazanç değil kayıp: benzer ölçüler bir arada gelince daha az boşluk hayatta kalıyor |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 
