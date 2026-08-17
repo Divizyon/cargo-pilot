@@ -6,3 +6,7 @@ using System.Runtime.CompilerServices;
 
 // Golden-master testleri OptimizationEngine'i doğrudan (DI olmadan) örnekler.
 [assembly: InternalsVisibleTo("CargoPilot.Engine.Tests")]
+
+// Geliştirme döngüsü barındırıcısı motoru DI olmadan, doğrudan örnekler.
+// Üretime girmez; yalnızca ölçüm ve determinizm koşuları için.
+[assembly: InternalsVisibleTo("CargoPilot.Engine.Bench")]
