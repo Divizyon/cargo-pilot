@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
 import { SUITE_RUN_VERSION, type SuiteRun, type SuiteScenarioResult } from '../utils/suiteStorage';
 import {
   MIN_SCENARIOS_FOR_EFFECTIVENESS,
@@ -39,6 +39,7 @@ function rows(count: number, shape: RowShape): SuiteScenarioResult[] {
     lifoZoneOverflowCm: null,
     unplacedReasons: [],
     durationMs: 1,
+    digest: 'x',
     error: null,
   }));
 }
@@ -51,8 +52,13 @@ function run(results: SuiteScenarioResult[]): SuiteRun {
     completedAt: '2026-08-15T10:00:00.000Z',
     catalogSignature: 'sig',
     generatorVersion: 2,
+    strategy: PlacementStrategy.Greedy,
+    sequencer: SequencerKind.Static,
+    searchSeed: 0,
+    fixtureCatalogVersion: null,
     engineVersion: null,
     coverage: [],
+    digest: 'run',
     results,
     aggregates: [],
   };

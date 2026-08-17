@@ -1,8 +1,10 @@
 import { fromApiPlanDetail, planDetailResponseSchema } from '@/lib/api/loadingPlanMappers';
 import type { Item } from '@/lib/types/item';
-import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import type { OptimizationCriteria, Placement } from '@/lib/types/loadingPlan';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { CRITERIA_ORDER } from '../criteria';
+import { PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
+import { runDigest, scenarioDigest } from './determinismDigest';
 import { buildCatalogCoverage, toCoverageCounts } from '../utils/catalogCoverage';
 import { GENERATOR_VERSION, generateSuite, type SuiteScenario } from '../utils/suiteGenerator';
 import {
@@ -75,9 +77,34 @@ export interface RunSuiteOptions {
   criteriaList?: readonly OptimizationCriteria[];
   /** Motorun hangi sürümüne karşı koşulduğu; rapora yazılır. */
   engineVersion?: string | null;
+  /** Hangi yerleştirici koşsun. Varsayılan bugünkü greedy motor. */
+  strategy?: PlacementStrategy;
+  /** Kutu sırasını kim üretsin. Varsayılan bugünkü kriter tabanlı sıralama. */
+  sequencer?: SequencerKind;
+  /** Arama tohumu; Static sıralayıcıda kullanılmaz. */
+  searchSeed?: number;
+  /** Fixture modunda sentetik katalog sürümü; canlı katalogda null (F1). */
+  fixtureCatalogVersion?: number | null;
   onProgress?: (progress: SuiteProgress) => void;
+  /**
+   * Sert kural ihlali olan senaryoyu dışarı verir. Rapor yalnız sayı taşır;
+   * bozuk vakayı incelemek için gereken şey (girdi + yerleşim) rapora
+   * sığmıyor ve koşu bittiğinde kayboluyordu.
+   */
+  onScenarioFailure?: (failure: ScenarioFailure) => void;
   shouldCancel?: () => boolean;
   clock?: SuiteClock;
+}
+
+/** Bozuk vakanın diske yazılabilir tam görüntüsü. */
+export interface ScenarioFailure {
+  scenarioIndex: number;
+  criteria: OptimizationCriteria;
+  failedCheckIds: string[];
+  checkDetails: Array<{ id: string; status: string; detail?: string; failedPlacementIndices: number[] }>;
+  planBody: unknown;
+  placements: Placement[];
+  unplaced: Array<{ itemId: string; quantity: number; reason: number }>;
 }
 
 export type RunSuiteOutcome =
@@ -93,6 +120,13 @@ export type RunSuiteOutcome =
   /** Hiçbir senaryo tamamlanamadı; sunucuya erişilemiyor olabilir. */
   | { status: 'no-results' };
 
+/** Koşunun tamamı için sabit motor seçimi; her senaryoya aynen geçer. */
+interface EngineSelection {
+  readonly strategy: PlacementStrategy;
+  readonly sequencer: SequencerKind;
+  readonly searchSeed: number;
+}
+
 /** Motor `groupId` olarak uuid bekliyor; senaryo yalnızca grup numarası taşır. */
 function mintGroupIds(scenario: SuiteScenario): Map<number, string> {
   const numbers = [...new Set(scenario.items.map((i) => i.groupNumber))].filter((n) => n > 0);
@@ -103,11 +137,15 @@ function buildPlanBody(
   scenario: SuiteScenario,
   criteria: OptimizationCriteria,
   groupIdByNumber: ReadonlyMap<number, string>,
+  engine: EngineSelection,
 ): unknown {
   return {
     vehicleId: scenario.vehicleId,
     optimizationCriteria: criteria,
     clusterGroups: scenario.clusterGroups,
+    placementStrategy: engine.strategy,
+    sequencer: engine.sequencer,
+    seed: engine.searchSeed,
     planName: `Toplu Test #${scenario.index} K${criteria}`,
     items: scenario.items.map((i) => ({
       itemId: i.itemId,
@@ -157,6 +195,7 @@ function errorResult(
     lifoZoneOverflowCm: null,
     unplacedReasons: [],
     durationMs,
+    digest: '',
     error,
   };
 }
@@ -167,13 +206,17 @@ async function runScenario(
   itemsById: Map<string, Item>,
   client: SuiteClient,
   clock: SuiteClock,
+  engine: EngineSelection,
+  onFailure?: (failure: ScenarioFailure) => void,
 ): Promise<SuiteScenarioResult> {
   const groupIdByNumber = mintGroupIds(scenario);
   const start = clock.monotonicMs();
   let planId: string | null = null;
+  let planBody: unknown = null;
 
   try {
-    planId = await client.createPlan(buildPlanBody(scenario, criteria, groupIdByNumber));
+    planBody = buildPlanBody(scenario, criteria, groupIdByNumber, engine);
+    planId = await client.createPlan(planBody);
     if (!planId) {
       return errorResult(scenario, criteria, clock.monotonicMs() - start, 'Plan kimliği dönmedi');
     }
@@ -226,6 +269,31 @@ async function runScenario(
 
     const summary = summarizeChecks(checks);
 
+    if (summary.fail > 0) {
+      onFailure?.({
+        scenarioIndex: scenario.index,
+        criteria,
+        failedCheckIds: checks
+          .filter((check) => check.status === 'fail' && check.severity === 'hard')
+          .map((check) => check.id),
+        checkDetails: checks
+          .filter((check) => check.status === 'fail')
+          .map((check) => ({
+            id: check.id,
+            status: check.status,
+            detail: check.detail,
+            failedPlacementIndices: check.failedPlacementIndices,
+          })),
+        planBody,
+        placements: detail.placements,
+        unplaced: detail.unplacedItems.map((u) => ({
+          itemId: u.itemId,
+          quantity: u.quantity,
+          reason: u.reason,
+        })),
+      });
+    }
+
     return {
       index: scenario.index,
       criteria,
@@ -251,6 +319,11 @@ async function runScenario(
           : null,
       unplacedReasons: summarizeUnplaced(detail.unplacedItems),
       durationMs,
+      digest: await scenarioDigest(
+        `${scenario.index}-k${criteria}`,
+        detail.placements,
+        detail.unplacedItems,
+      ),
       error: null,
     };
   } catch (error) {
@@ -272,10 +345,17 @@ export async function runSuite(options: RunSuiteOptions): Promise<RunSuiteOutcom
     concurrency = DEFAULT_CONCURRENCY,
     criteriaList = CRITERIA_ORDER,
     engineVersion = null,
+    strategy = PlacementStrategy.Greedy,
+    sequencer = SequencerKind.Static,
+    searchSeed = 0,
+    fixtureCatalogVersion = null,
     onProgress,
+    onScenarioFailure,
     shouldCancel,
     clock = systemClock,
   } = options;
+
+  const engine: EngineSelection = { strategy, sequencer, searchSeed };
 
   const scenarios = generateSuite(seed, count, vehicles, items);
   if (scenarios.length === 0) return { status: 'empty-catalog' };
@@ -299,7 +379,9 @@ export async function runSuite(options: RunSuiteOptions): Promise<RunSuiteOutcom
       const job = jobs[cursor++];
       onProgress?.({ completed, total: jobs.length, currentIndex: job.scenario.index, failed });
 
-      const result = await runScenario(job.scenario, job.criteria, itemsById, client, clock);
+      const result = await runScenario(
+        job.scenario, job.criteria, itemsById, client, clock, engine, onScenarioFailure,
+      );
       results.push(result);
 
       completed += 1;
@@ -327,8 +409,15 @@ export async function runSuite(options: RunSuiteOptions): Promise<RunSuiteOutcom
       completedAt: clock.nowIso(),
       catalogSignature: catalogSignature(vehicles, items),
       generatorVersion: GENERATOR_VERSION,
+      strategy,
+      sequencer,
+      searchSeed,
+      fixtureCatalogVersion,
       engineVersion,
       coverage: toCoverageCounts(buildCatalogCoverage(items)),
+      digest: await runDigest(
+        results.map((r) => ({ scenarioId: `${r.index}-k${r.criteria}`, digest: r.digest })),
+      ),
       results,
       aggregates: criteriaList.map((criteria) => aggregateResults(results, criteria)),
     },

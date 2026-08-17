@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
 import { SUITE_RUN_VERSION, type SuiteRun, type SuiteScenarioResult } from '../utils/suiteStorage';
 import {
   buildMarkdownSummary,
@@ -26,6 +26,7 @@ function result(overrides: Partial<SuiteScenarioResult> = {}): SuiteScenarioResu
     lifoZoneOverflowCm: null,
     unplacedReasons: [],
     durationMs: 1,
+    digest: 'x',
     error: null,
     ...overrides,
   };
@@ -39,8 +40,13 @@ function run(overrides: Partial<SuiteRun> = {}): SuiteRun {
     completedAt: '2026-08-15T12:30:45.123Z',
     catalogSignature: 'sig',
     generatorVersion: 2,
+    strategy: PlacementStrategy.Greedy,
+    sequencer: SequencerKind.Static,
+    searchSeed: 0,
+    fixtureCatalogVersion: null,
     engineVersion: null,
     coverage: [],
+    digest: 'run',
     results: [result()],
     aggregates: [],
     ...overrides,

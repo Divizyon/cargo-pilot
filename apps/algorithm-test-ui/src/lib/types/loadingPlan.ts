@@ -45,6 +45,39 @@ export const OptimizationCriteria = {
 export type OptimizationCriteria = (typeof OptimizationCriteria)[keyof typeof OptimizationCriteria];
 
 /**
+ * CargoPilot.Domain/Enums/PlacementStrategy.cs ile birebir. Kriterden AYRI bir
+ * eksendir: kriter "neyi optimize et", strateji "hangi yerlestirici kossun"
+ * sorusunu yanitlar (ALGORITMA-RULEBOOK.md DR-01).
+ */
+export const PlacementStrategy = {
+  Greedy: 0,
+  WallBuilder: 1,
+} as const;
+
+export type PlacementStrategy = (typeof PlacementStrategy)[keyof typeof PlacementStrategy];
+
+/** CargoPilot.Domain/Enums/SequencerKind.cs ile birebir. */
+export const SequencerKind = {
+  Static: 0,
+  Gwca: 1,
+  Ga: 2,
+  Grasp: 3,
+} as const;
+
+export type SequencerKind = (typeof SequencerKind)[keyof typeof SequencerKind];
+
+/**
+ * Arama katmaninin kosu istatistigi. Aramasiz planda (Static sequencer) null.
+ * Kalicilik F4'te eklenecegi icin backend bugun her planda null donuyor.
+ */
+export interface SearchStats {
+  iterations: number;
+  evaluations: number;
+  searchImproved: boolean;
+  durationMs: number;
+}
+
+/**
  * CargoPilot.Domain/Enums/UnplacedReason.cs ile birebir. Sayı olarak serileşir
  * (WebAPI'de JsonStringEnumConverter kayıtlı değil).
  *
