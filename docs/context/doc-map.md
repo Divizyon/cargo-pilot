@@ -30,6 +30,14 @@ git ls-files '*.md' | wc -l                 # → 47
 git ls-files '*.md' | xargs wc -l | tail -1 # → 12342
 ```
 
+> **Revizyon 2026-08-17 (ADR pratiği):** `docs/adr/` açıldı. Tek mevcut ADR
+> (`apps/backend/docs/erp-integration/adr-baglanti-mimarisi.md`) içeriği değiştirilmeden
+> `docs/adr/ADR-0001-erp-baglanti-mimarisi.md`'ye taşındı (yalnız başlığa numara eklendi);
+> gelen 3 bağlantı düzeltildi. Yeni dosyalar: `docs/adr/README.md` (indeks + kurallar),
+> `docs/adr/ADR-0000-sablon.md`, `ADR-0002`…`ADR-0005` (motor kararları),
+> `docs/conventions/adr.md`. Başlıktaki 47/12.342 sayımı bu turdan öncesine aittir;
+> yeniden ölçüm gerekir.
+>
 > **Revizyon 2026-08-16 (konsolidasyon):** dosya sayısı değişmedi (**47**), yerleşim değişti.
 > `docs/COORDINATE_AUDIT.md`, `docs/devops/iyilestirme-analizi-2026-08.md` ve
 > `docs/context/branch-audit.md` `docs/archive/`'a taşındı (üçü de kendini bayat ilan etmişti);
@@ -105,6 +113,18 @@ Kökte yalnızca konvansiyonel dosyalar durur. `devops-audit-raporu.md` 2026-08-
 |-------|------:|------|--------------|
 | `branching.md` | 298 | **Yürürlükteki** model: üç dallı terfi `dev` → `test` → `main` (2026-08-03'ten itibaren). İş branch'leri `dev`'den açılır, `test`'e yalnızca `dev`'den PR, `main`'e yalnızca `test`/`hotfix`'ten PR; branch türleri ve ≤3 gün ömür kuralı, doğrudan push yasağı (ruleset), PR onay kuralları | Branch/PR açarken. **Tarihsel öneri:** `../archive/branching-proposal-2026-08.md` |
 | `commits.md` | 107 | Sade + açıklayıcı mesaj, atomic commit (1 değişiklik = 1 commit), Türkçe tercih, "fix/update/son" gibi mesajlar yasak, PR öncesi geçmiş temizliği | Commit atmadan önce |
+| `adr.md` | 43 | ADR kuralı: ne zaman ADR yazılır, `ADR-NNNN` numaralandırma (numara geri kullanılmaz), 4 durum değeri, "eski ADR düzenlenmez, yenisi yazılır" kuralı. Ayrıntı ve indeks `docs/adr/README.md` | Mimari bir karar alırken |
+
+## docs/adr
+
+Geri alınması pahalı teknik kararların gerekçe kaydı. Kod "ne", ADR "neden" ve
+"hangi alternatif neden elendi" sorusunu cevaplar.
+
+| Dosya | Satır | Özet | Şu soruda aç |
+|-------|------:|------|--------------|
+| `README.md` | 105 | **ADR indeksi (0001–0009) + pratiğin kuralları:** ne zaman ADR yazılır, numaralandırma, durum değerleri, değiştirme yordamı, zorunlu bölümler, kanıt disiplini | ADR yazmadan / ararken önce burası |
+| `ADR-0000-sablon.md` | 51 | Boş ADR şablonu — yeni ADR bu dosya kopyalanarak açılır | Yeni ADR açarken |
+| `ADR-0001-erp-baglanti-mimarisi.md` | 133 | ERP bağlantı mimarisi: MVP'de doğrudan MSSQL okuma, geri yazımın doğrudan tabloya yapılmaması, resmî API'lerin ertelenmesi, salt-okunur hesap. 2026-08-17'de `apps/backend/docs/erp-integration/adr-baglanti-mimarisi.md`'den taşındı | ERP bağlantı yaklaşımı sorgulanınca |
 
 ## docs/setup
 
@@ -165,7 +185,6 @@ güncel davranışın kaynağı değildir.
 | `environment-variables.md` | 165 | `Section__SubSection__Key` naming standardı ve neden `__`, yapılandırma öncelik sırası, ortam bazlı secret kaynakları, User Secrets kurulumu, prod bağlantı akışı, secret policy, zorunlu/opsiyonel değişken tablosu | Env var eklerken |
 | `database-migrations.md` | 248 | `dotnet-ef` kurulumu, connection string kaynakları, migration üretme/uygulama/geri alma, isimlendirme, ortam bazlı akış, SQL script üretme, 6 yaygın hata | Migration işleri |
 | `user-story-tracker.md` | 541 | 17 story'nin alt iş bazında durum takibi (✅/🟡/⬜) + kanıt dosya listesi. Açık kalanlar: Story 8 "validation hatalarını envelope'a bağla", Story 9 correlation id + exception testleri | Backend ilerleme durumu |
-| `erp-integration/adr-baglanti-mimarisi.md` | 133 | ERP bağlantı mimarisi kararı (ADR) | ERP bağlantı yaklaşımı sorgulanınca |
 | `erp-integration/erp-export-kontrati.md` | 91 | ERP'ye dışa aktarım sözleşmesi (alanlar, format) | ERP export uçlarında |
 | `erp-integration/logo-schema-referans.md` | 455 | Logo ERP şema referansı (tablo/kolon envanteri) | Logo alan eşlemesi yaparken |
 | `erp-integration/data-model.md` | 102 | `Integration`, `SyncLog`, `ErpUserMapping` entity'leri + `Item`/`Vehicle`'a eklenecek alanlar | ERP entegrasyonu |
@@ -195,5 +214,5 @@ güncel davranışın kaynağı değildir.
 | ~~Branch konvansiyonu entegrasyon dalı modelini tarif ediyor, `known-issues.md` #6 bu modelin ayrışma ürettiğini kayıt altına almış~~ | ✅ Çözüldü — `branching.md` üç dallı terfi modelini tarif ediyor, `known-issues.md` #6'nın "Uygulanan çözüm" bölümü `Terfi Zinciri Kontrolü` job'unu ve terfi PR'larında squash yasağını belgeliyor; çelişki kalmadı |
 | ~~Algoritma tasarım dokümanları sadece `feature/3D_Packing_Algorithm` branch'inde~~ | ✅ Çözüldü — 1.160 satır PR #888 ile kurtarıldı; 2026-08-08'de `docs/archive/algoritma-tasarimi/` altına taşındı |
 | ~~`SUMMARY.md` (GitBook ToC) backend ve ERP dokümanlarını hiç listelemiyor~~ | ✅ Çözüldü (2026-08-08) — SUMMARY 7 bölümle yeniden üretildi; backend, devops ve arşiv dokümanları dahil edildi |
-| `SUMMARY.md` indeksi 47 dosyanın 36'sını kapsıyor | 🟡 **Açık, düşük öncelik** (ölçüm 2026-08-16: `grep -oE '\]\([^)]+\)' SUMMARY.md \| wc -l` → 36 bağlantı; `git ls-files '*.md'` → 47). `docs/` altındaki **24 dosyanın tamamı artık ToC'de** — `KOORDINAT-UYUM-RAPORU.md` bu turda eklendi. Kapsam dışı kalan 10 dosya: 4 `CLAUDE.md` (AI asistan talimatı), `pull_request_template.md`, `apps/frontend/e2e/README.md`, `apps/algorithm-test-ui/README.md`, 3 ERP dokümanı (`adr-baglanti-mimarisi`, `erp-export-kontrati`, `logo-schema-referans`). İlk yedisi bilinçli dışlama; 3 ERP dokümanı **eklenmeli** |
+| `SUMMARY.md` indeksi 47 dosyanın 36'sını kapsıyor | 🟡 **Açık, düşük öncelik** (ölçüm 2026-08-16: `grep -oE '\]\([^)]+\)' SUMMARY.md \| wc -l` → 36 bağlantı; `git ls-files '*.md'` → 47). `docs/` altındaki **24 dosyanın tamamı artık ToC'de** — `KOORDINAT-UYUM-RAPORU.md` bu turda eklendi. Kapsam dışı kalan 10 dosya: 4 `CLAUDE.md` (AI asistan talimatı), `pull_request_template.md`, `apps/frontend/e2e/README.md`, `apps/algorithm-test-ui/README.md`, 3 ERP dokümanı (`adr-baglanti-mimarisi`, `erp-export-kontrati`, `logo-schema-referans`). İlk yedisi bilinçli dışlama; 3 ERP dokümanı **eklenmeli**. **2026-08-17 güncellemesi:** üçünden biri kapandı — `adr-baglanti-mimarisi` `docs/adr/ADR-0001-erp-baglanti-mimarisi.md` olarak taşındı ve `SUMMARY.md`'ye eklendi; kalan 2 (`erp-export-kontrati`, `logo-schema-referans`) hâlâ açık |
 | ~~PR şablonunda ekran görüntüsü alanı yok~~ | ✅ Çözüldü (2026-08-08) — `pull_request_template.md`'ye "Ekran Görüntüleri" bölümü eklendi (UI PR'larında zorunlu) |

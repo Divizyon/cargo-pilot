@@ -14,6 +14,13 @@
 * [Commit Kuralları](docs/conventions/commits.md)
 * [Koordinat Sistemi Standardı](docs/COORDINATE_STANDARD.md)
 * [Koordinat Uyum Raporu](docs/KOORDINAT-UYUM-RAPORU.md)
+* [ADR Kuralı](docs/conventions/adr.md)
+
+## 📐 Mimari Kararlar (ADR)
+
+* [ADR İndeksi ve Kuralları](docs/adr/README.md)
+* [ADR Şablonu](docs/adr/ADR-0000-sablon.md)
+* [ADR-0001 — ERP Bağlantı Mimarisi](docs/adr/ADR-0001-erp-baglanti-mimarisi.md)
 
 ## 🛠️ DevOps
 
