@@ -316,7 +316,8 @@ internal static class WallBuilderPlacement
             if (totalWeight + item.Weight > input.VehicleMaxWeight) break;
 
             if (PlacementValidator.HasOverlap(placements, x, top, z, width, height, length)) break;
-            if (!PlacementValidator.HasSupport(placements, x, top, z, width, length)) break;
+            if (!PlacementValidator.HasSupport(placements, x, top, z, width, length,
+                PlacementValidator.ThresholdOf(input))) break;
             if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
                 input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) break;
             if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) break;
@@ -486,6 +487,7 @@ internal static class WallBuilderPlacement
         decimal depthPreference)
     {
         var item = sequenced.Item;
+        var supportThreshold = PlacementValidator.ThresholdOf(input);
         var orientations = PlacementValidator.GetOrientations(item);
 
         // Yonelim tercihi ARAMAYA acilmayi denedi ve kazandirmadi: 300 senaryoda
@@ -528,7 +530,7 @@ internal static class WallBuilderPlacement
                 if (z + length > input.VehicleLength) continue;
 
                 if (PlacementValidator.HasOverlap(placements, x, y, z, width, height, length)) continue;
-                if (!PlacementValidator.HasSupport(placements, x, y, z, width, length)) continue;
+                if (!PlacementValidator.HasSupport(placements, x, y, z, width, length, supportThreshold)) continue;
                 if (PlacementValidator.ViolatesStackability(placements, x, y, z, width, length,
                     input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                 if (PlacementValidator.ViolatesStackCount(placements, x, y, z, width, length)) continue;

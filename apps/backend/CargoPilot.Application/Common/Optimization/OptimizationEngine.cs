@@ -32,6 +32,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
         // Modül bayrakları sıcak döngüden önce bir kez çözülür ve yerel
         // değişkenlere okunur, böylece aday taramasında kayıt alanı okunmaz.
         var modules = OptimizationModules.Resolve(input);
+        var supportThreshold = PlacementValidator.ThresholdOf(input);
         var useVolume = modules.UseVolume;
         var useWeightBalance = modules.UseWeightBalance;
 
@@ -143,7 +144,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                     if (ez + length > input.VehicleLength) continue;
 
                     if (PlacementValidator.HasOverlap(placements, ex, ey, ez, width, height, length)) continue;
-                    if (!PlacementValidator.HasSupport(placements, ex, ey, ez, width, length))   continue;
+                    if (!PlacementValidator.HasSupport(placements, ex, ey, ez, width, length, supportThreshold)) continue;
                     if (PlacementValidator.ViolatesStackability(placements, ex, ey, ez, width, length,
                         input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                     if (PlacementValidator.ViolatesStackCount(placements, ex, ey, ez, width, length)) continue;

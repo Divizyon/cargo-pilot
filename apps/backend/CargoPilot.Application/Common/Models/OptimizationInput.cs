@@ -1,4 +1,4 @@
-using CargoPilot.Domain.Enums;
+﻿using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Models;
 
@@ -32,6 +32,11 @@ namespace CargoPilot.Application.Common.Models;
 /// <see cref="Models.SearchBudget.Default"/> gecerlidir. Static sequencer'da
 /// kullanilmaz.
 /// </param>
+/// <param name="SupportThreshold">
+/// Asgari zemin destek orani. Verilmezse <c>0.80</c> gecerlidir — bugunku
+/// davranis. Alan bir POLITIKA degeridir, fizik kanunu degil (DR-16); bugun
+/// yalnizca olcum duzenegi doldurur, uretim yollari doldurmaz.
+/// </param>
 /// <param name="Seed">
 /// Aramanin rastgelelik tohumu. Ayni tohum + ayni girdi bit birebir ayni plani
 /// uretir (R-C02/DR-06). Static sequencer'da kullanilmaz.
@@ -50,7 +55,8 @@ public sealed record OptimizationInput(
     PlacementStrategy Strategy = PlacementStrategy.Greedy,
     SequencerKind Sequencer = SequencerKind.Static,
     int Seed = 0,
-    SearchBudget? SearchBudget = null)
+    SearchBudget? SearchBudget = null,
+    decimal? SupportThreshold = null)
 {
     /// <summary>
     /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.

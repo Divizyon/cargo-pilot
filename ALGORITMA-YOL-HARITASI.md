@@ -97,10 +97,12 @@ belirleyecek.
 
 ### Bekleyen politika kararı
 
-**Destek eşiği (Öneri 6).** %80 → %75 ya da yüzde tabanlı kuraldan **statik mekanik denge**
-kriterine geçiş. Ramos vd. (2016) bunun tam destekten daha iyi hacim verdiğini ve stabiliteyi yine
-garanti ettiğini gösteriyor. Teknik olarak kapıdan-içeri yüklemeyle uyumlu. **Müşteri onayı
-gerektirir** — tek başına en büyük hamle olabilir.
+~~**Destek eşiği (Öneri 6).**~~ **ÖLÇÜLDÜ VE KAPATILDI (`DR-16`).** %80'den %60'a kadar iki
+puanlık adımlarla tarandı: gerçekçi yükte (BR1-BR7) kazanç duvar örücüde yalnızca **+0,75** puan,
+karşılığında en zayıf kutunun desteği %87 → %72 ve azami taşma 11 → 24 cm. "Tek başına en büyük
+hamle" beklentisi yanlış çıktı; o beklenti giyotin korpusundan geliyordu ve orada kazanç +3,27,
+çünkü o korpusta her kutu benzersiz. Eşik **%80'de kalıyor**; düzenek yerinde, karar istenirse
+`--support` ile yeniden ölçülür.
 
 ### Bekleyen teknik borç
 

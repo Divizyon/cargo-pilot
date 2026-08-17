@@ -803,3 +803,65 @@ oluşmaz ve bir sonraki gerileme geç fark edilir.
 `engine-bench.yml`: motor dosyaları değiştiğinde push/PR'da, ayrıca her gece 03:00 UTC
 (`algorithm-suite` 02:00'de koştuğu için çakışmıyor). Release yapılandırmasında doğrulandı,
 sayılar Debug ile birebir aynı.
+
+---
+
+## DR-16 · Destek eşiği taraması — **eşik sanıldığı kadar değerli değil**
+
+Eşik `OptimizationInput.SupportThreshold` ile ölçülebilir hale getirildi. **Üretim varsayılanı
+%80'de durur**; alanı bugün yalnızca ölçüm düzeneği dolduruyor, hiçbir üretim çağrı yolu
+doldurmuyor. Doğrulandı: eşik verilmediğinde iki strateji de referans değerlerini birebir veriyor
+ve doluluk kapısı geçiyor.
+
+### Kazanç (BR1-BR7, 700 örnek, static)
+
+| Eşik | Duvar örücü | Greedy |
+|---|---|---|
+| **%80 (bugün)** | **%79,86** | **%75,23** |
+| %78 | %79,99 | %75,52 |
+| %76 | %80,12 | %75,71 |
+| %74 | %80,18 | %75,96 |
+| %72 | %80,26 | %76,19 |
+| %70 | %80,34 | %76,40 |
+| %68 | %80,44 | %76,56 |
+| %66 | %80,45 | %76,75 |
+| %64 | %80,49 | %76,86 |
+| %62 | %80,55 | %77,05 |
+| %60 | %80,61 | %77,20 |
+
+Yirmi puanlık eşik indirimi duvar örücüde **+0,75**, greedy'de **+1,97** puan getiriyor. İki puanlık
+adım başına duvar örücüde ~0,08 puan.
+
+### Bedel (aynı korpus, üretilen planın gerçek destek dağılımı)
+
+| Eşik | Ortalama destek | En düşük destek | %80 altı kutu | %70 altı kutu | Azami taşma |
+|---|---|---|---|---|---|
+| %80 | %99,2 | %86,9 | %0,0 | %0,0 | 11 cm |
+| %70 | %98,6 | %79,3 | %3,1 | %0,0 | 18 cm |
+| %60 | %98,0 | %72,1 | %4,8 | %2,4 | **24 cm** |
+
+### Bulgu: eski teşhis korpus yüzünden abartılıydı
+
+"Yerleşemeyen kutuların %72,7'si sığıyor ama yalnızca %3,2'si destek buluyor" ölçümü **giyotin
+korpusundan** geliyordu. Aynı taramayı orada koşunca fark açık:
+
+| Eşik | Giyotin korpusu | BR1-BR7 |
+|---|---|---|
+| %80 | %76,29 | %79,86 |
+| %70 | %78,38 | %80,34 |
+| %60 | %79,56 | %80,61 |
+| **%80 → %60 kazancı** | **+3,27** | **+0,75** |
+
+Giyotin korpusunda eşik gerçekten bir tıkaç; **gerçekçi yükte değil**. Sebep, o korpusta her
+kutunun benzersiz olması (`DR-19`): tekrarsız kutular birbirinin üzerine tam oturamıyor ve her
+yerleşim eşiğe dayanıyor. Gerçek yükte aynı ölçüden çok sayıda kutu var, bunlar birbirinin üstüne
+zaten tam oturuyor — ortalama destek %99,2, yani plan eşiğe **nadiren** dayanıyor.
+
+### Sonuç
+
+**Eşik %80'de kalmalı.** Yirmi puanlık güvenlik tavizi gerçekçi yükte 0,75 puan doluluk getiriyor;
+karşılığında en zayıf kutunun desteği %87'den %72'ye, azami taşma 11 cm'den 24 cm'ye çıkıyor.
+Bu, iyi bir takas değil.
+
+`DR-16` artık "müşteri onayı bekliyor" değil: **ölçüldü ve kapatıldı.** Karar isterse yeniden
+açılabilir — düzenek yerinde, `--support` ile herhangi bir değer dakikalar içinde ölçülür.

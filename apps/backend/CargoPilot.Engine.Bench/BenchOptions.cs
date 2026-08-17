@@ -26,7 +26,8 @@ public sealed record BenchOptions(
     int MaxScenarios,
     int BrSet,
     BrCorpus.OrientationMode BrOrientation,
-    string? BaselinePath)
+    string? BaselinePath,
+    decimal? SupportThreshold)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -57,6 +58,7 @@ public sealed record BenchOptions(
         var brSet = 0;
         var brOrientation = BrCorpus.OrientationMode.Strict;
         string? baselinePath = null;
+        decimal? supportThreshold = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -126,6 +128,9 @@ public sealed record BenchOptions(
                 case "--baseline":
                     baselinePath = value;
                     break;
+                case "--support":
+                    supportThreshold = ParseDecimal(value, arg);
+                    break;
                 case "--help":
                 case "-h":
                     break;
@@ -141,7 +146,8 @@ public sealed record BenchOptions(
             Math.Max(0, maxScenarios),
             Math.Clamp(brSet, 0, 7),
             brOrientation,
-            baselinePath);
+            baselinePath,
+            supportThreshold);
     }
 
     public static int PrintUsage()
@@ -174,6 +180,7 @@ public sealed record BenchOptions(
               --max-scenarios N soak kipinde tam olarak N senaryo, br kipinde kume basina N ornek
               --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
               --orientation S  br kipinde strict | free (varsayilan strict, alt sinir)
+              --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
               --baseline DOSYA br kipinde referansla kiyasla; gerileme varsa hata koduyla cik
               --report DOSYA   br kipinde JSON rapor yolu (soak kipinde de gecerli)
             """);
@@ -214,6 +221,11 @@ public sealed record BenchOptions(
             "wallbuilder" or "wall-builder" or "wall" => PlacementStrategy.WallBuilder,
             _ => throw new ArgumentException($"{flag} 'greedy' ya da 'wallbuilder' bekliyor.", nameof(flag)),
         };
+
+    private static decimal ParseDecimal(string? value, string flag)
+        => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : throw new ArgumentException($"{flag} ondalik sayi bekliyor.", nameof(flag));
 
     private static int ParseInt(string? value, string flag)
         => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)

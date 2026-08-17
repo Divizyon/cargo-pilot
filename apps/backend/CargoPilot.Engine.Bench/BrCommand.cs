@@ -35,6 +35,7 @@ public static class BrCommand
         var waste = new List<WasteDiagnostics.Breakdown>();
         var spaces = new List<SpaceDiagnostics.Spaces>();
         var shape = new List<CorpusDiagnostics.Shape>();
+        var support = new List<SupportDiagnostics.Distribution>();
 
         foreach (var set in sets)
         {
@@ -52,6 +53,7 @@ public static class BrCommand
                     Strategy = options.Strategy,
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, 15),
+                    SupportThreshold = options.SupportThreshold,
                 };
 
                 var started = Stopwatch.GetTimestamp();
@@ -65,14 +67,16 @@ public static class BrCommand
                 waste.Add(WasteDiagnostics.Analyze(input, result));
                 spaces.Add(SpaceDiagnostics.Analyze(input, result));
                 shape.Add(CorpusDiagnostics.Analyze(input));
+                support.Add(SupportDiagnostics.Analyze(input, result));
             }
 
             if (options.Verbose)
             {
-                WriteDiagnostics(set, waste, spaces, shape);
+                WriteDiagnostics(set, waste, spaces, shape, support);
                 waste.Clear();
                 spaces.Clear();
                 shape.Clear();
+                support.Clear();
             }
 
             all.AddRange(fills);
@@ -113,7 +117,8 @@ public static class BrCommand
         int set,
         List<WasteDiagnostics.Breakdown> waste,
         List<SpaceDiagnostics.Spaces> spaces,
-        List<CorpusDiagnostics.Shape> shape)
+        List<CorpusDiagnostics.Shape> shape,
+        List<SupportDiagnostics.Distribution> support)
     {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"      BR{set} teshis · olu hava %{waste.Average(w => w.DeadAirPercent):F1}" +
@@ -126,6 +131,12 @@ public static class BrCommand
             $" · sigan yerlesemeyen %{spaces.Average(s => s.UnplacedFittingGeometricallyPercent):F1}" +
             $" · sigan+destekli %{spaces.Average(s => s.UnplacedFittingAndSupportedPercent):F1}" +
             $" · ortalama adet {shape.Average(s => s.MeanQuantity):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           destek ort %{support.Average(s => s.MeanRatio) * 100d:F1}" +
+            $" · en dusuk %{support.Average(s => s.MinRatio) * 100d:F1}" +
+            $" · %80 alti {support.Average(s => s.BelowTodayPercent):F1}%" +
+            $" · %70 alti {support.Average(s => s.BelowLowPercent):F1}%" +
+            $" · azami tasma {support.Average(s => s.MaxOverhangCm):F0} cm"));
     }
 
     private static decimal Mean(List<decimal> values)

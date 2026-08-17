@@ -61,10 +61,32 @@ internal static class PlacementValidator
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal length)
-        => SupportRatio(placed, x, y, z, width, length) >= SupportThreshold;
+        => HasSupport(placed, x, y, z, width, length, SupportThreshold);
+
+    /// <summary>
+    /// Ayni soru, esigi disaridan verilerek. Esik bir FIZIK KANUNU DEGIL, bir
+    /// POLITIKA (ALGORITMA-RULEBOOK.md DR-16): kimse olcup "%80 olmali" demedi.
+    /// Olcum bu kuralin en buyuk tikac oldugunu gosterdi — yerlesemeyen
+    /// kutularin %72,7'si bir bosluga sigiyor ama yalnizca %3,2'si orada destek
+    /// buluyor.
+    ///
+    /// Parametrelesme, esigi DEGISTIRMEK icin degil OLCMEK icin: uretim
+    /// varsayilani <see cref="SupportThreshold"/>'da durur ve hicbir cagri yolu
+    /// bugunku davranistan sapmaz. Musteri karari sayi olmadan verilemez.
+    /// </summary>
+    internal static bool HasSupport(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal length,
+        decimal threshold)
+        => SupportRatio(placed, x, y, z, width, length) >= threshold;
 
     /// <summary>Asgari destek orani. Esik burada tek yerde durur.</summary>
     internal const decimal SupportThreshold = 0.80m;
+
+    /// <summary>Girdi bir esik tasimiyorsa yururlukteki deger.</summary>
+    internal static decimal ThresholdOf(OptimizationInput input)
+        => input?.SupportThreshold ?? SupportThreshold;
 
     /// <summary>
     /// Aday pozisyonun taban alaninin ne kadari destekli. Zeminde ve sifir taban
