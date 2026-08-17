@@ -121,22 +121,32 @@ internal static class WallBuilderPlacement
             PlacedBox? best = null;
             var blockedByFragility = false;
 
+            // Blok, taban kutunun girdigi duvar bandini asamaz. Yeni acilan
+            // duvarda band derinligi zaten ilk kutunun z olcusudur, yani blok
+            // orada tek sira kalir; son care taramasinda band yoktur.
+            decimal? blockZLimit = null;
+
             // Kutunun en kucuk kenari duvar derinliginden buyukse o duvar hicbir
             // yonelimde alamaz. On-eleme olmadan her duvar icin tum defter
             // taraniyordu: 500 kutuluk senaryoda maliyetin buyuk kismi buydu.
             var itemMinSide = Math.Min(item.Width, Math.Min(item.Height, item.Length));
+
+            // Aday secimi tek kutuya degil BLOGA bakar: bu urunden kac birim
+            // kaldigini bilmeden "bu bosluk bir blok alir mi" sorusu sorulamaz.
+            var remaining = RemainingUnits(instances, consumed, index, item.ItemId);
 
             foreach (var wall in walls)
             {
                 if (wall.End - wall.Start < itemMinSide) continue;
 
                 var attempt = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    wall.Start, wall.End, zoneStart, zoneEnd);
+                    wall.Start, wall.End, zoneStart, zoneEnd, remaining);
 
                 blockedByFragility |= attempt.BlockedByFragility;
                 if (attempt.Box is null) continue;
 
                 best = attempt.Box;
+                blockZLimit = wall.End;
                 break;
             }
 
@@ -146,13 +156,14 @@ internal static class WallBuilderPlacement
             {
                 var frontier = walls.Count > 0 ? walls[^1].End : 0m;
                 var opened = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    frontier, null, zoneStart, zoneEnd);
+                    frontier, null, zoneStart, zoneEnd, remaining);
 
                 blockedByFragility |= opened.BlockedByFragility;
 
                 if (opened.Box is not null)
                 {
                     best = opened.Box;
+                    blockZLimit = best.Z + best.Length;
                     walls.Add(new Wall(best.Z, best.Z + best.Length));
                 }
             }
@@ -168,7 +179,7 @@ internal static class WallBuilderPlacement
             if (best is null)
             {
                 var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    0m, null, zoneStart, zoneEnd);
+                    0m, null, zoneStart, zoneEnd, remaining);
 
                 blockedByFragility |= anywhere.BlockedByFragility;
                 best = anywhere.Box;
@@ -189,8 +200,8 @@ internal static class WallBuilderPlacement
             totalWeight += best.Weight;
             ledger.Place(best.X, best.Y, best.Z, best.Width, best.Height, best.Length, minSide);
 
-            RaiseColumn(input, ledger, placements, instances, consumed, index + 1,
-                best, minSide, ref totalWeight);
+            RaiseBlock(input, ledger, placements, instances, consumed, index + 1,
+                best, minSide, fillFromMaxX, blockZLimit ?? input.VehicleLength, ref totalWeight);
 
             // Yerlesim durumu degisti: onceki basarisizliklar artik gecerli degil.
             failedSincePlacement.Clear();
@@ -201,25 +212,25 @@ internal static class WallBuilderPlacement
     }
 
     /// <summary>
-    /// Kule insasi (Gehring &amp; Bortfeldt 1997): yeni yerlesen kutunun uzerine,
-    /// ayni urunun kalan birimleri ayni yonelimle dogrudan yigilir.
+    /// Blok insasi (Eley 2002), kule insasinin (Gehring &amp; Bortfeldt 1997)
+    /// genellestirilmis hali: yeni yerlesen kutunun cevresine, ayni urunun kalan
+    /// birimlerinden bir prizma orulur.
     ///
-    /// Gerekcesi olculmustur. Yigin ust yuzeyinin engebesi (56,1 cm) kayip
-    /// hacmin durdugu yer, ama engebe yerlestirme SKORUYLA dusmuyor: alti
-    /// varyant denendi, hicbiri 56,1'in altina inmedi (`DR-18`). Skor yalnizca
-    /// defterin sundugu adaylar arasindan secebiliyor ve o adaylarin ust yuzu
-    /// kutunun kendi yuksekligiyle belirli. Yuzeyi duzlestirmek "hangi kutular
-    /// yan yana gelsin" karari, yani GRUPLAMA.
+    /// Buyume x ve y'de serbesttir; z'de ise DUVAR BANDIYLA sinirlidir. Bandi
+    /// asmak bir sonraki duvarin icine tasmak olurdu ve duvar disiplini kalirdi
+    /// (R-C08). Yeni acilan duvarda bandin derinligi zaten ilk kutunun z olcusu
+    /// oldugu icin blok orada tek sira kalir. Sonuc, duvarin yuzunu ayni kutuyla
+    /// oren bir prizma — sahadaki yukleme pratiginin birebir karsiligi.
     ///
-    /// Kule tam olarak bunu yapar: ayni olcudeki kutular tek sutunda toplanir,
-    /// boylece sutunun bitis yuksekligi kutu secimiyle belirlenir.
+    /// Gerekcesi olculmustur. Kule tek sutunla sinirliyken BR1 (uc tip, bol
+    /// tekrar) bizim EN KOTU kumemizdi (%81,26) halbuki literaturde en kolayidir:
+    /// tekrarin en yuksek oldugu yerde en az kazaniyorduk, cunku yerlestirici
+    /// ayni olcudeki kutu coklugunu bir firsat olarak gormuyordu (`DR-21`).
     ///
-    /// Yigma, ilk basarisizlikta durur: ayni urun kimligi ayni olculeri ve ayni
-    /// istif kisitlarini tasir, dolayisiyla bir birim gecemiyorsa sonraki de
-    /// gecemez. Yedi kapinin tamami yine <see cref="PlacementValidator"/>
-    /// uzerinden sorulur; kule kendi destek ya da istif tanimini yazmaz.
+    /// Yedi kapinin tamami yine <see cref="PlacementValidator"/> uzerinden
+    /// sorulur; blok kendi destek ya da istif tanimini yazmaz.
     /// </summary>
-    private static void RaiseColumn(
+    private static void RaiseBlock(
         OptimizationInput input,
         SpaceLedger ledger,
         List<PlacedBox> placements,
@@ -228,25 +239,79 @@ internal static class WallBuilderPlacement
         int from,
         PlacedBox baseBox,
         decimal minSide,
+        bool fillFromMaxX,
+        decimal zLimit,
         ref decimal totalWeight)
     {
-        var top = baseBox.Y + baseBox.Height;
+        // Aynalanmis modda blok sola buyur; aksi halde ayni plan aynalandiginda
+        // blok duvardan tasardi.
+        var reach = fillFromMaxX ? baseBox.X + baseBox.Width : input.VehicleWidth - baseBox.X;
+        var columns = (int)(reach / baseBox.Width);
+        var rows = (int)((zLimit - baseBox.Z) / baseBox.Length);
 
-        for (var j = from; j < instances.Count; j++)
+        for (var k = 0; k < rows; k++)
         {
-            if (consumed[j]) continue;
+            var z = baseBox.Z + k * baseBox.Length;
+            var filled = 0;
 
-            var item = instances[j].Item;
-            if (item.ItemId != baseBox.ItemId) continue;
+            for (var i = 0; i < columns; i++)
+            {
+                var x = fillFromMaxX
+                    ? baseBox.X - i * baseBox.Width
+                    : baseBox.X + i * baseBox.Width;
 
-            if (top + baseBox.Height > input.VehicleHeight) break;
+                // Taban kutu zaten yerlesik: kendi sutunu onun USTUNDEN devam eder.
+                var startY = k == 0 && i == 0 ? baseBox.Y + baseBox.Height : baseBox.Y;
+
+                var placed = FillColumn(input, ledger, placements, instances, consumed, from,
+                    baseBox, x, z, startY, minSide, ref totalWeight);
+
+                filled += placed;
+                if (placed == 0) break;
+            }
+
+            if (k > 0 && filled == 0) break;
+        }
+    }
+
+    /// <summary>
+    /// Verilen ayakta, verilen yukseklikten baslayarak ayni urunun birimlerini
+    /// ust uste dizer ve dizilen sayiyi dondurur.
+    ///
+    /// Ilk basarisizlikta durur: ayni urun kimligi ayni olculeri ve ayni istif
+    /// kisitlarini tasir, dolayisiyla bir birim gecemiyorsa ayni noktada sonraki
+    /// de gecemez.
+    /// </summary>
+    private static int FillColumn(
+        OptimizationInput input,
+        SpaceLedger ledger,
+        List<PlacedBox> placements,
+        IReadOnlyList<SequencedItem> instances,
+        bool[] consumed,
+        int from,
+        PlacedBox baseBox,
+        decimal x,
+        decimal z,
+        decimal startY,
+        decimal minSide,
+        ref decimal totalWeight)
+    {
+        var width = baseBox.Width;
+        var height = baseBox.Height;
+        var length = baseBox.Length;
+
+        var top = startY;
+        var count = 0;
+
+        while (true)
+        {
+            var next = NextUnit(instances, consumed, from, baseBox.ItemId);
+            if (next < 0) break;
+
+            var item = instances[next].Item;
+
+            if (top + height > input.VehicleHeight) break;
             if (totalWeight + item.Weight > input.VehicleMaxWeight) break;
-
-            var x = baseBox.X;
-            var z = baseBox.Z;
-            var width = baseBox.Width;
-            var height = baseBox.Height;
-            var length = baseBox.Length;
 
             if (PlacementValidator.HasOverlap(placements, x, top, z, width, height, length)) break;
             if (!PlacementValidator.HasSupport(placements, x, top, z, width, length)) break;
@@ -256,15 +321,81 @@ internal static class WallBuilderPlacement
             if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight)) break;
             if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length)) break;
 
-            var box = Create(item, x, top, z, width, height, length, baseBox.Rotation);
-
-            placements.Add(box);
+            placements.Add(Create(item, x, top, z, width, height, length, baseBox.Rotation));
             totalWeight += item.Weight;
             ledger.Place(x, top, z, width, height, length, minSide);
-            consumed[j] = true;
+            consumed[next] = true;
 
             top += height;
+            count++;
         }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Bosluga sigacak BLOGUN kac kutu aldigi. Cok olan kazanir; esitlikte eski
+    /// tek-kutu olcutu (taban alani artigi) karar verir.
+    ///
+    /// Neden gerekli: blogu buyutmek tek basina hicbir sey degistirmedi (x, z ve
+    /// x+z varyantlari, ucu de %79,03 → %79,04). Sebebi, ana dongunun zaten ayni
+    /// sonucu uretmesi: ayni urunun sonraki birimi bir sonraki turda o komsu
+    /// bosluga nasil olsa gidiyordu. Degismeyen sey aday SECIMIYDI — skor "bu
+    /// bosluga BIR kutu ne kadar siki oturur" diye soruyor ve dar bosluklari
+    /// odullendiriyordu, oysa blok icin dogru soru "bu bosluk kac kutu alir".
+    ///
+    /// Olcut HACIM degil ADET olmali. Uc bicim denendi: blok artigini kucultmek
+    /// %79,60, blok hacmini buyutmek %79,84, blok adedini buyutmek %79,91. Ama
+    /// asil fark giyotin korpusunda gorundu: hacim bicimi orada %76,30 → %75,41
+    /// dusuruyordu, cunku o korpusta her kutu benzersiz oldugu icin blok daima
+    /// tek kutudur ve olcut sessizce "en buyuk kutuyu sec"e donusuyordu. Adet
+    /// biciminde ise tek kutu durumunda tum adaylar esitlenir ve karar eski
+    /// olcute, yani sigdirmaya birakilir.
+    /// </summary>
+    private static int BlockCount(
+        FreeSpace space,
+        int remaining,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal height, decimal length,
+        decimal zLimit,
+        bool fillFromMaxX)
+    {
+        // Blok, kutunun oturdugu koseden buyur; bosluğun tamami degil o koseden
+        // itibaren kalan kisim sayilir.
+        var reachX = fillFromMaxX ? x + width - space.X : space.MaxX - x;
+        var reachZ = Math.Min(space.MaxZ, zLimit) - z;
+
+        var nx = (int)(reachX / width);
+        var ny = (int)((space.MaxY - y) / height);
+        var nz = (int)(reachZ / length);
+
+        return Math.Min(remaining, Math.Max(1, nx) * Math.Max(1, ny) * Math.Max(1, nz));
+    }
+
+    /// <summary>Bu urunden henuz yerlesmemis birim sayisi.</summary>
+    private static int RemainingUnits(
+        IReadOnlyList<SequencedItem> instances, bool[] consumed, int from, Guid itemId)
+    {
+        var count = 0;
+
+        for (var j = from; j < instances.Count; j++)
+        {
+            if (!consumed[j] && instances[j].Item.ItemId == itemId) count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>Ayni urunden henuz yerlesmemis ilk birimin sirasi; yoksa -1.</summary>
+    private static int NextUnit(
+        IReadOnlyList<SequencedItem> instances, bool[] consumed, int from, Guid itemId)
+    {
+        for (var j = from; j < instances.Count; j++)
+        {
+            if (!consumed[j] && instances[j].Item.ItemId == itemId) return j;
+        }
+
+        return -1;
     }
 
     private readonly record struct Attempt(PlacedBox? Box, bool BlockedByFragility);
@@ -294,6 +425,7 @@ internal static class WallBuilderPlacement
     /// </summary>
     private readonly record struct OrientationFit(
         decimal Y,
+        int NegativeBlockCount,
         decimal Residual,
         decimal Flatness,
         decimal DepthWaste,
@@ -304,6 +436,9 @@ internal static class WallBuilderPlacement
         {
             var byY = Y.CompareTo(other.Y);
             if (byY != 0) return byY < 0;
+
+            var byBlock = NegativeBlockCount.CompareTo(other.NegativeBlockCount);
+            if (byBlock != 0) return byBlock < 0;
 
             var byResidual = Residual.CompareTo(other.Residual);
             if (byResidual != 0) return byResidual < 0;
@@ -333,7 +468,8 @@ internal static class WallBuilderPlacement
         decimal zFloor,
         decimal? zLimit,
         decimal? zoneStart,
-        decimal? zoneEnd)
+        decimal? zoneEnd,
+        int remaining)
     {
         var item = sequenced.Item;
         var orientations = PlacementValidator.GetOrientations(item);
@@ -400,9 +536,11 @@ internal static class WallBuilderPlacement
                 // havada. Kutu bosluğun ayak izini tam kaplarsa ustunde TAM
                 // PLATFORM birakir; yarim kaplarsa cikinti uretir ve o cikinti
                 // bir daha kullanilamaz.
-                var residual = space.Width * space.Length - width * length;
+                var block = BlockCount(space, remaining, x, y, z, width, height, length,
+                    zLimit ?? input.VehicleLength, fillFromMaxX);
+
                 var candidate = new OrientationFit(
-                    y, residual,
+                    y, -block, space.Width * space.Length - width * length,
                     TopDeviation(placements, x, y, z, width, height, length),
                     space.MaxZ - (z + length), -(width * length), rotation);
 

@@ -60,7 +60,7 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 | **F3a** · Decoder'ı kromozoma taşı | Kromozom: sıra anahtarları + maximal-space seçim kuralı + düzlük/derinlik ağırlıkları (α'lar) | Arama kazancı +1,5'ten yukarı | Öneri 4 · G&R BRKGA 2012 |
 | **F3b** · GWCA emekli, GRASP devralır | `DR-03` uygulanır; GWCA ve GA referans olarak kodda kalır | Varsayılan sequencer GRASP | DR-03 · 300 senaryo ölçümü |
 | **F4a** · Kule/sütun inşası | Aynı ürünün kalan birimleri yerleşen kutunun üstüne yığılır | **TAMAM** — BR'de %77,00 → **%79,03** (+2,03) ve 2,5 kat hızlı. Giyotin korpusunda +0,07'ydi, yani görünmüyordu | Öneri 2 · Gehring & Bortfeldt 1997 |
-| **F4a′** · Blok inşası ← **şimdi kritik yol** | Aynı kutudan `nx × ny × nz` prizma kurulup duvara tek parça konur | BR1 %81,26 → BR3-BR5 seviyesine (~%84); heterojenlik merdiveninin eğimi literatürdeki yönü almalı | Eley 2002 · `DR-21` |
+| **F4a′** · Blok inşası | Aynı kutudan prizma; asıl değişiklik aday seçiminin blok ADEDİNE bakması | **TAMAM (`DR-22`)** — static %79,03 → %79,86, **GRASP %83,50 → %85,22**, giyotinde regresyon yok. BR1 %81,26 → %83,09 ama merdivenin eğimi hâlâ ters | Eley 2002 · `DR-21` |
 | **F4b** · Dinamik duvar derinliği | Çoklu aday derinlik + sığ ağaç araması | +1-2 puan | Öneri 5 · Pisinger 2002 |
 | **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | KK-06b, KK-07 | Eski F4 |
 

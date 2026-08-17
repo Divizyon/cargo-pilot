@@ -298,6 +298,13 @@ WallE'nin tam skoru (`−α₁·G_var + α₂·G_high + α₃·G_flush − α₄
 **uygulanmadı**: ağırlıklı toplam denendi ve sözlükbilimsel sıranın altında kaldı; α'lar
 F3a'da kromozoma taşınana kadar kalibrasyon borcu açmaya değmiyor.
 
+`R-C09c` **Blok inşası (F4a′).** Yerleşen kutunun çevresine, aynı üründen bir prizma örülür.
+Büyüme `x` ve `y`'de serbest, `z`'de **duvar bandıyla** sınırlıdır (`R-C08`); bandı aşmak sonraki
+duvarın içine taşmak olurdu. Kritik olan büyütme değil **aday seçimidir**: skor "bu boşluğa kaç
+kutu sığar" diye sorar, "bir kutu ne kadar sıkı oturur" diye değil — ölçülen fark budur (büyütme
+tek başına %79,03 → %79,04, ölçüt değişince %79,86; GRASP ile %83,50 → %85,22). Ölçü **adet**tir,
+hacim değil (`DR-22`). Kaynak: Eley 2002 blok inşası; Gehring & Bortfeldt 1997 kule.
+
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
 `R-C11` **Boşluk güncelleme.** Yerleşim sonrası kesişen boşluklar silinir, yerine ≤6 yeni prizmatik boşluk üretilir; kalan kutuların en küçük boyutuna sığmayan boşluk `rejected`; `rejected` boşlukların komşuyla birleştirilmesi (amalgamation) `EnableAmalgamation` bayrağı ile (varsayılan kapalı, ölçülünce açılır).
 `R-C12` **Sert kapılar.** Her aday `PlacementValidator` 7 kapısından geçer (`R-C01`). Wall-Builder kendi "destek" tanımı yazmaz; `%80` kuralı oradadır.
@@ -432,6 +439,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-19** | **Birincil ölçüm artık BR1-BR7; giyotin korpus regresyona indi** (`DR-14` uygulandı) | Korpus değişikliği kararı gizliyordu: Wall-Builder'ın greedy'ye üstünlüğü giyotinde +0,8, BR'de **+3,8** puan. Kule inşası giyotinde +0,07 (ölçülemez), BR'de **+2,03** |
 | **DR-20** | **BR sayısı her zaman iki uçla söylenir: `strict` (alt sınır) ve `free` (üst sınır)** | BR'nin "hangi ölçü dikey durabilir" kısıtını `AllowedRotations` tam karşılamıyor; tiplerin %37'si (`011` düzeni) yaklaşık okunuyor. Hangi ucun ölçüldüğü belirtilmeden sayı literatürle kıyaslanamaz |
 | **DR-21** | **Sıradaki iş blok inşası (Eley 2002)**; kule tek sütunla sınırlı | BR1 (3 tip, bol tekrar) bizim EN KÖTÜ kümemiz (%81,26) hâlbuki literatürde en kolayı. Tekrarın en yüksek olduğu yerde en az kazanıyoruz: yerleştirici aynı ölçüdeki kutu çokluğunu fırsat olarak görmüyor |
+| **DR-22** | **Aday seçimi blok ADEDİNE bakar, blok hacmine değil** (`R-C09c`) | Hacim biçimi BR'de en iyisiydi (%79,84) ama giyotinde %76,30 → %75,41 düşürdü: orada her kutu benzersiz olduğu için blok daima tek kutudur ve ölçüt sessizce "en büyük kutuyu seç"e dönüşüyor. Adet biçiminde tek kutu durumunda adaylar eşitlenir ve karar eski sığdırma ölçütüne kalır — iki korpusta da doğru |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

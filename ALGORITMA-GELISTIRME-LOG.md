@@ -519,3 +519,66 @@ Bizde tersi:
 yerleştirici aynı ölçüdeki kutu çokluğunu hâlâ bir fırsat olarak görmüyor. Kule tek bir sütun
 kuruyor; eksik olan **blok** inşası: aynı kutudan `nx × ny × nz` bir prizma oluşturup duvara tek
 parça olarak koymak (Eley 2002). Sıradaki iş bu.
+
+---
+
+## F4a′ · Blok inşası — **+0,83 static / +1,72 GRASP**
+
+Kule tek sütun örüyordu; blok, aynı üründen `nx × ny × nz` bir prizma örer. Büyüme x ve y'de
+serbest, z'de **duvar bandıyla** sınırlı — bandı aşmak bir sonraki duvarın içine taşmak olurdu
+(`R-C08`). Yedi kapı yine `PlacementValidator`'dan soruluyor.
+
+### Önce yanlış yerde arandı: büyütme tek başına hiçbir şey yapmıyor
+
+| Deneme | BR1-BR7 (static, strict) |
+|---|---|
+| Taban çizgi (yalnız kule) | %79,03 |
+| + yan sütunlar (x) | %79,04 |
+| + z ekseni, duvar bandı sınırlı | %79,04 |
+
+Sıfır. Sebep: ana döngü zaten aynı sonucu üretiyordu — aynı ürünün sonraki birimi bir sonraki
+turda o komşu boşluğa nasıl olsa gidiyordu. Blok, **sırayı** öne alıyor ama **yerleşimi**
+değiştirmiyor.
+
+### Kaldıraç aday seçimiymiş
+
+Skor "bu boşluğa **bir** kutu ne kadar sıkı oturur" diye soruyordu ve dar boşlukları
+ödüllendiriyordu — blok için tam ters ölçüt. Doğru soru: "bu boşluk **kaç** kutu alır".
+
+| Ölçüt biçimi | BR1-BR7 | Giyotin (regresyon) |
+|---|---|---|
+| Taban çizgi (tek kutu, taban alanı artığı) | %79,03 | %76,30 |
+| Blok artığını küçült | %79,60 | — |
+| Blok **hacmini** büyüt | %79,84 | **%75,41** |
+| Blok hacmi + artık eşlik bozucu | %79,91 | — |
+| **Blok ADEDİNİ büyüt, eşitlikte eski ölçüt** | **%79,86** | **%76,29** |
+
+Hacim biçimi BR'de en iyisiydi ama giyotinde **−0,89** getiriyordu. Sebep: orada her kutu
+benzersiz olduğu için blok daima tek kutudur ve ölçüt sessizce "en büyük kutuyu seç"e dönüşüyordu.
+**Adet** biçiminde tek kutu durumunda tüm adaylar eşitlenir ve karar eski ölçüte, yani sığdırmaya
+kalır — iki korpusta da doğru davranış. Seçilen budur.
+
+### GRASP ile bileşik etki
+
+| | Kule (önceki) | Kule + blok ölçütü |
+|---|---|---|
+| BR1-BR7 (25 örnek/küme) | %83,50 | **%85,22** |
+| BR1 | %81,26 | **%83,09** |
+| BR7 | %83,33 | %84,69 |
+
+Static'te +0,83 olan kazanç aramayla **+1,72**'ye çıkıyor: blok ölçütü aramaya daha iyi bir
+başlangıç noktası veriyor.
+
+### Güncel tablo (BR1-BR7, strict alt sınır)
+
+| Yapılandırma | Doluluk |
+|---|---|
+| Greedy (bugünkü üretim motoru) | %75,23 |
+| Wall-Builder, kule yok | %77,00 |
+| Wall-Builder + kule | %79,03 |
+| Wall-Builder + kule + blok ölçütü | %79,86 |
+| **Wall-Builder + GRASP + blok** | **%85,22** |
+| Literatürün en iyileri | ~%92-93 |
+
+Heterojenlik merdiveninin eğimi hâlâ ters: BR1 (%83,09) bizim en kötü kümemiz, literatürde ise en
+kolayı. Tekrarı artık kullanıyoruz ama yeterince değil.
