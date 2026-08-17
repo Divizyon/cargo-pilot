@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Engine.Tests.Golden;
 
@@ -35,7 +37,10 @@ internal sealed record SnapshotVehicle(
     string Criteria,
     string LoadingType,
     bool ClusterGroups,
-    bool FillFromMaxX)
+    bool FillFromMaxX,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] string? Strategy = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] string? Sequencer = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Seed = 0)
 {
     public static SnapshotVehicle From(OptimizationInput input)
         => new(
@@ -46,7 +51,13 @@ internal sealed record SnapshotVehicle(
             input.Criteria.ToString(),
             input.LoadingType.ToString(),
             input.ClusterGroups,
-            input.FillsFromMaxX);
+            input.FillsFromMaxX,
+            NonDefault(input.Strategy, PlacementStrategy.Greedy),
+            NonDefault(input.Sequencer, SequencerKind.Static),
+            input.Seed);
+
+    private static string? NonDefault<T>(T value, T fallback) where T : struct, Enum
+        => EqualityComparer<T>.Default.Equals(value, fallback) ? null : value.ToString();
 }
 
 internal sealed record SnapshotItem(
@@ -127,7 +138,8 @@ internal sealed record SnapshotOutcome(
     decimal? WeightBalanceOffsetX,
     decimal? WeightBalanceOffsetZ,
     IReadOnlyList<SnapshotPlacement> Placements,
-    IReadOnlyList<SnapshotUnplaced> UnplacedItems)
+    IReadOnlyList<SnapshotUnplaced> UnplacedItems,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] SnapshotSearchStats? SearchStats = null)
 {
     public static SnapshotOutcome From(OptimizationResult result)
         => new(
@@ -139,7 +151,19 @@ internal sealed record SnapshotOutcome(
             result.WeightBalanceOffsetX,
             result.WeightBalanceOffsetZ,
             result.Placements.Select((placement, index) => SnapshotPlacement.From(placement, index)).ToList(),
-            result.UnplacedItems.Select(SnapshotUnplaced.From).ToList());
+            result.UnplacedItems.Select(SnapshotUnplaced.From).ToList(),
+            SnapshotSearchStats.From(result.SearchStats));
+}
+
+/// <remarks>
+/// Sure ve <c>BestCostHistory</c> bilincli olarak disaridadir: ilki her kosuda
+/// farklidir, ikincisi katsayi kalibrasyonuyla birlikte kayar ve golden korpusu
+/// gereksiz yere kirmizi yakar (ALGORITMA-YOL-HARITASI.md RK-19).
+/// </remarks>
+internal sealed record SnapshotSearchStats(int Iterations, int Evaluations, bool SearchImproved)
+{
+    public static SnapshotSearchStats? From(SearchStats? stats)
+        => stats is null ? null : new(stats.Iterations, stats.Evaluations, stats.SearchImproved);
 }
 
 internal static class SnapshotFormat

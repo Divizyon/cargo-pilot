@@ -151,7 +151,9 @@ public sealed class PlansController : BaseController
         [FromBody] ReOptimizePlanRequest request,
         CancellationToken cancellationToken = default)
     {
-        var command = new ReOptimizePlanCommand(id, request.VehicleId, request.Items, request.OptimizationCriteria, request.Groups, request.ClusterGroups);
+        var command = new ReOptimizePlanCommand(
+            id, request.VehicleId, request.Items, request.OptimizationCriteria, request.Groups, request.ClusterGroups,
+            request.PlacementStrategy, request.Sequencer, request.Seed);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

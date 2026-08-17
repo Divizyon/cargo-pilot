@@ -10,7 +10,10 @@ public sealed record CreatePlanCommand(
     IReadOnlyList<CreatePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     IReadOnlyList<CreatePlanGroupDefinition>? Groups = null,
-    bool ClusterGroups = true)
+    bool ClusterGroups = true,
+    PlacementStrategy PlacementStrategy = PlacementStrategy.Greedy,
+    SequencerKind Sequencer = SequencerKind.Static,
+    int Seed = 0)
     : IRequest<Result<Guid>>;
 
 public sealed record CreatePlanGroupDefinition(

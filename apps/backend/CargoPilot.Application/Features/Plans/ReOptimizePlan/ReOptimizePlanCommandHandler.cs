@@ -86,7 +86,8 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             }
         }
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria, request.ClusterGroups);
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria, request.ClusterGroups,
+            request.PlacementStrategy, request.Sequencer, request.Seed);
 
         // Kontaminasyon modülü de bir optimizasyon modülüdür; bayrağı motor
         // dışında, filtrenin gerçekten çağrıldığı yerde uygulanır.
@@ -157,7 +158,10 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap,
         LoadingPlanOptimizationCriteria criteria,
-        bool clusterGroups)
+        bool clusterGroups,
+        PlacementStrategy strategy,
+        SequencerKind sequencer,
+        int seed)
     {
         var inputs = requestItems
             .Select(r =>
@@ -184,6 +188,9 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             Modules: null,
             // Yukleme kapinin oldugu yuzden baslamaz; baslangic kosesi kapi
             // listesinden turetilir.
-            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors));
+            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors),
+            Strategy: strategy,
+            Sequencer: sequencer,
+            Seed: seed);
     }
 }

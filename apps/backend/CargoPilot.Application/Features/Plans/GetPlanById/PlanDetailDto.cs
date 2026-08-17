@@ -29,4 +29,10 @@ public sealed record PlanDetailDto(
     IReadOnlyList<UnplacedItemDto> UnplacedItems,
     IReadOnlyList<WarningDto> Warnings,
     IReadOnlyList<InputItemDto> InputItems,
-    IReadOnlyList<PlanGroupDto> Groups);
+    IReadOnlyList<PlanGroupDto> Groups,
+    // Planin hangi yerlestirici/sequencer ve tohumla uretildigi. Kalicilik F4'te
+    // eklenecegi icin bugun her planda null doner (ALGORITMA-YOL-HARITASI.md F0-7).
+    PlacementStrategy? PlacementStrategy = null,
+    SequencerKind? Sequencer = null,
+    int? Seed = null,
+    SearchStatsDto? SearchStats = null);

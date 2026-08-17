@@ -11,7 +11,21 @@ public sealed record OptimizationResult(
     decimal? CenterOfGravityY,
     decimal? CenterOfGravityZ,
     decimal? WeightBalanceOffsetX,
-    decimal? WeightBalanceOffsetZ);
+    decimal? WeightBalanceOffsetZ,
+    SearchStats? SearchStats = null);
+
+/// <summary>
+/// Arama katmaninin kosu istatistigi. Aramasiz yollarda (Static sequencer)
+/// <c>null</c> kalir; boylece bugunku sonuc sozlesmesi degismez.
+/// Fitness skoru arama alaninin sayisidir ve <c>double</c> tutulur; geometri ve
+/// agirlik <c>decimal</c> kalir (ALGORITMA-YOL-HARITASI.md RK-18).
+/// </summary>
+public sealed record SearchStats(
+    int Iterations,
+    int Evaluations,
+    IReadOnlyList<double> BestCostHistory,
+    bool SearchImproved,
+    long DurationMs);
 
 public sealed record PlacedItemResult(
     Guid PlacementId,

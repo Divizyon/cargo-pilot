@@ -1,11 +1,14 @@
 using CargoPilot.Application.Common.Config;
+using CargoPilot.Application.Common.Settings;
+using CargoPilot.Domain.Enums;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 
 namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
 
 public sealed class ReOptimizePlanCommandValidator : AbstractValidator<ReOptimizePlanCommand>
 {
-    public ReOptimizePlanCommandValidator()
+    public ReOptimizePlanCommandValidator(IOptions<OptimizationSettings> optimizationSettings)
     {
         RuleFor(x => x.VehicleId)
             .NotEmpty().WithMessage("Araç ID'si boş olamaz.");
@@ -51,5 +54,22 @@ public sealed class ReOptimizePlanCommandValidator : AbstractValidator<ReOptimiz
                 .Must(groups => groups.Select(g => g.UnloadingOrder).Distinct().Count() == groups.Count)
                 .WithMessage("Boşaltma sırası değerleri benzersiz olmalıdır.");
         });
+
+        RuleFor(x => x.PlacementStrategy)
+            .IsInEnum().WithMessage("Yerleştirme stratejisi geçerli bir değer olmalıdır.");
+
+        RuleFor(x => x.Sequencer)
+            .IsInEnum().WithMessage("Sıralayıcı geçerli bir değer olmalıdır.");
+
+        RuleFor(x => x.Seed)
+            .GreaterThanOrEqualTo(0).WithMessage("Tohum negatif olamaz.");
+
+        // Deneysel yollar kapaliyken sessizce Greedy'ye dusurulmez; istemci hangi
+        // yolun kostugunu bilmeli (ALGORITMA-YOL-HARITASI.md F0-4b).
+        RuleFor(x => x)
+            .Must(x => optimizationSettings.Value.EnableExperimentalStrategies
+                       || (x.PlacementStrategy == PlacementStrategy.Greedy && x.Sequencer == SequencerKind.Static))
+            .WithMessage("Deneysel yerleştirme stratejileri bu ortamda kapalıdır.");
+
     }
 }

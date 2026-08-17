@@ -19,6 +19,23 @@ namespace CargoPilot.Application.Common.Models;
 /// Verilmezse <see cref="LoadingType"/>'dan turetilir; motor <see cref="FillsFromMaxX"/>
 /// okur.
 /// </param>
+/// <param name="Strategy">
+/// Yerlestirici secimi. Varsayilan <see cref="PlacementStrategy.Greedy"/>; bugunku
+/// davranis birebir korunur (ALGORITMA-RULEBOOK.md R-C07).
+/// </param>
+/// <param name="Sequencer">
+/// Kutu sirasini ureten katman. Varsayilan <see cref="SequencerKind.Static"/> —
+/// bugunku <see cref="Optimization.ItemOrdering"/> siralamasi.
+/// </param>
+/// <param name="SearchBudget">
+/// Aramanin iterasyon/populasyon/sure butcesi. Verilmezse
+/// <see cref="Models.SearchBudget.Default"/> gecerlidir. Static sequencer'da
+/// kullanilmaz.
+/// </param>
+/// <param name="Seed">
+/// Aramanin rastgelelik tohumu. Ayni tohum + ayni girdi bit birebir ayni plani
+/// uretir (R-C02/DR-06). Static sequencer'da kullanilmaz.
+/// </param>
 public sealed record OptimizationInput(
     decimal VehicleWidth,
     decimal VehicleHeight,
@@ -29,7 +46,11 @@ public sealed record OptimizationInput(
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
-    bool? FillFromMaxX = null)
+    bool? FillFromMaxX = null,
+    PlacementStrategy Strategy = PlacementStrategy.Greedy,
+    SequencerKind Sequencer = SequencerKind.Static,
+    int Seed = 0,
+    SearchBudget? SearchBudget = null)
 {
     /// <summary>
     /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.

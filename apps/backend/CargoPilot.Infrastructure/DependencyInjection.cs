@@ -72,6 +72,10 @@ public static class DependencyInjection {
         services.AddOptions<ErpExportSettings>()
             .Bind(configuration.GetSection("Erp"));
 
+        // Bolum yoksa varsayilan (EnableExperimentalStrategies=false) gecerli olur.
+        services.AddOptions<OptimizationSettings>()
+            .Bind(configuration.GetSection("Optimization"));
+
         services.AddOptions<MinioSettings>()
             .Bind(configuration.GetSection("Minio"))
             .Validate(s => !string.IsNullOrWhiteSpace(s.Endpoint), "Minio:Endpoint is required.")

@@ -70,7 +70,10 @@ internal static class EngineScenario
         decimal vehicleMaxWeight = StandardMaxWeight,
         LoadingType loadingType = LoadingType.Rear,
         bool clusterGroups = true,
-        bool fillFromMaxX = false)
+        bool fillFromMaxX = false,
+        PlacementStrategy strategy = PlacementStrategy.Greedy,
+        SequencerKind sequencer = SequencerKind.Static,
+        int seed = 0)
         => new(
             vehicleWidth,
             vehicleHeight,
@@ -81,7 +84,10 @@ internal static class EngineScenario
             loadingType,
             clusterGroups,
             Modules: null,
-            FillFromMaxX: fillFromMaxX);
+            FillFromMaxX: fillFromMaxX,
+            Strategy: strategy,
+            Sequencer: sequencer,
+            Seed: seed);
 
     public static OptimizationResult Run(OptimizationInput input) => new OptimizationEngine().Run(input);
 
