@@ -56,6 +56,12 @@ updates:
       # @types/node major'ı Node major'ını takip eder; CI ve Dockerfile Node 20'de.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # jsdom 30 Node ^22.22.2 || ^24.15.0 || >=26 istiyor; CI Node 20 kullanıyor
+      # (ci.yml:77,125 · test-deploy.yml:356 · algorithm-suite.yml:62).
+      # Node 20'de `webidl.util.markAsUncloneable` yok, tüm Vitest worker'ları düşüyor.
+      # CI Node sürümü yükseltildiğinde bu kural KALDIRILMALI. PR #1022 bu nedenle kapatıldı.
+      - dependency-name: "jsdom"
+        update-types: ["version-update:semver-major"]
 
   # ── NuGet / backend ─────────────────────────────────────────
   - package-ecosystem: "nuget"
@@ -87,6 +93,12 @@ updates:
       - dependency-name: "Serilog.AspNetCore"
         update-types: ["version-update:semver-major"]
       - dependency-name: "Swashbuckle.*"
+        update-types: ["version-update:semver-major"]
+      # FluentAssertions 8.0 ile Apache 2.0'dan Xceed Community License'a geçti:
+      # ticari kullanım geliştirici başına yıllık ücretli lisans gerektiriyor
+      # (bkz. docs/adr/ — lisans kararı alınırsa bu kural kaldırılır).
+      # 7.x son Apache lisanslı sürümdür. PR #1025 bu nedenle kapatıldı.
+      - dependency-name: "FluentAssertions"
         update-types: ["version-update:semver-major"]
 
   # ── Docker ──────────────────────────────────────────────────
