@@ -469,3 +469,53 @@ tersidir: müşteri 200 özdeş koli gönderir.
 inşasının ölçülebilmesi için önce korpus değişmeli.
 
 Kule kodu korundu: doğru mekanizma, bu korpusta ölçülemiyor. BR üzerinde yeniden ölçülecek.
+
+---
+
+## F2c · BR1-BR7'ye geçiş — **tamam**, ve F4a'nın gerçek değeri ortaya çıktı
+
+OR-Library'den `thpack1..7.txt` alındı (Bischoff & Ratcliff 1995, 700 örnek, konteyner
+587×233×220 cm). `BrCorpus` + `br` komutu eklendi.
+
+**Yönelim kısıtı tam eşleşmiyor, bu yüzden iki uç raporlanıyor.** BR "hangi ölçü dikey durabilir"
+der; bizim `AllowedRotations` enum'u bunu `001` → `NoVertical` ve `111` → `All` ile **birebir**
+karşılıyor ama `011` düzenini (tiplerin %37'si) karşılamıyor. `strict` ucunda `PitchOnly`
+kullanılıyor — dikey ölçü seçimi korunur, yatay çiftin 90° dönüşü kaybolur, yani BR'den **dar**.
+`free` ucunda tüm yönelimler açılıyor, yani BR'den **geniş**. Gerçek değer arada.
+
+### Sonuçlar (700 örnek, static; GRASP satırları 175 örnek)
+
+| Yapılandırma | strict (alt sınır) | free (üst sınır) |
+|---|---|---|
+| Greedy (bugünkü üretim motoru) | %75,23 | — |
+| Wall-Builder, **kule kapalı** | %77,00 | — |
+| Wall-Builder | **%79,03** | %81,29 |
+| Wall-Builder + GRASP | **%83,50** | %85,00 |
+
+Literatürün en iyileri BR1-BR7'de ~%92-93.
+
+### F4a yeniden ölçüldü: **+2,03 puan**
+
+Kule inşası giyotin korpusunda +0,07 vermişti (ölçülemez). BR'de **%77,00 → %79,03** ve üstelik
+**2,5 kat hızlı** (medyan 5-13 ms → 2-5 ms; kule, defter taramasının büyük kısmını atlıyor).
+Bu, tüm günlükteki en büyük tek kazanç — ve yanlış korpusta tamamen görünmezdi.
+
+### Korpus değişikliğinin kendisi bir bulgu
+
+Wall-Builder'ın greedy'ye üstünlüğü giyotin korpusunda +0,8 puan görünüyordu; BR'de **+3,8**.
+Yani eski korpus yalnızca "temsil etmiyor" değil, doğru kararı da **gizliyordu**.
+
+### Kalan teşhis: tekrarı hâlâ kullanamıyoruz
+
+BR kümeleri heterojenlik merdivenidir; literatürde BR1 (3 tip, bol tekrar) **en kolay** kümedir.
+Bizde tersi:
+
+| | BR1 | BR7 |
+|---|---|---|
+| Static | %78,03 | %78,74 |
+| GRASP | %81,26 | %83,33 |
+
+**BR1 bizim en kötü kümemiz.** Tekrarın en yüksek olduğu yerde en az kazanıyoruz — yani
+yerleştirici aynı ölçüdeki kutu çokluğunu hâlâ bir fırsat olarak görmüyor. Kule tek bir sütun
+kuruyor; eksik olan **blok** inşası: aynı kutudan `nx × ny × nz` bir prizma oluşturup duvara tek
+parça olarak koymak (Eley 2002). Sıradaki iş bu.

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Engine.Bench;
@@ -23,7 +23,9 @@ public sealed record BenchOptions(
     int SearchMs,
     int Population,
     int Iterations,
-    int MaxScenarios)
+    int MaxScenarios,
+    int BrSet,
+    BrCorpus.OrientationMode BrOrientation)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -51,6 +53,8 @@ public sealed record BenchOptions(
         var population = 20;
         var iterations = 40;
         var maxScenarios = 0;
+        var brSet = 0;
+        var brOrientation = BrCorpus.OrientationMode.Strict;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -111,6 +115,12 @@ public sealed record BenchOptions(
                 case "--max-scenarios":
                     maxScenarios = ParseInt(value, arg);
                     break;
+                case "--set":
+                    brSet = ParseInt(value, arg);
+                    break;
+                case "--orientation":
+                    brOrientation = ParseOrientation(value, arg);
+                    break;
                 case "--help":
                 case "-h":
                     break;
@@ -123,7 +133,9 @@ public sealed record BenchOptions(
             seedFrom, seedTo, count, repeat, Math.Max(1, concurrency), port, dump, verbose, strategy,
             Math.Max(1, durationMinutes), reportPath,
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
-            Math.Max(0, maxScenarios));
+            Math.Max(0, maxScenarios),
+            Math.Clamp(brSet, 0, 7),
+            brOrientation);
     }
 
     public static int PrintUsage()
@@ -133,6 +145,7 @@ public sealed record BenchOptions(
 
             Kipler:
               bench            Sabit korpusu kosar (varsayilan)
+              br               BR1-BR7 kiyas kumelerini kosar (literaturle kiyas)
               soak             Durmadan yeni senaryo uretip hacim kalitesini olcer
               serve            POST /engine/run ucunu acar
 
@@ -152,7 +165,9 @@ public sealed record BenchOptions(
               --search-ms N    arama butcesi, ms (varsayilan 2000)
               --population N   populasyon (varsayilan 20)
               --iterations N   azami iterasyon (varsayilan 40)
-              --max-scenarios N soak kipinde tam olarak N senaryo kos (kiyas icin)
+              --max-scenarios N soak kipinde tam olarak N senaryo, br kipinde kume basina N ornek
+              --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
+              --orientation S  br kipinde strict | free (varsayilan strict, alt sinir)
             """);
 
         return ExitOk;
@@ -165,6 +180,14 @@ public sealed record BenchOptions(
 
         return ExitUsage;
     }
+
+    private static BrCorpus.OrientationMode ParseOrientation(string? value, string flag)
+        => value?.ToLowerInvariant() switch
+        {
+            "strict" => BrCorpus.OrientationMode.Strict,
+            "free" => BrCorpus.OrientationMode.Free,
+            _ => throw new ArgumentException($"{flag} strict | free bekliyor.", nameof(flag)),
+        };
 
     private static SequencerKind ParseSequencer(string? value, string flag)
         => value?.ToLowerInvariant() switch

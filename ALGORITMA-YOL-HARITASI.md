@@ -56,10 +56,11 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 | ~~**F2a** · Destek-farkında defter~~ | ~~Boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınır~~ | **ÖLÇÜLDÜ, REDDEDİLDİ (`DR-17`)** — üç varyant, en iyisi %75,99 → %74,00. Havada duran taban köprü kurmanın tek aday kaynağıymış | Öneri 3 · Parreño 2008 |
 | **F2b** · Yerel düzlük terimi | Temas ağırlıklı üst yüzey sapması, sığdırmanın ardında sıralama ölçütü | **KISMİ (`DR-18`)** — doluluk %75,99 → %76,23, en kötü %60,16 → %62,89. Engebe eşiği tutmadı: 56,6 → 56,1 cm (hedef <30), ölü hava %15,2 → %14,9 (hedef <%8) | Öneri 1 · Ojha vd. 2020 |
 | **F2a′** · Destek-farkında defter, ikinci deneme | F2b'den sonra yeniden ölçülür: yüzey düzleşince destekli bölgeler büyür | Doluluk taban çizgiyi geçmeli; yan kazanç: 7 kat hız (8,3 ms / 56,4 ms) | `DR-17` |
-| **F2c** · BR benchmark geçişi | Birincil ölçüm BR1-BR7 + BR8-BR15; giyotin korpus yalnız regresyon | BR1-BR7 ortalaması raporlanabilir | Öneri (d) |
+| **F2c** · BR benchmark geçişi | `BrCorpus` + `br` komutu; 700 örnek, strict/free çift raporlama | **TAMAM (`DR-19`/`DR-20`)** — greedy %75,23 · WB %79,03 · WB+GRASP **%83,50** (strict); free uçta %85,00. Literatür ~%92-93 | Öneri (d) |
 | **F3a** · Decoder'ı kromozoma taşı | Kromozom: sıra anahtarları + maximal-space seçim kuralı + düzlük/derinlik ağırlıkları (α'lar) | Arama kazancı +1,5'ten yukarı | Öneri 4 · G&R BRKGA 2012 |
 | **F3b** · GWCA emekli, GRASP devralır | `DR-03` uygulanır; GWCA ve GA referans olarak kodda kalır | Varsayılan sequencer GRASP | DR-03 · 300 senaryo ölçümü |
-| **F4a** · Kule/sütun inşası ← **şimdi kritik yol** | Aynı ayak izli kutular dikey kuleye yığılır, kule duvara tek katı birim olarak konur | **Üst yüzey SS 56,1 cm → <30 cm** ve **ölü hava %14,9 → <%8** (F2b'den devredildi); yatay stabilite bozulmamalı | Öneri 2 · Gehring & Bortfeldt 1997 · `DR-18` |
+| **F4a** · Kule/sütun inşası | Aynı ürünün kalan birimleri yerleşen kutunun üstüne yığılır | **TAMAM** — BR'de %77,00 → **%79,03** (+2,03) ve 2,5 kat hızlı. Giyotin korpusunda +0,07'ydi, yani görünmüyordu | Öneri 2 · Gehring & Bortfeldt 1997 |
+| **F4a′** · Blok inşası ← **şimdi kritik yol** | Aynı kutudan `nx × ny × nz` prizma kurulup duvara tek parça konur | BR1 %81,26 → BR3-BR5 seviyesine (~%84); heterojenlik merdiveninin eğimi literatürdeki yönü almalı | Eley 2002 · `DR-21` |
 | **F4b** · Dinamik duvar derinliği | Çoklu aday derinlik + sığ ağaç araması | +1-2 puan | Öneri 5 · Pisinger 2002 |
 | **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | KK-06b, KK-07 | Eski F4 |
 
@@ -86,7 +87,9 @@ katmanında demektir — bu tek başına bir teşhis aracı.
 **F3a ondan sonra.** Yerleştirici düzelmeden decoder'ı zenginleştirmek, kararsız bir decoder'a
 daha çok parametre vermek olur.
 
-**F4a artık koşullu değil (`DR-18`).** Eski gerekçe "kutu seti zayıf-heterojense değerli,
+**F4a bitti, yerini F4a′ (blok inşası) aldı (`DR-21`).** Kule BR'de +2,03 puan verdi ama tek
+sütunla sınırlı. Asıl açık şurada: BR1 (üç tip, bol tekrar) literatürde en kolay kümedir, bizde
+**en kötüsü**. Tekrarın en yüksek olduğu yerde en az kazanıyoruz. Eski gerekçe (`DR-18`) şuydu: Eski gerekçe "kutu seti zayıf-heterojense değerli,
 güçlü-heterojende kule kurmak zorlaşır" idi. F2b ölçümü bunu geçersiz kıldı: engebe yerleştirme
 skoruyla düşmüyor ve engebe kayıp hacmin tamamının durduğu yer. Kule kurmanın zorluğu bir maliyet,
 engebe ise doğrudan darboğaz. BR8-BR15 ölçümü kararı değil, **kule yüksekliği politikasını**
