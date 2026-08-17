@@ -135,6 +135,19 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
 
         plan.Reoptimize(request.VehicleId, request.OptimizationCriteria, inputTotalQuantity);
 
+
+        // Planin nasil uretildigi sonucun kendisi kadar onemli: determinizm
+        // sozlesmesi (R-C02) ancak yerlestirici, sequencer ve tohum kayitliysa
+        // kullanilabilir.
+        plan.RecordOptimizationRun(
+            finalInput.Strategy,
+            finalInput.Sequencer,
+            finalInput.Seed,
+            result.SearchStats?.Iterations,
+            result.SearchStats?.Evaluations,
+            result.SearchStats?.SearchImproved,
+            result.SearchStats?.DurationMs);
+
         await _planRepository.ReOptimizeWithResultAsync(plan, newInputItems, result, cancellationToken);
 
         if (_currentUserService.UserId is { } userId)

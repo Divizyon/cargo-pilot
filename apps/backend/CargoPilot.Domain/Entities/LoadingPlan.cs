@@ -1,4 +1,4 @@
-using CargoPilot.Domain.Enums;
+﻿using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Domain.Entities;
 
@@ -23,6 +23,21 @@ public sealed class LoadingPlan : BaseEntity {
     public string? ReportUrl { get; private set; }
     public string? ThumbnailUrl { get; private set; }
     public ErpExportStatus? ErpExportStatus { get; private set; }
+
+    // ── Kosu kimligi ─────────────────────────────────────────────────────────
+    // Determinizm sozlesmesi (ALGORITMA-RULEBOOK.md R-C02) "ayni tohum + ayni
+    // girdi bit birebir ayni plani uretir" der. Bu soz, planin HANGI yerlestirici
+    // ve HANGI tohumla uretildigi kayitli degilse kullanilamaz: bir plani yeniden
+    // uretmek isteyen kisinin elinde yalnizca sonuc kalirdi.
+    public PlacementStrategy PlacementStrategy { get; private set; }
+    public SequencerKind Sequencer { get; private set; }
+    public int Seed { get; private set; }
+
+    // Arama katmani kostuysa kosu istatistigi; statik yolda null.
+    public int? SearchIterations { get; private set; }
+    public int? SearchEvaluations { get; private set; }
+    public bool? SearchImproved { get; private set; }
+    public long? SearchDurationMs { get; private set; }
 #pragma warning restore S1144
 
     public Vehicle Vehicle { get; private set; } = null!;
@@ -43,6 +58,29 @@ public sealed class LoadingPlan : BaseEntity {
     public void MarkErpSent()    => ErpExportStatus = Enums.ErpExportStatus.Sent;
     public void MarkErpFailed()  => ErpExportStatus = Enums.ErpExportStatus.Failed;
     public void SetThumbnailUrl(string url) => ThumbnailUrl = url;
+
+    /// <summary>
+    /// Plani ureten kosunun kimligi. Sonuc metriklerinden ayri durur cunku bunlar
+    /// "ne cikti" degil "nasil uretildi" sorusunun cevabidir; yeniden optimize
+    /// edildiginde de yeni kosunun degerleriyle degisir.
+    /// </summary>
+    public void RecordOptimizationRun(
+        PlacementStrategy placementStrategy,
+        SequencerKind sequencer,
+        int seed,
+        int? searchIterations = null,
+        int? searchEvaluations = null,
+        bool? searchImproved = null,
+        long? searchDurationMs = null)
+    {
+        PlacementStrategy = placementStrategy;
+        Sequencer = sequencer;
+        Seed = seed;
+        SearchIterations = searchIterations;
+        SearchEvaluations = searchEvaluations;
+        SearchImproved = searchImproved;
+        SearchDurationMs = searchDurationMs;
+    }
 
     public void ApplyOptimizationResult(
         LoadingPlanOptimizationStatus status,

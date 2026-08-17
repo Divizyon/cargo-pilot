@@ -686,3 +686,34 @@ Doğrulandı: aynı bütçeyle BR1-BR7 = **%85,32**, medyan 0,39-1,83 sn.
 | Duvar örücü + GRASP — bayrak açıkken varsayılan | **%85,32** | ~0,4-1,8 sn |
 
 Testler: motor 111/111, altyapı 39/39.
+
+---
+
+## F5 · Koşu kimliği kalıcı hale getirildi
+
+`SearchStatsDto` bir **askıda sözleşmeydi**: alan API'de duruyordu ama kalıcılık ertelendiği için
+her planda `null` dönüyordu. Asıl eksik ondan büyüktü — plan hangi yerleştirici, hangi sequencer
+ve hangi tohumla üretildiğini **hiç kaydetmiyordu**.
+
+Bu, determinizm sözleşmesini (`R-C02`: aynı tohum + aynı girdi → bit birebir aynı plan)
+kullanılamaz kılıyordu: bir planı yeniden üretmek isteyen kişinin elinde yalnızca sonuç kalırdı.
+Duvar örücü + GRASP açıldığında sorun büyürdü, çünkü artık aynı girdi iki farklı motordan
+geçebiliyor ve veritabanında ikisi ayırt edilemiyordu.
+
+**Eklenenler** (`LoadingPlans` tablosu, additive migration):
+
+| Alan | Tip | Varsayılan |
+|---|---|---|
+| `PlacementStrategy` | int | `Greedy` |
+| `Sequencer` | int | `Static` |
+| `Seed` | int | 0 |
+| `SearchIterations` / `SearchEvaluations` / `SearchImproved` / `SearchDurationMs` | nullable | — |
+
+Varsayılanlar geçiş öncesi kayıtları **doğru** tanımlıyor: o planlar gerçekten greedy, statik ve
+tohum 0'dı. Migration yalnızca sütun ekliyor, veri kaybı yok.
+
+Domain'e `RecordOptimizationRun` eklendi — sonuç metriklerinden ayrı durur çünkü bunlar "ne çıktı"
+değil **"nasıl üretildi"** sorusunun cevabı. İki komut da (plan oluştur, yeniden optimize et)
+kaydediyor; `PlanDetailDto` alanları artık gerçek değer taşıyor.
+
+Testler: motor 111/111, altyapı 39/39, uygulama 228/228.

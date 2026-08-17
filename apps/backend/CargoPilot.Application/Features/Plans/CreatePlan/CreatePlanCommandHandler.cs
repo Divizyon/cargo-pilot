@@ -210,6 +210,19 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
             })
             .ToList();
 
+
+        // Planin nasil uretildigi sonucun kendisi kadar onemli: determinizm
+        // sozlesmesi (R-C02) ancak yerlestirici, sequencer ve tohum kayitliysa
+        // kullanilabilir.
+        plan.RecordOptimizationRun(
+            finalInput.Strategy,
+            finalInput.Sequencer,
+            finalInput.Seed,
+            result.SearchStats?.Iterations,
+            result.SearchStats?.Evaluations,
+            result.SearchStats?.SearchImproved,
+            result.SearchStats?.DurationMs);
+
         await _planRepository.SaveWithResultAsync(plan, inputItems, result, cancellationToken);
 
         if (_currentUserService.UserId is { } userId)

@@ -450,6 +450,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-23** | **Duvar derinliği sabit kuralla belirlenmez, kromozomda aranır** (`R-C15a`) | Derin duvar BR1'i +1,36 yükseltirken BR6'yı −1,45 düşürüyor, sığ duvar tam tersi; ortalamada üçü de aynı (%79,85-79,88). Doğru değer kutu setine bağlı. Genle: GRASP %85,22 → %85,32, BR1 %83,09 → %83,92 |
 | **DR-24** | **Sequencer opsiyonel; duvar örücünün varsayılanı GRASP** (`DR-13` uygulandı) | Arama +5,5 puan getiriyor ve istemcinin bunu ayrıca istemesi gerekmemeli. Komut varsayılanını doğrudan GRASP yapmak bayrak kapalıyken bugünkü çağrıyı reddettirirdi; alan nullable yapılıp çözüm `SequencerSelection.Resolve`'a alındı. Kapı korundu |
 | **DR-25** | **`SearchBudget.Default` ölçülen işletme noktasıdır: 40 · 20 · 2.000 ms · 15** | Eski `20_000` ms duvar saati bir istek içinde savunulamazdı ve hiçbir ölçümü temsil etmiyordu. Yeni değerler, raporlanan %85,32'nin alındığı bütçenin kendisi |
+| **DR-26** | **Plan, kendisini üreten koşunun kimliğini saklar** (yerleştirici, sequencer, tohum, arama istatistiği) | Determinizm sözleşmesi (`R-C02`) bunlar olmadan kullanılamaz: planı yeniden üretmek isteyenin elinde yalnızca sonuç kalırdı. Duvar örücü açıldığında aynı girdi iki farklı motordan geçebiliyor ve veritabanında ayırt edilemiyordu |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

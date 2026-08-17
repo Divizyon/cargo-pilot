@@ -1,4 +1,4 @@
-using CargoPilot.Domain.Enums;
+﻿using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Features.Plans.GetPlanById;
 
@@ -30,8 +30,9 @@ public sealed record PlanDetailDto(
     IReadOnlyList<WarningDto> Warnings,
     IReadOnlyList<InputItemDto> InputItems,
     IReadOnlyList<PlanGroupDto> Groups,
-    // Planin hangi yerlestirici/sequencer ve tohumla uretildigi. Kalicilik F4'te
-    // eklenecegi icin bugun her planda null doner (ALGORITMA-YOL-HARITASI.md F0-7).
+    // Planin hangi yerlestirici/sequencer ve tohumla uretildigi. Determinizm
+    // sozlesmesi (ALGORITMA-RULEBOOK.md R-C02) bu ucu olmadan kullanilamaz:
+    // plani yeniden uretmek isteyen kisinin elinde yalnizca sonuc kalirdi.
     PlacementStrategy? PlacementStrategy = null,
     SequencerKind? Sequencer = null,
     int? Seed = null,
