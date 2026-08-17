@@ -433,3 +433,39 @@ Bu da F4a (kule inşası: aynı ayak izli kutuları kontrollü yükseklikte süt
 
 **Yön düzeltmesi:** engebe tek başına bir yerleştirici parametresiyle çözülmüyor. Sıradaki
 kritik yol F3a değil **F4a**; kule inşası aynı yükseklikte biten yüzeyleri kutu seçimiyle üretir.
+
+---
+
+## F4a · Kule inşası — **ölçülemedi: korpus izin vermiyor**
+
+Yeni yerleşen kutunun üstüne, aynı ürünün kalan birimleri aynı yönelimle doğrudan yığılıyor
+(Gehring & Bortfeldt 1997). Yedi kapı yine `PlacementValidator`'dan soruluyor; kule kendi destek
+ya da istif tanımını yazmıyor. Yığma ilk başarısızlıkta duruyor — aynı ürün kimliği aynı ölçüleri
+taşıdığı için bir birim geçemiyorsa sonraki de geçemez.
+
+**Sonuç: %76,23 → %76,30, engebe 56,1 cm'de sabit.** Yani hiçbir şey olmadı.
+
+**Sebep, tahmin edilmedi ölçüldü.** Korpusun şekli için `CorpusDiagnostics` eklendi:
+
+| | Hacim korpusu (giyotin) |
+|---|---|
+| Ürün tipi / senaryo | 126 |
+| **Ortalama adet** | **1,0** |
+| Tekrarlı tipteki birim payı | **%3,9** |
+| İki katı araca sığan birim | %99,4 |
+| En büyük tipin payı | %1,7 |
+
+**Korpusta her kutu benzersiz.** Giyotin kesim noktaları rastgele olduğu için parçalar tam ölçüye
+göre gruplandığında neredeyse hiç tekrar çıkmıyor. Kule inşası aynı ölçüdeki kutuları tek sütunda
+topladığı için **ateşlenecek malzeme yok**.
+
+**Bu, tek bir fazdan daha büyük bir bulgu.** Korpus yalnızca "gerçek dağılımı temsil etmiyor"
+değil, roadmap'te sırada bekleyen **tekniklerin tamamına düşman**: kule inşası, blok inşası,
+tekrarlı desen — üçü de aynı ölçüdeki kutu çokluğuna dayanır. Bischoff & Ratcliff terimleriyle
+korpus **aşırı-güçlü heterojen**; BR7 bile (20 tip) buna göre çok daha tekrarlıdır. Gerçek yük ise
+tersidir: müşteri 200 özdeş koli gönderir.
+
+**Sonuç: `DR-14` (BR1-BR7'ye geçiş) artık paralel değil, BLOKLAYICI.** F4a'nın, F4b'nin ve blok
+inşasının ölçülebilmesi için önce korpus değişmeli.
+
+Kule kodu korundu: doğru mekanizma, bu korpusta ölçülemiyor. BR üzerinde yeniden ölçülecek.

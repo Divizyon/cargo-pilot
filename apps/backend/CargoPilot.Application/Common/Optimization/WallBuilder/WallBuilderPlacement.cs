@@ -83,8 +83,16 @@ internal static class WallBuilderPlacement
         // ciktiyi degistirmez.
         var failedSincePlacement = new Dictionary<Guid, UnplacedReason>();
 
-        foreach (var sequenced in instances)
+        // Kule insasi sirayi ONDEN tuketir: bir kutu yerlestiginde ayni urunun
+        // sonraki birimleri dogrudan ustune yigilir. Bu yuzden dongu artik
+        // foreach degil; tuketilen birimler atlanir.
+        var consumed = new bool[instances.Count];
+
+        for (var index = 0; index < instances.Count; index++)
         {
+            if (consumed[index]) continue;
+
+            var sequenced = instances[index];
             var item = sequenced.Item;
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -181,12 +189,82 @@ internal static class WallBuilderPlacement
             totalWeight += best.Weight;
             ledger.Place(best.X, best.Y, best.Z, best.Width, best.Height, best.Length, minSide);
 
+            RaiseColumn(input, ledger, placements, instances, consumed, index + 1,
+                best, minSide, ref totalWeight);
+
             // Yerlesim durumu degisti: onceki basarisizliklar artik gecerli degil.
             failedSincePlacement.Clear();
         }
 
         return PlanResultBuilder.Build(
             placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength);
+    }
+
+    /// <summary>
+    /// Kule insasi (Gehring &amp; Bortfeldt 1997): yeni yerlesen kutunun uzerine,
+    /// ayni urunun kalan birimleri ayni yonelimle dogrudan yigilir.
+    ///
+    /// Gerekcesi olculmustur. Yigin ust yuzeyinin engebesi (56,1 cm) kayip
+    /// hacmin durdugu yer, ama engebe yerlestirme SKORUYLA dusmuyor: alti
+    /// varyant denendi, hicbiri 56,1'in altina inmedi (`DR-18`). Skor yalnizca
+    /// defterin sundugu adaylar arasindan secebiliyor ve o adaylarin ust yuzu
+    /// kutunun kendi yuksekligiyle belirli. Yuzeyi duzlestirmek "hangi kutular
+    /// yan yana gelsin" karari, yani GRUPLAMA.
+    ///
+    /// Kule tam olarak bunu yapar: ayni olcudeki kutular tek sutunda toplanir,
+    /// boylece sutunun bitis yuksekligi kutu secimiyle belirlenir.
+    ///
+    /// Yigma, ilk basarisizlikta durur: ayni urun kimligi ayni olculeri ve ayni
+    /// istif kisitlarini tasir, dolayisiyla bir birim gecemiyorsa sonraki de
+    /// gecemez. Yedi kapinin tamami yine <see cref="PlacementValidator"/>
+    /// uzerinden sorulur; kule kendi destek ya da istif tanimini yazmaz.
+    /// </summary>
+    private static void RaiseColumn(
+        OptimizationInput input,
+        SpaceLedger ledger,
+        List<PlacedBox> placements,
+        IReadOnlyList<SequencedItem> instances,
+        bool[] consumed,
+        int from,
+        PlacedBox baseBox,
+        decimal minSide,
+        ref decimal totalWeight)
+    {
+        var top = baseBox.Y + baseBox.Height;
+
+        for (var j = from; j < instances.Count; j++)
+        {
+            if (consumed[j]) continue;
+
+            var item = instances[j].Item;
+            if (item.ItemId != baseBox.ItemId) continue;
+
+            if (top + baseBox.Height > input.VehicleHeight) break;
+            if (totalWeight + item.Weight > input.VehicleMaxWeight) break;
+
+            var x = baseBox.X;
+            var z = baseBox.Z;
+            var width = baseBox.Width;
+            var height = baseBox.Height;
+            var length = baseBox.Length;
+
+            if (PlacementValidator.HasOverlap(placements, x, top, z, width, height, length)) break;
+            if (!PlacementValidator.HasSupport(placements, x, top, z, width, length)) break;
+            if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
+                input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) break;
+            if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) break;
+            if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight)) break;
+            if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length)) break;
+
+            var box = Create(item, x, top, z, width, height, length, baseBox.Rotation);
+
+            placements.Add(box);
+            totalWeight += item.Weight;
+            ledger.Place(x, top, z, width, height, length, minSide);
+            consumed[j] = true;
+
+            top += height;
+        }
     }
 
     private readonly record struct Attempt(PlacedBox? Box, bool BlockedByFragility);

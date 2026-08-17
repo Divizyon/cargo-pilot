@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -44,6 +44,7 @@ public static class SoakCommand
         var waste = new List<WasteDiagnostics.Breakdown>();
         var rejections = new List<RejectionDiagnostics.Reasons>();
         var spaceStats = new List<SpaceDiagnostics.Spaces>();
+        var corpusShape = new List<CorpusDiagnostics.Shape>();
         var seed = options.SeedFrom;
 
         // Kiyasta sure degil ADET sinirlanir: farkli butceler farkli sayida senaryo
@@ -73,6 +74,7 @@ public static class SoakCommand
                     waste.Add(WasteDiagnostics.Analyze(input, result));
                     if (rejections.Count < 20) rejections.Add(RejectionDiagnostics.Analyze(input, result));
                     spaceStats.Add(SpaceDiagnostics.Analyze(input, result));
+                    corpusShape.Add(CorpusDiagnostics.Analyze(input));
                 }
             }
 
@@ -88,12 +90,33 @@ public static class SoakCommand
         Console.WriteLine();
         Console.WriteLine(stats.Summary(clock.Elapsed, seed - options.SeedFrom));
 
+        if (corpusShape.Count > 0) WriteCorpus(corpusShape);
         if (waste.Count > 0) WriteWaste(waste);
         if (spaceStats.Count > 0) WriteSpaces(spaceStats);
         if (rejections.Count > 0) WriteRejections(rejections);
         if (options.ReportPath is not null) WriteReport(options.ReportPath, stats, clock.Elapsed);
 
         return BenchOptions.ExitOk;
+    }
+
+    /// <summary>
+    /// Korpusun sekli. Kule insasinin ateslenip ateslenemeyecegini burasi soyler:
+    /// tekrarli urun yoksa kule kuracak kutu da yoktur.
+    /// </summary>
+    private static void WriteCorpus(List<CorpusDiagnostics.Shape> shape)
+    {
+        Console.WriteLine("korpus sekli");
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  urun tipi      : {shape.Average(s => s.ItemTypes):F0}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  ortalama adet  : {shape.Average(s => s.MeanQuantity):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  TEKRARLI tipte : %{shape.Average(s => s.UnitsInRepeatedTypesPercent):F1} (birimlerin)"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  iki kat sigan  : %{shape.Average(s => s.UnitsStackableTwicePercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  en buyuk tip   : %{shape.Average(s => s.LargestTypeSharePercent):F1} (birimlerin)"));
+        Console.WriteLine();
     }
 
     /// <summary>
