@@ -40,11 +40,7 @@ public static class RejectionDiagnostics
         ArgumentNullException.ThrowIfNull(result);
 
         var itemsById = input.Items.ToDictionary(i => i.ItemId);
-        var placed = result.Placements
-            .Select(p => ToPlacedBox(p, itemsById))
-            .Where(p => p is not null)
-            .Select(p => p!)
-            .ToList();
+        var placed = DiagnosticPlacements.From(input, result);
 
         var unplacedTypes = result.UnplacedItems
             .Select(u => itemsById.TryGetValue(u.ItemId, out var item) ? item : null)
@@ -113,14 +109,6 @@ public static class RejectionDiagnostics
 
         return top;
     }
-
-    private static PlacedBox? ToPlacedBox(PlacedItemResult placement, Dictionary<Guid, OptimizationItemInput> itemsById)
-        => itemsById.TryGetValue(placement.ItemId, out var item)
-            ? new PlacedBox(
-                placement.ItemId, placement.X, placement.Y, placement.Z,
-                placement.Width, placement.Height, placement.Length, placement.Rotation, placement.Weight,
-                item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop, item.FragilityType, item.UnloadingOrder)
-            : null;
 
     private static double Percent(long part, long total) => total == 0 ? 0d : (double)part / total * 100d;
 }

@@ -142,6 +142,8 @@ public static class SoakCommand
             $"  ortalama bosluk: {spaces.Average(s => s.MeanFreeSpaceVolumeM3):F3} m3"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"  SIGAN yerlesemeyen: %{spaces.Average(s => s.UnplacedFittingGeometricallyPercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  SIGAN + DESTEKLI  : %{spaces.Average(s => s.UnplacedFittingAndSupportedPercent):F1}"));
         Console.WriteLine();
     }
 

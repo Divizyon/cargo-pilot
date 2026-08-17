@@ -37,6 +37,7 @@ dotnet run --project CargoPilot.Engine.Bench -- soak --strategy wallbuilder --co
 | v18 | Hizalanma tercihi (flush) | 100 | %74,83 | %74,13 | — | %61,50 | — | 37 | **Kazandırmadı** −0,55 · geri alındı |
 | **v19** | Ret sebebi ölçümü | 20 | — | — | — | — | — | — | **Araç dışı %99,4 · desteksiz %0,5** · en yüksek sütun %100 |
 | **v20** | Boşluk ölçümü + bant dışı son çare | 300 | **%75,96** | **%75,74** | %68,04 | %62,60 | — | 58 | **+0,75 puan** · sığan yerleşemeyen %75,5 |
+| **v21** | Destek ölçümü | 300 | — | — | — | — | — | — | **Sığan %73,1 · sığan+destekli %2,5** → darboğaz destek kuralı |
 
 ---
 
@@ -256,6 +257,34 @@ v5'ten beri ilk yerleştirme tarafı kazancı. Motor testleri 67/67, snapshot ka
 **Kalan engel:** sığan yerleşemeyen oranı %75,5 → %73,1'e indi, yani hâlâ yüksek. Boşluk var ve
 kutu geometrik olarak sığıyor ama yerleşmiyorsa kalan tek aday **%80 destek kuralı**: boşluğun
 tabanı yeterince desteklenmiyor. Sıradaki ölçüm bunu doğrulamalı.
+
+### v21 · Destek ölçümü — **darboğaz kesinleşti**
+
+"Geometrik sığan boşluklardan kaçının tabanı destekli?" sorusu ölçüldü. Kutu boşluğun köşesine
+konur ve %80 destek motorun kendi yükleminden sorulur.
+
+| Ölçüm (300 senaryo) | Değer |
+|---|---|
+| Boş hacim | %24,0 |
+| Boşluk sayısı | 74 (ortalama 0,297 m³) |
+| Sığan yerleşemeyen kutu | %73,1 |
+| **Sığan + destekli** | **%2,5** |
+
+**Yerleşemeyen kutuların %73'ü bir boşluğa sığıyor ama yalnızca %2,5'i orada destek buluyor.**
+Yani kalan 70 puanlık farkı tek başına %80 destek kuralı yiyor.
+
+Bu, v19'daki "desteksiz %0,5" bulgusunu düzeltiyor: o ölçüm oturma yüksekliğini ayak izinin
+altındaki maksimum kabul ediyordu, bu yüzden adaylar destek kapısına gelmeden "araç dışı" olarak
+eleniyordu. Defter tabanlı ölçüm gerçek tabloyu veriyor.
+
+**Mekanizma tam olarak şu:** kalan boş hacim dikey bacalar ve çıkıntılar hâlinde; tabanları
+kısmen boşlukta. Bir maximal-space'in tabanı yalnızca altındaki kutuların üst yüzeyleri kadar
+katı; geri kalanı havada. Kutu oraya konamaz çünkü havada duramaz.
+
+**Sonuç:** çözüm "daha iyi boşluk seç" değil, **katı platform üretmek**. Yerleştirme, tabanı tam
+kaplayan yüzeyler bırakmalı — çıkıntı (ledge) üretmemeli. Bu, katman (layer) disiplininin asıl
+gerekçesi; v17'deki şerit denemesi doğru fikri yanlış uygulamıştı (bandı ilk kutunun yüksekliğine
+kilitlemek).
 
 ### Sıradaki: düzlük ödülü aramaya
 

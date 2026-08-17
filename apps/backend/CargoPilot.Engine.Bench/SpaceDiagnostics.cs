@@ -27,6 +27,7 @@ public static class SpaceDiagnostics
         double FreeVolumePercent,
         double LargestFreeSpacePercent,
         double UnplacedFittingGeometricallyPercent,
+        double UnplacedFittingAndSupportedPercent,
         double MeanFreeSpaceVolumeM3);
 
     public static Spaces Analyze(OptimizationInput input, OptimizationResult result)
@@ -58,15 +59,24 @@ public static class SpaceDiagnostics
         var freeVolume = containerVolume - placedVolume;
 
         var itemsById = input.Items.ToDictionary(i => i.ItemId);
+        var placed = DiagnosticPlacements.From(input, result);
         var unplacedTotal = 0;
         var unplacedFitting = 0;
+        var unplacedSupported = 0;
 
         foreach (var unplaced in result.UnplacedItems)
         {
             if (!itemsById.TryGetValue(unplaced.ItemId, out var item)) continue;
 
             unplacedTotal += unplaced.Quantity;
-            if (FitsSomewhere(spaces, item)) unplacedFitting += unplaced.Quantity;
+            if (!FitsSomewhere(spaces, item)) continue;
+
+            unplacedFitting += unplaced.Quantity;
+
+            // Geometrik sigmak yetmez: bosluğun TABANI destekli olmali. Kutu
+            // bosluğun koseine konur ve %80 destek kurali motorun kendi
+            // yukleminden sorulur.
+            if (SupportedSomewhere(spaces, placed, item)) unplacedSupported += unplaced.Quantity;
         }
 
         return new Spaces(
@@ -74,6 +84,7 @@ public static class SpaceDiagnostics
             Percent(freeVolume, containerVolume),
             Percent(largest, containerVolume),
             unplacedTotal == 0 ? 0d : (double)unplacedFitting / unplacedTotal * 100d,
+            unplacedTotal == 0 ? 0d : (double)unplacedSupported / unplacedTotal * 100d,
             meanVolume / 1_000_000d);
     }
 
@@ -86,6 +97,17 @@ public static class SpaceDiagnostics
         return PlacementValidator.GetOrientations(item)
             .Any(o => spaces.Any(space => space.Fits(o.width, o.height, o.length)));
     }
+
+    /// <summary>
+    /// Kutu, sigdigi bosluklardan BIRINDE destek de buluyor mu. Bulamiyorsa engel
+    /// geometri degil %80 destek kuralidir — yani yigin ustunun engebesi.
+    /// </summary>
+    private static bool SupportedSomewhere(
+        IReadOnlyList<FreeSpace> spaces, List<PlacedBox> placed, OptimizationItemInput item)
+        => PlacementValidator.GetOrientations(item)
+            .Any(o => spaces.Any(space =>
+                space.Fits(o.width, o.height, o.length)
+                && PlacementValidator.HasSupport(placed, space.X, space.Y, space.Z, o.width, o.length)));
 
     private static double Percent(decimal part, decimal total) => total == 0m ? 0d : (double)(part / total) * 100d;
 }
