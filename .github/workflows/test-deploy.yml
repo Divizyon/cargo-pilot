@@ -457,7 +457,27 @@ jobs:
             # Konteyner yoksa (ilk deploy) boş kalır ve geri alma denenmez.
             PREV_IMAGE_REF="$(docker inspect --format '{{.Config.Image}}' cargo-pilot-backend-test 2>/dev/null || true)"
             PREV_IMAGE_TAG="${PREV_IMAGE_REF##*:}"
-            echo "==> Geri alma çıpası: PREV_IMAGE_TAG=${PREV_IMAGE_TAG:-<yok>}"
+
+            # Çıpa doğrulaması: `.Config.Image` digest biçiminde
+            # (ghcr.io/...@sha256:abc...) veya tag'siz dönebilir. Bu durumlarda
+            # `##*:` geçerli bir tag değil, sha hex'i ya da tüm referans üretir.
+            # Geri alma böyle bir değerle denenirse `up` var olmayan bir image
+            # arar ve ortam bugünküne göre DAHA KÖTÜ duruma düşer. Şüpheliyse
+            # çıpa boşaltılır: geri alma atlanır, davranış mevcut hâle eşitlenir.
+            case "$PREV_IMAGE_REF" in
+              *@*)      PREV_IMAGE_TAG="" ;;   # digest referansı, tag yok
+              *:*)      : ;;                   # ref:tag — beklenen biçim
+              *)        PREV_IMAGE_TAG="" ;;   # hiç ':' yok, tag belirtilmemiş
+            esac
+            case "$PREV_IMAGE_TAG" in
+              ""|*/*|*" "*) PREV_IMAGE_TAG="" ;;  # boş, yol parçası ya da boşluk içeriyor
+            esac
+
+            if [ -z "$PREV_IMAGE_TAG" ]; then
+              echo "==> Geri alma çıpası: <yok> (ref='${PREV_IMAGE_REF:-<bos>}' — geri alma atlanacak)"
+            else
+              echo "==> Geri alma çıpası: PREV_IMAGE_TAG=${PREV_IMAGE_TAG}"
+            fi
 
             echo "==> Image'lar GHCR'dan çekiliyor (tag: ${IMAGE_TAG})..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose \
