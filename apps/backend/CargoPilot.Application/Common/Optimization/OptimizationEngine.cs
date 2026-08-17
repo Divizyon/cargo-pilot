@@ -10,7 +10,24 @@ internal sealed class OptimizationEngine : IOptimizationEngine
     // terimleri bastırır, yani motor önce alçak noktaları doldurur.
     private const decimal GravityCoefficient = 1_000_000m;
 
+    // ── Strateji dallanmasi ───────────────────────────────────────────────────
+    // Yeni yerlestirici greedy'nin YERINE degil YANINA gelir (R-C07/DR-01):
+    // varsayilan Greedy'dir ve bugunku 17 golden snapshot'i bayt bayt korur.
+    // Dallanma burada tek noktada durur; asagidaki greedy govdesi degismedi.
     public OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken = default)
+        => input.Strategy switch
+        {
+            PlacementStrategy.WallBuilder when input.Sequencer == SequencerKind.Gwca
+                => Search.GwcaSequencer.Run(input, cancellationToken),
+            PlacementStrategy.WallBuilder when input.Sequencer == SequencerKind.Ga
+                => Search.GaSequencer.Run(input, cancellationToken),
+            PlacementStrategy.WallBuilder when input.Sequencer == SequencerKind.Grasp
+                => Search.GraspSequencer.Run(input, cancellationToken),
+            PlacementStrategy.WallBuilder => WallBuilder.WallBuilderPlacement.Run(input, cancellationToken),
+            _ => RunGreedy(input, cancellationToken),
+        };
+
+    private static OptimizationResult RunGreedy(OptimizationInput input, CancellationToken cancellationToken)
     {
         // Modül bayrakları sıcak döngüden önce bir kez çözülür ve yerel
         // değişkenlere okunur, böylece aday taramasında kayıt alanı okunmaz.
@@ -206,36 +223,10 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                                                        input.VehicleLength, totalWeight, halfW, halfL,
                                                        cancellationToken);
 
-        totalWeight = placements.Sum(p => p.Weight);
-
-        var vehicleVolume = input.VehicleWidth * input.VehicleHeight * input.VehicleLength;
-        var placedVolume  = placements.Sum(p => p.Width * p.Height * p.Length);
-        var fillRate      = vehicleVolume > 0 ? placedVolume / vehicleVolume : 0m;
-
-        decimal? cogX = null, cogY = null, cogZ = null;
-        decimal? balanceOffsetX = null, balanceOffsetZ = null;
-        if (totalWeight > 0)
-        {
-            cogX = placements.Sum(p => p.Weight * (p.X + p.Width / 2)) / totalWeight;
-            cogY = placements.Sum(p => p.Weight * (p.Y + p.Height / 2)) / totalWeight;
-            cogZ = placements.Sum(p => p.Weight * (p.Z + p.Length / 2)) / totalWeight;
-
-            if (halfW > 0)
-                balanceOffsetX = Math.Round(Math.Abs(cogX.Value - halfW) / halfW * 100, 1);
-            if (halfL > 0)
-                balanceOffsetZ = Math.Round(Math.Abs(cogZ.Value - halfL) / halfL * 100, 1);
-        }
-
-        var placedResults = placements
-            .Select(p => new PlacedItemResult(Guid.NewGuid(), p.ItemId, p.X, p.Y, p.Z, p.Width, p.Height, p.Length, p.Rotation, p.Weight))
-            .ToList();
-
-        var unplacedResults = unplaced
-            .GroupBy(u => (u.ItemId, u.Reason))
-            .Select(g => new UnplacedItemResult(g.Key.ItemId, g.Count(), g.Key.Reason))
-            .ToList();
-
-        return new OptimizationResult(placedResults, unplacedResults, totalWeight, fillRate, cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ);
+        // Metrik hesabi iki yerlestiricinin ortak isidir; ayri yazilsalardi ayni
+        // metrigin iki tanimi olurdu (bkz. PlanResultBuilder).
+        return PlanResultBuilder.Build(
+            placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength);
     }
 
     // ── Maliyet fonksiyonu ────────────────────────────────────────────────────
