@@ -466,12 +466,12 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 
 | ID | Konu | Yer | Durum |
 | --- | --- | --- | --- |
-| **OPT-15** | **Ana yerleştirme döngüsü yalnızca AŞAĞI bakıyor: sonradan gelen kutu var olan bir yığının ALTINA konabiliyor ve kendi `MaxStackCount` / `MaxWeightOnTop` / kırılganlık kısıtları hiç sorulmuyor** | `OptimizationEngine.Run` + `PlacementValidator` | **açık · fiziksel geçerlilik** |
+| ~~OPT-15~~ | Ana yerleştirme döngüsü yalnızca AŞAĞI bakıyordu | `OptimizationEngine` · `WallBuilderPlacement` · `PlacementValidator` | **KAPANDI** (`DR-27`) — sekizinci kapı üç yere eklendi; 17 snapshot bayt birebir aynı kaldı |
 | OPT-14 | `UnloadingOrder ?? -1` sentinel'i `GroupId` kontrolü yapmıyor | `OptimizationEngine.cs` | açık · zararsız |
 | — | Eşit bölme kusuru | `LifoPlacement.ComputeGroupZones` | açık (greedy); Wall-Builder'da çözülür |
 | — | Sessiz yedek kademe raporlanmıyor | `OptimizationEngine` | açık → `ZoneViolations` ile kapanacak |
 | — | Snapshot `FragilityType` yok | `Golden/SnapshotPayload.cs` | açık → yeni korpusla kapanacak |
-| — | `ViolatesLoadAbove` doğrudan takas testi yok | `PlacementValidator.cs` | açık |
+| — | `ViolatesLoadAbove` doğrudan takas testi yok | `PlacementValidator.cs` | açık (aday tarafı `CepYerlesimiTests` ile kapandı) |
 | OPT-05 | `FragilityType` 10 üyeden 9'u etkisiz | `ContaminationFilter.cs` | kısmen |
 | — | `NotStackable`, `GeometryConstraint` üretilmiyor | `UnplacedReason` | açık → R-C04 |
 | — | WeightBalance ~29,5 sn / 500 kutu | `BalanceScoring.ImproveBalance` | kabul edildi |
@@ -510,10 +510,15 @@ Varsayım yanlış: extreme-point taraması bir kutuyu var olan yığının alt�
 **OPT-01 ile ilişkisi:** Aynı kör nokta OPT-01'de bulunmuş ve `ViolatesLoadAbove` yazılmıştı — ama
 yalnızca **denge takas geçişine** bağlandı, ana yerleştirme döngüsüne değil. Düzeltme yarım kaldı.
 
-**Durum:** Bilinçli olarak **ertelendi**. Düzeltmek ana döngüde aday eleyeceği için planları ve 17
-golden snapshot'ı kaydırır; `R-A15` gereği önce kırmızı test, sonra ayrı bir commit gerekir.
-Wall-Builder (F2) sert kapıları tek kaynaktan çağıracağı için yeni yerleştiricide baştan doğru olacak;
-greedy'deki düzeltme ayrı bir iş olarak durur.
+**Durum: KAPANDI (2026-08-18, `DR-27`).** Erteleme gerekçesi "17 golden snapshot'ı kaydırır" idi.
+Önce kırmızı test yazıldı (`CepYerlesimiTests`: köprü altındaki cebe kırılgan kutu yerleşiyordu,
+Wall-Builder'da üretildi), sonra `ViolatesLoadAbove` aday alanlarıyla çağrılabilen bir aşırı
+yüklemeye ayrılıp **üç** yere sekizinci kapı olarak eklendi: greedy taraması, Wall-Builder taraması
+ve blok inşası.
+
+Erteleme gerekçesi ölçümle geçersiz çıktı: **17 snapshot bayt birebir aynı kaldı** ve doluluk
+değişmedi (BR %79,86, giyotin %76,29). İki korpusta da kısıtlı kutu olmadığı için kapı orada hiç
+ateşlenmiyor — düzeltme yalnızca gerçekten geçersiz olan yerleşimleri reddediyor.
 
 ### E3.0.1 Araç tarafı düzeltmesi — çakışma yükleminde epsilon yoktu (kapandı)
 
