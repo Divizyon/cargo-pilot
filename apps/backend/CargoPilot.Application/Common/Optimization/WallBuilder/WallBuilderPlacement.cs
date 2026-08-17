@@ -152,39 +152,55 @@ internal static class WallBuilderPlacement
                 break;
             }
 
-            // Hicbir duvara sigmadiysa yeni duvar acilir. Derinligi ilk kutunun
-            // z olcusu tanimlar (G&R kurali, R-C08).
-            if (best is null)
+            // Iki yedek kademe ve SIRALARI. Sabit hicbir sira kazanmiyor: cebi
+            // once denemek BR'de +0,23 getiriyor ama giyotin korpusunda 3,38
+            // puan kaybettiriyor. Ikisi de gercek yuk bicimleri, dolayisiyla
+            // sira karari kromozomda durur (R-C15a).
+            void OpenNewWall()
             {
+                if (best is not null) return;
+
                 var frontier = walls.Count > 0 ? walls[^1].End : 0m;
                 var opened = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
                     frontier, null, zoneStart, zoneEnd, remaining, decoder.WallDepthPreference);
 
                 blockedByFragility |= opened.BlockedByFragility;
 
-                if (opened.Box is not null)
-                {
-                    best = opened.Box;
-                    blockZLimit = best.Z + best.Length;
-                    walls.Add(new Wall(best.Z, best.Z + best.Length));
-                }
+                if (opened.Box is null) return;
+
+                best = opened.Box;
+                blockZLimit = best.Z + best.Length;
+                walls.Add(new Wall(best.Z, best.Z + best.Length));
             }
 
-            // Son care: duvar bandi olmadan tum defteri tara. Olcum, yerlesemeyen
-            // kutularin %75,5'inin kalan bir bosluga GEOMETRIK olarak sigdigini
-            // gosterdi (300 senaryo) — yani hacim vardi, kutu da sigiyordu, onu
-            // disarida birakan sey duvar bandiydi.
+            // Duvar bandi olmadan tum defteri tara. Olcum, yerlesemeyen kutularin
+            // %75,5'inin kalan bir bosluga GEOMETRIK olarak sigdigini gosterdi
+            // (300 senaryo) — yani hacim vardi, kutu da sigiyordu, onu disarida
+            // birakan sey duvar bandiydi.
             //
             // Duvar disiplini bir CIKTI BICIMIDIR, fiziksel kural degil: sahadaki
             // yukleme pratigine uyan bir plan uretmek icin vardir. Kutuyu bandi
             // yuzunden disarida birakmak, bicimi doluluga tercih etmek olurdu.
-            if (best is null)
+            void ScanPockets()
             {
+                if (best is not null) return;
+
                 var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
                     0m, null, zoneStart, zoneEnd, remaining, 0m);
 
                 blockedByFragility |= anywhere.BlockedByFragility;
                 best = anywhere.Box;
+            }
+
+            if (decoder.PocketBeforeNewWall)
+            {
+                ScanPockets();
+                OpenNewWall();
+            }
+            else
+            {
+                OpenNewWall();
+                ScanPockets();
             }
 
             if (best is null)

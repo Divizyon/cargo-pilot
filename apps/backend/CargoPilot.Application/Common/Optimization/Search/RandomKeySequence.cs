@@ -19,19 +19,21 @@ internal static class RandomKeySequence
 {
     /// <summary>
     /// Vektor duzeni sabittir ve tek yerde yazilidir:
-    /// <c>[0, N)</c> sira anahtarlari · <c>[N]</c> decoder geni ·
-    /// <c>[N+1, 2N+1)</c> yonelim anahtarlari (opsiyonel).
+    /// <c>[0, N)</c> sira anahtarlari · <c>[N, N+G)</c> decoder genleri ·
+    /// <c>[N+G, 2N+G)</c> yonelim anahtarlari (opsiyonel). <c>G</c> sabittir
+    /// (<see cref="DecoderKeys.GeneCount"/>) ve gen eklendiginde vektor duzeni
+    /// kaymasin diye bastan bol tutulmustur.
     ///
     /// Decoder geni ortada durur cunku her zaman vardir; yonelim anahtarlari
     /// ise bugun uretilmiyor (olculdu, kaybetti) ve vektorun sonunda opsiyonel
     /// kalir. Sondaki bloga bakan kod uzunlugu tam olarak sinar, aksi halde
     /// decoder geni sessizce ilk kutunun yonelim anahtari sanilirdi.
     /// </summary>
-    internal static int KeyLength(int itemCount) => itemCount + 1;
+    internal static int KeyLength(int itemCount) => itemCount + DecoderKeys.GeneCount;
 
     /// <summary>Vektorun decoder geni; yoksa tercihsiz.</summary>
     internal static DecoderKeys Decoder(double[] keys, int itemCount)
-        => keys.Length > itemCount ? DecoderKeys.From(keys[itemCount]) : DecoderKeys.Neutral;
+        => keys.Length >= KeyLength(itemCount) ? DecoderKeys.From(keys, itemCount) : DecoderKeys.Neutral;
 
     /// <summary>
     /// Anahtarlari siraya cevirir. Yonelim anahtari kutuyla birlikte tasinir
@@ -63,8 +65,8 @@ internal static class RandomKeySequence
                 .OrderBy(e => e.Key)
                 .ThenBy(e => e.Index);
 
-        var hasOrientation = keys.Length >= 2 * instances.Count + 1;
-        var orientationOffset = instances.Count + 1;
+        var hasOrientation = keys.Length >= 2 * instances.Count + DecoderKeys.GeneCount;
+        var orientationOffset = instances.Count + DecoderKeys.GeneCount;
 
         return
         [
@@ -120,7 +122,10 @@ internal static class RandomKeySequence
 
         // Tohum bireyler tercihsiz baslar: sezgisel siralamalar bugunku
         // davranisi temsil etmeli, arama sapmayi kendisi kesfetsin (R-C21).
-        keys[instances.Count] = 0.5d;
+        for (var g = 0; g < DecoderKeys.GeneCount; g++)
+        {
+            keys[instances.Count + g] = DecoderKeys.SeedGene(g);
+        }
 
         return keys;
     }

@@ -865,3 +865,45 @@ Bu, iyi bir takas değil.
 
 `DR-16` artık "müşteri onayı bekliyor" değil: **ölçüldü ve kapatıldı.** Karar isterse yeniden
 açılabilir — düzenek yerinde, `--support` ile herhangi bir değer dakikalar içinde ölçülür.
+
+---
+
+## Deney serisi · "en ufak kazancı da dene"
+
+Ölçüt BR1-BR7 (birincil), giyotin regresyon olarak izlendi. İkisi de Wall-Builder.
+
+| # | Deneme | BR1-BR7 | Giyotin | Karar |
+|---|---|---|---|---|
+| — | Taban çizgi | %79,86 | %76,29 | — |
+| D1 | Blok ölçütü = boşluk **doluluk oranı** (adet yerine) | %79,78 | %75,42 | ✗ ikisinde de kayıp |
+| D2 | `minSide`'ı kutular tükendikçe yeniden hesapla | %79,86 | %76,29 | ✗ nötr — kod ve maliyet karşılığı sıfır |
+| D7 | Duvar taramasında ilk kabul eden değil **en iyi** duvar | %79,89 | %75,67 | ✗ BR'de gürültü, giyotinde −0,62 |
+| D12 | Cebi yeni duvardan **önce** tara | **%80,09** | %72,91 | ✗ BR'de +0,23 ama giyotinde −3,38 |
+| **D14** | **D12 kararını kromozoma taşı** | %79,86 static · **%85,38** GRASP | %76,29 static | ✓ tutuldu |
+
+### D2 neden reddedildi
+
+Doluluk birebir aynı çıktı — beklendiği gibi, çünkü `minSide` büyüdükçe yapılan budama
+**güvenlidir**: o boşluğa kalan hiçbir kutu zaten sığmıyor. Hız farkı (52 → 50 ms) gürültü
+bandında. Sıfır kazanç için kod ve yerleştirme başına `O(N)` tarama eklemek doğru olmaz.
+
+### D7 neden reddedildi
+
+Fit anahtarının ilk terimi `Y` (yerçekimi). Duvarlar arasından "en iyi"yi seçmek, açılış sırasına
+göre daha alçak olan duvarı bırakıp sonrakine atlayabiliyor. Erken çıkış aslında bir yerçekimi
+tercihiymiş.
+
+### D12 → D14: sabit sıra yine kaybetti
+
+Cebi yeni duvardan önce taramak BR'de kazandırıyor, giyotinde yıkıyor. **İkisi de gerçek yük
+biçimi:** tamamen tekrarlı bir sevkiyat BR'ye, karışık tek parça bir yük giyotine benzer. Birini
+seçmek ötekini feda etmek olurdu.
+
+Bu, oturumun üçüncü kez tekrarlayan deseni (`DR-18`, `DR-23`, şimdi bu): **sabit katsayı/sıra
+kazanmıyor, karar kromozoma ait.** Decoder gen bloğu 4 gene çıkarıldı ve vektör düzeni gen
+eklendiğinde kaymayacak şekilde sabitlendi:
+`[0, N)` sıra · `[N, N+4)` decoder · `[N+4, 2N+4)` yönelim.
+
+Statik yol **birebir korundu** (%79,86 / %76,29) — tohum bireyler bugünkü davranışı temsil ediyor,
+sapmayı arama keşfediyor (`R-C21`). GRASP kazancı %85,32 → **%85,38**; küçük, ama asıl değeri
+korpusa bağlı bir sabit kararı ortadan kaldırması.

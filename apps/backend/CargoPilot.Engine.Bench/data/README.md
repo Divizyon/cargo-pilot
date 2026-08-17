@@ -13,6 +13,14 @@ Her dosya 100 örnek taşır; konteyner tüm örneklerde 587 × 233 × 220 cm'di
 | thpack6.txt | BR6 | 15 |
 | thpack7.txt | BR7 | 20 |
 
+## BR8-BR15 neden yok
+
+Denendi, **OR-Library'de bulunmuyor**. `thpack10` ve `thpack11` adresleri `thpack1`'in birebir
+kopyasını döndürüyor (sunucu benzer isimde belge sunuyor, md5 aynı). `thpack8` Loh & Nee kıyası,
+`thpack9` ise bambaşka bir ölçekte (konteyner 10×6×16) ve ikisi de farklı başlık biçiminde —
+örnek satırında tohum alanı yok. BR8-BR15 (Davies & Bischoff 1999) ayrı bir veri kümesidir ve bu
+kaynakta yayınlanmamış.
+
 **Kaynak:** OR-Library, J. E. Beasley —
 `https://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/thpack{1..7}.txt`
 

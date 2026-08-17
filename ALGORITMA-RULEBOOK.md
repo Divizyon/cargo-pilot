@@ -305,10 +305,11 @@ kutu sığar" diye sorar, "bir kutu ne kadar sıkı oturur" diye değil — öl�
 tek başına %79,03 → %79,04, ölçüt değişince %79,86; GRASP ile %83,50 → %85,22). Ölçü **adet**tir,
 hacim değil (`DR-22`). Kaynak: Eley 2002 blok inşası; Gehring & Bortfeldt 1997 kule.
 
-`R-C15a` **Decoder geni (F3a).** Kromozom yalnız sırayı değil, **plan düzeyindeki kararları** da
-taşır. Vektör düzeni tek yerde yazılıdır: `[0, N)` sıra anahtarları · `[N]` decoder geni ·
-`[N+1, 2N+1)` yönelim anahtarları (opsiyonel). Bugün tek gen vardır: yeni duvar açılırken derinlik
-tercihi (derin / yansız / sığ). Tohum bireyler **yansız** başlar, yani sezgisel sıralamalar
+`R-C15a` **Decoder genleri (F3a).** Kromozom yalnız sırayı değil, **plan düzeyindeki kararları** da
+taşır. Vektör düzeni tek yerde yazılıdır: `[0, N)` sıra anahtarları · `[N, N+G)` decoder genleri ·
+`[N+G, 2N+G)` yönelim anahtarları (opsiyonel). `G = 4` sabittir ve gen eklendiğinde vektör düzeni
+kaymasın diye baştan bol tutulmuştur. Bugün iki gen kullanılır: yeni duvar açılırken derinlik
+tercihi (derin / yansız / sığ) ve yedek kademe sırası (cep önce mi, yeni duvar önce mi, `DR-29`). Tohum bireyler **yansız** başlar, yani sezgisel sıralamalar
 bugünkü davranışı temsil eder ve sapmayı arama keşfeder (`R-C21`). Sabit derinlik kuralının neden
 kazanamadığı `DR-23`'te.
 
@@ -453,6 +454,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-26** | **Plan, kendisini üreten koşunun kimliğini saklar** (yerleştirici, sequencer, tohum, arama istatistiği) | Determinizm sözleşmesi (`R-C02`) bunlar olmadan kullanılamaz: planı yeniden üretmek isteyenin elinde yalnızca sonuç kalırdı. Duvar örücü açıldığında aynı girdi iki farklı motordan geçebiliyor ve veritabanında ayırt edilemiyordu |
 | **DR-27** | **Sekizinci kapı: aday kendi istif/kırılganlık kısıtlarına karşı da sınanır** (OPT-15 kapatıldı) | Dört istif kuralı yalnızca aşağı bakıyordu; "yeni kutu daima yığının en üstüne konur" varsayımı yanlış, çünkü boşluk defteri cebi aday olarak tutar. Ölçüldü: köprü altındaki cebe kırılgan kutu yerleşiyordu. Düzeltme doluluğu değiştirmedi ve 17 golden snapshot bayt birebir aynı kaldı |
 | **DR-28** | **Doluluk kapısı yalnızca statik sequencer'ı ölçer** (`engine-bench.yml`) | Aramanın bütçesi duvar saatidir; yavaş koşucu daha az iterasyon yapar ve sonuç makineye bağlı çıkar, kapı gürültüden kalırdı. Statik yol saf hesap olduğu için her düşüş gerçek bir gerilemedir ve tolerans (0,05 puan) yalnızca JSON yuvarlamasına karşıdır |
+| **DR-29** | **Yedek kademe sırası (cep / yeni duvar) da kromozomda** (`R-C15a`) | Cebi önce taramak BR'de +0,23, giyotinde −3,38. İkisi de gerçek yük biçimi; sabit sıra birini feda ediyor. Oturumun üçüncü "sabit değer kazanmıyor" bulgusu (`DR-18`, `DR-23`) |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 
