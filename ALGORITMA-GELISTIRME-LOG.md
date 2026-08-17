@@ -385,3 +385,51 @@ zaman hem doğru hem ucuz olabilir — V3 zaten 7 kat hızlı (8,3 ms / 56,4 ms)
 F2b sonrası yeniden ölçülecek. Üretimde tek kalan iz: `PlacementValidator.SupportRatio`
 ayrıştırması (`HasSupport` artık ona delege ediyor) — F2b'nin düzlük terimi de ham orana
 ihtiyaç duyacak.
+
+---
+
+## F2b · Yerel düzlük terimi — **kısmi kazanç, çıkış eşiği tutmadı**
+
+**Metrik.** Aday kutunun üst yüzü, **yanındaki** kutuların üst yüzleriyle ne kadar aynı hizada
+bitiyor: temas uzunluğuyla ağırlıklandırılmış ortalama sapma. Komşuluk yereldir ve yalnız aynı
+dikey banttaki kutuları sayar — küresel hizalama v-önceki denemede kaybetmişti (−0,55).
+
+**Dört yerleşim denendi.** Aynı komut, 300 senaryo, static sequencer:
+
+| Varyant | Ortalama | Medyan | p5 | En kötü | Engebe | Ölü hava |
+|---|---|---|---|---|---|---|
+| Taban çizgi (düzlük yok) | %75,99 | %76,06 | %68,01 | %60,16 | 56,6 cm | %15,20 |
+| Sığdırmanın **önünde** | %75,30 | %75,17 | %66,62 | %58,74 | 57,2 cm | %15,68 |
+| İkili "tam hizalı" bayrağı önde | %76,06 | %75,95 | %67,14 | %63,22 | 56,3 cm | %14,95 |
+| Ağırlıklı toplam α=0,75 | %75,99 | %75,97 | %67,26 | %57,96 | 56,1 cm | %14,99 |
+| Ağırlıklı toplam α=0 (kontrol) | %76,04 | %75,91 | %66,51 | %60,86 | 56,4 cm | %15,16 |
+| **Sığdırmanın ardında (seçildi)** | **%76,23** | %75,95 | **%68,03** | **%62,89** | **56,1 cm** | **%14,88** |
+
+Ağırlıklı toplamda α=0 kontrolü gerekliydi: o varyant artık ölçüsünü mutlak cm²'den kesire
+çevirdiği için α'nın etkisi tek başına okunamazdı. α=0 → %76,04, α=0,75 → %75,99; yani pazarlık
+payı vermek **kazandırmıyor**, kazanç kesire geçişten geliyordu ve o da sözlükbilimsel varyantın
+altında.
+
+**GRASP ile (aynı bütçe, 300 senaryo, medyan ~2020 ms):**
+
+| | Taban çizgi | Düzlük terimiyle |
+|---|---|---|
+| Ortalama | %77,76 | **%77,87** |
+| Medyan | %77,54 | %77,77 |
+| p5 | %70,56 | %69,76 |
+| En kötü | %62,55 | **%64,16** |
+
+**Sonuç: küçük ama gerçek bir kazanç, yanlış hedefte.** Ortalama +0,24 (static) / +0,11 (GRASP),
+**en kötü senaryo +2,73 / +1,61** — asıl değeri alt kuyruğu toplaması. Kod korundu.
+
+**Çıkış eşiği tutmadı.** Hedef engebe 56,6 → <30 cm ve ölü hava %15,2 → <%8 idi; gelinen yer
+56,1 cm ve %14,9. Altı varyantın hiçbirinde engebe 56,1'in altına inmedi.
+
+**Neden.** Düzlük skoru **miyop**: yalnızca defterin o an sunduğu adaylar arasından seçebiliyor ve
+o adayların üst yüzü kutunun kendi yüksekliğiyle belirli. Yüzeyi gerçekten düzleştirmek "hangi
+kutular yan yana gelsin" kararıdır — yerleştirme **skoru** değil, **gruplama/sıralama** kararı.
+Bu da F4a (kule inşası: aynı ayak izli kutuları kontrollü yükseklikte sütuna yığmak) ve F3a
+(kararı kromozoma taşımak) demek.
+
+**Yön düzeltmesi:** engebe tek başına bir yerleştirici parametresiyle çözülmüyor. Sıradaki
+kritik yol F3a değil **F4a**; kule inşası aynı yükseklikte biten yüzeyleri kutu seçimiyle üretir.

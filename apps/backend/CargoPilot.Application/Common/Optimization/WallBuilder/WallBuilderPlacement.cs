@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization.WallBuilder;
@@ -204,10 +204,20 @@ internal static class WallBuilderPlacement
     /// <summary>
     /// Aday karsilastirma anahtari (bosluk x yonelim). Kucuk olan kazanir;
     /// <c>Rotation</c> son eslik bozucudur ve determinizmi garanti eder.
+    ///
+    /// <c>Flatness</c>'in sirasi olcumle secildi. Sigdirmanin ONUNE alinca
+    /// kaybediyor (%75,99 → %75,30): "biraz daha hizali ama kotu oturan" adayi
+    /// seciyor. Tam hizalanmayi ikili bayrakla one almak da kaybediyor (%76,06).
+    /// Normalize edilmis agirlikli toplam da kazandirmadi (α=0 → %76,04,
+    /// α=0,75 → %75,99). Kazanan bicim bu: sigdirmanin ARDINDAN, esit oturan
+    /// adaylar arasinda karar vermek — %76,23 ve en kotu senaryo %60,16 →
+    /// %62,89. Duzluk bir tercih olarak degerli, kisit olarak degil
+    /// (ALGORITMA-RULEBOOK.md R-C09b).
     /// </summary>
     private readonly record struct OrientationFit(
         decimal Y,
         decimal Residual,
+        decimal Flatness,
         decimal DepthWaste,
         decimal NegativeBaseArea,
         LoadingPlanPlacementRotation Rotation)
@@ -219,6 +229,9 @@ internal static class WallBuilderPlacement
 
             var byResidual = Residual.CompareTo(other.Residual);
             if (byResidual != 0) return byResidual < 0;
+
+            var byFlat = Flatness.CompareTo(other.Flatness);
+            if (byFlat != 0) return byFlat < 0;
 
             var byDepth = DepthWaste.CompareTo(other.DepthWaste);
             if (byDepth != 0) return byDepth < 0;
@@ -311,7 +324,9 @@ internal static class WallBuilderPlacement
                 // bir daha kullanilamaz.
                 var residual = space.Width * space.Length - width * length;
                 var candidate = new OrientationFit(
-                    y, residual, space.MaxZ - (z + length), -(width * length), rotation);
+                    y, residual,
+                    TopDeviation(placements, x, y, z, width, height, length),
+                    space.MaxZ - (z + length), -(width * length), rotation);
 
                 if (bestFit is null || candidate.IsBetterThan(bestFit.Value))
                 {
@@ -332,6 +347,53 @@ internal static class WallBuilderPlacement
         // Bolge kisiti burada sertlesir: bolge ici aday varsa o kazanir, yoksa
         // kutu yalnizca bolgesi dar kaldi diye dusmez (greedy ile ayni kademe).
         return new Attempt(bestInZone ?? best, blockedByFragility);
+    }
+
+    /// <summary>
+    /// Yerel duzluk cezasi: adayin ust yuzu, YANINDAKI kutularin ust yuzleriyle
+    /// ne kadar ayni hizada bitiyor. Temas uzunluguyla agirliklandirilmis
+    /// ortalama sapma; kucuk olan daha duz bir yuzey birakir.
+    ///
+    /// Olcum bunu isaret ediyor: yigin yuksekligi zaten %84,8 ama ust yuzey
+    /// engebesi 56,6 cm ve olu havanin tamami (%15,2) o engebenin ustunde
+    /// kaliyor. Kayip hacim yigin ICINDE degil, yiginin tepesindeki girinti
+    /// cikintilarda.
+    ///
+    /// Komsuluk YERELDIR ve bu kasitli: kuresel hizalama denendi ve kaybetti
+    /// (−0,55 puan, engebe kotulesti). Tek duzleme zorlanan sutunlar yerel
+    /// uyumu bozuyor. Bu yuzden yalnizca temas eden ve ayni dikey bantta olan
+    /// kutular sayilir (ALGORITMA-RULEBOOK.md R-C09b, Ojha vd. 2020 WallE).
+    /// </summary>
+    private static decimal TopDeviation(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal height, decimal length)
+    {
+        var top = y + height;
+        var weighted = 0m;
+        var contact = 0m;
+
+        foreach (var b in placed)
+        {
+            // Ayni dikey bantta degilse komsu sayilmaz: alttaki katin kutusu
+            // yan yana gorunur ama ayni yuzeyi paylasmaz.
+            if (b.Y >= top || y >= b.Y + b.Height) continue;
+
+            var touchX = b.X + b.Width == x || x + width == b.X;
+            var touchZ = b.Z + b.Length == z || z + length == b.Z;
+            if (!touchX && !touchZ) continue;
+
+            var span = touchX
+                ? Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z)
+                : Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X);
+
+            if (span <= 0m) continue;
+
+            weighted += span * Math.Abs(top - (b.Y + b.Height));
+            contact += span;
+        }
+
+        return contact == 0m ? 0m : weighted / contact;
     }
 
     private static PlacedBox Create(

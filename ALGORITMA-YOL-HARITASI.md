@@ -54,18 +54,26 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 | Faz | İçerik | Çıkış eşiği | Dayanak |
 |---|---|---|---|
 | ~~**F2a** · Destek-farkında defter~~ | ~~Boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınır~~ | **ÖLÇÜLDÜ, REDDEDİLDİ (`DR-17`)** — üç varyant, en iyisi %75,99 → %74,00. Havada duran taban köprü kurmanın tek aday kaynağıymış | Öneri 3 · Parreño 2008 |
-| **F2b** · Yerel düzlük terimi ← **şimdi kritik yol** | 2.5D yükseklik haritası; skor `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h`. Başlangıç: α₁=0,75 α₂=1 α₃=1 α₄=0,01 α₅=1 | **Üst yüzey SS 56,6 cm → <30 cm** ve **ölü hava %15,2 → <%8** | Öneri 1 · Ojha vd. 2020 |
+| **F2b** · Yerel düzlük terimi | Temas ağırlıklı üst yüzey sapması, sığdırmanın ardında sıralama ölçütü | **KISMİ (`DR-18`)** — doluluk %75,99 → %76,23, en kötü %60,16 → %62,89. Engebe eşiği tutmadı: 56,6 → 56,1 cm (hedef <30), ölü hava %15,2 → %14,9 (hedef <%8) | Öneri 1 · Ojha vd. 2020 |
 | **F2a′** · Destek-farkında defter, ikinci deneme | F2b'den sonra yeniden ölçülür: yüzey düzleşince destekli bölgeler büyür | Doluluk taban çizgiyi geçmeli; yan kazanç: 7 kat hız (8,3 ms / 56,4 ms) | `DR-17` |
 | **F2c** · BR benchmark geçişi | Birincil ölçüm BR1-BR7 + BR8-BR15; giyotin korpus yalnız regresyon | BR1-BR7 ortalaması raporlanabilir | Öneri (d) |
 | **F3a** · Decoder'ı kromozoma taşı | Kromozom: sıra anahtarları + maximal-space seçim kuralı + düzlük/derinlik ağırlıkları (α'lar) | Arama kazancı +1,5'ten yukarı | Öneri 4 · G&R BRKGA 2012 |
 | **F3b** · GWCA emekli, GRASP devralır | `DR-03` uygulanır; GWCA ve GA referans olarak kodda kalır | Varsayılan sequencer GRASP | DR-03 · 300 senaryo ölçümü |
-| **F4a** · Kule/sütun inşası | Aynı ayak izli kutular dikey kuleye yığılır, kule duvara tek katı birim olarak konur | Engebe metriğinde iyileşme; yatay stabilite bozulmamalı | Öneri 2 · Gehring & Bortfeldt 1997 |
+| **F4a** · Kule/sütun inşası ← **şimdi kritik yol** | Aynı ayak izli kutular dikey kuleye yığılır, kule duvara tek katı birim olarak konur | **Üst yüzey SS 56,1 cm → <30 cm** ve **ölü hava %14,9 → <%8** (F2b'den devredildi); yatay stabilite bozulmamalı | Öneri 2 · Gehring & Bortfeldt 1997 · `DR-18` |
 | **F4b** · Dinamik duvar derinliği | Çoklu aday derinlik + sığ ağaç araması | +1-2 puan | Öneri 5 · Pisinger 2002 |
 | **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | KK-06b, KK-07 | Eski F4 |
 
 ### Sıra ve gerekçe
 
-**Kritik yol artık F2b → F2a′.** Plan başta F2a → F2b idi; ölçüm sırayı ters çevirdi. "%72,7
+**Kritik yol artık F4a.** İki tur ölçüm sırayı iki kez değiştirdi. F2b'nin altı varyantı
+engebeyi 56,1 cm'nin altına indiremedi: düzlük skoru **miyop**, yalnız defterin sunduğu adaylar
+arasından seçiyor ve o adayların üst yüzü kutunun kendi yüksekliğiyle belirli. Yüzeyi
+düzleştirmek "hangi kutular yan yana gelsin" kararıdır — yerleştirme skoru değil **gruplama**.
+Kule inşası (F4a) tam olarak bunu yapar: aynı ayak izli kutuları kontrollü yükseklikte bir
+sütuna yığıp duvara tek katı birim olarak koyar, yani yüzeyin bitiş yüksekliğini **seçilir**
+kılar. F4a bu yüzden artık "koşullu" değil, kritik yol.
+
+**Eski gerekçe (F2b → F2a′), kayıt için.** Plan başta F2a → F2b idi; ölçüm sırayı ters çevirdi. "%72,7
 sığıyor / %3,2 destekli" rakamı defterin kusurunu değil **yığın üst yüzeyinin engebesini**
 ölçüyormuş: defteri dürüst yapmak boşluk sayısını 72 → 25'e indirdi, engebeyi 56,6 → 62,6 cm'ye
 çıkardı ve doluluğu düşürdü (`DR-17`). Önce yüzey düzleşmeli; destekli bölgeler büyüdüğünde
@@ -78,8 +86,11 @@ katmanında demektir — bu tek başına bir teşhis aracı.
 **F3a ondan sonra.** Yerleştirici düzelmeden decoder'ı zenginleştirmek, kararsız bir decoder'a
 daha çok parametre vermek olur.
 
-**F4a koşullu:** kutu seti zayıf-heterojense değerli, güçlü-heterojende kule kurmak zorlaşır.
-BR8-BR15 ölçümü bu kararı verecek.
+**F4a artık koşullu değil (`DR-18`).** Eski gerekçe "kutu seti zayıf-heterojense değerli,
+güçlü-heterojende kule kurmak zorlaşır" idi. F2b ölçümü bunu geçersiz kıldı: engebe yerleştirme
+skoruyla düşmüyor ve engebe kayıp hacmin tamamının durduğu yer. Kule kurmanın zorluğu bir maliyet,
+engebe ise doğrudan darboğaz. BR8-BR15 ölçümü kararı değil, **kule yüksekliği politikasını**
+belirleyecek.
 
 ### Bekleyen politika kararı
 

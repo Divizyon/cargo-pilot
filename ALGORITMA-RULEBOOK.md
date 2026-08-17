@@ -287,11 +287,16 @@ kule örücüye dönüşüyor. "%72,7 sığıyor ama desteksiz" rakamı defterin
 ölçüsüdür. Bu yüzden `R-C09b` (düzlük) F2a'nın **ardılı değil öncülüdür**; yüzey düzleştikten
 sonra destek-farkında defter yeniden ölçülecektir (varyant 7 kat da hızlıydı: 8,3 ms / 56,4 ms).
 
-`R-C09b` **Yerel düzlük terimi (F2b).** Yerleştirme skoru 2.5D yükseklik haritası üzerinden bir
-düzlük bileşeni taşır: `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h` (Ojha vd. 2020, WallE).
-`G_var` **yerel** komşuluktaki yükseklik varyansıdır — küresel hizalama denendi ve kaybetti
-(−0,55 puan, engebe kötüleşti): küresel referans tüm sütunları tek düzleme zorlayıp yerel uyumu
-bozuyor. Başlangıç katsayıları α₁=0,75 α₂=1 α₃=1 α₄=0,01 α₅=1; veri-bağımlıdır, kalibre edilir.
+`R-C09b` **Yerel düzlük terimi (F2b).** **UYGULANDI, KISMİ — bkz. `DR-18`.** Yerleştirme skoru
+yerel bir düzlük bileşeni taşır: adayın üst yüzünün, **temas eden ve aynı dikey banttaki**
+kutuların üst yüzlerinden ortalama sapması (temas uzunluğuyla ağırlıklı). Komşuluk yereldir —
+küresel hizalama denendi ve kaybetti (−0,55 puan).
+Terim **sığdırma ölçütünün ardında** durur; önüne alınması (%75,30), ikili bayrak olarak öne
+alınması (%76,06) ve normalize ağırlıklı toplam (α=0,75 → %75,99) ölçüldü ve hepsi kaybetti.
+Seçilen biçim %75,99 → **%76,23**, en kötü senaryo %60,16 → %62,89 verdi.
+WallE'nin tam skoru (`−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h`, Ojha vd. 2020)
+**uygulanmadı**: ağırlıklı toplam denendi ve sözlükbilimsel sıranın altında kaldı; α'lar
+F3a'da kromozoma taşınana kadar kalibrasyon borcu açmaya değmiyor.
 
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
 `R-C11` **Boşluk güncelleme.** Yerleşim sonrası kesişen boşluklar silinir, yerine ≤6 yeni prizmatik boşluk üretilir; kalan kutuların en küçük boyutuna sığmayan boşluk `rejected`; `rejected` boşlukların komşuyla birleştirilmesi (amalgamation) `EnableAmalgamation` bayrağı ile (varsayılan kapalı, ölçülünce açılır).
@@ -423,6 +428,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-15** | **%90-95 hedefi korpus adıyla birlikte söylenir** | Literatürün en iyileri BR1-BR7'de ~%92-93. "Hedef %90-95" hangi korpusta dendiği belirtilmeden anlamsız |
 | **DR-16 ⏳** | **%80 destek eşiği artık teknik kısıt değil, politika kararı** | Hemminki vd. 1989 sarılı palette %70'i yeterli buluyor; Ramos vd. 2016 statik mekanik denge kriterinin tam destekten daha iyi hacim verdiğini ve 15 sınıfın 8'inde best-in-class'ı geçtiğini gösteriyor. **Müşteri onayı bekliyor** |
 | **DR-17** | **Boşluk defteri destek-farkında yapılmayacak; F2b (düzlük) F2a'nın önüne alındı** (`R-C09a`) | 300 senaryo, üç varyant, hepsi taban çizginin altında (%75,99 → en iyi %74,00). Havada duran taban, %80 kuralının köprü kurmasını sağlayan aday kaynağı; kırpınca boşluk 72 → 25'e, engebe 56,6 → 62,6 cm'ye gidiyor. "Sığıyor ama desteksiz" oranı defterin değil yüzey engebesinin ölçüsü |
+| **DR-18** | **Yüzey engebesi yerleştirme skoruyla çözülmüyor; kritik yol F4a (kule inşası)** (`R-C09b`) | Altı varyant ölçüldü, engebe 56,6 cm'den 56,1 cm'nin altına hiç inmedi (hedef <30). Düzlük skoru miyop: defterin sunduğu adaylar arasından seçiyor, o adayların üst yüzü ise kutunun kendi yüksekliğiyle belirli. Yüzeyi düzleştirmek "hangi kutular yan yana gelsin" kararı — skor değil gruplama. Terim yine de korundu: ortalama +0,24, **en kötü senaryo +2,73** |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 
