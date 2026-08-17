@@ -42,6 +42,7 @@ public static class SoakCommand
         Console.WriteLine();
 
         var waste = new List<WasteDiagnostics.Breakdown>();
+        var rejections = new List<RejectionDiagnostics.Reasons>();
         var seed = options.SeedFrom;
 
         // Kiyasta sure degil ADET sinirlanir: farkli butceler farkli sayida senaryo
@@ -66,7 +67,11 @@ public static class SoakCommand
                 var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
                 stats.Add(scenario, input, result, elapsedMs);
-                if (options.Verbose) waste.Add(WasteDiagnostics.Analyze(input, result));
+                if (options.Verbose)
+                {
+                    waste.Add(WasteDiagnostics.Analyze(input, result));
+                    if (rejections.Count < 20) rejections.Add(RejectionDiagnostics.Analyze(input, result));
+                }
             }
 
             seed++;
@@ -82,6 +87,7 @@ public static class SoakCommand
         Console.WriteLine(stats.Summary(clock.Elapsed, seed - options.SeedFrom));
 
         if (waste.Count > 0) WriteWaste(waste);
+        if (rejections.Count > 0) WriteRejections(rejections);
         if (options.ReportPath is not null) WriteReport(options.ReportPath, stats, clock.Elapsed);
 
         return BenchOptions.ExitOk;
@@ -106,6 +112,29 @@ public static class SoakCommand
             $"  ust yuzey engebe: {waste.Average(w => w.TopRoughnessCm):F1} cm (std sapma)"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"  duz sutun orani : %{waste.Average(w => w.FlatFractionPercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  EN YUKSEK sutun : %{waste.Average(w => w.MaxPileHeightPercent):F1}  (etkin yuzey budur)"));
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Yerlesemeyen kutularin ret sebebi. Ornek sayisi kucuk tutulur: her senaryo
+    /// icin binlerce konum taranir ve amac tam sayim degil, dagilim.
+    /// </summary>
+    private static void WriteRejections(List<RejectionDiagnostics.Reasons> rejections)
+    {
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"ret sebebi dagilimi ({rejections.Count} senaryo ornegi)"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  arac disi      : %{rejections.Average(r => r.OutOfBoundsPercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  cakisma        : %{rejections.Average(r => r.OverlapPercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  DESTEKSIZ      : %{rejections.Average(r => r.UnsupportedPercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  istif kurali   : %{rejections.Average(r => r.StackRulePercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  UYGUN (kacan)  : %{rejections.Average(r => r.FeasiblePercent):F1}"));
         Console.WriteLine();
     }
 

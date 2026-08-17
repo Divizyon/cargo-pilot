@@ -31,6 +31,7 @@ public static class WasteDiagnostics
         double MeanPileHeightPercent,
         double TopRoughnessCm,
         double FlatFractionPercent,
+        double MaxPileHeightPercent,
         int UnplacedBoxes);
 
     public static Breakdown Analyze(OptimizationInput input, OptimizationResult result)
@@ -41,7 +42,7 @@ public static class WasteDiagnostics
         var nx = (int)Math.Ceiling(input.VehicleWidth / CellCm);
         var ny = (int)Math.Ceiling(input.VehicleHeight / CellCm);
         var nz = (int)Math.Ceiling(input.VehicleLength / CellCm);
-        if (nx <= 0 || ny <= 0 || nz <= 0) return new Breakdown(0, 0, 0, 0, 0, 0, 0);
+        if (nx <= 0 || ny <= 0 || nz <= 0) return new Breakdown(0, 0, 0, 0, 0, 0, 0, 0);
 
         var occupied = new bool[nx * ny * nz];
 
@@ -105,6 +106,10 @@ public static class WasteDiagnostics
             columns > 0 ? pileHeightSum / columns / ny * 100d : 0d,
             roughness,
             flat,
+            // Etkin yuzey ortalama degil MAKSIMUMDUR: bir kutunun oturacagi
+            // yukseklik, ayak izinin altindaki en yuksek noktadir. Tek bir yuksek
+            // kutu koca bir alani kullanilamaz kilar.
+            columns > 0 ? tops.Max() / (double)ny * 100d : 0d,
             result.UnplacedItems.Sum(u => u.Quantity));
     }
 

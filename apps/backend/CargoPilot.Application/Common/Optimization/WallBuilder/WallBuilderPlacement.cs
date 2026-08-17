@@ -71,14 +71,6 @@ internal static class WallBuilderPlacement
         // taramanin disinda kaliyor ve bir daha hic kullanilamiyordu. Duvar
         // insaati zaten "once mevcut duvarin bosluklarini doldur, sonra yenisini
         // ac" demek (R-C09).
-        // Duvar = z bandi. Serit = duvar icinde y bandi. Ikisi ayni kurali iki
-        // eksende uygular: bandin yuksekligini o banda giren ILK kutu belirler.
-        //
-        // Serit neden gerekli: olcum, kayip hacmin %15,8'inin yiginin USTUNDE
-        // oldugunu gosterdi (ic bosluk yalnizca %1,08). Ust yuzeyin engebesi
-        // 58,5 cm std sapma, sutunlarin yalnizca %11'i duz. Engebeli yuzeyde
-        // %80 destek kurali adaylari eliyor ve yigin yukselemiyor. Serit,
-        // yuzeyi bant bant duzleyerek bunu kirar.
         var walls = new List<Wall>();
 
         // Basarisiz denemenin bedeli agirdir: aday bulunamadiginda erken cikis
@@ -294,7 +286,8 @@ internal static class WallBuilderPlacement
                 // Sira sozlukbilimseldir, agirlikli toplam degil: toplam olsaydi
                 // katsayilarin kalibrasyonu yeni bir borc olurdu.
                 var residual = space.Width * space.Height * space.Length - width * height * length;
-                var candidate = new OrientationFit(y, residual, space.MaxZ - (z + length), -(width * length), rotation);
+                var candidate = new OrientationFit(
+                    y, residual, space.MaxZ - (z + length), -(width * length), rotation);
 
                 if (bestFit is null || candidate.IsBetterThan(bestFit.Value))
                 {

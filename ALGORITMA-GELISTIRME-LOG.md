@@ -34,6 +34,8 @@ dotnet run --project CargoPilot.Engine.Bench -- soak --strategy wallbuilder --co
 | **v15** | Geri dönüş doğrulaması (GRASP, N vektör) | 300 | **%76,83** | **%76,60** | %69,78 | %65,87 | — | 1.020 | Geri dönüş doğrulandı |
 | **v16** | Kayıp hacim teşhisi (voksel) | 100 | — | — | — | — | — | — | **Ölü hava %15,8 · iç boşluk %1,1 · engebe 58,5 cm** |
 | v17 | Şerit (strip) mantığı | 100 | %50,49 | %48,34 | %32,24 | %22,15 | — | 60 | **Çöktü** −24,9 puan · geri alındı |
+| v18 | Hizalanma tercihi (flush) | 100 | %74,83 | %74,13 | — | %61,50 | — | 37 | **Kazandırmadı** −0,55 · geri alındı |
+| **v19** | Ret sebebi ölçümü | 20 | — | — | — | — | — | — | **Araç dışı %99,4 · desteksiz %0,5** · en yüksek sütun %100 |
 
 ---
 
@@ -179,6 +181,45 @@ kutu belirler.
 **−24,9 puan.** Sebep: şeridin yüksekliğini ilk kutu belirleyince o duvara giren tüm kutular o
 yüksekliğe mahkûm kalıyor; çoğu hiçbir şeride sığmayıp dışarıda kalıyor. Ölü hava %15,8 → %43,4'e
 fırladı. Bant disiplini **z ekseninde işe yarıyor, y ekseninde boğuyor.**
+
+### v18 · Hizalanma tercihi — **kazandırmadı, geri alındı**
+
+Adayın üst yüzeyi mevcut bir yüzey seviyesine hizalanıyorsa tercih edilsin (yumuşak, sert bant değil).
+
+| | Ortalama | Medyan | En kötü | Engebe | Düz sütun |
+|---|---|---|---|---|---|
+| Hizalanmasız | **%75,38** | %74,22 | %63,79 | 58,5 cm | %11,1 |
+| Hizalanmalı | %74,83 | %74,13 | %61,50 | 59,5 cm | %9,0 |
+
+−0,55 puan ve **engebe düzelmedi, kötüleşti**. Sebep: yüzlerce kutu yerleştikçe seviye listesi
+şişiyor, "en yakın seviyeye uzaklık" hemen her aday için sıfıra yakın çıkıyor ve terim gürültüye
+dönüşüp `residual` ölçütünün yerini alıyor. Küresel hizalanma yanlış formülasyon; hizalanma
+**yerel** (komşu kutulara göre) tanımlanmalıydı.
+
+### v19 · Ret sebebi ölçümü — **yeni mekanizma**
+
+Üç tahmin üst üste tutmadığı için (şerit, yönelim anahtarı, hizalanma) tahmin bırakıldı: yerleşemeyen
+her kutu tipi, yığın yüzeyindeki her konumda denendi ve ilk düşüren kapı sayıldı. Kurallar
+kopyalanmadı, motorun kendi `PlacementValidator` yüklemleri çağrıldı.
+
+| Ret sebebi | Oran |
+|---|---|
+| **Araç dışı** | **%99,4** |
+| Desteksiz | %0,5 |
+| Çakışma | %0,0 |
+| İstif kuralı | %0,0 |
+
+**Destek kuralı suçlu değil.** Mekanizma başka: bir kutunun oturacağı yükseklik, ayak izinin
+altındaki **en yüksek** noktadır. Ölçüm bunu doğruluyor — ortalama yığın yüksekliği %84,5 ama
+**en yüksek sütun %100,0**, yani her senaryoda yığın bir yerde tavana değiyor. Engebe 57,7 cm.
+
+Yani sorun "yukarı çıkamıyoruz" değil: bazı bölgeler tavana kadar dolarken diğerleri alçak kalıyor
+ve alçak bölgeler kullanılamıyor.
+
+**Ölçümün sınırı:** teşhis, oturma yüksekliğini ayak izinin altındaki maksimum kabul ediyor. Motor
+ise maximal-space defteri kullanıyor ve yüksek sütunun *yanındaki* alçak cebe kutu koyabiliyor.
+Yani %99,4 üst sınırdır, gerçek engel daha küçük. Bir sonraki ölçüm defterin son durumunu
+kullanmalı.
 
 ### Sıradaki: düzlük ödülü aramaya
 
