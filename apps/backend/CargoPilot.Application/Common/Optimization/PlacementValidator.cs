@@ -61,11 +61,29 @@ internal static class PlacementValidator
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal length)
+        => SupportRatio(placed, x, y, z, width, length) >= SupportThreshold;
+
+    /// <summary>Asgari destek orani. Esik burada tek yerde durur.</summary>
+    internal const decimal SupportThreshold = 0.80m;
+
+    /// <summary>
+    /// Aday pozisyonun taban alaninin ne kadari destekli. Zeminde ve sifir taban
+    /// alaninda 1.
+    ///
+    /// Esikten ayri durur cunku esik "gecer mi" sorusunun cevabi, oran ise
+    /// "ne kadar" sorusunun. Bosluk defteri ikincisine ihtiyac duyar: bir
+    /// bosluğun tabanini TAM destekli bolgeye kirpmak icin orani bilmek gerekir
+    /// (ALGORITMA-RULEBOOK.md R-C09a).
+    /// </summary>
+    internal static decimal SupportRatio(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal length)
     {
-        if (y == 0m) return true;
+        if (y == 0m) return 1m;
 
         var footprint = width * length;
-        if (footprint == 0m) return true;
+        if (footprint == 0m) return 1m;
 
         var supportedArea = 0m;
         foreach (var b in placed)
@@ -76,7 +94,7 @@ internal static class PlacementValidator
             supportedArea += overlapX * overlapZ;
         }
 
-        return supportedArea / footprint >= 0.80m;
+        return supportedArea / footprint;
     }
 
     /// <summary>Yerleştirilmiş bir kutunun, kendisi hariç diğerlerinden destek alma kontrolü.</summary>

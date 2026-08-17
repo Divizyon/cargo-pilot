@@ -9,6 +9,15 @@ namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 /// Defter ise bosluğun kendisini tasidigi icin "iki kutu arasindaki 20 cm'lik
 /// yarik" aday olarak kalir.
 ///
+/// Bosluklarin tabani DESTEKLI OLMAK ZORUNDA DEGILDIR ve bu bilincli bir
+/// tercihtir. Havada duran taban, kutunun komsu yiginin uzerine %80 destekle
+/// KOPRU kurmasinin tek yoludur; defteri "durust" yapip tabanlari destekli
+/// bolgeye kirpmak uc ayri varyantla denendi ve doluluk %75,99'dan %73,65'e
+/// kadar dustu (F2a). Yerlesemeyen kutularin %72,7'sinin bir bosluga sigip
+/// destek bulamamasi defterin kusuru degil, yigin ust yuzeyinin engebesinin
+/// olcusudur: cozum defteri kucultmek degil yuzeyi duzlestirmektir
+/// (ALGORITMA-GELISTIRME-LOG.md, F2a kaydi).
+///
 /// Kapsanan bosluklarin budanmasi opsiyonel degildir: her yerlestirme bir
 /// bosluğu alti parcaya kadar boler ve budama olmadan liste kutu sayisiyla
 /// ussel buyur (ALGORITMA-YOL-HARITASI.md RK-11).

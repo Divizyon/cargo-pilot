@@ -53,8 +53,9 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 
 | Faz | İçerik | Çıkış eşiği | Dayanak |
 |---|---|---|---|
-| **F2a** · Destek-farkında defter | Boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınır; kısmen havada kalan taban düşülür | "Sığan ama desteksiz" oranı %73 → <%20 | Öneri 3 · Parreño 2008 |
-| **F2b** · Yerel düzlük terimi | 2.5D yükseklik haritası; skor `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h`. Başlangıç: α₁=0,75 α₂=1 α₃=1 α₄=0,01 α₅=1 | **Üst yüzey SS 58,5 cm → <30 cm** ve **ölü hava %15,8 → <%8** | Öneri 1 · Ojha vd. 2020 |
+| ~~**F2a** · Destek-farkında defter~~ | ~~Boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınır~~ | **ÖLÇÜLDÜ, REDDEDİLDİ (`DR-17`)** — üç varyant, en iyisi %75,99 → %74,00. Havada duran taban köprü kurmanın tek aday kaynağıymış | Öneri 3 · Parreño 2008 |
+| **F2b** · Yerel düzlük terimi ← **şimdi kritik yol** | 2.5D yükseklik haritası; skor `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h`. Başlangıç: α₁=0,75 α₂=1 α₃=1 α₄=0,01 α₅=1 | **Üst yüzey SS 56,6 cm → <30 cm** ve **ölü hava %15,2 → <%8** | Öneri 1 · Ojha vd. 2020 |
+| **F2a′** · Destek-farkında defter, ikinci deneme | F2b'den sonra yeniden ölçülür: yüzey düzleşince destekli bölgeler büyür | Doluluk taban çizgiyi geçmeli; yan kazanç: 7 kat hız (8,3 ms / 56,4 ms) | `DR-17` |
 | **F2c** · BR benchmark geçişi | Birincil ölçüm BR1-BR7 + BR8-BR15; giyotin korpus yalnız regresyon | BR1-BR7 ortalaması raporlanabilir | Öneri (d) |
 | **F3a** · Decoder'ı kromozoma taşı | Kromozom: sıra anahtarları + maximal-space seçim kuralı + düzlük/derinlik ağırlıkları (α'lar) | Arama kazancı +1,5'ten yukarı | Öneri 4 · G&R BRKGA 2012 |
 | **F3b** · GWCA emekli, GRASP devralır | `DR-03` uygulanır; GWCA ve GA referans olarak kodda kalır | Varsayılan sequencer GRASP | DR-03 · 300 senaryo ölçümü |
@@ -64,9 +65,11 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 
 ### Sıra ve gerekçe
 
-**Kritik yol F2a → F2b.** İkisi de salt yerleştirici/temsil değişikliği: duvar disiplinini bozmaz,
-yükleme pratiğini etkilemez, `DR-12` yasağına takılmaz. Ölçüm doğrudan bunları işaret ediyor
-(%73 sığıyor / %2,5 destekli).
+**Kritik yol artık F2b → F2a′.** Plan başta F2a → F2b idi; ölçüm sırayı ters çevirdi. "%72,7
+sığıyor / %3,2 destekli" rakamı defterin kusurunu değil **yığın üst yüzeyinin engebesini**
+ölçüyormuş: defteri dürüst yapmak boşluk sayısını 72 → 25'e indirdi, engebeyi 56,6 → 62,6 cm'ye
+çıkardı ve doluluğu düşürdü (`DR-17`). Önce yüzey düzleşmeli; destekli bölgeler büyüdüğünde
+destek-farkında defter hem doğru hem ucuz olabilir.
 
 **F2c paralel yürür.** Ölçüm geçerliliği için: kendi korpusumuzdaki kazanç literatürle
 kıyaslanamıyor. BR1-BR7'de <%85 alırsak sorun hâlâ yerleştiricide, >%88 ise decoder/arama
@@ -89,8 +92,8 @@ gerektirir** — tek başına en büyük hamle olabilir.
 
 `OPT-15` — ana yerleştirme döngüsü yalnızca aşağı bakıyor; sonradan gelen kutu var olan yığının
 altına konabiliyor ve kendi `MaxStackCount`/`MaxWeightOnTop`/kırılganlık kısıtları hiç sorulmuyor.
-**Kanıtlanmış motor hatası**, snapshot kaydıracağı için ertelenmişti. F2a ile birlikte ele
-alınmalı: destek-farkında defter zaten aynı bölgeye dokunuyor.
+**Kanıtlanmış motor hatası**, snapshot kaydıracağı için ertelenmişti. F2a reddedildiği için
+artık bağımsız bir kalem: `F2a′` denemesiyle birlikte ya da ondan önce ele alınmalı.
 
 ---
 

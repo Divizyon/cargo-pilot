@@ -329,3 +329,59 @@ düz yüzey üreten sıraları tercih eder.
 Korpus konteynerin bölünmüş hâli olduğu için **doğru bir sıra vardır ve %100 verir** — bu sıra
 kutuların orijinal kesim düzenidir. Sabit hiçbir kural onu bulamaz çünkü her senaryoda farklıdır.
 Arama katmanının işi tam olarak budur: sırayı problemin kendisine göre aramak.
+
+---
+
+## F2a · Destek-farkında boşluk defteri — **geri alındı**
+
+**Hipotez.** Defter, tabanı havada duran boşluklar üretiyor; bu yüzden yerleşemeyen kutuların
+%72,7'si bir boşluğa sığıyor ama yalnızca %3,2'si orada destek buluyor. Boşluk üretilirken
+tabanın yalnız desteklenen kısmı alınırsa defter gerçeği gösterir ve arama boşa dönmez.
+
+**Ölçüm düzeneği.** Aynı komut, aynı korpus, ulaşılabilir doluluk %100:
+`soak --strategy wallbuilder --count 25 --max-scenarios 300 --verbose`.
+Taban çizgi, değişiklik geri alındıktan sonra birebir yeniden üretildi (%75,99 / medyan %76,06),
+yani üç varyantın karşılaştırması geçerli.
+
+| | Taban çizgi | V1 tam destek | V2 %80 eşik | V3 boşluktan bağımsız zemin |
+|---|---|---|---|---|
+| Ortalama doluluk | **%75,99** | %73,85 | %74,00 | %73,65 |
+| Medyan | **%76,06** | %73,22 | %73,24 | %73,45 |
+| p5 | **%68,01** | %66,07 | %66,46 | %65,65 |
+| Boşluk sayısı | 72 | 27 | 27 | 25 |
+| Ortalama boşluk | 0,295 m³ | 0,172 m³ | 0,173 m³ | 0,176 m³ |
+| Sığan yerleşemeyen | %72,7 | %0,0 | %0,3 | %1,0 |
+| Ölü hava | %15,2 | %17,8 | %17,6 | %18,0 |
+| Üst yüzey engebe | 56,6 cm | 61,5 cm | 61,3 cm | 62,6 cm |
+| Medyan süre | 56,4 ms | 7,8 ms | 8,4 ms | 8,3 ms |
+
+**Varyantlar.**
+- **V1** — üst dilim, tabanı `SupportRatio == 1` olan en geniş dikdörtgene kırpıldı.
+- **V2** — eşik motorun kendi `SupportThreshold` değerine (%80) bağlandı; tam destek şartı
+  köprü kurmayı öldürüyordu.
+- **V3** — üst dilim kesilen boşluğun x/z sınırlarından kurtarıldı: yan yana duran iki kutunun
+  ortak zemini tek boşluk olabilsin diye yerleştirme başına bir kez, araç sınırlarına kadar
+  genişleyerek üretildi. Tavan gerçek engele göre hesaplandı, `top` seviyesini delip geçen kutu
+  varsa genişleme durduruldu.
+
+**Sonuç: hipotez yanlış.** Üçü de taban çizginin altında; en iyisi bile −1,99 puan.
+
+**Neden.** Havada duran taban bir kusur değil, **mekanizma**. %80 destek kuralı kutunun komşu
+yığının üzerine **köprü kurmasına** izin veriyor; defterin havada duran tabanı bu köprünün tek
+aday kaynağı. Defteri "dürüst" yapmak köprüyü de siliyor: boşluk sayısı 72 → 25'e, görünür hacim
+üçte birine düşüyor ve engebe 56,6 → 62,6 cm'ye **çıkıyor** — her sütun ayrı bir kule oluyor.
+
+Giyotin korpusunda kutuların üst yüzleri nadiren aynı hizada bittiği için "tam bu yükseklikte
+biten kutular" kümesi genelde tek kutudan ibaret kalıyor. Yani destek-farkında defter, duvar
+örücüyü sessizce **kule örücüye** çeviriyor.
+
+**Bulgunun asıl değeri: teşhis zinciri düzeltildi.** "%72,7 sığıyor ama desteksiz" rakamı
+defterin kusurunu değil, **yığın üst yüzeyinin engebesini** ölçüyor. Çözüm defteri küçültmek
+değil yüzeyi düzleştirmek. Bu, F2a ile F2b'nin sırasını ters çeviriyor: **F2b (yerel düzlük
+terimi) önce gelmeli.** Yüzey düzleşirse destekli bölgeler büyür ve destek-farkında defter o
+zaman hem doğru hem ucuz olabilir — V3 zaten 7 kat hızlı (8,3 ms / 56,4 ms).
+
+**Kalan.** Ledger varyantı `scratchpad/F2a-SpaceLedger-destek-farkindalik.cs` içinde saklı,
+F2b sonrası yeniden ölçülecek. Üretimde tek kalan iz: `PlacementValidator.SupportRatio`
+ayrıştırması (`HasSupport` artık ona delege ediyor) — F2b'nin düzlük terimi de ham orana
+ihtiyaç duyacak.

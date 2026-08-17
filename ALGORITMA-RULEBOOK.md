@@ -276,11 +276,16 @@ uyar").
 
 `R-C08` **Duvar tanımı.** Duvar = `[zStart, zEnd)` aralığında, tüm `x`/`y` boyunca yerleşen kutular kümesi. `zEnd - zStart` = duvara ilk yerleştirilen kutunun `z` boyutu (G&R kuralı). Alternatif derinlik kuralı ("kalan kutuların en küçük boyutunun en büyüğü") `WallDepthRule` parametresi ile seçilir; **varsayılan G&R**.
 `R-C09` **Duvar içi doldurma.** Duvar yatay şeritlere bölünür (şerit yüksekliği = şeride ilk giren kutunun `y`'si). Şerit `x` boyunca greedy doldurulur; knapsack-optimal şerit Faz 2 opsiyonudur. Şerit ve duvar artıkları **maximal-space** listesine devredilir; sonraki kutular önce mevcut duvarın boşluklarını, sonra yeni duvarı dener.
-`R-C09a` **Destek-farkında boşluk (F2a).** Boşluk üretilirken tabanın yalnız **desteklenen** kısmı
-alınır; kısmen havada kalan taban kullanılabilir tabandan düşülür (ya da boşluk destekli
-alt-dikdörtgene kırpılır). Gerekçe ölçülmüştür: yerleşemeyen kutuların %73'ü bir boşluğa geometrik
-olarak sığıyor ama yalnızca %2,5'i orada destek buluyor — defter "sığar ama desteklenmez" adayı
-üretiyor ve arama onu boşuna deniyor. Kaynak: Parreño vd. 2008 maximal-space; Zhu/Oon/Lim/Weng 2012.
+`R-C09a` ~~**Destek-farkında boşluk (F2a).**~~ **ÖLÇÜLDÜ VE REDDEDİLDİ — bkz. `DR-17`.**
+Öneri şuydu: boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınsın, kısmen havada kalan
+taban düşülsün. Üç varyant ölçüldü (tam destek / %80 eşik / boşluktan bağımsız birleşik zemin),
+üçü de taban çizginin altında kaldı: %75,99 → %73,85 / %74,00 / %73,65.
+**Havada duran taban bir kusur değil, mekanizmadır:** %80 destek kuralının komşu yığın üzerine
+**köprü** kurmasına izin verdiği tek aday kaynağıdır. Kırpma köprüyü siliyor, boşluk sayısı
+72 → 25'e iniyor ve üst yüzey engebesi 56,6 → 62,6 cm'ye **çıkıyor** — duvar örücü sessizce
+kule örücüye dönüşüyor. "%72,7 sığıyor ama desteksiz" rakamı defterin değil **yüzey engebesinin**
+ölçüsüdür. Bu yüzden `R-C09b` (düzlük) F2a'nın **ardılı değil öncülüdür**; yüzey düzleştikten
+sonra destek-farkında defter yeniden ölçülecektir (varyant 7 kat da hızlıydı: 8,3 ms / 56,4 ms).
 
 `R-C09b` **Yerel düzlük terimi (F2b).** Yerleştirme skoru 2.5D yükseklik haritası üzerinden bir
 düzlük bileşeni taşır: `−α₁·G_var + α₂·G_high + α₃·G_flush − α₄(i+j) − α₅·h` (Ojha vd. 2020, WallE).
@@ -417,6 +422,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-14** | **Birincil ölçüm BR1-BR7'ye taşınır**; giyotin korpus regresyon testi olur | Giyotin korpus %100 ulaşılabilir doluluk sunuyor ama gerçek dağılımı temsil etmiyor; iyileştirmeler yanıltıcı ölçülüyor. BR'de kutular konteynerden bağımsız üretildiği için %100 zaten mümkün değil (Parreño 2008: ort. %99,46, sığma garantisi yok) |
 | **DR-15** | **%90-95 hedefi korpus adıyla birlikte söylenir** | Literatürün en iyileri BR1-BR7'de ~%92-93. "Hedef %90-95" hangi korpusta dendiği belirtilmeden anlamsız |
 | **DR-16 ⏳** | **%80 destek eşiği artık teknik kısıt değil, politika kararı** | Hemminki vd. 1989 sarılı palette %70'i yeterli buluyor; Ramos vd. 2016 statik mekanik denge kriterinin tam destekten daha iyi hacim verdiğini ve 15 sınıfın 8'inde best-in-class'ı geçtiğini gösteriyor. **Müşteri onayı bekliyor** |
+| **DR-17** | **Boşluk defteri destek-farkında yapılmayacak; F2b (düzlük) F2a'nın önüne alındı** (`R-C09a`) | 300 senaryo, üç varyant, hepsi taban çizginin altında (%75,99 → en iyi %74,00). Havada duran taban, %80 kuralının köprü kurmasını sağlayan aday kaynağı; kırpınca boşluk 72 → 25'e, engebe 56,6 → 62,6 cm'ye gidiyor. "Sığıyor ama desteksiz" oranı defterin değil yüzey engebesinin ölçüsü |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 
