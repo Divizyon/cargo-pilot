@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using MediatR;
 
@@ -12,7 +12,7 @@ public sealed record ReOptimizePlanCommand(
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
     bool ClusterGroups = true,
     PlacementStrategy PlacementStrategy = PlacementStrategy.Greedy,
-    SequencerKind Sequencer = SequencerKind.Static,
+    SequencerKind? Sequencer = null,
     int Seed = 0)
     : IRequest<Result<Guid>>;
 

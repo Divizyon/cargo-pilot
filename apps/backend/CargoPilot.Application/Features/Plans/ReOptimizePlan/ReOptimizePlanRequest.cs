@@ -1,4 +1,4 @@
-using CargoPilot.Domain.Enums;
+﻿using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Features.Plans.ReOptimizePlan;
 
@@ -9,7 +9,7 @@ public sealed record ReOptimizePlanRequest(
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
     bool ClusterGroups = true,
     PlacementStrategy PlacementStrategy = PlacementStrategy.Greedy,
-    SequencerKind Sequencer = SequencerKind.Static,
+    SequencerKind? Sequencer = null,
     int Seed = 0);
 
 public sealed record ReOptimizePlanGroupDefinition(

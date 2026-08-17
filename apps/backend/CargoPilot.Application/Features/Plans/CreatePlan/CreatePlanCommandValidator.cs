@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Config;
+﻿using CargoPilot.Application.Common.Config;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Domain.Enums;
 using FluentValidation;
@@ -63,7 +63,8 @@ public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCom
             .IsInEnum().WithMessage("Yerleştirme stratejisi geçerli bir değer olmalıdır.");
 
         RuleFor(x => x.Sequencer)
-            .IsInEnum().WithMessage("Sıralayıcı geçerli bir değer olmalıdır.");
+            .Must(x => !x.HasValue || Enum.IsDefined(x.Value))
+            .WithMessage("Sıralayıcı geçerli bir değer olmalıdır.");
 
         RuleFor(x => x.Seed)
             .GreaterThanOrEqualTo(0).WithMessage("Tohum negatif olamaz.");
@@ -72,7 +73,8 @@ public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCom
         // yolun kostugunu bilmeli (ALGORITMA-YOL-HARITASI.md F0-4b).
         RuleFor(x => x)
             .Must(x => optimizationSettings.Value.EnableExperimentalStrategies
-                       || (x.PlacementStrategy == PlacementStrategy.Greedy && x.Sequencer == SequencerKind.Static))
+                       || (x.PlacementStrategy == PlacementStrategy.Greedy
+                           && x.Sequencer is null or SequencerKind.Static))
             .WithMessage("Deneysel yerleştirme stratejileri bu ortamda kapalıdır.");
 
     }

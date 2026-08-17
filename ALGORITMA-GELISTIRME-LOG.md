@@ -635,3 +635,54 @@ Genel kazanç küçük (+0,10) ama **tam beklenen yerde**: BR1'de +0,83, yani de
 
 Asıl değeri mekanizma: plan düzeyindeki kararlar artık aramaya açık. Sıradaki genler için yer
 hazır (maximal-space seçim kuralı, düzlük ağırlığı).
+
+---
+
+## F3b + F5 · Üretime dönük paket
+
+Üç iş: yeni yerleştiricinin değişmez kapsaması, arama katmanının varsayılan olması, arama
+bütçesinin ölçülen işletme noktasına çekilmesi.
+
+### 1. Duvar örücünün değişmez kapsaması yoktu
+
+`InvariantTests` yalnızca greedy yolunu kapsıyordu. Duvar örücü ise kutuları **iki ayrı yerden**
+yerleştiriyor: ana aday döngüsünden ve blok inşasından. Blok, aday taramasını atlayıp yedi kapıyı
+doğrudan çağırıyor — orada eksik bir çağrı fiziksel olarak imkânsız bir plan üretir ve golden
+snapshot'lar bunu **yakalamaz**, çünkü onlar greedy çıktısını kilitliyor.
+
+`DuvarOrucuDegismezleriTests` eklendi (44 yeni test, toplam 67 → 111):
+
+- Katalogdaki her senaryo duvar örücüyle koşulur → altı fiziksel değişmez.
+- Aynı senaryolar **GRASP ile** koşulur; arama yerleştiriciyi defalarca çağırıp en iyi bireyi
+  döndürdüğü için kural ihlali tek bir bireyde kalsa bile o birey kazanabilir.
+- Blok inşasının kendi sınavı: 200×200×400 araca 50×40×50 kutudan 120 adet — hepsi yerleşmeli.
+- Determinizm, decoder geni eklendikten sonra ayrıca: aynı tohum → bit birebir aynı plan.
+- Greedy yolunun duvar örücü değişikliklerinden etkilenmediği kilitlendi.
+
+### 2. Sequencer artık opsiyonel; duvar örücünün varsayılanı GRASP
+
+Sorun şuydu: `Sequencer` varsayılanı `Static` olduğu için istemci duvar örücüyü seçtiğinde
+aramayı **ayrıca** istemek zorundaydı — ve arama +5,5 puan getiriyor. Ama komut varsayılanını
+doğrudan GRASP yapmak, bayrak kapalıyken bugünkü varsayılan çağrıyı (`Greedy` + `Static`)
+reddettirirdi.
+
+Çözüm: alan `SequencerKind?` yapıldı, çözüm tek yere alındı (`SequencerSelection.Resolve`):
+belirtilmemiş + duvar örücü → GRASP, belirtilmemiş + greedy → Static, belirtilmiş → aynen.
+Telde geriye uyumlu (alan gönderilmezse `null`). Doğrulayıcı kapısı korundu: belirtilmemiş
+sequencer bir kaçamak değil, duvar örücü bayrak kapalıyken yine reddediliyor.
+
+### 3. Arama bütçesi ölçülen değere çekildi
+
+`SearchBudget.Default` `MaxDurationMs = 20_000` idi — bir HTTP isteği içinde savunulamaz ve
+**hiçbir ölçümü temsil etmiyordu**. Yeni varsayılanlar, raporlanan %85,32'nin alındığı bütçenin
+kendisi: `MaxIterations 40 · PopulationSize 20 · MaxDurationMs 2_000 · Stall 15`.
+Doğrulandı: aynı bütçeyle BR1-BR7 = **%85,32**, medyan 0,39-1,83 sn.
+
+### Üretimin bugünkü tablosu
+
+| | Doluluk (BR1-BR7, strict) | Süre (medyan) |
+|---|---|---|
+| Greedy — bayrak kapalı, bugünkü varsayılan | %75,23 | ~65 ms |
+| Duvar örücü + GRASP — bayrak açıkken varsayılan | **%85,32** | ~0,4-1,8 sn |
+
+Testler: motor 111/111, altyapı 39/39.

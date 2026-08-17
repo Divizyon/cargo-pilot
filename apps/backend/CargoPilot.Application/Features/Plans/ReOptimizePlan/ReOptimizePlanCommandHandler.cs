@@ -1,4 +1,4 @@
-using CargoPilot.Application.Abstractions;
+﻿using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -160,7 +160,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         LoadingPlanOptimizationCriteria criteria,
         bool clusterGroups,
         PlacementStrategy strategy,
-        SequencerKind sequencer,
+        SequencerKind? sequencer,
         int seed)
     {
         var inputs = requestItems
@@ -190,7 +190,7 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             // listesinden turetilir.
             FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors),
             Strategy: strategy,
-            Sequencer: sequencer,
+            Sequencer: SequencerSelection.Resolve(strategy, sequencer),
             Seed: seed);
     }
 }
