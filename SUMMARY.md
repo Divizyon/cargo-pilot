@@ -21,6 +21,10 @@
 * [ADR İndeksi ve Kuralları](docs/adr/README.md)
 * [ADR Şablonu](docs/adr/ADR-0000-sablon.md)
 * [ADR-0001 — ERP Bağlantı Mimarisi](docs/adr/ADR-0001-erp-baglanti-mimarisi.md)
+* [ADR-0002 — Optimizasyon Motorunun Modülerleştirilmesi](docs/adr/ADR-0002-optimizasyon-motoru-modulerlestirme.md)
+* [ADR-0003 — LIFO Bölge Kısıtı](docs/adr/ADR-0003-lifo-bolge-sert-kisiti.md)
+* [ADR-0004 — Denge Takasında Çift Yönlü Doğrulama](docs/adr/ADR-0004-denge-takasi-cift-yonlu-dogrulama.md)
+* [ADR-0005 — Modül Bayraklarının Dışa Kapalılığı](docs/adr/ADR-0005-modul-bayraklari-disa-kapali.md)
 
 ## 🛠️ DevOps
 
