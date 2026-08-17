@@ -27,7 +27,8 @@ public sealed record BenchOptions(
     int BrSet,
     BrCorpus.OrientationMode BrOrientation,
     string? BaselinePath,
-    decimal? SupportThreshold)
+    decimal? SupportThreshold,
+    int Stall)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -59,6 +60,7 @@ public sealed record BenchOptions(
         var brOrientation = BrCorpus.OrientationMode.Strict;
         string? baselinePath = null;
         decimal? supportThreshold = null;
+        var stall = 15;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -131,6 +133,9 @@ public sealed record BenchOptions(
                 case "--support":
                     supportThreshold = ParseDecimal(value, arg);
                     break;
+                case "--stall":
+                    stall = ParseInt(value, arg);
+                    break;
                 case "--help":
                 case "-h":
                     break;
@@ -147,7 +152,8 @@ public sealed record BenchOptions(
             Math.Clamp(brSet, 0, 7),
             brOrientation,
             baselinePath,
-            supportThreshold);
+            supportThreshold,
+            Math.Max(1, stall));
     }
 
     public static int PrintUsage()
@@ -177,6 +183,7 @@ public sealed record BenchOptions(
               --search-ms N    arama butcesi, ms (varsayilan 2000)
               --population N   populasyon (varsayilan 20)
               --iterations N   azami iterasyon (varsayilan 40)
+              --stall N        bu kadar tur iyilesme yoksa dur (varsayilan 15)
               --max-scenarios N soak kipinde tam olarak N senaryo, br kipinde kume basina N ornek
               --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
               --orientation S  br kipinde strict | free (varsayilan strict, alt sinir)

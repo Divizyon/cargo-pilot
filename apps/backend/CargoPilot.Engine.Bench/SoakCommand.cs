@@ -61,7 +61,7 @@ public static class SoakCommand
                 {
                     Strategy = options.Strategy,
                     Sequencer = options.Sequencer,
-                    SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, 15),
+                    SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,
                 };
 
