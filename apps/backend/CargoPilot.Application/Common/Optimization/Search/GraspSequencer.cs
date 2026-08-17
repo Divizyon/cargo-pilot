@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 
@@ -20,13 +20,28 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 internal static class GraspSequencer
 {
     /// <summary>
-    /// Kisitli aday listesi genisligi: sira kurulurken en iyi %alpha icinden
-    /// rastgele secilir. 0 tamamen acgozlu, 1 tamamen rastgele olurdu.
+    /// Insa asamasinda yeniden cekilen anahtarlarin orani. 0 baseline'i aynen
+    /// tekrar eder, 1 her turda sifirdan rastgele sira kurar.
+    ///
+    /// Deger olculdu (BR1-BR7, 70 ornek, swaps=72):
+    /// 0,30 → %86,46 · <b>0,45 → %86,58</b> · 0,60 → %86,30 · 0,80 → %86,07.
+    /// Ilk deger 0,30'du ve hic taranmamisti.
     /// </summary>
-    private const double Alpha = 0.30d;
+    private const double Alpha = 0.45d;
 
-    /// <summary>Yerel aramada bir turda denenecek takas sayisi.</summary>
-    private const int SwapsPerRound = 12;
+    /// <summary>
+    /// Yerel aramada bir turda denenecek takas sayisi. Butce duvar saati oldugu
+    /// icin bu sayi, cabayi CESITLENDIRME (yeni tur kur) ile YOGUNLASTIRMA
+    /// (ayni turda daha cok takas) arasinda paylastirir.
+    ///
+    /// Olculdu (BR1-BR7, 70 ornek, alpha=0,60):
+    /// 4 → %85,39 · 12 → %85,78 · 32 → %86,11 · 48 → %86,21 ·
+    /// <b>72 → %86,31</b> · 120 → %86,26 · 200 → %86,23.
+    ///
+    /// Ilk deger 12'ydi ve arama butcesinin buyuk kismini kullanmadan
+    /// bitiriyordu; 72'de kosu butceyi tam kullaniyor.
+    /// </summary>
+    private const int SwapsPerRound = 72;
 
     internal static OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken)
     {

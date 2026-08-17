@@ -907,3 +907,48 @@ eklendiğinde kaymayacak şekilde sabitlendi:
 Statik yol **birebir korundu** (%79,86 / %76,29) — tohum bireyler bugünkü davranışı temsil ediyor,
 sapmayı arama keşfediyor (`R-C21`). GRASP kazancı %85,32 → **%85,38**; küçük, ama asıl değeri
 korpusa bağlı bir sabit kararı ortadan kaldırması.
+
+---
+
+## D17 · GRASP parametreleri — **+0,86 puan**, hiç taranmamışlardı
+
+Arama katmanı doluluğun +5,5 puanını getiriyor ama iki sabiti (`Alpha`, `SwapsPerRound`) ilk
+yazıldıkları değerde duruyordu ve **hiç ölçülmemişti**.
+
+### `SwapsPerRound` — asıl kazanç burada
+
+Bütçe duvar saati olduğu için bu sayı, çabayı **çeşitlendirme** (yeni tur kur) ile
+**yoğunlaştırma** (aynı turda daha çok takas) arasında paylaştırıyor.
+
+| Takas/tur | 4 | 12 (eski) | 32 | 48 | **72** | 120 | 200 |
+|---|---|---|---|---|---|---|---|
+| BR1-BR7 | %85,39 | %85,78 | %86,11 | %86,21 | **%86,31** | %86,26 | %86,23 |
+
+Eski değer arama bütçesinin büyük kısmını **kullanmadan bitiriyordu**: medyan süre 411-2001 ms
+arasında dağılıyordu. 72'de koşu bütçeyi tam kullanıyor (medyan 1098-2002 ms). Yani kazancın bir
+kısmı zaten ayrılmış ama harcanmayan bütçeden geliyor.
+
+### `Alpha` — insa asamasinda yeniden çekilen anahtar oranı
+
+| Alpha (swaps=72) | 0,30 (eski) | **0,45** | 0,60 | 0,80 |
+|---|---|---|---|---|
+| BR1-BR7 | %86,46 | **%86,58** | %86,30 | %86,07 |
+
+Alpha tek başına (swaps=12'de) 0,60'a kadar tırmanıyordu; takas sayısı artınca optimum 0,45'e
+kaydı. İki parametre etkileşiyor, bu yüzden ikinci tur gerekti.
+
+### Doğrulama (175 örnek)
+
+| | Önce | Sonra |
+|---|---|---|
+| **BR1-BR7 (GRASP)** | %85,38 | **%86,24** |
+| BR1 | %84,04 | %84,76 |
+| BR5 | — | %87,25 |
+| Giyotin (GRASP, 100 senaryo) | %78,21 | %78,09 |
+| BR static | %79,86 | %79,86 |
+
+**+0,86 puan**, tek satırlık iki değişiklikle. Giyotindeki −0,12 gürültü bandında, statik yol
+birebir aynı.
+
+Ders: arama katmanı yazıldığından beri hiç ayarlanmamıştı. Yerleştirici tarafında onlarca deneme
+yapılırken aramanın kendi sabitleri el değmemiş duruyordu.
