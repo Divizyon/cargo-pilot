@@ -456,6 +456,8 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-28** | **Doluluk kapısı yalnızca statik sequencer'ı ölçer** (`engine-bench.yml`) | Aramanın bütçesi duvar saatidir; yavaş koşucu daha az iterasyon yapar ve sonuç makineye bağlı çıkar, kapı gürültüden kalırdı. Statik yol saf hesap olduğu için her düşüş gerçek bir gerilemedir ve tolerans (0,05 puan) yalnızca JSON yuvarlamasına karşıdır |
 | **DR-29** | **Yedek kademe sırası (cep / yeni duvar) da kromozomda** (`R-C15a`) | Cebi önce taramak BR'de +0,23, giyotinde −3,38. İkisi de gerçek yük biçimi; sabit sıra birini feda ediyor. Oturumun üçüncü "sabit değer kazanmıyor" bulgusu (`DR-18`, `DR-23`) |
 | **DR-30** | **GRASP sabitleri ölçüldü: `Alpha` 0,30 → 0,45 · `SwapsPerRound` 12 → 72** | Hiç taranmamışlardı. Eski takas sayısı arama bütçesinin büyük kısmını harcamadan bitiriyordu. BR1-BR7 (GRASP, 175 örnek) %85,38 → **%86,24**; statik yol birebir aynı, giyotin −0,12 (gürültü). İki parametre etkileşiyor, optimum iki turda bulundu |
+| **DR-31** | **GRASP her turu taban çizgiden başlatır, bulunan en iyiden değil** | Ölçüldü: en iyiden başlatmak −0,62 puan. Çeşitlendirme kayboluyor ve arama tek tepede sıkışıyor. Klasik GRASP tasarımı doğruymuş; `Alpha` da bu tasarıma göre kalibre |
+| **DR-32** | **Arama tohumları üçte kalır** | Tohumlar bütçe içinde değerlendiriliyor; her ek tohum bir tam yerleştirme koşusu ve o süre arama turlarından çalınıyor. Altı tohum −0,11, tek ek tohum −0,10 |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

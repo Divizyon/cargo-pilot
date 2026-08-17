@@ -952,3 +952,48 @@ birebir aynı.
 
 Ders: arama katmanı yazıldığından beri hiç ayarlanmamıştı. Yerleştirici tarafında onlarca deneme
 yapılırken aramanın kendi sabitleri el değmemiş duruyordu.
+
+---
+
+## Arama katmanı deney serisi — beş deneme daha, dördü reddedildi
+
+Ölçüm BR1-BR7, GRASP, 70 örnek. Taban çizgi **%86,67**.
+
+### Önce gürültü bandı
+
+Arama **süre-bağımlı** olduğu için ilk iş tekrarlanabilirliği ölçmek oldu: aynı yapılandırma dört
+kez koşuldu → %86,66 / %86,68 / %86,66 / %86,68. **Bant ±0,01.** Yani 0,1'in üzerindeki farklar
+gerçek. Tek istisna: derlemenin hemen ardındaki ilk koşu ~0,1 düşük gelebiliyor (soğuk JIT), bu
+yüzden kıyas koşuları arka arkaya yapılmalı.
+
+| # | Deneme | Sonuç | Karar |
+|---|---|---|---|
+| D18 | `--stall` bayrağı + iterasyon/durağanlık taraması | iterasyon 40 → 100: **+0,09**; durağanlık etkisiz | ✓ tavan yükseltildi |
+| D19 | Tohum bireyleri çeşitlendir (3 → 6 sıralama) | %86,56 | ✗ −0,11 |
+| D19b | Tek ek tohum: adet-azalan (blok için en bol malzeme) | %86,57 | ✗ −0,10 |
+| D23 | Yerel aramaya "yeniden konumlandırma" hamlesi ekle | %86,24 | ✗ **−0,43** |
+| D24 | Uygunluktan adet terimini kaldır (hacim önceliğinde) | %86,60 | ✗ −0,07, gürültü sınırında |
+| D25 | Her turu taban çizgi yerine **en iyiden** başlat | %86,05 | ✗ **−0,62** |
+
+### D19: tohum eklemek neden kaybettiriyor
+
+Tohumlar bütçe **içinde** değerlendiriliyor. Her ek tohum bir tam yerleştirme koşusu demek ve o
+süre arama turlarından çalınıyor. Üç tohum zaten yeterli çeşitlilik veriyor; dördüncüsünün
+getirisi, çaldığı süreyi karşılamıyor.
+
+### D25: GRASP'ın klasik tasarımı doğruymuş
+
+Her turu bulunan en iyiden başlatmak aramayı **erken yakınsatıyor** — çeşitlendirme kayboluyor ve
+arama tek bir tepede sıkışıyor. Taban çizgiden yeniden başlamak GRASP'ın tanımı gereği vardır ve
+ölçüm bunu doğruladı: −0,62. `Alpha` da bu tasarıma göre kalibre edilmişti, tutarlı.
+
+### Serinin toplamı
+
+| | Başlangıç | Şimdi |
+|---|---|---|
+| BR1-BR7 (GRASP, 175 örnek) | %85,32 | **%86,27** |
+| BR1-BR7 (static, 700 örnek) | %79,86 | %79,86 |
+
+On üç denemeden **üçü** tutuldu (D14 gen, D17 GRASP sabitleri, D18 iterasyon tavanı); onu
+reddedildi. Kazancın neredeyse tamamı D17'den geldi — yerleştirici tarafında onlarca deneme
+yapılırken hiç ayarlanmamış iki sabitten.
