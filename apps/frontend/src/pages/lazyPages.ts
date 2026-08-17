@@ -96,6 +96,10 @@ export const ShareLinksPage = lazy(() =>
 export const NotificationsPage = lazy(() =>
   import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
 );
+export const ErpTransferPage = lazy(() =>
+  import('@/pages/erp/ErpTransferPage').then((m) => ({ default: m.ErpTransferPage })),
+);
+
 export const ERPItemsPage = lazy(() =>
   import('@/pages/erp/ERPItemsPage').then((m) => ({ default: m.ERPItemsPage })),
 );

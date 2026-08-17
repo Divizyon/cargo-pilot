@@ -1,13 +1,21 @@
-import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import {
+  Fragment,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+} from 'react';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Download, ExternalLink, FileUp, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ImportSummaryPanel } from '@/features/data-management/imports/components/ImportSummaryPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -55,6 +63,11 @@ interface BulkImportDialogProps {
   draftItemIds?: Record<string, string>;
   /** 'update' mode changes dialog title and confirm button text for UpdatePending flow. */
   mode?: 'import' | 'update';
+  /**
+   * Rota yüzeyinde çizer: modal kabuğu yerine ürün/araç ekleme sayfalarındaki kart.
+   * Başlık ve açıklama sayfaya ait olduğu için burada yalnızca sayaç şeridi kalır.
+   */
+  asPage?: boolean;
 }
 
 // ─── Row model ────────────────────────────────────────────────────────────────
@@ -404,6 +417,97 @@ function confirmButtonLabel({
   return `${validRowCount} Ürün Ekle`;
 }
 
+// ─── Editor shell ─────────────────────────────────────────────────────────────
+
+interface EditorShellProps {
+  asPage: boolean;
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description: ReactNode;
+  /** Hata ve hazır sayaçları; ikisi de sıfırken null gelir. */
+  badges: ReactNode;
+  /** Yalnızca sayfa kabuğunda: kartı açan bölüm başlığı. */
+  sectionTitle: string;
+  /** Yalnızca sayfa kabuğunda: sağ sütun. Modalde yer olmadığı için çizilmez. */
+  summary: ReactNode;
+  children: ReactNode;
+}
+
+/**
+ * Düzenleme ızgarasının dış çerçevesi. Aynı içerik iki yüzeyde çizilir: ürün
+ * ekranındaki Excel akışında modal, ERP aktarımında rota. Yalnızca kabuk değişir —
+ * ızgara, doğrulama ve gönderim kodu tek yerde kalır.
+ *
+ * Sayfa kabuğunda başlık ve açıklama sayfaya aittir (ürün/araç ekleme sayfalarında
+ * olduğu gibi kartın dışında durur), bu yüzden kart yalnızca sayaç şeridini taşır.
+ */
+function EditorShell({
+  asPage,
+  open,
+  onClose,
+  title,
+  description,
+  badges,
+  sectionTitle,
+  summary,
+  children,
+}: EditorShellProps) {
+  if (asPage) {
+    return (
+      /*
+        Ürün ve araç detay sayfalarındaki iskeletin aynısı: solda düzenleme kartı,
+        sağda bilgi paneli. Oran birebir 3/5 değil — ızgara 17 sütunlu olduğu için
+        panel sabit genişlikte kalır ve yalnızca xl'den itibaren çizilir; daha dar
+        ekranda tablo tam genişliği kullanır.
+      */
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-hidden xl:grid-cols-5">
+        <div className="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card xl:col-span-3">
+          {/*
+            Kart, ürün ve araç formlarındaki gibi bir bölüm başlığıyla açılır; sayaçlar
+            aynı satırın sağında durur. Önce yalnızca sağa yaslı bir rozet şeridi vardı
+            ve kartın girişi diğer ekranlara benzemiyordu.
+          */}
+          <div className="flex flex-none items-center justify-between gap-3 border-b px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {sectionTitle}
+            </p>
+            <div className="flex items-center gap-2">{badges}</div>
+          </div>
+          {children}
+        </div>
+        <aside className="hidden min-h-0 min-w-0 xl:col-span-2 xl:flex xl:flex-col">
+          {summary}
+        </aside>
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      {/*
+        Bu diyalog küçük bir onay kutusu değil, sayfa boyutunda bir düzenleme yüzeyi.
+        Ürün/araç ekleme sayfalarındaki kart diliyle aynı yarıçapı taşır; küçük
+        diyaloglar varsayılan `rounded-lg` ile kalır.
+      */}
+      <DialogContent className="flex h-[78vh] w-[95vw] max-w-[1280px] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:rounded-2xl">
+        <DialogHeader className="flex-none border-b px-6 py-4 pr-14">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+                {title}
+              </DialogTitle>
+              <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+            </div>
+            <div className="mr-4 flex items-center gap-2">{badges}</div>
+          </div>
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
 export function BulkImportDialog({
@@ -412,11 +516,20 @@ export function BulkImportDialog({
   initialRows,
   draftItemIds,
   mode = 'import',
+  asPage = false,
 }: BulkImportDialogProps) {
   const isUpdate = mode === 'update';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<EditableRow[]>(() => initialRows ?? []);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
+  /**
+   * Açılmış satırlar. Nadiren değişen alanlar (istif, katman, rotasyon, notlar)
+   * ana satırdan çıkarıldı; 17 sütun sağ özet paneliyle birlikte ekrana sığmıyor
+   * ve yatay kaydırma ürün adını görüş alanından çıkarıyordu. Alanlar silinmedi,
+   * bir tık ötede ve düzenlenebilir. Doğrulanan sekiz alanın tamamı ana satırda
+   * kalır, yani hiçbir hata buranın arkasına saklanmaz.
+   */
+  const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(() => new Set());
   /** Kısmi aktarım sonrası diyalogda kalan satırların özeti. */
   const [remainingNotice, setRemainingNotice] = useState<string | null>(null);
 
@@ -469,6 +582,13 @@ export function BulkImportDialog({
   );
   const errorRowCount = errorRowIds.size;
   const validRowCount = rows.length - errorRowCount;
+  /** Alan bazlı hata sayımı; özet panelindeki engel dökümünü besler. */
+  const errorFieldCounts = validations.reduce<Record<string, number>>((acc, validation) => {
+    for (const field of Object.keys(validation.errors)) {
+      acc[field] = (acc[field] ?? 0) + 1;
+    }
+    return acc;
+  }, {});
   const isDraftPending = updateDraftItem.isPending || bulkApproveDraft.isPending;
   const canImport = validRowCount > 0 && !bulkCreate.isPending && !isDraftPending;
   const confirmLabel = confirmButtonLabel({
@@ -594,6 +714,9 @@ export function BulkImportDialog({
 
   function handleClose() {
     onOpenChange(false);
+    // Rota kabuğunda bileşen zaten sökülüyor; satırları burada boşaltmak gezinmeden
+    // önce bir kare boş ızgara çizdirirdi.
+    if (asPage) return;
     setRows([]);
     setApiErrors([]);
     setRemainingNotice(null);
@@ -672,125 +795,157 @@ export function BulkImportDialog({
 
   // ─── Table state: editable grid ───────────────────────────────────────────
 
+  const editorTitle = isUpdate
+    ? 'ERP Güncellemeyi Onayla'
+    : draftItemIds
+      ? ERP_TERM.approve
+      : 'Toplu Ürün İçe Aktar';
+
+  const editorDescription = (
+    <>
+      Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından{' '}
+      {draftItemIds ? 'ürünlere aktarın.' : 'içe aktarın.'}
+    </>
+  );
+
+  const editorBadges =
+    errorRowCount > 0 || validRowCount > 0 ? (
+      <>
+        {errorRowCount > 0 && (
+          <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
+            {errorRowCount} satırda hata var
+          </span>
+        )}
+        {/* Hata rozeti token'dan geldiği için koyu temada uyum sağlıyordu; başarı
+            rozetinin karşılığı olmadığından ErpConnectionStatusCard'daki aynı
+            yeşil tonları kullanır. */}
+        {validRowCount > 0 && (
+          <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/60 dark:text-green-300">
+            {validRowCount} ürün aktarıma hazır
+          </span>
+        )}
+      </>
+    ) : null;
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex h-[78vh] w-[95vw] max-w-[1280px] flex-col gap-0 overflow-hidden p-0">
-        {/* Header */}
-        <DialogHeader className="flex-none border-b px-6 py-4 pr-14">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle>
-                {isUpdate
-                  ? 'ERP Güncellemeyi Onayla'
-                  : draftItemIds
-                    ? ERP_TERM.approve
-                    : 'Toplu Ürün İçe Aktar'}
-              </DialogTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Hücreleri tıklayarak doğrudan düzenleyin. Kırmızı alanları düzeltin, ardından{' '}
-                {draftItemIds ? 'ürünlere aktarın.' : 'içe aktarın.'}
-              </p>
-            </div>
-            <div className="mr-4 flex items-center gap-2">
-              {errorRowCount > 0 && (
-                <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
-                  {errorRowCount} satırda hata var
-                </span>
-              )}
-              {validRowCount > 0 && (
-                <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                  {validRowCount} ürün aktarıma hazır
-                </span>
-              )}
-            </div>
-          </div>
-        </DialogHeader>
+    <EditorShell
+      asPage={asPage}
+      open={open}
+      onClose={handleClose}
+      title={editorTitle}
+      description={editorDescription}
+      badges={editorBadges}
+      sectionTitle={`${isUpdate ? 'Güncellenecek' : 'Aktarılacak'} Ürünler (${rows.length})`}
+      summary={
+        <ImportSummaryPanel
+          rows={rows}
+          errorRowCount={errorRowCount}
+          validRowCount={validRowCount}
+          errorFieldCounts={errorFieldCounts}
+        />
+      }
+    >
+      {/* Kısmi aktarım özeti */}
+      {remainingNotice && (
+        <div className="flex-none border-b border-amber-200 bg-amber-50 px-6 py-2" role="status">
+          <p className="text-xs font-medium text-amber-800">{remainingNotice}</p>
+        </div>
+      )}
 
-        {/* Kısmi aktarım özeti */}
-        {remainingNotice && (
-          <div className="flex-none border-b border-amber-200 bg-amber-50 px-6 py-2" role="status">
-            <p className="text-xs font-medium text-amber-800">{remainingNotice}</p>
-          </div>
-        )}
+      {/* API errors */}
+      {apiErrors.length > 0 && (
+        <div className="flex-none border-b border-destructive/20 bg-destructive/5 px-6 py-2">
+          <p className="mb-1 text-xs font-semibold text-destructive">
+            {draftItemIds
+              ? `${apiErrors.length} satır atlandı:`
+              : `Sunucu ${apiErrors.length} satırı reddetti:`}
+          </p>
+          <ul className="list-inside list-disc space-y-0.5">
+            {apiErrors.map((e, i) => (
+              <li key={i} className="text-xs text-destructive">
+                {e}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-        {/* API errors */}
-        {apiErrors.length > 0 && (
-          <div className="flex-none border-b border-destructive/20 bg-destructive/5 px-6 py-2">
-            <p className="mb-1 text-xs font-semibold text-destructive">
-              {draftItemIds
-                ? `${apiErrors.length} satır atlandı:`
-                : `Sunucu ${apiErrors.length} satırı reddetti:`}
-            </p>
-            <ul className="list-inside list-disc space-y-0.5">
-              {apiErrors.map((e, i) => (
-                <li key={i} className="text-xs text-destructive">
-                  {e}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+      {/*
+        Alt boşluk yüzen aksiyon çubuğunun altında satır bırakmaz. Yatay kaydırma
+        açık: sağ özet paneli ürün/araç sayfalarındaki 2/5 oranına çıkınca ızgaraya
+        ~990px kalıyor ve 17 sütun oraya sığmıyor. `ProductTable` ve `ERPItemsTable`
+        da geniş tabloları aynı şekilde `min-w` + yatay kaydırma ile çözüyor.
+      */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
+        <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
+          <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
+            {/*
+              Harf aralığı bilinçli olarak dar: `table-fixed` altında sütunlar yüzdeyle
+              bölüşüyor ve başlıklar `whitespace-nowrap`. `tracking-widest` denendi ve
+              "GENİŞLİK (X) *" gibi başlıkları hücresinden taşırıp komşusunun üstüne
+              bindirdi. Bölüm başlığında yer bol olduğu için orada geniş aralık kalabilir.
+            */}
+            <tr className="text-left align-top text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {/*
+                Yüzdeler + sabit sütunlar %100'ü aşmamalı. İkinci sütun satır açıcıdır;
+                nadiren değişen alanlar oraya taşındığı için ana satır artık yatay
+                kaydırma olmadan sığıyor.
 
-        {/* Scrollable table */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
-            <thead className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm">
-              <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
-                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">Ürün Adı *</th>
-                <th className="w-[8%] whitespace-nowrap border-b px-2 py-1.5">SKU *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Tip *</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">
-                  {DIMENSION_LABEL.width} *
-                </th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">
-                  {DIMENSION_LABEL.height} *
-                </th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">
-                  {DIMENSION_LABEL.length} *
-                </th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Ağırlık *</th>
-                <th className="w-[9%] whitespace-nowrap border-b px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-1">
-                    Yük Kısıtları
-                    <ColumnBulkFill
-                      title="Yük Kısıtları"
-                      options={FRAGILITY_FILL_OPTIONS}
-                      filledCount={filledFragilityCount}
-                      onApply={(values, overwrite) => fillFragility(values.map(Number), overwrite)}
-                    />
-                  </div>
-                </th>
-                <th className="w-[11%] whitespace-nowrap border-b px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-1">
-                    Yük Grubu *
-                    <ColumnBulkFill
-                      title="Yük Grubu"
-                      options={LOAD_GROUP_FILL_OPTIONS}
-                      single
-                      filledCount={filledLoadGroupCount}
-                      onApply={fillLoadGroups}
-                    />
-                  </div>
-                </th>
-                <th className="w-[5%] whitespace-nowrap border-b px-1 py-1.5 text-center">İstif</th>
-                <th className="w-[7%] whitespace-nowrap border-b px-2 py-1.5">Katman Sayısı</th>
-                <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">X</th>
-                <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">Y</th>
-                <th className="w-7 whitespace-nowrap border-b px-1 py-1.5 text-center">Z</th>
-                <th className="whitespace-nowrap border-b px-2 py-1.5">Notlar</th>
-                <th className="w-8 border-b px-1 py-1.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, idx) => {
-                const errs = validations.find((v) => v.id === row._id)?.errors ?? {};
-                const hasRowError = Object.keys(errs).length > 0;
-                // Aynı görünen hücre kontrolleri ekran okuyucuda satırla birlikte anılır.
-                const rowLabel = row.name.trim() || `${idx + 1}. satır`;
-                return (
+                Başlıklarda `whitespace-nowrap` yok: uzun etiket hücresine sığmayınca
+                komşusunun üstüne binmek yerine alt satıra geçer.
+              */}
+              <th className="w-7 border-b px-1 py-1.5 text-center">#</th>
+              <th className="w-8 border-b px-1 py-1.5">
+                <span className="sr-only">Ayrıntıyı aç</span>
+              </th>
+              <th className="w-[16%] border-b px-2 py-1.5">Ürün Adı *</th>
+              <th className="w-[10%] border-b px-2 py-1.5">SKU *</th>
+              <th className="w-[10%] border-b px-2 py-1.5">Tip *</th>
+              <th className="w-[8%] border-b px-2 py-1.5">{DIMENSION_LABEL.width} *</th>
+              <th className="w-[8%] border-b px-2 py-1.5">{DIMENSION_LABEL.height} *</th>
+              <th className="w-[8%] border-b px-2 py-1.5">{DIMENSION_LABEL.length} *</th>
+              <th className="w-[8%] border-b px-2 py-1.5">Ağırlık *</th>
+              {/*
+                Toplu doldurma düğmesi etiketin altında durur. `justify-between` ile
+                yan yanayken etiket iki satıra düştüğü anda düğme sağda asılı kalıyor
+                ve hangi sütuna ait olduğu okunmuyordu.
+              */}
+              <th className="w-[11%] border-b px-2 py-1.5 align-top">
+                <div className="flex flex-col items-start gap-1">
+                  <span>Yük Kısıtları</span>
+                  <ColumnBulkFill
+                    title="Yük Kısıtları"
+                    options={FRAGILITY_FILL_OPTIONS}
+                    filledCount={filledFragilityCount}
+                    onApply={(values, overwrite) => fillFragility(values.map(Number), overwrite)}
+                  />
+                </div>
+              </th>
+              <th className="w-[12%] border-b px-2 py-1.5 align-top">
+                <div className="flex flex-col items-start gap-1">
+                  <span>Yük Grubu *</span>
+                  <ColumnBulkFill
+                    title="Yük Grubu"
+                    options={LOAD_GROUP_FILL_OPTIONS}
+                    single
+                    filledCount={filledLoadGroupCount}
+                    onApply={fillLoadGroups}
+                  />
+                </div>
+              </th>
+              <th className="w-8 border-b px-1 py-1.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, idx) => {
+              const errs = validations.find((v) => v.id === row._id)?.errors ?? {};
+              const hasRowError = Object.keys(errs).length > 0;
+              // Aynı görünen hücre kontrolleri ekran okuyucuda satırla birlikte anılır.
+              const rowLabel = row.name.trim() || `${idx + 1}. satır`;
+              const isExpanded = expandedRowIds.has(row._id);
+              return (
+                <Fragment key={row._id}>
                   <tr
-                    key={row._id}
                     className={cn(
                       'transition-colors',
                       hasRowError ? 'bg-destructive/[0.04]' : 'hover:bg-muted/30',
@@ -799,6 +954,33 @@ export function BulkImportDialog({
                     {/* Row number */}
                     <td className="border-b border-border/40 px-1 py-0.5 text-center text-[10px] text-muted-foreground">
                       {idx + 1}
+                    </td>
+
+                    {/* Ayrıntı açıcı */}
+                    <td className="border-b border-border/40 px-1 py-0.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        aria-label={`${rowLabel} — ek alanlar`}
+                        aria-expanded={isExpanded}
+                        onClick={() =>
+                          setExpandedRowIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(row._id)) next.delete(row._id);
+                            else next.add(row._id);
+                            return next;
+                          })
+                        }
+                      >
+                        <ChevronDown
+                          className={cn(
+                            'h-3.5 w-3.5 transition-transform',
+                            isExpanded && 'rotate-180',
+                          )}
+                        />
+                      </Button>
                     </td>
 
                     {/* Ürün Adı */}
@@ -913,86 +1095,6 @@ export function BulkImportDialog({
                       />
                     </td>
 
-                    {/* İstiflenebilir */}
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        aria-label={`${rowLabel} — İstiflenebilir`}
-                        checked={row.isStackable}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { isStackable: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-
-                    {/* Katman Sayısı */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TextCell
-                        value={row.maxStackCount}
-                        onChange={(v) => patchRow(row._id, { maxStackCount: v })}
-                        type="number"
-                      />
-                    </td>
-
-                    {/* X/Y/Z rotasyon — tip ve kısıt kaynaklı kilitler ürün formundaki gibidir. */}
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        aria-label={`${rowLabel} — X ekseni`}
-                        checked={row.allowRotateX}
-                        disabled={row.tip === 'varil'}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { allowRotateX: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        aria-label={`${rowLabel} — Y ekseni`}
-                        checked={row.allowRotateY}
-                        disabled={row.tip === 'palet'}
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { allowRotateY: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-                    <td className="border-b border-border/40 px-1 py-0.5 text-center">
-                      <Checkbox
-                        aria-label={`${rowLabel} — Z ekseni`}
-                        checked={row.allowRotateZ}
-                        disabled={
-                          Number(row.fragility) >= 1 || row.tip === 'varil' || row.tip === 'palet'
-                        }
-                        onCheckedChange={(checked) =>
-                          patchRow(row._id, { allowRotateZ: Boolean(checked) })
-                        }
-                        className="h-4 w-4"
-                      />
-                    </td>
-
-                    {/* Notlar */}
-                    <td className="border-b border-border/40 px-2 py-0.5">
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip open={row.notes.trim() ? undefined : false}>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <TextCell
-                                value={row.notes}
-                                onChange={(v) => patchRow(row._id, { notes: v })}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="max-w-64 whitespace-pre-wrap break-words"
-                          >
-                            {row.notes}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </td>
-
                     {/* Sil */}
                     <td className="border-b border-border/40 px-1 py-0.5">
                       <Button
@@ -1008,93 +1110,191 @@ export function BulkImportDialog({
                       </Button>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Footer */}
-        <div className="flex flex-none items-center justify-between border-t bg-background px-6 py-3">
-          <div className="flex items-center gap-2">
-            {/*
+                  {/*
+                  Ana satırdan çıkarılan alanlar. Hiçbiri silinmedi; burada etiketli
+                  olarak ve ürün formundaki bölüm diliyle duruyorlar. Notlar burada
+                  tam genişlik bulur — ızgarada tek hücreye sıkışıyordu.
+                */}
+                  {isExpanded && (
+                    <tr className="bg-muted/20">
+                      <td colSpan={12} className="border-b border-border/40 px-4 py-3">
+                        {/*
+                          Tek sıra: sayısal alan solda, kutucuk grupları yan yana,
+                          notlar en sağda kalan genişliği alır.
+                        */}
+                        <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+                          <div className="flex w-24 shrink-0 flex-col gap-1.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                              Katman Sayısı
+                            </span>
+                            <TextCell
+                              value={row.maxStackCount}
+                              onChange={(v) => patchRow(row._id, { maxStackCount: v })}
+                              type="number"
+                            />
+                          </div>
+
+                          {/* X/Y/Z rotasyon — tip ve kısıt kaynaklı kilitler ürün formundaki gibidir. */}
+                          <div className="flex shrink-0 flex-col gap-1.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                              Eksen Rotasyonu
+                            </span>
+                            <div className="flex h-7 items-center gap-3">
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Checkbox
+                                  aria-label={`${rowLabel} — X ekseni`}
+                                  checked={row.allowRotateX}
+                                  disabled={row.tip === 'varil'}
+                                  onCheckedChange={(checked) =>
+                                    patchRow(row._id, { allowRotateX: Boolean(checked) })
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                X
+                              </label>
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Checkbox
+                                  aria-label={`${rowLabel} — Y ekseni`}
+                                  checked={row.allowRotateY}
+                                  disabled={row.tip === 'palet'}
+                                  onCheckedChange={(checked) =>
+                                    patchRow(row._id, { allowRotateY: Boolean(checked) })
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                Y
+                              </label>
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Checkbox
+                                  aria-label={`${rowLabel} — Z ekseni`}
+                                  checked={row.allowRotateZ}
+                                  disabled={
+                                    Number(row.fragility) >= 1 ||
+                                    row.tip === 'varil' ||
+                                    row.tip === 'palet'
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    patchRow(row._id, { allowRotateZ: Boolean(checked) })
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                Z
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* İstif kutucuğu rotasyon kutucuklarının yanında durur. */}
+                          <div className="flex shrink-0 flex-col gap-1.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                              İstiflenebilir
+                            </span>
+                            <div className="flex h-7 items-center">
+                              <Checkbox
+                                aria-label={`${rowLabel} — İstiflenebilir`}
+                                checked={row.isStackable}
+                                onCheckedChange={(checked) =>
+                                  patchRow(row._id, { isStackable: Boolean(checked) })
+                                }
+                                className="h-4 w-4"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                              Özel Taşıma Notları
+                            </span>
+                            <TextCell
+                              value={row.notes}
+                              onChange={(v) => patchRow(row._id, { notes: v })}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/*
+          Yüzen aksiyon çubuğu: ürün ve araç formlarındaki desenin aynısı. Kullanıcı bu
+          ekrana zaten aynı biçimdeki bir çubuktan geliyor; sabit alt şerit geçişi
+          bozuyordu. Kaydırma alanındaki `pb-24` çubuğun altında satır bırakmaz.
+        */}
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 shadow-lg">
+          {/*
               ERP onay akisinda elle satir eklenemez: satirin karsiligi olan taslak
               olmadigi icin onayda sessizce dusuyordu. Yeni urun tekil urun formundan
               ya da Excel aktarimindan eklenir.
             */}
-            {!draftItemIds && (
+          {!draftItemIds && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs"
+              type="button"
+              onClick={() => setRows((p) => [...p, emptyRow()])}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Satır Ekle
+            </Button>
+          )}
+          {!draftItemIds && (
+            <>
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 text-xs"
                 type="button"
-                onClick={() => setRows((p) => [...p, emptyRow()])}
+                onClick={() => fileInputRef.current?.click()}
               >
-                <Plus className="h-3.5 w-3.5" />
-                Satır Ekle
+                <FileUp className="h-3.5 w-3.5" />
+                Dosya Değiştir
               </Button>
-            )}
-            {!draftItemIds && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <FileUp className="h-3.5 w-3.5" />
-                  Dosya Değiştir
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs"
+                type="button"
+                onClick={downloadItemImportTemplate}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Şablonu İndir
+              </Button>
+              {ITEM_SHEETS_TEMPLATE_URL && (
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" type="button" asChild>
+                  <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Google Sheets
+                  </a>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  type="button"
-                  onClick={downloadItemImportTemplate}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Şablonu İndir
-                </Button>
-                {ITEM_SHEETS_TEMPLATE_URL && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    type="button"
-                    asChild
-                  >
-                    <a href={ITEM_SHEETS_TEMPLATE_URL} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Google Sheets
-                    </a>
-                  </Button>
-                )}
-              </>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleClose} type="button">
-              İptal
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => void handleImport()}
-              disabled={!canImport}
-              type="button"
-            >
-              {confirmLabel}
-            </Button>
-          </div>
+              )}
+            </>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {/* Yardımcı aksiyonlarla kesinleştirme aksiyonlarını ayırır; ERP akışında
+                soldaki grup hiç çizilmediği için ayraç da çizilmez. */}
+          {!draftItemIds && <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />}
+          <Button variant="outline" size="sm" onClick={handleClose} type="button">
+            İptal
+          </Button>
+          <Button size="sm" onClick={() => void handleImport()} disabled={!canImport} type="button">
+            {confirmLabel}
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </EditorShell>
   );
 }
