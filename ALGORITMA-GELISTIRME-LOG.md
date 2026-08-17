@@ -38,6 +38,7 @@ dotnet run --project CargoPilot.Engine.Bench -- soak --strategy wallbuilder --co
 | **v19** | Ret sebebi ölçümü | 20 | — | — | — | — | — | — | **Araç dışı %99,4 · desteksiz %0,5** · en yüksek sütun %100 |
 | **v20** | Boşluk ölçümü + bant dışı son çare | 300 | **%75,96** | **%75,74** | %68,04 | %62,60 | — | 58 | **+0,75 puan** · sığan yerleşemeyen %75,5 |
 | **v21** | Destek ölçümü | 300 | — | — | — | — | — | — | **Sığan %73,1 · sığan+destekli %2,5** → darboğaz destek kuralı |
+| v22 | Taban alanı artığı ölçütü | 300 | %75,99 | %76,06 | %68,01 | %60,16 | — | 54 | **Nötr** · medyan +0,32, en kötü −2,44 |
 
 ---
 
@@ -285,6 +286,36 @@ katı; geri kalanı havada. Kutu oraya konamaz çünkü havada duramaz.
 kaplayan yüzeyler bırakmalı — çıkıntı (ledge) üretmemeli. Bu, katman (layer) disiplininin asıl
 gerekçesi; v17'deki şerit denemesi doğru fikri yanlış uygulamıştı (bandı ilk kutunun yüksekliğine
 kilitlemek).
+
+### v22 · Taban alanı artığı — **nötr**
+
+Boşluk seçimi hacim artığı yerine **taban alanı** artığını en aza indiriyor: kutu boşluğun ayak
+izini tam kaplarsa üstünde tam platform bırakır, yarım kaplarsa çıkıntı üretir.
+
+| | Hacim artığı | Taban alanı artığı |
+|---|---|---|
+| Ortalama | %75,96 | %75,99 |
+| Medyan | %75,74 | **%76,06** |
+| En kötü | %62,60 | %60,16 |
+| Sığan + destekli | %2,5 | %3,2 |
+
+Medyan +0,32, ortalama +0,03, en kötü −2,44 — gürültü bandında. Gerekçe doğru (destekli oran
+%2,5 → %3,2 yükseldi) ama etki yok. Kod korundu; ölçüt mekanizmayla daha tutarlı.
+
+### Ulaşılan sınır ve neden
+
+Yirmi iki denemenin ardından tablo net: **yerel sezgiler ve sıra araması bu yerleştiricide
+~%76'da doyuyor.** Kazanan üç değişikliğin üçü de "kaçırılan adayı geri kazan" türündendi
+(kapanan duvarları tara, bant dışını tara, başarısızlığı bellekle); **hiçbir skor ayarı
+kazandırmadı** — beş deneme, beşi de nötr ya da negatif.
+
+Sebebi ölçüm söylüyor: darboğaz aday **seçimi** değil, adayın **var olmaması**. Kalan boş hacmin
+tabanları havada; hiçbir seçim ölçütü havada duran bir tabanı katı yapamaz.
+
+**Bunu kıran tek şey yerleştirme paradigmasını değiştirmek:** katmanı kutu kutu değil, bir bütün
+olarak planlamak. Yani her katman için "bu yükseklikteki kutularla kesitin tamamını kapla" 2B
+paketleme problemi çözülür ve katman katı bir platform olarak inşa edilir. Klasik **layer
+building** budur (rulebook B3'te aile olarak listeli, uygulanmadı).
 
 ### Sıradaki: düzlük ödülü aramaya
 

@@ -302,7 +302,14 @@ internal static class WallBuilderPlacement
                 // katman — yercekimi tercihi korunur — sonra bosluktan artan hacim.
                 // Sira sozlukbilimseldir, agirlikli toplam degil: toplam olsaydi
                 // katsayilarin kalibrasyonu yeni bir borc olurdu.
-                var residual = space.Width * space.Height * space.Length - width * height * length;
+                // Artik HACIM degil TABAN ALANI uzerinden olculur. Olcum,
+                // yerlesemeyen kutularin %73'unun bir bosluga sigdigini ama
+                // yalnizca %2,5'inin orada destek buldugunu gosterdi: kalan bos
+                // hacim dikey bacalar ve cikintilar halinde, tabanlari kismen
+                // havada. Kutu bosluğun ayak izini tam kaplarsa ustunde TAM
+                // PLATFORM birakir; yarim kaplarsa cikinti uretir ve o cikinti
+                // bir daha kullanilamaz.
+                var residual = space.Width * space.Length - width * length;
                 var candidate = new OrientationFit(
                     y, residual, space.MaxZ - (z + length), -(width * length), rotation);
 
