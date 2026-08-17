@@ -265,6 +265,14 @@ Girdi → ContaminationFilter (handler'da, değişmez)
 
 ## C3. Wall-Builder (yerleştirme) kuralları
 
+`R-C07a` **Katman (layer) inşası YASAK — müşteri kararı.** Yatay katman yaklaşımı projenin ilk
+algoritmasıydı ve **müşteri tarafından reddedildi**: konteynerin tüm kesitini kaplayan bir katmanı
+kurup üstüne çıkmak sahada uygulanabilir bir yükleme değil. İşçi kapıdan girer ve duvar duvar örer;
+uzak uçtaki bir katmanı yakın uç dolduktan sonra tamamlayamaz. Bu yüzden doluluk kazancı ne olursa
+olsun katman inşası bir seçenek değildir — çıktı **fiziksel olarak yüklenebilir** olmak zorundadır.
+Wall-Builder tam da bu gerekçeyle seçildi (bkz. B3: "işçilerin duvar duvar örme pratiğine birebir
+uyar").
+
 `R-C08` **Duvar tanımı.** Duvar = `[zStart, zEnd)` aralığında, tüm `x`/`y` boyunca yerleşen kutular kümesi. `zEnd - zStart` = duvara ilk yerleştirilen kutunun `z` boyutu (G&R kuralı). Alternatif derinlik kuralı ("kalan kutuların en küçük boyutunun en büyüğü") `WallDepthRule` parametresi ile seçilir; **varsayılan G&R**.
 `R-C09` **Duvar içi doldurma.** Duvar yatay şeritlere bölünür (şerit yüksekliği = şeride ilk giren kutunun `y`'si). Şerit `x` boyunca greedy doldurulur; knapsack-optimal şerit Faz 2 opsiyonudur. Şerit ve duvar artıkları **maximal-space** listesine devredilir; sonraki kutular önce mevcut duvarın boşluklarını, sonra yeni duvarı dener.
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
@@ -385,6 +393,7 @@ Girdi → ContaminationFilter (handler'da, değişmez)
 | DR-09 ⏳ | **Baseline garantisi = fitness seçimi + FillRate kilidi** (`R-C21`) | RK-03 çelişkisi; tek terimli ölçü diğer fitness terimlerini işlevsizleştirirdi |
 | DR-10 ⏳ | **Sanal duvar kapsaması = tam ayak izi** `[z, z+length)` (`R-C13a`) | Greedy `IsInsideZone` ile tek semantik; iki farklı kural doğmasın |
 | DR-11 ⏳ | **`AvgWallFlushness`: `[0,1]`, `WallCount==0` → `1.0`, NaN yasak** (`R-C14a`) | `UnplacedCount` ile çift cezalandırmayı önler; arama NaN ile çökmez |
+| **DR-12** | **Katman (layer) inşası kalıcı olarak kapsam dışı** (`R-C07a`) | Müşteri reddetti: kesit boyu katman sahada yüklenemez. Doluluk kazancı gerekçe sayılmaz — çıktı yüklenebilir olmak zorunda |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 
