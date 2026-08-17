@@ -36,6 +36,7 @@ dotnet run --project CargoPilot.Engine.Bench -- soak --strategy wallbuilder --co
 | v17 | Şerit (strip) mantığı | 100 | %50,49 | %48,34 | %32,24 | %22,15 | — | 60 | **Çöktü** −24,9 puan · geri alındı |
 | v18 | Hizalanma tercihi (flush) | 100 | %74,83 | %74,13 | — | %61,50 | — | 37 | **Kazandırmadı** −0,55 · geri alındı |
 | **v19** | Ret sebebi ölçümü | 20 | — | — | — | — | — | — | **Araç dışı %99,4 · desteksiz %0,5** · en yüksek sütun %100 |
+| **v20** | Boşluk ölçümü + bant dışı son çare | 300 | **%75,96** | **%75,74** | %68,04 | %62,60 | — | 58 | **+0,75 puan** · sığan yerleşemeyen %75,5 |
 
 ---
 
@@ -220,6 +221,41 @@ ve alçak bölgeler kullanılamıyor.
 ise maximal-space defteri kullanıyor ve yüksek sütunun *yanındaki* alçak cebe kutu koyabiliyor.
 Yani %99,4 üst sınırdır, gerçek engel daha küçük. Bir sonraki ölçüm defterin son durumunu
 kullanmalı.
+
+### v20 · Boşluk ölçümü ve bant dışı son çare — **kazandı**
+
+Önceki teşhisin sınırını kapatmak için defter yeniden kuruldu: motorun kendi `SpaceLedger`'ı
+kullanılarak yerleşimler aynı sırayla tekrar oynatıldı, sonda kalan boşluklar gerçek boşluklardır.
+
+**300 senaryo · kalan boşluk durumu**
+
+| Ölçüm | Değer |
+|---|---|
+| Boşluk sayısı | 74 |
+| Boş hacim | %24,7 |
+| En büyük boşluk | %2,2 (aracın) |
+| Ortalama boşluk | 0,315 m³ |
+| **Sığan yerleşemeyen kutu** | **%75,5** |
+
+Yerleşemeyen kutuların dörtte üçü kalan bir boşluğa **geometrik olarak sığıyor**. Hacim var, kutu
+sığıyor — yerleştirici oraya koymuyor. Suçlu duvar bandı: kutu hiçbir duvarın z aralığına
+girmiyorsa, boşluk uygun olsa bile düşüyordu.
+
+**Düzeltme:** duvar ve yeni duvar denemeleri başarısız olursa bant kısıtı olmadan tüm defter
+taranır. Duvar disiplini bir **çıktı biçimidir**, fiziksel kural değil; kutuyu bandı yüzünden
+dışarıda bırakmak biçimi doluluğa tercih etmek olurdu.
+
+| | Bant kısıtlı | Bant dışı son çare |
+|---|---|---|
+| Ortalama | %75,21 | **%75,96** |
+| Medyan | %74,78 | **%75,74** |
+| p5 | %67,18 | %68,04 |
+
+v5'ten beri ilk yerleştirme tarafı kazancı. Motor testleri 67/67, snapshot kayması yok.
+
+**Kalan engel:** sığan yerleşemeyen oranı %75,5 → %73,1'e indi, yani hâlâ yüksek. Boşluk var ve
+kutu geometrik olarak sığıyor ama yerleşmiyorsa kalan tek aday **%80 destek kuralı**: boşluğun
+tabanı yeterince desteklenmiyor. Sıradaki ölçüm bunu doğrulamalı.
 
 ### Sıradaki: düzlük ödülü aramaya
 

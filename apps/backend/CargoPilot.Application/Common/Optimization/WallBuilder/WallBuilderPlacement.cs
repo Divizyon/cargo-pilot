@@ -149,6 +149,23 @@ internal static class WallBuilderPlacement
                 }
             }
 
+            // Son care: duvar bandi olmadan tum defteri tara. Olcum, yerlesemeyen
+            // kutularin %75,5'inin kalan bir bosluga GEOMETRIK olarak sigdigini
+            // gosterdi (300 senaryo) — yani hacim vardi, kutu da sigiyordu, onu
+            // disarida birakan sey duvar bandiydi.
+            //
+            // Duvar disiplini bir CIKTI BICIMIDIR, fiziksel kural degil: sahadaki
+            // yukleme pratigine uyan bir plan uretmek icin vardir. Kutuyu bandi
+            // yuzunden disarida birakmak, bicimi doluluga tercih etmek olurdu.
+            if (best is null)
+            {
+                var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
+                    0m, null, zoneStart, zoneEnd);
+
+                blockedByFragility |= anywhere.BlockedByFragility;
+                best = anywhere.Box;
+            }
+
             if (best is null)
             {
                 var reason = blockedByFragility

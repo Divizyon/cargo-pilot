@@ -43,6 +43,7 @@ public static class SoakCommand
 
         var waste = new List<WasteDiagnostics.Breakdown>();
         var rejections = new List<RejectionDiagnostics.Reasons>();
+        var spaceStats = new List<SpaceDiagnostics.Spaces>();
         var seed = options.SeedFrom;
 
         // Kiyasta sure degil ADET sinirlanir: farkli butceler farkli sayida senaryo
@@ -71,6 +72,7 @@ public static class SoakCommand
                 {
                     waste.Add(WasteDiagnostics.Analyze(input, result));
                     if (rejections.Count < 20) rejections.Add(RejectionDiagnostics.Analyze(input, result));
+                    spaceStats.Add(SpaceDiagnostics.Analyze(input, result));
                 }
             }
 
@@ -87,6 +89,7 @@ public static class SoakCommand
         Console.WriteLine(stats.Summary(clock.Elapsed, seed - options.SeedFrom));
 
         if (waste.Count > 0) WriteWaste(waste);
+        if (spaceStats.Count > 0) WriteSpaces(spaceStats);
         if (rejections.Count > 0) WriteRejections(rejections);
         if (options.ReportPath is not null) WriteReport(options.ReportPath, stats, clock.Elapsed);
 
@@ -121,6 +124,27 @@ public static class SoakCommand
     /// Yerlesemeyen kutularin ret sebebi. Ornek sayisi kucuk tutulur: her senaryo
     /// icin binlerce konum taranir ve amac tam sayim degil, dagilim.
     /// </summary>
+    /// <summary>
+    /// Kalan bosluklarin durumu. Kritik sayi sonuncusudur: yerlesemeyen kutularin
+    /// kaci bir bosluga GEOMETRIK olarak sigiyor. Yuksekse engel geometri degil
+    /// arama sirasi ya da kural; dusukse hacim gercekten parcalanmis.
+    /// </summary>
+    private static void WriteSpaces(List<SpaceDiagnostics.Spaces> spaces)
+    {
+        Console.WriteLine("kalan bosluk durumu");
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  bosluk sayisi  : {spaces.Average(s => s.FreeSpaceCount):F0}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  bos hacim      : %{spaces.Average(s => s.FreeVolumePercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  en buyuk bosluk: %{spaces.Average(s => s.LargestFreeSpacePercent):F1} (aracin)"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  ortalama bosluk: {spaces.Average(s => s.MeanFreeSpaceVolumeM3):F3} m3"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  SIGAN yerlesemeyen: %{spaces.Average(s => s.UnplacedFittingGeometricallyPercent):F1}"));
+        Console.WriteLine();
+    }
+
     private static void WriteRejections(List<RejectionDiagnostics.Reasons> rejections)
     {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
