@@ -35,6 +35,7 @@ internal static class WallBuilderPlacement
             input,
             [.. ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups)
                 .Select(SequencedItem.Plain)],
+            DecoderKeys.Neutral,
             cancellationToken);
     }
 
@@ -46,6 +47,7 @@ internal static class WallBuilderPlacement
     internal static OptimizationResult Run(
         OptimizationInput input,
         IReadOnlyList<SequencedItem> instances,
+        DecoderKeys decoder,
         CancellationToken cancellationToken)
     {
         var modules = OptimizationModules.Resolve(input);
@@ -140,7 +142,7 @@ internal static class WallBuilderPlacement
                 if (wall.End - wall.Start < itemMinSide) continue;
 
                 var attempt = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    wall.Start, wall.End, zoneStart, zoneEnd, remaining);
+                    wall.Start, wall.End, zoneStart, zoneEnd, remaining, 0m);
 
                 blockedByFragility |= attempt.BlockedByFragility;
                 if (attempt.Box is null) continue;
@@ -156,7 +158,7 @@ internal static class WallBuilderPlacement
             {
                 var frontier = walls.Count > 0 ? walls[^1].End : 0m;
                 var opened = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    frontier, null, zoneStart, zoneEnd, remaining);
+                    frontier, null, zoneStart, zoneEnd, remaining, decoder.WallDepthPreference);
 
                 blockedByFragility |= opened.BlockedByFragility;
 
@@ -179,7 +181,7 @@ internal static class WallBuilderPlacement
             if (best is null)
             {
                 var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    0m, null, zoneStart, zoneEnd, remaining);
+                    0m, null, zoneStart, zoneEnd, remaining, 0m);
 
                 blockedByFragility |= anywhere.BlockedByFragility;
                 best = anywhere.Box;
@@ -425,6 +427,7 @@ internal static class WallBuilderPlacement
     /// </summary>
     private readonly record struct OrientationFit(
         decimal Y,
+        decimal WallDepthKey,
         int NegativeBlockCount,
         decimal Residual,
         decimal Flatness,
@@ -436,6 +439,11 @@ internal static class WallBuilderPlacement
         {
             var byY = Y.CompareTo(other.Y);
             if (byY != 0) return byY < 0;
+
+            // Yeni duvar acilirken derinlik tercihi; mevcut duvara yerlesirken
+            // deger daima sifirdir ve bu anahtar sessizce atlanir.
+            var byWallDepth = WallDepthKey.CompareTo(other.WallDepthKey);
+            if (byWallDepth != 0) return byWallDepth < 0;
 
             var byBlock = NegativeBlockCount.CompareTo(other.NegativeBlockCount);
             if (byBlock != 0) return byBlock < 0;
@@ -469,7 +477,8 @@ internal static class WallBuilderPlacement
         decimal? zLimit,
         decimal? zoneStart,
         decimal? zoneEnd,
-        int remaining)
+        int remaining,
+        decimal depthPreference)
     {
         var item = sequenced.Item;
         var orientations = PlacementValidator.GetOrientations(item);
@@ -540,7 +549,8 @@ internal static class WallBuilderPlacement
                     zLimit ?? input.VehicleLength, fillFromMaxX);
 
                 var candidate = new OrientationFit(
-                    y, -block, space.Width * space.Length - width * length,
+                    y, depthPreference * length,
+                    -block, space.Width * space.Length - width * length,
                     TopDeviation(placements, x, y, z, width, height, length),
                     space.MaxZ - (z + length), -(width * length), rotation);
 

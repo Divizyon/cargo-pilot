@@ -57,11 +57,11 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 | **F2b** · Yerel düzlük terimi | Temas ağırlıklı üst yüzey sapması, sığdırmanın ardında sıralama ölçütü | **KISMİ (`DR-18`)** — doluluk %75,99 → %76,23, en kötü %60,16 → %62,89. Engebe eşiği tutmadı: 56,6 → 56,1 cm (hedef <30), ölü hava %15,2 → %14,9 (hedef <%8) | Öneri 1 · Ojha vd. 2020 |
 | **F2a′** · Destek-farkında defter, ikinci deneme | F2b'den sonra yeniden ölçülür: yüzey düzleşince destekli bölgeler büyür | Doluluk taban çizgiyi geçmeli; yan kazanç: 7 kat hız (8,3 ms / 56,4 ms) | `DR-17` |
 | **F2c** · BR benchmark geçişi | `BrCorpus` + `br` komutu; 700 örnek, strict/free çift raporlama | **TAMAM (`DR-19`/`DR-20`)** — greedy %75,23 · WB %79,03 · WB+GRASP **%83,50** (strict); free uçta %85,00. Literatür ~%92-93 | Öneri (d) |
-| **F3a** · Decoder'ı kromozoma taşı | Kromozom: sıra anahtarları + maximal-space seçim kuralı + düzlük/derinlik ağırlıkları (α'lar) | Arama kazancı +1,5'ten yukarı | Öneri 4 · G&R BRKGA 2012 |
+| **F3a** · Decoder'ı kromozoma taşı | Vektör düzeni netleşti; ilk gen: duvar derinliği tercihi | **KISMİ (`DR-23`)** — GRASP %85,22 → %85,32, BR1 %83,09 → **%83,92**. Mekanizma kuruldu, sıradaki genler için yer hazır (maximal-space seçim kuralı, düzlük ağırlığı) | Öneri 4 · G&R BRKGA 2012 |
 | **F3b** · GWCA emekli, GRASP devralır | `DR-03` uygulanır; GWCA ve GA referans olarak kodda kalır | Varsayılan sequencer GRASP | DR-03 · 300 senaryo ölçümü |
 | **F4a** · Kule/sütun inşası | Aynı ürünün kalan birimleri yerleşen kutunun üstüne yığılır | **TAMAM** — BR'de %77,00 → **%79,03** (+2,03) ve 2,5 kat hızlı. Giyotin korpusunda +0,07'ydi, yani görünmüyordu | Öneri 2 · Gehring & Bortfeldt 1997 |
 | **F4a′** · Blok inşası | Aynı kutudan prizma; asıl değişiklik aday seçiminin blok ADEDİNE bakması | **TAMAM (`DR-22`)** — static %79,03 → %79,86, **GRASP %83,50 → %85,22**, giyotinde regresyon yok. BR1 %81,26 → %83,09 ama merdivenin eğimi hâlâ ters | Eley 2002 · `DR-21` |
-| **F4b** · Dinamik duvar derinliği | Çoklu aday derinlik + sığ ağaç araması | +1-2 puan | Öneri 5 · Pisinger 2002 |
+| **F4b** · Dinamik duvar derinliği | Sabit kural denendi (derin/yansız/sığ) | **F3a'ya devredildi (`DR-23`)** — sabit hiçbir değer kazanmıyor; derin BR1'i +1,36, sığ BR6'yı +1,45 yükseltiyor. Karar artık kromozomda | Öneri 5 · Pisinger 2002 |
 | **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | KK-06b, KK-07 | Eski F4 |
 
 ### Sıra ve gerekçe

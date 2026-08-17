@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 
 namespace CargoPilot.Application.Common.Optimization.Search;
@@ -18,10 +18,25 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 internal static class RandomKeySequence
 {
     /// <summary>
-    /// Anahtarlari siraya cevirir. Birey <c>double[2N]</c>'dir: ilk N eleman sira
-    /// anahtari, ikinci N eleman yonelim anahtari (R-C15). Yonelim anahtari
-    /// kutuyla birlikte tasinir cunku sira degistiginde hangi anahtarin hangi
-    /// kutuya ait oldugu kaybolmamali.
+    /// Vektor duzeni sabittir ve tek yerde yazilidir:
+    /// <c>[0, N)</c> sira anahtarlari · <c>[N]</c> decoder geni ·
+    /// <c>[N+1, 2N+1)</c> yonelim anahtarlari (opsiyonel).
+    ///
+    /// Decoder geni ortada durur cunku her zaman vardir; yonelim anahtarlari
+    /// ise bugun uretilmiyor (olculdu, kaybetti) ve vektorun sonunda opsiyonel
+    /// kalir. Sondaki bloga bakan kod uzunlugu tam olarak sinar, aksi halde
+    /// decoder geni sessizce ilk kutunun yonelim anahtari sanilirdi.
+    /// </summary>
+    internal static int KeyLength(int itemCount) => itemCount + 1;
+
+    /// <summary>Vektorun decoder geni; yoksa tercihsiz.</summary>
+    internal static DecoderKeys Decoder(double[] keys, int itemCount)
+        => keys.Length > itemCount ? DecoderKeys.From(keys[itemCount]) : DecoderKeys.Neutral;
+
+    /// <summary>
+    /// Anahtarlari siraya cevirir. Yonelim anahtari kutuyla birlikte tasinir
+    /// cunku sira degistiginde hangi anahtarin hangi kutuya ait oldugu
+    /// kaybolmamali.
     ///
     /// Gruplu urunlerde gruplar arasi sira bosaltma sirasidir ve arama onu
     /// bozamaz; anahtarlar yalnizca grup ICINDE siralar (R-C19). Aksi halde
@@ -48,13 +63,14 @@ internal static class RandomKeySequence
                 .OrderBy(e => e.Key)
                 .ThenBy(e => e.Index);
 
-        var orientationOffset = instances.Count;
+        var hasOrientation = keys.Length >= 2 * instances.Count + 1;
+        var orientationOffset = instances.Count + 1;
 
         return
         [
             .. query.Select(e => new SequencedItem(
                 e.Item,
-                orientationOffset + e.Index < keys.Length ? keys[orientationOffset + e.Index] : SequencedItem.NoPreference)),
+                hasOrientation ? keys[orientationOffset + e.Index] : SequencedItem.NoPreference)),
         ];
     }
 
@@ -67,7 +83,7 @@ internal static class RandomKeySequence
         IReadOnlyList<OptimizationItemInput> instances,
         IReadOnlyList<OptimizationItemInput> ordered)
     {
-        var keys = new double[instances.Count];
+        var keys = new double[KeyLength(instances.Count)];
         var position = new Dictionary<int, int>(instances.Count);
 
         // Ayni urunun birden cok kopyasi var; eslesme kimlige gore degil, sirayla
@@ -101,6 +117,10 @@ internal static class RandomKeySequence
         {
             keys[i] = position.GetValueOrDefault(i, i) * step;
         }
+
+        // Tohum bireyler tercihsiz baslar: sezgisel siralamalar bugunku
+        // davranisi temsil etmeli, arama sapmayi kendisi kesfetsin (R-C21).
+        keys[instances.Count] = 0.5d;
 
         return keys;
     }

@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 using CargoPilot.Domain.Enums;
 
@@ -26,7 +26,8 @@ internal static class SearchEvaluation
         CancellationToken cancellationToken)
     {
         var ordered = RandomKeySequence.Decode(expanded, keys, input.ClusterGroups);
-        var result = WallBuilderPlacement.Run(input, ordered, cancellationToken);
+        var decoder = RandomKeySequence.Decoder(keys, expanded.Count);
+        var result = WallBuilderPlacement.Run(input, ordered, decoder, cancellationToken);
 
         return new Candidate(keys, result, Cost(input, result, expanded.Count));
     }

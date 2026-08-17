@@ -305,6 +305,13 @@ kutu sığar" diye sorar, "bir kutu ne kadar sıkı oturur" diye değil — öl�
 tek başına %79,03 → %79,04, ölçüt değişince %79,86; GRASP ile %83,50 → %85,22). Ölçü **adet**tir,
 hacim değil (`DR-22`). Kaynak: Eley 2002 blok inşası; Gehring & Bortfeldt 1997 kule.
 
+`R-C15a` **Decoder geni (F3a).** Kromozom yalnız sırayı değil, **plan düzeyindeki kararları** da
+taşır. Vektör düzeni tek yerde yazılıdır: `[0, N)` sıra anahtarları · `[N]` decoder geni ·
+`[N+1, 2N+1)` yönelim anahtarları (opsiyonel). Bugün tek gen vardır: yeni duvar açılırken derinlik
+tercihi (derin / yansız / sığ). Tohum bireyler **yansız** başlar, yani sezgisel sıralamalar
+bugünkü davranışı temsil eder ve sapmayı arama keşfeder (`R-C21`). Sabit derinlik kuralının neden
+kazanamadığı `DR-23`'te.
+
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
 `R-C11` **Boşluk güncelleme.** Yerleşim sonrası kesişen boşluklar silinir, yerine ≤6 yeni prizmatik boşluk üretilir; kalan kutuların en küçük boyutuna sığmayan boşluk `rejected`; `rejected` boşlukların komşuyla birleştirilmesi (amalgamation) `EnableAmalgamation` bayrağı ile (varsayılan kapalı, ölçülünce açılır).
 `R-C12` **Sert kapılar.** Her aday `PlacementValidator` 7 kapısından geçer (`R-C01`). Wall-Builder kendi "destek" tanımı yazmaz; `%80` kuralı oradadır.
@@ -440,6 +447,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-20** | **BR sayısı her zaman iki uçla söylenir: `strict` (alt sınır) ve `free` (üst sınır)** | BR'nin "hangi ölçü dikey durabilir" kısıtını `AllowedRotations` tam karşılamıyor; tiplerin %37'si (`011` düzeni) yaklaşık okunuyor. Hangi ucun ölçüldüğü belirtilmeden sayı literatürle kıyaslanamaz |
 | **DR-21** | **Sıradaki iş blok inşası (Eley 2002)**; kule tek sütunla sınırlı | BR1 (3 tip, bol tekrar) bizim EN KÖTÜ kümemiz (%81,26) hâlbuki literatürde en kolayı. Tekrarın en yüksek olduğu yerde en az kazanıyoruz: yerleştirici aynı ölçüdeki kutu çokluğunu fırsat olarak görmüyor |
 | **DR-22** | **Aday seçimi blok ADEDİNE bakar, blok hacmine değil** (`R-C09c`) | Hacim biçimi BR'de en iyisiydi (%79,84) ama giyotinde %76,30 → %75,41 düşürdü: orada her kutu benzersiz olduğu için blok daima tek kutudur ve ölçüt sessizce "en büyük kutuyu seç"e dönüşüyor. Adet biçiminde tek kutu durumunda adaylar eşitlenir ve karar eski sığdırma ölçütüne kalır — iki korpusta da doğru |
+| **DR-23** | **Duvar derinliği sabit kuralla belirlenmez, kromozomda aranır** (`R-C15a`) | Derin duvar BR1'i +1,36 yükseltirken BR6'yı −1,45 düşürüyor, sığ duvar tam tersi; ortalamada üçü de aynı (%79,85-79,88). Doğru değer kutu setine bağlı. Genle: GRASP %85,22 → %85,32, BR1 %83,09 → %83,92 |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

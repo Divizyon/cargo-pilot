@@ -582,3 +582,56 @@ başlangıç noktası veriyor.
 
 Heterojenlik merdiveninin eğimi hâlâ ters: BR1 (%83,09) bizim en kötü kümemiz, literatürde ise en
 kolayı. Tekrarı artık kullanıyoruz ama yeterince değil.
+
+---
+
+## F4b + F3a · Duvar derinliği kararı kromozoma taşındı
+
+BR teşhis satırları `br --verbose` ile açıldı. BR1'in neden en kötü küme olduğu görüldü:
+
+| | BR1 | BR4 | BR7 |
+|---|---|---|---|
+| Ölü hava | %18,6 | %14,3 | %14,2 |
+| Yığın yüksekliği | %81,4 | %85,7 | %85,8 |
+| **Üst yüzey engebe** | **69 cm** | 63 cm | 62 cm |
+| Kalan boşluk sayısı | 5 | 16 | 26 |
+| Ortalama adet | 50,1 | 13,3 | 6,5 |
+
+Tip sayısı azaldıkça engebe artıyor ve yığın alçalıyor. Az tip = **az duvar derinliği seçeneği**;
+yanlış derinliğe kilitlenmenin bedeli orada en yüksek.
+
+### Sabit derinlik kuralı kazanamıyor
+
+| Yeni duvar açılırken | BR1 | BR6 | BR7 | BR1-BR7 |
+|---|---|---|---|---|
+| Yansız (bugünkü) | %79,32 | %78,99 | %79,00 | **%79,86** |
+| **Derin** duvarı tercih et | %79,04 | %79,01 | %79,13 | %79,85 |
+| **Sığ** duvarı tercih et | %77,96 | %80,46 | %79,77 | %79,88 |
+
+Derin BR1'i **+1,36** yükseltirken BR6'yı **−1,45** düşürüyor; sığ tam tersini yapıyor. Ortalamada
+üçü de aynı. **Doğru değer kutu setine bağlı ve tek bir kural olarak yazılamaz.**
+
+### F3a: karar kromozoma
+
+Anahtar vektörünün düzeni netleştirildi ve tek yerde yazıldı:
+`[0, N)` sıra anahtarları · `[N]` **decoder geni** · `[N+1, 2N+1)` yönelim anahtarları (opsiyonel).
+
+Decoder geni ortada duruyor çünkü her zaman var; yönelim anahtarları bugün üretilmiyor (ölçüldü,
+kaybetti) ve sonda opsiyonel kalıyor. Eski kod sondaki bloğu `offset + i < keys.Length` ile
+sınıyordu — decoder geni eklenince bu, geni sessizce ilk kutunun yönelim anahtarı sayardı; kontrol
+tam uzunluk sınamasına çevrildi.
+
+Tohum bireyler tercihsiz (0,5) başlar: sezgisel sıralamalar bugünkü davranışı temsil etmeli, arama
+sapmayı kendisi keşfetsin (`R-C21`).
+
+| | Kule + blok | + decoder geni |
+|---|---|---|
+| Static (yansız, 700 örnek) | %79,86 | %79,86 |
+| **GRASP (175 örnek)** | %85,22 | **%85,32** |
+| **BR1, GRASP** | %83,09 | **%83,92** |
+
+Genel kazanç küçük (+0,10) ama **tam beklenen yerde**: BR1'de +0,83, yani derinlik kararının en
+çok bağladığı kümede. Static yol birebir korundu ve giyotin korpusunda regresyon yok (%76,29).
+
+Asıl değeri mekanizma: plan düzeyindeki kararlar artık aramaya açık. Sıradaki genler için yer
+hazır (maximal-space seçim kuralı, düzlük ağırlığı).

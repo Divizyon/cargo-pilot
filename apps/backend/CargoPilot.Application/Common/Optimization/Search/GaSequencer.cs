@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 
@@ -41,7 +41,7 @@ internal static class GaSequencer
         var rng = new SearchRandom(input.Seed);
         while (population.Count < budget.PopulationSize)
         {
-            population.Add(SearchEvaluation.Evaluate(input, expanded, RandomKeys(rng, expanded.Count), cancellationToken));
+            population.Add(SearchEvaluation.Evaluate(input, expanded, RandomKeys(rng, RandomKeySequence.KeyLength(expanded.Count)), cancellationToken));
             evaluations++;
         }
 

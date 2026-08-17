@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 using CargoPilot.Domain.Enums;
@@ -57,7 +57,7 @@ internal static class GwcaSequencer
         var rng = new SearchRandom(input.Seed);
         while (population.Count < budget.PopulationSize)
         {
-            var keys = new double[expanded.Count];
+            var keys = new double[RandomKeySequence.KeyLength(expanded.Count)];
             for (var i = 0; i < keys.Length; i++) keys[i] = rng.Next();
 
             population.Add(Evaluate(input, expanded, keys, cancellationToken, ref evaluations));
@@ -68,7 +68,7 @@ internal static class GwcaSequencer
         history.Add(best.Fitness);
 
         var velocities = new double[budget.PopulationSize][];
-        for (var i = 0; i < velocities.Length; i++) velocities[i] = new double[expanded.Count];
+        for (var i = 0; i < velocities.Length; i++) velocities[i] = new double[RandomKeySequence.KeyLength(expanded.Count)];
 
         var personalBest = population.Select(p => (double[])p.Keys.Clone()).ToList();
         var stall = 0;
@@ -166,7 +166,7 @@ internal static class GwcaSequencer
             var index = population.Count - 1 - i;
             var local = SearchRandom.Derive(input.Seed, iteration + 10_000, index);
 
-            var keys = new double[expanded.Count];
+            var keys = new double[RandomKeySequence.KeyLength(expanded.Count)];
             for (var k = 0; k < keys.Length; k++) keys[k] = local.Next();
 
             population[index] = Evaluate(input, expanded, keys, cancellationToken, ref evaluations);
@@ -251,7 +251,8 @@ internal static class GwcaSequencer
     {
         evaluations++;
         var ordered = RandomKeySequence.Decode(expanded, keys, input.ClusterGroups);
-        var result = WallBuilderPlacement.Run(input, ordered, cancellationToken);
+        var decoder = RandomKeySequence.Decoder(keys, expanded.Count);
+        var result = WallBuilderPlacement.Run(input, ordered, decoder, cancellationToken);
 
         return new Individual(keys, result, Cost(input, result, expanded.Count));
     }

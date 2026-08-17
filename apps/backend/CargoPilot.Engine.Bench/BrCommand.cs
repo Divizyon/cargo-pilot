@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using CargoPilot.Application.Common.Models;
 
@@ -31,6 +31,9 @@ public static class BrCommand
         Console.WriteLine("kume  ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  medyan ms");
 
         var all = new List<decimal>();
+        var waste = new List<WasteDiagnostics.Breakdown>();
+        var spaces = new List<SpaceDiagnostics.Spaces>();
+        var shape = new List<CorpusDiagnostics.Shape>();
 
         foreach (var set in sets)
         {
@@ -55,6 +58,20 @@ public static class BrCommand
 
                 durations.Add(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
                 fills.Add(result.FillRate * 100m);
+
+                if (!options.Verbose) continue;
+
+                waste.Add(WasteDiagnostics.Analyze(input, result));
+                spaces.Add(SpaceDiagnostics.Analyze(input, result));
+                shape.Add(CorpusDiagnostics.Analyze(input));
+            }
+
+            if (options.Verbose)
+            {
+                WriteDiagnostics(set, waste, spaces, shape);
+                waste.Clear();
+                spaces.Clear();
+                shape.Clear();
             }
 
             all.AddRange(fills);
@@ -71,6 +88,29 @@ public static class BrCommand
             $"BR1-BR7 ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)"));
 
         return BenchOptions.ExitOk;
+    }
+
+    /// <summary>
+    /// Kume basina teshis. Ozet tablo "ne kadar" der, bu satirlar "neden" der:
+    /// kayip hacim yiginin ustunde mi icinde mi, kalan bosluklar gercek mi.
+    /// </summary>
+    private static void WriteDiagnostics(
+        int set,
+        List<WasteDiagnostics.Breakdown> waste,
+        List<SpaceDiagnostics.Spaces> spaces,
+        List<CorpusDiagnostics.Shape> shape)
+    {
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"      BR{set} teshis · olu hava %{waste.Average(w => w.DeadAirPercent):F1}" +
+            $" · ic bosluk %{waste.Average(w => w.InternalGapPercent):F1}" +
+            $" · yigin %{waste.Average(w => w.MeanPileHeightPercent):F1}" +
+            $" · engebe {waste.Average(w => w.TopRoughnessCm):F0} cm" +
+            $" · duz sutun %{waste.Average(w => w.FlatFractionPercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           bosluk {spaces.Average(s => s.FreeSpaceCount):F0}" +
+            $" · sigan yerlesemeyen %{spaces.Average(s => s.UnplacedFittingGeometricallyPercent):F1}" +
+            $" · sigan+destekli %{spaces.Average(s => s.UnplacedFittingAndSupportedPercent):F1}" +
+            $" · ortalama adet {shape.Average(s => s.MeanQuantity):F1}"));
     }
 
     private static decimal Mean(List<decimal> values)
