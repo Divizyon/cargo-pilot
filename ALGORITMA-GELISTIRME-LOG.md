@@ -717,3 +717,57 @@ değil **"nasıl üretildi"** sorusunun cevabı. İki komut da (plan oluştur, y
 kaydediyor; `PlanDetailDto` alanları artık gerçek değer taşıyor.
 
 Testler: motor 111/111, altyapı 39/39, uygulama 228/228.
+
+---
+
+## OPT-15 · Kanıtlanmış motor hatası kapatıldı
+
+**Hata.** Dört istif kuralı (istiflenebilirlik, istif adedi, üst ağırlık, kırılganlık) yalnızca
+**aşağı** bakıyordu — aday pozisyonun *altında* ne olduğunu soruyordu. Bu, kodda açıkça yazılı bir
+varsayıma dayanıyordu: *"yeni kutu daima mevcut yığının en üstüne konur; üstünde hiçbir şey yoktur."*
+
+Varsayım yanlış. Boşluk defteri iki kutu arasında kalan **cebi** aday olarak tutar — bu onun asıl
+amacıdır. Dolayısıyla bir kutu, üstünde zaten yük olan bir yere yerleşebilir ve o kutunun **kendi**
+kısıtları hiçbir yerde sorulmaz.
+
+**Üretim kodunda çözüm zaten vardı ama çağrılmıyordu:** `ViolatesLoadAbove` denge takası için
+yazılmıştı ve yalnızca oradan çağrılıyordu.
+
+### Önce kanıt
+
+`CepYerlesimiTests` köprü kurulmasını zorlar: iki sütun yan yana, üstlerine tam genişlikte ince
+bir köprü (destek 160/200 = **tam eşikte**), geriye köprünün altında bir cep. Cebe sığan son kutu
+kırılgan. Yönelimler `Fixed` — serbest bırakılınca motor kutuları döndürüyor ve kurgu dağılıyor.
+
+Wall-Builder'ın ürettiği plan:
+
+```
+(0,0,0)   80×120×200   sütun
+(80,0,0)  80×120×200   sütun
+(160,0,0) 40×120×100   ← KIRILGAN, cebe yerleşti
+(0,120,0) 200×20×200   köprü — kırılgan kutunun üstüne bindi
+```
+
+Greedy bu senaryoda kaçındı (köprüyü zemine, `z=200`'e koydu), ama kör nokta onda da var.
+
+### Düzeltme
+
+`ViolatesLoadAbove` aday alanlarıyla çağrılabilen bir aşırı yüklemeye ayrıldı (tek uygulama, iki
+imza) ve **üç** yere sekizinci kapı olarak eklendi: greedy aday taraması, Wall-Builder aday
+taraması, blok inşası. Blok ana döngünün taramasını atladığı için orada ayrıca gerekiyordu.
+
+Maliyet sıfıra yakın: kısıtsız kutuda fonksiyon ilk satırda dönüyor.
+
+### Sonuç
+
+| | Önce | Sonra |
+|---|---|---|
+| BR1-BR7 (static) | %79,86 | %79,86 |
+| Giyotin | %76,29 | %76,29 |
+| Golden snapshot (17) | — | **hepsi bayt birebir aynı** |
+| Motor testleri | 111 | **115** |
+
+Doluluk hiç değişmedi ve snapshot'lar kaydı **çünkü** her iki korpusta da kısıtlı kutu yok
+(`MaxStackCount 0`, `IsStackable true`, `NonFragile`) — kapı orada hiç ateşlenmiyor. Yani düzeltme
+yalnızca gerçekten geçersiz olan yerleşimleri reddediyor, başka hiçbir şeye dokunmuyor. Erteleme
+gerekçesi ("snapshot kaydırır") ölçümle geçersiz çıktı.

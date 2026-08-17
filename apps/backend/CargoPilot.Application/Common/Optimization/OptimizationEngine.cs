@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Interfaces;
+﻿using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
@@ -153,6 +153,13 @@ internal sealed class OptimizationEngine : IOptimizationEngine
                         blockedByFragility = true;
                         continue;
                     }
+
+                    // Sekizinci kapi: adayin KENDI kisitlari. Digerleri asagi
+                    // bakar, bu yukari — aday nokta var olan bir yiginin ALTINA
+                    // dusebilir ve o zaman kutunun kendi istif/kirilganlik
+                    // kisitlari hicbir yerde sorulmazdi (OPT-15).
+                    if (PlacementValidator.ViolatesLoadAbove(placements, ex, ey, ez, width, height, length,
+                        item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop)) continue;
 
                     var score = ComputeScore(
                         input.Criteria,

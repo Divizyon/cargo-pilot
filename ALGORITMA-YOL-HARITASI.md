@@ -104,10 +104,11 @@ gerektirir** — tek başına en büyük hamle olabilir.
 
 ### Bekleyen teknik borç
 
-`OPT-15` — ana yerleştirme döngüsü yalnızca aşağı bakıyor; sonradan gelen kutu var olan yığının
-altına konabiliyor ve kendi `MaxStackCount`/`MaxWeightOnTop`/kırılganlık kısıtları hiç sorulmuyor.
-**Kanıtlanmış motor hatası**, snapshot kaydıracağı için ertelenmişti. F2a reddedildiği için
-artık bağımsız bir kalem: `F2a′` denemesiyle birlikte ya da ondan önce ele alınmalı.
+~~`OPT-15`~~ — **KAPATILDI (`DR-27`).** Aday artık kendi istif/kırılganlık kısıtlarına karşı da
+sınanıyor (sekizinci kapı; greedy taraması, Wall-Builder taraması ve blok inşası). Erteleme
+gerekçesi "snapshot kaydırır" idi; ölçüldü ve **17 golden snapshot bayt birebir aynı kaldı**,
+doluluk da değişmedi — çünkü iki korpusta da kısıtlı kutu yok, kapı yalnızca gerçekten geçersiz
+yerleşimleri reddediyor.
 
 ---
 

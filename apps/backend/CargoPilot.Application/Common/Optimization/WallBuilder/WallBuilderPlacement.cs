@@ -323,6 +323,11 @@ internal static class WallBuilderPlacement
             if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight)) break;
             if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length)) break;
 
+            // Blok, ana dongunun aday taramasini atlar; sekizinci kapi burada da
+            // sorulmak zorunda (OPT-15).
+            if (PlacementValidator.ViolatesLoadAbove(placements, x, top, z, width, height, length,
+                item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop)) break;
+
             placements.Add(Create(item, x, top, z, width, height, length, baseBox.Rotation));
             totalWeight += item.Weight;
             ledger.Place(x, top, z, width, height, length, minSide);
@@ -533,6 +538,12 @@ internal static class WallBuilderPlacement
                     blockedByFragility = true;
                     continue;
                 }
+
+                // Sekizinci kapi: adayin KENDI kisitlari. Digerleri asagi bakar,
+                // bu yukari — cebe yerlesen kutunun ustunde zaten yuk olabilir
+                // (OPT-15). Kisitsiz kutuda maliyeti sifirdir.
+                if (PlacementValidator.ViolatesLoadAbove(placements, x, y, z, width, height, length,
+                    item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop)) continue;
 
                 // Bosluklar arasinda en sıkı oturan kazanir (best-fit): once alcak
                 // katman — yercekimi tercihi korunur — sonra bosluktan artan hacim.

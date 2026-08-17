@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization;
@@ -242,15 +242,31 @@ internal static class PlacementValidator
 
     /// <summary>Yerleştirilmiş bir kutunun üstündeki yük, kutunun kendi istif ve kırılganlık kısıtlarını aşıyor mu?</summary>
     internal static bool ViolatesLoadAbove(List<PlacedBox> others, PlacedBox box)
+        => ViolatesLoadAbove(
+            others, box.X, box.Y, box.Z, box.Width, box.Height, box.Length,
+            box.IsStackable, box.FragilityType, box.MaxStackCount, box.MaxWeightOnTop);
+
+    /// <summary>
+    /// Aynı soru, henüz yerleşmemiş bir ADAY için. Aday taraması bunu sormak
+    /// zorundadır: "yeni kutu daima yığının en üstüne konur" varsayımı yanlıştır,
+    /// çünkü boşluk defteri iki kutu arasında kalan cebi aday olarak tutar — bu
+    /// onun asıl amacıdır. Ölçüldü: köprü altındaki cebe kırılgan kutu
+    /// yerleşiyordu (OPT-15).
+    /// </summary>
+    internal static bool ViolatesLoadAbove(
+        List<PlacedBox> others,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal height, decimal length,
+        bool isStackable, FragilityType fragilityType, int maxStackCount, decimal maxWeightOnTop)
     {
         // Kısıtsız kutuda hiçbir kural üst yükle ilgilenmez: maliyet sıfır.
-        if (box.IsStackable
-            && box.FragilityType != FragilityType.Fragile
-            && box.MaxStackCount <= 0
-            && box.MaxWeightOnTop <= 0m)
+        if (isStackable
+            && fragilityType != FragilityType.Fragile
+            && maxStackCount <= 0
+            && maxWeightOnTop <= 0m)
             return false;
 
-        var top = box.Y + box.Height;
+        var top = y + height;
 
         var countAbove = 0;
         var weightAbove = 0m;
@@ -260,8 +276,8 @@ internal static class PlacementValidator
         {
             if (c.Y < top) continue;
 
-            var ox = Math.Max(0m, Math.Min(box.X + box.Width, c.X + c.Width) - Math.Max(box.X, c.X));
-            var oz = Math.Max(0m, Math.Min(box.Z + box.Length, c.Z + c.Length) - Math.Max(box.Z, c.Z));
+            var ox = Math.Max(0m, Math.Min(x + width, c.X + c.Width) - Math.Max(x, c.X));
+            var oz = Math.Max(0m, Math.Min(z + length, c.Z + c.Length) - Math.Max(z, c.Z));
             if (ox <= 0m || oz <= 0m) continue;
 
             countAbove++;
@@ -269,10 +285,10 @@ internal static class PlacementValidator
             if (c.Y == top) restsDirectlyOn = true;
         }
 
-        if (!box.IsStackable && restsDirectlyOn) return true;
-        if (box.FragilityType == FragilityType.Fragile && countAbove > 0) return true;
-        if (box.MaxStackCount > 0 && countAbove > box.MaxStackCount) return true;
-        if (box.MaxWeightOnTop > 0m && weightAbove > box.MaxWeightOnTop) return true;
+        if (!isStackable && restsDirectlyOn) return true;
+        if (fragilityType == FragilityType.Fragile && countAbove > 0) return true;
+        if (maxStackCount > 0 && countAbove > maxStackCount) return true;
+        if (maxWeightOnTop > 0m && weightAbove > maxWeightOnTop) return true;
 
         return false;
     }
