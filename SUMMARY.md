@@ -25,6 +25,10 @@
 * [ADR-0003 — LIFO Bölge Kısıtı](docs/adr/ADR-0003-lifo-bolge-sert-kisiti.md)
 * [ADR-0004 — Denge Takasında Çift Yönlü Doğrulama](docs/adr/ADR-0004-denge-takasi-cift-yonlu-dogrulama.md)
 * [ADR-0005 — Modül Bayraklarının Dışa Kapalılığı](docs/adr/ADR-0005-modul-bayraklari-disa-kapali.md)
+* [ADR-0006 — Üç Dallı Terfi Modeli](docs/adr/ADR-0006-uc-dalli-terfi-modeli.md)
+* [ADR-0007 — Docker Build Cache Asimetrisi](docs/adr/ADR-0007-docker-build-cache-asimetrisi.md)
+* [ADR-0008 — SHA Pinleme Sürüm Yükseltmesinden Ayrılır](docs/adr/ADR-0008-sha-pinleme-surum-yukseltmeden-ayri.md)
+* [ADR-0009 — Otomatik Geri Alma Sessizce Başarılı Dönmez](docs/adr/ADR-0009-otomatik-geri-alma-sessizce-basarili-donmez.md)
 
 ## 🛠️ DevOps
 

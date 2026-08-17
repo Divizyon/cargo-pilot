@@ -17,10 +17,10 @@ neden elendiğini** söyler.
 | [ADR-0003](ADR-0003-lifo-bolge-sert-kisiti.md) | LIFO bölge kısıtı: iki kademeli sert kısıt | Kabul edildi | 2026-08-15 |
 | [ADR-0004](ADR-0004-denge-takasi-cift-yonlu-dogrulama.md) | Denge takasında çift yönlü doğrulama | Kabul edildi | 2026-08-15 |
 | [ADR-0005](ADR-0005-modul-bayraklari-disa-kapali.md) | Modül bayraklarının API'ye ve arayüze açılmaması | Kabul edildi | 2026-08-11 |
-| ADR-0006 | *(ayrılmış — terfi modeli)* | — | — |
-| ADR-0007 | *(ayrılmış — cache asimetrisi)* | — | — |
-| ADR-0008 | *(ayrılmış — action SHA pinleme)* | — | — |
-| ADR-0009 | *(ayrılmış — otomatik geri alma)* | — | — |
+| [ADR-0006](ADR-0006-uc-dalli-terfi-modeli.md) | Üç dallı terfi modeli ve Terfi workflow'u | Kabul edildi | 2026-08-03 |
+| [ADR-0007](ADR-0007-docker-build-cache-asimetrisi.md) | Docker build cache asimetrisi: backend `mode=min`, frontend `mode=max` | Kabul edildi | 2026-08-15 |
+| [ADR-0008](ADR-0008-sha-pinleme-surum-yukseltmeden-ayri.md) | SHA pinleme, sürüm yükseltmesinden ayrılır | Kabul edildi | 2026-08-15 |
+| [ADR-0009](ADR-0009-otomatik-geri-alma-sessizce-basarili-donmez.md) | Otomatik geri alma sessizce başarılı dönmez | Kabul edildi | 2026-08-17 |
 
 [ADR-0000](ADR-0000-sablon.md) numara değil, boş şablondur; indekste karar olarak sayılmaz.
 
