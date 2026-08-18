@@ -100,3 +100,5 @@ cargo-pilot/
 ## Katkı Sağlama
 
 Depoya katkı sağlamadan önce [CONTRIBUTING.md](CONTRIBUTING.md) dosyasını okuyun: branch modeli, commit kuralları ve PR süreci orada özetlenir.
+
+Bu depo özel telif hakkına tabidir, tüm hakları saklıdır — bkz. [LICENSE](LICENSE).

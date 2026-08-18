@@ -9,6 +9,9 @@ services:
       context: ../../apps/backend
       dockerfile: Dockerfile
     container_name: cargo-pilot-backend-prod
+    # F1-02: standalone `docker compose up` ile calisiyoruz (Swarm degil), bu yuzden
+    # deploy.resources.limits yok sayilir; mem_limit standalone'da bagliyicidir.
+    mem_limit: 512m
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
@@ -74,6 +77,7 @@ services:
         VITE_OAUTH_GOOGLE_URL: ${VITE_OAUTH_GOOGLE_URL:-}
         VITE_OAUTH_MICROSOFT_URL: ${VITE_OAUTH_MICROSOFT_URL:-}
     container_name: cargo-pilot-frontend-prod
+    mem_limit: 256m
     environment:
       NODE_ENV: production
     ports:
@@ -90,12 +94,19 @@ services:
     platform: linux/amd64
     container_name: cargo-pilot-mssql-prod
     user: root
+    # F1-02 / D-39: mem_limit container tavanı; MSSQL_MEMORY_LIMIT_MB bunun altında
+    # tutulan SQL Server "max server memory" hedefidir (SQL Server olmayan container/
+    # işletim sistemi payı için mem_limit ile aradaki fark bilerek boş bırakılır).
+    mem_limit: 3072m
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Standard
       # MSSQL_SA_PASSWORD 2022 image'ının beklediği ad; SA_PASSWORD geriye dönük uyumluluk için.
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      # D-39: tanımsızsa SQL Server host RAM'inin ~%80'ini hedefler; mem_limit'in
+      # (3072m) altında sabit bir tavan veriyoruz.
+      MSSQL_MEMORY_LIMIT_MB: ${MSSQL_MEMORY_LIMIT_MB:-2048}
     ports:
       - "127.0.0.1:${MSSQL_PORT}:1433"
     volumes:
@@ -114,6 +125,7 @@ services:
     image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     platform: linux/amd64
     container_name: cargo-pilot-minio-prod
+    mem_limit: 512m
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}

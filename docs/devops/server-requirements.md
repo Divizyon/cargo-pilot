@@ -1,6 +1,6 @@
 # Sunucu Gereksinimleri
 
-**Son güncelleme:** 2026-04-23 · **Durum:** Aktif · **Görev:** US-D01-I
+**Son güncelleme:** 2026-08-18 · **Durum:** Aktif · **Görev:** US-D01-I, F1-02
 
 Bu doküman mevcut sunucunun kapasitesini, bileşen bazlı kaynak gereksinimlerini ve prod + test ortamlarının birlikte çalışabilirliğini özetler.
 
@@ -35,29 +35,51 @@ Bu doküman mevcut sunucunun kapasitesini, bileşen bazlı kaynak gereksinimleri
 | **Minimum (tek ortam)** | **2.5 vCPU** | **3.5 GB** | **80 GB** | |
 | **Önerilen (prod + test)** | **4+ vCPU** | **8+ GB** | **150+ GB** | |
 
-### Tahmini Kaynak Kullanımı (Prod + Test)
+### Kaynak Kullanımı (Prod + Test) — F1-02 ile güncellendi
+
+> **Düzeltme (F1-02 / D-39):** Aşağıdaki "MSSQL × 2 ≈ 4 GB" tahmini **geçersizdi** — bir
+> MSSQL instance'ının kendisi zaten 2–4 GB istiyor (yukarıdaki bileşen tablosu), iki
+> instance için toplamı 4 GB'a sabitlemek bir hesap hatasıydı. Ayrıca hiçbir serviste
+> `mem_limit` tanımlı olmadığından (D-38) SQL Server varsayılan olarak **host RAM'inin
+> %80'ini** hedefliyordu — "4 GB" sadece bir varsayımdı, hiçbir yerde uygulanmıyordu.
+>
+> `infra/compose/*.yml` içine artık her serviste `mem_limit` var (bkz. commit
+> `infra/kaynak-limitleri`); aşağıdaki tablo artık **tahmin değil, compose
+> dosyalarında tanımlı, uygulanan tavan** değerleridir.
 
 ```
-RAM:
-  ├── OS + Docker daemon              ~512 MB
-  ├── Frontend × 2 (prod+test)        ~128 MB
-  ├── Backend × 2                     ~512 MB
-  ├── MSSQL × 2                       ~4 GB
-  ├── MinIO × 2                       ~256 MB
-  └── Monitoring stack                ~1.5 GB
-  ─────────────────────────────────────────────
-  Toplam tahmini     ≈ 6.9 GB / 16 GB  (%43)
+RAM (mem_limit ile sınırlanmış — infra/compose/*.yml, F1-02):
+  ├── Frontend × 2 (prod+test)        512 MB   (256 MB × 2)
+  ├── Backend × 2                     1024 MB  (512 MB × 2)
+  ├── MSSQL × 2 (mem_limit)           6144 MB  (3072 MB × 2)
+  │     └─ MSSQL_MEMORY_LIMIT_MB      2048 MB/instance (SQL Server "max server
+  │                                   memory" hedefi; mem_limit'in altında)
+  ├── MinIO × 2                       1024 MB  (512 MB × 2)
+  └── Monitoring stack × 2 (prod+test) 3456 MB (loki 512 + promtail 128 +
+                                       node-exporter 64 + cadvisor 256 +
+                                       prometheus 512 + grafana 256 = 1728 × 2)
+  ─────────────────────────────────────────────────────────────
+  Yapılandırılmış tavan toplamı   ≈ 12.16 GB / 16 GB  (%74)
+  Kalan pay (OS + Docker daemon + burst) ≈ 4.1 GB / 16 GB  (%26)
+
+  Not: `erp-mssql` / `erp-mssql-init` (docker-compose.test.yml, `--profile e2e`)
+  bu bütçeye dahil değildir — yalnızca GitHub Actions runner'ında (CI) kalkar,
+  bu sunucuda hiç çalışmaz.
 
 Disk:
   ├── OS + Docker images              ~23 GB
   ├── MSSQL data                      ~1–5 GB
   └── MinIO data                      ~1–10 GB
   ─────────────────────────────────────────────
-  Toplam tahmini     < 40 GB / 147 GB  (%16)
+  Toplam tahmini     < 40 GB / 147 GB  (%16)  — VARSAYIM, ölçülmedi
 ```
 
 {% hint style="success" %}
-**Sonuç: Yeterli.** Mevcut sunucu kapasitesi prod + test + monitoring stack'i aynı anda çalıştırmaya yeterlidir. Image build CI'da GHCR'a push edildiğinden sunucuda OOM riski yoktur.
+**Sonuç: Yeterli.** Yapılandırılmış bellek tavanlarının toplamı (≈12.16 GB) 16 GB
+sunucu kapasitesinin altında kalıyor ve OS + Docker daemon için ≈4.1 GB (%26) pay
+bırakıyor. `mem_limit` değerleri ölçülmüş gerçek kullanım değil, D-38/D-39 kapsamında
+konulmuş muhafazakâr tavanlardır (bkz. F1-02); ilk prod yükünden sonra gerçek kullanımla
+karşılaştırılıp gerekirse ayarlanmalıdır.
 {% endhint %}
 
 ---
