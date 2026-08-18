@@ -400,7 +400,8 @@ saniyede tam destekli gerçekçi referans **~%93**; bugünkü %87,73 ile arası 
 | ~~F7-1~~ *(özgün)* | **BR0-BR15 veri seti** — `problems/clp/benchs/BR/` alınır, `DR-38`'in BR8-15 boşluğu kapanır. İlk 7 setin `thpack1-7` ile birebir olduğu doğrulanır | BR1-BR7 sayıları **değişmez** |
 | ~~F7-2~~ | ~~Blok kataloğu üretici~~ | ✅ **Yapıldı** — `DR-51`. Azami 2,7 ms / 1946 blok |
 | ~~F7-2~~ *(özgün)* | **Blok kataloğu üretici** — basit bloklar (tek ürün, tek yönelim, `nx×ny×nz`) + bileşik bloklar (`min_fr` eşiği), üst sınırlı | Katalog süresi < 50 ms |
-| **F7-3** | **VCS değerlendirme** — mevcut greedy'ye takılıp **beam olmadan** ölçülür; yalnız aday seçim ölçütü değişir | Static'te gerileme yok |
+| ~~F7-3~~ | ~~VCS değerlendirme~~ | ✅ **Yapıldı** — `DR-52`. Kapı "gerileme yok"tu; static +0,65 / GRASP +0,37 geldi |
+| ~~F7-3~~ *(özgün)* | **VCS değerlendirme** — mevcut greedy'ye takılıp **beam olmadan** ölçülür; yalnız aday seçim ölçütü değişir | Static'te gerileme yok |
 | **F7-4** | **Beam search çekirdeği**, aktif duvar kısıtlı. ⚠ `DR-49`: ana döngüde yerleşen birimler de `consumed` işaretlenmeli — bugün yalnız blok inşasının yuttukları işaretli ve bu, döngünün tek yönde ilerlemesine dayanıyor. Beam sırayı serbest bıraktığı anda kutu iki kez yerleşir | Static BR1-BR7 **≥ %89** |
 | **F7-5** | **DoubleEffort** — bütçe bitene kadar ışın `√2` ile büyür | 2 sn bütçede **≥ %90** |
 | **F7-6** | **Sekiz sert kapı beam içinde** + değişmezler + determinizm | 17 snapshot · `PhysicalInvariants` · `R-C02` |

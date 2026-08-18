@@ -1863,3 +1863,70 @@ yeterli değil — zaten öyle planlanmıştı.
 
 Testler 140/35/228 yeşil, kapı geçti (%82,61 — motor davranışı değişmedi, katalog henüz kimse
 tarafından çağrılmıyor).
+
+---
+
+## F7-3 · VCS aday değerlendirme — **kapı aşıldı: static +0,65, GRASP +0,37**
+
+Bugüne kadar aday seçimi **sözlükbilimseldi**: önce yerçekimi, eşitse duvar derinliği, eşitse blok,
+eşitse artık… Her anahtar bir öncekini asla deviremezdi. Koddaki gerekçe şuydu: *"ağırlıklı toplam
+olsaydı katsayıların kalibrasyonu yeni bir borç olurdu."*
+
+VCS (Araya, Guerrero & Nuñez 2017) ağırlıklı **çarpımdır** — dört terim birbirini dengeler:
+
+```
+değer = hacim^δ × (1 − kayıp)^β × temas^α × (1 / kutu)^γ
+```
+
+### Üsteller ölçülmedi — bu bir tahmindir
+
+Kaynakta fonksiyonun **biçimi** var, katsayıları yok; elimizdeki inceleme de vermiyor. Dördü de
+`1` alındı — nötr bir başlangıç, kalibre edilmiş değer değil. İki terim de yaklaşımdır:
+
+- **Kayıp:** kaynakta kalan kutu ölçüleriyle knapsack tahmini. Burada daha ucuzu — bloğu koyunca
+  kalan dilim en küçük kutunun kısa kenarından darsa o dilim kesin kayıptır. "Girer ama kötü
+  dolar" durumunu yakalamaz; buna karşılık maliyeti sabittir ve aday başına koşabilir.
+- **Temas:** taban ayak izi + araç yüzeylerine değme. Komşu kutulara değme hesaplanmıyor
+  (yerleşim listesini taramak gerekirdi, sıcak döngüde pahalı).
+
+### Ölçüm
+
+| | Taban | VCS | Fark |
+|---|---|---|---|
+| **Static, BR1-BR7, 700 örnek** | %82,61 | **%83,26** | **+0,65** |
+| **GRASP, 175 örnek** | %87,73 | **%88,10** | **+0,37** |
+
+Kümeye göre (static):
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 |
+|---|---|---|---|---|---|---|---|
+| Taban | %82,78 | %83,28 | %83,15 | %82,89 | %82,55 | %82,02 | %81,57 |
+| VCS | %82,47 | %83,35 | %83,68 | %83,40 | %83,59 | %83,17 | **%83,17** |
+| Fark | **−0,31** | +0,07 | +0,53 | +0,51 | +1,04 | +1,15 | **+1,60** |
+
+### İki şey söylüyor
+
+**1. Kazanç heterojenlikle büyüyor** — BR1 kaybediyor, BR7 en çok kazanıyor. Muhtemel sebep:
+sözlükbilimsel sıra az çeşitli yükte iyi çalışan bir önceliklendirmeydi (önce yerçekimi, sonra
+duvar derinliği…). Çok çeşitli yükte terimler arasında **ödünleşme** gerekiyor ve sert öncelik
+bunu yapamıyor. Bu, `DR-51`'in blok tablosunun **tam tersi** deseni: blok zenginliği BR1'de azami,
+VCS kazancı BR7'de azami. Üçüncü kez aynı sonuç — kaldıraç arama ve değerlendirme tarafında.
+
+**2. Arama bu kazancı silmiyor.** Bileşik blok statikte +2,87 verip GRASP'ta ±0 olmuştu; VCS
+GRASP'ta da +0,37 tutuyor. Yani aramanın kendi başına bulamadığı bir şey ekliyor.
+
+### `OrientationFit` kaldırılmadı
+
+VCS eşitliğinde eşlik bozucu olarak duruyor. Determinizm (`R-C02`) bunu gerektiriyor: iki aday aynı
+değeri aldığında kazananı defter sırasına bırakmak makineye bağlı çıktı üretirdi.
+
+### Kabul
+
+- 17 golden snapshot **kaymadı** — o senaryolar VCS altında da aynı çıktıyı veriyor.
+- 153/35/228 test yeşil; fizik değişmezleri hem static hem GRASP yolunda korunuyor.
+- Duvar yüzü kaplaması %86,2 → %86,3, yani değişmedi. Beklenen: `DR-49` bunun **geometri** sorunu
+  olduğunu göstermişti, aday seçimi sorunu değil.
+- CI referansı tazelendi: **%83,26**.
+
+**Açık borç:** üsteller kalibre edilmedi. Dördü de `1` ve bu değerin en iyi olduğuna dair hiçbir
+ölçüm yok — tarama F7-4'ün işidir. Bugünkü +0,65, kalibrasyonsuz bir tabandır.

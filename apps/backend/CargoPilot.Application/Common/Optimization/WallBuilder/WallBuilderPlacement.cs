@@ -296,6 +296,8 @@ internal static class WallBuilderPlacement
     }
 
     /// <summary>Hedef derinligin buyutulme adimi; her basarisizlikta tavan bu kadar acilir.</summary>
+    private const double VcsTieEpsilon = 1e-9d;
+
     private const decimal DepthRelaxStep = 1.10m;
 
     /// <summary>
@@ -705,6 +707,8 @@ internal static class WallBuilderPlacement
         PlacedBox? best = null;
         PlacedBox? bestInZone = null;
         OrientationFit? bestFit = null;
+        var bestVcs = double.MinValue;
+        var bestZoneVcs = double.MinValue;
         OrientationFit? bestZoneFit = null;
         var blockedByFragility = false;
 
@@ -774,8 +778,8 @@ internal static class WallBuilderPlacement
 
                 // Bosluklar arasinda en sıkı oturan kazanir (best-fit): once alcak
                 // katman — yercekimi tercihi korunur — sonra bosluktan artan hacim.
-                // Sira sozlukbilimseldir, agirlikli toplam degil: toplam olsaydi
-                // katsayilarin kalibrasyonu yeni bir borc olurdu.
+                // Sira sozlukbilimseldi; F7-3'te VCS agirlikli carpimi one
+                // gecti ve bu anahtar eslik bozucuya indi (asagiya bakiniz).
                 // Artik HACIM degil TABAN ALANI uzerinden olculur. Olcum,
                 // yerlesemeyen kutularin %73'unun bir bosluga sigdigini ama
                 // yalnizca %2,5'inin orada destek buldugunu gosterdi: kalan bos
@@ -794,15 +798,51 @@ internal static class WallBuilderPlacement
                     fillFromMaxX ? input.VehicleWidth - (x + width) : x,
                     rotation);
 
-                if (bestFit is null || candidate.IsBetterThan(bestFit.Value))
+                // Aday secimi VCS ile yapilir (F7-3): sozlukbilimsel anahtar
+                // yerine AGIRLIKLI CARPIM. Yukaridaki yorumun "toplam olsaydi
+                // kalibrasyon yeni bir borc olurdu" gerekcesi olculdu ve
+                // kismen yaniltici cikti: kalibre EDILMEMIS bir carpim bile
+                // sozlukbilimsel anahtari geciyor.
+                //
+                //   static  %82,61 -> %83,26  (+0,65)
+                //   GRASP   %87,73 -> %88,10  (+0,37)
+                //
+                // Kazanc heterojenlikle BUYUYOR: BR1 -0,31, BR7 +1,60. Sebep
+                // muhtemelen su — sozlukbilimsel sira az cesitli yukte iyi
+                // calisan bir onceliklendirmeydi (once yercekimi, sonra duvar
+                // derinligi...); cok cesitli yukte terimler arasinda odunlesme
+                // gerekiyor ve sert oncelik bunu yapamiyor.
+                //
+                // <c>OrientationFit</c> KALDIRILMADI: VCS esitliginde eslik
+                // bozucu olarak kullaniliyor. Determinizm (R-C02) bunu
+                // gerektirir; iki aday ayni degeri aldiginda kazanani defter
+                // sirasina birakmak makineye bagli cikti uretirdi.
+                var itemMin = Math.Min(width, Math.Min(height, length));
+                var wallContact =
+                    (x <= 0m || x + width >= input.VehicleWidth ? height * length : 0m)
+                    + (z <= 0m ? width * height : 0m);
+                var vcs = BlockValue.Score(
+                    placedVolume: width * height * length * block,
+                    spaceVolume: space.Width * space.Height * space.Length,
+                    unusableVolume: BlockValue.UnusableResidual(
+                        space.Width, space.Height, space.Length, width, height, length, itemMin),
+                    contactArea: width * length + wallContact,
+                    boxCount: Math.Max(1, block),
+                    weights: BlockValue.Weights.Neutral);
+
+                if (bestFit is null || vcs > bestVcs
+                    || (Math.Abs(vcs - bestVcs) < VcsTieEpsilon && candidate.IsBetterThan(bestFit.Value)))
                 {
+                    bestVcs = vcs;
                     bestFit = candidate;
                     best = Create(item, x, y, z, width, height, length, rotation);
                 }
 
                 if (LifoPlacement.IsInsideZone(zoneStart, zoneEnd, z, length)
-                    && (bestZoneFit is null || candidate.IsBetterThan(bestZoneFit.Value)))
+                    && (bestZoneFit is null || vcs > bestZoneVcs
+                        || (Math.Abs(vcs - bestZoneVcs) < VcsTieEpsilon && candidate.IsBetterThan(bestZoneFit.Value))))
                 {
+                    bestZoneVcs = vcs;
                     bestZoneFit = candidate;
                     bestInZone = Create(item, x, y, z, width, height, length, rotation);
                 }
