@@ -15,6 +15,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      # Host header doğrulaması. Varsayılan "*" yalnızca geri uyumluluk içindir;
+      # prod'da .env ile gerçek domain(ler) verilmelidir (ayraç ";").
+      AllowedHosts: ${ALLOWED_HOSTS:-*}
       MSSQL_HOST: mssql
       MSSQL_PORT: 1433
       MSSQL_DATABASE: ${MSSQL_DATABASE}
@@ -33,13 +36,22 @@ services:
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
       Minio__BucketName: ${MINIO_BUCKET}
       Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-}
-      Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
+      # Prod'da admin seed VARSAYILAN OLARAK KAPALI. Gerekçe: prod veritabanına
+      # her açılışta ayrıcalıklı bir hesap yazan otomatik bir yol istenmez; ilk
+      # kurulumda tek seferlik SEED_ENABLE_ADMIN_SEED=true ile açılır, hesap
+      # oluşturulduktan sonra tekrar false yapılır. Seed açıkken kod
+      # MustChangePassword'ü zorlar ve parola tanımsızsa uygulama başlamaz.
+      Seed__EnableAdminSeed: ${SEED_ENABLE_ADMIN_SEED:-false}
+      Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword:-}
       Jwt__Secret: ${JWT_SECRET}
       OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       OAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       OAuth__Google__CallbackUrl: ${GOOGLE_OAUTH_CALLBACK_URL:-}
       OAuth__Google__FrontendCallbackUrl: ${GOOGLE_OAUTH_FRONTEND_CALLBACK_URL:-}
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0:-}
+      # /metrics ve /health/detail icin dar kapsamli scrape kimlik bilgisi (SEC-07 takibi).
+      # Prometheus ayni degeri secrets/metrics-token dosyasindan okur.
+      Metrics__ScrapeToken: ${METRICS_SCRAPE_TOKEN:-}
       Resend__ApiKey: ${RESEND_API_KEY:-}
       Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
       Resend__FromName: ${RESEND_FROM_NAME:-}
@@ -130,7 +142,9 @@ services:
       - cargo-pilot-prod
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
+    # DEP-01: 2022-01-08 sürümü CVE-2023-28432/28434, CVE-2024-24747 ve
+    # CVE-2022-31028'e açıktı. 2024-01-31 sürümü bunların tamamının sonrasında.
+    image: quay.io/minio/minio:RELEASE.2024-01-31T20-20-33Z
     platform: linux/amd64
     container_name: cargo-pilot-minio-prod
     mem_limit: 512m
@@ -144,7 +158,9 @@ services:
     volumes:
       - minio_data_prod:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      # 2024-01-31 image'ında curl/wget YOK (yalnızca mc bulunuyor);
+      # eski curl tabanlı healthcheck bu sürümde her zaman unhealthy verirdi.
+      test: ["CMD", "mc", "ready", "local"]
       interval: 20s
       timeout: 10s
       retries: 10

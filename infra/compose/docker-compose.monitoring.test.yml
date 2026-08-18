@@ -103,6 +103,9 @@ services:
       - '--storage.tsdb.retention.time=30d'
     volumes:
       - ../docker/prometheus/prometheus.test.yml:/etc/prometheus/prometheus.yml:ro
+      # /metrics artık SuperAdmin politikasıyla korunuyor; scrape token'ı bu
+      # dizinden okunur (bkz. infra/docker/prometheus/secrets/README.md).
+      - ../docker/prometheus/secrets:/etc/prometheus/secrets:ro
       - prometheus_data_test:/prometheus
     ports:
       - "127.0.0.1:9091:9090"
