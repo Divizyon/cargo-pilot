@@ -6,6 +6,16 @@
 - [ALGORITMA-RULEBOOK.md](../../ALGORITMA-RULEBOOK.md) — kural ve karar kaydı (`R-*`, `DR-*`)
 - [ALGORITMA-YOL-HARITASI.md](../../ALGORITMA-YOL-HARITASI.md) — faz planı
 
+**Kaynak artifact'ler** — [ALGORITMA.md](../../ALGORITMA.md), iki tarihli rapor:
+
+| Satır | Belge | Ne anlatır |
+|---|---|---|
+| 1-134 | *Mimari Raporu* (12 Ağu 2026, PR #935→#937) | Bugünkü klasör yapısını kuran modülerleştirme; yedi sert kapı, puanlama terimleri, bilinen borçlar |
+| 135-511 | *Adli İnceleme* (15 Ağu 2026) | OPT-01 / OPT-02 kök neden analizi |
+
+Sayıları bayattır (o tarihte duvar örücü ve arama katmanı yoktu). Güncel dosya haritası
+[`ALGORITMA-RULEBOOK.md` §A1](../../ALGORITMA-RULEBOOK.md)'dedir.
+
 ## Motor doluluk referansları
 
 `br-greedy-static.json` ve `br-wallbuilder-static.json`, yerleştirme motorunun BR1-BR7 üzerindeki

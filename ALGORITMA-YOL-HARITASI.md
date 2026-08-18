@@ -194,7 +194,7 @@ yerleşimleri reddediyor.
 
 **İş kalemleri**
 
-- Duvar/şerit yapıları: `R-C08` (derinlik = ilk kutunun `z`'si), `R-C09` (şerit `y` = ilk girenin `y`'si, artık maximal-space'e devrolur) — **yeni:** `Common/Optimization/WallBuilder/` (doğrulanacak: klasör adı)
+- Duvar/şerit yapıları: `R-C08` (derinlik = ilk kutunun `z`'si), `R-C09` (şerit `y` = ilk girenin `y`'si, artık maximal-space'e devrolur) — **yeni:** `Common/Optimization/WallBuilder/` (doğrulandı ve uygulandı; güncel dosya haritası `ALGORITMA-RULEBOOK.md` §A1)
 - Maximal-space defteri: `R-C11`; **containment pruning zorunlu** (RK-11), `≤6 yeni boşluk` + "hiçbir boşluk başkasını kapsamaz" invariantı.
 - Aday nokta sırası: `R-C10` Chebyshev → `y`,`z`,`x` → yaratılış sırası; aynalı modda `x` ters (SC-56).
 - **Destek adayları boşluk köşeleriyle sınırlı olamaz** (RK-10): iki kutunun üstüne binen birleşik destek ≥%80 konumları aday üretilmeli.

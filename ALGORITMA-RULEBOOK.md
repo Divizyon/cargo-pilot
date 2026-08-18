@@ -36,23 +36,91 @@
 
 ## A1. Dosya haritası
 
-`apps/backend/CargoPilot.Application/Common/Optimization/`
+> Bu bölüm **yürürlükteki** mimariyi tanımlar. Duvar örücü ve arama katmanı eklendikten sonra
+> yeniden yazıldı (2026-08-18); önceki hâli yalnız greedy'yi kapsıyordu.
+>
+> **Kökeni:** klasör düzeni 12 Ağustos 2026 modülerleştirmesinden geliyor (PR #935 → #936 → #937) —
+> 583 satırlık tek dosya `Infrastructure/Services/`'ten `Application/Common/Optimization/`'a taşındı
+> ve iş modülü başına bir dosyaya bölündü. O raporun metni [`ALGORITMA.md`](ALGORITMA.md) satır
+> 1-134'te; **sayıları bayattır**, bu bölüm güncel olandır.
+
+Motor tek bir klasörde: `apps/backend/CargoPilot.Application/Common/Optimization/`
+
+### Ortak çekirdek — her iki yerleştiricinin paylaştığı
 
 | Dosya | Satır | Sınıf | Rol |
 | --- | --- | --- | --- |
-| `PlacementValidator.cs` | 314 | **kapatılamaz — fizik** | 7 sert kapının tek kaynağı + rotasyon üretimi + `ViolatesLoadAbove` |
-| `OptimizationEngine.cs` | 300 | çekirdek | Greedy döngü, aday tarama, iki kademeli seçim, skor toplamı, metrikler |
-| `BalanceScoring.cs` | 220 | bayraklı (`UseWeightBalance`) | CoG cezası + takas tabanlı ikinci geçiş |
-| `LifoPlacement.cs` | 131 | bayraklı (`UseLifo`) | Grup bölgeleri, bölge cezası, `IsInsideZone`, boşaltma sırası |
-| `ItemOrdering.cs` | 71 | **kapatılamaz** | Yerleştirme sırası (kriterle parametreli, grup kümelemeli) |
-| `VolumeScoring.cs` | 55 | bayraklı (`UseVolume`) | Uzunluk + genişlik terimleri (yön farkında) |
-| `LoadingCorner.cs` | 50 | yeni | Kapı listesinden başlangıç köşesi |
-| `DoorSetFactory.cs` | 37 | yeni | Eski `LoadingType` → kapı listesi köprüsü |
+| `PlacementValidator.cs` | 370 | **kapatılamaz — fizik** | **Sekiz** sert kapının tek kaynağı + rotasyon üretimi. Sekizinci kapı `ViolatesLoadAbove`: adayın KENDİ istif/kırılganlık kısıtları (`DR-27`). Destek eşiği burada tek yerde durur |
 | `PlacedBox.cs` | 17 | veri | Modüllerin ortak dili |
+| `ItemOrdering.cs` | 71 | **kapatılamaz** | Yerleştirme sırası (kriterle parametreli, grup kümelemeli) |
+| `PlanResultBuilder.cs` | 59 | ortak | Yerleşim listesi → sonuç sözleşmesi: doluluk, ağırlık, CoG, denge sapması, sebepli yerleşemeyenler. **İki yerleştirici de buradan geçer**, metrikler tek yerde hesaplanır |
+| `LoadingCorner.cs` | 50 | ortak | Kapı listesinden başlangıç köşesi |
+| `DoorSetFactory.cs` | 37 | ortak | Eski `LoadingType` → kapı listesi köprüsü |
+| `SequencerSelection.cs` | 26 | ortak | Belirtilmemiş sequencer'ı çözer: duvar örücü → GRASP, greedy → Static (`DR-24`) |
 
-Zincirin dışındaki parçalar: `Common/ContaminationFilter.cs` (motor **öncesi**, handler'da: `CreatePlanCommandHandler.cs:163`, `ReOptimizePlanCommandHandler.cs:94`), `Common/Models/OptimizationInput.cs` (girdi + `OptimizationModules` bayrakları).
+### Greedy yol — bugünkü üretim varsayılanı
 
-**Korunan tasarım kararı:** tüm modüller `static`; sıcak döngüde arayüz/delegate/DI üzerinden sanal çağrı bilinçli olarak yok.
+| Dosya | Satır | Sınıf | Rol |
+| --- | --- | --- | --- |
+| `OptimizationEngine.cs` | 299 | çekirdek | Strateji dallanması (tek nokta) + greedy döngü, extreme-point taraması, iki kademeli seçim |
+| `BalanceScoring.cs` | 220 | bayraklı (`UseWeightBalance`) | CoG cezası + takas tabanlı ikinci geçiş |
+| `LifoPlacement.cs` | 131 | bayraklı (`UseLifo`) | Grup bölgeleri, bölge cezası, `IsInsideZone` |
+| `VolumeScoring.cs` | 55 | bayraklı (`UseVolume`) | Uzunluk + genişlik terimleri (yön farkında) |
+
+### Duvar örücü — `WallBuilder/`
+
+| Dosya | Satır | Rol |
+| --- | --- | --- |
+| `WallBuilderPlacement.cs` | 750 | Duvar disiplini, aday taraması, kule/blok/bileşik blok inşası (`R-C08`, `R-C09c`, `R-C09d`) |
+| `SpaceLedger.cs` | 158 | Maximal-space defteri; boşluklar **maksimaldir** (ölçüldü, `DR-34`) |
+| `FreeSpace.cs` | 42 | Prizmatik boş bölge; kutuyla aynı konum sözleşmesi |
+| `DecoderKeys.cs` | 61 | Plan düzeyindeki kararlar (duvar derinliği, yedek kademe sırası) — aramaya açık (`R-C15a`) |
+| `SequencedItem.cs` | 25 | Sıradaki kutu + yönelim anahtarı |
+
+### Arama katmanı — `Search/`
+
+| Dosya | Satır | Rol |
+| --- | --- | --- |
+| `GraspSequencer.cs` | 135 | **Varsayılan** (`DR-13`). Sabitleri ölçülerek seçildi (`DR-30`) |
+| `GaSequencer.cs` | 145 | Referans — kıyas için kodda kalır |
+| `GwcaSequencer.cs` | 294 | Emekli (`DR-13`) — referans olarak kodda kalır |
+| `SearchEvaluation.cs` | 82 | Üç aramanın **ortak** değerlendirmesi ve fitness'ı (`R-C22`) |
+| `RandomKeySequence.cs` | 132 | Vektör düzeninin tek kaynağı: `[0,N)` sıra · `[N,N+4)` decoder · `[N+4,2N+4)` yönelim |
+| `SearchRandom.cs` | 46 | Aramanın **tek** rastgelelik kaynağı (mulberry32) — determinizmin dayanağı |
+| `GammaDensity.cs` | 58 | GWCA'nın adım küçültmesi; yalnız GWCA kullanır |
+
+### Ölçüm düzeneği — `apps/backend/CargoPilot.Engine.Bench/` *(üretime girmez)*
+
+| Dosya | Rol |
+| --- | --- |
+| `Program.cs` · `BenchOptions.cs` | Dört kip: `bench` · `soak` · `br` · `serve` |
+| `EngineHost.cs` | Motorun tek çağrı noktası; üretim akışının **yalnız hesap** kısmını tekrarlar |
+| `BrCorpus.cs` · `data/thpack1..7.txt` | **Birincil korpus** — BR1-BR7, 700 örnek (`DR-19`) |
+| `VolumeCorpus.cs` | Giyotin korpusu — regresyon |
+| `BenchCatalog.cs` · `BenchCorpus.cs` | Sabit sentetik korpus |
+| `BrCommand.cs` · `SoakCommand.cs` · `BenchCommand.cs` | Koşum kipleri |
+| `BrBaseline.cs` | Gecelik kapının karşılaştırması (`DR-28`) |
+| `BenchServer.cs` | Test arayüzünün konuştuğu loopback ucu |
+| `DeterminismDigest.cs` | Koşunun anlamlı izdüşümü — tek hex dizesi |
+| `DiagnosticPlacements.cs` | Plan çıktısı → motorun iç tipi; teşhisler motorun **kendi** yüklemlerini çağırabilsin diye |
+| `WasteDiagnostics.cs` | Kayıp hacmin ayrışımı: ölü hava / iç boşluk / engebe |
+| `SpaceDiagnostics.cs` | Kalan boşluklar; "sığan ama desteksiz" oranı |
+| `RejectionDiagnostics.cs` | Yerleşemeyenlerin ret sebebi dağılımı |
+| `CorpusDiagnostics.cs` | Korpusun şekli — tekrar var mı (`DR-19`'un dayanağı) |
+| `SupportDiagnostics.cs` | Destek dağılımı; eşik kararının bedel tarafı (`DR-16`) |
+| `MaximalityDiagnostics.cs` | Boşluklar maksimal mi (`DR-34`) |
+
+Zincirin dışındaki parçalar: `Common/ContaminationFilter.cs` (motor **öncesi**, handler'da:
+`CreatePlanCommandHandler.cs`, `ReOptimizePlanCommandHandler.cs`),
+`Common/Models/OptimizationInput.cs` (girdi + `OptimizationModules` bayrakları + `SearchBudget` +
+`SupportThreshold`).
+
+**Korunan tasarım kararı:** tüm modüller `static`; sıcak döngüde arayüz/delegate/DI üzerinden sanal
+çağrı bilinçli olarak yok.
+
+**Klasör kuralı:** duvar örücüye ait her şey `WallBuilder/`, aramaya ait her şey `Search/`, ikisinin
+paylaştığı her şey `Optimization/` kökünde. Yeni bir yerleştirici gelirse kendi alt klasörünü açar;
+sert kapılar **hiçbir koşulda kopyalanmaz**, `PlacementValidator` tek kaynak kalır (`R-C01`).
 
 ## A2. Plan üretim akışı (bugün)
 

@@ -4,7 +4,7 @@
 - **Tarih:** 2026-08-18
 - **Kapsam:** `PlacementStrategy.WallBuilder`, `SequencerKind.Grasp`, `PlacementValidator`, `SpaceLedger`, `CargoPilot.Engine.Bench`
 - **Yerini aldığı:** yok · **Tamamladığı:** `ALGORITMA-YOL-HARITASI.md` F2-F5
-- **Ayrıntılı kayıtlar:** [ALGORITMA-GELISTIRME-LOG.md](../../ALGORITMA-GELISTIRME-LOG.md) (ölçüm günlüğü) · [ALGORITMA-RULEBOOK.md](../../ALGORITMA-RULEBOOK.md) (`DR-01`…`DR-38` karar kaydı)
+- **Ayrıntılı kayıtlar:** [ALGORITMA-GELISTIRME-LOG.md](../../ALGORITMA-GELISTIRME-LOG.md) (ölçüm günlüğü) · [ALGORITMA-RULEBOOK.md](../../ALGORITMA-RULEBOOK.md) (`DR-01`…`DR-38` karar kaydı, **§A1 güncel dosya haritası**)
 
 ---
 
@@ -151,6 +151,83 @@ karşılaştırılır; gerilemede durur (`DR-28`).
 iterasyon yapar ve sonuç makineye bağlı çıkar — kapı gürültüden kalırdı. Statik yol saf hesap:
 aynı girdi her makinede bit birebir aynı sonucu verir, dolayısıyla **her düşüş gerçek bir
 gerilemedir**.
+
+---
+
+## Klasör mimarisi
+
+### Kökeni
+
+Bugünkü düzen bu çalışmada icat edilmedi. **12 Ağustos 2026 modülerleştirmesinden** geliyor
+(PR #935 → #936 → #937): 583 satırlık tek dosya `CargoPilot.Infrastructure/Services/` altından
+`CargoPilot.Application/Common/Optimization/`'a taşındı ve iş modülü başına bir dosyaya bölündü.
+Bölme biçimi arayüz/plugin değil, motorun doğrudan çağırdığı **statik fonksiyonlar** — sıcak
+döngüye tek bir dolaylı çağrı eklenmedi. Taşımadan önce davranışı kilitleyen 16 anlık görüntü
+testi yazıldı ve yedi geçiş adımının hiçbirinde biri bile kaymadı.
+
+Kaynak: [`ALGORITMA.md`](../../ALGORITMA.md) satır 1-134 (*Mimari Raporu · Cargo Pilot Backend*).
+Aynı dosyanın 135-511 arası 15 Ağustos tarihli *Adli İnceleme*'dir (OPT-01/OPT-02 kök neden
+analizi).
+
+> **Bu tarihli bir belgedir, güncel değildir.** Yazıldığından beri sayılar değişti:
+> `OptimizationEngine.cs` 240 → 299 satır, `VolumeScoring.cs` 28 → 55, snapshot 16 → 17,
+> motor testi 33 → 115, ve duvar örücü ile arama katmanı eklendi. **Güncel dosya haritası
+> [`ALGORITMA-RULEBOOK.md` §A1](../../ALGORITMA-RULEBOOK.md)'dedir.**
+
+### Bugünkü düzen
+
+Motor tek klasörde; kural basit: **duvar örücüye ait olan `WallBuilder/`, aramaya ait olan
+`Search/`, ikisinin paylaştığı `Optimization/` kökünde.**
+
+```
+apps/backend/CargoPilot.Application/Common/Optimization/
+├── PlacementValidator.cs        ← 8 sert kapının TEK kaynağı, kopyalanmaz
+├── PlacedBox.cs · ItemOrdering.cs · PlanResultBuilder.cs
+├── LoadingCorner.cs · DoorSetFactory.cs · SequencerSelection.cs
+├── OptimizationEngine.cs        ← strateji dallanması + greedy döngü
+├── BalanceScoring.cs · LifoPlacement.cs · VolumeScoring.cs   (bayraklı modüller)
+├── WallBuilder/
+│   ├── WallBuilderPlacement.cs  ← duvar disiplini, kule/blok/bileşik blok
+│   ├── SpaceLedger.cs           ← maximal-space defteri
+│   ├── FreeSpace.cs · SequencedItem.cs
+│   └── DecoderKeys.cs           ← plan düzeyi kararlar, aramaya açık
+└── Search/
+    ├── GraspSequencer.cs        ← varsayılan
+    ├── GaSequencer.cs · GwcaSequencer.cs   (referans, emekli)
+    ├── SearchEvaluation.cs      ← üç aramanın ORTAK fitness'ı
+    ├── RandomKeySequence.cs     ← vektör düzeninin tek kaynağı
+    └── SearchRandom.cs · GammaDensity.cs
+
+apps/backend/CargoPilot.Engine.Bench/            ← ölçüm düzeneği, ÜRETIME GIRMEZ
+├── BrCorpus.cs + data/thpack1..7.txt            ← birincil korpus
+├── VolumeCorpus.cs                              ← regresyon korpusu
+├── BrBaseline.cs                                ← gecelik kapı karşılaştırması
+└── *Diagnostics.cs                              ← yedi teşhis aracı
+```
+
+**Üç yapısal kural:**
+
+1. **Sert kapılar hiçbir koşulda kopyalanmaz.** Duvar örücü, blok inşası ve denge takası dahil her
+   yol `PlacementValidator`'ı çağırır (`R-C01`). Blok inşası ana döngünün taramasını atladığı için
+   kapıları **ayrıca** çağırmak zorundadır — `OPT-15` tam olarak bu unutulduğunda çıktı.
+2. **Metrikler tek yerde hesaplanır.** İki yerleştirici de `PlanResultBuilder`'dan geçer.
+3. **Ölçüm düzeneği üretim kodunu kopyalamaz.** Teşhisler `DiagnosticPlacements` ile motorun iç
+   tipine dönüp motorun **kendi** yüklemlerini çağırır; kural bozulursa teşhis de bozulur, sessizce
+   doğru sonuç vermez.
+
+Ayrıntılı dosya-satır-rol tablosu: [`ALGORITMA-RULEBOOK.md` §A1](../../ALGORITMA-RULEBOOK.md).
+
+### 12 Ağustos raporunun bıraktığı borçlar — bugünkü durum
+
+O rapor beş "bilinen borç" kaydetmişti. Bu çalışmada ikisi kapandı, üçü duruyor:
+
+| Raporun borcu | Bugün |
+|---|---|
+| *"Takas geçişi sert kısıtları elle sayıyor — sekizinci kuralı ekleyen unutursa sessiz tuzak"* | **Tuzak gerçekleşti ve yakalandı.** `OPT-15` ile sekizinci kapı eklendi; `BalanceScoring.SwapIsValid` onu çağırıyor ama sayım hâlâ elle. **Açık** |
+| *"Anlık görüntüler kırılganlığı kaydetmiyor — sonraki yenilemede eklensin"* | **Açık.** `SnapshotPayload` `IsStackable`/`MaxStackCount`/`MaxWeightOnTop` taşıyor, `FragilityType` taşımıyor. `InvariantScenarioSource` girdiyi snapshot'tan kurduğu için değişmez testleri kırılganlığı sessizce `NonFragile` okuyor — kozmetik değil, kapsama deliği |
+| *"İki ret sebebi hiç üretilmiyor" (`NotStackable`, `GeometryConstraint`)* | **Açık** (`E3` listesinde) |
+| *"Denge kriteri %6 yavaşladı"* | **Kabul edilmişti**, değişmedi |
+| *"Bayraklar arayüze açılmadı — katsayılar yalnız üç kriter için kalibre"* | **Hâlâ geçerli.** Dört bayrak da API'ye açılmadı |
 
 ---
 
