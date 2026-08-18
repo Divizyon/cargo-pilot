@@ -101,7 +101,7 @@ Motor tek bir klasörde: `apps/backend/CargoPilot.Application/Common/Optimizatio
 | --- | --- |
 | `Program.cs` · `BenchOptions.cs` | Dört kip: `bench` · `soak` · `br` · `serve` |
 | `EngineHost.cs` | Motorun tek çağrı noktası; üretim akışının **yalnız hesap** kısmını tekrarlar |
-| `BrCorpus.cs` · `data/thpack1..7.txt` | **Birincil korpus** — BR1-BR7, 700 örnek (`DR-19`) |
+| `BrCorpus.cs` · `data/br0..15.txt` | **Birincil korpus** — BR1-BR7, 700 örnek (`DR-19`); BR0 ve BR8-BR15 opt-in (`DR-50`) |
 | `VolumeCorpus.cs` | Giyotin korpusu — regresyon |
 | `BenchCatalog.cs` · `BenchCorpus.cs` | Sabit sentetik korpus |
 | `BrCommand.cs` · `SoakCommand.cs` · `BenchCommand.cs` | Koşum kipleri |

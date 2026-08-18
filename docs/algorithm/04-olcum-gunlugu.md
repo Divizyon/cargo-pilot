@@ -1738,3 +1738,59 @@ serbestçe değiştireceği için bu tuzak orada da kurulur** — beam'e geçmed
 yerleşen birimler de `consumed` işaretlenmeli. Yol haritasına not düşüldü.
 
 Değişiklik geri alındı; 129 test yeşil.
+
+---
+
+## F7-1 · BR0-BR15 alındı — `DR-38`'in veri boşluğu kapandı, ve heterojenlik merdiveni tamamlandı
+
+Kullanıcının paylaştığı Metasolver incelemesindeki bonus: `problems/clp/benchs/BR/` dizininde
+**BR0-BR15'in tamamı** duruyor. Uzun süredir açık olan borç (`DR-38`) tek bir indirme ile kapandı.
+
+### Önce doğrulama
+
+Benimsemenin ön koşulu, elimizdeki yedi kümenin aynı veri olduğuydu. BR1-BR7 dosyaları
+`thpack1-7` ile **satır sonu dışında birebir aynı** çıktı (CRLF/LF; boyut farkı satır sayısı
+kadar). Bu yüzden o yedi dosya **değiştirilmedi**, yalnız adları değişti — ve ölçüm bunu
+doğruladı: varsayılan koşu %82,61, bit birebir aynı, kapı geçti.
+
+### Adlandırma tuzağı kapatıldı
+
+Dosyalar `thpack{n}.txt` → `br{n}.txt` oldu. Sebep sadece tutarlılık değil: OR-Library'deki
+`thpack8`/`thpack9` **BR8/BR9 değildir** (Loh & Nee ve Ivancic problemleri, farklı ölçek ve
+başlık biçimi); `thpack10`/`thpack11` adresleri ise `thpack1`'in kopyasını döndürüyor. İki
+adlandırma şeması bir arada dursaydı bu karışıklık er geç bir ölçüme girerdi.
+
+### Heterojenlik merdiveni — hiç görmediğimiz uçlar
+
+| Küme | Kutu tipi | Static | GRASP | GRASP kazancı |
+|---|---|---|---|---|
+| **BR0** | 1 | **%84,28** | %84,41 | **+0,13** |
+| BR1 | 3 | %82,78 | %87,07 | +4,29 |
+| BR7 | 20 | %81,57 | %86,51 | +4,94 |
+| **BR8** | 30 | %80,36 | %85,26 | +4,90 |
+| BR9 | 40 | %79,26 | — | |
+| BR10 | 50 | %78,65 | — | |
+| BR11 | 60 | %77,63 | — | |
+| **BR12** | 70 | %77,35 | %81,23 | +3,88 |
+| BR13 | 80 | %77,52 | — | |
+| BR14 | 90 | %76,80 | — | |
+| **BR15** | 100 | **%76,78** | %80,09 | +3,31 |
+
+*(GRASP satırları 25 örnek, static satırları 100 örnek)*
+
+**Eğri sağlıklı ve tekdüze:** tek tiplide %84,28'den yüz tiplide %76,78'e düzgün iniyor. Anomali
+yok — `DR-48`'deki tekdüzelik kusuru *aynı araca artan yük* verildiğinde çıkıyor, kutu çeşidi
+arttığında değil.
+
+**BR0 arama katmanını çıplak gösteriyor:** tek kutu tipinde GRASP'ın kazancı **+0,13 puan**, yani
+yok. Sıralanacak bir şey olmayınca sıra araması işsiz kalıyor — beklenen ama ilk kez ölçüldü.
+Kazanç tip sayısıyla birlikte doğuyor ve BR7-BR8 civarında tepe yapıyor (+4,9).
+
+### Varsayılan koşu bilinçli olarak BR1-BR7'de bırakıldı
+
+`br` bayraksız çalıştırıldığında yine yalnız BR1-BR7 koşuyor. Literatürle kıyaslanan sayı budur ve
+gecelik kapı onu sabitliyor; yeni kümeleri sessizce katmak baş sayıyı hem kıyaslanamaz hem sekiz
+kat yavaş yapardı. BR0 ve BR8-BR15 `--set N` ile ölçülür.
+
+`--set` sentinel'i değişti: "hepsi" artık `0` değil, **bayrağın verilmemesi**. BR0 gerçek bir küme
+olduğu için `0` artık onu seçiyor.

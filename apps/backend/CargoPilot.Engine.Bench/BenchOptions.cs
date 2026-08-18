@@ -55,7 +55,7 @@ public sealed record BenchOptions(
         var population = 20;
         var iterations = 40;
         var maxScenarios = 0;
-        var brSet = 0;
+        var brSet = -1;
         var brLoadRatio = 1m;
         decimal? depthSlack = null;
         string? baselinePath = null;
@@ -149,7 +149,7 @@ public sealed record BenchOptions(
             Math.Max(1, durationMinutes), reportPath,
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
             Math.Max(0, maxScenarios),
-            Math.Clamp(brSet, 0, 7),
+            Math.Clamp(brSet, -1, 15),
             Math.Clamp(brLoadRatio, 0.05m, 1m),
             depthSlack,
             baselinePath,
@@ -185,7 +185,9 @@ public sealed record BenchOptions(
               --iterations N   azami iterasyon (varsayilan 40)
               --stall N        bu kadar tur iyilesme yoksa dur (varsayilan 15)
               --max-scenarios N soak kipinde tam olarak N senaryo, br kipinde kume basina N ornek
-              --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
+              --set N          br kipinde tek kume (0-15). Verilmezse BR1-BR7 kosar.
+                               BR0 tek tipli, BR8-BR15 guclu heterojen (30-100 tip);
+                               ikisi de varsayilan kosuya girmez, sayiyi kiyaslanamaz yapardi.
               --load-ratio R   br kipinde her urunun adedini R ile carpar (varsayilan 1).
                                Kismi doluluk sinamak icin: 0,5 yarim yuk demektir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).

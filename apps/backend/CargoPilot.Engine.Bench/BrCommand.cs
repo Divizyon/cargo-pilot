@@ -19,7 +19,7 @@ public static class BrCommand
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var sets = options.BrSet > 0 ? [options.BrSet] : new[] { 1, 2, 3, 4, 5, 6, 7 };
+        var sets = options.BrSet >= 0 ? [options.BrSet] : new[] { 1, 2, 3, 4, 5, 6, 7 };
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"BR · sequencer {options.Sequencer} · yonelim strict"));

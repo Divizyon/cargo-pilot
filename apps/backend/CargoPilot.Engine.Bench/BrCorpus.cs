@@ -6,7 +6,7 @@ namespace CargoPilot.Engine.Bench;
 
 /// <summary>
 /// Bischoff &amp; Ratcliff (1995) BR1-BR7 kiyas kumeleri, OR-Library
-/// <c>thpack1..7.txt</c> dosyalarindan.
+/// <c>br0..15.txt</c> dosyalarindan; varsayilan kosu BR1-BR7 (DR-50).
 ///
 /// Neden gerekli: giyotin korpusu %100 ulasilabilir doluluk sunuyor ama
 /// olculen sey yalnizca kendi uretecimize gore kalite. Literaturle
@@ -29,7 +29,7 @@ public static class BrCorpus
 
     public static IReadOnlyList<BrInstance> Load(int set)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "data", $"thpack{set}.txt");
+        var path = Path.Combine(AppContext.BaseDirectory, "data", $"br{set}.txt");
         if (!File.Exists(path)) throw new FileNotFoundException($"BR veri dosyasi yok: {path}", path);
 
         var tokens = File.ReadAllText(path)

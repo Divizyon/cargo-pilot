@@ -1,31 +1,44 @@
-# BR1-BR7 kıyas verisi
+# BR0-BR15 kıyas verisi
 
-`thpack1.txt` … `thpack7.txt`, Bischoff & Ratcliff'in 3B konteyner yükleme kıyas kümeleridir.
-Her dosya 100 örnek taşır; konteyner tüm örneklerde 587 × 233 × 220 cm'dir.
+Bischoff & Ratcliff (BR0-BR7) ve Davies & Bischoff (BR8-BR15) 3B konteyner yükleme kıyas
+kümeleri. Her dosya 100 örnek taşır; konteyner tüm örneklerde 587 × 233 × 220 cm'dir.
 
-| Dosya | Küme | Kutu tipi |
-|---|---|---|
-| thpack1.txt | BR1 | 3 |
-| thpack2.txt | BR2 | 5 |
-| thpack3.txt | BR3 | 8 |
-| thpack4.txt | BR4 | 10 |
-| thpack5.txt | BR5 | 12 |
-| thpack6.txt | BR6 | 15 |
-| thpack7.txt | BR7 | 20 |
+| Dosya | Küme | Kutu tipi | Varsayılan koşuda |
+|---|---|---|---|
+| br0.txt | BR0 | 1 | hayır |
+| br1.txt … br7.txt | BR1-BR7 | 3 · 5 · 8 · 10 · 12 · 15 · 20 | **evet** |
+| br8.txt … br15.txt | BR8-BR15 | 30 · 40 · 50 · 60 · 70 · 80 · 90 · 100 | hayır |
 
-## BR8-BR15 neden yok
+`br` komutu bayraksız çalıştırıldığında **yalnız BR1-BR7** koşar. Sebep: literatürle kıyaslanan
+sayı budur ve gecelik kapı bu sayıyı sabitler. BR0 ve BR8-BR15 `--set N` ile tek tek ölçülür;
+varsayılan koşuya katmak baş sayıyı hem kıyaslanamaz hem de sekiz kat yavaş yapardı.
 
-Denendi, **OR-Library'de bulunmuyor**. `thpack10` ve `thpack11` adresleri `thpack1`'in birebir
-kopyasını döndürüyor (sunucu benzer isimde belge sunuyor, md5 aynı). `thpack8` Loh & Nee kıyası,
-`thpack9` ise bambaşka bir ölçekte (konteyner 10×6×16) ve ikisi de farklı başlık biçiminde —
-örnek satırında tohum alanı yok. BR8-BR15 (Davies & Bischoff 1999) ayrı bir veri kümesidir ve bu
-kaynakta yayınlanmamış.
+## Dosya adları neden `br{n}` — ve `thpack8/9` tuzağı
 
-**Kaynak:** OR-Library, J. E. Beasley —
-`https://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/thpack{1..7}.txt`
+Dosyalar 18 Ağustos 2026'da `thpack{n}.txt` → `br{n}.txt` olarak yeniden adlandırıldı. **İçerik
+değişmedi** (yalnız satır sonu; ölçüm bit birebir aynı kaldı, %82,61).
 
-**Atıf:** E. E. Bischoff, M. S. W. Ratcliff, "Issues in the development of approaches to container
-loading", *Omega* 23(4), 1995, 377-390.
+Sebep bir tuzak: OR-Library'deki `thpack8` ve `thpack9` **BR8/BR9 DEĞİLDİR** — sırasıyla Loh & Nee
+tek konteyner ve Ivancic çoklu konteyner problemleridir, farklı ölçek ve farklı başlık biçimiyle.
+`thpack10`/`thpack11` adresleri ise `thpack1`'in birebir kopyasını döndürüyor (md5 aynı). İki
+adlandırma şeması bir arada durursa bu karışıklık er geç birinin ölçümüne girer; tek şema bunu
+kalıcı olarak kapatır.
+
+## Kaynak
+
+BR0-BR15'in tamamı `rilianx/Metasolver` deposundaki `problems/clp/benchs/BR/` dizininden alındı
+(18 Ağu 2026). BR1-BR7 dosyalarının OR-Library'den indirdiğimiz `thpack1-7` ile **satır sonu
+dışında birebir aynı** olduğu doğrulandı; bu yüzden o yedi dosya değiştirilmedi, yalnız adları
+değişti.
+
+BR8-BR15 uzun süre bizde yoktu ve `DR-38` bunu açık borç olarak taşıyordu: OR-Library'de
+yayınlanmamış, Nottingham'dan Sam Allen'ın yeniden ürettiği `br.zip` içindeler.
+
+**Atıflar:**
+- E. E. Bischoff, M. S. W. Ratcliff, "Issues in the development of approaches to container
+  loading", *Omega* 23(4), 1995, 377-390. *(BR0-BR7)*
+- E. K. Davies, E. E. Bischoff, "Weight distribution considerations in container loading",
+  *EJOR* 114, 1999, 509-527. *(BR8-BR15)*
 
 ## Biçim
 
