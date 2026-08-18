@@ -2214,3 +2214,40 @@ GRASP silinmedi: `SequencerKind.Grasp` açıkça istenebilir ve kıyas referans�
 CI kapısı statik yolu ölçmeye devam ediyor — beam'in bütçesi de duvar saatidir (`DR-28`).
 
 173/36/228 test yeşil, 17 snapshot sabit, kapı geçti.
+
+---
+
+## `DR-48` kapandı — **beam tekdüzelik kusurunu çözdü, üstelik +13 puana varan farkla**
+
+Görsel test düzeneği bir kusur bulmuştu (`DR-48`): aynı araca daha çok kutu verildiğinde doluluk
+**düşüyordu**. Fazladan kutu en kötü ihtimalle yerleşmeden kalmalıydı; sebep yerleştiricinin tek
+geçişli ve geri dönüşsüz olmasıydı — sıradaki kutu yanlış yeri kapatıyor, sonrakiler düzeltemiyordu.
+
+Beam tam bu boşluğu dolduruyor: her parçada kararı **sonuna kadar götürüp ölçüyor**, yani yanlış
+kapatmanın bedelini kararı vermeden önce görüyor.
+
+Aynı ürün seti, aynı araç, artan yük (yerel ortam, gerçekçi karışık yük):
+
+| Araç | Hedef | İstenen kutu | GRASP | **Beam** |
+|---|---|---|---|---|
+| A | %80 | 123 | %75,1 | %75,1 |
+| A | %90 | 139 | %76,7 | **%77,7** |
+| A | %100 | 154 | **%76,5** ↓ | **%78,1** ↑ |
+| A | %115 | 176 | %78,4 | **%79,3** |
+| C | %80 | 165 | %63,9 | **%69,7** |
+| C | %90 | 186 | **%60,8** ↓↓ | **%74,5** ↑ |
+| C | %100 | 207 | %66,0 | **%77,6** ↑ |
+| C | %115 | 238 | **%65,1** ↓ | **%78,1** ↑ |
+
+**Beam her iki araçta da tekdüze:** yük arttıkça doluluk hep artıyor. GRASP ikisinde de kırılıyor
+(A: %76,7 → %76,5; C: %63,9 → %60,8 → %66,0 → %65,1).
+
+Fark BR'dekinden **çok daha büyük**: BR1-BR7'de +1,08 puandı, burada C aracında **+13,0 puan**
+(%65,1 → %78,1). Sebep muhtemelen yük biçimi — bu senaryolarda buzdolabı, palet, koltuk gibi büyük
+ve zor istiflenen ürünler var ve yanlış bir erken karar çok pahalıya mal oluyor. BR kutuları daha
+küçük ve daha bağışlayıcı.
+
+**Bu, oturumun en büyük pratik kazancı.** BR ölçümü beam'i +1 puanla ödüllendiriyordu; gerçek
+sevkiyat biçimine benzeyen taşan yüklerde kazanç on kat büyük. Kıyas korpusunun neyi ölçemediğinin
+bir örneği daha: `DR-19`'da korpus bir kararı tersine çevirmişti, burada da kazancın büyüklüğünü
+on kat küçük gösteriyor.
