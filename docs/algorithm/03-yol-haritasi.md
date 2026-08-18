@@ -296,9 +296,10 @@ aynı duvara çarpıyor. Bu, sıradaki işlerin önceliğini doğrudan belirledi
 | ~~F6-P~~ | ~~Ürün kararı: GRASP kutuların %45'ini duvara koymuyor~~ | — | ✅ Kapandı — sorun değil (`DR-45`) |
 | F6-P′ | **Cep yolunu azami açma denemesi** | — | ❌ Reddedildi — biçim bozuluyor (`DR-46`) |
 | ~~F6-6′~~ | ~~Tekdüzelik: fazla kutu doluluğu düşürmemeli~~ | `DR-48` | ✅ **Çözüldü** — beam tekdüze; C aracında +13,0 puan (`DR-56`) |
-| **F6-5′** | **Kısmi dolulukta yoğunlaşma** — çeyrek yükte yük 1,73 kat derine yayılıyor | `DR-12`'nin ölçülebilir hâli | **Yeni, açık** |
+| ~~F6-5′~~ | ~~Kısmi dolulukta yoğunlaşma~~ | ✅ `DepthSlack` üretimde (`DR-57`); LIFO'da devre dışı |
+| ~~F6-5′~~ *(özgün)* | **Kısmi dolulukta yoğunlaşma** — çeyrek yükte yük 1,73 kat derine yayılıyor | `DR-12`'nin ölçülebilir hâli | **Yeni, açık** |
 | F6-2 | **Yönelim eşlemesi:** `011` → dört yönelim (`NoVerticalWidth`) | (d) | Uygulandı |
-| F6-3 | **Duvar yüzü 2B tam kaplama** (G4/G5, pallet loading) | Öneri 3 | F6-1'in sonucuna bağlı |
+| ~~F6-3~~ | ~~Duvar yüzü 2B tam kaplama~~ | Öneri 3 | ❌ **Kapsam dışı** — gerekçe çürüdü (`DR-57`): doluluk arttıkça kaplama düşüyor |
 | F6-4 | **Blok yerleştirme beam search / greedy-lookahead**, aktif duvar kısıtlı, VCS değerlendirme | Öneri 1 | **En yüksek kaldıraç** |
 | F6-5 | **Space defragmentation** — kutuları iterek parçalanmış boşluğu birleştir | Öneri 2 | Sonra |
 | F6-6 | **VNS post-optimizasyon** — son ~0,5 sn | Öneri 5 | Sonra |

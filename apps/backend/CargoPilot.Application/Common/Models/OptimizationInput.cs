@@ -54,8 +54,14 @@ namespace CargoPilot.Application.Common.Models;
 /// icin reddetti (DR-12). Olculdu, duvar orucu de ayni yonde kusurlu — ceyrek
 /// yukte yuk gerektiginden 1,73 kat derine yayiliyor.
 ///
-/// Verilmezse sinir yoktur: bugunku davranis. Ideal %100 dolulugu varsaydigi
-/// icin 1,00 gercekci degildir; gercek ihtiyac tam yukte ~1,17'dir.
+/// Varsayilan <c>1,05</c>. Deger OLCULDU ve dolulugu HICBIR yerde dusurmuyor:
+/// static BR1-BR7 dort payda da %83,40, beam %89,45. Kismi dolulukta ise yuku
+/// one topluyor — yarim yukte yuk derinligi %72,1 → %67,7.
+///
+/// Bedava olmasinin sebebi tasarim: hedef sert sinir degil, TERCIHTIR. Kutu
+/// hedefe sigmazsa hedef adim adim buyur ve kutu yeniden denenir.
+///
+/// <c>null</c> verilirse sinir yoktur; olcum duzenegi bunu kullanabilir.
 /// </param>
 /// <param name="VcsWeights">
 /// Aday degerlendirme fonksiyonunun dort usteli: hacim, kayip, temas, kutu
@@ -85,7 +91,7 @@ public sealed record OptimizationInput(
     int Seed = 0,
     SearchBudget? SearchBudget = null,
     decimal? SupportThreshold = null,
-    decimal? DepthSlack = null,
+    decimal? DepthSlack = 1.05m,
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights = null)
 {
     /// <summary>

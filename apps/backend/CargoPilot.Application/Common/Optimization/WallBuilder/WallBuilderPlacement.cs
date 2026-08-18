@@ -77,7 +77,8 @@ internal static class WallBuilderPlacement
         var modules = OptimizationModules.Resolve(input);
 
         var fillFromMaxX = input.FillsFromMaxX;
-        var state = start ?? PlacementState.Fresh(input, instances.Count, DepthBudget(input, instances));
+        var lifo = modules.UseLifo && instances.Any(i => i.Item.UnloadingOrder.HasValue);
+        var state = start ?? PlacementState.Fresh(input, instances.Count, DepthBudget(input, instances, lifo));
 
         var placements = state.Placements;
         var unplaced = state.Unplaced;
@@ -354,8 +355,24 @@ internal static class WallBuilderPlacement
     /// Yukun toplanacagi hedef derinlik. <c>null</c> ise sinir yoktur —
     /// bugunku davranis.
     /// </summary>
-    private static decimal? DepthBudget(OptimizationInput input, IReadOnlyList<SequencedItem> instances)
+    private static decimal? DepthBudget(
+        OptimizationInput input,
+        IReadOnlyList<SequencedItem> instances,
+        bool lifo)
     {
+        // LIFO varken hedef derinlik UYGULANMAZ. Ikisi ayni ekseni farkli
+        // amaclarla kullaniyor: hedef derinlik yuku ONE toplamak ister, LIFO ise
+        // her grubu kendi z bandina yayar — ilk inecek grup kapiya en yakin.
+        //
+        // Ikisi ayni anda calisinca hedef, arkadaki grubun bandini kesiyor ve
+        // o grubun kutulari bolgesine hic ulasamiyor. Olculdu: alti kutunun
+        // ikisi bolge disina tasti ve dort LIFO testi kirildi (DR-40'in
+        // kapattigi hatanin aynisi baska bir yoldan).
+        //
+        // Cakismada LIFO kazanir: bosaltma sirasi bir IS KURALI, yogunlastirma
+        // ise bir TERCIH.
+        if (lifo) return null;
+
         if (input.DepthSlack is not { } slack || slack <= 0m) return null;
 
         var face = input.VehicleWidth * input.VehicleHeight;

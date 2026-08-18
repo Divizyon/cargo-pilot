@@ -2251,3 +2251,60 @@ küçük ve daha bağışlayıcı.
 sevkiyat biçimine benzeyen taşan yüklerde kazanç on kat büyük. Kıyas korpusunun neyi ölçemediğinin
 bir örneği daha: `DR-19`'da korpus bir kararı tersine çevirmişti, burada da kazancın büyüklüğünü
 on kat küçük gösteriyor.
+
+---
+
+## F6-3 gerekçesi çürüdü · `DepthSlack` üretime alındı — ve LIFO ile çatıştı
+
+### F6-3 (duvar yüzü 2B tam kaplama) yeniden değerlendirildi
+
+`DR-44` duvar yüzünün %86,2 kaplandığını, duvarların %91'inin %95 eşiğinin altında olduğunu
+ölçmüştü ve F6-3 bunu düzeltmeyi hedefliyordu. Beam üretime girince aynı ölçü üç sıralayıcıda
+tekrarlandı (BR1, 20 örnek):
+
+| Sıralayıcı | Doluluk | Duvar dışı kutu | Yüz kaplama |
+|---|---|---|---|
+| Static | %83,40 | %0,0 | **%85,8** |
+| GRASP | %88,34 | %30,0 | %61,2 |
+| **Beam** | **%89,40** | %41,4 | **%74,6** |
+
+**Doluluk arttıkça duvar kaplaması düşüyor.** Yani yüz kaplaması doluluk kalitesinin göstergesi
+değil, **duvar disiplininin** göstergesi — ve arama onu bilerek feda ediyor.
+
+Bu, F6-3'ün gerekçesini çürütüyor. Duvar yüzünü tam döşemeye zorlamak yerleştiriciyi daha da
+kısıtlar ve muhtemelen doluluğu düşürür. Üstelik duvar disiplini bir **ürün gereksinimi değil**:
+`DR-45` kapatıldı (işçi tamamlanmış planı görüyor), `DR-12`'nin gerçek gerekçesi ise kısmi
+dolulukta yükün biçimi.
+
+*Uyarı:* bu üç algoritmanın karşılaştırması, kontrollü bir deney değil. Ama `DR-49` (duvar sırası
+değişikliği = sıfır kazanç) ve `DR-45` ile birlikte F6-3'ün dayanağı kalmıyor. **F6-3 kapsam dışı
+bırakıldı.**
+
+### `DepthSlack` üretime alındı
+
+Beam altında da bedava olduğu doğrulandı:
+
+| | Pay yok | Pay 1,05 |
+|---|---|---|
+| Static, BR1-BR7, 700 örnek | %83,40 | %83,40 |
+| Beam, BR1-BR7 | %89,45 | %89,45 |
+| Beam, yarım yük, **yük derinliği** | %72,1 | **%67,7** |
+
+Dört pay değerinde de (yok / 1,05 / 1,15 / 1,30) doluluk birebir aynı. Varsayılan `1,05` yapıldı.
+
+### Ve hemen bir çatışma çıktı: LIFO
+
+Varsayılanı açar açmaz **dört LIFO testi kırıldı**: *"Bölge dışına taşan yerleşim: 2/6"*.
+
+Sebep: ikisi aynı ekseni farklı amaçlarla kullanıyor. Hedef derinlik yükü **öne toplamak** ister;
+LIFO ise her grubu kendi `z` bandına **yayar** — ilk inecek grup kapıya en yakın. İkisi birlikte
+çalışınca hedef, arkadaki grubun bandını kesiyor ve o grubun kutuları bölgesine hiç ulaşamıyor.
+`DR-40`'ın kapattığı hatanın aynısı, başka bir yoldan.
+
+Çözüm bir kaçamak değil, bir öncelik kararı: **LIFO varken hedef derinlik uygulanmaz.** Boşaltma
+sırası bir **iş kuralı**, yoğunlaştırma ise bir **tercih**; çatışmada iş kuralı kazanır.
+
+Sonuç: 173/36/228 yeşil, 17 snapshot kaymadı, kapı geçti (%83,40).
+
+**Bu, testlerin bir kez daha karşılığını verdiği yer.** Ölçüm "bedava" diyordu ve doluluk açısından
+öyleydi; bedelin doluluk değil **kısıt ihlali** olduğunu yalnızca değişmez testleri gördü.
