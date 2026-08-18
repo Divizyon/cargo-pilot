@@ -60,8 +60,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/algorithm-test-ui/package-lock.json
 
       # Kimlik bilgileri tanımlı değilse iş sessizce ve BAŞARILI biter. Zamanlanmış
       # bir iş, yapılandırılmamış olduğu için her gece kırmızı yanmamalı.
@@ -78,6 +76,18 @@ jobs:
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # setup-node'un dahili `cache: 'npm'`i yerine açık restore: yazma YOK.
+      # Bu workflow da `node-cache-*` prefix'ine yazan dördüncü yolduydu; anahtar
+      # ci.yml ve test-deploy.yml ile birebir aynı, tek yazıcı cache-seed.yml.
+      - name: npm cache geri yükle (yazmaz)
+        if: steps.config.outputs.configured == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('apps/frontend/package-lock.json', 'apps/algorithm-test-ui/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
 
       - name: Bağımlılıkları yükle
         if: steps.config.outputs.configured == 'true'
