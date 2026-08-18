@@ -467,6 +467,9 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-33** | **K-Means ön kümeleme reddedildi** (`R-B4` iddiası) | Doluluk her `k` değerinde taban çizginin altında; `k` büyüdükçe taban çizgiye yaklaşıyor, yani zarar veren kümelemenin kendisi. Hız 2× artıyor ama sebebi kazanç değil kayıp: benzer ölçüler bir arada gelince daha az boşluk hayatta kalıyor |
 | **DR-34** | **Amalgamation uygulanmayacak** (`R-C11`) | Ölçüldü: defterdeki boşlukların **%0,0'ı** maksimal değil, ortalama büyüme %0. Altı yönün hepsinde tıkalılar; iki maksimal kutuyu birleştirmek prizma vermez. Madde Parreño'nun temsilinden geliyordu ve orada anlamlı, bizimkinde değil |
 | **DR-35** | **Bileşik blok: sütun tepesi başka üründen kutuyla tamamlanır, ayak izi uyumu ≥ %85** (`R-C09d`) | Kısıtsız hâli kaybediyor (BR %78,71): geniş bir sütunun tepesine küçük kutu koymak yüzeyin geri kalanını ölü havaya çeviriyor. Uyum şartıyla statik yolda giyotin %76,29 → **%79,16**, BR %79,86 → %80,09. Aramada nötr — GRASP bu kazancı sıralamayla zaten buluyor |
+| **DR-36** | **Yönelim anahtarları aramaya açılmayacak** | Ayarlı GRASP ile yeniden sınandı (%86,68 / taban %86,70-86,78). İlk bulgu ayarlardan bağımsızmış: tarama zaten tüm yönelimleri görüp en sıkı oturanı seçiyor |
+| **DR-37** | **`R-C15` OBL uygulanmayacak** | Popülasyon gerektirir; GRASP popülasyon tutmaz (`DR-31`), GWCA ve GA emekli (`DR-13`). GA'ya dönülürse yeniden açılır |
+| **DR-38 ⚠** | **Kısıt tarafının kıyas kapsaması YOK** | İki korpus da `UnloadingOrder: null` ve ağırlık/kırılganlık/istif kısıtı taşımıyor; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor. Bu yüzden `DR-09`, `DR-10` ve `DR-11` **ölçülemiyor**. Ölçüm programı baştan yalnız hacim üzerine kuruldu |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

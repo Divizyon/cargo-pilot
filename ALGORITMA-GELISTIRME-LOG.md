@@ -1131,3 +1131,41 @@ vermiyor. Yine de tutuldu — gereksiz iş yapmamak ve ileride yerleştiriciyi a
 Blok ve bileşik blok defterin **dışına** yerleştirdiği için orada çakışma kontrolü **duruyor**.
 Güvenlik ağı bağımsız: 115 testin tamamı, duvar örücü ve GRASP dahil, çıktıda çakışma olmadığını
 üretim kodundan bağımsız hesapla doğruluyor.
+
+---
+
+## ⑦ Yönelim anahtarları — ayarlı GRASP ile yeniden sınandı, yine kaybetti
+
+Yönelim tercihini aramaya açmak daha önce ölçülmüş ve kaybetmişti; ama o ölçüm **eski GRASP
+ayarlarıyla** yapılmıştı (alpha 0,30 / swaps 12). Ayarlar değiştiği için yeniden sınandı.
+
+Vektör `2N + G`'ye çıkarıldı, tohumlar ilk yönelimle başlatıldı (negatif "tercih yok" değeri
+vektörde taşınamaz).
+
+| | BR1-BR7 (GRASP, 70 örnek) |
+|---|---|
+| Taban çizgi | %86,70 · %86,78 |
+| Yönelim anahtarlarıyla | %86,68 |
+
+Kazanç yok. İlk bulgu ayarlardan bağımsızmış: tarama zaten tüm yönelimleri görüp en sıkı oturanı
+seçiyor, arama bu seçimi bozmaktan başka bir şey yapmıyor. Bağlantı kodu duruyor.
+
+---
+
+## ⑤ ve ⑥ — ölçülemez oldukları tespit edildi
+
+**⑤ OBL (`R-C15`)** karşıt birey (`1−x`) üretimidir ve **popülasyon** gerektirir. GRASP popülasyon
+tutmaz (her tur sıfırdan başlar, `DR-31`), GWCA ve GA ise emekli (`DR-13`). Yani madde bugünkü
+varsayılan yol için **uygulanamaz**; GA'ya dönülürse anlamlı olur.
+
+**⑥ `DR-10` / `DR-11` doğrulanamıyor — korpuslarda karşılığı yok.**
+
+| Ne | Durum |
+|---|---|
+| `DR-10` sanal duvar kapsaması | LIFO gerektirir; **iki korpusta da `UnloadingOrder: null`** |
+| `DR-11` `AvgWallFlushness` semantiği | Metrik **hiç üretilmiyor** — `R-C14`'ün `WallCount`, `AvgWallFlushness`, `ZoneViolations` alanlarının hiçbiri kodda yok |
+| `DR-09` doluluk kilidi | Kilidin kaç kez devreye girdiği ölçülemiyor; `SearchStats` bunu taşımıyor |
+
+Bu bir kusur değil, kapsamın sonucu: ölçüm programı baştan **yalnız hacim** üzerine kuruldu.
+İki korpus da ağırlık, kırılganlık, istiflenemezlik, grup ve LIFO taşımıyor. Kısıt tarafının
+**hiçbir kıyas kapsaması yok** — bugün yalnız birim testleriyle korunuyor.
