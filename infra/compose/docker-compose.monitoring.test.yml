@@ -4,6 +4,7 @@ services:
   loki:
     image: grafana/loki:2.9.4
     container_name: cargo-pilot-loki-test
+    mem_limit: 512m
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ../docker/loki/loki-config.yml:/etc/loki/config.yml:ro
@@ -15,6 +16,7 @@ services:
   promtail:
     image: grafana/promtail:2.9.4
     container_name: cargo-pilot-promtail-test
+    mem_limit: 128m
     command: -config.file=/etc/promtail/config.yml
     volumes:
       - ../docker/promtail/promtail.test.yml:/etc/promtail/config.yml:ro
@@ -27,6 +29,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.7.0
     container_name: cargo-pilot-node-exporter-test
+    mem_limit: 64m
     command:
       - '--path.rootfs=/host'
     volumes:
@@ -39,6 +42,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: cargo-pilot-cadvisor-test
+    mem_limit: 256m
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -55,6 +59,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.50.1
     container_name: cargo-pilot-prometheus-test
+    mem_limit: 512m
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -71,6 +76,7 @@ services:
   grafana:
     image: grafana/grafana:10.3.3
     container_name: cargo-pilot-grafana-test
+    mem_limit: 256m
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
