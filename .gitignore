@@ -125,3 +125,9 @@ minio-data/
 
 # Serena (yerel LSP/MCP aracı yapılandırması ve önbelleği)
 .serena/
+
+# Denetim çalışma alanı: yol haritası, faz planı ve ajanlara verilecek görev
+# brief'leri. Kalıcı kayıt değil — bir bulgu kalıcılaşacaksa `docs/devops/`
+# (backlog), `docs/adr/` (karar) veya bir issue'ya taşınır. Burada duran her şey
+# geçici koordinasyon malzemesidir ve depo geçmişine girmemelidir.
+audit/

@@ -3,12 +3,21 @@ ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:8.0
 FROM ${DOTNET_SDK_IMAGE} AS build
 WORKDIR /src
 
-# Copy full backend tree so solution/csproj discovery works for monorepo layouts.
-COPY . .
+# --- Restore katmanı -------------------------------------------------------
+# Yalnızca NuGet restore grafiğini etkileyen dosyalar kopyalanır. Kaynak (.cs)
+# değişiklikleri bu katmanı geçersiz kılmaz, dolayısıyla restore cache'den gelir.
+# Directory.Build.props tüm projelere PackageReference eklediği için restore
+# grafiğinin parçasıdır ve kaynaktan ÖNCE kopyalanmak zorundadır.
+COPY global.json Directory.Build.props CargoPilot.slnx ./
+COPY CargoPilot.Domain/CargoPilot.Domain.csproj CargoPilot.Domain/
+COPY CargoPilot.Application/CargoPilot.Application.csproj CargoPilot.Application/
+COPY CargoPilot.Infrastructure/CargoPilot.Infrastructure.csproj CargoPilot.Infrastructure/
+COPY CargoPilot.WebAPI/CargoPilot.WebAPI.csproj CargoPilot.WebAPI/
 
-# ASP.NET Core Web API projesini (Sdk="Microsoft.NET.Sdk.Web") bul ve yayınla.
+# ASP.NET Core Web API projesini (Sdk="Microsoft.NET.Sdk.Web") bul ve restore et.
 # Çoklu proje (Domain/Application/Infrastructure class library'leri) olduğundan
 # "ilk bulunan csproj" yaklaşımı yanlış projeyi (örn. Domain) hedefler.
+# Bulunan yol publish adımında yeniden kullanılmak üzere diske yazılır.
 RUN set -e; \
     project=$(find . -type f -name '*.csproj' -exec grep -l 'Microsoft\.NET\.Sdk\.Web' {} + | head -1); \
     if [ -z "$project" ]; then \
@@ -16,8 +25,18 @@ RUN set -e; \
         exit 1; \
     fi; \
     echo "Web API projesi: $project"; \
-    dotnet restore "$project"; \
-    dotnet publish "$project" -c Release -o /app/publish /p:UseAppHost=false; \
+    echo "$project" > /web-project.path; \
+    dotnet restore "$project"
+
+# --- Publish katmanı -------------------------------------------------------
+# Kaynak ağacı restore'dan sonra kopyalanır; restore yeniden koşmasın diye
+# publish --no-restore ile çalışır (eksik paket varsa build sessizce geçmez,
+# assets file hatası verir).
+COPY . .
+
+RUN set -e; \
+    project=$(cat /web-project.path); \
+    dotnet publish "$project" -c Release -o /app/publish --no-restore /p:UseAppHost=false; \
     basename "$project" .csproj > /app/publish/.entry-dll
 
 FROM ${DOTNET_ASPNET_IMAGE} AS final

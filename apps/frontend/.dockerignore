@@ -2,3 +2,16 @@ node_modules
 dist
 .env*.local
 *.log
+
+# Docker build context için gereksiz — COPY . . katmanini bir test/tool
+# dosyasi degistiginde invalidate etmesin diye disarida tutuluyor (D-37).
+.claude
+.serena
+audit
+coverage
+playwright-report
+test-results
+e2e
+playwright.config.ts
+**/*.test.ts
+**/*.test.tsx

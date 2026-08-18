@@ -39,12 +39,14 @@ kayıt orada, plan burada; ikisi arasında tekrar bırakılmaz.
 | 13 | three.js r162 → r185 yükseltmesi (3D QA'li) | 🟡 Orta | ⚠️ Açık |
 | 14 | CORS `AllowAnyOrigin()` geri dönüş yolu — fail-fast'e çevrilmeli | 🟠 Güvenlik | ⚠️ Açık |
 | 15 | Yedekleme veri kaybı kümesi — D-03 (MinIO yedeği), D-04 (off-site), D-20 (bildirim) | 🔴 Kritik | ⚠️ Açık |
-| 16 | Kaynak limitleri — D-38 (limit yok), D-39 (`MSSQL_MEMORY_LIMIT_MB`) | 🔴 Kritik | ⚠️ Açık |
-| 17 | Prod öncesi zorunlular — D-47 (prod nginx conf), D-50 (port/path uyumsuzluğu) | 🟠 Yüksek | ⚠️ Açık |
+| 16 | Kaynak limitleri — D-39 ✅ (#1044); **D-38 kısmi**: bellek ✅, `cpus`/`pids_limit` açık | 🔴 Kritik | ⚠️ Kısmi |
+| 17 | Prod öncesi zorunlular — D-47 ✅ (#1043+#1045), D-50 ✅ (#1043) | 🟠 Yüksek | ✅ Kapandı |
 | 18 | Rollback güvenliği — D-24, D-25, D-27 ✅ (#1012, #1017); kalan **D-29 (tatbikat)** | 🟠 Yüksek | ⚠️ Açık |
+| 19 | .NET 8 → .NET 10 LTS geçişi — D-32b, EOL **2026-11-10** | 🔴 Kritik (tarihe bağlı) | ⚠️ Açık — planlama |
 
-Kategori 6, 2026-08-03 taramasının **35 açık** D-bulgusunu D-kodlarıyla birlikte listeler
-(51'den 16'sı kapandı); yukarıdaki matris yalnızca kritik kümeleri özetler.
+Kategori 6, 2026-08-03 taramasının **22 açık** D-bulgusunu D-kodlarıyla birlikte listeler
+(51'den 29'u kapandı); yukarıdaki matris yalnızca kritik kümeleri özetler. §6.9 önceki
+taramada olmayan, uygulama sırasında bulunan dört yeni kalemi tutar.
 
 ---
 
@@ -349,8 +351,13 @@ kaynak dokümanda `✅` ile işaretlidir.
 **Güncel durum (2026-08-18):** Triyajdan sonra **10 bulgu daha kapandı** — Dalga 1
 (D-18, D-21, D-22, D-23, D-25 · #1012) ve Dalga 2 (D-14 · #1016; D-24, D-26, D-27, D-28 · #1017).
 Kapanan satırlar aşağıdaki tablolardan çıkarıldı ve [Tamamlananlar](#tamamlananlar-tarih-sırası)
-bölümüne taşındı. **Kalan: 35 açık bulgu** — 6 kritik, 13 yüksek, 11 orta, 5 düşük.
-Kapananların hiçbiri kritik değildi; altı kritiğin dördü sunucuya SSH erişimi olmadan kapanmıyor.
+bölümüne taşındı. **İkinci tur (2026-08-18, Faz 1 + Faz 4):** 13 bulgu daha kapandı —
+D-08, D-30, D-31, D-32, D-33, D-34, D-37, D-39, D-46, D-47, D-48, D-49, D-50
+(PR #1043, #1044, #1045, #1046, #1047, #1048, #1049). D-38 **kısmen** kapandı.
+
+**Kalan: 22 açık bulgu** — 5 kritik, 6 yüksek, 7 orta, 4 düşük.
+Prod kapısının dört maddesinden dördü de kapandı; **madde 2.1 teknik olarak açık**
+(sunucu teyidi için bkz. §6.8).
 
 ### 6.1 Güvenlik
 
@@ -388,33 +395,20 @@ Kapananların hiçbiri kritik değildi; altı kritiğin dördü sunucuya SSH eri
 
 | Kod | Bulgu | Bugünkü kanıt | Öncelik |
 |---|---|---|---|
-| D-08 | Frontend texture israfı — **kısmen kapandı** (#995) | (a) `public/textures/` silindi. (b) **Kalan:** `apps/frontend/src/assets/textures/container-steel/normal.jpg` gerçekte **19.4 MB, 2048×2048 16-bit RGBA PNG** (`file` çıktısı); kardeşleri 87–539 KB gerçek JPEG. JPEG q92'ye kodlanırsa ~890 KB | 🟠 Yüksek |
-| D-30 | Backend restore katmanı hiç cache'lenmiyor | `apps/backend/Dockerfile:7` — `COPY . .` restore'dan önce; tek `.cs` değişikliği `dotnet restore`'u sıfırdan koşturuyor. Düzeltme: csproj-only restore katmanı + `--no-restore` | 🟠 Yüksek |
-| D-31 | nginx base image — **kısmen kapandı** | `apps/frontend/Dockerfile:21` artık `nginx:1.31-alpine` (1.27'den yükseltildi). **Kalan:** `alpine` varyantı njs → `libxml2`/`libxslt` getiriyor; `alpine-slim`'e geçilirse known-issues #8'deki o CVE sınıfı paket ortadan kalktığı için kapanır (~−36 MB) | 🟠 Yüksek |
-| D-32 | Base image mirror'ı bayat + .NET 8 EOL | `sync-base-images.yml` haftalık (Pazar) koşuyor, Microsoft patch'leri ayın 2. Salı'sı çıkıyor → 5 güne kadar bayat. **Stratejik:** .NET 8 desteği **2026-11-10**'da bitiyor; .NET 10 LTS geçiş planı gerekli | 🟠 Yüksek |
-| D-33 | `sync-base-images.yml` verimsiz | `pull` + `tag` + `push` tüm layer'ları runner'a indiriyor ve **multi-arch manifest'i kaybediyor**. `docker buildx imagetools create` layer indirmez, manifest list'i korur | 🟡 Orta |
-| D-34 | `npm install` → `npm ci` | `apps/frontend/Dockerfile:5` — `npm install --ignore-scripts` lock'u yazabilir; image içi bağımlılıklar CI'daki `npm ci` sonucundan sapabilir | 🟡 Orta |
-| D-35 | Docker build'de statik analiz koşuyor | `Directory.Build.props:20,26,52` — `EnforceCodeStyleInBuild`, `TreatWarningsAsErrors`, SonarAnalyzer 10.32. Kalite kapısı zaten `backend-ci`'de. ⚠️ `test-deploy.yml` build job'unda `needs: [backend-ci]` yok → kaldırılırsa `test` push'unda analyzer hiç koşmaz | 🟡 Orta |
+| D-35 | Docker build'de statik analiz koşuyor — **gerekçeli ertelendi** (#1049) | `Directory.Build.props:20,26,52`. Tuzak doğrulandı: `test-deploy.yml` build job'unda `needs: [backend-ci]` **eklenemiyor** — iki job farklı workflow'da, `needs:` yalnız aynı workflow içinde çalışır. Analyzer build'den çıkarılırsa `test` push'unda kalite kapısı sessizce kalkar. İki çözüm yolu **PR #1049 gövdesinde** yazılı; biri seçilmeden dokunulmamalı | 🟡 Orta |
 | D-36 | Tek parça ~3.35 MB JS chunk | `apps/frontend/src/router.tsx` — `lazy(` sayısı **0**; three.js + recharts + xlsx + framer-motion + 37 sayfa tek chunk'ta. Frontend task'ı, Docker task'ı değil | 🟡 Orta |
-| D-37 | `.dockerignore` boşlukları | `apps/frontend/.dockerignore` yalnız 4 satır (`node_modules`, `dist`, `.env*.local`, `*.log`); `.claude`, `coverage`, `**/*.test.tsx` yok. Değeri boyut değil, `COPY . .` katmanının test dosyasında invalidate olmaması | 🟢 Düşük |
 
 ### 6.6 Altyapı ve gözlemlenebilirlik
 
 | Kod | Bulgu | Bugünkü kanıt | Öncelik |
 |---|---|---|---|
-| D-38 | Hiçbir serviste kaynak limiti yok | `infra/compose/` içinde `mem_limit`/`cpus`/`pids_limit`/`deploy:` hiç geçmiyor → tek kaçak servis sunucuyu götürür. **Prod öncesi zorunlu** | 🔴 Kritik |
-| D-39 | `MSSQL_MEMORY_LIMIT_MB` ana MSSQL'de tanımlı değil | Yalnız ERP servisinde var (`docker-compose.test.yml:125`); ana `mssql` servislerinde yok → SQL Server host RAM'inin %80'ini hedefler. `server-requirements.md:43`'teki "MSSQL × 2 ≈ 4 GB" varsayımı bu yüzden yanlış. **Prod öncesi zorunlu** | 🔴 Kritik |
+| D-38 | Kaynak limitleri — **kısmen kapandı** (#1044) | Bellek tarafı kapandı: 22 servis tanımının tamamında `mem_limit` var (12 benzersiz servis, test 12 / prod 10). **Kalan:** `cpus` ve `pids_limit` hiçbir serviste yok — `grep -rn 'cpus\|pids_limit' infra/compose/` boş döner. CPU açlığı ve fork bombası hâlâ korumasız | 🔴 Kritik |
 | D-40 | Log rotation hiçbir serviste yok | `infra/` altında `logging:`/`max-size` hiç geçmiyor — 16 servisin tamamı etkileniyor. **known-issues #7 ile aynı konu**; o madde kapsamı bu bulguya göre düzeltilmişti. ⚠️ Sunucuda `/etc/docker/daemon.json` global rotation olabilir, önce bakılmalı | 🟠 Yüksek |
 | D-41 | Grafana SMTP hiç yapılandırılmamış | `infra/` altında `GF_SMTP` hiç geçmiyor; contact point ve notification policy dosyaları **mevcut**. **Bu madde 2.4'ün kanıtıdır** — teşhis oraya işlendi. Resend doğrulaması (known-issues #1) bitene kadar Slack/Discord webhook daha güvenli seçim | 🟠 Yüksek |
 | D-42 | Prod monitoring, test alert kurallarını da yüklüyor | `docker-compose.monitoring.prod.yml:83` alerting dizininin tamamını mount ediyor; dizinde `*.test.yml` dosyaları da var → prod Grafana `prometheus-test` UID'lerine bakan kuralları yükler, contact point UID'leri çakışır | 🟠 Yüksek |
 | D-43 | Eksik alert kuralları | `alert-rules.yml` 6 kural içeriyor. Eksik: MSSQL/MinIO container down, disk %90 critical, yedek başarısızlığı (D-20), monitoring'in kendi sağlığı, SSL bitiş tarihi. `monitoring-setup.md:157-161` hâlâ 3 kural listeliyor | 🟡 Orta |
 | D-44 | Prometheus/Loki retention ve limitler | `docker-compose.monitoring.*.yml:61` yalnız `--storage.tsdb.retention.time=30d`, **boyut tavanı yok**; Prometheus kendini/Grafana'yı/Loki'yi/MinIO'yu scrape etmiyor; Loki `limits_config`'te ingestion rate limit yok | 🟡 Orta |
 | D-45 | Promtail sadece 2 container'ı topluyor | `infra/docker/promtail/promtail.{test,prod}.yml:19` — yalnız backend/frontend. MSSQL, MinIO ve monitoring logları hiç toplanmıyor. Ayrıca `:6` `positions.filename: /tmp/positions.yaml` volume'suz → her restart'ta pozisyon kaybı | 🟡 Orta |
-| D-46 | Nginx eksikleri | `infra/nginx/cargopilot-test.conf` — `/api/` altında `client_max_body_size` **yok** (nginx default 1 MB → Excel/ERP import 413); `limit_req` yok (brute-force); HSTS/CSP/Referrer-Policy/Permissions-Policy yok; `:58` `proxy_read_timeout 60s` uzun optimizasyonda 504; gzip/brotli yok; `server_tokens off` yok | 🟠 Yüksek |
-| D-47 | Prod nginx conf'u yok, setup script'i sabit test conf'u kopyalıyor | `infra/nginx/` yalnız `cargopilot-test.conf` içeriyor; `infra/scripts/setup-nginx.sh:12` sabit olarak onu gösteriyor → prod sunucusunda çalıştırılırsa prod domain'i test container'larına proxy eder. **Prod öncesi zorunlu** | 🟠 Yüksek |
-| D-48 | `setup-nginx.sh` canlı config'i test etmeden üzerine yazıyor | `:52` `cp`, `:65` `nginx -t` — sıra ters; bozuk config yerinde kalır, sonraki reload nginx'i düşürür. Ayrıca `:72` `ufw status \| grep 443`, UFW pasifse `set -e` altında exit 1 → restart adımına hiç gelinmez | 🟡 Orta |
-| D-49 | Healthcheck kapsamı eksik | `docker-compose.test.yml` 4 healthcheck; `docker-compose.monitoring.{test,prod}.yml` **0**. Frontend'de de yok. Grafana `depends_on: [prometheus, loki]` koşulsuz | 🟡 Orta |
-| D-50 | `.env.prod.example` port ve path uyumsuzlukları | `:22` `FRONTEND_PORT=80` — nginx host'ta 80/443 dinliyor → port çakışması; `:46` `MINIO_PUBLIC_ENDPOINT=…/files` ama nginx'te tanımlı path `/media/` → tüm dosya linkleri 404. **Prod öncesi zorunlu** | 🟠 Yüksek |
 | D-51 | Ölü konfigürasyon dosyaları | `infra/docker/minio/config/init-bucket.sh` ve `infra/docker/mssql/init/init.sql` hiçbir compose'da mount edilmiyor (`grep` sıfır sonuç) | 🟢 Düşük |
 
 ### 6.7 Doküman düzeltmeleri (kaynak §8)
@@ -430,10 +424,105 @@ Kapananların hiçbiri kritik değildi; altı kritiğin dördü sunucuya SSH eri
 | — | `server-access.md` | `SSH_HOST`/`SSH_PRIVATE_KEY` diyor; gerçek adlar `TEST_SSH_*` | ⚠️ Açık |
 | D-24 | [`rollback-runbook.md`](rollback-runbook.md) | Rollback runbook'u yok | ✅ Yazıldı (#1017) |
 
-### 6.8 Prod sunucusu kurulmadan önce zorunlu
+### 6.8 Prod sunucusu kurulmadan önce zorunlu — ✅ dört madde de kapandı
 
-**D-38, D-39, D-47, D-50** — bunlar olmadan prod stack kalkarsa ya port çakışır ya OOM olur.
-Madde 2.1 (Production Stack Deploy) bu dördüne bağımlıdır.
+**D-38, D-39, D-47, D-50** kapandı; madde 2.1 (Production Stack Deploy) **teknik olarak
+açık**. Kapanış kanıtları:
+
+| Kod | PR | Kanıt |
+|---|---|---|
+| D-38 | #1044 | 22 servis tanımının tamamında `mem_limit` — *bellek tarafı*; `cpus`/`pids_limit` ayrı kalem olarak §6.6'da açık |
+| D-39 | #1044 | `MSSQL_MEMORY_LIMIT_MB` ana MSSQL servislerinde, container tavanının altında |
+| D-47 | #1043 + #1045 | `cargopilot-prod.conf` yaratıldı **ve** `setup-nginx.sh` ortam/domain parametresi alacak şekilde yeniden yazıldı — prod conf artık ulaşılabilir |
+| D-50 | #1043 | `.env.prod.example` port ve MinIO yolu nginx conf'u ile hizalandı |
+
+> ⚠️ **Sunucuda teyit gerektirenler.** Kapanış dosya düzeyindedir; aşağıdakiler ilk prod
+> kurulumunda doğrulanmalı:
+> - Bellek limitlerinin toplamı gerçek sunucu RAM'ine sığıyor mu (değerler varsayımla konuldu).
+> - `setup-nginx.sh prod --domain <domain>` gerçek sunucuda koşuyor mu; `--dry-run` ile önce denenmeli.
+> - Self-signed sertifika prod'da kabul edilebilir mi — script prod'da uyarı basıyor ama üretiyor.
+> - Monitoring healthcheck'leri gerçek imajlarda geçiyor mu (probe'lar imaj başına ayrı seçildi).
+
+---
+
+### 6.9 İkinci turdan çıkan yeni kalemler (2026-08-18)
+
+Faz 1 ve Faz 4 sırasında bulunan, önceki taramada olmayan maddeler.
+
+| Kalem | Bulgu | Öncelik |
+|---|---|---|
+| **Y-01 · `cpus` / `pids_limit` yok** | D-38'in kapanmayan yarısı. 22 servis tanımının hiçbirinde CPU veya süreç limiti yok (`grep -rn 'cpus\|pids_limit' infra/compose/` boş). Bellek limiti tek başına CPU açlığını ve fork bombasını engellemez | 🟠 Yüksek |
+| **Y-02 · Cloudflare 524** | Nginx `proxy_read_timeout` uzatıldı (D-46), ama Cloudflare kendi **100 sn**'lik origin timeout'unda **524** döndürüyor. Uzun optimizasyon koşusu için nginx tarafındaki iyileştirme kullanıcıya ulaşmıyor. Çözüm ya asenkron iş modeli ya Cloudflare tarafında ayar | 🟠 Yüksek |
+| **Y-03 · D-33 canlıda doğrulanmadı** | `imagetools create` yerelde doğrulandı; **gerçek GHCR'a karşı koşmadı**. İlk `sync-base-images` koşumunda `docker buildx imagetools inspect ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0` ile multi-arch manifest'in korunduğu teyit edilmeli | 🟡 Orta |
+| **Y-04 · Perf taban çizgisi elle güncellenecek** | `PerformansTabanCizgisiTests` eşikleri bugünkü **regresyonlu** WeightBalance ölçümünü (29 sn) taban alıyor. F2-01 süreyi 11,4 sn'ye çektiğinde eşik otomatik daralmaz — taban çizgisi **elle** güncellenmeli, yoksa regresyon penceresi 2 kat yerine 5 kat açık kalır | 🟡 Orta |
+
+---
+
+### 6.10 .NET 8 → .NET 10 LTS geçişi (D-32b)
+
+{% hint style="danger" %}
+**⚠️ Açık — yalnız planlama, geçiş kendisi başka bir görevdedir**
+{% endhint %}
+
+**Bağlam:** D-32'nin stratejik kısmı. .NET 8'in Microsoft desteği **2026-11-10**'da bitiyor;
+bu maddenin yazıldığı tarih (2026-08-18) itibarıyla **~12 hafta** kaldı. .NET 10, Kasım 2025'te
+çıkan bir sonraki LTS'dir (STS olan .NET 9 atlanıyor). F4-03 kapsamında yalnızca bu backlog
+maddesi yazıldı; geçişin kendisi **yapılmadı** (F4-03 kapsam dışı).
+
+**Kapsam (bugünkü kod tabanına göre doğrulandı):**
+
+- 7 `.csproj` dosyası `net8.0` hedefliyor → `net10.0`'a çekilmeli: `CargoPilot.Domain`,
+  `CargoPilot.Application`, `CargoPilot.Infrastructure`, `CargoPilot.WebAPI`,
+  `CargoPilot.Engine.Tests`, `CargoPilot.Infrastructure.Tests`,
+  `tests/CargoPilot.Application.Tests`.
+- `Microsoft.AspNetCore.*` / `Microsoft.EntityFrameworkCore.*` NuGet paketleri (2 proje —
+  muhtemelen `WebAPI` ve `Infrastructure`) 8.x → 10.x major sürüme çekilmeli; ikisi de
+  runtime ile aynı major olmak zorunda.
+- CI: `.github/workflows/ci.yml:170` ve `.github/workflows/test-deploy.yml:50` —
+  `dotnet-version: '8.0.x'` → `'10.0.x'`.
+- `apps/backend/Directory.Build.props` — `LangVersion: latest` zaten ileri sürüme otomatik
+  uyar, ama `TreatWarningsAsErrors` + SonarAnalyzer 10.32 altında yeni SDK'nın getirdiği
+  analyzer kuralları derlemeyi kırabilir (bu dosya F4-04'ün alanı, değişiklik oraya düşer).
+  Backend'de artık aktif olarak kullanılan `EnforceCodeStyleInBuild` bu geçişte ayrıca
+  gözden geçirilmeli.
+- `sync-base-images.yml` (bu PR'da `imagetools create`'e geçirildi, D-33) — `dotnet/sdk:10.0`
+  ve `dotnet/aspnet:10.0` için yeni bir senkron adımı eklenmeli; `apps/backend/Dockerfile`
+  `${DOTNET_SDK_IMAGE}`/`${DOTNET_ASPNET_IMAGE}` build-arg'larını `:10.0` etiketine çekmeli
+  (Dockerfile F4-02'nin alanı).
+- Regresyon: Domain/Application/Infrastructure/WebAPI test projelerinin tamamı yeşile
+  çekilmeli; EF Core major sürüm atlaması migration davranışında (ör. query translation,
+  konvansiyon değişiklikleri) sessiz farklara yol açabilir.
+
+**Riskler:**
+
+- EF Core 8→10 major atlaması, mevcut migration'larda veya LINQ sorgu çevirisinde davranış
+  farkına yol açabilir — mutlaka staging'de gerçek veriyle regresyon gerektirir.
+- ASP.NET Core middleware/minimal API pipeline'ında breaking change olasılığı (her majörde
+  olağan) — auth/CORS/rate-limit gibi hassas orta katmanlar önceliklendirilmeli.
+- Yeni SDK'nın analyzer/SonarAnalyzer seti `TreatWarningsAsErrors` altında derlemeyi
+  kırabilir; bu geçiş F4-04 (`Directory.Build.props`) ile koordine edilmeli.
+- `sync-base-images.yml` → yeni `:10.0` mirror'ı olmadan `apps/backend/Dockerfile` build
+  edilemez; sıralama önemli (önce base image sync, sonra Dockerfile build-arg güncellemesi).
+- Rollback: ADR-0009 (health-check sonrası otomatik geri alma) bu geçişte de geçerli olmalı;
+  major runtime atlaması sonrası ilk deploy için rollback provası (D-29 ile aynı disiplin)
+  önerilir.
+- Downtime riski düşük (aynı deploy pipeline'ı kullanılıyor) ama regresyon riski yüksek —
+  major sürüm atlaması, tek tek patch güncellemesi değil.
+
+**Efor tahmini (tümü tahmin, gerçek efor keşif sonrası netleşir):**
+
+| Adım | Tahmini efor |
+|---|---|
+| NuGet/SDK sürüm bump + derleme hatalarının giderilmesi | ~1–2 gün (tahmin) |
+| Test suite'in (7 proje) yeşile çekilmesi + EF Core regresyon kontrolü | ~1 gün (tahmin) |
+| CI + `sync-base-images.yml` + Dockerfile build-arg zinciri güncellemesi | ~0.5–1 gün (tahmin) |
+| Staging QA + rollback provası | ~1 gün (tahmin) |
+| **Toplam** | **~3.5–5 iş günü (tahmin)** |
+
+**Zamanlama önerisi:** EOL'e (2026-11-10) ~12 hafta var. Planlama ve bağımlılık taraması
+(NuGet paket uyumluluğu, breaking change listesi) şimdi başlamalı; hedef, EOL'den en az
+2-3 hafta önce (Ekim sonu) production'da .NET 10 üzerinde olmak — böylece beklenmedik bir
+regresyon çıkarsa müdahale için tampon süre kalır.
 
 ---
 
@@ -464,3 +553,16 @@ Madde 2.1 (Production Stack Deploy) bu dördüne bağımlıdır.
 | 2026-08-17 | **D-26** Deploy `down`'sız tek `up` — kesinti 2-3 dk'dan **2,8 sn**'ye | #1017 |
 | 2026-08-17 | **D-27** Health başarısızsa otomatik geri alma — `PREV_IMAGE_REF` çıpası, ADR-0009 | #1017 |
 | 2026-08-17 | **D-28** `docker image prune` health OK'ten sonraya alındı | #1017 |
+| 2026-08-18 | **D-46** Nginx sertleştirme — `limit_req`, HSTS, CSP, gzip, `server_tokens`, `/api/` `client_max_body_size` | #1043 |
+| 2026-08-18 | **D-50** `.env.prod.example` port ve MinIO yolu nginx conf'u ile hizalandı | #1043 |
+| 2026-08-18 | **D-39** `MSSQL_MEMORY_LIMIT_MB` ana MSSQL servislerinde, container tavanının altında | #1044 |
+| 2026-08-18 | **D-47** Prod nginx conf'u yaratıldı **ve** `setup-nginx.sh` ortam/domain parametresi alıyor | #1043 + #1045 |
+| 2026-08-18 | **D-48** Config geçici dizine render edilip izole `nginx -t` ile doğrulanıyor; ancak geçerse canlıya kopyalanıyor, başarısızsa yedekten geri alınıyor | #1045 |
+| 2026-08-18 | **D-49** Monitoring 12 servise healthcheck; probe'lar imaj başına seçildi, Grafana `depends_on` `service_healthy` oldu | #1045 |
+| 2026-08-18 | **D-08** `normal.jpg` gerçekte 16-bit PNG'ydi, gerçek JPEG'e kodlandı | #1046 |
+| 2026-08-18 | **D-30** Backend Dockerfile csproj-only restore katmanı + `--no-restore` | #1047 |
+| 2026-08-18 | **D-34** Frontend `npm install` → `npm ci` | #1047 |
+| 2026-08-18 | **D-33** `sync-base-images` `pull`+`tag`+`push` → `buildx imagetools create`; multi-arch manifest korunuyor | #1048 |
+| 2026-08-18 | **D-31** Frontend base image `nginx:1.31-alpine` → `alpine-slim` (imaj 33 MB) | #1048 |
+| 2026-08-18 | **D-32** Sync cron'u patch döngüsüne yaklaştırıldı; stratejik kısım §6.9'a ayrıldı | #1048 |
+| 2026-08-18 | **D-37** `.dockerignore` hijyeni genişletildi (frontend + backend) | #1049 |
