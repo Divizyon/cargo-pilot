@@ -6,7 +6,8 @@ name: Cache Cleanup
 #      PR cache'leri refs/pull/<number>/merge ve refs/pull/<number>/head ref'leri altında oluşur.
 #      Not: fork PR'larında GITHUB_TOKEN write yetkisi olmadığından sadece aynı repo PR'ları işlenir.
 #   2. Her gün 04:35 UTC (schedule) → önce yaş/orphan kriteriyle, sonra (hâlâ 8 GiB üzerindeyse)
-#      en eski erişilen buildkit-blob'lar test/main/dev korunarak boyut eşiğine inene kadar silinir.
+#      en eski erişilen buildkit-blob ve node-cache girişleri test/main/dev korunarak boyut
+#      eşiğine inene kadar silinir.
 #
 # Amaç: 10 GB limiti dolmadan önce gereksiz cache'leri proaktif olarak temizlemek.
 
@@ -150,13 +151,21 @@ jobs:
           CURRENT_SIZE=$(gh api "/repos/${REPO}/actions/cache/usage" --jq '.active_caches_size_in_bytes')
           echo "==> Toplam cache boyutu: ${CURRENT_SIZE} bayt (eşik: ${SIZE_LIMIT_BYTES})"
           [[ "${CURRENT_SIZE}" -lt "${SIZE_LIMIT_BYTES}" ]] && { echo "==> Eşiğin altında."; exit 0; }
-          # korunan ref'ler: test, main, dev; en eski erişilen buildkit-blob'dan başlanarak silinir
-          SORTED_BLOBS=$(gh api --paginate -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/caches?per_page=100" --jq '.actions_caches[] | select(.key|startswith("buildkit-blob")) | [(.id|tostring), (.ref // "__NO_REF__"), .last_accessed_at, (.size_in_bytes|tostring)] | join("\t")' 2>/dev/null | awk -F'\t' '$2 !~ /^refs\/heads\/(test|main|dev)$/' | sort -t $'\t' -k3,3)
+          # Kapsam: buildkit-blob + node-cache. node-cache (setup-node ~/.npm) prefix'i
+          # yoktu ve bu adım ona hiç dokunamıyordu; ölçüm 2026-08-18: 60 giriş /
+          # 4,47 GiB = 10 GiB kotanın %45'i. Sonuç, eşik aşıldığında yalnız buildkit
+          # blob'larının tahliye edilmesi — yani soğuk docker build'lerin bedelinin
+          # ödenip asıl yerin geri kazanılmaması oluyordu.
+          # `codeql-*` ve `index-*` prefix'leri BİLEREK kapsam dışı: index girişleri
+          # buildkit manifest'i, silinmesi blob'ları erişilemez bırakır.
+          # Politika buildkit-blob ile birebir aynı: refs/heads/{test,main,dev} korunur,
+          # en eski last_accessed_at'ten başlanarak eşiğin altına inene kadar silinir.
+          SORTED_ENTRIES=$(gh api --paginate -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/caches?per_page=100" --jq '.actions_caches[] | select(.key|startswith("buildkit-blob") or startswith("node-cache")) | [(.id|tostring), (.ref // "__NO_REF__"), .last_accessed_at, (.size_in_bytes|tostring)] | join("\t")' 2>/dev/null | awk -F'\t' '$2 !~ /^refs\/heads\/(test|main|dev)$/' | sort -t $'\t' -k3,3)
           REMAINING=${CURRENT_SIZE}; DELETED=0
           while IFS=$'\t' read -r CACHE_ID CACHE_REF CACHE_DATE CACHE_SIZE; do
             [[ -z "${CACHE_ID}" ]] && continue
             [[ "${REMAINING}" -lt "${SIZE_LIMIT_BYTES}" ]] && break
             gh api --method DELETE -H "Accept: application/vnd.github+json" "/repos/${REPO}/actions/caches/${CACHE_ID}" > /dev/null 2>&1 \
               && { echo "Silindi: #${CACHE_ID} (${CACHE_REF/__NO_REF__/no-ref}, ${CACHE_SIZE}B)"; REMAINING=$((REMAINING - CACHE_SIZE)); DELETED=$((DELETED + 1)); }
-          done <<< "${SORTED_BLOBS}"
-          echo "==> Boyut temizliği tamamlandı: ${DELETED} blob silindi, kalan tahmini ${REMAINING} bayt."
+          done <<< "${SORTED_ENTRIES}"
+          echo "==> Boyut temizliği tamamlandı: ${DELETED} giriş silindi, kalan tahmini ${REMAINING} bayt."

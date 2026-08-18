@@ -18,10 +18,11 @@ neden elendiğini** söyler.
 | [ADR-0004](ADR-0004-denge-takasi-cift-yonlu-dogrulama.md) | Denge takasında çift yönlü doğrulama | Yerini aldı: ADR-0010 | 2026-08-15 |
 | [ADR-0005](ADR-0005-modul-bayraklari-disa-kapali.md) | Modül bayraklarının API'ye ve arayüze açılmaması | Kabul edildi | 2026-08-11 |
 | [ADR-0006](ADR-0006-uc-dalli-terfi-modeli.md) | Üç dallı terfi modeli ve Terfi workflow'u | Kabul edildi | 2026-08-03 |
-| [ADR-0007](ADR-0007-docker-build-cache-asimetrisi.md) | Docker build cache asimetrisi: backend `mode=min`, frontend `mode=max` | Kabul edildi | 2026-08-15 |
+| [ADR-0007](ADR-0007-docker-build-cache-asimetrisi.md) | Docker build cache asimetrisi: backend `mode=min`, frontend `mode=max` | Yerini aldı: ADR-0011 | 2026-08-15 |
 | [ADR-0008](ADR-0008-sha-pinleme-surum-yukseltmeden-ayri.md) | SHA pinleme, sürüm yükseltmesinden ayrılır | Kabul edildi | 2026-08-15 |
 | [ADR-0009](ADR-0009-otomatik-geri-alma-sessizce-basarili-donmez.md) | Otomatik geri alma sessizce başarılı dönmez | Kabul edildi | 2026-08-17 |
 | [ADR-0010](ADR-0010-duvar-orucu-ve-arama-katmani.md) | Duvar örücü ve arama katmanı: greedy'nin yerini alması | Kabul edildi | 2026-08-18 |
+| [ADR-0011](ADR-0011-docker-build-cache-modu-backend-restore-sonrasi.md) | Docker build cache modu: backend restore katmanı ayrıldıktan sonra yeniden değerlendirme (ADR-0007'nin yerini alır) | Kabul edildi | 2026-08-18 |
 
 [ADR-0000](ADR-0000-sablon.md) numara değil, boş şablondur; indekste karar olarak sayılmaz.
 

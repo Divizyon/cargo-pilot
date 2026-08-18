@@ -3,3 +3,6 @@
 **/.vs/
 **/appsettings.Development.Local.json
 **/appsettings.*.Local.json
+
+# Yerel test/coverage ciktilari — COPY . . katmanini gereksiz invalidate etmesin (D-37 hijyeni)
+**/TestResults/

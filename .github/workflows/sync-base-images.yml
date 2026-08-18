@@ -3,10 +3,21 @@ name: Base Image Sync
 # .NET base imagellarını MCR'dan çekip GHCR'a yansıtır.
 # Böylece MCR rate limit veya erişim sorunları build pipeline'ını etkilemez.
 # Tetikleyiciler:
-#   schedule → Her Pazar 02:00 UTC (haftalık yenileme)
+#   schedule (Çarşamba) → Microsoft "Patch Tuesday" (ayın 2. Salı'sı) sonrası ilk gün.
+#     GitHub cron sözdizimi "ayın N. haftaiçi günü"nü doğrudan ifade edemez; ayrıca
+#     day-of-month VE day-of-week aynı anda kısıtlanırsa GitHub bu iki alanı OR'lar
+#     (ör. '9-15 * 3' hem ayın 9-15. günlerinin TAMAMINDA hem de ayın HER Çarşamba'sında
+#     tetiklenir — istenen tek gün değil). Bu yüzden day-of-month '*' bırakılıp her
+#     Çarşamba tetiklenir, gerçek "2. Salı'nın ertesi günü mü" kontrolü job içindeki
+#     "Çalıştırma gerekliliğini belirle" adımında (ayın günü 9-15 aralığında mı) yapılır
+#     — 2. Salı her zaman ayın 8-14. günlerine denk geldiğinden ertesi Çarşamba 9-15
+#     aralığında ve ayda yalnızca bir kez olur.
+#   schedule (Pazar) → Haftalık yedek koşum; patch-günü tetikleyicisi atlanır/gecikirse
+#     bayatlık üst sınırını 7 günde tutar.
 #   workflow_dispatch → Manuel tetikleme (ilk kurulum veya acil güncelleme için)
 on:
   schedule:
+    - cron: '0 3 * * 3'
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
@@ -22,7 +33,28 @@ jobs:
       packages: write
 
     steps:
+      - name: Çalıştırma gerekliliğini belirle
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event.schedule }}" = "0 2 * * 0" ]; then
+            # Haftalık yedek koşum: her zaman çalışır.
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Çarşamba tetikleyicisi: yalnızca ayın 2. Salı'sının ertesi günü (9-15. gün) çalışır.
+          day=$(date -u +%d)
+          if [ "$day" -ge 9 ] && [ "$day" -le 15 ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: GHCR'a giriş yap
+        if: steps.gate.outputs.run == 'true'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
@@ -30,21 +62,25 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Tarih etiketi belirle
+        if: steps.gate.outputs.run == 'true'
         id: date
         run: echo "tag=$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
 
       - name: .NET SDK 8.0 imajını senkronize et
+        if: steps.gate.outputs.run == 'true'
+        # imagetools create manifest list'i doğrudan registry-to-registry kopyalar;
+        # layer'ları runner'a indirmez ve MCR'ın multi-arch manifest'ini korur.
+        # (pull+tag+push yalnızca runner'ın kendi platformunu indirip push ederdi.)
         run: |
-          docker pull mcr.microsoft.com/dotnet/sdk:8.0
-          docker tag mcr.microsoft.com/dotnet/sdk:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
-          docker tag mcr.microsoft.com/dotnet/sdk:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }}
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }}
+          docker buildx imagetools create \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0 \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }} \
+            mcr.microsoft.com/dotnet/sdk:8.0
 
       - name: .NET ASP.NET 8.0 imajını senkronize et
+        if: steps.gate.outputs.run == 'true'
         run: |
-          docker pull mcr.microsoft.com/dotnet/aspnet:8.0
-          docker tag mcr.microsoft.com/dotnet/aspnet:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
-          docker tag mcr.microsoft.com/dotnet/aspnet:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }}
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }}
+          docker buildx imagetools create \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0 \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }} \
+            mcr.microsoft.com/dotnet/aspnet:8.0
