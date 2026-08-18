@@ -1,6 +1,6 @@
 # ADR — Yerleştirme Algoritması: Duvar Örücü ve Arama Katmanı
 
-- **Durum:** Kabul edildi · üretimde **bayrak arkasında kapalı**
+- **Durum:** Kabul edildi · **üretimde tek yerleştirici** (greedy kaldırıldı, `DR-39`)
 - **Tarih:** 2026-08-18
 - **Kapsam:** `PlacementStrategy.WallBuilder`, `SequencerKind.Grasp`, `PlacementValidator`, `SpaceLedger`, `CargoPilot.Engine.Bench`
 - **Yerini aldığı:** yok · **Tamamladığı:** `ALGORITMA-YOL-HARITASI.md` F2-F5
@@ -36,20 +36,63 @@ kapıdan içeri duvar duvar ördüğü sırayla aynı çıktıyı üretir.
 
 ## Karar
 
-### 1. Duvar örücü greedy'nin YERİNE değil YANINA gelir
+### 1. ~~Duvar örücü greedy'nin YERİNE değil YANINA gelir~~ → **greedy kaldırıldı**
 
-Yeni yerleştirici ayrı bir `PlacementStrategy` olarak eklendi; greedy varsayılan kaldı ve 17 golden
-snapshot bayt bayt korundu.
+> **Güncelleme (2026-08-18, `DR-39`).** Bu karar bilinçli olarak **tersine çevrildi**. Özgün hâli
+> aşağıda kayıt için duruyor; gerekçesi ("ölçüm bitmeden geri dönülemez değişiklik yapma") ölçüm
+> bittiği için tükendi.
 
-**Gerekçe:** greedy üretimde çalışıyor ve müşteri planları ona dayanıyor. Yerine geçirmek, ölçüm
-bitmeden geri dönülemez bir değişiklik yapmak olurdu.
+**Özgün karar:** yeni yerleştirici ayrı bir `PlacementStrategy` olarak eklendi, greedy varsayılan
+kaldı ve 17 golden snapshot bayt bayt korundu. Gerekçe: greedy üretimde çalışıyordu ve müşteri
+planları ona dayanıyordu.
+
+**Bugün:** greedy tamamen silindi. `PlacementStrategy` enum'u, `BalanceScoring`, `VolumeScoring`,
+`LifoPlacement.ZonePenalty` ve `OptimizationEngine`'in %90'ı gitti; dallanma artık `Sequencer`
+üzerinden. Üretim varsayılanı **WallBuilder + GRASP**.
+
+**Kaldırma gerekçesi — ölçülmüş fark:**
+
+| | BR1-BR7 (strict, 700 örnek) | Süre |
+|---|---|---|
+| Greedy | %75,23 | ~65 ms |
+| Duvar örücü + Static | **%80,09** | 2-5 ms |
+| Duvar örücü + GRASP | **%86,23** | ~2 sn |
+
+Küme kırılımı (greedy, tarihsel kayıt — referans dosyası silindi):
+BR1 %76,67 · BR2 %75,95 · BR3 %75,72 · BR4 %75,01 · BR5 %75,13 · BR6 %74,37 · BR7 %73,78.
+
+Duvar örücü statik yolda greedy'den **hem daha dolu hem 27 kat hızlı**; bu, kaldırmanın maliyetsiz
+görünen yüzü.
+
+**Kabul edilen bedel — ağırlık dengesi.** Duvar örücü `BalanceScoring`'i hiç çağırmıyor: ne aday
+başına ağırlık merkezi cezası (katsayı 900.000) ne de `ImproveBalance` takas geçişi var. Silmeden
+önce ölçüldü:
+
+| | Doluluk | Denge sapması | En kötü |
+|---|---|---|---|
+| Greedy | %50,57 | **%9,21** | %40,0 |
+| Duvar örücü + Static | %50,88 | %38,35 | %99,9 |
+| Duvar örücü + GRASP | %54,23 | %28,14 | %84,3 |
+
+Sapma greedy'nin **~3 katı**. GRASP kaybın bir kısmını topluyor çünkü `SearchEvaluation.Cost`
+denge terimi taşıyor ve `WeightBalance` kriterinde ağırlığı 100 kat — ama sıra düzeyinde optimize
+etmek, yerleştirme düzeyinde optimize etmenin yerini tutmuyor. Bu, gelecekteki denge çalışmasının
+**`OrientationFit`'e terim koyması** gerektiğini de söylüyor; uygunluk ağırlığını büyütmek değil.
 
 **Sonuçları:**
-- Her iki yol da aynı yedi sert kapıyı **tek kaynaktan** (`PlacementValidator`) çağırır; duvar örücü
-  kendi destek/istif tanımını yazmaz (`R-C01`, `R-C12`).
-- Deneysel yol `EnableExperimentalStrategies` bayrağı arkasında ve **varsayılan kapalı**. Bayrak
-  kapalıyken istek sessizce greedy'ye düşmez, doğrulama hatası verir — istemci hangi motorun
-  koştuğunu bilmek zorunda.
+- `EnableExperimentalStrategies` bayrağı, `OptimizationSettings` ve `appsettings` bölümü kaldırıldı
+  — kapattığı yol artık tek yol.
+- `OptimizationModules` dörtten ikiye indi: `UseVolume` ve `UseWeightBalance` öldü, `UseLifo` ve
+  `UseContamination` kaldı. **Kriter ölmedi:** `ItemOrdering`, `PlacementValidator` ve
+  `SearchEvaluation.Cost` hâlâ kriteri okuyor.
+- `LoadingPlans.PlacementStrategy` sütunu düşürüldü; `Sequencer`, `Seed` ve dört `Search*` alanı
+  kaldı ve GRASP üretime geçtiği için artık daha anlamlı.
+- **`OptimizationInput.Sequencer` varsayılanı bilinçli olarak `Static` kaldı.** `SequencerSelection`
+  yalnız komut işleyicilerinde çağrıldığı için API isteği GRASP alır, motoru doğrudan çağıran her
+  yol (17 snapshot, değişmez testleri, doluluk kapısı) saf hesap olan statik yolu alır ve çıktısı
+  makineden bağımsız bayt kararlı kalır.
+- Her iki yol da aynı sert kapıları **tek kaynaktan** (`PlacementValidator`) çağırıyordu; bu ilke
+  değişmedi (`R-C01`, `R-C12`).
 
 ### 2. Birincil ölçüm BR1-BR7'ye taşındı
 

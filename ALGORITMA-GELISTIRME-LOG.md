@@ -1207,3 +1207,65 @@ Gerileme yerleştirme düzeyinde, arama düzeyinde değil. GRASP'ın 5e4 katsay�
 tek başına yetmiyor. Dolayısıyla WallBuilder'a denge eklenirken hedef **uygunluk ağırlığını
 büyütmek değil**, `OrientationFit`'e ağırlık merkezi terimi koymak ve/veya `ImproveBalance`
 benzeri bir ikinci geçiş yazmak olmalı. Bu ölçüm o çalışmanın taban çizgisidir.
+
+---
+
+## Greedy kaldırıldı — duvar örücü tek yerleştirici oldu (`DR-39`)
+
+Altı adımda yapıldı, her adım tek başına yeşil ve ayrı commit. Ölçüm önce, silme sonra.
+
+### Doluluk etkisi: sıfır
+
+| | Önce | Sonra |
+|---|---|---|
+| BR1-BR7 (static, 700 örnek) | %80,09 | **%80,09** |
+| Giyotin (static, 300 senaryo) | %79,16 | **%79,16** |
+| 17 golden snapshot | greedy çıktısı | duvar örücü çıktısı, yeniden üretildi |
+
+Greedy'nin tarihsel değeri kayda geçti: BR1-BR7 **%75,23** (BR1 %76,67 · BR7 %73,78). Duvar örücü
+statik yolda hem **+4,86 puan** daha dolu hem **27 kat** daha hızlı.
+
+### Beklenmeyen bulgu: üç gerçek LIFO ihlali
+
+Varsayılanı çevirmek üç LIFO testini kırdı ve bunlar **test beklentisi sorunu değildi**.
+`[100,200)` bölgesine ait kutular `Z=0..60`'a düşüyordu — ikinci grubun yükü birinci grubun
+bölgesine giriyor, yani sahada yanlış sırada boşaltma. Üç ayrı kök neden vardı (`DR-40`):
+
+1. **Duvar döngüsü ilk aday veren duvarda duruyordu**, o aday bölge dışı olsa bile. Bir sonraki
+   duvarda bölge içi aday olsa dahi görülmüyordu.
+2. **`TryPlace` z'yi bölge başına çekmiyordu.** Greedy'de bölge başlangıçları extreme-point olarak
+   tohumlanıyordu; duvar örücüde öyle bir tohum yok, dolayısıyla defterdeki boşluk `z=80`'den
+   başlıyorsa aday hep 80'de doğuyordu — kutunun bölgesi `[100,200)` olsa bile.
+3. **Blok inşası bölgeyi hiç sormuyordu.** `RaiseBlock` z'de bölgeyi aşabiliyor, `TopUp` ise
+   yerleştirdiği **başka ürünü** kendi bölgesi dışına koyabiliyordu. Dikey LIFO kuralı zaten
+   `ViolatesStackability`'deydi; eksik olan **bölge** kuralıydı.
+
+Üçü de onarıldı. Bu, planın "kapsam dışı, ayrıca ele alınacak" diye işaretlediği `TopUp` kusurunu
+da kapattı.
+
+### Kurtarılan terim
+
+12 Ağustos raporunun listelediği beş puanlama teriminden biri geri geldi:
+`VolumeScoring.WidthTerm` (katsayı 1, "beraberlik bozucu") `OrientationFit.CornerDistance` oldu
+(`DR-41`). Onsuz eşit adaylar arasında kazananı defter sırası belirliyordu ve yükleme köşesi
+sözleşmesi beraberlikte kayboluyordu. Yani terim sayısı 5 → 1 değil **5 → 2**.
+
+### Kapanan borç
+
+Snapshot şemasına `FragilityType` eklendi — 12 Ağustos raporunun "sonraki yenilemede eklensin"
+diye ertelediği madde. Kozmetik değildi: `InvariantScenarioSource` girdiyi snapshot'tan yeniden
+kurduğu için, alan yokken değişmez testleri kırılgan kutuları sessizce `NonFragile` sayıyordu.
+
+### Silinen kod ve sözleşme
+
+`OptimizationEngine` 299 → 33 satır · `BalanceScoring` (220) · `VolumeScoring` (55) ·
+`LifoPlacement.ZonePenalty` · `PlacementStrategy` enum ve tüm API/DB/test/TS yüzeyi ·
+`EnableExperimentalStrategies` bayrağı ve ayar sınıfı · `OptimizationModules` 4 → 2 bayrak ·
+CI'daki greedy işi ve `br-greedy-static.json`.
+
+**Kriter ölmedi:** `ItemOrdering`, `PlacementValidator` ve `SearchEvaluation.Cost` hâlâ
+`LoadingPlanOptimizationCriteria`'yı okuyor. Denge optimizasyonu yok olmadı, yerleştirme
+düzeyinden **arama düzeyine** taşındı — ve ölçüm bunun yetmediğini söylüyor (yukarıdaki
+`Adım 0` kaydı).
+
+Testler: motor 109 · altyapı 32 · uygulama 228 · test arayüzü 201. Doluluk kapısı geçti.

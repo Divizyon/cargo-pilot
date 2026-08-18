@@ -71,28 +71,32 @@ public sealed record OptimizationInput(
 /// Optimizasyon modüllerinin açık/kapalı durumu. Verilmezse kriterden türetilir
 /// ve türetilmiş değerler bugünkü davranışı birebir üretir.
 ///
-/// Bilinçli olarak dışarıya kapalıdır: skor katsayıları yalnızca mevcut üç
-/// kriter için kalibre edilmiştir, dört bayrağın ürettiği on altı kombinasyonun
-/// çoğu kalibre edilmemiştir. Bu yüzden hiçbir API sözleşmesine (request DTO,
+/// Bilinçli olarak dışarıya kapalıdır: hiçbir API sözleşmesine (request DTO,
 /// komut, validator, Swagger şeması) bağlanmaz; yalnızca motorun içinden ve
 /// testlerden kullanılır.
+///
+/// **Dörtten ikiye indi (`DR-39`).** `UseVolume` ve `UseWeightBalance` greedy'nin
+/// skor terimlerini açıp kapatıyordu; greedy silinince ikisini de okuyan
+/// kalmadı. Duvar örücü yalnızca `UseLifo`'yu okur, `UseContamination` ise
+/// motorun dışında (handler'da) çalışır.
+///
+/// **Kriter ölmedi.** `LoadingPlanOptimizationCriteria` üç ayrı yerde hâlâ
+/// davranışı değiştiriyor: <c>ItemOrdering.ApplyCriteriaSort</c> (WeightBalance
+/// ağırlığa, diğerleri hacme göre sıralar), <c>PlacementValidator</c>
+/// (Lifo'da dikey istif kuralı) ve <c>SearchEvaluation.Cost</c> (WeightBalance'ta
+/// denge katsayısı 100 kat). Yani denge optimizasyonu yok olmadı, yerleştirme
+/// düzeyinden arama düzeyine taşındı.
 /// </summary>
 public sealed record OptimizationModules(
-    bool UseVolume,
-    bool UseWeightBalance,
     bool UseLifo,
     bool UseContamination)
 {
     /// <summary>
-    /// Bayrakların kriterden türetilmesi. Her satır bugün kodun ilgili modülü
-    /// hangi koşulda çalıştırdığının aynısıdır:
-    /// hacim terimleri WeightBalance dışında, denge katsayısı Lifo dışında,
-    /// bölge hesabı yalnızca Lifo'da, kontaminasyon filtresi ise her zaman.
+    /// Bayrakların kriterden türetilmesi: bölge hesabı yalnızca Lifo'da,
+    /// kontaminasyon filtresi her zaman.
     /// </summary>
     internal static OptimizationModules FromCriteria(LoadingPlanOptimizationCriteria criteria)
         => new(
-            UseVolume: criteria != LoadingPlanOptimizationCriteria.WeightBalance,
-            UseWeightBalance: criteria != LoadingPlanOptimizationCriteria.Lifo,
             UseLifo: criteria == LoadingPlanOptimizationCriteria.Lifo,
             UseContamination: true);
 

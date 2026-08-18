@@ -18,17 +18,15 @@ public sealed class ModulBayraklariTests
     /// türetmeden okunmaz.
     /// </summary>
     [Theory]
-    [InlineData(LoadingPlanOptimizationCriteria.VolumeFirst, true, true, false, true)]
-    [InlineData(LoadingPlanOptimizationCriteria.WeightBalance, false, true, false, true)]
-    [InlineData(LoadingPlanOptimizationCriteria.Lifo, true, false, true, true)]
+    [InlineData(LoadingPlanOptimizationCriteria.VolumeFirst, false, true)]
+    [InlineData(LoadingPlanOptimizationCriteria.WeightBalance, false, true)]
+    [InlineData(LoadingPlanOptimizationCriteria.Lifo, true, true)]
     public void AcikBayraklar_VarsayilanTuretmeyle_AyniPlaniUretir(
         LoadingPlanOptimizationCriteria criteria,
-        bool useVolume,
-        bool useWeightBalance,
         bool useLifo,
         bool useContamination)
     {
-        var expectedModules = new OptimizationModules(useVolume, useWeightBalance, useLifo, useContamination);
+        var expectedModules = new OptimizationModules(useLifo, useContamination);
         Assert.Equal(expectedModules, OptimizationModules.FromCriteria(criteria));
 
         var input = MixedInput(criteria);
@@ -79,11 +77,7 @@ public sealed class ModulBayraklariTests
 
         var lifoOff = input with
         {
-            Modules = new OptimizationModules(
-                UseVolume: true,
-                UseWeightBalance: false,
-                UseLifo: false,
-                UseContamination: true),
+            Modules = new OptimizationModules(UseLifo: false, UseContamination: true),
         };
 
         var enabled = EngineScenario.Run(input);

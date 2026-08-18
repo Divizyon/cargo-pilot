@@ -313,7 +313,7 @@ Not: GitHub'da adı birebir "wall-building" olan popüler CLP reposu nadirdir; m
 `R-C04` **Kutu korunumu + sebepli ret.** Wall-Builder çıktısında her kutu `placements` ya `unplaced` (sebep dolu). Yeni ret sebepleri (`NotStackable`, `GeometryConstraint`) bu fırsatta **üretilir** (açık borç kapanır).
 `R-C05` **Yerleştirici arayüz sözleşmesi.** Sıralama ve yerleştirme birbirinden bağımsız statik giriş noktaları olarak tasarlanır (`ItemSequencer` ↔ `WallBuilderPlacement`). Sıcak döngüde sanal çağrı yok (A1 kararı korunur); GWCA yalnız Wall-Builder'ı fitness fonksiyonu olarak çağırır.
 `R-C06` **`static`, `CancellationToken`, analyzer temiz, `!` yok, yorum yok.** Kod standardı `csharp-clean-code` skill'i; dosya adı = sınıf adı; hata metinleri `ErrorKeys`.
-`R-C07` **Bayrak değil, kriter.** Yeni yerleştirici `OptimizationModules` bayrağı olarak değil, **yeni bir kriter** (`PlacementStrategy.WallBuilder` + `Sequencer.Gwca`) olarak açılır; greedy motor olduğu gibi kalır (yan yana). Bayrak kombinasyon patlaması (16→32) kabul edilmez. *(Karar noktası 1 cevabı — bkz. DR-01)*
+~~`R-C07`~~ **GEÇERSİZ (`DR-39`)** — greedy kaldırıldı, tek yerleştirici kaldı. Özgün kural: **Bayrak değil, kriter.** Yeni yerleştirici `OptimizationModules` bayrağı olarak değil, **yeni bir kriter** (`PlacementStrategy.WallBuilder` + `Sequencer.Gwca`) olarak açılır; greedy motor olduğu gibi kalır (yan yana). Bayrak kombinasyon patlaması (16→32) kabul edilmez. *(Karar noktası 1 cevabı — bkz. DR-01)*
 
 ## C2. Genel akış (yeni kriter seçildiğinde)
 
@@ -500,10 +500,10 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 
 | DR | Karar | Gerekçe |
 | --- | --- | --- |
-| DR-01 | Yeni yerleştirici **kriter** olarak, greedy'nin **yanına** | Bayrak kombinasyon patlaması; greedy golden korpusu korunur; A/B kıyas mümkün |
+| ~~DR-01~~ | ~~Yeni yerleştirici **kriter** olarak, greedy'nin **yanına**~~ — **tersine çevrildi (`DR-39`)** | Bayrak kombinasyon patlaması; greedy golden korpusu korunur; A/B kıyas mümkün |
 | DR-02 | Hacme orantılı bölme kilidi **yalnız Wall-Builder için** açılır (sanal duvar dinamik) | Greedy'de K4 kilidi sürer; yeni yerleştirici zaten farklı model |
 | DR-03 | GWCA **deneyseldir**; GA/GRASP kıyası zorunlu; kaybederse sequencer olgun olanla değiştirilir, Wall-Builder kalır | Literatürde GWCA↔CLP yok; ayrık zayıflığı belgeli |
-| DR-04 | İkinci golden korpus; eski korpus dokunulmaz | Snapshot kayması sıfır ilkesi |
+| ~~DR-04~~ | ~~İkinci golden korpus; eski korpus dokunulmaz~~ — **geçersiz (`DR-39`)**: tek korpus kaldı ve duvar örücüyle yeniden üretildi | Snapshot kayması sıfır ilkesi |
 | DR-05 | Fitness terim toplamı (Pareto değil) | "Düşük kazanır + sabit sıra" sözleşmesi korunur; Pareto ileride ayrı DR |
 | DR-06 | Seed API'nin parçası (`OptimizationInput.Seed`) | Determinizm ve yeniden üretilebilirlik |
 | DR-07 | Denge takas geçişi yeni sistemde yok | Arama bunu yapar; O(n²) +%43 bedeli tekrar ödenmez |
@@ -539,6 +539,8 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-37** | **`R-C15` OBL uygulanmayacak** | Popülasyon gerektirir; GRASP popülasyon tutmaz (`DR-31`), GWCA ve GA emekli (`DR-13`). GA'ya dönülürse yeniden açılır |
 | **DR-38 ⚠** | **Kısıt tarafının kıyas kapsaması YOK** | İki korpus da `UnloadingOrder: null` ve ağırlık/kırılganlık/istif kısıtı taşımıyor; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor. Bu yüzden `DR-09`, `DR-10` ve `DR-11` **ölçülemiyor**. Ölçüm programı baştan yalnız hacim üzerine kuruldu |
 | **DR-39** | **Greedy kaldırılıyor; ağırlık dengesi gerilemesi ölçüldü ve kabul edildi** | Denge sapması greedy'nin ~3 katı: %9,21 → %28,14 (GRASP), %38,35 (Static). Karşılığında doluluk +3,66 puan ve statik yol 27 kat hızlı. Gerileme **yerleştirme düzeyinde**; GRASP'ın 5e4 denge katsayısı zaten çalışıyor ve tek başına yetmiyor, yani gelecekteki çalışma `OrientationFit`'e terim koymalı. `R-C07`/`DR-01` ("greedy'nin yanına") bilinçli olarak tersine çevrildi |
+| **DR-40** | **LIFO bölge garantisi duvar örücüde üç yerden deliniyordu; üçü de onarıldı** | Varsayılan çevrilince ortaya çıktı: `[100,200)` bölgesine ait kutular `Z=0..60`'a düşüyordu. (1) Duvar döngüsü ilk aday veren duvarda duruyordu, o aday bölge dışı olsa bile. (2) `TryPlace` z'yi bölge başına çekmiyordu — greedy'de bölge başları extreme-point olarak tohumlanıyordu, duvar örücüde öyle bir tohum yok. (3) Blok inşası bölgeyi hiç sormuyordu; `TopUp` başka ürünü kendi bölgesi dışına koyabiliyordu |
+| **DR-41** | **Yükleme köşesi tercihi `OrientationFit`'e eşlik bozucu olarak taşındı** | Greedy'de bunu `VolumeScoring.WidthTerm` (katsayı 1) yapıyordu. Onsuz eşit adaylar arasında kazananı defter sırası belirliyor ve yükleme köşesi sözleşmesi (`docs/COORDINATE_STANDARD.md §7`) beraberlikte kayboluyordu |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

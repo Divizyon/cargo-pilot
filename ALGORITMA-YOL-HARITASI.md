@@ -62,7 +62,7 @@ best-in-class'ı geçtiğini gösteriyor. Bu artık bir **politika kararı**, te
 | **F4a** · Kule/sütun inşası | Aynı ürünün kalan birimleri yerleşen kutunun üstüne yığılır | **TAMAM** — BR'de %77,00 → **%79,03** (+2,03) ve 2,5 kat hızlı. Giyotin korpusunda +0,07'ydi, yani görünmüyordu | Öneri 2 · Gehring & Bortfeldt 1997 |
 | **F4a′** · Blok inşası | Aynı kutudan prizma; asıl değişiklik aday seçiminin blok ADEDİNE bakması | **TAMAM (`DR-22`)** — static %79,03 → %79,86, **GRASP %83,50 → %85,22**, giyotinde regresyon yok. BR1 %81,26 → %83,09 ama merdivenin eğimi hâlâ ters | Eley 2002 · `DR-21` |
 | **F4b** · Dinamik duvar derinliği | Sabit kural denendi (derin/yansız/sığ) | **F3a'ya devredildi (`DR-23`)** — sabit hiçbir değer kazanmıyor; derin BR1'i +1,36, sığ BR6'yı +1,45 yükseltiyor. Karar artık kromozomda | Öneri 5 · Pisinger 2002 |
-| **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | **KISMİ** — değişmez kapsaması (67 → 115 test), ölçülen arama bütçesi (`DR-25`), koşu kimliği kalıcı + migration (`DR-26`), gecelik doluluk kapısı (`engine-bench.yml`, `DR-28`). **Kalan: frontend'de strateji seçimi** | KK-06b, KK-07 |
+| **F5** · Ürünleştirme | Kalıcılık, migration, frontend, gecelik CI kapısı | **KISMİ** — değişmez kapsaması, ölçülen arama bütçesi (`DR-25`), koşu kimliği + migration (`DR-26`), gecelik kapı (`DR-28`), **greedy kaldırıldı ve duvar örücü üretim yolu oldu (`DR-39`)**. Kalan: bayrağın gerçek yükte doğrulanması | KK-06b, KK-07 |
 
 ### Sıra ve gerekçe
 

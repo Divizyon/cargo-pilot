@@ -61,20 +61,11 @@ jobs:
       - name: Bench projesini derle
         run: dotnet build apps/backend/CargoPilot.Engine.Bench/CargoPilot.Engine.Bench.csproj --configuration Release
 
-      # Iki strateji de olculur. Greedy bugunku uretim yolu, duvar orucu ise
-      # bayrak acildiginda kosacak olan; birinin gerilemesi otekini gizlememeli.
-      - name: Greedy — BR1-BR7
-        run: |
-          dotnet run --project apps/backend/CargoPilot.Engine.Bench --no-build --configuration Release -- \
-            br --strategy greedy \
-               --baseline "$GITHUB_WORKSPACE/docs/algorithm/br-greedy-static.json" \
-               --report "$GITHUB_WORKSPACE/br-greedy-run.json"
-
+      # Tek yerlestirici kaldi (DR-39); greedy isi kaldirildi.
       - name: Duvar örücü — BR1-BR7
         run: |
           dotnet run --project apps/backend/CargoPilot.Engine.Bench --no-build --configuration Release -- \
-            br --strategy wallbuilder \
-               --baseline "$GITHUB_WORKSPACE/docs/algorithm/br-wallbuilder-static.json" \
+            br --baseline "$GITHUB_WORKSPACE/docs/algorithm/br-wallbuilder-static.json" \
                --report "$GITHUB_WORKSPACE/br-wallbuilder-run.json"
 
       # Kapi kaldiginda karsilastirmayi elle yapabilmek icin kosu ciktilari saklanir.
