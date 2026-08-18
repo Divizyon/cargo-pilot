@@ -1,7 +1,8 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using CargoPilot.Application.Common.Models;
+using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Engine.Bench;
 
@@ -34,7 +35,15 @@ public static class BenchCommand
 
         var scenarios = seeds
             .SelectMany(seed => BenchCorpus.Generate(seed, options.Count))
-            .Select(s => s with { Input = s.Input with { Strategy = options.Strategy } })
+            .Select(s => s with
+            {
+                Input = s.Input with
+                {
+                    Strategy = options.Strategy,
+                    Sequencer = options.Sequencer,
+                    SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
+                },
+            })
             .ToList();
 
         for (var pass = 1; pass <= options.Repeat; pass++)
@@ -97,6 +106,16 @@ public static class BenchCommand
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"yerlesen kutu  : {totals.Placed} / {totals.Requested}"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"ortalama dolu. : %{totals.MeanFillPercent:F2}"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"en kotu dolu.  : %{totals.WorstFillPercent:F2}"));
+
+        // Denge yalnizca WeightBalance kriterli senaryolarda anlamli; oteki iki
+        // kriterde agirlik merkezi bir hedef degil, yan urun.
+        if (totals.BalanceScenarioCount > 0)
+        {
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"denge ort sapma: %{totals.MeanBalanceOffsetPercent:F2}  ({totals.BalanceScenarioCount} senaryo)"));
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"denge en kotu  : %{totals.WorstBalanceOffsetPercent:F2}"));
+        }
         Console.WriteLine();
         Console.WriteLine(options.Concurrency > 1
             ? "performans (kapi disi · es zamanli kosu, sureler guvenilmez)"
@@ -149,6 +168,12 @@ public static class BenchCommand
         private decimal _fillSum;
         private decimal _worstFill = decimal.MaxValue;
 
+        // Agirlik merkezinin arac ortasindan sapmasi, iki eksenin toplami.
+        // Greedy silinmeden once olculmek zorunda: WallBuilder'da denge
+        // optimizasyonu yok ve kaybin buyuklugu sonradan hesaplanamaz.
+        private decimal _balanceSum;
+        private decimal _worstBalance;
+
         public int ScenarioCount { get; private set; }
 
         public int Placed { get; private set; }
@@ -159,6 +184,13 @@ public static class BenchCommand
 
         public double WorstFillPercent => ScenarioCount == 0 ? 0d : (double)_worstFill * 100d;
 
+        public int BalanceScenarioCount { get; private set; }
+
+        public double MeanBalanceOffsetPercent
+            => BalanceScenarioCount == 0 ? 0d : (double)(_balanceSum / BalanceScenarioCount);
+
+        public double WorstBalanceOffsetPercent => (double)_worstBalance;
+
         public void Add(OptimizationInput input, OptimizationResult result)
         {
             ScenarioCount++;
@@ -166,6 +198,14 @@ public static class BenchCommand
             Requested += input.Items.Sum(i => i.Quantity);
             _fillSum += result.FillRate;
             if (result.FillRate < _worstFill) _worstFill = result.FillRate;
+
+            if (input.Criteria != LoadingPlanOptimizationCriteria.WeightBalance) return;
+
+            var offset = Math.Abs(result.WeightBalanceOffsetX ?? 0m) + Math.Abs(result.WeightBalanceOffsetZ ?? 0m);
+
+            BalanceScenarioCount++;
+            _balanceSum += offset;
+            if (offset > _worstBalance) _worstBalance = offset;
         }
     }
 }

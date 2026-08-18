@@ -1169,3 +1169,41 @@ varsayılan yol için **uygulanamaz**; GA'ya dönülürse anlamlı olur.
 Bu bir kusur değil, kapsamın sonucu: ölçüm programı baştan **yalnız hacim** üzerine kuruldu.
 İki korpus da ağırlık, kırılganlık, istiflenemezlik, grup ve LIFO taşımıyor. Kısıt tarafının
 **hiçbir kıyas kapsaması yok** — bugün yalnız birim testleriyle korunuyor.
+
+---
+
+## Adım 0 · Greedy kaldırılmadan önce: ağırlık dengesi gerilemesi ölçüldü
+
+Greedy siliniyor. WallBuilder `BalanceScoring`'i hiç çağırmıyor — ne aday başına ağırlık merkezi
+cezası (katsayı 900.000) ne de `ImproveBalance` takas geçişi var. Kayıp kabul edildi ama
+**büyüklüğü silindikten sonra bir daha ölçülemez**, o yüzden önce ölçüldü.
+
+**Ölçülen şey:** `|CoGx − yarıGenişlik| / yarıGenişlik` + `|CoGz − yarıUzunluk| / yarıUzunluk`,
+yüzde olarak. Yani ağırlık merkezinin araç ortasından kaçması. Yalnız `WeightBalance` kriterli
+senaryolar sayılır; öteki iki kriterde denge bir hedef değil, yan üründür.
+
+Sabit sentetik korpus, tohum 1..20, 100 senaryo (40'ı `WeightBalance`):
+
+| | Doluluk | **Denge ort. sapma** | Denge en kötü | Süre (medyan) |
+|---|---|---|---|---|
+| **Greedy** (bugünkü üretim) | %50,57 | **%9,21** | %40,0 | 52,6 ms |
+| WallBuilder + Static | %50,88 | %38,35 | %99,9 | 1,9 ms |
+| **WallBuilder + GRASP** (yeni üretim) | **%54,23** | **%28,14** | %84,3 | 1.370 ms |
+
+600 senaryoluk geniş koşuda da aynı tablo: greedy %11,02 · WallBuilder+Static %39,11.
+
+### Okunuşu
+
+**Denge gerilemesi gerçek ve büyük: greedy'nin ~3 katı sapma.** GRASP kaybın bir kısmını topluyor
+(%38,35 → %28,14) çünkü `SearchEvaluation.Cost` uygunluk fonksiyonunda denge terimi var ve
+`WeightBalance` kriterinde ağırlığı 5e4 — diğer kriterlerde 5e2, yani **100 kat**. Ama sıra
+düzeyinde optimize etmek, yerleştirme düzeyinde optimize etmenin yerini tutmuyor.
+
+Buna karşılık **doluluk +3,66 puan** (%50,57 → %54,23) ve statik yol greedy'den **27 kat hızlı**.
+
+### Bunun gelecekteki denge çalışmasına söylediği
+
+Gerileme yerleştirme düzeyinde, arama düzeyinde değil. GRASP'ın 5e4 katsayısı zaten çalışıyor ve
+tek başına yetmiyor. Dolayısıyla WallBuilder'a denge eklenirken hedef **uygunluk ağırlığını
+büyütmek değil**, `OrientationFit`'e ağırlık merkezi terimi koymak ve/veya `ImproveBalance`
+benzeri bir ikinci geçiş yazmak olmalı. Bu ölçüm o çalışmanın taban çizgisidir.

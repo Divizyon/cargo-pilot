@@ -538,6 +538,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-36** | **Yönelim anahtarları aramaya açılmayacak** | Ayarlı GRASP ile yeniden sınandı (%86,68 / taban %86,70-86,78). İlk bulgu ayarlardan bağımsızmış: tarama zaten tüm yönelimleri görüp en sıkı oturanı seçiyor |
 | **DR-37** | **`R-C15` OBL uygulanmayacak** | Popülasyon gerektirir; GRASP popülasyon tutmaz (`DR-31`), GWCA ve GA emekli (`DR-13`). GA'ya dönülürse yeniden açılır |
 | **DR-38 ⚠** | **Kısıt tarafının kıyas kapsaması YOK** | İki korpus da `UnloadingOrder: null` ve ağırlık/kırılganlık/istif kısıtı taşımıyor; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor. Bu yüzden `DR-09`, `DR-10` ve `DR-11` **ölçülemiyor**. Ölçüm programı baştan yalnız hacim üzerine kuruldu |
+| **DR-39** | **Greedy kaldırılıyor; ağırlık dengesi gerilemesi ölçüldü ve kabul edildi** | Denge sapması greedy'nin ~3 katı: %9,21 → %28,14 (GRASP), %38,35 (Static). Karşılığında doluluk +3,66 puan ve statik yol 27 kat hızlı. Gerileme **yerleştirme düzeyinde**; GRASP'ın 5e4 denge katsayısı zaten çalışıyor ve tek başına yetmiyor, yani gelecekteki çalışma `OrientationFit`'e terim koymalı. `R-C07`/`DR-01` ("greedy'nin yanına") bilinçli olarak tersine çevrildi |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 
