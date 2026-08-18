@@ -1515,3 +1515,75 @@ yükleyebiliyor mu?
 Static'in **ölçülmüş** yüz kaplaması %86,2 ve duvarların **%91'i** %95 eşiğinin altında — yani
 2B tam kaplama işi (Öneri 3) tahmin edilenden daha büyük bir açığı hedefliyor. Ölü hava static'te
 kenara ağır basıyor (%8,5 kenar / %6,7 tavan), bu da kesit sorununu doğruluyor.
+
+---
+
+## F6-P · "Yedek yolu azami aç" denendi — **+0,33 puan, ama kısmi dolulukta biçim bozuluyor**
+
+İki düzeltme önce geldi. Birincisi `DR-12`'nin gerekçesi: katman inşası **yükleme sırası/erişim**
+sorunu yüzünden değil, **kısmi dolulukta yükün biçimi** yüzünden reddedilmiş. Yarım dolu bir araçta
+katman inşası zeminin tamamını yarım yükseklikte kaplıyordu; gerçek bir sevkiyat böyle görünmüyor.
+İşçi planın tamamlanmış hâlini görüyor, kutuları tek tek takip etmiyor — dolayısıyla `DR-45`'te
+sorun sandığım "kutu iki duvarın dikişini kesiyor" durumu **sorun değil** ve o kayıt kapatıldı.
+
+İkincisi ölçünün kendisi: kısmi doluluğu sınayacak bir düzenek yoktu. `br` komutuna `--load-ratio`
+eklendi (her ürünün adedini ölçekler) ve `WallDiagnostics`'e **yük derinliği** metriği kondu —
+yükün ulaştığı en büyük `z`, araç uzunluğunun yüzdesi. Okuma basit: bu değer doluluğa yakınsa yük
+yoğun, doluluğun çok üstündeyse yayılmış.
+
+### Deney: `PocketBeforeNewWall` static yolda sabit `true`
+
+| | Duvar açık (bugün) | Cep azami |
+|---|---|---|
+| **Doluluk, BR1-BR7, 700 örnek** | %82,61 | **%82,94** (+0,33) |
+| Açılan duvar sayısı (BR1) | 6,7 | **0** |
+| Duvar dışı kutu | %0,0 | **%100,0** |
+
+Cep taraması bant tanımadan tüm defteri tarıyor, yani duvar adaylarının **üst kümesi**. Önce
+denendiğinde her kutuyu o alıyor ve yerleştirici **tek bir duvar bile açmıyor** — duvar örücü saf
+"nereye sığarsa oraya" hâline geliyor.
+
+Cebi her zaman yarıştırmayı da (`bestInZone` erken çıkışını kaldırmak) denedim: sonuç **birebir
+aynı** (%82,94). Beklenen — üst küme zaten aynı adayı buluyor. Yani cep yolu bugünkü hâliyle de
+azami; sıkıştırılacak başka puan yok.
+
+### Kısmi doluluk sınavı — kararı bu belirledi
+
+BR1, 20 örnek, yük yarıya indirildi. **İki kurulum da aynı doluluğu veriyor (%49,16)** ama biçim
+farklı:
+
+| | Duvar açık | Cep azami |
+|---|---|---|
+| Doluluk | %49,16 | %49,16 |
+| **Yük derinliği** | **%70,5** | **%85,6** |
+| Boş sütun (kenar şeridi) | %44,1 | %40,8 |
+| Açılan duvar | 4,6 | 0 |
+
+Cep azami açıkken yarım yük kamyonun **%86'sına** yayılıyor. Doluluk kazancı yok (aynı), biçim
+kaybı gerçek. **Deney reddedildi**, `Neutral` geri `false` yapıldı.
+
+Tam yükte kazandırdığı +0,33 puan, kısmi yükte tam olarak müşterinin reddettiği biçimi üretiyor.
+Kötü takas.
+
+### Yan bulgu: duvar açıkken de biçim ideal değil
+
+Aynı ölçüyü bugünkü üretim kurulumunda dört doluluk seviyesinde koştum (BR1, 10 örnek):
+
+| Yük | Doluluk | Yük derinliği | Yayılma (derinlik ÷ doluluk) |
+|---|---|---|---|
+| %25 | %24,2 | %41,9 | **1,73×** |
+| %50 | %49,2 | %72,5 | **1,47×** |
+| %75 | %73,0 | %95,2 | 1,30× |
+| %100 | %83,8 | %98,0 | 1,17× |
+
+**Araç ne kadar boşsa yük o kadar yayılıyor.** Çeyrek yükte mal, ihtiyaç duyduğu derinliğin 1,73
+katına dağılıyor; yığın yüksekliği de yarıda kalıyor (%51,4), yani çıktı "birkaç yarım duvar"
+oluyor — "kapının karşısından başlayan tam yükseklikte duvarlar, arkası boş" değil.
+
+Katman inşası kadar kötü değil (o %100 derinlikte yarım yükseklik olurdu) ama **aynı ailedeki bir
+kusur** ve bugüne kadar hiç ölçülmemişti. Doluluk tek başına ölçüldüğü sürece de görünmezdi:
+yukarıdaki tabloda doluluk her iki kurulumda aynı, ayıran tek şey biçim.
+
+**Açılan iş:** kısmi dolulukta yoğunlaşma, doluluğun yanında ikinci bir amaç olmalı. Yerleştirici
+bugün bir duvarı tavana kadar doldurmadan sıradakine geçebiliyor; bunun ölçülü bedeli henüz
+bilinmiyor.

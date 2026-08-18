@@ -47,7 +47,10 @@ public static class BrCommand
             for (var i = 0; i < limit; i++)
             {
                 var instance = instances[i];
-                var input = instance.Input with
+                var scaled = options.BrLoadRatio < 1m
+                    ? instance.Input with { Items = Scale(instance.Input.Items, options.BrLoadRatio) }
+                    : instance.Input;
+                var input = scaled with
                 {
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
@@ -155,9 +158,20 @@ public static class BrCommand
             + $" · en dusuk %{walls.Average(w => w.MinFaceCoveragePercent):F1}"
             + $" · %95 alti duvar %{walls.Average(w => w.WallsBelowThresholdPercent):F0}"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"           olu hava ayrismasi · bos sutun (kenar seridi) %{walls.Average(w => w.DeadAirInEmptyColumnsPercent):F1}"
+            $"           YUK DERINLIGI %{walls.Average(w => w.LoadDepthPercent):F1} (doluluga yakin = yogun, cok ustunde = yayilmis)"
+            + $" · olu hava · bos sutun (kenar seridi) %{walls.Average(w => w.DeadAirInEmptyColumnsPercent):F1}"
             + $" · tavan artigi %{walls.Average(w => w.DeadAirAbovePilePercent):F1}"));
     }
+
+    /// <summary>
+    /// Kismi doluluk sinamasi icin adetleri olcekler. Musterinin katman insasini
+    /// reddetme gerekcesi (DR-12) yalnizca YARIM DOLU araclarda gorunur; BR
+    /// ornekleri neredeyse tam dolu oldugu icin orada sinanamaz.
+    /// </summary>
+    private static IReadOnlyList<OptimizationItemInput> Scale(
+        IReadOnlyList<OptimizationItemInput> items,
+        decimal ratio)
+        => [.. items.Select(i => i with { Quantity = Math.Max(1, (int)(i.Quantity * ratio)) })];
 
     private static decimal Mean(List<decimal> values)
         => values.Count == 0 ? 0m : values.Sum() / values.Count;

@@ -24,6 +24,7 @@ public sealed record BenchOptions(
     int Iterations,
     int MaxScenarios,
     int BrSet,
+    decimal BrLoadRatio,
     string? BaselinePath,
     decimal? SupportThreshold,
     int Stall)
@@ -54,6 +55,7 @@ public sealed record BenchOptions(
         var iterations = 40;
         var maxScenarios = 0;
         var brSet = 0;
+        var brLoadRatio = 1m;
         string? baselinePath = null;
         decimal? supportThreshold = null;
         var stall = 15;
@@ -114,6 +116,9 @@ public sealed record BenchOptions(
                 case "--max-scenarios":
                     maxScenarios = ParseInt(value, arg);
                     break;
+                case "--load-ratio":
+                    brLoadRatio = ParseDecimal(value, arg);
+                    break;
                 case "--set":
                     brSet = ParseInt(value, arg);
                     break;
@@ -140,6 +145,7 @@ public sealed record BenchOptions(
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
             Math.Max(0, maxScenarios),
             Math.Clamp(brSet, 0, 7),
+            Math.Clamp(brLoadRatio, 0.05m, 1m),
             baselinePath,
             supportThreshold,
             Math.Max(1, stall));
@@ -174,6 +180,8 @@ public sealed record BenchOptions(
               --stall N        bu kadar tur iyilesme yoksa dur (varsayilan 15)
               --max-scenarios N soak kipinde tam olarak N senaryo, br kipinde kume basina N ornek
               --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
+              --load-ratio R   br kipinde her urunun adedini R ile carpar (varsayilan 1).
+                               Kismi doluluk sinamak icin: 0,5 yarim yuk demektir.
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
               --baseline DOSYA br kipinde referansla kiyasla; gerileme varsa hata koduyla cik
               --report DOSYA   br kipinde JSON rapor yolu (soak kipinde de gecerli)

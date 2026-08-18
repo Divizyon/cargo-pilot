@@ -53,7 +53,29 @@ public static class WallDiagnostics
         double MeanWallDepthCm,
         double DeadAirInEmptyColumnsPercent,
         double DeadAirAbovePilePercent,
-        double MeanBoxesPerWall);
+        double MeanBoxesPerWall,
+        double LoadDepthPercent);
+
+    /// <summary>
+    /// Yukun ulastigi en buyuk <c>z</c>, arac uzunlugunun yuzdesi olarak.
+    ///
+    /// Musterinin katman insasini reddetme gerekcesi burada olculur
+    /// (<c>DR-12</c>): konteyner %50 doluysa yuk, kapinin karsisindan baslayan
+    /// TAM YUKSEKLIKTE duvarlar halinde durmali ve arkasi bos kalmali. Katman
+    /// insasi ise zeminin tamamini yarim yukseklikte kapliyordu.
+    ///
+    /// Okuma: bu deger DOLULUGA yakinsa yuk yogun, dolulugun cok ustundeyse yuk
+    /// yayilmis demektir. %50 dolulukta %55 derinlik saglikli, %100 derinlik
+    /// katman insasinin reddedilen bicimidir.
+    /// </summary>
+    private static double LoadDepth(OptimizationInput input, OptimizationResult result)
+    {
+        if (input.VehicleLength <= 0 || result.Placements.Count == 0) return 0d;
+
+        var deepest = result.Placements.Max(p => p.Z + p.Length);
+
+        return (double)(100m * deepest / input.VehicleLength);
+    }
 
     private sealed record Wall(decimal ZStart, decimal ZEnd, List<PlacedItemResult> Boxes);
 
@@ -69,10 +91,20 @@ public static class WallDiagnostics
             : (SegmentWalls(result.Placements), 0);
 
         var outsidePercent = placed == 0 ? 0d : 100d * outside / placed;
-        if (walls.Count == 0) return new Report(reported, outsidePercent, 0, 0, 0, 0, 0, 0, 0, 0);
+
+        // Olu hava ayrismasi duvarlardan BAGIMSIZ olculur. Tek duvar acilmayan
+        // bir planda da (cep yolu azami acikken oluyor) yukun bicimi sorusu
+        // gecerlidir; duvar yok diye sifir dondurmek olcuyu kor eder.
+        var (emptyColumnPercent, abovePilePercent) = SplitDeadAir(input, result);
+
+        if (walls.Count == 0)
+        {
+            return new Report(
+                reported, outsidePercent, 0, 0, 0, 0, 0,
+                emptyColumnPercent, abovePilePercent, 0, LoadDepth(input, result));
+        }
 
         var coverages = walls.Select(w => FaceCoveragePercent(input, w)).ToList();
-        var (emptyColumnPercent, abovePilePercent) = SplitDeadAir(input, result);
 
         return new Report(
             WallsReported: reported,
@@ -84,7 +116,8 @@ public static class WallDiagnostics
             MeanWallDepthCm: walls.Average(w => (double)(w.ZEnd - w.ZStart)),
             DeadAirInEmptyColumnsPercent: emptyColumnPercent,
             DeadAirAbovePilePercent: abovePilePercent,
-            MeanBoxesPerWall: walls.Average(w => w.Boxes.Count));
+            MeanBoxesPerWall: walls.Average(w => w.Boxes.Count),
+            LoadDepthPercent: LoadDepth(input, result));
     }
 
     /// <summary>
