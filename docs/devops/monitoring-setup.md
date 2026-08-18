@@ -164,22 +164,34 @@ CPU Usage • Memory Usage • Disk Usage • Network I/O • Disk I/O • Conta
 
 ### Alert Kuralları
 
-6 kural tanımlı (`infra/docker/grafana/provisioning/alerting/alert-rules.yml` + `.test.yml`):
+Ortam başına 6 kural tanımlı — prod `alert-rules.prod.yml`, test `alert-rules.test.yml`
+(toplam 12 kural, 6+6, ortamlar arası UID çakışması yok):
 
 | Kural | Koşul | Süre | Severity |
 |-------|-------|------|---------|
 | Yüksek 5xx Hata Oranı | `sum(rate(...{code=~"5.."}[5m])) > 0.1` | 2 dk | critical |
 | Fazla Error Log | Son 5dk'da > 5 error log | 2 dk | warning |
-| Backend Health Degraded | `up{job="cargo-pilot-backend-test"} < 1` | 1 dk | critical |
+| Backend Health Degraded | `up{job="cargo-pilot-backend-<env>"} < 1` | 1 dk | critical |
 | Yüksek CPU Kullanımı | CPU > %75 | — | warning |
 | Yüksek RAM Kullanımı | RAM > %80 | — | warning |
 | Yüksek Disk Kullanımı | Disk > %80 | — | warning |
 
+{% hint style="info" %}
+**Prod/test ayrımı (D-42, 2026-08-18).** `infra/docker/grafana/provisioning/alerting/` dizininde
+her config'in iki kopyası var: `*.prod.yml` ve `*.test.yml` (alert-rules, contact-points,
+notification-policies). Compose dosyaları **dizini değil, tek tek dosyaları** mount eder ve
+container içinde ortak ada (`alert-rules.yml` vb.) yeniden bağlar — bu yüzden prod Grafana'sı
+asla test kurallarını/contact point'lerini yüklemez ve tersi. Eskiden tüm dizin mount ediliyordu;
+bu durumda prod, `prometheus-test`/`loki-test` datasource UID'lerine bakan test kurallarını da
+yüklüyor, veri bulamıyordu. Yeni bir ortam-özel dosya eklerken **dizin mount'a geri dönme** —
+`docker-compose.monitoring.<env>.yml` içine açık dosya mount'u ekle.
+{% endhint %}
+
 {% hint style="warning" %}
-**Bildirim gitmiyor — SMTP eksik.** `contact-points.yml` ve `notification-policies.yml`
-provisioning dosyaları mevcut; ancak compose dosyalarında `GF_SMTP_*` env var'ları tanımlı
-olmadığı için e-posta gönderilemiyor. Çözüm: Grafana servisine `GF_SMTP_HOST/USER/PASSWORD/FROM_ADDRESS`
-eklenmeli (bkz. devops-backlog 2.4).
+**Bildirim gitmiyor — SMTP eksik.** `contact-points.{prod,test}.yml` ve
+`notification-policies.{prod,test}.yml` provisioning dosyaları mevcut; ancak compose dosyalarında
+`GF_SMTP_*` env var'ları tanımlı olmadığı için e-posta gönderilemiyor. Çözüm: Grafana servisine
+`GF_SMTP_HOST/USER/PASSWORD/FROM_ADDRESS` eklenmeli (bkz. devops-backlog 2.4).
 {% endhint %}
 
 ---
@@ -243,9 +255,17 @@ infra/
 │   │   └── promtail.prod.yml
 │   └── grafana/
 │       ├── provisioning/
-│       │   ├── datasources/datasources.test.yml
+│       │   ├── datasources/
+│       │   │   ├── datasources.prod.yml
+│       │   │   └── datasources.test.yml
 │       │   ├── dashboards/dashboard-provider.yml
-│       │   └── alerting/alert-rules.test.yml
+│       │   └── alerting/          # dizin değil, dosya bazlı mount edilir (bkz. Alert Kuralları)
+│       │       ├── alert-rules.prod.yml
+│       │       ├── alert-rules.test.yml
+│       │       ├── contact-points.prod.yml
+│       │       ├── contact-points.test.yml
+│       │       ├── notification-policies.prod.yml
+│       │       └── notification-policies.test.yml
 │       └── dashboards/
 │           ├── cargo-pilot-overview.json
 │           └── system-metrics.json
