@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Engine.Tests.Golden;
 
@@ -7,12 +7,12 @@ namespace CargoPilot.Engine.Tests;
 /// <summary>
 /// Duvar örücü yerleştiricinin fiziksel geçerliliği.
 ///
-/// Neden ayrı bir paket: <see cref="InvariantTests"/> yalnızca greedy yolu
-/// kapsıyor. Duvar örücü ise kutuları iki ayrı yerden yerleştiriyor — ana aday
-/// döngüsünden ve <c>RaiseBlock</c> blok inşasından. Blok, ana döngünün aday
-/// taramasını atlar ve yedi kapıyı doğrudan çağırır; bir eksik çağrı orada
-/// fiziksel olarak imkânsız bir plan üretir ve golden snapshot'lar bunu
-/// yakalamaz, çünkü snapshot'lar greedy çıktısını kilitliyor.
+/// Neden ayrı bir paket: <see cref="InvariantTests"/> statik yolu kapsıyor, bu
+/// paket **arama yolunu** da kapsar. Duvar örücü kutuları iki ayrı yerden
+/// yerleştiriyor — ana aday döngüsünden ve <c>RaiseBlock</c> blok inşasından.
+/// Blok, ana döngünün aday taramasını atlar ve kapıları doğrudan çağırır; bir
+/// eksik çağrı orada fiziksel olarak imkânsız bir plan üretir ve golden
+/// snapshot'lar bunu yakalamaz, çünkü onlar yalnız statik yolu kilitliyor.
 ///
 /// Değişmez hesapları <see cref="PhysicalInvariants"/> üzerinden gelir ve
 /// üretim kodundan bağımsız yazılmıştır; doğrulanacak kuralı doğrulanan koddan
@@ -122,30 +122,6 @@ public sealed class DuvarOrucuDegismezleriTests
         {
             Assert.Equal(first, GoldenMaster.Serialize(senaryo, input, EngineScenario.Run(input)));
         }
-    }
-
-    /// <summary>
-    /// Greedy yolu duvar örücüden etkilenmez. Dallanma tek noktada duruyor
-    /// (`R-C07`/`DR-01`) ama blok inşası ana döngüyü değiştirdiği için bu
-    /// ayrıca kilitlenir: aynı girdi, iki strateji, greedy çıktısı sabit kalır.
-    /// </summary>
-    [Fact]
-    public void Greedy_DuvarOrucuDegisikliklerinden_Etkilenmez()
-    {
-        const string senaryo = nameof(Greedy_DuvarOrucuDegisikliklerinden_Etkilenmez);
-
-        var items = new[]
-        {
-            EngineScenario.Item(0, 60m, 50m, 70m, weight: 3m, quantity: 6),
-            EngineScenario.Item(1, 40m, 90m, 40m, weight: 2m, quantity: 4),
-        };
-
-        var greedy = EngineScenario.Input(items, LoadingPlanOptimizationCriteria.VolumeFirst);
-        var expected = GoldenMaster.Serialize(senaryo, greedy, EngineScenario.Run(greedy));
-
-        _ = EngineScenario.Run(greedy with { Strategy = PlacementStrategy.WallBuilder });
-
-        Assert.Equal(expected, GoldenMaster.Serialize(senaryo, greedy, EngineScenario.Run(greedy)));
     }
 
     private static TheoryData<string> BuildSenaryolar()

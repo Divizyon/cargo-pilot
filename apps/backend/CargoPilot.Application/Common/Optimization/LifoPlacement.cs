@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 
 namespace CargoPilot.Application.Common.Optimization;
 
@@ -20,14 +20,6 @@ namespace CargoPilot.Application.Common.Optimization;
 /// </summary>
 internal static class LifoPlacement
 {
-    /// <summary>
-    /// Bölge dışına taşmanın santimetre başına cezası. Bölge artık sert kısıt
-    /// olduğu için (motor önce bölge içi adaylar arasından seçer) bu katsayı
-    /// yalnızca hiç bölge içi aday kalmadığında, yedek kademedeki adayları
-    /// kendi aralarında sıralar.
-    /// </summary>
-    private const decimal ZoneOverflowPenaltyPerCm = 2_000m;
-
     /// <summary>
     /// Yükleme sırası karşılaştırması. Yüksek UnloadingOrder = en son inecek grup =
     /// önce yüklenir = uzak yüz (z = 0) tarafı.
@@ -98,31 +90,18 @@ internal static class LifoPlacement
     }
 
     /// <summary>
-    /// Aday pozisyonun kendi grubuna ayrılmış bölgeden taşma cezası. Bölge
-    /// tanımlı değilse ceza yoktur; taşma iki uçta ayrı ayrı ölçülür.
-    /// </summary>
-    internal static decimal ZonePenalty(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal length)
-    {
-        var zonePenalty = 0m;
-        if (zoneStart.HasValue && zoneEnd.HasValue)
-        {
-            var overLeft  = Math.Max(0m, zoneStart.Value - ez);
-            var overRight = Math.Max(0m, (ez + length) - zoneEnd.Value);
-            zonePenalty = (overLeft + overRight) * ZoneOverflowPenaltyPerCm;
-        }
-
-        return zonePenalty;
-    }
-
-    /// <summary>
     /// Aday pozisyon tamamen kendi grubunun bölgesinin içinde mi? Bölge tanımlı
     /// değilse (modül kapalı, küçük kapısız araç, gruplanmamış ürün) kısıt
     /// yoktur ve yüklem her zaman doğrudur.
     ///
-    /// Motor bu yüklemi <see cref="ZonePenalty"/> ile birlikte kullanır: önce
-    /// bölge içi adaylar arasından seçer, bölge içi hiç aday yoksa cezalı
-    /// skorlamaya düşer. Böylece bölge sert kısıt olur ama hiçbir kutu yalnızca
-    /// bölgesi dar kaldığı için düşmez.
+    /// Duvar örücü bunu iki kademeli seçimde kullanır: önce bölge içi adaylar
+    /// arasından seçer, hiç bölge içi aday yoksa bölge dışı adayı kabul eder.
+    /// Böylece bölge sert kısıt gibi davranır ama hiçbir kutu yalnızca bölgesi
+    /// dar kaldığı için düşmez.
+    ///
+    /// Greedy'nin `ZonePenalty` yedek sıralaması kaldırıldı (`DR-39`): o, bölge
+    /// dışı adayları "bölgeye ne kadar yakın" diye sıralıyordu ve duvar örücüde
+    /// karşılığı yok — bölge dışına düşen adaylar arasında bir tercih kalmadı.
     /// </summary>
     internal static bool IsInsideZone(decimal? zoneStart, decimal? zoneEnd, decimal ez, decimal length)
         => !zoneStart.HasValue
