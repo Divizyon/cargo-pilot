@@ -2152,3 +2152,65 @@ sonuna kadar götürüp ölçüyor. Aynı bütçede ikincisi daha bilgili.
 
 **Üretim varsayılanı henüz değiştirilmedi.** GRASP'tan beam'e geçmek ayrı bir karar; `DR-24`'ün
 gerekçesi ölçümle yenilendi ama geçiş kendi doğrulamasını ister.
+
+---
+
+## F7-5 · Beam üretim varsayılanı oldu — **%86,23 → %89,40**
+
+`DR-55` beam'in GRASP'ı yedi kümenin yedisinde de geçtiğini ölçmüştü. Geçiş yapıldı; iki iş önce
+kapatıldı.
+
+### 1. Ayarlar ölçüldü ve sabitlendi
+
+Beam, `SearchBudget`'in `PopulationSize`/`MaxIterations` alanlarını kullanıyordu. O alanlar GRASP
+için ayarlı (20/100) ve beam'de **ölçülen en kötü bölgeye** denk geliyordu. Kendi sabitlerine
+çevrildi:
+
+| Işın genişliği | Doluluk | | Dallanma noktası | Doluluk |
+|---|---|---|---|---|
+| 4 | %89,12 | | 10 | %89,43 |
+| 6 | %89,16 | | **20** | **%89,46** |
+| **8** | **%89,46** | | 25 | %89,24 |
+| 12 | %89,29 | | 80 | %88,57 |
+| 16 | %89,23 | | | |
+
+Beam artık bütçeden yalnız **süreyi** paylaşıyor.
+
+### 2. Koşu kimliği eklendi
+
+Beam `SearchStats` üretmiyordu; `DR-26` determinizm sözleşmesi için bunu gerektiriyor. Seviye
+sayısı, değerlendirme sayısı, doluluk geçmişi ve süre eklendi.
+
+### 3. Süre taşması düzeltildi
+
+Üretimde ilk ölçüm **4,52 sn** çıktı — bütçe 2 sn olmasına rağmen. Sebep: süre kontrolü yalnız en
+içteki döngüdeydi, dolayısıyla bir **seviye** tamamen koşuyordu (8 ışın × 4 ürün × 3 ayar = 96 dal,
+her biri bir tamamlama). Kontrol üç döngüye yayıldı; doluluk korundu (%89,42 → %89,40), süre
+2000 ms'de kapanıyor.
+
+### Uçtan uca doğrulama
+
+Aynı istek, aynı yük (A aracı, 95 kutu), üç sequencer:
+
+| Sequencer | İstek süresi |
+|---|---|
+| Static | **2,09 sn** |
+| GRASP | 4,09 sn |
+| **Beam** | **4,06 sn** |
+
+**Beam ile GRASP arasında gecikme farkı yok.** Ve beklenmedik bir şey daha: static de 2 saniye
+sürüyor — yani isteğin **yarısı motor değil, API ve veritabanı yükü** (95 yerleşimin kalıcılığı,
+sorgu gidiş-gelişleri). Karnede "üretim gecikmesi ~2 sn" diye duran açık maddenin yarısı
+motorda değilmiş; bu ayrı bir iş.
+
+### Sonuç
+
+| | Static (CI kapısı) | Üretim |
+|---|---|---|
+| Oturum başı | %80,09 | %86,23 (GRASP) |
+| **Bugün** | **%83,40** | **%89,40** (Beam) |
+
+GRASP silinmedi: `SequencerKind.Grasp` açıkça istenebilir ve kıyas referansı olarak duruyor.
+CI kapısı statik yolu ölçmeye devam ediyor — beam'in bütçesi de duvar saatidir (`DR-28`).
+
+173/36/228 test yeşil, 17 snapshot sabit, kapı geçti.

@@ -8,13 +8,13 @@ durur.
 Terimler için [00-sozluk.md](00-sozluk.md). Bir sayıyı buraya yazmadan önce hangi **yerleştirici ·
 sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa sayı kıyaslanamaz.
 
-**Son güncelleme:** 18 Ağustos 2026 (VCS aday değerlendirme, `DR-52`) · dal `feat/algoritma-arama-katmani`
+**Son güncelleme:** 18 Ağustos 2026 (ileri bakışlı ışın araması üretimde, `DR-56`) · dal `feat/algoritma-arama-katmani`
 
 ---
 
 ## Tek satırda
 
-**Duvar örücü + GRASP, BR1-BR7: %88,34.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
+**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: %89,40.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
 iyilerinin (~%94-95, ama örnek başına 240-320 saniyeyle) ~7 puan altında. Kayıp neredeyse eşit
 bölünüyor: yarısı duvar kesitinde kalan **kenar şeritleri**, yarısı yığının üstündeki **ölü hava**.
 Yığının içi masif.
@@ -33,7 +33,8 @@ oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 | Duvar örücü + **static** | **%83,40** | 1-2 ms |
 | Duvar örücü + GRASP, yönelim eşlemesi hatalıyken | %86,23 | 1,1-2,0 sn |
 | Duvar örücü + GRASP, sözlükbilimsel aday seçimi | %87,73 | 1,3-2,0 sn |
-| Duvar örücü + **GRASP** — *üretim varsayılanı* | **%88,34** | 1,3-2,0 sn |
+| Duvar örücü + GRASP — *kıyas referansı* | %88,34 | 1,3-2,0 sn |
+| Duvar örücü + **beam** — *üretim varsayılanı* | **%89,40** | 0,5-2,0 sn |
 | Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%94-95 | örnek başına ~240-320 sn |
 
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
@@ -47,6 +48,7 @@ Araştırma yanıtı 2 saniyelik bütçede gerçekçi hedefi **%90-92** olarak v
 | Kutu tipi sayısı | 3 | 5 | 8 | 10 | 12 | 15 | 20 |
 | Static (CI referansı) | %82,47 | %83,35 | %83,68 | %83,40 | %83,59 | %83,17 | %83,17 |
 | GRASP | %86,35 | %88,11 | %89,14 | %88,61 | %88,58 | %88,45 | %87,48 |
+| **Beam** | %88,31 | %89,21 | %90,03 | %89,50 | %90,11 | %89,44 | %89,21 |
 
 **Kümeler arası fark neredeyse kapandı.** VCS aday değerlendirmesi (`DR-52`) en çok heterojen
 kümelerde kazandırdı; static'te yayılım 1,21 puana indi (önce 1,71). BR1 tek kaybeden (−0,31
@@ -89,8 +91,8 @@ duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda de�
 
 | | Durum |
 |---|---|
-| Motor testleri (`CargoPilot.Engine.Tests`) | **153/153** |
-| Altyapı testleri (`CargoPilot.Infrastructure.Tests`) | **35/35** |
+| Motor testleri (`CargoPilot.Engine.Tests`) | **173/173** |
+| Altyapı testleri (`CargoPilot.Infrastructure.Tests`) | **36/36** |
 | Uygulama testleri (`CargoPilot.Application.Tests`) | **228/228** |
 | Test aracı (`apps/algorithm-test-ui`) | 201/201 |
 | Golden snapshot | 17/17 bayt birebir |
@@ -119,7 +121,7 @@ duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda de�
 |---|---|---|
 | `DR-38` | **Kısıt tarafında kıyas kapsaması yok.** Hiçbir korpusta LIFO / kırılganlık / ağırlık senaryosu yok; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor | `DR-09`/`DR-10`/`DR-11` doğrulanamıyor |
 | — | **Ağırlık dengesi duvar örücüde optimize edilmiyor.** Greedy'nin `BalanceScoring`'i kalktı; denge yalnız GRASP uygunluğunda, sıra düzeyinde | Bilerek kabul edilen gerileme (~3× kötü) |
-| — | **Üretim gecikmesi ~2 sn** ve arayüzde bekleme göstergesi yok | Kullanıcı deneyimi; F5'te açık |
+| — | **Üretim gecikmesi ~4 sn** ve arayüzde bekleme göstergesi yok. Ölçüldü: yarısı motor değil, **API/DB yükü** (static de 2,09 sn) | İki ayrı iş: arayüz göstergesi ve kalıcılık maliyeti |
 | — | İki ret sebebi hiç üretilmiyor (`NotStackable`, `GeometryConstraint`) | 12 Ağu 2026 raporundan devreden borç |
 | `DR-53` | **VCS ince ayarında puan kalmadı** — 25 yapılandırma tarandı, kazanan bölge %83,35-83,40'ta düz | Kalan kazanç ileri bakışta (F7-4) |
 | `DR-43` | **Sıra araması doymuş** — 30 kat bütçe +0,04 puan getiriyor | Kalan açık sıralayıcıda değil; blok karar uzayında (F6-4) |

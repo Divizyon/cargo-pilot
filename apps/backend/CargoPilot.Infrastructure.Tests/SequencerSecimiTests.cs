@@ -32,14 +32,14 @@ public sealed class SequencerSecimiTests
             Seed: seed);
 
     /// <summary>
-    /// Sequencer belirtilmediğinde GRASP koşar (`DR-24`): arama doluluğu
-    /// %80,09'dan %86,23'e çıkarıyor ve istemcinin bunu ayrıca istemesi
-    /// gerekmemeli.
+    /// Sequencer belirtilmediğinde ileri bakışlı ışın araması koşar
+    /// (`DR-24` → `DR-56`). Aynı bütçede GRASP'ı yedi kümenin yedisinde de
+    /// geçiyor: %88,34 → %89,42. İstemcinin bunu ayrıca istemesi gerekmemeli.
     /// </summary>
     [Fact]
-    public void SequencerBelirtilmezse_GraspKosar()
+    public void SequencerBelirtilmezse_BeamKosar()
         => Assert.Equal(
-            SequencerKind.Grasp,
+            SequencerKind.Beam,
             SequencerSelection.Resolve(requested: null));
 
     /// <summary>Açıkça istenen sequencer her zaman kazanır.</summary>
@@ -47,6 +47,7 @@ public sealed class SequencerSecimiTests
     [InlineData(SequencerKind.Static)]
     [InlineData(SequencerKind.Ga)]
     [InlineData(SequencerKind.Gwca)]
+    [InlineData(SequencerKind.Beam)]
     public void SequencerBelirtilirse_Cozum_OnuDegistirmez(SequencerKind requested)
         => Assert.Equal(requested, SequencerSelection.Resolve(requested));
 

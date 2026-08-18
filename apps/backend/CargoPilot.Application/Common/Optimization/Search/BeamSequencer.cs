@@ -28,18 +28,26 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 internal static class BeamSequencer
 {
     /// <summary>
-    /// Isin genisligi <c>SearchBudget.PopulationSize</c>'dan gelir: iki kavram
-    /// ayni seydir — ayni anda tutulan aday cozum sayisi.
+    /// Ayni anda tutulan yarim plan sayisi. OLCULDU (BR1-BR7, 12 ornek):
+    /// 4 → %89,12 · 6 → %89,16 · <b>8 → %89,46</b> · 12 → %89,29 · 16 → %89,23.
+    /// Genis isin daha cok dal degerlendirir ama her dala daha az sure duser;
+    /// tepe sekizde.
     /// </summary>
-    private static int BeamWidth(SearchBudget budget) => Math.Max(1, budget.PopulationSize);
+    private const int BeamWidth = 8;
 
     /// <summary>
-    /// Bir parcada kac kutu yerlestirilir. Kucuk parca daha cok dallanma
-    /// noktasi, yani daha ince arama ve daha cok sure demektir;
-    /// <c>MaxIterations</c> bunu ters yonde tasir (cok iterasyon = ince parca).
+    /// Kac dallanma noktasi olacagi. Parca boyu <c>kutu sayisi / bu deger</c>
+    /// olarak cikar, yani buyuk deger ince parca demektir.
+    ///
+    /// OLCULDU: 10 → %89,43 · <b>20 → %89,46</b> · 25 → %89,24 · 80 → %88,57.
+    /// Cok ince parca sureyi dallanmaya harciyor ve tamamlamaya birakmiyor.
+    ///
+    /// <c>SearchBudget</c>'in <c>PopulationSize</c>/<c>MaxIterations</c>
+    /// alanlari KULLANILMAZ: onlar GRASP icin ayarlanmis (20/100) ve beam'de
+    /// olculen en kotu bolgeye denk geliyor. Beam'den yalnizca sure butcesi
+    /// paylasilir.
     /// </summary>
-    private static int SegmentSize(SearchBudget budget, int instanceCount)
-        => Math.Max(1, instanceCount / Math.Max(1, budget.MaxIterations));
+    private const int SegmentCount = 20;
 
     /// <summary>
     /// Her parcada denenen yerlestirici ayarlari. Duvar derinligi ucu de
@@ -134,15 +142,21 @@ internal static class BeamSequencer
         var clock = System.Diagnostics.Stopwatch.StartNew();
 
         // Taban: bugunku davranis. Arama bunun altina inemez (R-C16/R-C21).
-        var best = WallBuilderPlacement.Run(input, instances, DecoderKeys.Neutral, cancellationToken);
+        var baseline = WallBuilderPlacement.Run(input, instances, DecoderKeys.Neutral, cancellationToken);
+        var best = baseline;
+
+        // Kosu kimligi (DR-26): planin hangi aramadan ciktigi kaydedilir, yoksa
+        // determinizm sozlesmesi (R-C02) kullanilamaz.
+        var history = new List<double> { (double)baseline.FillRate };
+        var evaluations = 1;
+        var levels = 0;
 
         var beam = new List<(PlacementState State, List<SequencedItem> Order)>
         {
             (PlacementState.Fresh(input, instances.Count, null), instances),
         };
 
-        var width = BeamWidth(budget);
-        var segment = SegmentSize(budget, instances.Count);
+        var segment = Math.Max(1, instances.Count / SegmentCount);
 
         for (var placed = 0; placed < instances.Count; placed += segment)
         {
@@ -155,8 +169,16 @@ internal static class BeamSequencer
 
             foreach (var (state, order) in beam)
             {
+                // Sure kontrolu UC dongude birden yapilir. Yalnizca en ictekinde
+                // yapildiginda bir SEVIYE tamamen kosuyordu: 8 isin x 4 urun x
+                // 3 ayar = 96 dal, her biri bir tamamlama demek. Olculdu, 2
+                // saniyelik butce uretimde 4,5 saniyeye tasiyordu.
+                if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
+
                 foreach (var choice in Choices(order, state.Consumed))
                 {
+                    if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
+
                     var (preferred, flags) = Prefer(order, state.Consumed, choice);
                     var seed = state.WithConsumed(flags);
 
@@ -173,6 +195,7 @@ internal static class BeamSequencer
                         var completed = WallBuilderPlacement.Run(
                             input, preferred, variant, advanced.Clone(), cancellationToken).Result;
 
+                        evaluations++;
                         if (completed.FillRate > best.FillRate) best = completed;
 
                         branches.Add((advanced, preferred, completed.FillRate));
@@ -186,15 +209,24 @@ internal static class BeamSequencer
             // arama bitmistir.
             if (branches.TrueForAll(b => b.State.Placements.Count <= placed)) break;
 
+            levels++;
+            history.Add((double)best.FillRate);
+
             branches.Sort(static (a, b) => b.Fill.CompareTo(a.Fill));
 
             beam.Clear();
-            for (var i = 0; i < branches.Count && i < width; i++)
+            for (var i = 0; i < branches.Count && i < BeamWidth; i++)
             {
                 beam.Add((branches[i].State, branches[i].Order));
             }
         }
 
-        return best;
+        clock.Stop();
+
+        return best with
+        {
+            SearchStats = new SearchStats(
+                levels, evaluations, history, best.FillRate > baseline.FillRate, clock.ElapsedMilliseconds),
+        };
     }
 }
