@@ -36,6 +36,7 @@ public static class BrCommand
         var spaces = new List<SpaceDiagnostics.Spaces>();
         var shape = new List<CorpusDiagnostics.Shape>();
         var support = new List<SupportDiagnostics.Distribution>();
+        var maximality = new List<MaximalityDiagnostics.Report>();
 
         foreach (var set in sets)
         {
@@ -68,15 +69,17 @@ public static class BrCommand
                 spaces.Add(SpaceDiagnostics.Analyze(input, result));
                 shape.Add(CorpusDiagnostics.Analyze(input));
                 support.Add(SupportDiagnostics.Analyze(input, result));
+                maximality.Add(MaximalityDiagnostics.Analyze(input, result));
             }
 
             if (options.Verbose)
             {
-                WriteDiagnostics(set, waste, spaces, shape, support);
+                WriteDiagnostics(set, waste, spaces, shape, support, maximality);
                 waste.Clear();
                 spaces.Clear();
                 shape.Clear();
                 support.Clear();
+                maximality.Clear();
             }
 
             all.AddRange(fills);
@@ -118,7 +121,8 @@ public static class BrCommand
         List<WasteDiagnostics.Breakdown> waste,
         List<SpaceDiagnostics.Spaces> spaces,
         List<CorpusDiagnostics.Shape> shape,
-        List<SupportDiagnostics.Distribution> support)
+        List<SupportDiagnostics.Distribution> support,
+        List<MaximalityDiagnostics.Report> maximality)
     {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"      BR{set} teshis · olu hava %{waste.Average(w => w.DeadAirPercent):F1}" +
@@ -137,6 +141,10 @@ public static class BrCommand
             $" · %80 alti {support.Average(s => s.BelowTodayPercent):F1}%" +
             $" · %70 alti {support.Average(s => s.BelowLowPercent):F1}%" +
             $" · azami tasma {support.Average(s => s.MaxOverhangCm):F0} cm"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           MAKSIMAL OLMAYAN bosluk %{maximality.Average(m => m.NonMaximalSharePercent):F1}" +
+            $" · ortalama buyume %{maximality.Average(m => m.MeanGrowthPercent):F1}" +
+            $" · azami buyume %{maximality.Average(m => m.MaxGrowthPercent):F0}"));
     }
 
     private static decimal Mean(List<decimal> values)

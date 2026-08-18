@@ -1032,3 +1032,31 @@ boşluk hayatta kalıyor, defter taraması kısalıyor — **doluluğun düşme 
 
 **Karar: reddedildi, kod silindi.** `R-B4`'teki "%15 doluluk artışı" iddiası bizim yerleştiricimiz
 için geçersiz. Hızlanma gerçek ama doluluk pahasına, ve bizim darboğazımız hız değil.
+
+---
+
+## ② Amalgamation (`R-C11`) — **ölçüldü, temsilimizde anlamsız**
+
+`R-C11` dar boşlukların komşuyla birleştirilmesini bir bayrak arkasında tarif ediyordu
+(`EnableAmalgamation`, "varsayılan kapalı, ölçülünce açılır"). Kodda hiç yoktu.
+
+Madde Parreño'nun maximal-space temsilinden geliyor ve orada anlamlı: iki maksimal boşluğu
+birleştirmek prizma vermez, **ama** bu ancak boşluklar gerçekten maksimalse doğrudur. Bizim
+`AddSplits` kesilen boşluğun dilimlerini üretiyor ve o dilimler komşu boş bölgeye
+uzayabilecekken uzatılmıyor — yani maksimal olmayabilirlerdi.
+
+Tahmin etmek yerine ölçüldü (`MaximalityDiagnostics`): her boşluğun altı yüzü, bir kutuya ya da
+araç duvarına çarpana kadar itildi.
+
+| | BR1 | BR4 | BR7 |
+|---|---|---|---|
+| **Maksimal olmayan boşluk** | **%0,0** | **%0,0** | **%0,0** |
+| Ortalama büyüme | %0,0 | %0,0 | %0,0 |
+| Azami büyüme | %0 | %0 | %0 |
+
+**Defterdeki her boşluk zaten maksimal.** Altı yönün hepsinde ya bir kutuya ya araç duvarına
+dayanıyor. Dolayısıyla birleştirilecek bir şey yok: iki maksimal kutuyu birleştirmek prizma
+vermez.
+
+`R-C11`'in amalgamation kısmı **kapatıldı** — uygulanmayacak. Ölçüm aracı harness'ta kaldı;
+defter değişirse maksimallik bir regresyon olarak yakalanabilir.
