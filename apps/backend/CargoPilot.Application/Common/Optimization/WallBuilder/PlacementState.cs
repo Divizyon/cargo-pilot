@@ -83,6 +83,27 @@ internal sealed class PlacementState
     }
 
     /// <summary>
+    /// Ayni yerlesim durumunu BASKA bir sira listesiyle tasir.
+    ///
+    /// <see cref="Consumed"/> konuma baglidir: sira listesi degisirse hangi
+    /// birimin tuketildigi bilgisi de yeniden eslenmeli. Ileri bakisli arama
+    /// "siradaki urun hangisi olsun" diye dallandigi icin bu esleme her dalda
+    /// bir kez yapilir.
+    ///
+    /// Yerlesimler, defter ve duvarlar KONUMDAN BAGIMSIZDIR; onlar oldugu gibi
+    /// kopyalanir.
+    /// </summary>
+    internal PlacementState WithConsumed(bool[] consumed) => new(
+        placements: [.. Placements],
+        unplaced: [.. Unplaced],
+        ledger: Ledger.Clone(),
+        walls: [.. Walls],
+        consumed: consumed,
+        failedSincePlacement: new Dictionary<Guid, UnplacedReason>(FailedSincePlacement),
+        totalWeight: TotalWeight,
+        depthBudget: DepthBudget);
+
+    /// <summary>
     /// Bagimsiz kopya. Kopyadan sonra iki durum birbirini etkilemez; ileri
     /// bakisli arama bunu her dal icin bir kez yapar.
     /// </summary>

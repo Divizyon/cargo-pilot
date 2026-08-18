@@ -49,12 +49,74 @@ internal static class BeamSequencer
     private static readonly DecoderKeys[] Variants =
     [
         new(0m, false),
-        new(-1m, false),
         new(1m, false),
         new(0m, true),
-        new(-1m, true),
-        new(1m, true),
     ];
+
+    /// <summary>Bir parcada kac farkli "siradaki urun" denenir.</summary>
+    private const int ItemChoices = 4;
+
+    /// <summary>
+    /// Siradaki urun kararini dallandirmak icin sira listesini yeniden kurar:
+    /// once tuketilmis birimler (konum eslemesi bozulmasin diye), sonra SECILEN
+    /// urunun kalanlari, sonra otekiler.
+    ///
+    /// Bu, aramanin asil dallanma noktasidir. Yerlestirici siradaki kutuyu
+    /// alip cevresine ayni urunden blok orduguna gore (RaiseBlock), "siradaki
+    /// urun hangisi" sorusu fiilen "bu bosluga hangi blok" sorusudur.
+    /// </summary>
+    private static (List<SequencedItem> Instances, bool[] Consumed) Prefer(
+        List<SequencedItem> instances,
+        bool[] consumed,
+        Guid itemId)
+    {
+        var reordered = new List<SequencedItem>(instances.Count);
+        var flags = new bool[instances.Count];
+
+        for (var i = 0; i < instances.Count; i++)
+        {
+            if (!consumed[i]) continue;
+
+            flags[reordered.Count] = true;
+            reordered.Add(instances[i]);
+        }
+
+        for (var i = 0; i < instances.Count; i++)
+        {
+            if (!consumed[i] && instances[i].Item.ItemId == itemId) reordered.Add(instances[i]);
+        }
+
+        for (var i = 0; i < instances.Count; i++)
+        {
+            if (!consumed[i] && instances[i].Item.ItemId != itemId) reordered.Add(instances[i]);
+        }
+
+        return (reordered, flags);
+    }
+
+    /// <summary>
+    /// Denenmeye deger "siradaki urun" adaylari: kalanlar arasindan hacimce en
+    /// buyuk birkac tip. Buyuk hacim once denenir cunku doluluk hedefi odur;
+    /// kimlik siralamasi esitlikte determinizmi saglar (R-C02).
+    /// </summary>
+    private static List<Guid> Choices(List<SequencedItem> instances, bool[] consumed)
+    {
+        var seen = new Dictionary<Guid, decimal>();
+
+        for (var i = 0; i < instances.Count; i++)
+        {
+            if (consumed[i]) continue;
+
+            var item = instances[i].Item;
+            seen[item.ItemId] = item.Width * item.Height * item.Length;
+        }
+
+        return [.. seen
+            .OrderByDescending(p => p.Value)
+            .ThenBy(p => p.Key)
+            .Take(ItemChoices)
+            .Select(p => p.Key)];
+    }
 
     internal static OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken)
     {
@@ -74,7 +136,10 @@ internal static class BeamSequencer
         // Taban: bugunku davranis. Arama bunun altina inemez (R-C16/R-C21).
         var best = WallBuilderPlacement.Run(input, instances, DecoderKeys.Neutral, cancellationToken);
 
-        var beam = new List<PlacementState> { PlacementState.Fresh(input, instances.Count, null) };
+        var beam = new List<(PlacementState State, List<SequencedItem> Order)>
+        {
+            (PlacementState.Fresh(input, instances.Count, null), instances),
+        };
 
         var width = BeamWidth(budget);
         var segment = SegmentSize(budget, instances.Count);
@@ -85,26 +150,33 @@ internal static class BeamSequencer
             if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
 
             var target = placed + segment;
-            var branches = new List<(PlacementState State, decimal Fill)>(beam.Count * Variants.Length);
+            var branches = new List<(PlacementState State, List<SequencedItem> Order, decimal Fill)>(
+                beam.Count * Variants.Length * ItemChoices);
 
-            foreach (var state in beam)
+            foreach (var (state, order) in beam)
             {
-                foreach (var variant in Variants)
+                foreach (var choice in Choices(order, state.Consumed))
                 {
-                    if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
+                    var (preferred, flags) = Prefer(order, state.Consumed, choice);
+                    var seed = state.WithConsumed(flags);
 
-                    var advanced = WallBuilderPlacement.Run(
-                        input, instances, variant, state.Clone(), cancellationToken, target).State;
+                    foreach (var variant in Variants)
+                    {
+                        if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
 
-                    // Tamamlama YALNIZCA olcumdur: dalin nereye varacagini
-                    // gosterir, kendisi saklanmaz. Bu, "ileri bakis"in ta
-                    // kendisidir — acgozlu secim burada bir sonuca baglanir.
-                    var completed = WallBuilderPlacement.Run(
-                        input, instances, variant, advanced.Clone(), cancellationToken).Result;
+                        var advanced = WallBuilderPlacement.Run(
+                            input, preferred, variant, seed.Clone(), cancellationToken, target).State;
 
-                    if (completed.FillRate > best.FillRate) best = completed;
+                        // Tamamlama YALNIZCA olcumdur: dalin nereye varacagini
+                        // gosterir, kendisi saklanmaz. Bu, "ileri bakis"in ta
+                        // kendisidir — acgozlu secim burada bir sonuca baglanir.
+                        var completed = WallBuilderPlacement.Run(
+                            input, preferred, variant, advanced.Clone(), cancellationToken).Result;
 
-                    branches.Add((advanced, completed.FillRate));
+                        if (completed.FillRate > best.FillRate) best = completed;
+
+                        branches.Add((advanced, preferred, completed.FillRate));
+                    }
                 }
             }
 
@@ -117,7 +189,10 @@ internal static class BeamSequencer
             branches.Sort(static (a, b) => b.Fill.CompareTo(a.Fill));
 
             beam.Clear();
-            for (var i = 0; i < branches.Count && i < width; i++) beam.Add(branches[i].State);
+            for (var i = 0; i < branches.Count && i < width; i++)
+            {
+                beam.Add((branches[i].State, branches[i].Order));
+            }
         }
 
         return best;

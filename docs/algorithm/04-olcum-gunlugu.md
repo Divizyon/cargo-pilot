@@ -2085,3 +2085,70 @@ aksiyon uzayı bağlanmadı.
 
 **GRASP üretim varsayılanı olarak kalıyor.** `SequencerKind.Beam` ölçüm için açık; kimse
 otomatik olarak almıyor.
+
+---
+
+## F7-4b · Aksiyon uzayı değişti — **%89,42: GRASP ilk kez geçildi**
+
+`DR-54` beam'in neden yetmediğini teşhis etmişti: iskelet doğruydu ama dallanma **yerleştirici
+ayarları** üzerindeydi (altı varyant), oysa BSG *(blok, boşluk)* çifti üzerinde dallanır.
+
+Tek değişiklik yapıldı: **dallanma noktası "sıradaki ürün hangisi olsun" oldu.**
+
+Yerleştirici sıradaki kutuyu alıp çevresine aynı üründen blok ördüğüne göre (`RaiseBlock`), bu
+soru fiilen *"bu boşluğa hangi blok"* sorusudur — kataloğu ayrıca bağlamaya gerek kalmadı.
+
+Uygulama detayı: `consumed[]` konuma bağlı olduğu için sıra listesi değişince yeniden eşlenmeli.
+`PlacementState.WithConsumed` bunu yapıyor — yerleşimler, defter ve duvarlar konumdan bağımsız,
+oldukları gibi taşınıyor.
+
+### Ölçüm (BR1-BR7, 12 örnek)
+
+| Işın × parça | F7-4a *(ayar dallanması)* | **F7-4b** *(ürün dallanması)* |
+|---|---|---|
+| 8 × 5 kutu | %87,26 | **%89,46** |
+| 8 × 1 | %87,66 | %88,57 |
+| 16 × 5 | %87,36 | %89,23 |
+
+Aynı iskelet, aynı bütçe, **+2,2 puan.** Teşhis doğruydu: sorun ileri bakışta değil, neye ileri
+baktığındaydı.
+
+### 175 örnekte doğrulama
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 | **Ortalama** |
+|---|---|---|---|---|---|---|---|---|
+| GRASP | %86,35 | %88,11 | %89,14 | %88,61 | %88,58 | %88,45 | %87,48 | %88,34 |
+| **Beam** | %88,31 | %89,21 | %90,04 | %89,51 | %90,13 | %89,47 | %89,27 | **%89,42** |
+| Fark | **+1,96** | +1,10 | +0,90 | +0,90 | +1,55 | +1,02 | **+1,79** | **+1,08** |
+
+**Her kümede kazanıyor.** En çok BR1'de (+1,96) — ki orası GRASP'ın en zayıf, blok zenginliğinin
+en yüksek olduğu küme (`DR-51`). İki mekanizmanın birbirini tamamladığı tahmini tutuyor.
+
+Medyan süre 416-2000 ms; yalnız BR7 bütçeyi dolduruyor.
+
+**F7-4 kapısı (static ≥ %89) geçildi:** %89,42.
+
+### Neden çalıştı
+
+Üç ölçüm bu sonucu önceden işaret ediyordu ve üçü de doğrulandı:
+
+- `DR-43` — sıra araması doymuştu; GRASP sırayı *permütasyon* olarak arıyordu ve o uzay bitmişti.
+- `DR-51` — blok zenginliği heterojenlikle çöküyordu; ama "hangi ürün sırada" kararı blok
+  zenginliğinden bağımsız çalışıyor.
+- `DR-54` — beam iskeleti çalışıyordu, eksik olan aksiyon uzayıydı.
+
+GRASP ile fark şurada: GRASP **tüm planı** bir permütasyonla belirliyor ve o permütasyonu rastgele
+bozup düzeltiyor. Beam ise **her parçada** o ana kadarki duruma bakarak karar veriyor ve kararı
+sonuna kadar götürüp ölçüyor. Aynı bütçede ikincisi daha bilgili.
+
+### Güvence
+
+- 173 motor testi yeşil; beam sekiz sert kapıyı ve adet korunumunu koruyor (`DuvarOrucu_IsinAramasiyla_*`).
+- Beam **taban çizgisinin altına inemez**: `best` bugünkü statik koşuyla başlıyor ve yalnız
+  iyileşmede güncelleniyor (`R-C16`/`R-C21` ile aynı ilke).
+- Statik yol bit birebir aynı (%83,40), 17 snapshot kaymadı, kapı geçti.
+- Determinizm: hiçbir rastgelelik yok. Bütçe duvar saati olduğu için makineye bağlı — GRASP'takiyle
+  **aynı** kısıt, dolayısıyla CI kapısı statik yolu ölçmeye devam ediyor (`DR-28`).
+
+**Üretim varsayılanı henüz değiştirilmedi.** GRASP'tan beam'e geçmek ayrı bir karar; `DR-24`'ün
+gerekçesi ölçümle yenilendi ama geçiş kendi doğrulamasını ister.

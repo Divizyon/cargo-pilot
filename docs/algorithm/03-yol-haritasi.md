@@ -403,7 +403,8 @@ saniyede tam destekli gerçekçi referans **~%93**; bugünkü %87,73 ile arası 
 | ~~F7-3~~ | ~~VCS değerlendirme~~ | ✅ **Yapıldı** — `DR-52`. Kapı "gerileme yok"tu; static +0,65 / GRASP +0,37 geldi |
 | ~~F7-3~~ *(özgün)* | **VCS değerlendirme** — mevcut greedy'ye takılıp **beam olmadan** ölçülür; yalnız aday seçim ölçütü değişir | Static'te gerileme yok |
 | ~~F7-4a~~ | ~~Altyapı: kopyalanabilir durum + devam edebilen yerleştirici + ışın döngüsü~~ | ✅ **Yapıldı** — `DR-54`. Beam %87,66; GRASP hâlâ önde |
-| **F7-4b** | **Aksiyon uzayını (blok, boşluk) yap** — `BlockCatalog` beam'e bağlanacak; bugün beam yalnız yerleştirici ayarları üzerinde dallanıyor | Static BR1-BR7 **≥ %89** |
+| ~~F7-4b~~ | ~~Aksiyon uzayını (blok, boşluk) yap~~ | ✅ **Yapıldı** — `DR-55`. %89,42; kapı geçildi, GRASP +1,08 geçildi |
+| ~~F7-4b~~ *(özgün)* | **Aksiyon uzayını (blok, boşluk) yap** — `BlockCatalog` beam'e bağlanacak; bugün beam yalnız yerleştirici ayarları üzerinde dallanıyor | Static BR1-BR7 **≥ %89** |
 | ~~F7-4~~ *(özgün)* | **Beam search çekirdeği**, aktif duvar kısıtlı. ⚠ `DR-49`: ana döngüde yerleşen birimler de `consumed` işaretlenmeli — bugün yalnız blok inşasının yuttukları işaretli ve bu, döngünün tek yönde ilerlemesine dayanıyor. Beam sırayı serbest bıraktığı anda kutu iki kez yerleşir | Static BR1-BR7 **≥ %89** |
 | **F7-5** | **DoubleEffort** — bütçe bitene kadar ışın `√2` ile büyür | 2 sn bütçede **≥ %90** |
 | **F7-6** | **Sekiz sert kapı beam içinde** + değişmezler + determinizm | 17 snapshot · `PhysicalInvariants` · `R-C02` |
