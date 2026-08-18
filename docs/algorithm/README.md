@@ -1,4 +1,12 @@
-# Motor doluluk referansları
+# Algoritma belgeleri
+
+- [ADR — Yerleştirme Algoritması](adr-yerlestirme-algoritmasi.md) — kararlar, gerekçeler, başarı
+  karnesi, roadmap uyumu ve reddedilen seçenekler
+- [ALGORITMA-GELISTIRME-LOG.md](../../ALGORITMA-GELISTIRME-LOG.md) — ölçüm günlüğü, deneme deneme
+- [ALGORITMA-RULEBOOK.md](../../ALGORITMA-RULEBOOK.md) — kural ve karar kaydı (`R-*`, `DR-*`)
+- [ALGORITMA-YOL-HARITASI.md](../../ALGORITMA-YOL-HARITASI.md) — faz planı
+
+## Motor doluluk referansları
 
 `br-greedy-static.json` ve `br-wallbuilder-static.json`, yerleştirme motorunun BR1-BR7 üzerindeki
 doluluğunu sabitler. [engine-bench.yml](../../.github/workflows/engine-bench.yml) her koşuda bu
