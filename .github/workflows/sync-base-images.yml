@@ -34,17 +34,18 @@ jobs:
         run: echo "tag=$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
 
       - name: .NET SDK 8.0 imajını senkronize et
+        # imagetools create manifest list'i doğrudan registry-to-registry kopyalar;
+        # layer'ları runner'a indirmez ve MCR'ın multi-arch manifest'ini korur.
+        # (pull+tag+push yalnızca runner'ın kendi platformunu indirip push ederdi.)
         run: |
-          docker pull mcr.microsoft.com/dotnet/sdk:8.0
-          docker tag mcr.microsoft.com/dotnet/sdk:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
-          docker tag mcr.microsoft.com/dotnet/sdk:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }}
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }}
+          docker buildx imagetools create \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0 \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0-${{ steps.date.outputs.tag }} \
+            mcr.microsoft.com/dotnet/sdk:8.0
 
       - name: .NET ASP.NET 8.0 imajını senkronize et
         run: |
-          docker pull mcr.microsoft.com/dotnet/aspnet:8.0
-          docker tag mcr.microsoft.com/dotnet/aspnet:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
-          docker tag mcr.microsoft.com/dotnet/aspnet:8.0 ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }}
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0
-          docker push ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }}
+          docker buildx imagetools create \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0 \
+            --tag ghcr.io/divizyon/cargo-pilot-dotnet-aspnet:8.0-${{ steps.date.outputs.tag }} \
+            mcr.microsoft.com/dotnet/aspnet:8.0
