@@ -30,6 +30,7 @@
 * [ADR-0008 — SHA Pinleme Sürüm Yükseltmesinden Ayrılır](docs/adr/ADR-0008-sha-pinleme-surum-yukseltmeden-ayri.md)
 * [ADR-0009 — Otomatik Geri Alma Sessizce Başarılı Dönmez](docs/adr/ADR-0009-otomatik-geri-alma-sessizce-basarili-donmez.md)
 * [ADR-0010 — Duvar Örücü ve Arama Katmanı](docs/adr/ADR-0010-duvar-orucu-ve-arama-katmani.md)
+* [ADR-0011 — Docker Build Cache Modu: Backend Restore Katmanı Ayrıldıktan Sonra](docs/adr/ADR-0011-docker-build-cache-modu-backend-restore-sonrasi.md)
 
 ## 🛠️ DevOps
 
@@ -87,4 +88,3 @@
 * [Branch & PR Denetimi — 2026-08-03](docs/archive/branch-denetimi-2026-08-03.md)
 * [Koordinat Sistemi Denetimi — 2026-08-12](docs/archive/koordinat-denetimi-2026-08-12.md)
 * [DevOps İyileştirme Analizi — 2026-08-03](docs/archive/devops-iyilestirme-analizi-2026-08.md)
-

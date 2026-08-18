@@ -1,6 +1,0 @@
--- ============================================
--- Cargo Pilot - MSSQL Initialization Script
--- ============================================
--- US-D03c: MSSql konteyner yapılandırması
--- Status: TODO - Veritabanı şeması belirlendikten sonra tamamlanacak
--- ============================================

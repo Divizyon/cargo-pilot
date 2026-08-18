@@ -2,7 +2,7 @@ FROM node:20-slim AS deps
 WORKDIR /app
 RUN npm install -g npm@11.6.1
 COPY package*.json ./
-RUN npm install --ignore-scripts --no-audit --no-fund
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
 FROM node:20-slim AS build
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM nginx:1.31-alpine AS final
+FROM nginx:1.31-alpine-slim AS final
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
