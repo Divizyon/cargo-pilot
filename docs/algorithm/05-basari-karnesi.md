@@ -8,41 +8,48 @@ durur.
 Terimler için [00-sozluk.md](00-sozluk.md). Bir sayıyı buraya yazmadan önce hangi **yerleştirici ·
 sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa sayı kıyaslanamaz.
 
-**Son güncelleme:** 18 Ağustos 2026 · dal `feat/algoritma-arama-katmani`
+**Son güncelleme:** 18 Ağustos 2026 (yönelim eşlemesi düzeltildi, `DR-42`) · dal `feat/algoritma-arama-katmani`
 
 ---
 
 ## Tek satırda
 
-**Duvar örücü + GRASP, BR1-BR7, strict: %86,23.** Greedy'nin (%75,23) 11 puan üstünde,
-literatürün en iyilerinin (~%92-93) 6 puan altında. Kaybın tamamına yakını yığının **üstündeki ölü
-havada**; yığının içi masif.
+**Duvar örücü + GRASP, BR1-BR7: %87,73.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
+iyilerinin (~%94-95, ama örnek başına 240-320 saniyeyle) ~7 puan altında. Kayıp neredeyse eşit
+bölünüyor: yarısı duvar kesitinde kalan **kenar şeritleri**, yarısı yığının üstündeki **ölü hava**.
+Yığının içi masif.
 
 ## Doluluk
 
-BR1-BR7, 700 örnek (GRASP satırları 175 örnek üzerinden).
+BR1-BR7, 700 örnek (GRASP satırları 175 örnek üzerinden). Yönelim eşlemesi `DR-42` ile birebir
+oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 
-| Yapılandırma | `strict` (alt sınır) | `free` (üst sınır) | Süre (medyan) |
-|---|---|---|---|
-| Greedy — *kaldırıldı, tarihsel* | %75,23 | — | ~65 ms |
-| Duvar örücü, kule yok | %77,00 | — | 5-13 ms |
-| Duvar örücü + **static** | **%80,09** | %82,77 | 2-5 ms |
-| Duvar örücü + **GRASP** — *üretim varsayılanı* | **%86,23** | **%88,34** | 1,1-2,0 sn |
-| Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%92-93 | — | örnek başına ~240-320 sn |
+| Yapılandırma | BR1-BR7 | Süre (medyan) |
+|---|---|---|
+| Greedy — *kaldırıldı, tarihsel* | %75,23 | ~65 ms |
+| Duvar örücü, kule yok | %77,00 | 5-13 ms |
+| Duvar örücü + static, yönelim eşlemesi hatalıyken | %80,09 | 2-5 ms |
+| Duvar örücü + **static** | **%82,61** | 1-2 ms |
+| Duvar örücü + GRASP, yönelim eşlemesi hatalıyken | %86,23 | 1,1-2,0 sn |
+| Duvar örücü + **GRASP** — *üretim varsayılanı* | **%87,73** | 1,3-2,0 sn |
+| Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%94-95 | örnek başına ~240-320 sn |
 
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
+Araştırma yanıtı 2 saniyelik bütçede gerçekçi hedefi **%90-92** olarak veriyor ve bunun bir
+**varsayım** olduğunu söylüyor; yayımlanmış küçük bütçe eğrisi yok.
 
 ## Kümeye göre
 
 | | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 |
 |---|---|---|---|---|---|---|---|
 | Kutu tipi sayısı | 3 | 5 | 8 | 10 | 12 | 15 | 20 |
-| Static (CI referansı) | %79,32 | %80,32 | %80,72 | %80,78 | %80,41 | %79,52 | %79,59 |
-| GRASP | %84,74 | %86,19 | %87,09 | %87,06 | %87,02 | %86,35 | %85,17 |
+| Static (CI referansı) | %82,78 | %83,28 | %83,15 | %82,89 | %82,55 | %82,02 | %81,57 |
+| GRASP | %87,07 | %87,95 | %88,92 | %88,20 | %88,11 | %87,38 | **%86,51** |
 
-**BR1 hâlâ en kötü kümemiz** — literatürde ise en kolayı. Tekrarın en yüksek olduğu yerde en az
-kazanıyoruz; **kalan en büyük algoritmik açık budur.** Muhtemel sebep: duvar kesitinin 2B olarak
-tam doldurulmaması (bkz. [arastirma/2026-08-18-yanit-blok-arama.md](arastirma/2026-08-18-yanit-blok-arama.md)).
+**BR1 artık en kötü kümemiz değil.** Yönelim eşlemesi düzeltilince en çok orası kazandı (+2,33) ve
+sıra normale döndü: en zor küme artık BR7 (20 tip, en az tekrar) — literatürdeki sıralamayla aynı
+yön. Bu, bir yılın en net teşhis düzeltmesi: "BR1'de neyi kaçırıyoruz" sorusunun cevabı
+algoritmada değil, veri eşlemesindeydi.
 
 ## Plan kalitesi (GRASP, ölçülen)
 
@@ -53,14 +60,25 @@ tam doldurulmaması (bkz. [arastirma/2026-08-18-yanit-blok-arama.md](arastirma/2
 | Ölü hava | %8,6-13 | Kaybın tamamı |
 | Ortalama destek | %98,7-100 | %80 eşiği **hiç bağlamıyor** (`DR-16`) |
 | En düşük destek | %81,5-97,7 | Eşiği ihlal eden kutu **yok** |
-| Kalan boşluk sayısı | 4-16 | Hacim gerçekten parçalanmış |
+| Kalan boşluk sayısı | 3-16 | Hacim gerçekten parçalanmış |
+
+### Duvar (BR1, GRASP — `DR-44`)
+
+| Ölçü | Değer | Okuma |
+|---|---|---|
+| **Duvar yüzü kaplama, ortalama** | **%90,9** | Eşik %95 → **altında** |
+| %95 eşiğinin altındaki duvar oranı | **%77** | Kesit tam döşenmiyor |
+| Ölü hava · kenar şeridi (boş sütun) | %5,8 | Kesit kaynaklı |
+| Ölü hava · tavan artığı | %6,2 | Yükseklik kaynaklı |
+
+Kayıp **eşit bölünüyor**: yalnız birini çözmek yarısını bırakır.
 
 ## Güvence
 
 | | Durum |
 |---|---|
 | Motor testleri (`CargoPilot.Engine.Tests`) | **109/109** |
-| Altyapı testleri (`CargoPilot.Infrastructure.Tests`) | **32/32** |
+| Altyapı testleri (`CargoPilot.Infrastructure.Tests`) | **35/35** |
 | Uygulama testleri (`CargoPilot.Application.Tests`) | **228/228** |
 | Test aracı (`apps/algorithm-test-ui`) | 201/201 |
 | Golden snapshot | 17/17 bayt birebir |
@@ -89,6 +107,8 @@ tam doldurulmaması (bkz. [arastirma/2026-08-18-yanit-blok-arama.md](arastirma/2
 |---|---|---|
 | `DR-38` | **Kısıt tarafında kıyas kapsaması yok.** Hiçbir korpusta LIFO / kırılganlık / ağırlık senaryosu yok; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor | `DR-09`/`DR-10`/`DR-11` doğrulanamıyor |
 | — | **Ağırlık dengesi duvar örücüde optimize edilmiyor.** Greedy'nin `BalanceScoring`'i kalktı; denge yalnız GRASP uygunluğunda, sıra düzeyinde | Bilerek kabul edilen gerileme (~3× kötü) |
-| — | **`011` yönelim kısıtı temsil edilemiyor** — `AllowedRotations` enum'u BR tiplerinin %37'sini birebir karşılamıyor | `strict`/`free` bandının sebebi |
 | — | **Üretim gecikmesi ~2 sn** ve arayüzde bekleme göstergesi yok | Kullanıcı deneyimi; F5'te açık |
 | — | İki ret sebebi hiç üretilmiyor (`NotStackable`, `GeometryConstraint`) | 12 Ağu 2026 raporundan devreden borç |
+| `DR-43` | **Sıra araması doymuş** — 30 kat bütçe +0,04 puan getiriyor | Kalan açık sıralayıcıda değil; blok karar uzayında (F6-4) |
+| `DR-44` | **Duvar kesiti tam döşenmiyor** — duvarların %77'si %95 kaplamanın altında | F6-3'ün gerekçesi |
+| — | `WallDiagnostics` duvarları `z`'de bağlantılı bileşen olarak tahmin ediyor; yerleştirici duvar sınırını raporlamıyor | Duvar sayısı düşük, kaplama yüksek görünüyor |

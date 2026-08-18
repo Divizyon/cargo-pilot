@@ -27,22 +27,7 @@ public static class BrCorpus
 {
     public sealed record BrInstance(string Id, OptimizationInput Input, int BoxCount, decimal BoxVolumeRatio);
 
-    /// <summary>
-    /// BR'nin yonelim kisiti "hangi olcu dikey durabilir" seklindedir; bizim
-    /// <see cref="AllowedRotations"/> modelimiz bunu iki durumda birebir, bir
-    /// durumda yaklasik karsilar. Yaklasiklik yonu ONEMLI: hangi ucun
-    /// raporlandigi bilinmeden sayi anlamsizdir.
-    /// </summary>
-    public enum OrientationMode
-    {
-        /// <summary>Kisitli uc: belirsiz durumda daha DAR yonelim kumesi (alt sinir).</summary>
-        Strict = 0,
-
-        /// <summary>Serbest uc: belirsiz durumda tum yonelimler (ust sinir).</summary>
-        Free = 1,
-    }
-
-    public static IReadOnlyList<BrInstance> Load(int set, OrientationMode mode)
+    public static IReadOnlyList<BrInstance> Load(int set)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "data", $"thpack{set}.txt");
         if (!File.Exists(path)) throw new FileNotFoundException($"BR veri dosyasi yok: {path}", path);
@@ -56,13 +41,13 @@ public static class BrCorpus
 
         for (var i = 0; i < instanceCount; i++)
         {
-            instances.Add(ReadInstance(tokens, ref cursor, set, mode));
+            instances.Add(ReadInstance(tokens, ref cursor, set));
         }
 
         return instances;
     }
 
-    private static BrInstance ReadInstance(string[] tokens, ref int cursor, int set, OrientationMode mode)
+    private static BrInstance ReadInstance(string[] tokens, ref int cursor, int set)
     {
         var number = NextInt(tokens, ref cursor);
         _ = NextInt(tokens, ref cursor); // uretec tohumu; yeniden uretim icin, bize gerekmiyor
@@ -90,7 +75,7 @@ public static class BrCorpus
             var quantity = NextInt(tokens, ref cursor);
 
             var code = string.Create(CultureInfo.InvariantCulture, $"BR{set}-{number:D3}-{t:D2}");
-            items.Add(BuildItem(code, d1, v1, d2, v2, d3, v3, quantity, mode));
+            items.Add(BuildItem(code, d1, v1, d2, v2, d3, v3, quantity));
 
             boxes += quantity;
             boxVolume += (decimal)d1 * d2 * d3 * quantity;
@@ -124,21 +109,19 @@ public static class BrCorpus
     ///   111 → <see cref="AllowedRotations.All"/>. Birebir.
     ///   001 → <see cref="AllowedRotations.NoVertical"/>, dikey olcu yukseklige
     ///         konur. Birebir: yukseklik sabit, yatay cift serbestce donebilir.
-    ///   011 → YAKLASIK. <see cref="AllowedRotations.PitchOnly"/> dikey olcunun
-    ///         iki aday arasinda secilmesini korur ama yatay ciftin 90 derece
-    ///         donmesini kaybeder, yani BR'den DAR kalir (alt sinir).
-    ///         <see cref="OrientationMode.Free"/> ucunda ise tum yonelimler
-    ///         acilir ve BR'den GENIS olur (ust sinir). Gercek deger ikisinin
-    ///         arasindadir.
+    ///   011 → <see cref="AllowedRotations.NoVerticalWidth"/>. Birebir: dikey
+    ///         duramayan olcu W'ye konur, kalan ikisi hem dikeye gelebilir hem
+    ///         yatay cifti serbestce dondurebilir. Dort yonelim.
     ///
-    /// Veride 011 duzeni tiplerin ucte birinden fazlasini kapsiyor, bu yuzden
-    /// hangi ucun olculdugu her raporda yazilir.
+    /// Uc duzen de artik birebir karsilaniyor (`DR-42`). Onceki esleme 011'i
+    /// <c>PitchOnly</c>'ye dusuruyordu ve dort yonelimin yalnizca ikisini
+    /// veriyordu; veride 011 duzeni tiplerin ucte birinden fazlasini kapsadigi
+    /// icin bu, strict sonucunu yapay olarak asagi cekiyordu.
     /// </summary>
     private static OptimizationItemInput BuildItem(
         string code,
         int d1, int v1, int d2, int v2, int d3, int v3,
-        int quantity,
-        OrientationMode mode)
+        int quantity)
     {
         var verticalCount = v1 + v2 + v3;
 
@@ -155,10 +138,9 @@ public static class BrCorpus
             // Iki olcu dikey durabiliyor: dikey duramayan olcu X eksenine
             // kilitlenir; kalan ikisi PitchOnly ile yukseklik/uzunluk arasinda
             // yer degistirir.
-            _ when mode == OrientationMode.Free => (d2, d3, d1, AllowedRotations.All),
-            _ when v1 == 0 => (d1, d2, d3, AllowedRotations.PitchOnly),
-            _ when v2 == 0 => (d2, d1, d3, AllowedRotations.PitchOnly),
-            _ => (d3, d1, d2, AllowedRotations.PitchOnly),
+            _ when v1 == 0 => (d1, d2, d3, AllowedRotations.NoVerticalWidth),
+            _ when v2 == 0 => (d2, d1, d3, AllowedRotations.NoVerticalWidth),
+            _ => (d3, d1, d2, AllowedRotations.NoVerticalWidth),
         };
 
         return new OptimizationItemInput(

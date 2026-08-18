@@ -1280,3 +1280,160 @@ düzeyinden **arama düzeyine** taşındı — ve ölçüm bunun yetmediğini s�
 `Adım 0` kaydı).
 
 Testler: motor 109 · altyapı 32 · uygulama 228 · test arayüzü 201. Doluluk kapısı geçti.
+
+---
+
+## Teşhis · Arama gerçekten doymuş mu — **evet, ama sandığımız sebepten değil**
+
+18 Ağustos 2026 tarihli araştırma yanıtı ([blok arama](arastirma/2026-08-18-yanit-blok-arama.md))
+paradigma değişimini tek bir ölçüme bağladı: *"Aynı BR1 örneğinde GRASP'a 2 sn yerine 60 sn ver;
+skor ~aynı kalıyorsa sorun kesin arama uzayında."* Eşik: 60 saniyede **+0,3 puandan az** artış
+varsa doygunluk kesin.
+
+BR1, 20 örnek, GRASP:
+
+| Bütçe | Yineleme | Stall | Doluluk | Medyan süre |
+|---|---|---|---|---|
+| 2 sn | 100 (varsayılan) | 15 (varsayılan) | %85,12 | **1227 ms** |
+| 2 sn | 100.000 | 15 | %85,14 | **1360 ms** |
+| 2 sn | 100.000 | 100.000 | %85,11 | 2000 ms |
+| 60 sn | 100 | 15 | %85,10 | **1209 ms** |
+
+**Doygunluk doğrulandı.** Dört yapılandırma arasındaki en büyük fark 0,04 puan — ölçülmüş gürültü
+bandının (±0,01) hemen üstünde, eşiğin (0,3) çok altında. Aramaya otuz kat zaman vermek hiçbir şey
+kazandırmıyor. Sıra araması bitmiştir; kalan ~6 puan sıralayıcıda değil.
+
+### Yan bulgu: bütçenin yarısını hiç kullanmıyoruz
+
+Medyan süre sütunu beklenmedik. 60 saniye verildiğinde koşu **1209 ms**'de bitiyor — yani duran şey
+saat değil. Frenleri tek tek açınca sıra çıktı:
+
+1. `MaxIterations = 100` **bağlayıcı değil** — sınırsıza çekmek süreyi 1227 → 1360 ms yaptı, skoru
+   değiştirmedi.
+2. `StallIterations = 15` **bağlayıcı** — açınca süre 2000 ms'e çıktı, yani bütçe ilk kez doldu.
+   Skor yine değişmedi (%85,11).
+
+`SearchBudget` belgesindeki *"StallIterations ölçüldü ve etkisiz çıktı"* notu **doluluk açısından
+doğru, süre açısından yanlış**: stall skoru etkilemiyor ama koşuyu erken bitiriyor. BR1'de arama
+~1,2 saniyede yakınsıyor ve kalan 0,8 saniye boşa geçiyor.
+
+**Üretim sonucu — ve sınırı.** BR1 ölçeğinde (3 tip, 112 kutu) arama ~1,3 saniyede yakınsıyor;
+oradaki 0,7 saniye boşa geçiyor. Ama sonradan yedi kümenin tamamı ölçüldü ve **medyan süre BR3'ten
+itibaren 2001 ms**, yani bütçe heterojen kümelerde gerçekten bağlayıcı:
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 |
+|---|---|---|---|---|---|---|---|
+| Medyan süre (ms) | 1305 | 1878 | **2001** | **2001** | **2001** | **2001** | **2001** |
+
+Yani bütçeyi kısmak **yalnızca az tipli yüklerde bedava**. Gerçek sevkiyat BR1'e mi BR6'ya mı
+benziyor sorusu cevaplanmadan bütçe düşürülmemeli; bu haliyle bir üretim kararı değil, bir
+gözlemdir.
+
+**Doğrudan sonucu:** araştırmanın Öneri 4'ü (reactive GRASP, path relinking, elite havuz) —
+"sıra araması doymuşsa tavanı 1-2 puandan fazla kaldırmaz" uyarısıyla birlikte — **sıranın en
+altına düşer.** Arama şemasını değiştirmeden yapılacak her şey aynı duvara çarpıyor.
+
+---
+
+## F6-2 · Yönelim eşlemesi düzeltildi — **+2,52 puan**, ve bu bir iyileştirme değil
+
+Araştırma yanıtının (d) maddesi thpack biçimini kesinleştirdi: her kutu satırı
+`tip, L, fL, W, fW, H, fH, adet` ve `f*` bayrağı **o ölçünün dikey durmasına izin**
+anlamına geliyor. Yani `011` düzeni = "birinci ölçü dikey duramaz, diğer ikisi durabilir"
+= **dört geçerli yönelim** (iki dikey seçim × yatay çiftin iki dizilişi).
+
+Biz `011`'i `AllowedRotations.PitchOnly`'ye düşürüyorduk ve o **iki** yönelim veriyor: dikey
+seçim korunuyor ama yatay çiftin 90 derecelik dönüşü kayboluyordu. BR verisinde `011` düzeni
+tiplerin **%37'sini** kapsıyor. Yani motoru, örneklerin üçte birinden fazlasında yasal
+yönelimlerin yarısından mahrum bırakıyorduk.
+
+### Düzeltme
+
+`AllowedRotations.NoVerticalWidth = 6` eklendi: `W` asla dikey olamaz, `H` ve `L` olabilir ve
+her dikey seçim için yatay çift serbestçe döner. Küme, `All`'dan `W`'yi dikeye getiren ikisinin
+(`Roll`, `RollYaw`) çıkarılmış hâlidir — dört yönelim. `PlacementValidator.GetOrientations` tek
+noktadır, oraya bir `case` eklendi.
+
+**Eklemeli olduğu için hiçbir mevcut davranış değişmedi:** 17 golden snapshot bayt bayt aynı
+kaldı, 109/35/228 test yeşil. Arayüz de kırılmadı — kendi 0-5 sabit tablosunu ve `default`'lu
+bir `switch` kullanıyor.
+
+### Ölçüm
+
+| | Önce | Sonra | Fark |
+|---|---|---|---|
+| **Static, BR1-BR7, 700 örnek** | %80,09 | **%82,61** | **+2,52** |
+| BR1 | %79,32 | %82,78 | +3,46 |
+| BR2 | %80,32 | %83,28 | +2,96 |
+| BR3 | %80,72 | %83,15 | +2,43 |
+| BR4 | %80,78 | %82,89 | +2,11 |
+| BR5 | %80,41 | %82,55 | +2,14 |
+| BR6 | %79,52 | %82,02 | +2,50 |
+| BR7 | %79,59 | %81,57 | +1,98 |
+| **GRASP, BR1, 20 örnek** | %85,12 | **%87,47** | **+2,35** |
+
+Kazanç **BR1'de en büyük**, BR7'de en küçük — beklenen yön: az tipli sette bir tipin yönelim
+kümesini ikiye katlamak duvar kesitini döşemeyi doğrudan kolaylaştırıyor.
+
+**Bu bir algoritma iyileştirmesi değildir.** Kendi koyduğumuz bir handikabın kalkmasıdır; motorun
+kalitesi hakkında yeni bir şey söylemez, yalnızca önceki sayıların yapay olarak düşük olduğunu
+söyler. Literatürle fark 6 puandan ~4 puana indi ve bu farkın tamamı hâlâ gerçek.
+
+### `free` ucu kaldırıldı
+
+`strict` artık **tam** olduğu için `free` ucu BR'den geniş kalıyor — yani fiziksel olarak devrilecek
+yerleşimleri sayıyor. `OrientationMode`, `--orientation` bayrağı ve iki uçlu raporlama kaldırıldı;
+`DR-20` konusuz kaldı. `BrBaseline.Report.Orientation` alanı sabit `"Strict"` yazılarak korundu,
+böylece referans dosyasının biçimi geçerli kaldı.
+
+**CI referansı tazelendi:** `referans/br-wallbuilder-static.json` → %82,61.
+
+---
+
+## F6-1 · Duvar yüzü ölçüldü — **Öneri 3 doğrulandı**
+
+Araştırmanın (c)2 teşhisi: *"Her duvar yüzünde (W×H) kaplanan alan oranını ölç; BR1'de %95'in
+altındaysa 2B kaplama sorunu doğrulanır."* Böyle bir ölçü yoktu — `R-C14`'ün `WallCount` ve
+`AvgWallFlushness` metrikleri hiç üretilmiyordu (`DR-38`'in bir parçası). `WallDiagnostics`
+yazıldı: duvarları `z` ekseninde bağlantılı bileşen olarak ayırıyor, her duvarın kutularını
+kesite izdüşürüp kaplanan alanı sayıyor, ölü havayı boş sütun / tavan diye ayırıyor.
+
+BR1, GRASP, 20 örnek:
+
+| Ölçü | Değer | Okuma |
+|---|---|---|
+| Duvar sayısı | 4,2 | — |
+| Ortalama duvar derinliği | 209 cm | **Şüpheli** — aşağıya bakın |
+| Kutu / duvar | 43,7 | — |
+| **Yüz kaplama, ortalama** | **%90,9** | Eşik %95 → **altında** |
+| Yüz kaplama, en düşük | %85,5 | |
+| **%95 eşiğinin altındaki duvar oranı** | **%77** | Kesit sorunu **doğrulandı** |
+| Ölü hava · boş sütun (kenar şeridi) | %5,8 | Kesit kaynaklı |
+| Ölü hava · tavan artığı | %6,2 | Yükseklik kaynaklı |
+
+**Teşhis:** duvar kesiti tam döşenmiyor ve kayıp neredeyse **eşit** bölünüyor — yarısı kenarda
+kalan dikey şeritler, yarısı yığının tepesinde. İki ayrı müdahale gerekiyor; yalnız birini yapmak
+kaybın yarısını bırakır.
+
+**Ölçünün sınırı:** ortalama duvar derinliği 209 cm, kutu ölçülerine (30-100 cm) göre çok derin.
+Duvar ayrıştırması `z`'de bağlantılı bileşen kullanıyor; bir kutu iki duvara birden yayılırsa
+ikisi tek duvar sayılıyor. Bu, duvar sayısını **düşük**, kaplama oranını ise **yüksek** gösterir
+— yani gerçek kaplama %90,9'dan muhtemelen daha kötüdür ve teşhis bu yönde güçlenir. Duvar
+sınırını yerleştiriciden doğrudan raporlamak ayrı bir iş olarak açık.
+
+
+### GRASP tarafı — tam ölçüm
+
+| | Önce (%86,23) | Sonra | Fark |
+|---|---|---|---|
+| **BR1-BR7, GRASP, 175 örnek** | %86,23 | **%87,73** | **+1,50** |
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 |
+|---|---|---|---|---|---|---|---|
+| Önce | %84,74 | %86,19 | %87,09 | %87,06 | %87,02 | %86,35 | %85,17 |
+| Sonra | %87,07 | %87,95 | %88,92 | %88,20 | %88,11 | %87,38 | %86,51 |
+| Fark | **+2,33** | +1,76 | +1,83 | +1,14 | +1,09 | +1,03 | +1,34 |
+
+Kazanç GRASP'ta static'ten küçük (+1,50 / +2,52) — beklenen: arama, kaybettiğimiz yönelimlerin bir
+kısmını zaten sıra değiştirerek telafi ediyordu. **BR1 yine en çok kazanan** ve artık en kötü küme
+değil; en kötü BR7 (%86,51).

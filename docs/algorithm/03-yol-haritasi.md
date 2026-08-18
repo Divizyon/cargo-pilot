@@ -277,6 +277,41 @@ yerleşimleri reddediyor.
 
 ---
 
+### F6 — Blok tabanlı aramaya geçiş *(18 Ağustos 2026'da açıldı)*
+
+**Kaynak:** [arastirma/2026-08-18-yanit-blok-arama.md](arastirma/2026-08-18-yanit-blok-arama.md).
+
+**Hedef:** BR1-BR7 strict %86,2 → **%90+**, 2 saniyelik bütçe içinde.
+
+**Teşhis neyi söyledi.** Araştırma paradigma değişimini tek bir ölçüme bağlamıştı: 60 saniyede
+skor +0,3 puandan az artıyorsa sıra araması bitmiştir. Ölçüldü — 30 kat bütçe **0,04 puan**
+getirdi ([ölçüm günlüğü](04-olcum-gunlugu.md)). Doygunluk kesin; sıra düzeyinde yapılacak her şey
+aynı duvara çarpıyor. Bu, sıradaki işlerin önceliğini doğrudan belirledi.
+
+| # | İş | Araştırmadaki karşılığı | Durum |
+|---|---|---|---|
+| F6-0 | **Teşhis: doygunluk** — 2 sn / 60 sn / frenler açık | (c)4 | ✅ **Doymuş** (+0,04 puan) |
+| F6-1 | **Teşhis: duvar yüzü kaplama** + ölü havanın kenar/tavan ayrışması | (c)1, (c)2, (c)3 | Ölçüldü — `WallDiagnostics` |
+| F6-2 | **Yönelim eşlemesi:** `011` → dört yönelim (`NoVerticalWidth`) | (d) | Uygulandı |
+| F6-3 | **Duvar yüzü 2B tam kaplama** (G4/G5, pallet loading) | Öneri 3 | F6-1'in sonucuna bağlı |
+| F6-4 | **Blok yerleştirme beam search / greedy-lookahead**, aktif duvar kısıtlı, VCS değerlendirme | Öneri 1 | **En yüksek kaldıraç** |
+| F6-5 | **Space defragmentation** — kutuları iterek parçalanmış boşluğu birleştir | Öneri 2 | Sonra |
+| F6-6 | **VNS post-optimizasyon** — son ~0,5 sn | Öneri 5 | Sonra |
+| F6-7 | Reactive GRASP + path relinking + elite havuz | Öneri 4 | **En alt** — doygunluk kanıtlandı, tavanı kaldırmaz |
+| — | LLM/DRL sezgisel keşfi | Öneri 6 | Kapsam dışı; offline araştırma |
+
+**Bağlayıcı kısıt değişmedi:** duvar disiplini korunur (`DR-12`). Beam yalnız aktif duvar diliminin
+(`z`-frontier) boşluklarına blok koyar; duvar dolunca bir sonraki `z`'ye geçilir. Defragmentation'ın
+itme yönü kapıya doğru olamaz — yüklenebilirlik bozulursa o hamle devre dışı kalır.
+
+**Dürüst hedef:** literatürün %94-95'i örnek başına 240-320 saniyeyle alınmıştır; 2 saniyede %94
+beklenmiyor. Araştırmanın 2 sn için verdiği tahmin %90-92 ve bu bir **varsayım** — yayımlanmış
+küçük bütçe eğrisi yok.
+
+**Süre:** açık uçlu · **Bağımlılık:** yok (F4'ten bağımsız ilerler)
+
+---
+
 ## 2. Loop Test Harness Tasarımı
 
 ### 2.1 Problem

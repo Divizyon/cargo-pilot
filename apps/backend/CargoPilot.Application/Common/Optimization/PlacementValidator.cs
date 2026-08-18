@@ -356,6 +356,15 @@ internal static class PlacementValidator
                 (W, H, L, LoadingPlanPlacementRotation.NoRotation),
                 (H, W, L, LoadingPlanPlacementRotation.Roll)
             ],
+            // W asla dikey olamaz; H ve L dikeye gelebilir, yatay çift serbestçe döner.
+            // `All`'dan W'yi dikeye getiren ikisi (Roll, RollYaw) çıkarılmıştır.
+            AllowedRotations.NoVerticalWidth =>
+            [
+                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
+                (L, H, W, LoadingPlanPlacementRotation.Yaw),
+                (W, L, H, LoadingPlanPlacementRotation.Pitch),
+                (H, L, W, LoadingPlanPlacementRotation.YawPitch)
+            ],
             _ =>
             [
                 (W, H, L, LoadingPlanPlacementRotation.NoRotation),

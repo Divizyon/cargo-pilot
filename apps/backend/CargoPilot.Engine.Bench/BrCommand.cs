@@ -19,14 +19,11 @@ public static class BrCommand
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var mode = options.BrOrientation;
         var sets = options.BrSet > 0 ? [options.BrSet] : new[] { 1, 2, 3, 4, 5, 6, 7 };
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"BR · sequencer {options.Sequencer} · yonelim {mode}"));
-        Console.WriteLine(mode == BrCorpus.OrientationMode.Strict
-            ? "belirsiz yonelim kisitli okundu: sonuc BR'nin ALT siniri"
-            : "belirsiz yonelim serbest okundu: sonuc BR'nin UST siniri");
+            $"BR · sequencer {options.Sequencer} · yonelim strict"));
+        Console.WriteLine("uc yonelim bayragi da birebir eslendi (DR-42)");
         Console.WriteLine();
         Console.WriteLine("kume  ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  medyan ms");
 
@@ -37,10 +34,11 @@ public static class BrCommand
         var shape = new List<CorpusDiagnostics.Shape>();
         var support = new List<SupportDiagnostics.Distribution>();
         var maximality = new List<MaximalityDiagnostics.Report>();
+        var walls = new List<WallDiagnostics.Report>();
 
         foreach (var set in sets)
         {
-            var instances = BrCorpus.Load(set, mode);
+            var instances = BrCorpus.Load(set);
             var limit = options.MaxScenarios > 0 ? Math.Min(options.MaxScenarios, instances.Count) : instances.Count;
 
             var fills = new List<decimal>(limit);
@@ -69,16 +67,18 @@ public static class BrCommand
                 shape.Add(CorpusDiagnostics.Analyze(input));
                 support.Add(SupportDiagnostics.Analyze(input, result));
                 maximality.Add(MaximalityDiagnostics.Analyze(input, result));
+                walls.Add(WallDiagnostics.Analyze(input, result));
             }
 
             if (options.Verbose)
             {
-                WriteDiagnostics(set, waste, spaces, shape, support, maximality);
+                WriteDiagnostics(set, waste, spaces, shape, support, maximality, walls);
                 waste.Clear();
                 spaces.Clear();
                 shape.Clear();
                 support.Clear();
                 maximality.Clear();
+                walls.Clear();
             }
 
             all.AddRange(fills);
@@ -98,7 +98,7 @@ public static class BrCommand
         var report = new BrBaseline.Report(
             "WallBuilder",
             options.Sequencer.ToString(),
-            mode.ToString(),
+            "Strict",
             Math.Round(Mean(all), 2),
             setResults);
 
@@ -121,7 +121,8 @@ public static class BrCommand
         List<SpaceDiagnostics.Spaces> spaces,
         List<CorpusDiagnostics.Shape> shape,
         List<SupportDiagnostics.Distribution> support,
-        List<MaximalityDiagnostics.Report> maximality)
+        List<MaximalityDiagnostics.Report> maximality,
+        List<WallDiagnostics.Report> walls)
     {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"      BR{set} teshis · olu hava %{waste.Average(w => w.DeadAirPercent):F1}" +
@@ -144,6 +145,16 @@ public static class BrCommand
             $"           MAKSIMAL OLMAYAN bosluk %{maximality.Average(m => m.NonMaximalSharePercent):F1}" +
             $" · ortalama buyume %{maximality.Average(m => m.MeanGrowthPercent):F1}" +
             $" · azami buyume %{maximality.Average(m => m.MaxGrowthPercent):F0}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           DUVAR {walls.Average(w => w.WallCount):F1} adet"
+            + $" · derinlik {walls.Average(w => w.MeanWallDepthCm):F0} cm"
+            + $" · kutu/duvar {walls.Average(w => w.MeanBoxesPerWall):F1}"
+            + $" · YUZ KAPLAMA ort %{walls.Average(w => w.MeanFaceCoveragePercent):F1}"
+            + $" · en dusuk %{walls.Average(w => w.MinFaceCoveragePercent):F1}"
+            + $" · %95 alti duvar %{walls.Average(w => w.WallsBelowThresholdPercent):F0}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           olu hava ayrismasi · bos sutun (kenar seridi) %{walls.Average(w => w.DeadAirInEmptyColumnsPercent):F1}"
+            + $" · tavan artigi %{walls.Average(w => w.DeadAirAbovePilePercent):F1}"));
     }
 
     private static decimal Mean(List<decimal> values)

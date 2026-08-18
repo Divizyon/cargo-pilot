@@ -43,7 +43,10 @@ loading", *Omega* 23(4), 1995, 377-390.
 
 ## Bizim modelimize eşleme
 
-`AllowedRotations` enum'u "hangi ölçü dikey durabilir" kısıtını iki durumda birebir karşılıyor,
-bir durumda karşılamıyor — ayrıntı ve gerekçe [BrCorpus.cs](../BrCorpus.cs) içinde. Bu yüzden
-`br` komutu iki uç raporlar: `--orientation strict` alt sınır, `--orientation free` üst sınır.
-Gerçek BR değeri ikisinin arasındadır ve **hangi ucun ölçüldüğü belirtilmeden sayı anlamsızdır**.
+`AllowedRotations` enum'u "hangi ölçü dikey durabilir" kısıtını **üç düzende de birebir**
+karşılıyor — ayrıntı ve gerekçe [BrCorpus.cs](../BrCorpus.cs) içinde. `011` düzeni için
+`NoVerticalWidth` değeri eklendi (`DR-42`); öncesinde `PitchOnly`'ye düşürülüyor ve dört yasal
+yönelimin ikisi kayboluyordu.
+
+Eşleme birebir olduğu için tek bir sayı vardır. Eski `--orientation strict | free` bayrağı
+kaldırıldı: `free` ucu artık fiziksel olarak yasak yerleşimleri sayardı.
