@@ -1,0 +1,147 @@
+name: Cache Seed (nightly)
+
+# D-06: Default branch'te (`main`) hiçbir workflow docker build cache'i yazmıyordu.
+# GHA cache okuma kapsamı = kendi ref'i + PR base ref'i + DEFAULT BRANCH. `main`'de
+# cache olmadığı için iş branch'i push'larındaki `cache-from` her seferinde soğuk
+# başlıyordu (ölçüm 2026-08-18: frontend imajı 52–54 sn tam soğuk build).
+#
+# Bu job schedule ile koştuğu için GitHub onu her zaman default branch ref'inde
+# (`refs/heads/main`) çalıştırır; yazılan cache girişleri de o ref'e düşer ve böylece
+# TÜM branch'lerden okunabilir hâle gelir. Ağaç ise `dev`'den checkout edilir: `main`
+# haftada bir terfi ediliyor, `dev` ise iş branch'lerinin gerçek atası.
+#
+# Neden yalnız frontend?
+#   - `apps/frontend/Dockerfile` ayrı bir `deps` stage'inde `npm ci` çalıştırıyor ve
+#     bu katman yalnızca `package*.json` değişince geçersiz oluyor → çapraz-commit
+#     yeniden kullanım değeri yüksek. Frontend scope'ları `mode=max` yazdığı için
+#     (ADR-0007) bu ara katman cache'e gerçekten export ediliyor.
+#   - Backend scope'ları `mode=min` (ADR-0007 kararı). `mode=min` ara stage
+#     katmanlarını export etmez, dolayısıyla backend'i seed etmenin çapraz-commit
+#     değeri ~0 olur — sadece byte ve runner dakikası harcar. Backend'in restore
+#     katmanı #1044 sonrası ayrılabilir hâle geldi; bunu değerlendirmek ADR-0007'nin
+#     revizyonuna bağlı ve bu PR'ın kapsamı dışında.
+#
+# Kota aritmetiği (10 GiB limit, ölçüm 2026-08-18: 278 giriş / 7,78 GiB = %78):
+#   - Tek frontend `mode=max` generation'ı ≈ 250–300 MiB (TAHMİN).
+#   - İlk adım `main` üzerindeki önceki generation'ı siler → kararlı durumda `main`'de
+#     tek generation durur, birikme olmaz. Beklenen kararlı durum ≈ 8,07 GiB (%81).
+#   - Güvenlik valfi: temizlik sonrası kullanım 9 GiB'ı geçiyorsa build atlanır;
+#     seed hiçbir koşulda başka scope'ları tahliye ettirmez.
+#   - `cache-cleanup.yml` 04:35 UTC'de koşuyor; seed 05:10'da, yani temizlikten SONRA.
+#     Nightly olduğu için seed girişleri `MAX_AGE_DAYS=7` yaş kuralına hiç yakalanmaz;
+#     boyut adımı ise `refs/heads/main`'i koruyor.
+
+on:
+  schedule:
+    # cache-cleanup.yml 04:35 UTC'de başlıyor (timeout 10 dk); seed onun ardından.
+    - cron: '10 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cache-seed
+  cancel-in-progress: false
+
+jobs:
+  seed-frontend-cache:
+    name: Frontend Build Cache Seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      # Önceki generation silinmeden yazılırsa `main` her gece bir generation daha
+      # biriktirir ve boyut adımı `main`'i koruduğu için hiç tahliye edilmez.
+      # Yalnız buildkit girişleri silinir; CodeQL ve setup-node cache'lerine
+      # dokunulmaz (farklı key prefix'leri).
+      - name: Önceki seed generation'ını sil (refs/heads/main)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          CACHE_IDS=$(gh api \
+            --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${REPO}/actions/caches?ref=refs%2Fheads%2Fmain&per_page=100" \
+            --jq '.actions_caches[] | select(.key | startswith("buildkit-blob") or startswith("index-")) | .id' \
+            2>/dev/null || true)
+
+          DELETED=0
+          for ID in ${CACHE_IDS}; do
+            if gh api --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${REPO}/actions/caches/${ID}" > /dev/null 2>&1; then
+              DELETED=$((DELETED + 1))
+            else
+              echo "Atlandı: cache #${ID} (silinemedi, devam ediliyor)"
+            fi
+          done
+          echo "Önceki generation temizlendi: ${DELETED} giriş silindi."
+
+      - name: Kota güvenlik valfi
+        id: quota
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          # 10 GiB kotanın altında 1 GiB manevra payı bırakılır.
+          SEED_ABORT_BYTES: '9663676416' # 9 GiB
+        run: |
+          USAGE=$(gh api "/repos/${REPO}/actions/cache/usage" --jq '.active_caches_size_in_bytes')
+          echo "Temizlik sonrası cache kullanımı: ${USAGE} bayt (eşik: ${SEED_ABORT_BYTES})"
+          if [ "${USAGE}" -ge "${SEED_ABORT_BYTES}" ]; then
+            echo "::warning::Cache kullanımı ${USAGE} bayt — seed atlandı, başka scope'lar tahliye edilmesin."
+            echo "seed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "seed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Cache girişleri workflow'un ref'ine (refs/heads/main) yazılır; checkout
+      # edilen ağaç bunu değiştirmez. `dev` seçilir çünkü iş branch'leri ondan
+      # ayrılıyor, `main` ise haftada bir terfi alıyor.
+      - name: Kodu al (dev ağacı)
+        if: steps.quota.outputs.seed == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dev
+          persist-credentials: false
+
+      - name: Docker Buildx kur
+        if: steps.quota.outputs.seed == 'true'
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      # Tek build, iki `cache-to` hedefi. BuildKit blob'ları içerik adresli olduğu
+      # için aynı ref'e yazılan iki scope aynı blob girişlerini paylaşır; ek maliyet
+      # yalnızca birkaç KiB'lik `index-<scope>` girişidir. Modlar tüketicilerle
+      # birebir aynı (`mode=max`) — ADR-0007 kararına dokunulmuyor.
+      # build-args test-deploy.yml'deki `build` job'u ile hizalı; `deps` stage'i
+      # (asıl kazanç) bu argümanlardan etkilenmiyor.
+      - name: Frontend image build (yalnız cache yaz)
+        if: steps.quota.outputs.seed == 'true'
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          push: false
+          build-args: |
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_OAUTH_GOOGLE_URL=${{ secrets.VITE_OAUTH_GOOGLE_URL }}
+            VITE_OAUTH_MICROSOFT_URL=${{ secrets.VITE_OAUTH_MICROSOFT_URL }}
+            VITE_APP_ENV=test
+          cache-from: type=gha,scope=frontend-test
+          cache-to: |
+            type=gha,mode=max,scope=frontend-test
+            type=gha,mode=max,scope=cargo-pilot-frontend-ci
+
+      - name: Kota raporu
+        if: always() && steps.quota.outputs.seed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          USAGE=$(gh api "/repos/${REPO}/actions/cache/usage" --jq '.active_caches_size_in_bytes')
+          COUNT=$(gh api "/repos/${REPO}/actions/cache/usage" --jq '.active_caches_count')
+          echo "Seed sonrası: ${COUNT} giriş / ${USAGE} bayt (10 GiB kotanın $((USAGE * 100 / 10737418240))%'i)"

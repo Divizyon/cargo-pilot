@@ -193,7 +193,6 @@ jobs:
     name: Docker Image Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [frontend-ci, backend-ci]
     permissions:
       contents: read
       packages: read
@@ -201,6 +200,11 @@ jobs:
     # burada yalnızca ilk kapıda (dev PR'ı) koşar; iş branch'i push'ları test-deploy.yml'in
     # Deploy (Test) job'unda zaten build edildiği için burada tekrar edilmiyor.
     if: github.event_name == 'pull_request' && github.base_ref == 'dev'
+    # D-12: `needs: [frontend-ci, backend-ci]` kaldırıldı. Docker build bu job'ların
+    # çıktısını (artifact, output, cache) kullanmıyor; kendi context'ini kendi build
+    # ediyor. Zincir yalnızca ~2 dk boş bekleme üretiyordu (ölçüm: 4 dev PR koşumunda
+    # 109–132 sn). Kırık CI'da bu job artık boşa koşar; ölçülen bedel 4/41 PR koşumunda
+    # ~3,5 dk runner (beklenen ~0,4 dk/PR), kazanç her PR'da ~2 dk duvar saati.
 
     steps:
       - name: Kodu al
