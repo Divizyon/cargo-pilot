@@ -43,7 +43,14 @@ internal sealed class GetMySubscriptionQueryHandler
 
         if (userType == UserType.Individual)
         {
-            var subscriptionType = SubscriptionType.Free;
+            // Bireysel kullanıcının aboneliği de şirket kaydında tutulur; sabit Free
+            // varsaymak ücretli müşteriye yanlış kota gösterirdi (kota uygulaması
+            // CreateItem/CreateVehicle/CreatePlan ile aynı kaynağı okur).
+            var individualCompany = _currentUserService.CompanyId is { } individualCompanyId
+                ? await _companyRepository.GetByIdAsync(individualCompanyId, cancellationToken)
+                : null;
+            var subscriptionType = individualCompany?.SubscriptionType ?? SubscriptionType.Free;
+
             var maxItems = SubscriptionLimits.GetMaxItemCount(subscriptionType);
             var maxVehicles = SubscriptionLimits.GetMaxVehicleCount(subscriptionType);
             var maxPlans = SubscriptionLimits.GetMaxLoadingPlanCount(subscriptionType);
@@ -60,7 +67,7 @@ internal sealed class GetMySubscriptionQueryHandler
                 Math.Max(0, maxVehicles - currentVehicles),
                 maxPlans,
                 Math.Max(0, maxPlans - currentPlans),
-                TrialEndsAt: null));
+                individualCompany?.TrialEndsAt));
         }
 
         var companyId = _currentUserService.CompanyId;

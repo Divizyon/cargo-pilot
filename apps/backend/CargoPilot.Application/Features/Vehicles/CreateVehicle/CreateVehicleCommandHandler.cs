@@ -13,14 +13,17 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
     private readonly IVehicleRepository _vehicleRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
+    private readonly ICompanyRepository _companyRepository;
 
     public CreateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
         ICurrentUserService currentUserService,
-        INotificationService notificationService) {
+        INotificationService notificationService,
+        ICompanyRepository companyRepository) {
         _vehicleRepository = vehicleRepository;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
+        _companyRepository = companyRepository;
     }
 
     public async Task<Result<Guid>> Handle(CreateVehicleCommand request, CancellationToken cancellationToken) {
@@ -30,36 +33,9 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
 
         var companyId = _currentUserService.CompanyId;
 
-        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } userId)
-        {
-            var currentCount = await _vehicleRepository.CountByUserAsync(userId, cancellationToken);
-            var maxCount = SubscriptionLimits.GetMaxVehicleCount(SubscriptionType.Free);
-            if (currentCount >= maxCount)
-            {
-                await _notificationService.CreateAsync(
-                    userId: userId,
-                    companyId: companyId,
-                    type: NotificationType.UsageLimitReached,
-                    title: "Araç Kotası Doldu",
-                    description: $"Maksimum araç sayısına ({maxCount}) ulaştınız. Daha fazla araç eklemek için planınızı yükseltin.",
-                    cancellationToken: cancellationToken);
-                return Result<Guid>.Failure(
-                    new Error(ErrorType.BusinessRule, "Vehicle.LimitExceeded",
-                        "Abonelik planı kapsamındaki maksimum araç sayısına ulaşıldı."));
-            }
-
-            var warningThreshold = (int)(maxCount * 0.8);
-            if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount)
-            {
-                await _notificationService.CreateAsync(
-                    userId: userId,
-                    companyId: companyId,
-                    type: NotificationType.UsageLimitWarning,
-                    title: "Araç Kotası Dolmak Üzere",
-                    description: $"Araç kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
-                    cancellationToken: cancellationToken);
-            }
-        }
+        var quotaError = await EnforceVehicleQuotaAsync(companyId, cancellationToken);
+        if (quotaError is not null)
+            return Result<Guid>.Failure(quotaError);
 
         if (request.PlateNumber is not null) {
             var plateExists = await _vehicleRepository.ExistsByPlateNumberAsync(
@@ -107,5 +83,62 @@ public sealed class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleC
         await _vehicleRepository.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(vehicle.Id);
+    }
+
+    /// <summary>
+    /// Araç kotasını kullanıcının gerçek abonelik tipine göre uygular.
+    /// Kota aşıldıysa hata döner, aşılmadıysa null döner.
+    /// </summary>
+    private async Task<Error?> EnforceVehicleQuotaAsync(Guid? companyId, CancellationToken cancellationToken) {
+        var userType = _currentUserService.UserType;
+        if (!IsQuotaEnforced(userType) || _currentUserService.UserId is not { } userId)
+            return null;
+
+        var subscriptionType = await ResolveSubscriptionTypeAsync(companyId, cancellationToken);
+        var maxCount = SubscriptionLimits.GetMaxVehicleCount(subscriptionType);
+
+        // Bireysel kullanıcının kotası kendi araçlarıyla, kurumsal kullanıcınınki
+        // şirketin tüm araçlarıyla ölçülür (GetMySubscription ile aynı).
+        var currentCount = userType == UserType.Individual || companyId is not { } quotaCompanyId
+            ? await _vehicleRepository.CountByUserAsync(userId, cancellationToken)
+            : await _vehicleRepository.CountByCompanyAsync(quotaCompanyId, cancellationToken);
+
+        if (currentCount >= maxCount) {
+            await _notificationService.CreateAsync(
+                userId: userId,
+                companyId: companyId,
+                type: NotificationType.UsageLimitReached,
+                title: "Araç Kotası Doldu",
+                description: $"Maksimum araç sayısına ({maxCount}) ulaştınız. Daha fazla araç eklemek için planınızı yükseltin.",
+                cancellationToken: cancellationToken);
+            return new Error(ErrorType.BusinessRule, "Vehicle.LimitExceeded",
+                "Abonelik planı kapsamındaki maksimum araç sayısına ulaşıldı.");
+        }
+
+        var warningThreshold = (int)(maxCount * 0.8);
+        if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount) {
+            await _notificationService.CreateAsync(
+                userId: userId,
+                companyId: companyId,
+                type: NotificationType.UsageLimitWarning,
+                title: "Araç Kotası Dolmak Üzere",
+                description: $"Araç kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
+                cancellationToken: cancellationToken);
+        }
+
+        return null;
+    }
+
+    /// <summary>SuperAdmin platform rolüdür; müşteri kotasına tabi değildir.</summary>
+    private static bool IsQuotaEnforced(UserType? userType) =>
+        userType is UserType.Individual or UserType.CompanyAdmin or UserType.CompanyWorker;
+
+    /// <summary>Abonelik tipi şirket kaydında tutulur; kayıt yoksa güvenli varsayılan Free'dir.</summary>
+    private async Task<SubscriptionType> ResolveSubscriptionTypeAsync(Guid? companyId, CancellationToken cancellationToken) {
+        if (companyId is not { } id)
+            return SubscriptionType.Free;
+
+        var company = await _companyRepository.GetByIdAsync(id, cancellationToken);
+        return company?.SubscriptionType ?? SubscriptionType.Free;
     }
 }
