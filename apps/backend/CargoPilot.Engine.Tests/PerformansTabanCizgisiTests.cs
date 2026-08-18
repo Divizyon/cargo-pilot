@@ -11,8 +11,8 @@ namespace CargoPilot.Engine.Tests;
 /// Motorun 500 kutuluk deterministik bir girdideki çalışma süresini ölçer.
 /// Amaç kıyaslama değil, taban çizgisi kaydıdır: modülerleşme adımlarının
 /// öncesi/sonrası aynı senaryoda karşılaştırılabilsin diye süre konsola yazılır.
-/// Eşik CI makinesine göre değişkenlik gösterdiği için dar tutulmaz; yalnızca
-/// sonsuz döngü / patlayan karmaşıklık fark edilsin diye üst sınır konur.
+/// Eşik kriter başınadır ve ölçülmüş taban çizgisinden türetilir; yalnızca üst
+/// sınırdır, motor hızlanırsa test geçmeye devam eder.
 /// </summary>
 public sealed class PerformansTabanCizgisiTests
 {
@@ -22,8 +22,47 @@ public sealed class PerformansTabanCizgisiTests
     /// <summary>Farklı geometri ve rotasyon serbestliği üreten ürün tipi sayısı.</summary>
     private const int TypeCount = 10;
 
-    /// <summary>Yalnızca kilitlenme/patlama tespiti içindir, performans hedefi değildir.</summary>
-    private static readonly TimeSpan UpperBound = TimeSpan.FromSeconds(120);
+    /// <summary>
+    /// Ölçülmüş taban çizgisinin kaç katına kadar yavaşlamaya izin verildiği.
+    /// 2,0 şu iki payın çarpımıdır: CI koşucusu (ubuntu-latest, 4 vCPU) ölçümün
+    /// alındığı geliştirici makinesinden belirgin şekilde yavaştır (~1,5 kat), ve
+    /// paylaşımlı koşucuda gündelik gürültü için üstüne pay bırakılır (~1,3 kat).
+    /// Daha darı CI'da rastgele kırmızı yakar ve insanlar testi görmezden gelmeye başlar.
+    /// Buna karşılık 2,0 eski ortak 120 sn sınırından çok daha sıkıdır: o sınır
+    /// WeightBalance'ta yaşanan 2,6 katlık regresyonu (11,4 sn → 30,05 sn) kaçırmıştı,
+    /// bu eşik 2 katı aşan bir yavaşlamayı yakalar.
+    /// </summary>
+    private const double CiToleransCarpani = 2.0;
+
+    /// <summary>
+    /// Kriter başına ölçülmüş taban çizgisi — üst eşik bunun
+    /// <see cref="CiToleransCarpani"/> katıdır.
+    ///
+    /// Ölçüm tarihi: 2026-08-18.
+    /// Ortam: Apple M3 Max (14 çekirdek), macOS 26.6.1 arm64, .NET SDK 8.0.419.
+    /// Yöntem: <c>dotnet test CargoPilot.Engine.Tests --filter
+    /// FullyQualifiedName~PerformansTabanCizgisi</c>, iki ardışık koşu, %1'den az sapma.
+    ///
+    /// Debug (varsayılan yerel koşu)   → VolumeFirst 9.957/9.958 ms ·
+    ///   WeightBalance 29.075/29.002 ms · Lifo 8.148/8.106 ms
+    /// Release (CI'ın kullandığı yapı) → VolumeFirst 5.271 ms ·
+    ///   WeightBalance 18.371 ms · Lifo 4.073 ms
+    ///
+    /// Taban çizgisi bilinçli olarak Debug ölçümüdür: iki yapıdan yavaş olanı ve
+    /// geliştiricinin yerelde çalıştırdığı varsayılan yapı odur. CI Release koştuğu
+    /// için orada zaten ek pay bulunur.
+    ///
+    /// NOT: Bu değerler bugünkü — regresyonlu — durumu kaydeder. WeightBalance'ın
+    /// 11,4 sn'ye çekilmesi F2-01'in işidir; eşik yalnızca üst sınır olduğu için
+    /// o düzeltme geldiğinde bu test kırılmaz, yalnızca taban çizgisi güncellenir.
+    /// </summary>
+    private static readonly Dictionary<LoadingPlanOptimizationCriteria, TimeSpan> OlculenTabanCizgisi =
+        new()
+        {
+            [LoadingPlanOptimizationCriteria.VolumeFirst] = TimeSpan.FromMilliseconds(9_957),
+            [LoadingPlanOptimizationCriteria.WeightBalance] = TimeSpan.FromMilliseconds(29_075),
+            [LoadingPlanOptimizationCriteria.Lifo] = TimeSpan.FromMilliseconds(8_148),
+        };
 
     private readonly ITestOutputHelper _output;
 
@@ -56,9 +95,24 @@ public sealed class PerformansTabanCizgisiTests
         _output.WriteLine(line);
         Console.WriteLine(line);
 
+        var baseline = OlculenTabanCizgisi[criteria];
+        var upperBound = baseline * CiToleransCarpani;
+
         Assert.True(
-            stopwatch.Elapsed < UpperBound,
-            $"{criteria} 500 kutuda {stopwatch.Elapsed.TotalSeconds:F1} sn sürdü, üst sınır {UpperBound.TotalSeconds:F0} sn.");
+            stopwatch.Elapsed < upperBound,
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "{0} kriteri {1} kutuda {2:F1} sn sürdü; üst eşik {3:F1} sn. "
+                    + "2026-08-18 taban çizgisi {4:F1} sn, izin verilen çarpan {5:F1}x — "
+                    + "ölçülen süre taban çizgisinin {6:F1} katı. Performans regresyonu olabilir; "
+                    + "yavaşlamanın nedeni bulunmadan eşiği yükseltmeyin.",
+                criteria,
+                BoxCount,
+                stopwatch.Elapsed.TotalSeconds,
+                upperBound.TotalSeconds,
+                baseline.TotalSeconds,
+                CiToleransCarpani,
+                stopwatch.Elapsed.TotalSeconds / baseline.TotalSeconds));
     }
 
     /// <summary>
