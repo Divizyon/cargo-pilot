@@ -142,9 +142,15 @@ services:
       - cargo-pilot-prod
 
   minio:
-    # DEP-01: 2022-01-08 sürümü CVE-2023-28432/28434, CVE-2024-24747 ve
-    # CVE-2022-31028'e açıktı. 2024-01-31 sürümü bunların tamamının sonrasında.
-    image: quay.io/minio/minio:RELEASE.2024-01-31T20-20-33Z
+    # DEP-01 GERI ALINDI (2026-08-19): 2024-01-31 sürümü denendi ve test
+    # sunucusunu düşürdü — mevcut minio volume'ü eski tek-disk FS formatında,
+    # 2022-10 sonrası sürümler bu formatın desteğini kaldırdı; container
+    # açılışta çöküyor (test-deploy run 32183514573). CVE'ler (CVE-2023-28432/
+    # 28434, CVE-2024-24747, CVE-2022-31028) bilinçli olarak açık kalıyor;
+    # kalıcı çözüm veri migrasyonu ister (eski sürümden yeni instance'a
+    # `mc mirror`) ve devops-backlog'a kayıtlıdır. Dependabot bu image'ı
+    # önermesin diye .github/dependabot.yml'de ignore kuralı var.
+    image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     platform: linux/amd64
     container_name: cargo-pilot-minio-prod
     mem_limit: 512m
@@ -158,9 +164,9 @@ services:
     volumes:
       - minio_data_prod:/data
     healthcheck:
-      # 2024-01-31 image'ında curl/wget YOK (yalnızca mc bulunuyor);
-      # eski curl tabanlı healthcheck bu sürümde her zaman unhealthy verirdi.
-      test: ["CMD", "mc", "ready", "local"]
+      # 2022-01-08 image'ında curl VAR; mc tabanlı `mc ready` bu eski sürümde
+      # yok, bu yüzden curl tabanlı probe kullanılır.
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 20s
       timeout: 10s
       retries: 10
