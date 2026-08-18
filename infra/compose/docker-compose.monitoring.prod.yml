@@ -30,6 +30,11 @@ services:
       - ../docker/promtail/promtail.prod.yml:/etc/promtail/config.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # D-45: positions.yaml kalıcı olmalı; aksi halde her restart'ta okuma
+      # pozisyonu sıfırlanıp mevcut log dosyaları Loki'ye yeniden gönderiliyor.
+      # Named volume yerine bind mount: üst düzey `volumes:` bloğu monitoring
+      # yığınının diğer servisleriyle paylaşılıyor, burada ona dokunulmuyor.
+      - /var/lib/cargo-pilot/promtail-prod:/var/lib/promtail
     # D-49: promtail imajinda wget/curl/nc yok (debian-slim, minimal). Mevcut olan
     # bash ile /ready ucuna TCP+HTTP isteği atiliyor.
     healthcheck:
