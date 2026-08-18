@@ -15,7 +15,7 @@ dosyalarla karşılaştırır ve gerilemede durur.
 | Referans | Yapılandırma | BR1-BR7 ortalaması |
 |---|---|---|
 | `br-greedy-static.json` | Greedy · Static · Strict | %75,23 |
-| `br-wallbuilder-static.json` | WallBuilder · Static · Strict | %79,86 |
+| `br-wallbuilder-static.json` | WallBuilder · Static · Strict | %80,09 |
 
 700 örnek (7 küme × 100), konteyner 587×233×220 cm. Veri ve biçim:
 [apps/backend/CargoPilot.Engine.Bench/data](../../apps/backend/CargoPilot.Engine.Bench/data/README.md).
