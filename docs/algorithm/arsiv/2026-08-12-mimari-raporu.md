@@ -2,7 +2,7 @@
 
 > **Arşiv — dondurulmuş belge.** 12 Ağustos 2026'da yazıldı (PR #935 → #936 → #937).
 > Bugünkü klasör mimarisini kuran modülerleştirmenin kaynağıdır ve
-> [ADR-0001](../adr/0001-yerlestirme-algoritmasi.md) buna atıf verir.
+> [ADR-0010](../../adr/ADR-0010-duvar-orucu-ve-arama-katmani.md) buna atıf verir.
 > **Sayıları bayattır** — o tarihte duvar örücü de arama katmanı da yoktu, greedy koşuyordu.
 > Güncel dosya haritası [01-kurallar.md §A1](../01-kurallar.md)'dedir. Düzenlenmez.
 

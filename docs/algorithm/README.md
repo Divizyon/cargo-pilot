@@ -9,7 +9,7 @@ hepsi 18 Ağustos 2026'da buraya taşındı ve içerikleri birebir korundu.
 |---|---|
 | Raporlardaki terimler ne demek | [00-sozluk.md](00-sozluk.md) |
 | Motor bugün nasıl çalışıyor, neye dokunulamaz | [01-kurallar.md](01-kurallar.md) |
-| Bir şey neden böyle | [02-kararlar.md](02-kararlar.md) · [adr/](adr/) |
+| Bir şey neden böyle | [02-kararlar.md](02-kararlar.md) · [ADR-0010](../adr/ADR-0010-duvar-orucu-ve-arama-katmani.md) |
 | Sırada ne var | [03-yol-haritasi.md](03-yol-haritasi.md) |
 | Bu fikir denendi mi, kaç puan getirdi | [04-olcum-gunlugu.md](04-olcum-gunlugu.md) |
 | Bugün ne kadar iyiyiz | [05-basari-karnesi.md](05-basari-karnesi.md) |
@@ -32,7 +32,6 @@ yeniden adlandırılmazlar; doldurulmaya devam edilir.
 
 | Klasör | İçerik | Kural |
 |---|---|---|
-| [adr/](adr/) | Mimari karar kayıtları, numaralı | Bir karar yazıldıktan sonra **değiştirilmez**; ters karar yeni bir ADR açar |
 | [arastirma/](arastirma/) | Dış araştırma brifingleri ve yanıtları, tarihli | Geldiği gibi durur, düzenlenmez |
 | [arsiv/](arsiv/) | Dondurulmuş tarihsel belgeler | **Asla düzenlenmez.** Sayıları bayattır |
 | [notlar/](notlar/) | Geçici, tek kullanımlık notlar | Serbest. Kalıcı olması gereken bilgi buradan yukarı taşınır |
@@ -47,7 +46,7 @@ Bir deneme yaptım, ölçtüm
   ├─ Bağlayıcı bir kural doğdu mu → 01-kurallar.md  (yeni R-)
   ├─ Güncel sayı değişti mi → 05-basari-karnesi.md  (üzerine yaz)
   ├─ Yeni terim kullandım mı → 00-sozluk.md
-  └─ Mimariyi değiştiren büyük bir karar mı → adr/ altında yeni numaralı dosya
+  └─ Mimariyi değiştiren büyük bir karar mı → docs/adr/ altında yeni ADR (kural: docs/conventions/adr.md)
 ```
 
 Kararsızsan: **04'e yaz.** Ölçüm günlüğü hiçbir zaman yanlış hedef değildir.
@@ -58,6 +57,8 @@ Kaynak dosyalardaki yorumlar kural ve karar kimliklerine (`R-C02`, `DR-39`, `OPT
 Bir kimlik yeniden numaralandırılmaz — kayıt yanlışsa satırı düzelt, kimliği koru.
 
 ## İlgili belgeler
+
+- [`docs/adr/ADR-0010`](../adr/ADR-0010-duvar-orucu-ve-arama-katmani.md) — duvar örücü ve arama katmanı kararı; ADR'ler tek dizide, [`docs/conventions/adr.md`](../conventions/adr.md) kuralına göre
 
 - [`docs/COORDINATE_STANDARD.md`](../COORDINATE_STANDARD.md) — koordinat sözleşmesi (çelişkide **bu kazanır**)
 - [`apps/backend/CargoPilot.Engine.Bench/data/README.md`](../../apps/backend/CargoPilot.Engine.Bench/data/README.md) — BR veri biçimi

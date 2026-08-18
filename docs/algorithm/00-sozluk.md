@@ -36,7 +36,7 @@ tersine çevirebilir: kule inşası giyotin korpusunda +0,07, BR1-BR7'de +2,03 p
 | **Kule inşası** (tower/column building) | Gehring & Bortfeldt 1997. Aynı üründen kutuları önce dikey sütun yapıp sütunu duvara koyma. Tabanı katılaştırır. |
 | **Blok inşası** (block building) | Eley 2002. Aynı üründen `nx × ny × nz` prizma örüp tek parça gibi yerleştirme. |
 | **Bileşik blok** (composite block) | Zhu, Oon, Lim & Weng 2012. Sütunun tepesinde kalan yüksekliği **başka bir ürünle** tamamlama. |
-| **Greedy** | Her kutu için o an en iyi görünen yeri seçip geri dönmeyen eski yerleştirici. `DR-39` ile **tamamen kaldırıldı**; ölçümleri [ADR-0001](adr/0001-yerlestirme-algoritmasi.md)'de saklıdır. |
+| **Greedy** | Her kutu için o an en iyi görünen yeri seçip geri dönmeyen eski yerleştirici. `DR-39` ile **tamamen kaldırıldı**; ölçümleri [ADR-0010](../adr/ADR-0010-duvar-orucu-ve-arama-katmani.md)'de saklıdır. |
 | **Aday nokta / extreme point** | Bir kutunun konabileceği köşe adayları. |
 | **Maximal space / boşluk defteri** | Kalan boş hacmi, başka boşlukla genişletilemeyen prizmalar listesi olarak tutan yapı (`SpaceLedger`). **Amalgamation** = bu prizmaları birleştirme; ölçüldü, bizim temsilimizde anlamsız çıktı (maksimal olmayan boşluk oranı %0,0). **Containment pruning** = bir boşluğu tamamen içeren başka boşluk varsa küçüğünü atma. |
 | **Sanal duvar** | LIFO grubu geçişinde konan `z` sınırı. |

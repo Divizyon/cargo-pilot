@@ -114,6 +114,7 @@ Kökte yalnızca konvansiyonel dosyalar durur. `devops-audit-raporu.md` 2026-08-
 ## docs/algorithm
 
 Yerleştirme motorunun tüm belgeleri. Kalıcı altı dosya + dört klasör; giriş [`README.md`](../algorithm/README.md).
+ADR'ler proje geneli dizide: [`docs/adr/ADR-0010`](../adr/ADR-0010-duvar-orucu-ve-arama-katmani.md).
 
 | Dosya | Satır | Özet | Şu soruda aç |
 |-------|------:|------|--------------|
@@ -126,7 +127,6 @@ Yerleştirme motorunun tüm belgeleri. Kalıcı altı dosya + dört klasör; gir
 
 | Klasör | İçerik | Kural |
 |---|---|---|
-| `adr/` | Numaralı mimari karar kayıtları (bugün 1 tane: duvar örücü + arama katmanı) | Yazıldıktan sonra değiştirilmez |
 | `arastirma/` | Dış araştırma brifingi (17 Ağu) ve iki yanıt (ölü hava · blok arama) | Geldiği gibi durur |
 | `arsiv/` | 7 dondurulmuş tarihsel belge (2026-08-04 → 08-16) | **Asla düzenlenmez**, sayıları bayat |
 | `notlar/` | Geçici, tek kullanımlık notlar | Kalıcı bilgi yukarı taşınır; buraya atıf verilmez |

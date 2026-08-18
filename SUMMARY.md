@@ -29,6 +29,7 @@
 * [ADR-0007 — Docker Build Cache Asimetrisi](docs/adr/ADR-0007-docker-build-cache-asimetrisi.md)
 * [ADR-0008 — SHA Pinleme Sürüm Yükseltmesinden Ayrılır](docs/adr/ADR-0008-sha-pinleme-surum-yukseltmeden-ayri.md)
 * [ADR-0009 — Otomatik Geri Alma Sessizce Başarılı Dönmez](docs/adr/ADR-0009-otomatik-geri-alma-sessizce-basarili-donmez.md)
+* [ADR-0010 — Duvar Örücü ve Arama Katmanı](docs/adr/ADR-0010-duvar-orucu-ve-arama-katmani.md)
 
 ## 🛠️ DevOps
 

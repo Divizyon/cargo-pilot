@@ -2,7 +2,7 @@
 
 **Kalıcı dosya. Üzerine yazılır — geçmiş burada tutulmaz.** Bu dosya *bugün nerede olduğumuzu*
 söyler. "Nasıl buraya geldik" [04-olcum-gunlugu.md](04-olcum-gunlugu.md)'de, "neden böyle karar
-verdik" [02-kararlar.md](02-kararlar.md) ve [ADR-0001](adr/0001-yerlestirme-algoritmasi.md)'de
+verdik" [02-kararlar.md](02-kararlar.md) ve [ADR-0010](../adr/ADR-0010-duvar-orucu-ve-arama-katmani.md)'de
 durur.
 
 Terimler için [00-sozluk.md](00-sozluk.md). Bir sayıyı buraya yazmadan önce hangi **yerleştirici ·

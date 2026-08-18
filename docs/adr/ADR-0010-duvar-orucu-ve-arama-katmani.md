@@ -1,11 +1,23 @@
-# ADR — Yerleştirme Algoritması: Duvar Örücü ve Arama Katmanı
+# ADR-0010 — Duvar Örücü ve Arama Katmanı: Greedy'nin Yerini Alması
 
-- **Durum:** Kabul edildi · **üretimde tek yerleştirici** (greedy kaldırıldı, `DR-39`)
+- **Durum:** Kabul edildi
 - **Tarih:** 2026-08-18
-- **Kapsam:** `WallBuilderPlacement`, `SequencerKind.Grasp`, `PlacementValidator`, `SpaceLedger`, `CargoPilot.Engine.Bench`
-- **Yerini aldığı:** yok · **Tamamladığı:** `docs/algorithm/03-yol-haritasi.md` F2-F5
-- **Ayrıntılı kayıtlar:** [04-olcum-gunlugu.md](../04-olcum-gunlugu.md) (ölçüm günlüğü) · [02-kararlar.md](../02-kararlar.md) (`DR-01`…`DR-41` karar kaydı) · [01-kurallar.md](../01-kurallar.md) (**§A1 güncel dosya haritası**)
-- **Güncel sayılar burada değil:** bu belgenin tabloları *karar anındaki* ölçümdür. Bugünkü karne → [05-basari-karnesi.md](../05-basari-karnesi.md)
+- **Kapsam:** F2-F5 fazları · `DR-12`…`DR-41` · **Etkilediği kod:** `CargoPilot.Application/Common/Optimization/` (`WallBuilder/`, `Search/`, `PlacementValidator.cs`, `OptimizationEngine.cs`), `CargoPilot.Engine.Bench/`
+- **Yerini aldığı:** [ADR-0003](ADR-0003-lifo-bolge-sert-kisiti.md), [ADR-0004](ADR-0004-denge-takasi-cift-yonlu-dogrulama.md) — ikisi de greedy yerleştiricinin mekanizmasını anlatıyordu ve o kod silindi (`DR-39`)
+- **İlgili:** [ADR-0002](ADR-0002-optimizasyon-motoru-modulerlestirme.md) (klasör mimarisinin kaynağı, geçerli) · [ADR-0005](ADR-0005-modul-bayraklari-disa-kapali.md) (ilkesi geçerli; bayrak sayısı 4'ten 2'ye indi, `UseVolume` ve `UseWeightBalance` silindi)
+- **Ayrıntılı kayıtlar:** [04-olcum-gunlugu.md](../algorithm/04-olcum-gunlugu.md) (ölçüm günlüğü) · [02-kararlar.md](../algorithm/02-kararlar.md) (`DR-01`…`DR-41`) · [01-kurallar.md](../algorithm/01-kurallar.md) (**§A1 güncel dosya haritası**) · [00-sozluk.md](../algorithm/00-sozluk.md) (terimler)
+- **Güncel sayılar burada değil:** aşağıdaki tablolar *karar anındaki* ölçümdür. Bugünkü karne → [05-basari-karnesi.md](../algorithm/05-basari-karnesi.md)
+
+## Yerini aldığı iki ADR — ne kaldı, ne gitti
+
+| | Kararın kendisi | Mekanizması | Bugün |
+|---|---|---|---|
+| **ADR-0003** — LIFO bölge sert kısıtı | ✅ Geçerli: bölge **sert** kısıttır, bölge içi aday varsa yalnız o kazanır | ❌ `ZoneOverflowPenaltyPerCm = 2000` ve greedy `ComputeScore`'un iki kademeli aday seçimi silindi | Duvar örücü bölgeyi `LifoPlacement.IsInsideZone` ile uyguluyor. Varsayılanı çevirirken **üç gerçek bölge ihlali** çıktı ve düzeltildi (`DR-40`) |
+| **ADR-0004** — Denge takasında çift yönlü doğrulama | ⚠️ Konusu kalktı: `BalanceScoring.ImproveBalance` takas geçişi yok | ❌ `BalanceScoring.cs` (220 satır) silindi; `othersA`/`othersB` bölmesi de | Yalnız 3. alt kararı yaşıyor: `ViolatesLoadAbove` **sekizinci sert kapı** olarak `PlacementValidator` ve `WallBuilderPlacement`'ta duruyor (`OPT-15`) |
+
+ADR-0004'ün 5. alt kararı — *"bu ADR olmasaydı düzeltme geri gelirdi"* — doğrulandı ama ters
+yönden: düzeltme geri gelmedi, **taşıdığı kural** duvar örücüye taşındı. Ağırlık dengesi
+optimizasyonu ise bilinçli olarak kaybedildi (aşağıda, kabul edilen gerileme).
 
 ---
 
@@ -112,7 +124,7 @@ greedy'ye üstünlüğü giyotinde +0,8, BR'de **+3,8** görünüyordu.
 
 **Sonuçları:**
 - OR-Library `thpack1..7` depoya alındı (700 örnek, kaynak ve atıf
-  [data/README.md](../../../apps/backend/CargoPilot.Engine.Bench/data/README.md)).
+  [data/README.md](../../apps/backend/CargoPilot.Engine.Bench/data/README.md)).
 - BR'nin yönelim kısıtını `AllowedRotations` tam karşılamıyor (tiplerin %37'si). Bu yüzden her sayı
   **iki uçla** raporlanır: `strict` alt sınır, `free` üst sınır (`DR-20`). Hangi ucun ölçüldüğü
   belirtilmeden sayı literatürle kıyaslanamaz.
@@ -209,14 +221,14 @@ Bölme biçimi arayüz/plugin değil, motorun doğrudan çağırdığı **statik
 döngüye tek bir dolaylı çağrı eklenmedi. Taşımadan önce davranışı kilitleyen 16 anlık görüntü
 testi yazıldı ve yedi geçiş adımının hiçbirinde biri bile kaymadı.
 
-Kaynak: [`arsiv/2026-08-12-mimari-raporu.md`](../arsiv/2026-08-12-mimari-raporu.md) satır 1-134 (*Mimari Raporu · Cargo Pilot Backend*).
+Kaynak: [`arsiv/2026-08-12-mimari-raporu.md`](../algorithm/arsiv/2026-08-12-mimari-raporu.md) satır 1-134 (*Mimari Raporu · Cargo Pilot Backend*).
 Aynı dosyanın 135-511 arası 15 Ağustos tarihli *Adli İnceleme*'dir (OPT-01/OPT-02 kök neden
 analizi).
 
 > **Bu tarihli bir belgedir, güncel değildir.** Yazıldığından beri sayılar değişti:
 > `OptimizationEngine.cs` 240 → 299 satır, `VolumeScoring.cs` 28 → 55, snapshot 16 → 17,
 > motor testi 33 → 115, ve duvar örücü ile arama katmanı eklendi. **Güncel dosya haritası
-> [`01-kurallar.md` §A1](../01-kurallar.md)'dedir.**
+> [`01-kurallar.md` §A1](../algorithm/01-kurallar.md)'dedir.**
 
 ### Bugünkü düzen
 
@@ -259,7 +271,7 @@ apps/backend/CargoPilot.Engine.Bench/            ← ölçüm düzeneği, ÜRETI
    tipine dönüp motorun **kendi** yüklemlerini çağırır; kural bozulursa teşhis de bozulur, sessizce
    doğru sonuç vermez.
 
-Ayrıntılı dosya-satır-rol tablosu: [`01-kurallar.md` §A1](../01-kurallar.md).
+Ayrıntılı dosya-satır-rol tablosu: [`01-kurallar.md` §A1](../algorithm/01-kurallar.md).
 
 ### 12 Ağustos raporunun bıraktığı borçlar — bugünkü durum
 
@@ -382,7 +394,7 @@ götürmeye gerek kalmadı.
 
 ---
 
-## Reddedilen seçenekler
+## Alternatifler
 
 Denenip **geri alınan** her şey ve gerekçesi. Bu liste, aynı fikirlerin ikinci kez denenmemesi için
 vardır.
@@ -421,7 +433,7 @@ vardır.
 
 ---
 
-## Bilinen boşluklar ve riskler
+## Açık konular
 
 ### 1. Kısıt tarafının hiçbir kıyas kapsaması yok (`DR-38` ⚠)
 
