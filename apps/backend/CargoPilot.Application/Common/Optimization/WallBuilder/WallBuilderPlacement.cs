@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization.WallBuilder;
@@ -623,7 +623,17 @@ internal static class WallBuilderPlacement
                 if (y + height > input.VehicleHeight) continue;
                 if (z + length > input.VehicleLength) continue;
 
-                if (PlacementValidator.HasOverlap(placements, x, y, z, width, height, length)) continue;
+                // Cakisma kontrolu YOK ve bu bilincli: aday, defterdeki BOS bir
+                // bosluğun icinde doguyor. x, y ve z bosluk sinirlarina kirpili,
+                // olculer de space.Fits ile sinanmis; yani kutu tamamen o
+                // bosluğun icinde. Bosluk tanimi geregi hicbir yerlesik kutuyla
+                // kesismiyor, dolayisiyla cakisma imkansiz.
+                //
+                // Kontrol sicak dongude yerlesik kutu basina bir tarama demekti
+                // ve arama butcesi duvar saati oldugu icin o sure dogrudan
+                // iterasyondan gidiyordu. Ciktinin degismedigi olculdu; blok ve
+                // bilesik blok defterin disina yerlestirdigi icin ORADA kontrol
+                // duruyor.
                 if (!PlacementValidator.HasSupport(placements, x, y, z, width, length, supportThreshold)) continue;
                 if (PlacementValidator.ViolatesStackability(placements, x, y, z, width, length,
                     input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;

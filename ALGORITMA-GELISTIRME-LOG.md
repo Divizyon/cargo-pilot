@@ -1104,3 +1104,30 @@ Yine de tutuldu: statik yol üretimin hızlı yolu (2-5 ms / 2 sn) ve kapının 
 
 Kapı referansı tazelendi (`docs/algorithm/br-wallbuilder-static.json`, %79,86 → %80,09); greedy
 referansı dokunulmadan geçti.
+
+---
+
+## Sıcak döngüden gereksiz çakışma kontrolü çıkarıldı — **%17 hız, çıktı birebir aynı**
+
+Aday taraması her adayda `HasOverlap` çağırıyordu: yerleşik kutu başına bir tarama, yani `O(N)`.
+
+Ama aday **defterdeki boş bir boşluğun içinde doğuyor**: `x`, `y` ve `z` boşluk sınırlarına
+kırpılı, ölçüler `space.Fits` ile sınanmış. Kutu tamamen o boşluğun içinde ve boşluk tanımı gereği
+hiçbir yerleşik kutuyla kesişmiyor — **çakışma imkânsız.**
+
+Çıkarıldı ve çıktının değişmediği ölçüldü: BR %80,09 → %80,09, giyotin %79,16 → %79,16, birebir.
+
+| | Önce | Sonra |
+|---|---|---|
+| Giyotin medyan süre | 11,08 ms | **9,16 ms** |
+| Giyotin p95 | 34,87 ms | **30,78 ms** |
+| BR1-BR7 (GRASP) | %86,23 | %86,23 |
+
+**Hız %17 arttı ama doluluk değişmedi.** Beklenen: süre/kalite eğrisi 2 saniyede zaten doygunluğa
+yakın (2 sn → 4 sn yalnızca +0,19), dolayısıyla %17 daha fazla iterasyon ölçülebilir bir kazanç
+vermiyor. Yine de tutuldu — gereksiz iş yapmamak ve ileride yerleştiriciyi ağırlaştıracak
+çalışmalara alan açmak için.
+
+Blok ve bileşik blok defterin **dışına** yerleştirdiği için orada çakışma kontrolü **duruyor**.
+Güvenlik ağı bağımsız: 115 testin tamamı, duvar örücü ve GRASP dahil, çıktıda çakışma olmadığını
+üretim kodundan bağımsız hesapla doğruluyor.
