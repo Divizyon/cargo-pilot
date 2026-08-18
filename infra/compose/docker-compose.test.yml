@@ -36,6 +36,11 @@ services:
       # gerekiyor ve kod bu yolda MustChangePassword'ü zorluyor. Kapatmak için
       # .env.test'te SEED_ENABLE_ADMIN_SEED=false yeterlidir.
       Seed__EnableAdminSeed: ${SEED_ENABLE_ADMIN_SEED:-true}
+      # Test/CI yığınında ilk giriş parola değişimi kapalı: e2e otomasyonu seed
+      # admin ile API çağırıyor; açık olsaydı MustChangePasswordMiddleware her
+      # isteği 403 AUTH_MUST_CHANGE_PASSWORD ile keserdi (2026-08-19 arızası).
+      # Üretim varsayılanı (true) prod compose'ta değişmeden duruyor.
+      Seed__AdminMustChangePassword: ${SEED_ADMIN_MUST_CHANGE_PASSWORD:-false}
       Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
       Jwt__Secret: ${JWT_SECRET}
       OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
