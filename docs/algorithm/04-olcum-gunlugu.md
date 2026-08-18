@@ -2308,3 +2308,52 @@ Sonuç: 173/36/228 yeşil, 17 snapshot kaymadı, kapı geçti (%83,40).
 
 **Bu, testlerin bir kez daha karşılığını verdiği yer.** Ölçüm "bedava" diyordu ve doluluk açısından
 öyleydi; bedelin doluluk değil **kısıt ihlali** olduğunu yalnızca değişmez testleri gördü.
+
+---
+
+## `L(b)` knapsack kayıp terimi — **reddedildi: kaba sürüm daha iyiymiş**
+
+19 Ağustos araştırma yanıtının **birinci** önerisi buydu ve en somut eşiği taşıyordu: BSG'nin
+tek geçişli greedy'si ~%87 alırken bizimki %83,4; sebep olarak VPD'nin `L(b)` terimi gösteriliyordu.
+*Eşik: tek geçişli taban %83,4 → **≥%86** olmazsa uygulamayı gözden geçir.*
+
+### Ne yapıldı
+
+Kayıp terimi kaynaktaki doğru biçime çevrildi. Eski sürüm bir dilime *"en küçük kutudan dar mı"*
+diye bakıyordu — yani 47 cm'lik bir dilimi, elde 30 ve 20 cm'lik kutular varken **tamamen
+kullanılabilir** sayıyordu. Doğrusu sınırsız alt-küme toplamı: 40 cm doldurulabilir, **7 cm kesin
+kayıp**.
+
+Uygulama engeli aşıldı: knapsack aday başına çözülemez, ama ulaşılabilir toplamlar kümesi
+**yalnızca ölçü kümesine** bağlıdır, dilimin boyuna değil. Plan başına bir tablo kuruldu, sorgu
+`O(1)` oldu (`ResidualUsability`). 5 sözleşme testi yazıldı.
+
+### Ölçüm
+
+| | Kaba sürüm | **`L(b)`** |
+|---|---|---|
+| Static, BR1-BR7, 700 örnek | %83,40 | %83,41 |
+| **Beam, 175 örnek** | **%89,40** | **%89,28** |
+| Beam, tekrar | — | %89,30 |
+
+Kayıp üsteli de yeniden tarandı (1 / 2 / 3 / 5 / 8): %83,36-83,44 arasında düz.
+
+**Eşik tutmadı** (%83,41 ≠ ≥%86) ve üretim yolunda **0,12 puan kaybettirdi**. İki beam koşusu
+tutarlı (%89,28 / %89,30, gürültü bandı ±0,02), yani kayıp gerçek. Geri alındı.
+
+### Neden daha doğru olan daha kötü çalıştı
+
+Kaba sürüm ikili bir sinyaldi: *"dar artık = tam kayıp, değilse bedava."* Bu, ince dilim
+üretmeye karşı **sert** bir baskıydı. `L(b)` aynı durumu sürekli ve küçük bir cezaya çeviriyor;
+matematiksel olarak daha doğru ama baskıyı **sulandırıyor**.
+
+Yani kaba terim, `L(b)`'nin kötü bir yaklaşımı değilmiş — bizim motorumuza **daha iyi ayarlanmış
+farklı bir sezgisel**miş. Kalibrasyon (`DR-53`) da onun üzerine oturmuştu.
+
+### Araştırmanın tezine ne oluyor
+
+Rapor greedy taban açığını iki terime bağlıyordu: `L(b)` **ve** `CS(b)` (temas yüzeyi). `L(b)`
+elendi. `CS(b)` hâlâ açık ve bizdeki hâli gerçekten eksik: temas yalnız **taban ayak izi + araç
+yüzeyleri** sayılıyor, **komşu kutulara değme sayılmıyor**. Sıradaki sınama o olmalı — ve bu
+sefer eşik daha temkinli konmalı: `L(b)` deneyimi, "literatürde şu terim var, demek ki bizde de
+kazandırır" çıkarımının güvenilir olmadığını gösterdi.
