@@ -35,6 +35,11 @@ Bu dosya artık yalnızca kanıt gövdesini ve 2026-08-03 tablosunu saklar.
 > **45'i açık** ve D-kodları korunarak
 > [`devops-backlog.md`](../devops/devops-backlog.md) **Kategori 6**'ya taşındı — canlı takip artık orada.
 > Bu dosya bundan sonra yalnızca 2026-08-03'teki tabloyu ve kanıt gövdesini saklar.
+>
+> **2026-08-18 notu:** Triyajdan sonra 10 bulgu daha kapandı (D-14, D-18, D-21, D-22, D-23,
+> D-24, D-25, D-26, D-27, D-28 · PR #1012, #1016, #1017). Aşağıdaki gövdede bunlar hâlâ
+> 2026-08-03'teki hâlleriyle duruyor — **bu dosyadaki durum işaretleri o günün fotoğrafıdır.**
+> Güncel sayı: 51'den 16'sı kapalı, **35'i açık**.
 
 Bu doküman dört paralel tarama (CI/CD süresi · Docker image · Altyapı & observability · Sunucu operasyonu) ile tespit edilen 51 maddelik DevOps bulgu listesini, doğrulama durumlarını ve uygulama sırasını içerir.
 
