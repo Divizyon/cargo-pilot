@@ -42,7 +42,7 @@ Yöntem: yalnızca repo dosya içeriği okundu — sunucuya SSH atılmadı, GHCR
 
 - **Stack:** .NET 8 (4 proje, referans yönü doğru), **MediatR 12.4.1** (Feature/Command/Query/Handler), FluentValidation 11.11, EF Core 8.0.25, **Hangfire 1.8.14** (SQL storage; `TrialExpiryNotificationJob`, `NotificationCleanupJob`, `ErpExportJob`), BCrypt, Minio 7, JWT + Google OAuth, Serilog, Swashbuckle, **prometheus-net**. Resend NuGet değil — `ResendEmailService` HttpClient ile REST çağırıyor.
 - **Doğrulanan desenler:** `Result<T>`/`Error`, aggregate-specific repository (17 interface), soft delete global filter, `BaseEntity` audit, global exception middleware sadece son çare. TODO/FIXME sayısı 0.
-- **16 controller:** Auth, Me, Company, CompanyUsers, Items, DraftItems, Vehicles, Plans (en büyük), ErpSettings, Integrations, Subscriptions, Settings, Shares, Notifications, Contact, Home. Health: `/health`, `/health/detail` (DB + MinIO check).
+- **16 controller:** Auth, Me, Company, CompanyUsers, Items, DraftItems, Vehicles, Plans (en büyük), ErpSettings, Integrations, Subscriptions, Settings, Shares, Notifications, Contact, Home. Health: `/health`, `/health/detail` (DB + MinIO check). *(2026-08 güncelleme: `/health/detail` ve `/metrics` artık `SuperAdmin` policy'si arkasında; sığ `/health` açık.)*
 - **ERP zinciri uçtan uca kodda:** entity'ler + `IntegrationsController` + `LogoErpConnector`/`NetsisErpConnector` + `SqlServerErpProductFetcher` + Hangfire export job; ERP şifreleri DataProtection ile korunuyor. Canlı ERP doğrulaması kod dışı, bilinmiyor.
 - **Ölü/yarım:** `UseInMemoryDatabase` bayrağı çalışmaz durumda (repo kayıtları atlanmıyor → DI çözümleme patlar); `architecture.md`'nin `Cargo`/`TrackingNumber` örnekleri kurgusal.
 

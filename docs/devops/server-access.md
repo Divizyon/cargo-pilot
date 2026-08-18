@@ -73,19 +73,35 @@ echo "ssh-ed25519 AAAA... isim-cargo-pilot" >> ~/.ssh/authorized_keys
 | 8080 | TCP | Backend API Prod |
 | 3001 | TCP | Frontend Test |
 | 8081 | TCP | Backend API Test |
-| 9000 | TCP | MinIO Prod API |
-| 9001 | TCP | MinIO Prod Console |
-| 9002 | TCP | MinIO Test API |
-| 9003 | TCP | MinIO Test Console |
-| 1433 | TCP | MSSQL Prod |
-| 1434 | TCP | MSSQL Test |
+| ~~9000~~ | TCP | MinIO Prod API — 🔒 artık yalnızca `127.0.0.1` |
+| ~~9001~~ | TCP | MinIO Prod Console — 🔒 artık yalnızca `127.0.0.1` |
+| ~~9002~~ | TCP | MinIO Test API — 🔒 artık yalnızca `127.0.0.1` |
+| ~~9003~~ | TCP | MinIO Test Console — 🔒 artık yalnızca `127.0.0.1` |
+| ~~1433~~ | TCP | MSSQL Prod — 🔒 artık yalnızca `127.0.0.1` |
+| 1434 | TCP | MSSQL Test (hâlâ dışarıya publish ediliyor) |
 | 3000 | TCP | Grafana Prod |
 | 3002 | TCP | Grafana Test |
 | 9090 | TCP | Prometheus Prod |
 | 9091 | TCP | Prometheus Test |
 
 {% hint style="warning" %}
-**MSSQL portları (1433/1434)** geliştirici erişimi için açık tutulmaktadır. Production'da bu portlara erişimin IP kısıtlaması ile sınırlandırılması önerilir.
+**🔒 Loopback bind — UFW kuralı artık tek başına yeterli değil.** Yukarıda üstü çizili
+portlar için Docker publish adresi `127.0.0.1`'e çekildi
+(`infra/compose/docker-compose.{test,prod}.yml`). UFW kuralı hâlâ tanımlı olabilir ancak
+container portu dış arayüze bağlı olmadığı için uzaktan erişilemez. Bu kuralların UFW'den
+temizlenmesi ayrı bir devops işi olarak açıktır.
+
+Erişim SSH tüneli ile yapılır:
+
+```bash
+ssh -N -L 9003:127.0.0.1:9003 root@104.247.163.42   # MinIO Test Console
+ssh -N -L 9001:127.0.0.1:9001 root@104.247.163.42   # MinIO Prod Console
+ssh -N -L 1433:127.0.0.1:1433 root@104.247.163.42   # MSSQL Prod
+```
+
+**MSSQL Test portu (1434)** geliştirici erişimi için hâlâ dışarıya publish edilmektedir
+(`docker-compose.test.yml`: `"${MSSQL_PORT}:1433"`); bu porta erişimin IP kısıtlaması ile
+sınırlandırılması önerilir.
 {% endhint %}
 
 ---
@@ -125,7 +141,17 @@ Config: `/etc/nginx/sites-available/cargopilot`
 {% hint style="info" %}
 `/media/` path'i MinIO S3 API (port 9002) üzerine reverse proxy yapılmıştır. Bucket policy public olduğundan authentication gerekmez. Dosyalar `https://cargopilot.divizyon.org/media/<path>` formatında erişilebilir.
 
-MinIO Console (port 9003) domain üzerinden değil, doğrudan `http://104.247.163.42:9003` adresinden erişilir.
+MinIO Console (port 9003) domain üzerinden yayınlanmaz **ve artık doğrudan
+`http://104.247.163.42:9003` adresinden de erişilemez** — port `127.0.0.1`'e bağlıdır.
+SSH tüneli kurun:
+
+```bash
+ssh -N -L 9003:127.0.0.1:9003 root@104.247.163.42
+# tarayıcı: http://localhost:9003
+```
+
+nginx `/media/` proxy'si sunucunun kendi üzerinden `localhost:9002`'ye bağlandığı için
+bu değişiklikten etkilenmez.
 {% endhint %}
 
 ---

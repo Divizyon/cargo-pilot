@@ -370,7 +370,7 @@ Bağımlı branch: `feature/US-DB01-centralized-connection-string`. Runtime bağ
 
 ### Alt İşler
 - `✅` `IOptimizationEngine` interface'ini tanımla (`CargoPilot.Application/Common/Interfaces/IOptimizationEngine.cs`)
-- `✅` `NoOpOptimizationEngine` mock implementasyonu yaz (`CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`)
+- `✅` `NoOpOptimizationEngine` mock implementasyonu yaz (o dönem `CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`) — ⚠️ mock sonradan kaldırıldı; güncel implementasyon `CargoPilot.Application/Common/Optimization/OptimizationEngine.cs`
 - `✅` `IOptimizationEngine` DI kaydı eklendi (`DependencyInjection.cs`)
 - `✅` `CreatePlanItemRequest` record tanımla (ItemId, Quantity)
 - `✅` `CreatePlanCommand` tanımla (PlanName, VehicleId, Items, OptimizationCriteria)
@@ -393,7 +393,7 @@ Bağımlı branch: `feature/US-DB01-centralized-connection-string`. Runtime bağ
 - `CargoPilot.Application/Features/Plans/UpdatePlanName/` (Command, Validator, Handler)
 - `CargoPilot.Application/Features/Plans/DeletePlan/` (Command, Handler)
 - `CargoPilot.Application/Common/Interfaces/ILoadingPlanRepository.cs`
-- `CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs`
+- `CargoPilot.Infrastructure/Services/NoOpOptimizationEngine.cs` *(artık yok — yerini `CargoPilot.Application/Common/Optimization/OptimizationEngine.cs` aldı)*
 - `CargoPilot.Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs`
 - `CargoPilot.Infrastructure/DependencyInjection.cs`
 - `CargoPilot.Domain/Entities/LoadingPlan.cs`

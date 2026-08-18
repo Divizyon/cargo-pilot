@@ -109,8 +109,18 @@ Features/
 ### 2.4 WebAPI
 
 - Controller'lar ince tutulur; iş mantığı Application katmanında.
-- Swagger yalnızca Development ortamında aktiftir.
+- Swagger **varsayılan olarak yalnızca Development ortamında** aktiftir; diğer ortamlarda
+  `Swagger:Enabled=true` (env: `Swagger__Enabled`) ile açıkça opt-in edilmesi gerekir
+  (`DependencyInjection.UsePresentation()`).
 - Middleware zinciri `DependencyInjection.UsePresentation()` içinde kurulur.
+- **Operasyon endpoint'leri (SEC-07):** sığ `/health` anonim erişime açıktır; `/health/detail`
+  ve `/metrics` `RequireAuthorization("SuperAdmin")` arkasındadır (`role=SuperAdmin` claim'i).
+  `/health/detail` exception mesajlarını yalnızca Development ortamında döner.
+  Hangfire dashboard'u (`/hangfire`) `HangfireSuperAdminFilter` ile korunur.
+  Prometheus scrape'i için ayrıca `Metrics:ScrapeToken` (env: `Metrics__ScrapeToken`) ile
+  yapılandırılan, süresi dolmayan ve yalnızca bu iki ucu açan dar kapsamlı bir kimlik
+  bilgisi kabul edilir; anahtar tanımsızsa yalnızca SuperAdmin JWT'si geçerlidir —
+  bkz. [Monitoring & Alerting](../../../docs/devops/monitoring-setup.md).
 
 ---
 
