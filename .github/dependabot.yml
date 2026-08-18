@@ -155,6 +155,11 @@ updates:
       # ister; tek başına image bump'ı olarak alınamaz.
       - dependency-name: "mcr.microsoft.com/mssql/server"
         update-types: ["version-update:semver-major"]
+      # MinIO 2022-10 sonrası sürümler eski tek-disk FS volume formatını
+      # okumuyor; 2024-01-31 denemesi test sunucusunu düşürdü (2026-08-18,
+      # test-deploy run 32183514573). Volume migrasyonu (`mc mirror`)
+      # yapılmadan hiçbir sürüm yükseltmesi alınamaz — o iş devops-backlog'da.
+      - dependency-name: "quay.io/minio/minio"
 
   # ── GitHub Actions ──────────────────────────────────────────
   - package-ecosystem: "github-actions"
