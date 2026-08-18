@@ -1655,3 +1655,34 @@ kaldırmıyor.
 `DepthSlack` bugün yalnız ölçüm düzeneğinde dolu. Üretime açmak doluluğu **hiç** düşürmüyor ve
 biçimi iyileştiriyor; ama motorun çıktısını değiştirdiği için 17 snapshot'ın yeniden üretilmesi
 gerekir. Karar kullanıcıya bırakıldı.
+
+---
+
+## Gözle test düzeneği bir kusur ortaya çıkardı — **fazla kutu doluluğu DÜŞÜRÜYOR**
+
+Yerel ortama görsel doğrulama için altı araç (A-F), on beş ürün ve bir doluluk merdiveni kuruldu.
+Ürün adı hangi araca kaç adet gideceğini söylüyor (`A19-C10-D9`). Merdiven, aynı ürün setini
+ölçekleyerek aracın %80 / %90 / %100 / %115 hacmini hedefliyor; üst basamaklarda kutular taşıyor.
+
+Merdiven beklenmedik bir şey gösterdi: **daha çok kutu verildiğinde doluluk düşüyor.**
+
+| A aracı (245×265×1360) | İstenen kutu | Static doluluk | GRASP doluluk |
+|---|---|---|---|
+| %90 hedef | 139 | %71,1 | **%81,0** |
+| %100 hedef | 154 | %71,2 | **%76,6** |
+| %115 hedef | 176 | %67,7 | %80,1 |
+
+C aracında aynı desen daha sert: %80 hedefte %66,1, %90 hedefte **%61,1**.
+
+**Bu bir kusurdur.** Fazladan kutu en kötü ihtimalle yerleşmeden kalmalı; elde daha çok seçenek
+varken sonucun kötüleşmesi için bir sebep yok. Yerleştirici tek geçişli ve geri dönüşsüz olduğu
+için sıradaki kutu yanlış yeri kapatıyor ve sonraki kutular o kararı düzeltemiyor.
+
+**Neden BR ölçümlerinde görünmedi:** BR örneklerinin kutu sayısı sabittir ve her örnek yaklaşık
+tam yüktür. Aynı araca artan yük verme senaryosu hiç ölçülmedi. Ölçüm programı baştan "verilen
+yükü ne kadar iyi yerleştiriyoruz" sorusuna kurulu; "yük artarsa ne oluyor" sorusu sorulmamıştı.
+
+**Ayrıca:** GRASP'ın static'e üstünlüğü bu senaryolarda BR'dekinden çok daha büyük (85 → 129
+yerleşen kutu). Yük taştığında sıra araması çok daha değerli hale geliyor.
+
+Yeni iş olarak açıldı; bu oturumda çözülmedi.
