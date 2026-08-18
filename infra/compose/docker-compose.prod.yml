@@ -82,6 +82,14 @@ services:
       NODE_ENV: production
     ports:
       - "127.0.0.1:${FRONTEND_PORT}:80"
+    # D-49: imaj nginx:1.31-alpine tabanli; busybox wget mevcut. Ayri bir /health
+    # ucu yok, kok yol index.html'i 200 ile donduruyor.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
