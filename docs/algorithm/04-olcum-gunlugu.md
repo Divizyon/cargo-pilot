@@ -2405,3 +2405,41 @@ sebep olarak gösterdiği iki terimden biri tuttu, öteki tutmadı.
 Tam destekli literatür çıpası %94,2 ama 240-320 saniyeyle.
 
 17 snapshot kaymadı, 173/36/228 yeşil, CI referansı **%83,63**.
+
+---
+
+## İteratif ışın genişletme — **%90 aşıldı: %90,04**
+
+Sabit genişlik-8 kolay kümelerde bütçenin dörtte birini kullanıyordu: BR1'de **559 ms / 2000 ms**.
+Araştırmanın F-2'si (Libralesso & Fontan 2020) tam bunu hedefliyordu.
+
+Arama artık `D=1`'den başlıyor ve her turda genişliği **ikiye katlayarak** süre bitene kadar
+yeniden koşuyor; en iyi sonuç turlar boyunca saklanıyor. Geometrik büyüme, tekrarlanan ışın
+maliyetini son turun ~2 katında tutuyor — doğrusal artış her turu aynı maliyete getirip israf
+ederdi.
+
+### Ölçüm (25 örnek/küme)
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 | **Ort** |
+|---|---|---|---|---|---|---|---|---|
+| Sabit genişlik-8 | %89,33 | %90,10 | %90,73 | %89,89 | %90,22 | %89,98 | %89,41 | %89,95 |
+| **İteratif** | %89,54 | %90,14 | %90,82 | %89,92 | %90,18 | %90,10 | %89,53 | **%90,04** |
+
+Tekrar koşusu %90,03 — tutarlı.
+
+Kazanç küçük (+0,09) ama **her küme artık bütçenin tamamını kullanıyor** ve en çok, bütçesi boşa
+giden kümelerde kazanıldı (BR1 +0,21, BR7 +0,12). Yapısal fayda daha önemli: arama artık **anytime**
+— süre dolduğunda elde her zaman tamamlanmış bir tur var, yarım kalmış bir ışın değil.
+
+### Konum
+
+**%90,04** — araştırmanın 2 saniye için verdiği gerçekçi hedef bandına (%90-92) girildi.
+
+| | Oturum başı | Şimdi |
+|---|---|---|
+| Static (CI kapısı) | %80,09 | **%83,63** |
+| Üretim | %86,23 | **%90,04** |
+
+Tam destekli literatür çıpası %94,2 ama örnek başına 240-320 saniyeyle; bizimki 2 saniye.
+
+173/36/228 yeşil, 17 snapshot sabit, kapı geçti.

@@ -28,12 +28,31 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 internal static class BeamSequencer
 {
     /// <summary>
-    /// Ayni anda tutulan yarim plan sayisi. OLCULDU (BR1-BR7, 12 ornek):
-    /// 4 → %89,12 · 6 → %89,16 · <b>8 → %89,46</b> · 12 → %89,29 · 16 → %89,23.
-    /// Genis isin daha cok dal degerlendirir ama her dala daha az sure duser;
-    /// tepe sekizde.
+    /// Isin genisligi SABIT DEGIL: arama D=1'den baslar ve her turda ikiye
+    /// katlayarak sure bitene kadar yeniden kosar (Libralesso &amp; Fontan
+    /// 2020, iterative beam search). En iyi sonuc turlar boyunca saklanir.
+    ///
+    /// Neden: sabit genislik-8 kolay kumelerde butcenin dortte birini
+    /// kullaniyordu (BR1'de 559 ms / 2000 ms). Iteratif genisletme "once hizli
+    /// iyi cozum, sonra derinlestir" davranisi verir ve butceyi doldurur;
+    /// ayrica dogal olarak ANYTIME'dir — sure dolunca elde her zaman tamamlanmis
+    /// bir tur vardir.
+    ///
+    /// Geometrik buyume, tekrarlanan isin maliyetini son turun ~2 katinda
+    /// tutar; dogrusal artis her turu ayni maliyete getirip israf ederdi.
     /// </summary>
-    private const int BeamWidth = 8;
+    private const int StartWidth = 1;
+
+    /// <summary>Isin genisliginin tur basina carpani.</summary>
+    private const int WidthGrowth = 2;
+
+    /// <summary>
+    /// Genislik ust siniri. Olculdu (sabit genislikte, 12 ornek): 4 → %89,12 ·
+    /// 8 → %89,46 · 12 → %89,29 · 16 → %89,23 — sekizden sonra dusuyor cunku
+    /// genis isin her dala daha az sure birakiyor. Iteratif kipte sure kontrolu
+    /// zaten kesiyor; sinir yalnizca sonsuz buyumeyi engeller.
+    /// </summary>
+    private const int MaxWidth = 64;
 
     /// <summary>
     /// Kac dallanma noktasi olacagi. Parca boyu <c>kutu sayisi / bu deger</c>
@@ -151,12 +170,31 @@ internal static class BeamSequencer
         var evaluations = 1;
         var levels = 0;
 
+        var segment = Math.Max(1, instances.Count / SegmentCount);
+
+        for (var width = StartWidth; width <= MaxWidth; width *= WidthGrowth)
+        {
+            if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
+
+            Pass(width);
+        }
+
+        clock.Stop();
+
+        return best with
+        {
+            SearchStats = new SearchStats(
+                levels, evaluations, history, best.FillRate > baseline.FillRate, clock.ElapsedMilliseconds),
+        };
+
+        // Tek bir isin kosusu: bos aractan baslar, plani parca parca kurar.
+        // <c>best</c> disaridan yakalanir ve turlar boyunca birikir.
+        void Pass(int width)
+        {
         var beam = new List<(PlacementState State, List<SequencedItem> Order)>
         {
             (PlacementState.Fresh(input, instances.Count, null), instances),
         };
-
-        var segment = Math.Max(1, instances.Count / SegmentCount);
 
         for (var placed = 0; placed < instances.Count; placed += segment)
         {
@@ -215,18 +253,11 @@ internal static class BeamSequencer
             branches.Sort(static (a, b) => b.Fill.CompareTo(a.Fill));
 
             beam.Clear();
-            for (var i = 0; i < branches.Count && i < BeamWidth; i++)
+            for (var i = 0; i < branches.Count && i < width; i++)
             {
                 beam.Add((branches[i].State, branches[i].Order));
             }
         }
-
-        clock.Stop();
-
-        return best with
-        {
-            SearchStats = new SearchStats(
-                levels, evaluations, history, best.FillRate > baseline.FillRate, clock.ElapsedMilliseconds),
-        };
+        }
     }
 }
