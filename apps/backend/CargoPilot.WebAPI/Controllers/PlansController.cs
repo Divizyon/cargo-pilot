@@ -1,4 +1,4 @@
-using CargoPilot.Application.Features.Plans.ApprovePlan;
+﻿using CargoPilot.Application.Features.Plans.ApprovePlan;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Application.Features.Plans.DeletePlan;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
@@ -151,7 +151,9 @@ public sealed class PlansController : BaseController
         [FromBody] ReOptimizePlanRequest request,
         CancellationToken cancellationToken = default)
     {
-        var command = new ReOptimizePlanCommand(id, request.VehicleId, request.Items, request.OptimizationCriteria, request.Groups, request.ClusterGroups);
+        var command = new ReOptimizePlanCommand(
+            id, request.VehicleId, request.Items, request.OptimizationCriteria, request.Groups, request.ClusterGroups,
+            request.Sequencer, request.Seed);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

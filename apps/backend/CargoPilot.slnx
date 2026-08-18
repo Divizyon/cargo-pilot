@@ -13,6 +13,9 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
+  <Folder Name="/Bench/">
+    <Project Path="CargoPilot.Engine.Bench/CargoPilot.Engine.Bench.csproj" Id="5b1f0c94-7d2a-4e63-9a18-3c7f5d0b2e41" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/CargoPilot.Application.Tests/CargoPilot.Application.Tests.csproj" Id="dfff8497-294c-4d98-9cfa-3ba4766faf95" />
   </Folder>

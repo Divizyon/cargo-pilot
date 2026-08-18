@@ -44,9 +44,9 @@ kayıt orada, plan burada; ikisi arasında tekrar bırakılmaz.
 | 18 | Rollback güvenliği — D-24, D-25, D-27 ✅ (#1012, #1017); kalan **D-29 (tatbikat)** | 🟠 Yüksek | ⚠️ Açık |
 | 19 | .NET 8 → .NET 10 LTS geçişi — D-32b, EOL **2026-11-10** | 🔴 Kritik (tarihe bağlı) | ⚠️ Açık — planlama |
 
-Kategori 6, 2026-08-03 taramasının **22 açık** D-bulgusunu D-kodlarıyla birlikte listeler
-(51'den 29'u kapandı); yukarıdaki matris yalnızca kritik kümeleri özetler. §6.9 önceki
-taramada olmayan, uygulama sırasında bulunan dört yeni kalemi tutar.
+Kategori 6, 2026-08-03 taramasının **17 açık** D-bulgusunu D-kodlarıyla birlikte listeler
+(51'den 34'ü kapandı); yukarıdaki matris yalnızca kritik kümeleri özetler. §6.9 önceki
+taramada olmayan, uygulama sırasında bulunan yedi yeni kalemi tutar.
 
 ---
 
@@ -354,8 +354,13 @@ Kapanan satırlar aşağıdaki tablolardan çıkarıldı ve [Tamamlananlar](#tam
 bölümüne taşındı. **İkinci tur (2026-08-18, Faz 1 + Faz 4):** 13 bulgu daha kapandı —
 D-08, D-30, D-31, D-32, D-33, D-34, D-37, D-39, D-46, D-47, D-48, D-49, D-50
 (PR #1043, #1044, #1045, #1046, #1047, #1048, #1049). D-38 **kısmen** kapandı.
+**Üçüncü tur (2026-08-18, Faz 5/6/8):** 5 bulgu daha kapandı — D-42, D-51 (#1053);
+D-06, D-12, D-45 (#1054). D-13(c) **kısmen** kapandı (#1054); D-13(a) daha önceden
+kapanmıştı, bugün 48/48 action SHA-pinli olarak yeniden doğrulandı. D-15 kapsamı netleşti
+(#1055) ama kapanmadı — maruziyet daraltıldı, kalan zarar sürüyor. D-09 için karar verildi
+(kaldırılsın); uygulama paralel bir ajanda, henüz PR yok.
 
-**Kalan: 22 açık bulgu** — 5 kritik, 6 yüksek, 7 orta, 4 düşük.
+**Kalan: 17 açık bulgu** — 5 kritik, 5 yüksek, 5 orta, 2 düşük.
 Prod kapısının dört maddesinden dördü de kapandı; **madde 2.1 teknik olarak açık**
 (sunucu teyidi için bkz. §6.8).
 
@@ -364,7 +369,7 @@ Prod kapısının dört maddesinden dördü de kapandı; **madde 2.1 teknik olar
 | Kod | Bulgu | Bugünkü kanıt (2026-08-16) | Öncelik |
 |---|---|---|---|
 | D-02 | Servis portları internete açık — **kısmen kapandı (#991), sonra kısmen yeniden açıldı** | Kalan: `docker-compose.monitoring.test.yml:89` Grafana `3002:3000`; `docker-compose.test.yml:127` ERP MSSQL `1435:1433` — bu ikincisi **#938 ile geldi** ve loopback'e bağlanmamış tek port (diğer 5'i `127.0.0.1:` önekli). `profiles: ["e2e"]` arkasında ama `--profile e2e` verilirse dışarı açılır | 🔴 Kritik |
-| D-15 | Workflow'da hardcoded fallback parolalar | `.github/workflows/test-deploy.yml:172,176,179,181,183` — `gh secret list`'te `TEST_MSSQL_SA_PASSWORD`/`TEST_MINIO_*`/`SEED_*` yok (2026-08-18: repoda tanımlı 6 secret var, bunlar arasında değil) → fallback'ler her koşuda fiilen kullanılıyor | 🟠 Yüksek |
+| D-15 | Workflow'da hardcoded fallback parolalar — **kapsamı netleşti (#1055)** | `docs/devops/secret-management.md:113-146` envanteri: 22 secret referansından **6'sı tanımlı**, **9'u tanımsız-fallback'li** (`test-deploy.yml:172,175,176,179,183-187,293,296,297,299`). **Maruziyet daraltıldı:** fallback'ler yalnız runner içinde yaşayan geçici stack'i besliyor (`deploy` + `e2e-smoke` job'ları, her run sonunda `docker compose down -v` ile siliniyor); gerçek `deploy-test-server` sunucusu kendi `infra/env/.env.test`'ini kullanıyor, hiç etkilenmiyor. **Asıl zarar kalıcı:** secret hiç tanımlanmamış olsa da iş yeşil geçiyor — eksikliğin fark edilmesini engelliyor, fallback'i koddan kaldırmak ayrı bir sonraki iş | 🟠 Yüksek |
 | D-17 | MSSQL container'ı root çalışıyor — **kapsam büyüdü** | `docker-compose.test.yml:90,118,147`, `docker-compose.prod.yml:92` — `user: root`. Sayı 2'den **4'e** çıktı: `:118` (`erp-mssql`) ve `:147` (`erp-mssql-init`) #938 ile eklendi. Prod'a geçmeden düzeltilmeli | 🟢 Düşük |
 
 ### 6.2 Yedekleme ve veri kaybı
@@ -386,10 +391,8 @@ Prod kapısının dört maddesinden dördü de kapandı; **madde 2.1 teknik olar
 
 | Kod | Bulgu | Bugünkü kanıt | Öncelik |
 |---|---|---|---|
-| D-06 | Default branch'te GHA cache hiç yazılmıyor | Default branch `main`; hiçbir workflow `main` push'unda build etmiyor (`ci.yml:6-20`, `test-deploy.yml:13`) → `cache-from` iş branch'lerinde soğuk başlar. Düzeltme: nightly veya `main` push'unda seed job | 🟡 Orta |
-| D-09 | `ci.yml`'daki `docker-build` job'u — **kısmen kapandı** (#992) | Artık yalnızca `dev` PR'ında koşuyor (`ci.yml:204`); iş branch'i push'undaki kopya build kaldırıldı. Kalan soru: `dev` kapısındaki build'in değeri | 🟢 Düşük |
-| D-12 | Gereksiz seri `needs:` zinciri | `ci.yml:196` — `docker-build`, `needs: [frontend-ci, backend-ci]`; docker build bu job'ların çıktısına bağımlı değil | 🟢 Düşük |
-| D-13 | Küçük CI kalemleri | (a) `test-deploy.yml:327,340` hâlâ `build-push-action` **v5.4.0**, diğer 6 kullanım v7.3.0 — sürüm ayrışması. **PR #1032 (Dependabot) bunu ve 6 action'ı daha hizalıyor; ADR-0008'in öngördüğü devralma**; (b) `setup-dotnet`'te NuGet cache yok (`ci.yml:168`, `test-deploy.yml:48`); (c) `migration-check` + `backend-ci` aynı solution'ı Release'de iki kez derliyor; (d) frontend scope'ları hâlâ `mode=max` (`ci.yml:240`, `test-deploy.yml:145`) | 🟡 Orta |
+| D-09 | `ci.yml`'daki `docker-build` job'u — **karar verildi: kaldırılacak** | Bugün yalnızca `dev` PR'ında koşuyor (`ci.yml:192,202`). Kullanıcı kararı: bu ikinci build'in değeri yok, kaldırılsın. Paralel bir ajan uyguluyor; **PR numarası henüz yok** | 🟢 Düşük |
+| D-13 | Küçük CI kalemleri | **(a) kapandı** — 48/48 GitHub Action kullanımı SHA-pinli doğrulandı (`grep -c` ile yeniden sayıldı, 2026-08-18); `build-push-action` artık 8 kullanımın tamamında v7.3.0 (PR #1032, ADR-0008'in öngördüğü devralma). **(b) ölçülerek ertelendi** — `setup-dotnet`'te NuGet cache yok (`ci.yml:168`, `test-deploy.yml:48`); `dotnet restore` bugün yalnız ~8 sn sürüyor, cache eklense girdi başına ~200 MiB **(tahmin)** × ~27 aktif ref ≈ 5,4 GiB **(tahmin)** ek yük — kota zaten %82 dolu, bu %32'ye yakın ek aşım demek. Ayrıca `setup-dotnet`'in `cache: true`'su `packages.lock.json` istiyor, repoda hiç yok. Yeniden açma koşulu: lock dosyalarına geçilirse **ve** kota belirgin biçimde düşerse. **(c) kısmen kapandı (#1054)** — `migration-check` artık yalnız `dotnet restore apps/backend/CargoPilot.WebAPI/CargoPilot.WebAPI.csproj` (`test-deploy.yml:56,58`) çalıştırıyor, tüm solution'ı değil. **Tam tekilleştirme açık kalıyor:** `migration-check` (`test-deploy.yml`) ve `backend-ci` (`ci.yml`) farklı workflow dosyalarında, `needs:` yalnız aynı workflow içinde çalıştığı için iki job birleştirilemiyor. **(d) borç değil, ADR revize edildi** — ADR-0007'nin kendi yazdığı yeniden değerlendirme koşulu (#1047 ile restore/publish ayrı katmanlara bölündü) gerçekleşti; **ADR-0011** ölçerek backend'in `mode=min`'de kalmasına karar verdi (gerekçe değişti: artık ölçülmüş bir değer var — restore katmanı CACHED dönüyor — ama GHA kotası [`node-cache` tek başına kotanın %44,7'si] kaldırmıyor), frontend `mode=max` aynen sürüyor | 🟡 Orta |
 
 ### 6.5 Docker image ve build
 
@@ -405,11 +408,8 @@ Prod kapısının dört maddesinden dördü de kapandı; **madde 2.1 teknik olar
 | D-38 | Kaynak limitleri — **kısmen kapandı** (#1044) | Bellek tarafı kapandı: 22 servis tanımının tamamında `mem_limit` var (12 benzersiz servis, test 12 / prod 10). **Kalan:** `cpus` ve `pids_limit` hiçbir serviste yok — `grep -rn 'cpus\|pids_limit' infra/compose/` boş döner. CPU açlığı ve fork bombası hâlâ korumasız | 🔴 Kritik |
 | D-40 | Log rotation hiçbir serviste yok | `infra/` altında `logging:`/`max-size` hiç geçmiyor — 16 servisin tamamı etkileniyor. **known-issues #7 ile aynı konu**; o madde kapsamı bu bulguya göre düzeltilmişti. ⚠️ Sunucuda `/etc/docker/daemon.json` global rotation olabilir, önce bakılmalı | 🟠 Yüksek |
 | D-41 | Grafana SMTP hiç yapılandırılmamış | `infra/` altında `GF_SMTP` hiç geçmiyor; contact point ve notification policy dosyaları **mevcut**. **Bu madde 2.4'ün kanıtıdır** — teşhis oraya işlendi. Resend doğrulaması (known-issues #1) bitene kadar Slack/Discord webhook daha güvenli seçim | 🟠 Yüksek |
-| D-42 | Prod monitoring, test alert kurallarını da yüklüyor | `docker-compose.monitoring.prod.yml:83` alerting dizininin tamamını mount ediyor; dizinde `*.test.yml` dosyaları da var → prod Grafana `prometheus-test` UID'lerine bakan kuralları yükler, contact point UID'leri çakışır | 🟠 Yüksek |
 | D-43 | Eksik alert kuralları | `alert-rules.yml` 6 kural içeriyor. Eksik: MSSQL/MinIO container down, disk %90 critical, yedek başarısızlığı (D-20), monitoring'in kendi sağlığı, SSL bitiş tarihi. `monitoring-setup.md:157-161` hâlâ 3 kural listeliyor | 🟡 Orta |
 | D-44 | Prometheus/Loki retention ve limitler | `docker-compose.monitoring.*.yml:61` yalnız `--storage.tsdb.retention.time=30d`, **boyut tavanı yok**; Prometheus kendini/Grafana'yı/Loki'yi/MinIO'yu scrape etmiyor; Loki `limits_config`'te ingestion rate limit yok | 🟡 Orta |
-| D-45 | Promtail sadece 2 container'ı topluyor | `infra/docker/promtail/promtail.{test,prod}.yml:19` — yalnız backend/frontend. MSSQL, MinIO ve monitoring logları hiç toplanmıyor. Ayrıca `:6` `positions.filename: /tmp/positions.yaml` volume'suz → her restart'ta pozisyon kaybı | 🟡 Orta |
-| D-51 | Ölü konfigürasyon dosyaları | `infra/docker/minio/config/init-bucket.sh` ve `infra/docker/mssql/init/init.sql` hiçbir compose'da mount edilmiyor (`grep` sıfır sonuç) | 🟢 Düşük |
 
 ### 6.7 Doküman düzeltmeleri (kaynak §8)
 
@@ -445,9 +445,9 @@ açık**. Kapanış kanıtları:
 
 ---
 
-### 6.9 İkinci turdan çıkan yeni kalemler (2026-08-18)
+### 6.9 İkinci ve üçüncü turdan çıkan yeni kalemler (2026-08-18)
 
-Faz 1 ve Faz 4 sırasında bulunan, önceki taramada olmayan maddeler.
+Faz 1/4 ve Faz 5/6/8 sırasında bulunan, önceki taramada olmayan maddeler.
 
 | Kalem | Bulgu | Öncelik |
 |---|---|---|
@@ -455,6 +455,9 @@ Faz 1 ve Faz 4 sırasında bulunan, önceki taramada olmayan maddeler.
 | **Y-02 · Cloudflare 524** | Nginx `proxy_read_timeout` uzatıldı (D-46), ama Cloudflare kendi **100 sn**'lik origin timeout'unda **524** döndürüyor. Uzun optimizasyon koşusu için nginx tarafındaki iyileştirme kullanıcıya ulaşmıyor. Çözüm ya asenkron iş modeli ya Cloudflare tarafında ayar | 🟠 Yüksek |
 | **Y-03 · D-33 canlıda doğrulanmadı** | `imagetools create` yerelde doğrulandı; **gerçek GHCR'a karşı koşmadı**. İlk `sync-base-images` koşumunda `docker buildx imagetools inspect ghcr.io/divizyon/cargo-pilot-dotnet-sdk:8.0` ile multi-arch manifest'in korunduğu teyit edilmeli | 🟡 Orta |
 | **Y-04 · Perf taban çizgisi elle güncellenecek** | `PerformansTabanCizgisiTests` eşikleri bugünkü **regresyonlu** WeightBalance ölçümünü (29 sn) taban alıyor. F2-01 süreyi 11,4 sn'ye çektiğinde eşik otomatik daralmaz — taban çizgisi **elle** güncellenmeli, yoksa regresyon penceresi 2 kat yerine 5 kat açık kalır | 🟡 Orta |
+| **Y-05 · `node-cache` kotanın yarısını götürüyor, temizlik ona dokunamıyor** | Ölçüm (2026-08-18, `gh api .../actions/caches`): `node-cache-Linux-x64-npm-*` → 60 giriş / **4,468 GiB = kotanın %44,7'si** (toplam 284 giriş / 8,210 GiB / 10 GiB = %82,1). `cache-cleanup.yml`'nin boyut adımı yalnız `select(.key|startswith("buildkit-blob"))` filtresiyle çalışıyor, `node-cache` hiç süzülmüyor. Kök neden: `package-lock.json` aynı olsa bile her branch ve her PR ref'i kendi ~76 MiB kopyasını yazıyor. **Kullanıcı onayladı, paralel ajan uyguluyor:** (a) temizlik filtresine `node-cache` eklenmesi, (b) `setup-node`'un dahili cache'inin `cache/restore` (her zaman) + `cache/save` (yalnız default branch) olarak bölünmesi | 🟠 Yüksek |
+| **Y-06 · `ci.yml`'de `concurrency` grubu yok** | Aynı branch'e hızlı ardışık push'lar tam CI'ı baştan koşuyor (`feat/algoritma-arama-katmani`'nda 8 koşum, ikisi saniyeler arayla). Private repoda doğrudan fatura kalemi. **Kullanıcı onayladı, paralel ajan uyguluyor** — `cancel-in-progress` yalnız `pull_request` olaylarında, aksi hâlde korunan dallarda zorunlu check `cancelled` kalıp merge'i bloke eder | 🟠 Yüksek |
+| **Y-07 · promtail `mem_limit: 128m` gözden geçirilmeli** | D-45 sonrası 2 yerine ~8 container scrape edilecek; limit #1044 ile konuldu ve o zamanki kapsamı (2 container) yansıtıyor, D-45'in genişlettiği kapsamı değil | 🟡 Orta |
 
 ---
 
@@ -526,6 +529,58 @@ regresyon çıkarsa müdahale için tampon süre kalır.
 
 ---
 
+## Private repo geçişi
+
+{% hint style="warning" %}
+**⚠️ Planlama — geçiş tarihi henüz kesin değil**
+{% endhint %}
+
+Depo yakında **private bir repoya, geçmiş olmadan, sıfırdan tek ilk commit** olarak
+taşınacak. Bu, sıradan bir `git clone` + push değil — GitHub'ın repo geçmişine bağlı
+tüm mekanizmaları sıfırlanır. Aşağıdaki liste, taşınmadan önce planlanması gereken
+kayıpları ve maliyet kalemlerini kaydeder.
+
+### Geçişte kaybolacaklar
+
+- **17 sürüm tag'i, 6 GitHub Release, 28 `archive/*` tag'i** — `gh api /repos/Divizyon/cargo-pilot/tags`
+  ve `.../releases` ile bugün doğrulandı (45 toplam tag = 17 sürüm + 28 `archive/*`; 6 release).
+  GHCR'daki `v0.11`–`v0.17` imaj etiketleri de yeni repoda karşılıksız kalır (bu imajlar
+  bugünkü org/paket altında duruyor, ancak yeni repo farklı bir görünürlük/paket ağacına
+  taşınacaksa erişim yeniden kurulmalı) → **v0.11 ve sonrası için rollback yeteneği gidiyor.**
+  D-29 (rollback tatbikatı) geçişten **önce** yapılmalı, ya da yeni repoda imaj/tag
+  stratejisi baştan kurulmalı — hangisi önce olursa.
+- **Dependabot ve CodeQL alert geçmişi sıfırlanır.** Yeni repo, güvenlik taramalarına
+  temiz bir sayfa ile başlar; bugünkü açık/kapalı alert kaydı taşınmaz.
+- **GHA cache sıfırlanır** (bugün 284 giriş / 8,21 GiB — `gh api /repos/Divizyon/cargo-pilot/actions/cache/usage`,
+  2026-08-18). Bu bir kayıp değil bir fırsat: `cache-seed.yml` (D-06) ilk günden itibaren
+  default branch cache'ini besleyeceği için soğuk-başlangıç sorunu bu kez hiç yaşanmaz.
+- **Actions dakikaları ücretli hale gelir.** Public repo'da GitHub Actions dakikaları
+  sınırsız/ücretsizdi; private repoda plana bağlı bir kotaya ve faturaya döner. Bu, CI
+  süresini kısaltan her iş kalemini (D-12, Y-06, gelecekteki paralelleştirme) bir performans
+  iyileştirmesinden bir **maliyet kalemine** çevirir.
+- **Gerekçesi düşen kalemler:** OpenSSF Scorecard'a bağlı maddeler private repoda anlamını
+  yitirir (Scorecard yalnızca public repoları puanlar) — `LICENSE` maddesi zaten yapıldı
+  (✅), CODEOWNERS/zorunlu review kararı da bu gerekçeyle yeniden değerlendirilebilir. Git
+  geçmişi temizliği (`git filter-repo` ile SA parolasının geçmişten silinmesi, madde 2.6)
+  de anlamsızlaşır — sıfırdan tek commit zaten geçmişi siliyor.
+
+### Gerekçesi DÜŞMEYEN kalemler
+
+- **SA parola rotasyonu (madde 2.6).** Parola **zaten** public repoda açığa çıktı; taşınma
+  bunu geri almaz, yalnızca geleceğe kapı kapatır. Rotasyon hâlâ zorunludur.
+- **Sunucu tarafı maruziyet** (D-15'in gerçek zararı, `.env.test`/`.env.prod` dosyaları,
+  SSH erişimi vb.) — repo geçmişiyle ilgisiz, sunucuda duruyor.
+- **Yedekleme boşlukları** (D-03, D-04, D-20) — repo taşınmasıyla hiçbir ilgisi yok.
+
+### Yeni repoda minimum secret kümesi
+
+Yeni repoda hangi secret'ların tanımlanması gerektiği ayrıca çıkarılmadı — bu envanter
+zaten `docs/devops/secret-management.md`'nin **"Yeni Repoya Geçiş — Minimum Secret Kümesi"**
+bölümünde (satır 296+) mevcut ve güncel (#1055); burada tekrarlanmıyor, doğrudan oraya
+bakılmalı.
+
+---
+
 ## Tamamlananlar (Tarih Sırası)
 
 | Tarih | Madde | PR / Aksiyon |
@@ -566,3 +621,8 @@ regresyon çıkarsa müdahale için tampon süre kalır.
 | 2026-08-18 | **D-31** Frontend base image `nginx:1.31-alpine` → `alpine-slim` (imaj 33 MB) | #1048 |
 | 2026-08-18 | **D-32** Sync cron'u patch döngüsüne yaklaştırıldı; stratejik kısım §6.9'a ayrıldı | #1048 |
 | 2026-08-18 | **D-37** `.dockerignore` hijyeni genişletildi (frontend + backend) | #1049 |
+| 2026-08-18 | **D-42** Prod monitoring alerting mount'u dosya bazlı ayrıldı — prod artık yalnız kendi 6 kuralını yüklüyor (eskiden 12: 6 kendi + 6 test'in, test kuralları `prometheus-test` UID'ine bakıyordu); repo toplamı 12 kural korundu | #1053 |
+| 2026-08-18 | **D-51** Ölü konfigürasyon dosyaları silindi — `infra/docker/minio/config/init-bucket.sh` ve `infra/docker/mssql/init/init.sql` (yalnız TODO yorumu, gövde yok); işlevleri `MinioStorageService.cs:66` `EnsureBucketExistsAsync()` ve `DbInitializer.cs:28` `Database.MigrateAsync()` ile karşılanıyor | #1053 |
+| 2026-08-18 | **D-12** `docker-build`'in `needs: [frontend-ci, backend-ci]` zinciri kaldırıldı — `ci.yml` PR→dev duvar saati 363 → 238 sn (−%34, 4 koşum ölçümü) | #1054 |
+| 2026-08-18 | **D-06** Nightly `cache-seed.yml` eklendi — default branch'te frontend `mode=max` cache'i besleniyor, iki katmanlı kota koruması (her koşumda prune + 9 GiB valfi) | #1054 |
+| 2026-08-18 | **D-45** Promtail tüm `cargo-pilot-*` container'larını topluyor (canlı Loki ile doğrulandı: `cargo-pilot-loki-test` ingest edildi, `-prod` ve promtail'in kendisi filtrelendi); `positions.filename` kalıcı bind mount'a taşındı | #1054 |

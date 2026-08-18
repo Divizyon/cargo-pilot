@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
@@ -73,8 +73,11 @@ internal static class InvariantScenarioSource
     }
 
     /// <summary>
-    /// Snapshot'ta saklanmayan alanlar (Name, kırılganlık, stackGroup)
-    /// motor davranışını bu senaryolarda etkilemez; hepsi varsayılan değerdedir.
+    /// Snapshot'ta saklanmayan alanlar (Name, stackGroup) motor davranışını bu
+    /// senaryolarda etkilemez; hepsi varsayılan değerdedir. Kırılganlık ise
+    /// **saklanır ve geri okunur** — etkilemediği için değil, aksine
+    /// etkilediği için: alan yokken değişmez testleri kırılgan kutuları
+    /// sessizce `NonFragile` sayıyordu.
     /// </summary>
     private static OptimizationItemInput ToItem(SnapshotItem item)
         => new(
@@ -91,7 +94,8 @@ internal static class InvariantScenarioSource
             AllowedRotations: Enum.Parse<AllowedRotations>(item.AllowedRotations),
             Quantity: item.Quantity,
             GroupId: item.GroupId is null ? null : Guid.Parse(item.GroupId),
-            UnloadingOrder: item.UnloadingOrder);
+            UnloadingOrder: item.UnloadingOrder,
+            FragilityType: Enum.Parse<FragilityType>(item.FragilityType));
 
     /// <summary>Deterministik 500 kutuluk girdi; rastgelelik yok, her alan tip indeksinden türetilir.</summary>
     private static OptimizationInput LargeInput(LoadingPlanOptimizationCriteria criteria)

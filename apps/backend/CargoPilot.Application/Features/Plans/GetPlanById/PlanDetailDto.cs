@@ -29,4 +29,10 @@ public sealed record PlanDetailDto(
     IReadOnlyList<UnplacedItemDto> UnplacedItems,
     IReadOnlyList<WarningDto> Warnings,
     IReadOnlyList<InputItemDto> InputItems,
-    IReadOnlyList<PlanGroupDto> Groups);
+    IReadOnlyList<PlanGroupDto> Groups,
+    // Planin hangi yerlestirici/sequencer ve tohumla uretildigi. Determinizm
+    // sozlesmesi (docs/algorithm/01-kurallar.md R-C02) bu ucu olmadan kullanilamaz:
+    // plani yeniden uretmek isteyen kisinin elinde yalnizca sonuc kalirdi.
+    SequencerKind? Sequencer = null,
+    int? Seed = null,
+    SearchStatsDto? SearchStats = null);

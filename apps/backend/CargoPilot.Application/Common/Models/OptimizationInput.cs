@@ -1,4 +1,4 @@
-using CargoPilot.Domain.Enums;
+﻿using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Models;
 
@@ -19,6 +19,48 @@ namespace CargoPilot.Application.Common.Models;
 /// Verilmezse <see cref="LoadingType"/>'dan turetilir; motor <see cref="FillsFromMaxX"/>
 /// okur.
 /// </param>
+/// <param name="Sequencer">
+/// Kutu sirasini ureten katman. Varsayilan <see cref="SequencerKind.Static"/> ve
+/// bu BILINCLIDIR: motoru dogrudan cagiran her yol (golden snapshot'lar,
+/// degismez testleri, doluluk kapisi) saf hesap olan statik yolu alir ve ciktisi
+/// makineden bagimsiz bayt kararli kalir. Uretim yolu GRASP'i
+/// <see cref="Optimization.SequencerSelection"/> uzerinden alir — orada
+/// belirtilmemis sequencer GRASP'a cozulur. GRASP'in butcesi duvar saati oldugu
+/// icin buraya varsayilan olarak konursa snapshot testleri makineye bagli
+/// hale gelirdi.
+/// </param>
+/// <param name="SearchBudget">
+/// Aramanin iterasyon/populasyon/sure butcesi. Verilmezse
+/// <see cref="Models.SearchBudget.Default"/> gecerlidir. Static sequencer'da
+/// kullanilmaz.
+/// </param>
+/// <param name="SupportThreshold">
+/// Asgari zemin destek orani. Verilmezse <c>0.80</c> gecerlidir — bugunku
+/// davranis. Alan bir POLITIKA degeridir, fizik kanunu degil (DR-16); bugun
+/// yalnizca olcum duzenegi doldurur, uretim yollari doldurmaz.
+/// </param>
+/// <param name="DepthSlack">
+/// Yukun toplanacagi HEDEF DERINLIK payi. Hedef derinlik su sekilde bulunur:
+///
+///     ideal    = toplam kutu hacmi / (genislik x yukseklik)
+///     hedef    = min(arac uzunlugu, ideal x DepthSlack)
+///
+/// Yerlestirme bu hedefin otesine gecmez; gecemedigi icin yuk aracin onune
+/// toplanir. Kutu hedefe sigmazsa hedef ADIM ADIM buyutulur ve kutu yeniden
+/// denenir, yani doluluk asla dusmez — pay yalnizca yerin nasil kullanildigini
+/// degistirir, ne kadarinin kullanildigini degil.
+///
+/// Neden gerekli: musteri katman insasini kismi dolulukta yuku tabana yaydigi
+/// icin reddetti (DR-12). Olculdu, duvar orucu de ayni yonde kusurlu — ceyrek
+/// yukte yuk gerektiginden 1,73 kat derine yayiliyor.
+///
+/// Verilmezse sinir yoktur: bugunku davranis. Ideal %100 dolulugu varsaydigi
+/// icin 1,00 gercekci degildir; gercek ihtiyac tam yukte ~1,17'dir.
+/// </param>
+/// <param name="Seed">
+/// Aramanin rastgelelik tohumu. Ayni tohum + ayni girdi bit birebir ayni plani
+/// uretir (R-C02/DR-06). Static sequencer'da kullanilmaz.
+/// </param>
 public sealed record OptimizationInput(
     decimal VehicleWidth,
     decimal VehicleHeight,
@@ -29,7 +71,12 @@ public sealed record OptimizationInput(
     LoadingType LoadingType = LoadingType.Rear,
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
-    bool? FillFromMaxX = null)
+    bool? FillFromMaxX = null,
+    SequencerKind Sequencer = SequencerKind.Static,
+    int Seed = 0,
+    SearchBudget? SearchBudget = null,
+    decimal? SupportThreshold = null,
+    decimal? DepthSlack = null)
 {
     /// <summary>
     /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.
@@ -43,28 +90,32 @@ public sealed record OptimizationInput(
 /// Optimizasyon modüllerinin açık/kapalı durumu. Verilmezse kriterden türetilir
 /// ve türetilmiş değerler bugünkü davranışı birebir üretir.
 ///
-/// Bilinçli olarak dışarıya kapalıdır: skor katsayıları yalnızca mevcut üç
-/// kriter için kalibre edilmiştir, dört bayrağın ürettiği on altı kombinasyonun
-/// çoğu kalibre edilmemiştir. Bu yüzden hiçbir API sözleşmesine (request DTO,
+/// Bilinçli olarak dışarıya kapalıdır: hiçbir API sözleşmesine (request DTO,
 /// komut, validator, Swagger şeması) bağlanmaz; yalnızca motorun içinden ve
 /// testlerden kullanılır.
+///
+/// **Dörtten ikiye indi (`DR-39`).** `UseVolume` ve `UseWeightBalance` greedy'nin
+/// skor terimlerini açıp kapatıyordu; greedy silinince ikisini de okuyan
+/// kalmadı. Duvar örücü yalnızca `UseLifo`'yu okur, `UseContamination` ise
+/// motorun dışında (handler'da) çalışır.
+///
+/// **Kriter ölmedi.** `LoadingPlanOptimizationCriteria` üç ayrı yerde hâlâ
+/// davranışı değiştiriyor: <c>ItemOrdering.ApplyCriteriaSort</c> (WeightBalance
+/// ağırlığa, diğerleri hacme göre sıralar), <c>PlacementValidator</c>
+/// (Lifo'da dikey istif kuralı) ve <c>SearchEvaluation.Cost</c> (WeightBalance'ta
+/// denge katsayısı 100 kat). Yani denge optimizasyonu yok olmadı, yerleştirme
+/// düzeyinden arama düzeyine taşındı.
 /// </summary>
 public sealed record OptimizationModules(
-    bool UseVolume,
-    bool UseWeightBalance,
     bool UseLifo,
     bool UseContamination)
 {
     /// <summary>
-    /// Bayrakların kriterden türetilmesi. Her satır bugün kodun ilgili modülü
-    /// hangi koşulda çalıştırdığının aynısıdır:
-    /// hacim terimleri WeightBalance dışında, denge katsayısı Lifo dışında,
-    /// bölge hesabı yalnızca Lifo'da, kontaminasyon filtresi ise her zaman.
+    /// Bayrakların kriterden türetilmesi: bölge hesabı yalnızca Lifo'da,
+    /// kontaminasyon filtresi her zaman.
     /// </summary>
     internal static OptimizationModules FromCriteria(LoadingPlanOptimizationCriteria criteria)
         => new(
-            UseVolume: criteria != LoadingPlanOptimizationCriteria.WeightBalance,
-            UseWeightBalance: criteria != LoadingPlanOptimizationCriteria.Lifo,
             UseLifo: criteria == LoadingPlanOptimizationCriteria.Lifo,
             UseContamination: true);
 

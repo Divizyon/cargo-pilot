@@ -28,10 +28,15 @@ export const DEFAULTS = {
   pageSize: 100,
   outDir: 'reports',
   timeoutMs: 60_000,
+  /** Bench ucu; --fixtures kipinde varsayılan hedef. */
+  benchUrl: 'http://127.0.0.1:5099',
+  repeat: 1,
 } as const;
 
 export interface CliOptions {
   seed: number;
+  /** Çok tohumlu koşu; `--seed-range a..b` verilmezse `[seed]`. */
+  seeds: number[];
   count: number;
   baseUrl: string;
   email: string;
@@ -44,6 +49,22 @@ export interface CliOptions {
   concurrency: number;
   pageSize: number;
   applyGate: boolean;
+  /**
+   * Fixture kipi: giriş yapılmaz, canlı katalog okunmaz, plan kalıcılığı yoktur.
+   * İstekler bench ucuna gider. Ayrı bir --dry-run / --catalog bayrağı YOK;
+   * kipin tamamı tek anahtarla açılır ki yarı-fixture bir koşu oluşamasın.
+   */
+  fixtures: boolean;
+  benchUrl: string;
+  /** Aynı koşuyu N kez tekrarla; damga farkı beklenmiyor. */
+  repeat: number;
+  /**
+   * Sert kural ihlali olan senaryoları bu dizine yaz. Rapor yalnız sayı taşır;
+   * "hangi kutu hangi kuralı kırdı" sorusu ancak girdi + yerleşim elde olunca
+   * yanıtlanır ve koşu bitince o veri kayboluyordu.
+   */
+  dumpFailuresDir: string | null;
+  /** Hangi yerleştirici koşsun. Deneysel yol backend'de bayrakla açık olmalı. */
 }
 
 export const USAGE = `
@@ -59,6 +80,14 @@ Kullanım: npm run suite -- [seçenekler]
   --page-size <n>         Katalog sayfa boyutu (varsayılan ${DEFAULTS.pageSize})
   --base-url <url>        Backend kök adresi
   --no-gate               Kapıyı uygulama; regresyonda da ${EXIT_CODES.ok} dön
+
+Hızlı döngü (kimlik doğrulama ve veritabanı olmadan):
+  --fixtures              Sentetik katalog + bench motoru ucu; giriş yapılmaz
+  --bench-url <url>       Bench ucu (varsayılan ${DEFAULTS.benchUrl})
+  --repeat <n>            Aynı koşuyu n kez koş, damga farkı ara (varsayılan ${DEFAULTS.repeat})
+  --seed-range <a..b>     Tohum aralığı; --seed yerine geçer
+  --dump-failures <dizin> İhlalli senaryoları (girdi + yerleşim) diske yaz
+  --strategy <ad>         greedy | wallbuilder (varsayılan greedy)
 
 Ortam değişkenleri:
   CARGO_PILOT_API_URL, CARGO_PILOT_EMAIL, CARGO_PILOT_PASSWORD
@@ -110,19 +139,28 @@ export function parseCliOptions(argv: readonly string[], env: CliEnv): CliOption
     throw new CliUsageError(`--criteria 0, 1 ya da 2 olmalı (verilen: ${criteria})`);
   }
 
+  const fixtures = argv.includes('--fixtures');
+
   const baseUrl = readFlag(argv, 'base-url') ?? env.CARGO_PILOT_API_URL ?? '';
   const email = readFlag(argv, 'email') ?? env.CARGO_PILOT_EMAIL ?? '';
   const password = env.CARGO_PILOT_PASSWORD ?? '';
 
-  if (!baseUrl) {
-    throw new CliUsageError('Backend adresi yok: --base-url ya da CARGO_PILOT_API_URL verin');
-  }
-  if (!email || !password) {
-    throw new CliUsageError('Giriş bilgisi yok: CARGO_PILOT_EMAIL ve CARGO_PILOT_PASSWORD verin');
+  // Fixture kipinde canlı backend hiç kullanılmaz; adres ve kimlik istemek
+  // kullanıcıyı olmayan bir bağımlılığı doldurmaya zorlardı.
+  if (!fixtures) {
+    if (!baseUrl) {
+      throw new CliUsageError('Backend adresi yok: --base-url ya da CARGO_PILOT_API_URL verin');
+    }
+    if (!email || !password) {
+      throw new CliUsageError('Giriş bilgisi yok: CARGO_PILOT_EMAIL ve CARGO_PILOT_PASSWORD verin');
+    }
   }
 
+  const seeds = readSeeds(argv);
+
   return {
-    seed: readNumber(argv, 'seed', DEFAULTS.seed),
+    seed: seeds[0],
+    seeds,
     count: readPositive(argv, 'count', DEFAULTS.count),
     baseUrl,
     email,
@@ -135,7 +173,34 @@ export function parseCliOptions(argv: readonly string[], env: CliEnv): CliOption
     concurrency: readPositive(argv, 'concurrency', DEFAULTS.concurrency),
     pageSize: readPositive(argv, 'page-size', DEFAULTS.pageSize),
     applyGate: !argv.includes('--no-gate'),
+    fixtures,
+    benchUrl: readFlag(argv, 'bench-url') ?? DEFAULTS.benchUrl,
+    repeat: readPositive(argv, 'repeat', DEFAULTS.repeat),
+    dumpFailuresDir: readFlag(argv, 'dump-failures') ?? null,
   };
+}
+
+/**
+ * `--seed-range a..b` verilmişse aralık, yoksa tek tohum. Aralık ve tek tohum
+ * birlikte verilirse aralık kazanır ama sessizce değil: tek tohum zaten
+ * aralığın ilk elemanı olarak raporlanır.
+ */
+function readSeeds(argv: readonly string[]): number[] {
+  const range = readFlag(argv, 'seed-range');
+  if (range === undefined) return [readNumber(argv, 'seed', DEFAULTS.seed)];
+
+  const parts = range.split('..').filter((part) => part.length > 0);
+  if (parts.length !== 2) throw new CliUsageError(`--seed-range 'a..b' biçiminde olmalı (verilen: ${range})`);
+
+  const from = Number(parts[0]);
+  const to = Number(parts[1]);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) {
+    throw new CliUsageError(`--seed-range sayı aralığı olmalı (verilen: ${range})`);
+  }
+
+  const [low, high] = from <= to ? [from, to] : [to, from];
+
+  return Array.from({ length: high - low + 1 }, (_, index) => low + index);
 }
 
 /**

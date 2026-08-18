@@ -24,7 +24,8 @@
       "AllowedRotations": "All",
       "Quantity": 2,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     },
     {
       "ItemId": "00000000-0000-0000-0000-000000000002",
@@ -39,17 +40,18 @@
       "AllowedRotations": "All",
       "Quantity": 2,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     }
   ],
   "Outcome": {
     "TotalWeight": 320,
     "FillRate": 0.5,
-    "CenterOfGravityX": 100,
-    "CenterOfGravityY": 50,
-    "CenterOfGravityZ": 200,
-    "WeightBalanceOffsetX": 0,
-    "WeightBalanceOffsetZ": 0,
+    "CenterOfGravityX": 75,
+    "CenterOfGravityY": 100,
+    "CenterOfGravityZ": 125,
+    "WeightBalanceOffsetX": 25.0,
+    "WeightBalanceOffsetZ": 37.5,
     "Placements": [
       {
         "Order": 0,
@@ -66,8 +68,8 @@
       {
         "Order": 1,
         "ItemId": "00000000-0000-0000-0000-000000000001",
-        "X": 100,
-        "Y": 0,
+        "X": 0,
+        "Y": 100,
         "Z": 0,
         "Width": 100,
         "Height": 100,
@@ -78,9 +80,9 @@
       {
         "Order": 2,
         "ItemId": "00000000-0000-0000-0000-000000000002",
-        "X": 0,
+        "X": 100,
         "Y": 0,
-        "Z": 300,
+        "Z": 0,
         "Width": 100,
         "Height": 100,
         "Length": 100,
@@ -91,8 +93,8 @@
         "Order": 3,
         "ItemId": "00000000-0000-0000-0000-000000000002",
         "X": 100,
-        "Y": 0,
-        "Z": 300,
+        "Y": 100,
+        "Z": 0,
         "Width": 100,
         "Height": 100,
         "Length": 100,

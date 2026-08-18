@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
@@ -70,7 +70,9 @@ internal static class EngineScenario
         decimal vehicleMaxWeight = StandardMaxWeight,
         LoadingType loadingType = LoadingType.Rear,
         bool clusterGroups = true,
-        bool fillFromMaxX = false)
+        bool fillFromMaxX = false,
+        SequencerKind sequencer = SequencerKind.Static,
+        int seed = 0)
         => new(
             vehicleWidth,
             vehicleHeight,
@@ -81,7 +83,9 @@ internal static class EngineScenario
             loadingType,
             clusterGroups,
             Modules: null,
-            FillFromMaxX: fillFromMaxX);
+            FillFromMaxX: fillFromMaxX,
+            Sequencer: sequencer,
+            Seed: seed);
 
     public static OptimizationResult Run(OptimizationInput input) => new OptimizationEngine().Run(input);
 

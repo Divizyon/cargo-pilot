@@ -1,6 +1,6 @@
 # ADR-0003 — LIFO Bölge Kısıtı: İki Kademeli Sert Kısıt
 
-- **Durum:** Kabul edildi
+- **Durum:** Yerini aldı: [ADR-0010](ADR-0010-duvar-orucu-ve-arama-katmani.md) *(2026-08-18 — Kararın kendisi (bölge sert kısıttır) yürürlükte; bu ADR'nin anlattığı **greedy mekanizması** silindi)*
 - **Tarih:** 2026-08-15 *(karar tarihi; ADR 2026-08-17'de geriye dönük yazıldı)*
 - **Kapsam:** OPT-02 · PR #990 (`b12a2e0f`), PR #1002 (`7b699f35`)
 - **Etkilediği kod:** `CargoPilot.Application/Common/Optimization/LifoPlacement.cs`,

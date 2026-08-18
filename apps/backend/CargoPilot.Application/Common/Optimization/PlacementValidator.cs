@@ -61,11 +61,51 @@ internal static class PlacementValidator
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal length)
+        => HasSupport(placed, x, y, z, width, length, SupportThreshold);
+
+    /// <summary>
+    /// Ayni soru, esigi disaridan verilerek. Esik bir FIZIK KANUNU DEGIL, bir
+    /// POLITIKA (docs/algorithm/02-kararlar.md DR-16): kimse olcup "%80 olmali" demedi.
+    /// Olcum bu kuralin en buyuk tikac oldugunu gosterdi — yerlesemeyen
+    /// kutularin %72,7'si bir bosluga sigiyor ama yalnizca %3,2'si orada destek
+    /// buluyor.
+    ///
+    /// Parametrelesme, esigi DEGISTIRMEK icin degil OLCMEK icin: uretim
+    /// varsayilani <see cref="SupportThreshold"/>'da durur ve hicbir cagri yolu
+    /// bugunku davranistan sapmaz. Musteri karari sayi olmadan verilemez.
+    /// </summary>
+    internal static bool HasSupport(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal length,
+        decimal threshold)
+        => SupportRatio(placed, x, y, z, width, length) >= threshold;
+
+    /// <summary>Asgari destek orani. Esik burada tek yerde durur.</summary>
+    internal const decimal SupportThreshold = 0.80m;
+
+    /// <summary>Girdi bir esik tasimiyorsa yururlukteki deger.</summary>
+    internal static decimal ThresholdOf(OptimizationInput input)
+        => input?.SupportThreshold ?? SupportThreshold;
+
+    /// <summary>
+    /// Aday pozisyonun taban alaninin ne kadari destekli. Zeminde ve sifir taban
+    /// alaninda 1.
+    ///
+    /// Esikten ayri durur cunku esik "gecer mi" sorusunun cevabi, oran ise
+    /// "ne kadar" sorusunun. Bosluk defteri ikincisine ihtiyac duyar: bir
+    /// bosluğun tabanini TAM destekli bolgeye kirpmak icin orani bilmek gerekir
+    /// (docs/algorithm/01-kurallar.md R-C09a).
+    /// </summary>
+    internal static decimal SupportRatio(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal length)
     {
-        if (y == 0m) return true;
+        if (y == 0m) return 1m;
 
         var footprint = width * length;
-        if (footprint == 0m) return true;
+        if (footprint == 0m) return 1m;
 
         var supportedArea = 0m;
         foreach (var b in placed)
@@ -76,7 +116,7 @@ internal static class PlacementValidator
             supportedArea += overlapX * overlapZ;
         }
 
-        return supportedArea / footprint >= 0.80m;
+        return supportedArea / footprint;
     }
 
     /// <summary>Yerleştirilmiş bir kutunun, kendisi hariç diğerlerinden destek alma kontrolü.</summary>
@@ -224,15 +264,31 @@ internal static class PlacementValidator
 
     /// <summary>Yerleştirilmiş bir kutunun üstündeki yük, kutunun kendi istif ve kırılganlık kısıtlarını aşıyor mu?</summary>
     internal static bool ViolatesLoadAbove(List<PlacedBox> others, PlacedBox box)
+        => ViolatesLoadAbove(
+            others, box.X, box.Y, box.Z, box.Width, box.Height, box.Length,
+            box.IsStackable, box.FragilityType, box.MaxStackCount, box.MaxWeightOnTop);
+
+    /// <summary>
+    /// Aynı soru, henüz yerleşmemiş bir ADAY için. Aday taraması bunu sormak
+    /// zorundadır: "yeni kutu daima yığının en üstüne konur" varsayımı yanlıştır,
+    /// çünkü boşluk defteri iki kutu arasında kalan cebi aday olarak tutar — bu
+    /// onun asıl amacıdır. Ölçüldü: köprü altındaki cebe kırılgan kutu
+    /// yerleşiyordu (OPT-15).
+    /// </summary>
+    internal static bool ViolatesLoadAbove(
+        List<PlacedBox> others,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal height, decimal length,
+        bool isStackable, FragilityType fragilityType, int maxStackCount, decimal maxWeightOnTop)
     {
         // Kısıtsız kutuda hiçbir kural üst yükle ilgilenmez: maliyet sıfır.
-        if (box.IsStackable
-            && box.FragilityType != FragilityType.Fragile
-            && box.MaxStackCount <= 0
-            && box.MaxWeightOnTop <= 0m)
+        if (isStackable
+            && fragilityType != FragilityType.Fragile
+            && maxStackCount <= 0
+            && maxWeightOnTop <= 0m)
             return false;
 
-        var top = box.Y + box.Height;
+        var top = y + height;
 
         var countAbove = 0;
         var weightAbove = 0m;
@@ -242,8 +298,8 @@ internal static class PlacementValidator
         {
             if (c.Y < top) continue;
 
-            var ox = Math.Max(0m, Math.Min(box.X + box.Width, c.X + c.Width) - Math.Max(box.X, c.X));
-            var oz = Math.Max(0m, Math.Min(box.Z + box.Length, c.Z + c.Length) - Math.Max(box.Z, c.Z));
+            var ox = Math.Max(0m, Math.Min(x + width, c.X + c.Width) - Math.Max(x, c.X));
+            var oz = Math.Max(0m, Math.Min(z + length, c.Z + c.Length) - Math.Max(z, c.Z));
             if (ox <= 0m || oz <= 0m) continue;
 
             countAbove++;
@@ -251,10 +307,10 @@ internal static class PlacementValidator
             if (c.Y == top) restsDirectlyOn = true;
         }
 
-        if (!box.IsStackable && restsDirectlyOn) return true;
-        if (box.FragilityType == FragilityType.Fragile && countAbove > 0) return true;
-        if (box.MaxStackCount > 0 && countAbove > box.MaxStackCount) return true;
-        if (box.MaxWeightOnTop > 0m && weightAbove > box.MaxWeightOnTop) return true;
+        if (!isStackable && restsDirectlyOn) return true;
+        if (fragilityType == FragilityType.Fragile && countAbove > 0) return true;
+        if (maxStackCount > 0 && countAbove > maxStackCount) return true;
+        if (maxWeightOnTop > 0m && weightAbove > maxWeightOnTop) return true;
 
         return false;
     }
@@ -299,6 +355,15 @@ internal static class PlacementValidator
             [
                 (W, H, L, LoadingPlanPlacementRotation.NoRotation),
                 (H, W, L, LoadingPlanPlacementRotation.Roll)
+            ],
+            // W asla dikey olamaz; H ve L dikeye gelebilir, yatay çift serbestçe döner.
+            // `All`'dan W'yi dikeye getiren ikisi (Roll, RollYaw) çıkarılmıştır.
+            AllowedRotations.NoVerticalWidth =>
+            [
+                (W, H, L, LoadingPlanPlacementRotation.NoRotation),
+                (L, H, W, LoadingPlanPlacementRotation.Yaw),
+                (W, L, H, LoadingPlanPlacementRotation.Pitch),
+                (H, L, W, LoadingPlanPlacementRotation.YawPitch)
             ],
             _ =>
             [

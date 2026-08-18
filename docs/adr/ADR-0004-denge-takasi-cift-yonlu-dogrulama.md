@@ -1,6 +1,6 @@
 # ADR-0004 — Denge Takasında Çift Yönlü Doğrulama
 
-- **Durum:** Kabul edildi
+- **Durum:** Yerini aldı: [ADR-0010](ADR-0010-duvar-orucu-ve-arama-katmani.md) *(2026-08-18 — `BalanceScoring` silindi; yalnız `ViolatesLoadAbove` sekizinci sert kapı olarak yaşıyor)*
 - **Tarih:** 2026-08-15 *(karar tarihi; ADR 2026-08-17'de geriye dönük yazıldı)*
 - **Kapsam:** OPT-01 · PR #989 (`72e9fdfa`) · **Sonradan sınandı:** PR #997 (`62be448f`)
 - **Etkilediği kod:** `CargoPilot.Application/Common/Optimization/BalanceScoring.cs`,

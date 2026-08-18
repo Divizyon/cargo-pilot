@@ -2,13 +2,22 @@ server:
   http_listen_port: 9080
   grpc_listen_port: 0
 
+# D-45: positions dosyası kalıcı bir mount altında tutulur. /tmp'te olduğu sürece
+# her promtail restart'ında okuma pozisyonu sıfırlanıyor ve container'ların mevcut
+# log dosyaları baştan gönderiliyordu (Loki'de log tekrarı). Mount tanımı
+# infra/compose/docker-compose.monitoring.test.yml içindeki promtail servisinde.
 positions:
-  filename: /tmp/positions.yaml
+  filename: /var/lib/promtail/positions.yaml
 
 clients:
   - url: http://cargo-pilot-loki-test:3100/loki/api/v1/push
 
 scrape_configs:
+  # D-45: Eskiden yalnız backend + frontend toplanıyordu; MSSQL, ERP MSSQL, MinIO ve
+  # monitoring servislerinin logları hiç Loki'ye gitmiyordu. Artık Docker tarafında
+  # `cargo-pilot-` ön ekiyle filtrelenip, relabel aşamasında bu ortamın (`-test`)
+  # container'ları tutuluyor. Böylece yeni bir servis compose'a eklendiğinde
+  # promtail yapılandırmasını güncellemek gerekmiyor.
   - job_name: docker-containers
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
@@ -16,9 +25,17 @@ scrape_configs:
         filters:
           - name: name
             values:
-              - cargo-pilot-backend-test
-              - cargo-pilot-frontend-test
+              - cargo-pilot-
     relabel_configs:
+      # Aynı host'ta prod stack'i de koşarsa ortamlar karışmasın.
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/cargo-pilot-.+-test'
+        action: keep
+      # Promtail kendi loglarını toplamaz: her push için ürettiği satır yeni log
+      # doğurur ve kendi kendini besleyen bir gürültü döngüsü oluşur.
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/cargo-pilot-promtail-test'
+        action: drop
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: container_name
@@ -27,6 +44,8 @@ scrape_configs:
       - target_label: job
         replacement: cargo-pilot-test
     pipeline_stages:
+      # Serilog JSON formatı yalnızca backend'de var; eşleşmeyen satırlarda bu
+      # aşama sessizce atlanır ve `level` etiketi oluşmaz.
       - regex:
           expression: '"@l":"(?P<level>[^"]*)"'
       - labels:
