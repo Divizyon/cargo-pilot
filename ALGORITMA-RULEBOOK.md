@@ -313,6 +313,12 @@ tercihi (derin / yansız / sığ) ve yedek kademe sırası (cep önce mi, yeni d
 bugünkü davranışı temsil eder ve sapmayı arama keşfeder (`R-C21`). Sabit derinlik kuralının neden
 kazanamadığı `DR-23`'te.
 
+`R-C09d` **Bileşik blok (Zhu vd. 2012).** Sütun aynı ürünle dolduktan sonra tepede kalan yükseklik
+**başka bir üründen** kutuyla tamamlanır. Şart: üst kat, taban katın ayak izini en az **%85**
+oranında kapatmalı — aksi hâlde blok prizma olmaktan çıkar ve yüzeyin geri kalanı ölü havaya
+döner (`DR-35`, kısıtsız hâli ölçüldü ve kaybetti). Yedi kapı ve sekizinci kapı
+`PlacementValidator`'dan sorulur; bileşik blok kendi kural tanımını yazmaz.
+
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
 `R-C11` **Boşluk güncelleme.** Yerleşim sonrası kesişen boşluklar silinir, yerine ≤6 yeni prizmatik boşluk üretilir; kalan kutuların en küçük boyutuna sığmayan boşluk `rejected`; `rejected` boşlukların komşuyla birleştirilmesi (amalgamation) **ÖLÇÜLDÜ VE KAPATILDI (`DR-34`)**: defterdeki boşlukların %0,0'ı maksimal değil — hepsi altı yönde de bir kutuya ya da araç duvarına dayanıyor, dolayısıyla birleştirilecek bir şey yok.
 `R-C12` **Sert kapılar.** Her aday `PlacementValidator` 7 kapısından geçer (`R-C01`). Wall-Builder kendi "destek" tanımı yazmaz; `%80` kuralı oradadır.
@@ -460,6 +466,7 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | **DR-32** | **Arama tohumları üçte kalır** | Tohumlar bütçe içinde değerlendiriliyor; her ek tohum bir tam yerleştirme koşusu ve o süre arama turlarından çalınıyor. Altı tohum −0,11, tek ek tohum −0,10 |
 | **DR-33** | **K-Means ön kümeleme reddedildi** (`R-B4` iddiası) | Doluluk her `k` değerinde taban çizginin altında; `k` büyüdükçe taban çizgiye yaklaşıyor, yani zarar veren kümelemenin kendisi. Hız 2× artıyor ama sebebi kazanç değil kayıp: benzer ölçüler bir arada gelince daha az boşluk hayatta kalıyor |
 | **DR-34** | **Amalgamation uygulanmayacak** (`R-C11`) | Ölçüldü: defterdeki boşlukların **%0,0'ı** maksimal değil, ortalama büyüme %0. Altı yönün hepsinde tıkalılar; iki maksimal kutuyu birleştirmek prizma vermez. Madde Parreño'nun temsilinden geliyordu ve orada anlamlı, bizimkinde değil |
+| **DR-35** | **Bileşik blok: sütun tepesi başka üründen kutuyla tamamlanır, ayak izi uyumu ≥ %85** (`R-C09d`) | Kısıtsız hâli kaybediyor (BR %78,71): geniş bir sütunun tepesine küçük kutu koymak yüzeyin geri kalanını ölü havaya çeviriyor. Uyum şartıyla statik yolda giyotin %76,29 → **%79,16**, BR %79,86 → %80,09. Aramada nötr — GRASP bu kazancı sıralamayla zaten buluyor |
 
 ⏳ = **geçici karar.** Üçü de F0'ı açmak için verildi; ölçüm olmadan doğrulanmadılar. **F3 çıkışında (SC-58/SC-59 ölçümleri geldiğinde) ilk bakılacak teknik borç kalemleridir** — bkz. §E3.
 

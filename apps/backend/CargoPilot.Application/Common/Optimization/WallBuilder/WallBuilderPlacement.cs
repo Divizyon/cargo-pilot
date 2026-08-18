@@ -1,4 +1,4 @@
-﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization.WallBuilder;
@@ -22,6 +22,9 @@ namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 /// </summary>
 internal static class WallBuilderPlacement
 {
+    /// <summary>Bilesik blokta ust katin taban kati kapatma orani.</summary>
+    private const decimal FootprintMatch = 0.85m;
+
     /// <summary>
     /// Varsayilan sirayla kosar. Siralama greedy ile ortaktir (hacim-azalan): iki
     /// alternatif olculdu ve ikisi de kotulesti — derinlik kovasi %74,12, LAFF
@@ -352,6 +355,81 @@ internal static class WallBuilderPlacement
 
             top += height;
             count++;
+        }
+
+        // Ayni urun artik sigmiyor ama sutunun ustunde yer kalmis olabilir.
+        // BILESIK BLOK (Zhu vd. 2012): kalan yuksekligi baska bir urunle
+        // tamamla. Aday, sutunun ayak izini ASMAYAN ilk yerlesmemis kutudur —
+        // tasarsa blok bir prizma olmaktan cikardi.
+        count += TopUp(input, ledger, placements, instances, consumed, from,
+            baseBox, x, z, top, minSide, ref totalWeight);
+
+        return count;
+    }
+
+    /// <summary>
+    /// Sutunun ustunde kalan yuksekligi baska bir urunle doldurur.
+    ///
+    /// Gerekcesi olculmustur: kayip hacmin tamami yiginin USTUNDE (olu hava
+    /// %8,6-13), ic bosluk sifira yakin. Yani sorun kutularin arasinda degil,
+    /// sutunun tepesinde kalan ve o urune yetmeyen bosluk.
+    ///
+    /// Yedi kapi yine <see cref="PlacementValidator"/> uzerinden sorulur.
+    /// </summary>
+    private static int TopUp(
+        OptimizationInput input,
+        SpaceLedger ledger,
+        List<PlacedBox> placements,
+        IReadOnlyList<SequencedItem> instances,
+        bool[] consumed,
+        int from,
+        PlacedBox baseBox,
+        decimal x,
+        decimal z,
+        decimal top,
+        decimal minSide,
+        ref decimal totalWeight)
+    {
+        var count = 0;
+
+        for (var j = from; j < instances.Count; j++)
+        {
+            if (consumed[j]) continue;
+
+            var item = instances[j].Item;
+            if (item.ItemId == baseBox.ItemId) continue;
+
+            foreach (var (width, height, length, rotation) in PlacementValidator.GetOrientations(item))
+            {
+                if (width > baseBox.Width || length > baseBox.Length) continue;
+
+                // Ayak izi uyumu: kucuk bir kutuyu genis bir sutunun tepesine
+                // koymak o yuzeyin geri kalanini olu havaya cevirir. Blok ancak
+                // ust kat tabani buyuk olcude kapatiyorsa bilesik kalir.
+                if (width * length < FootprintMatch * baseBox.Width * baseBox.Length) continue;
+                if (top + height > input.VehicleHeight) continue;
+                if (totalWeight + item.Weight > input.VehicleMaxWeight) continue;
+
+                if (PlacementValidator.HasOverlap(placements, x, top, z, width, height, length)) continue;
+                if (!PlacementValidator.HasSupport(placements, x, top, z, width, length,
+                    PlacementValidator.ThresholdOf(input))) continue;
+                if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
+                    input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
+                if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) continue;
+                if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight)) continue;
+                if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length)) continue;
+                if (PlacementValidator.ViolatesLoadAbove(placements, x, top, z, width, height, length,
+                    item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop)) continue;
+
+                placements.Add(Create(item, x, top, z, width, height, length, rotation));
+                totalWeight += item.Weight;
+                ledger.Place(x, top, z, width, height, length, minSide);
+                consumed[j] = true;
+
+                top += height;
+                count++;
+                break;
+            }
         }
 
         return count;

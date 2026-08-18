@@ -1060,3 +1060,47 @@ vermez.
 
 `R-C11`'in amalgamation kısmı **kapatıldı** — uygulanmayacak. Ölçüm aracı harness'ta kaldı;
 defter değişirse maksimallik bir regresyon olarak yakalanabilir.
+
+---
+
+## ③ Bileşik blok (Zhu vd. 2012) — **statik yolda +2,87 puan**
+
+Kule ve blok yalnızca **aynı** üründen kuruluyordu. Sütun o ürünle dolduktan sonra tepede kalan
+yükseklik ölü havaya dönüyordu — ve ölçüm kaybın tamamının orada olduğunu söylüyordu (ölü hava
+%8,6-13, iç boşluk sıfıra yakın).
+
+`TopUp`: sütunun tepesinde kalan yüksekliği **başka bir üründen** kutuyla tamamla. Yedi kapı yine
+`PlacementValidator`'dan soruluyor, sekizinci kapı dahil.
+
+### İlk deneme kaybetti, sebebi öğreticiydi
+
+Kısıtsız hâli **kaybetti** (BR %78,71, giyotin %75,49): sıradan ileriden kutu çalıp geniş bir
+sütunun tepesine küçük bir kutu koyuyor, o yüzeyin geri kalanını ölü havaya çeviriyordu.
+
+**Ayak izi uyumu şartı** eklendi: üst kat, taban katın ayak izini en az `FootprintMatch` oranında
+kapatmalı. Aksi hâlde blok bir prizma olmaktan çıkar.
+
+| Ayak izi uyumu | BR1-BR7 | Giyotin |
+|---|---|---|
+| Taban çizgi (bileşik blok yok) | %79,86 | %76,29 |
+| %50 | %79,07 | %75,88 |
+| %65 | %79,67 | %76,68 |
+| %80 | %80,09 | %78,66 |
+| **%85 (seçildi)** | **%80,09** | **%79,16** |
+| %90 | %80,06 | %79,14 |
+| %95 | %79,94 | %78,38 |
+
+### Sonuç
+
+| | Önce | Sonra |
+|---|---|---|
+| **BR1-BR7 (static, 700 örnek)** | %79,86 | **%80,09** |
+| **Giyotin (static, 300 senaryo)** | %76,29 | **%79,16** |
+| BR1-BR7 (GRASP, 175 örnek) | %86,27 | %86,23 |
+| Greedy | %75,23 | %75,23 |
+
+Statik yolda büyük kazanç, aramada nötr — **arama bu kazancı sıralamayla zaten buluyormuş**.
+Yine de tutuldu: statik yol üretimin hızlı yolu (2-5 ms / 2 sn) ve kapının referansı.
+
+Kapı referansı tazelendi (`docs/algorithm/br-wallbuilder-static.json`, %79,86 → %80,09); greedy
+referansı dokunulmadan geçti.
