@@ -144,8 +144,13 @@ jobs:
 
       # Referans yalnızca GEÇEN koşuyla güncellenir. Gerileyen bir koşuyu referans
       # yapmak, gerilemeyi yeni normal hâline getirir ve kapı bir daha ötmez.
+      #
+      # `configured` koşulu şart: koşu adımı atlandığında `exit-code` boş kalır ve
+      # ifade motoru boş dizeyi sayıya çevirdiği için `'' == '0'` DOĞRU döner. Tek
+      # başına exit-code'a bakmak, yapılandırılmamış her gecelik koşuda bu adımı
+      # çalıştırıp var olmayan raporu kopyalatıyor ve işi kırmızıya düşürüyordu.
       - name: Referansı güncelle
-        if: steps.suite.outputs.exit-code == '0'
+        if: steps.config.outputs.configured == 'true' && steps.suite.outputs.exit-code == '0'
         run: |
           mkdir -p "$BASELINE_DIR"
           cp "${APP_DIR}/${{ steps.suite.outputs.report-path }}" "$BASELINE_FILE"

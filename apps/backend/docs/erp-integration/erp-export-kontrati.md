@@ -88,4 +88,4 @@ aktarım keyfi seçim yapmadan durur ve neden operasyon loglarına yazılır.
 - Sipariş hangi cariye yazılacak: sabit tek cari mi, plan/müşteri başına mı? (Bugün tek sabit
   `Erp:CustomerCode`.)
 - Yazma yetkili SQL hesabı: okuma için salt-okunur hesap öneriliyor; aktarım açıldığında
-  bu iki tablo için yazma yetkisi gerekir (bkz. `adr-baglanti-mimarisi.md`).
+  bu iki tablo için yazma yetkisi gerekir (bkz. `docs/adr/ADR-0001-erp-baglanti-mimarisi.md`).
