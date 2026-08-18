@@ -9,6 +9,9 @@ services:
       context: ../../apps/backend
       dockerfile: Dockerfile
     container_name: cargo-pilot-backend-test
+    # F1-02: standalone `docker compose up` ile calisiyoruz (Swarm degil), bu yuzden
+    # deploy.resources.limits yok sayilir; mem_limit standalone'da bagliyicidir.
+    mem_limit: 512m
     environment:
       ASPNETCORE_ENVIRONMENT: Test
       ASPNETCORE_URLS: http://+:8080
@@ -73,10 +76,19 @@ services:
         VITE_OAUTH_GOOGLE_URL: ${VITE_OAUTH_GOOGLE_URL:-}
         VITE_OAUTH_MICROSOFT_URL: ${VITE_OAUTH_MICROSOFT_URL:-}
     container_name: cargo-pilot-frontend-test
+    mem_limit: 256m
     environment:
       NODE_ENV: production
     ports:
       - "127.0.0.1:${FRONTEND_PORT}:80"
+    # D-49: imaj nginx:1.31-alpine tabanli; busybox wget mevcut. Ayri bir /health
+    # ucu yok, kok yol index.html'i 200 ile donduruyor.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     depends_on:
       - backend
     restart: unless-stopped
@@ -88,11 +100,17 @@ services:
     platform: linux/amd64
     container_name: cargo-pilot-mssql-test
     user: root
+    # F1-02 / D-39: mem_limit container tavanı; MSSQL_MEMORY_LIMIT_MB bunun altında
+    # tutulan SQL Server "max server memory" hedefidir.
+    mem_limit: 3072m
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      # D-39: tanımsızsa SQL Server host RAM'inin ~%80'ini hedefler; mem_limit'in
+      # (3072m) altında sabit bir tavan veriyoruz.
+      MSSQL_MEMORY_LIMIT_MB: ${MSSQL_MEMORY_LIMIT_MB:-2048}
     ports:
       - "127.0.0.1:${MSSQL_PORT}:1433"
     volumes:
@@ -116,6 +134,9 @@ services:
     platform: linux/amd64
     container_name: cargo-pilot-erp-mssql-test
     user: root
+    # F1-02: bu servis yalnizca CI (GitHub Actions runner) uzerinde --profile e2e ile
+    # kalkar, prod sunucusunun 16 GB butcesine girmez; yine de tavan konuluyor.
+    mem_limit: 1536m
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
@@ -145,6 +166,7 @@ services:
     platform: linux/amd64
     container_name: cargo-pilot-erp-mssql-init-test
     user: root
+    mem_limit: 256m
     environment:
       ERP_MSSQL_SA_PASSWORD: ${ERP_MSSQL_SA_PASSWORD:-ErpFake_Pass123!}
     depends_on:
@@ -167,6 +189,7 @@ services:
     image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     platform: linux/amd64
     container_name: cargo-pilot-minio-test
+    mem_limit: 512m
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}

@@ -4,10 +4,19 @@ services:
   loki:
     image: grafana/loki:2.9.4
     container_name: cargo-pilot-loki-test
+    mem_limit: 512m
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ../docker/loki/loki-config.yml:/etc/loki/config.yml:ro
       - loki_data_test:/loki
+    # D-49: imajda curl yok, busybox wget var (/usr/bin/wget).
+    # /ready ingester hazir olana kadar 503 döner (ölçümde ~25-30 sn) → start_period 60s.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3100/ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
     networks:
       - cargo-pilot-test
@@ -15,11 +24,20 @@ services:
   promtail:
     image: grafana/promtail:2.9.4
     container_name: cargo-pilot-promtail-test
+    mem_limit: 128m
     command: -config.file=/etc/promtail/config.yml
     volumes:
       - ../docker/promtail/promtail.test.yml:/etc/promtail/config.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    # D-49: promtail imajinda wget/curl/nc yok (debian-slim, minimal). Mevcut olan
+    # bash ile /ready ucuna TCP+HTTP isteği atiliyor.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9080 && printf 'GET /ready HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q '200 OK'"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - cargo-pilot-test
@@ -27,11 +45,21 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.7.0
     container_name: cargo-pilot-node-exporter-test
+    mem_limit: 64m
     command:
       - '--path.rootfs=/host'
     volumes:
       - /:/host:ro,rslave
     pid: host
+    # D-49: node-exporter'da ayri bir health ucu yok — /-/healthy dahil TÜM yollar
+    # 200 + landing page donduruyor (olculdu), yani anlamsiz. Gercek isleyisi
+    # dogrulayan tek uc /metrics.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
     networks:
       - cargo-pilot-test
@@ -39,6 +67,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: cargo-pilot-cadvisor-test
+    mem_limit: 256m
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -48,6 +77,13 @@ services:
     privileged: true
     devices:
       - /dev/kmsg
+    # D-49: cadvisor'in kendi /healthz ucu var (imajda busybox wget mevcut).
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - cargo-pilot-test
@@ -55,6 +91,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.50.1
     container_name: cargo-pilot-prometheus-test
+    mem_limit: 512m
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -64,6 +101,13 @@ services:
       - prometheus_data_test:/prometheus
     ports:
       - "127.0.0.1:9091:9090"
+    # D-49: imajda curl yok, busybox wget var (/bin/wget).
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/-/healthy"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
     networks:
       - cargo-pilot-test
@@ -71,6 +115,7 @@ services:
   grafana:
     image: grafana/grafana:10.3.3
     container_name: cargo-pilot-grafana-test
+    mem_limit: 256m
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
@@ -87,9 +132,18 @@ services:
       - grafana_data_test:/var/lib/grafana
     ports:
       - "3002:3000"
+    # D-49: grafana imajinda hem wget hem curl var; dosya genelinde wget kullaniliyor.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     depends_on:
-      - prometheus
-      - loki
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - cargo-pilot-test
