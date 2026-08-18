@@ -189,9 +189,10 @@ jobs:
             VITE_OAUTH_MICROSOFT_URL=${{ secrets.VITE_OAUTH_MICROSOFT_URL }}
             VITE_APP_ENV=test
           cache-from: type=gha,scope=frontend-test
-          cache-to: |
-            type=gha,mode=max,scope=frontend-test
-            type=gha,mode=max,scope=cargo-pilot-frontend-ci
+          # Tek scope: `cargo-pilot-frontend-ci` yazımı D-09 ile tüketicisiz kaldı
+          # (ci.yml'deki docker-build job'u kaldırıldı). Gerçek tüketiciler
+          # test-deploy.yml'deki build/deploy/e2e job'ları ve hepsi frontend-test okuyor.
+          cache-to: type=gha,mode=max,scope=frontend-test
 
       - name: Kota raporu
         if: always() && steps.quota.outputs.seed == 'true'
