@@ -55,6 +55,7 @@ public static class BrCommand
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,
+                    DepthSlack = options.DepthSlack,
                 };
 
                 var started = Stopwatch.GetTimestamp();

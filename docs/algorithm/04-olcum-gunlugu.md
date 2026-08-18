@@ -1587,3 +1587,71 @@ yukarıdaki tabloda doluluk her iki kurulumda aynı, ayıran tek şey biçim.
 **Açılan iş:** kısmi dolulukta yoğunlaşma, doluluğun yanında ikinci bir amaç olmalı. Yerleştirici
 bugün bir duvarı tavana kadar doldurmadan sıradakine geçebiliyor; bunun ölçülü bedeli henüz
 bilinmiyor.
+
+---
+
+## F6-5′ · Hedef derinlik — **doluluk hiç düşmüyor, yük öne toplanıyor**
+
+Fikir kullanıcıdan geldi: yükün aracın ne kadarına yayılacağını **önceden hesapla**, bir esneklik
+payı ver, ve yerleştirmeyi o derinliğe sıkıştır.
+
+```
+ideal  = toplam kutu hacmi / (genişlik × yükseklik)
+hedef  = min(araç uzunluğu, ideal × pay)
+```
+
+### Payın tek başına yetmeyeceği baştan belliydi
+
+İdeal derinlik **%100 doluluk** varsayar; biz tam yükte %83,8 yapıyoruz, yani gerçek ihtiyaç
+ideal × ~1,17. Sabit 1,05 verilseydi kutular hedefe sığmaz ve doluluk düşerdi.
+
+Bu yüzden hedef **sert sınır değil, tercih** olarak kuruldu: bir kutu hedefe sığmazsa hedef
+`×1,10` büyütülür ve iki yedek yol yeniden denenir. Doluluk asla düşmez — pay yalnızca yerin
+**nasıl** kullanıldığını değiştirir, **ne kadarının** kullanıldığını değil.
+
+Alan ölçüm parametresi olarak eklendi (`OptimizationInput.DepthSlack`, `br --depth-slack`),
+`SupportThreshold`'un `DR-16`'da kurduğu deseni izleyerek: üretim yolları doldurmuyor,
+varsayılan `null` = bugünkü davranış.
+
+### Ölçüm (BR1, 15 örnek)
+
+| Yük | Doluluk | Derinlik · paysız | Derinlik · pay 1,05 | Yayılma |
+|---|---|---|---|---|
+| %25 | %24,23 | %40,9 | **%34,8** | 1,69× → **1,44×** |
+| %50 | %49,09 | %70,9 | **%68,5** | 1,44× → 1,40× |
+| %75 | %73,09 | %93,6 | **%91,0** | 1,28× → 1,25× |
+| %100 | %82,61 | %98,0 | %98,0 | 1,17× |
+
+**Doluluk her satırda birebir aynı.** Tam yükte 700 örnekte dört payın dördü de %82,61 — mekanizma
+bedava. Kazanç çeyrek yükte en büyük (6 puan derinlik), yarım ve dörtte üçte 2-3 puan.
+
+Pay değerini büyütmek işe yaramıyor (1,05 ≈ 1,15 ≈ 1,30): dar başlayıp esneme adımlarıyla
+büyümek ile geniş başlamak aynı yere varıyor.
+
+### Neden kazanç küçük kaldı — ve bunun ne anlama geldiği
+
+Yarım yükte hedef derinlik %51,9 hesaplanıyor ama sonuç %68,5. Yani esneme **defalarca** tetikleniyor:
+kutular hedef banda gerçekten sığmıyor.
+
+Sığmama sebebi derinlik değil, **yükseklik**. Yığın %51'de takılıyor ve pay uygulandığında da
+takılmaya devam ediyor (%51,5 → %51,1). Yerleştirici kutuları daha yükseğe yığabilseydi zaten
+daha dar bir banda sığdırırdı; yığamıyor.
+
+**Bu, kullanıcının ikinci fikrini (üst boşluğu duvar tanımadan doldur) ölçüyle bağlıyor ama aynı
+zamanda sınırını gösteriyor:** üst boşluk erişilebilir olsaydı hedef derinlik onu zaten
+kullandırırdı. Kullandıramadığına göre boşluk erişilemez — kutunun altında %80 destek verecek katı
+bir yüzey yok.
+
+Ve bu, `DR-44`'ün ölçtüğü şeyin aynısı: duvar yüzü %86,2 kaplanıyor, duvarların %91'i eşiğin
+altında. **Kesit tam döşenmediği için duvar katı bir platform olmuyor, platform olmayınca üstüne
+yığılamıyor, yığılamayınca yük derine yayılıyor.** Üç ayrı belirti, tek sebep.
+
+**Sonucu:** Öneri 3 (duvar yüzünü 2B tam kapla) hem doluluğun hem biçimin önündeki tek darboğaz.
+Hedef derinlik mekanizması korunuyor — bedava ve gerçek bir kazanç — ama tek başına tavanı
+kaldırmıyor.
+
+### Açık karar
+
+`DepthSlack` bugün yalnız ölçüm düzeneğinde dolu. Üretime açmak doluluğu **hiç** düşürmüyor ve
+biçimi iyileştiriyor; ama motorun çıktısını değiştirdiği için 17 snapshot'ın yeniden üretilmesi
+gerekir. Karar kullanıcıya bırakıldı.

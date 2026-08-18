@@ -78,6 +78,15 @@ internal static class WallBuilderPlacement
         // ac" demek (R-C09).
         var walls = new List<WallSegment>();
 
+        // Hedef derinlik: yuk aracin onune toplansin diye yerlestirmenin
+        // gecemeyecegi z tavani. Ideal derinlik %100 dolulugu varsayar, bu
+        // yuzden gercekci bir pay ile carpilir (DepthSlack).
+        //
+        // Bu bir SERT sinir degil, bir TERCIHTIR: bir kutu hedefe sigmazsa
+        // hedef adim adim buyutulur ve kutu yeniden denenir. Doluluk asla
+        // dusmez; degisen sey yerin nasil kullanildigidir.
+        var depthBudget = DepthBudget(input, instances);
+
         // Basarisiz denemenin bedeli agirdir: aday bulunamadiginda erken cikis
         // tetiklenmez ve defterin tamami taranir. Ayni urunden 88 adet ust uste
         // sigmadiginda bu tarama 88 kez tekrarlaniyordu.
@@ -182,7 +191,7 @@ internal static class WallBuilderPlacement
 
                 var frontier = walls.Count > 0 ? walls[^1].End : 0m;
                 var opened = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    frontier, null, zoneStart, zoneEnd, remaining, decoder.WallDepthPreference);
+                    frontier, depthBudget, zoneStart, zoneEnd, remaining, decoder.WallDepthPreference);
 
                 blockedByFragility |= opened.BlockedByFragility;
 
@@ -208,7 +217,7 @@ internal static class WallBuilderPlacement
                 if (bestInZone) return;
 
                 var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    0m, null, zoneStart, zoneEnd, remaining, 0m);
+                    0m, depthBudget, zoneStart, zoneEnd, remaining, 0m);
 
                 blockedByFragility |= anywhere.BlockedByFragility;
 
@@ -229,6 +238,29 @@ internal static class WallBuilderPlacement
             {
                 OpenNewWall();
                 ScanPockets();
+            }
+
+            // Kutu hedefe sigmadi ama arac hala uzun: hedefi buyut ve iki yedek
+            // yolu yeniden dene. Bu adim olmadan pay bir doluluk kaybina
+            // donerdi; boylece pay yalnizca yuku one topluyor, ne kadarinin
+            // kullanildigini degistirmiyor.
+            //
+            // Duvar dongusu tekrarlanmaz: duvar bantlari zaten hedeften
+            // bagimsizdir ve bir kez tarandiklarinda cevaplari degismez.
+            while (best is null && depthBudget is { } budget && budget < input.VehicleLength)
+            {
+                depthBudget = Math.Min(input.VehicleLength, budget * DepthRelaxStep);
+
+                if (decoder.PocketBeforeNewWall)
+                {
+                    ScanPockets();
+                    OpenNewWall();
+                }
+                else
+                {
+                    OpenNewWall();
+                    ScanPockets();
+                }
             }
 
             if (best is null)
@@ -261,6 +293,25 @@ internal static class WallBuilderPlacement
         return PlanResultBuilder.Build(
             placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength,
             walls: walls);
+    }
+
+    /// <summary>Hedef derinligin buyutulme adimi; her basarisizlikta tavan bu kadar acilir.</summary>
+    private const decimal DepthRelaxStep = 1.10m;
+
+    /// <summary>
+    /// Yukun toplanacagi hedef derinlik. <c>null</c> ise sinir yoktur —
+    /// bugunku davranis.
+    /// </summary>
+    private static decimal? DepthBudget(OptimizationInput input, IReadOnlyList<SequencedItem> instances)
+    {
+        if (input.DepthSlack is not { } slack || slack <= 0m) return null;
+
+        var face = input.VehicleWidth * input.VehicleHeight;
+        if (face <= 0m) return null;
+
+        var volume = instances.Sum(i => i.Item.Width * i.Item.Height * i.Item.Length);
+
+        return Math.Min(input.VehicleLength, volume / face * slack);
     }
 
     /// <summary>

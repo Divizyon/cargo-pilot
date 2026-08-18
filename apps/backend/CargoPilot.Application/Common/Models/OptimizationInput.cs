@@ -39,6 +39,24 @@ namespace CargoPilot.Application.Common.Models;
 /// davranis. Alan bir POLITIKA degeridir, fizik kanunu degil (DR-16); bugun
 /// yalnizca olcum duzenegi doldurur, uretim yollari doldurmaz.
 /// </param>
+/// <param name="DepthSlack">
+/// Yukun toplanacagi HEDEF DERINLIK payi. Hedef derinlik su sekilde bulunur:
+///
+///     ideal    = toplam kutu hacmi / (genislik x yukseklik)
+///     hedef    = min(arac uzunlugu, ideal x DepthSlack)
+///
+/// Yerlestirme bu hedefin otesine gecmez; gecemedigi icin yuk aracin onune
+/// toplanir. Kutu hedefe sigmazsa hedef ADIM ADIM buyutulur ve kutu yeniden
+/// denenir, yani doluluk asla dusmez — pay yalnizca yerin nasil kullanildigini
+/// degistirir, ne kadarinin kullanildigini degil.
+///
+/// Neden gerekli: musteri katman insasini kismi dolulukta yuku tabana yaydigi
+/// icin reddetti (DR-12). Olculdu, duvar orucu de ayni yonde kusurlu — ceyrek
+/// yukte yuk gerektiginden 1,73 kat derine yayiliyor.
+///
+/// Verilmezse sinir yoktur: bugunku davranis. Ideal %100 dolulugu varsaydigi
+/// icin 1,00 gercekci degildir; gercek ihtiyac tam yukte ~1,17'dir.
+/// </param>
 /// <param name="Seed">
 /// Aramanin rastgelelik tohumu. Ayni tohum + ayni girdi bit birebir ayni plani
 /// uretir (R-C02/DR-06). Static sequencer'da kullanilmaz.
@@ -57,7 +75,8 @@ public sealed record OptimizationInput(
     SequencerKind Sequencer = SequencerKind.Static,
     int Seed = 0,
     SearchBudget? SearchBudget = null,
-    decimal? SupportThreshold = null)
+    decimal? SupportThreshold = null,
+    decimal? DepthSlack = null)
 {
     /// <summary>
     /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.

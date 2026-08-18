@@ -25,6 +25,7 @@ public sealed record BenchOptions(
     int MaxScenarios,
     int BrSet,
     decimal BrLoadRatio,
+    decimal? DepthSlack,
     string? BaselinePath,
     decimal? SupportThreshold,
     int Stall)
@@ -56,6 +57,7 @@ public sealed record BenchOptions(
         var maxScenarios = 0;
         var brSet = 0;
         var brLoadRatio = 1m;
+        decimal? depthSlack = null;
         string? baselinePath = null;
         decimal? supportThreshold = null;
         var stall = 15;
@@ -116,6 +118,9 @@ public sealed record BenchOptions(
                 case "--max-scenarios":
                     maxScenarios = ParseInt(value, arg);
                     break;
+                case "--depth-slack":
+                    depthSlack = ParseDecimal(value, arg);
+                    break;
                 case "--load-ratio":
                     brLoadRatio = ParseDecimal(value, arg);
                     break;
@@ -146,6 +151,7 @@ public sealed record BenchOptions(
             Math.Max(0, maxScenarios),
             Math.Clamp(brSet, 0, 7),
             Math.Clamp(brLoadRatio, 0.05m, 1m),
+            depthSlack,
             baselinePath,
             supportThreshold,
             Math.Max(1, stall));
@@ -182,6 +188,8 @@ public sealed record BenchOptions(
               --set N          br kipinde tek kume (1-7); 0 ise hepsi (varsayilan 0)
               --load-ratio R   br kipinde her urunun adedini R ile carpar (varsayilan 1).
                                Kismi doluluk sinamak icin: 0,5 yarim yuk demektir.
+              --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
+                               Verilmezse sinir yok (bugunku davranis).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
               --baseline DOSYA br kipinde referansla kiyasla; gerileme varsa hata koduyla cik
               --report DOSYA   br kipinde JSON rapor yolu (soak kipinde de gecerli)
