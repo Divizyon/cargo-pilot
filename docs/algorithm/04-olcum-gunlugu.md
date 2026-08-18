@@ -1686,3 +1686,55 @@ yükü ne kadar iyi yerleştiriyoruz" sorusuna kurulu; "yük artarsa ne oluyor" 
 yerleşen kutu). Yük taştığında sıra araması çok daha değerli hale geliyor.
 
 Yeni iş olarak açıldı; bu oturumda çözülmedi.
+
+---
+
+## F7-0 · Duvar-öncelikli seçim — **reddedildi: kazanç sıfır, üstelik gizli bir değişmezi kırıyor**
+
+Kullanıcının teşhisi: *"duvar tam dolabilecekken onu es geçip başka duvar açıyoruz."* Kodda
+karşılığı şu: yeni duvar, **sıradaki** kutu açık duvarların hiçbirine sığmadığı anda açılıyor —
+oysa listede aşağıda o duvarı tamamlayacak kutular olabilir.
+
+Denenen kural değişikliği: yeni duvar ancak **kalan hiçbir kutu** açık duvarlara sığmadığında
+açılsın. Sıradaki kutu sığmıyorsa ve ileride sığan biri varsa, sıradaki kutu **ertelensin**
+(kuyruğun sonuna atılsın, en fazla bir kez).
+
+### Ölçüm
+
+| | Taban | Duvar-öncelikli |
+|---|---|---|
+| Static BR1-BR7, 700 örnek | %82,61 | **%82,61** |
+| BR1 duvar yüzü kaplaması | %86,2 | %86,0 |
+| %95 eşiğinin altındaki duvar | %91 | %91 |
+
+**Hiçbir şey değişmedi.** Kapı (+0,5 puan *veya* +3 puan kaplama) tutmadı.
+
+### Neden değişmedi — teşhisi keskinleştiren asıl bulgu
+
+Premisim yanlıştı. Duvarlar **zaten kapanmıyor** (`R-C09`): her kutu için bütün açık duvarlar
+taranıyor. Yani box `i` duvar 2'yi açsa bile, box `i+1` hâlâ duvar 1'e girebiliyor ve giriyor.
+Erteleme yalnızca duvar 2'nin **ne zaman** açıldığını değiştiriyor, duvar 1'in doldurulup
+doldurulmadığını değil.
+
+Öyleyse duvar yüzü neden %86'da kalıyor? **Sıralama yüzünden değil, geometri yüzünden:** kesitte
+kalan boşluklara elimizdeki kutular, yerleştiricinin denediği yönelim ve konumlarda **girmiyor**.
+
+Bu, `DR-44`'ü sıralama açıklamasından temizliyor ve tek adaya indiriyor: **blok kataloğu +
+boşluk-blok kararı** (F7-2/F7-4). "Duvarı daha uzun süre açık tut" ailesindeki bütün fikirler
+konusuz kaldı.
+
+### Yan bulgu: ana döngünün tek yönlü ilerlemesi gizli bir değişmezmiş
+
+Deneme bir fizik değişmezini kırdı: `Buyuk500_WeightBalance` senaryosunda **501 kutu yerleşti,
+500 istenmişti** — bir kutu iki kez konmuş.
+
+Sebep: `consumed[]` yalnızca **blok inşasının yuttuğu** birimleri işaretliyor; ana döngüde yerleşen
+birimler işaretlenmiyor. Bu bugüne kadar güvenliydi çünkü döngü `instances` üzerinde **tek yönde**
+ilerliyor ve geriye hiç bakmıyor. Kuyruk bunu bozuyor: geç işlenen erken bir indeks için
+`RaiseBlock(index + 1, ...)` çağrısı, aradaki zaten yerleşmiş birimleri yeniden yutabiliyor.
+
+Yazılı bir kural değildi; kodun şeklinden doğan bir varsayımdı. **F7-4'te beam search sırayı
+serbestçe değiştireceği için bu tuzak orada da kurulur** — beam'e geçmeden önce ana döngüde
+yerleşen birimler de `consumed` işaretlenmeli. Yol haritasına not düşüldü.
+
+Değişiklik geri alındı; 129 test yeşil.

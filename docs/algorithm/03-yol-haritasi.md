@@ -394,11 +394,12 @@ saniyede tam destekli gerçekçi referans **~%93**; bugünkü %87,73 ile arası 
 
 | # | İş | Kapı |
 |---|---|---|
-| **F7-0** | **Ucuz sonda:** duvar-öncelikli seçim. Açık duvara sığmayan kutu geldiğinde yeni duvar açmadan önce sırada ileriye bakıp o duvara sığan ilk kutuyu öne çek. Beam değil, tek adımlık ileri bakış | Static BR1-BR7 **+0,5 puan** *veya* duvar yüzü kaplama **+3 puan**. Tutmazsa geri alınır, doğrudan F7-2'ye geçilir |
+| ~~F7-0~~ | ~~Ucuz sonda: duvar-öncelikli seçim~~ | ❌ **Reddedildi** — sıfır kazanç, `DR-49`. Teşhisi keskinleştirdi: sorun sıralama değil geometri |
+| ~~F7-0~~ *(özgün)* | **Ucuz sonda:** duvar-öncelikli seçim. Açık duvara sığmayan kutu geldiğinde yeni duvar açmadan önce sırada ileriye bakıp o duvara sığan ilk kutuyu öne çek. Beam değil, tek adımlık ileri bakış | Static BR1-BR7 **+0,5 puan** *veya* duvar yüzü kaplama **+3 puan**. Tutmazsa geri alınır, doğrudan F7-2'ye geçilir |
 | **F7-1** | **BR0-BR15 veri seti** — `problems/clp/benchs/BR/` alınır, `DR-38`'in BR8-15 boşluğu kapanır. İlk 7 setin `thpack1-7` ile birebir olduğu doğrulanır | BR1-BR7 sayıları **değişmez** |
 | **F7-2** | **Blok kataloğu üretici** — basit bloklar (tek ürün, tek yönelim, `nx×ny×nz`) + bileşik bloklar (`min_fr` eşiği), üst sınırlı | Katalog süresi < 50 ms |
 | **F7-3** | **VCS değerlendirme** — mevcut greedy'ye takılıp **beam olmadan** ölçülür; yalnız aday seçim ölçütü değişir | Static'te gerileme yok |
-| **F7-4** | **Beam search çekirdeği**, aktif duvar kısıtlı | Static BR1-BR7 **≥ %89** |
+| **F7-4** | **Beam search çekirdeği**, aktif duvar kısıtlı. ⚠ `DR-49`: ana döngüde yerleşen birimler de `consumed` işaretlenmeli — bugün yalnız blok inşasının yuttukları işaretli ve bu, döngünün tek yönde ilerlemesine dayanıyor. Beam sırayı serbest bıraktığı anda kutu iki kez yerleşir | Static BR1-BR7 **≥ %89** |
 | **F7-5** | **DoubleEffort** — bütçe bitene kadar ışın `√2` ile büyür | 2 sn bütçede **≥ %90** |
 | **F7-6** | **Sekiz sert kapı beam içinde** + değişmezler + determinizm | 17 snapshot · `PhysicalInvariants` · `R-C02` |
 
