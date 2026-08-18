@@ -2357,3 +2357,51 @@ elendi. `CS(b)` hâlâ açık ve bizdeki hâli gerçekten eksik: temas yalnız *
 yüzeyleri** sayılıyor, **komşu kutulara değme sayılmıyor**. Sıradaki sınama o olmalı — ve bu
 sefer eşik daha temkinli konmalı: `L(b)` deneyimi, "literatürde şu terim var, demek ki bizde de
 kazandırır" çıkarımının güvenilir olmadığını gösterdi.
+
+---
+
+## `CS(b)` temas yüzeyi — **kabul edildi: beam %89,40 → %89,95**
+
+`L(b)` elenince araştırmanın greedy-taban tezinden geriye tek terim kalmıştı: `CS(b)` — bloğun
+komşu bloklara ve araç yüzeylerine değen yüzey oranı (Araya, Guerrero & Nuñez 2017).
+
+Bizdeki hâli gerçekten eksikti: temas olarak **yalnızca taban ayak izi + araç yüzeyleri**
+sayılıyordu. **Komşu kutulara değme hiç sayılmıyordu.**
+
+### Bedava geldi
+
+`TopDeviation` zaten yerleşimleri tarayıp komşuları buluyordu (yığın tepesinin dalgalılığını
+ölçmek için). Aynı taramadan temas **alanı** da çıkıyor: yatay örtüşme × dikey örtüşme. Fonksiyon
+`Neighbourhood`'a çevrildi ve ikisini birden döndürüyor — **ek tarama maliyeti yok.**
+
+### Ölçüm
+
+| | Önce | **`CS(b)` ile** |
+|---|---|---|
+| Static, BR1-BR7, 700 örnek | %83,40 | **%83,63** (+0,23) |
+| **Beam, 175 örnek** | **%89,40** | **%89,95** (+0,55) |
+| Beam, tekrar | — | %89,96 |
+
+Kümeye göre (beam): BR1 %89,33 · BR2 %90,10 · BR3 %90,73 · BR4 %89,89 · BR5 %90,22 ·
+BR6 %89,98 · BR7 %89,41.
+
+Temas üsteli de tarandı (0,25 / 0,5 / 0,75 / 1 / 1,5): %83,61-83,64 arası düz, `0,5` korundu.
+
+### Neden `L(b)`'nin tersine çalıştı
+
+`L(b)` var olan bir sinyali (ince dilim cezası) **sulandırıyordu**. `CS(b)` ise **hiç olmayan bir
+sinyali** ekliyor: "bu kutu komşularına ne kadar yaslanıyor". Yaslanan yerleşim katı platform
+üretir, platform üstüne yığılmayı mümkün kılar — `DR-47`'nin "yığın yukarı çıkamıyor" teşhisinin
+doğrudan karşılığı.
+
+Kazancın beam'de (+0,55) static'ten (+0,23) büyük olması da tutarlı: beam dalları tamamlanmış
+doluluğa göre seçiyor, yani daha iyi bir taban daha iyi dal ayrımı demek. Araştırmanın
+*"beam kalitesi doğrudan greedy tabanın kalitesine bağlıdır"* tezi burada **doğrulandı** — sadece
+sebep olarak gösterdiği iki terimden biri tuttu, öteki tutmadı.
+
+### Konum
+
+**%89,95** — araştırmanın 2 saniye için verdiği gerçekçi hedef bandının (%90-92) alt ucundayız.
+Tam destekli literatür çıpası %94,2 ama 240-320 saniyeyle.
+
+17 snapshot kaymadı, 173/36/228 yeşil, CI referansı **%83,63**.

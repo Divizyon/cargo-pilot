@@ -860,10 +860,13 @@ internal static class WallBuilderPlacement
                 var block = BlockCount(space, remaining, x, y, z, width, height, length,
                     zLimit ?? input.VehicleLength, fillFromMaxX);
 
+                var (topDeviation, neighbourContact) =
+                    Neighbourhood(placements, x, y, z, width, height, length);
+
                 var candidate = new OrientationFit(
                     y, depthPreference * length,
                     -block, space.Width * space.Length - width * length,
-                    TopDeviation(placements, x, y, z, width, height, length),
+                    topDeviation,
                     space.MaxZ - (z + length), -(width * length),
                     fillFromMaxX ? input.VehicleWidth - (x + width) : x,
                     rotation);
@@ -896,7 +899,7 @@ internal static class WallBuilderPlacement
                     spaceVolume: space.Width * space.Height * space.Length,
                     unusableVolume: BlockValue.UnusableResidual(
                         space.Width, space.Height, space.Length, width, height, length, itemMin),
-                    contactArea: width * length + wallContact,
+                    contactArea: width * length + wallContact + neighbourContact,
                     boxCount: Math.Max(1, block),
                     weights: vcsWeights);
 
@@ -942,7 +945,15 @@ internal static class WallBuilderPlacement
     /// uyumu bozuyor. Bu yuzden yalnizca temas eden ve ayni dikey bantta olan
     /// kutular sayilir (docs/algorithm/01-kurallar.md R-C09b, Ojha vd. 2020 WallE).
     /// </summary>
-    private static decimal TopDeviation(
+    /// <summary>
+    /// Adayin komsulukla iliskisi: tepe sapmasi VE temas alani.
+    ///
+    /// Ikisi ayni taramadan cikar. Temas alani <c>CS(b)</c> terimidir (Araya,
+    /// Guerrero &amp; Nunez 2017): komsu kutulara degen yuzey. Onceki surumde
+    /// yalnizca taban ayak izi ve arac yuzeyleri sayiliyordu, komsu kutulara
+    /// degme HIC sayilmiyordu.
+    /// </summary>
+    private static (decimal Deviation, decimal Contact) Neighbourhood(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal height, decimal length)
@@ -950,6 +961,7 @@ internal static class WallBuilderPlacement
         var top = y + height;
         var weighted = 0m;
         var contact = 0m;
+        var area = 0m;
 
         foreach (var b in placed)
         {
@@ -969,9 +981,12 @@ internal static class WallBuilderPlacement
 
             weighted += span * Math.Abs(top - (b.Y + b.Height));
             contact += span;
+
+            // Paylasilan yuzun alani: yatay ortusme x dikey ortusme.
+            area += span * (Math.Min(top, b.Y + b.Height) - Math.Max(y, b.Y));
         }
 
-        return contact == 0m ? 0m : weighted / contact;
+        return (contact == 0m ? 0m : weighted / contact, area);
     }
 
     private static PlacedBox Create(

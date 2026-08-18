@@ -8,13 +8,13 @@ durur.
 Terimler için [00-sozluk.md](00-sozluk.md). Bir sayıyı buraya yazmadan önce hangi **yerleştirici ·
 sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa sayı kıyaslanamaz.
 
-**Son güncelleme:** 18 Ağustos 2026 (ileri bakışlı ışın araması üretimde, `DR-56`) · dal `feat/algoritma-arama-katmani`
+**Son güncelleme:** 19 Ağustos 2026 (`CS(b)` temas yüzeyi, `DR-59`) · dal `feat/algoritma-arama-katmani`
 
 ---
 
 ## Tek satırda
 
-**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: %89,40.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
+**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: %89,95.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
 iyilerinin (~%94-95, ama örnek başına 240-320 saniyeyle) ~7 puan altında. Kayıp neredeyse eşit
 bölünüyor: yarısı duvar kesitinde kalan **kenar şeritleri**, yarısı yığının üstündeki **ölü hava**.
 Yığının içi masif.
@@ -30,11 +30,11 @@ oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 | Duvar örücü, kule yok | %77,00 | 5-13 ms |
 | Duvar örücü + static, yönelim eşlemesi hatalıyken | %80,09 | 2-5 ms |
 | Duvar örücü + static, sözlükbilimsel aday seçimi | %82,61 | 1-2 ms |
-| Duvar örücü + **static** | **%83,40** | 1-2 ms |
+| Duvar örücü + **static** | **%83,63** | 1-2 ms |
 | Duvar örücü + GRASP, yönelim eşlemesi hatalıyken | %86,23 | 1,1-2,0 sn |
 | Duvar örücü + GRASP, sözlükbilimsel aday seçimi | %87,73 | 1,3-2,0 sn |
 | Duvar örücü + GRASP — *kıyas referansı* | %88,34 | 1,3-2,0 sn |
-| Duvar örücü + **beam** — *üretim varsayılanı* | **%89,40** | 0,5-2,0 sn |
+| Duvar örücü + **beam** — *üretim varsayılanı* | **%89,95** | 0,6-2,0 sn |
 | Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%94-95 | örnek başına ~240-320 sn |
 
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
@@ -48,7 +48,7 @@ Araştırma yanıtı 2 saniyelik bütçede gerçekçi hedefi **%90-92** olarak v
 | Kutu tipi sayısı | 3 | 5 | 8 | 10 | 12 | 15 | 20 |
 | Static (CI referansı) | %82,47 | %83,35 | %83,68 | %83,40 | %83,59 | %83,17 | %83,17 |
 | GRASP | %86,35 | %88,11 | %89,14 | %88,61 | %88,58 | %88,45 | %87,48 |
-| **Beam** | %88,31 | %89,21 | %90,03 | %89,50 | %90,11 | %89,44 | %89,21 |
+| **Beam** | %89,33 | %90,10 | %90,73 | %89,89 | %90,22 | %89,98 | %89,41 |
 
 **Kümeler arası fark neredeyse kapandı.** VCS aday değerlendirmesi (`DR-52`) en çok heterojen
 kümelerde kazandırdı; static'te yayılım 1,21 puana indi (önce 1,71). BR1 tek kaybeden (−0,31

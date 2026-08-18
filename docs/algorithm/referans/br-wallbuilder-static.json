@@ -2,42 +2,42 @@
   "Strategy": "WallBuilder",
   "Sequencer": "Static",
   "Orientation": "Strict",
-  "MeanFillPercent": 83.40,
+  "MeanFillPercent": 83.63,
   "Sets": [
     {
       "Set": 1,
       "Instances": 100,
-      "MeanFillPercent": 82.76
+      "MeanFillPercent": 82.91
     },
     {
       "Set": 2,
       "Instances": 100,
-      "MeanFillPercent": 83.58
+      "MeanFillPercent": 83.75
     },
     {
       "Set": 3,
       "Instances": 100,
-      "MeanFillPercent": 84.00
+      "MeanFillPercent": 84.24
     },
     {
       "Set": 4,
       "Instances": 100,
-      "MeanFillPercent": 83.52
+      "MeanFillPercent": 83.72
     },
     {
       "Set": 5,
       "Instances": 100,
-      "MeanFillPercent": 83.68
+      "MeanFillPercent": 84.10
     },
     {
       "Set": 6,
       "Instances": 100,
-      "MeanFillPercent": 83.33
+      "MeanFillPercent": 83.38
     },
     {
       "Set": 7,
       "Instances": 100,
-      "MeanFillPercent": 82.92
+      "MeanFillPercent": 83.29
     }
   ]
 }
