@@ -3,10 +3,21 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
+  # SEC-07 sonrası /metrics "SuperAdmin" politikasıyla korunuyor; kimlik
+  # doğrulamasız scrape 401 alır. Token dosyadan okunur ve her scrape'te
+  # `Authorization: Bearer <dosya içeriği>` olarak gönderilir.
+  #
+  # Dosya yoksa Prometheus AYAĞA KALKAR ve diğer job'lar (node-exporter,
+  # cadvisor) etkilenmez; yalnızca bu job down olur ve hata mesajı
+  # "unable to read authorization credentials file ..." şeklinde görünür.
+  # Kurulum: infra/docker/prometheus/secrets/metrics-token (bkz. secrets/README.md)
   - job_name: cargo-pilot-backend-test
     static_configs:
       - targets: ['cargo-pilot-backend-test:8080']
     metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics-token
 
   - job_name: node-exporter-test
     static_configs:

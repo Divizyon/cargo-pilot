@@ -67,7 +67,7 @@ docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.en
 
 | Değişken | Açıklama | Secret? |
 |----------|----------|---------|
-| `MSSQL_PORT` | SQL Server dış port | Hayır |
+| `MSSQL_PORT` | SQL Server host portu (yalnızca `127.0.0.1`'e publish edilir; uzaktan erişim SSH tüneliyle) | Hayır |
 | `MSSQL_DATABASE` | Veritabanı adı | Hayır |
 | `MSSQL_SA_PASSWORD` | SQL Server SA parolası | **Evet** |
 | `DATABASE_CONNECTION_STRING` | Tam bağlantı dizesi (yalnızca prod) | **Evet** |
@@ -76,8 +76,8 @@ docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.en
 
 | Değişken | Açıklama | Secret? |
 |----------|----------|---------|
-| `MINIO_API_PORT` | MinIO API dış port | Hayır |
-| `MINIO_CONSOLE_PORT` | MinIO Console dış port | Hayır |
+| `MINIO_API_PORT` | MinIO API host portu (yalnızca `127.0.0.1`; dışarıya reverse proxy üzerinden) | Hayır |
+| `MINIO_CONSOLE_PORT` | MinIO Console host portu (yalnızca `127.0.0.1`; erişim SSH tüneliyle) | Hayır |
 | `MINIO_ROOT_USER` | MinIO root kullanıcı adı | **Evet** |
 | `MINIO_ROOT_PASSWORD` | MinIO root parolası | **Evet** |
 | `MINIO_BUCKET` | Varsayılan bucket adı | Hayır |
@@ -86,8 +86,11 @@ docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.en
 
 | Değişken | Açıklama | Secret? |
 |----------|----------|---------|
-| `JWT_SECRET` | JWT imzalama anahtarı (min 32 karakter) | **Evet** |
-| `Seed__DefaultAdminPassword` | İlk admin hesabı parolası | **Evet** |
+| `JWT_SECRET` | JWT imzalama anahtarı (min 32 karakter). Boş / <32 karakter / placeholder desenli ise **uygulama başlamaz** | **Evet** |
+| `CORS_ALLOWED_ORIGIN_0` | İzin verilen origin. **Development dışında ZORUNLU** — boşsa uygulama başlamaz | Hayır |
+| `ALLOWED_HOSTS` | Kabul edilen Host başlıkları, `;` ile ayrılır. Tanımsızsa compose `*` kullanır | Hayır |
+| `SEED_ENABLE_ADMIN_SEED` | Admin seed anahtarı. Test'te `true`, **prod'da `false`** (ilk kurulumda tek seferlik açılır) | Hayır |
+| `Seed__DefaultAdminPassword` | İlk admin hesabı parolası. Seed açıkken zorunlu; ilk girişte değiştirme zorlanır | **Evet** |
 
 ### Frontend / OAuth (opsiyonel)
 
@@ -105,6 +108,11 @@ docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/env/.en
 |----------|----------|---------|
 | `GRAFANA_ADMIN_USER` | Grafana admin kullanıcı adı | Hayır |
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin parolası | **Evet** |
+
+> `/metrics` artık SuperAdmin yetkisi istiyor. Prometheus'un backend'i scrape
+> edebilmesi için `infra/docker/prometheus/secrets/metrics-token` dosyası
+> oluşturulmalıdır; bu bir env değişkeni değildir. Ayrıntı ve bilinen kısıt
+> (token ömrü) için `infra/docker/prometheus/secrets/README.md`.
 
 ## Güvenlik Kuralları
 

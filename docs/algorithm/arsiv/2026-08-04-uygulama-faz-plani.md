@@ -12,6 +12,7 @@ Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.
   *(2026-08-16: standardın eksen ve terim kısmı PR #997/#1004 ile koda uygulandı — `depth`/"derinlik" boyut terimi kaldırıldı, referans kapı `z = length`. Aynı düzeltme kardeş dosya `sistem-mimarisi.md`'ye #1007'de yapılmış, bu dosya atlanmıştı. Dosyanın kendisi tarihsel arşivdir; yalnız bu yönlendirme satırı güncellendi.)*
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
+- **Güncel yol:** motor bugün `apps/backend/CargoPilot.Application/Common/Optimization/OptimizationEngine.cs` altındadır (yukarıdaki `Infrastructure/Services/` yolu 2026-08 itibarıyla tarihsel kayıttır).
 
 Algoritma çalışması yapılırken kavramsal referans olarak kullanılabilir; kod kaynağı olarak değil.
 {% endhint %}

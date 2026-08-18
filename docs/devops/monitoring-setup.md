@@ -138,6 +138,63 @@ docker compose \
 - Backend `/metrics` endpoint'i `prometheus-net.AspNetCore` ile açıldı
 - Scrape hedefleri: backend, node\_exporter, cAdvisor
 
+{% hint style="warning" %}
+**⚠️ `/metrics` artık kimlik doğrulaması ister — scrape token dosyası kurulmalıdır.**
+
+SEC-07 kapsamında endpoint `RequireAuthorization("SuperAdmin")` arkasına alındı
+(`CargoPilot.WebAPI/DependencyInjection.cs:438`; policy `role=SuperAdmin` claim'i şart
+koşuyor, `:265-266`). Prometheus scrape job'ları buna göre güncellendi
+(`infra/docker/prometheus/prometheus.{test,prod}.yml`):
+
+```yaml
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics-token
+```
+
+Token dosyası `infra/docker/prometheus/secrets/metrics-token` konumunda olmalıdır ve
+monitoring compose'u bu dizini `/etc/prometheus/secrets` olarak read-only mount eder
+(`docker-compose.monitoring.test.yml:66`). Dosya repoya **commit edilmez**; kurulum
+adımları için bkz. `infra/docker/prometheus/secrets/README.md`.
+
+| Durum | Sonuç |
+|-------|-------|
+| Token dosyası yok | Prometheus normal başlar; yalnızca `cargo-pilot-backend-*` job'u `down` olur (`unable to read authorization credentials file`). `node-exporter` / `cadvisor` etkilenmez. |
+| Token geçerli | Job `up` |
+| Token uyuşmuyor | Job `down`, backend 401 döner |
+| `Metrics__ScrapeToken` boş | Scrape yolu kapalı; job `down`. `/metrics` yalnızca SuperAdmin JWT'si ile erişilir. |
+
+Job `down` düştüğünde "Backend Health Degraded" alert kuralı
+(`up{job="cargo-pilot-backend-test"} < 1`) tetiklenir — backend sağlıklı olsa bile.
+{% endhint %}
+
+{% hint style="info" %}
+**Token bir SuperAdmin JWT'si değildir.** Dosyaya konan değer `Metrics:ScrapeToken`
+(env: `Metrics__ScrapeToken`) ile eşleşen opak bir paylaşılan sırdır ve yalnızca `/metrics`
+ile `/health/detail` uçlarını açar; başka hiçbir endpoint'e yetki vermez ve süresi dolmaz.
+
+Elle uzun ömürlü bir SuperAdmin JWT üretip diske koymak **önerilmez** — bu, diskte tam
+yetkili bir admin kimlik bilgisi bırakmak demektir ve SEC-07'nin kapatmak istediği riskten
+daha kötüdür. Bunun yerine `openssl rand -base64 48` ile üretilen token'ı hem
+`infra/docker/prometheus/secrets/metrics-token` dosyasına hem `.env`'deki
+`METRICS_SCRAPE_TOKEN` değişkenine **aynı değerle** yazın.
+
+Kurallar: en az 32 karakter; `<CHANGE_ME_…>` gibi şablon değerler reddedilir ve uygulama
+başlamaz. `Metrics__ScrapeToken` boş bırakılırsa scrape yolu kapalı kalır ve `/metrics`
+yalnızca SuperAdmin JWT'si ile erişilebilir olur.
+{% endhint %}
+
+**Sağlık endpoint'leri (SEC-07 sonrası):**
+
+| Endpoint | Erişim | İçerik |
+|----------|--------|--------|
+| `/health` | **Açık** (auth yok) | Yalnızca toplam durum; 200 (Healthy/Degraded) / 503 (Unhealthy) |
+| `/health/detail` | `SuperAdmin` policy | Bileşen bazlı JSON (DB, MinIO). Exception mesajları **yalnızca Development'ta** döner |
+| `/metrics` | `SuperAdmin` policy | Prometheus çıktısı |
+
+Uptime/liveness kontrolleri sığ `/health` endpoint'ini kullanmalıdır; `/health/detail`
+artık anonim izlemeye uygun değildir.
+
 **Mevcut metrikler:**
 
 | Metrik | Açıklama |

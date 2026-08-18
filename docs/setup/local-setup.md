@@ -1,6 +1,6 @@
 # Local Setup
 
-**Son güncelleme:** 2026-08-03 · **Durum:** Aktif
+**Son güncelleme:** 2026-08-15 · **Durum:** Aktif
 
 Cargo Pilot projesini local geliştirme ortamında ayağa kaldırmak için izlenecek adımları açıklar.
 
@@ -105,13 +105,63 @@ VITE_DEV_PROXY_TARGET=http://localhost:8081 npm run dev
 
 ## 4. Migration & Seed
 
+Local'de elle migration çalıştırmanıza gerek yoktur. Backend container ayağa kalkarken
+`Program.cs` içinde `DbInitializer.InitializeAsync()` çağrılır; bu metod SQL Server
+kullanıldığında önce `Database.MigrateAsync()` ile bekleyen tüm migration'ları uygular,
+ardından seed verilerini yazar.
+
+{% hint style="warning" %}
+Backend image'ı ASP.NET **runtime** tabanlıdır; container içinde .NET SDK ve `dotnet ef`
+aracı bulunmaz. Bu nedenle `docker exec ... dotnet ef database update` komutu çalışmaz.
+Sunucuda migration'ı elle çalıştırmak gerekirse geçici SDK container'ı kullanılır —
+adımlar için bkz. [Deployment › Database Migration](../devops/deployment.md).
+{% endhint %}
+
+### Seed davranışı
+
+Seed, ortam bazlı çalışır (`DbInitializer.InitializeAsync`):
+
+| Ortam | Demo şirket + `TestERP` entegrasyonu | Admin kullanıcısı |
+|-------|--------------------------------------|-------------------|
+| `Development` | Oluşturulur | Oluşturulur |
+| Diğer (`Test`, `Production`, …) | **Oluşturulmaz** | Yalnızca `Seed__EnableAdminSeed=true` ise; ilk girişte **parola değişimi zorunlu** |
+
+**Seed edilen admin e-postası:** `admin@cargopilot.com`
+
+Parola sabit değildir; `Seed__DefaultAdminPassword` yapılandırma değerinden okunur ve
+hiçbir dokümanda/repoda gerçek değeri tutulmaz. Kurulum sırasında placeholder'ı kendi
+belirlediğiniz güçlü bir parolayla değiştirin:
+
 ```bash
-# Backend container içinden migration çalıştır
-docker exec cargo-pilot-backend-test \
-  dotnet ef database update
+# infra/env/.env.test  (Docker stack)
+Seed__DefaultAdminPassword=<kendi belirlediğiniz güçlü parola>
 ```
 
-**Default login:** `admin@cargopilot.com` / `Admin@CargoPilot1!`
+```jsonc
+// apps/backend/CargoPilot.WebAPI/appsettings.Development.json  (container dışı çalışma)
+"Seed": { "DefaultAdminPassword": "<kendi belirlediğiniz güçlü parola>" }
+```
+
+{% hint style="warning" %}
+`.env.test.example` bu alanı `<CHANGE_ME_ADMIN_PASSWORD>` placeholder'ı ile bırakır.
+Placeholder boş olmadığı için seed onu **literal parola** olarak kabul eder — dosyayı
+kopyalayıp değiştirmezseniz admin parolanız birebir `<CHANGE_ME_ADMIN_PASSWORD>` olur.
+{% endhint %}
+
+{% hint style="info" %}
+- Admin seed devredeyken `Seed__DefaultAdminPassword` boş bırakılırsa uygulama açılışta
+  `InvalidOperationException` ile durur.
+- Değer sonradan değiştirilirse mevcut admin kullanıcısının parolası otomatik güncellenmez;
+  DB'yi sıfırlamanız (`down -v`) veya parolayı uygulama üzerinden değiştirmeniz gerekir.
+- Docker stack `ASPNETCORE_ENVIRONMENT=Test` ile çalışır
+  (`infra/compose/docker-compose.test.yml`), yani **Development değildir**: admin ancak
+  `Seed__EnableAdminSeed=true` ise seed edilir. Bu bayrak `.env.test` içindeki
+  `SEED_ENABLE_ADMIN_SEED` değişkeninden gelir ve test stack'inde **varsayılanı `true`'dur**
+  (`${SEED_ENABLE_ADMIN_SEED:-true}`). Prod stack'te varsayılan `false`'tur.
+- Development dışı bir ortamda seed edilen admin `MustChangePassword` bayrağıyla oluşur:
+  ilk girişte parola değiştirmeden API'yi kullanamazsınız
+  (`MustChangePasswordMiddleware`).
+{% endhint %}
 
 {% hint style="info" %}
 Seed veriler yalnızca geliştirme ve test içindir. Production'da kontrollü kullanılmalıdır.
@@ -193,6 +243,97 @@ docker compose -f infra/compose/docker-compose.test.yml --env-file infra/env/.en
 ---
 
 ## 8. Sık Karşılaşılan Sorunlar
+
+{% hint style="warning" %}
+**Backend artık eksik yapılandırmada sessizce başlamaz.** Faz 1 güvenlik sertleştirmesiyle
+birlikte CORS ve JWT secret doğrulamaları fail-fast hale geldi: `.env.test` dosyasını
+kopyalayıp `<CHANGE_ME_...>` alanlarını doldurmazsanız backend container'ı açılışta
+exception fırlatıp çıkar. `docker ps` container'ı "Exited" gösterir; sebebi
+`docker logs cargo-pilot-backend-test` çıktısında yazar.
+{% endhint %}
+
+<details>
+
+<summary>Backend açılışta kapanıyor — <code>Cors:AllowedOrigins tanımlı değil</code></summary>
+
+Docker stack `ASPNETCORE_ENVIRONMENT=Test` ile çalışır, yani **Development değildir**.
+Development dışındaki her ortamda izin verilen origin listesi zorunludur; boşsa uygulama
+`InvalidOperationException` ile durur.
+
+Docker stack'te bu değer `.env.test` içindeki **`CORS_ALLOWED_ORIGIN_0`** değişkeninden
+gelir; compose onu `Cors__AllowedOrigins__0` olarak container'a aktarır
+(`docker-compose.test.yml:42`).
+
+```bash
+# infra/env/.env.test
+CORS_ALLOWED_ORIGIN_0=http://localhost:3001
+```
+
+{% hint style="warning" %}
+`.env.test.example` bu satırı sunucu domain'i (`https://cargopilot.divizyon.org`) ile
+gönderir. Local'de Vite `http://localhost:3001` üzerinden çalıştığı için değeri kendi
+origin'inizle değiştirin, aksi halde tarayıcıda CORS hatası alırsınız. Compose'daki
+varsayılan boştur (`${CORS_ALLOWED_ORIGIN_0:-}`) — değişkeni tamamen silerseniz backend
+**başlamaz**.
+{% endhint %}
+
+Değerin container'a ulaştığını doğrulayın:
+
+```bash
+docker exec cargo-pilot-backend-test env | grep Cors__
+```
+
+Compose kullanmadan (`dotnet run`) çalışıyorsanız anahtarı doğrudan yazın; liste
+**indekslidir**, virgülle ayrılmış tek satır çalışmaz:
+
+```bash
+export Cors__AllowedOrigins__0=http://localhost:3001
+```
+
+</details>
+
+<details>
+
+<summary>Backend açılışta kapanıyor — <code>Jwt:Secret</code> doğrulama hatası</summary>
+
+`Jwt:Secret` üç kurala birden uymalıdır, aksi halde `ValidateOnStart()` uygulamayı başlatmaz:
+
+1. Boş olmamalı
+2. **En az 32 karakter** olmalı
+3. Bilinen bir şablon/placeholder metni **içermemeli** — `dev-only-secret`, `replace-with`,
+   `replace_with`, `changeme`, `change-me`, `your-secret`, `secret-key-here`, `placeholder`,
+   `sample-secret`
+
+{% hint style="danger" %}
+`appsettings.Development.json` içindeki hazır değer (`dev-only-secret-replace-with-...`)
+bu listeye takılır. Container dışı `dotnet run` ile çalışırken de secret'ı gerçek bir
+değerle değiştirmeniz gerekir.
+{% endhint %}
+
+Rastgele secret üretmek için:
+
+```bash
+openssl rand -base64 48
+```
+
+Docker stack'te değer `.env.test` içindeki **`JWT_SECRET`** değişkeninden gelir; compose
+onu `Jwt__Secret` olarak aktarır (`docker-compose.test.yml:37`):
+
+```bash
+# infra/env/.env.test
+JWT_SECRET=<üretilen 32+ karakterlik değer>
+```
+
+{% hint style="warning" %}
+`.env.test.example` içindeki `<CHANGE_ME_JWT_SECRET_MIN_32_CHARS>` placeholder'ı 32
+karakterden uzun olduğu ve placeholder listesindeki hiçbir metni birebir içermediği için
+doğrulamayı **geçer**. Yani uygulama başlar ama secret'ınız repoda açıkça yazılı bir
+değerdir — mutlaka değiştirin.
+{% endhint %}
+
+Ayrıntılı anahtar listesi: [Environment Variables](../../apps/backend/docs/environment-variables.md).
+
+</details>
 
 <details>
 

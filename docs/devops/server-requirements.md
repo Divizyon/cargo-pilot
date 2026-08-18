@@ -88,8 +88,14 @@ karşılaştırılıp gerekirse ayarlanmalıdır.
 
 | Ortam | Branch | Frontend | Backend | MSSQL | MinIO |
 |-------|--------|----------|---------|-------|-------|
-| Production | `main` | 80 | 8080 | 1433 | 9000/9001 |
-| Test | `test` | 3001 | 8081 | 1434 | 9002/9003 |
+| Production | `main` | 80 | 8080 | 🔒 1433 | 🔒 9000/9001 |
+| Test | `test` | 3001 | 8081 | 1434 | 🔒 9002/9003 |
+
+{% hint style="info" %}
+🔒 = port yalnızca `127.0.0.1`'e publish edilir; dışarıdan erişilemez, SSH tüneli gerekir
+(`infra/compose/docker-compose.{test,prod}.yml`). Ayrıntı: [Sunucu Erişimi](server-access.md).
+MinIO image'ı `quay.io/minio/minio:RELEASE.2024-01-31T20-20-33Z` sürümündedir.
+{% endhint %}
 
 ---
 
@@ -100,7 +106,7 @@ karşılaştırılıp gerekirse ayarlanmalıdır.
 | cargo-pilot-frontend-test | ✅ | 3001 |
 | cargo-pilot-backend-test | ✅ | 8081 |
 | cargo-pilot-mssql-test | ✅ | 1434 |
-| cargo-pilot-minio-test | ✅ | 9002/9003 |
+| cargo-pilot-minio-test | ✅ | 🔒 9002/9003 (loopback) |
 | cargo-pilot-prometheus-test | ✅ | 9091 |
 | cargo-pilot-grafana-test | ✅ | 3002 |
 | cargo-pilot-loki-test | ✅ | iç ağ |

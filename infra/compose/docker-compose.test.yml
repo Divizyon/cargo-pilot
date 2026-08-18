@@ -15,6 +15,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Test
       ASPNETCORE_URLS: http://+:8080
+      # Host header doğrulaması; test sunucusunda .env ile domain verilir.
+      AllowedHosts: ${ALLOWED_HOSTS:-*}
       MSSQL_HOST: mssql
       MSSQL_PORT: 1433
       MSSQL_DATABASE: ${MSSQL_DATABASE}
@@ -30,6 +32,10 @@ services:
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
       Minio__BucketName: ${MINIO_BUCKET}
       Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-}
+      # Test ortamında admin seed AÇIK: QA'in giriş yapabileceği bir hesap
+      # gerekiyor ve kod bu yolda MustChangePassword'ü zorluyor. Kapatmak için
+      # .env.test'te SEED_ENABLE_ADMIN_SEED=false yeterlidir.
+      Seed__EnableAdminSeed: ${SEED_ENABLE_ADMIN_SEED:-true}
       Seed__DefaultAdminPassword: ${Seed__DefaultAdminPassword}
       Jwt__Secret: ${JWT_SECRET}
       OAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
@@ -37,6 +43,9 @@ services:
       OAuth__Google__CallbackUrl: ${GOOGLE_OAUTH_CALLBACK_URL:-}
       OAuth__Google__FrontendCallbackUrl: ${GOOGLE_OAUTH_FRONTEND_CALLBACK_URL:-}
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0:-}
+      # /metrics ve /health/detail icin dar kapsamli scrape kimlik bilgisi (SEC-07 takibi).
+      # Prometheus ayni degeri secrets/metrics-token dosyasindan okur.
+      Metrics__ScrapeToken: ${METRICS_SCRAPE_TOKEN:-}
       Resend__ApiKey: ${RESEND_API_KEY:-}
       Resend__FromEmail: ${RESEND_FROM_EMAIL:-}
       Resend__FromName: ${RESEND_FROM_NAME:-}
@@ -186,6 +195,14 @@ services:
       - cargo-pilot-test
 
   minio:
+    # DEP-01 GERI ALINDI (2026-08-19): 2024-01-31 sürümü denendi ve test
+    # sunucusunu düşürdü — mevcut minio volume'ü eski tek-disk FS formatında,
+    # 2022-10 sonrası sürümler bu formatın desteğini kaldırdı; container
+    # açılışta çöküyor (test-deploy run 32183514573). CVE'ler (CVE-2023-28432/
+    # 28434, CVE-2024-24747, CVE-2022-31028) bilinçli olarak açık kalıyor;
+    # kalıcı çözüm veri migrasyonu ister (eski sürümden yeni instance'a
+    # `mc mirror`) ve devops-backlog'a kayıtlıdır. Dependabot bu image'ı
+    # önermesin diye .github/dependabot.yml'de ignore kuralı var.
     image: quay.io/minio/minio:RELEASE.2022-01-08T03-11-54Z
     platform: linux/amd64
     container_name: cargo-pilot-minio-test
@@ -200,6 +217,8 @@ services:
     volumes:
       - minio_data_test:/data
     healthcheck:
+      # 2022-01-08 image'ında curl VAR; mc tabanlı `mc ready` bu eski sürümde
+      # yok, bu yüzden curl tabanlı probe kullanılır.
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 20s
       timeout: 10s

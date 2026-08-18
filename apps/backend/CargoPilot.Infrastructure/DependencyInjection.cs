@@ -29,6 +29,12 @@ public static class DependencyInjection {
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection("Jwt"))
             .Validate(s => !string.IsNullOrWhiteSpace(s.Secret), "Jwt:Secret is required.")
+            .Validate(
+                s => JwtSecretPolicy.HasSufficientLength(s.Secret),
+                $"Jwt:Secret must be at least {JwtSecretPolicy.MinimumLength} characters long.")
+            .Validate(
+                s => !JwtSecretPolicy.LooksLikePlaceholder(s.Secret),
+                "Jwt:Secret uses a known default/placeholder value. Provide a real secret via environment (Jwt__Secret).")
             .Validate(s => !string.IsNullOrWhiteSpace(s.Issuer), "Jwt:Issuer is required.")
             .Validate(s => !string.IsNullOrWhiteSpace(s.Audience), "Jwt:Audience is required.")
             .ValidateOnStart();
@@ -161,5 +167,52 @@ public static class DependencyInjection {
         }
 
         return services;
+    }
+}
+
+/// <summary>
+/// Jwt:Secret için başlangıçta uygulanan güvenlik kuralları.
+/// Zayıf veya şablon (placeholder) secret ile uygulamanın açılmasını engeller.
+/// </summary>
+public static class JwtSecretPolicy
+{
+    /// <summary>HMAC-SHA256 için önerilen minimum secret uzunluğu.</summary>
+    public const int MinimumLength = 32;
+
+    private static readonly string[] _placeholderFragments =
+    [
+        "dev-only-secret",
+        "replace-with",
+        "replace_with",
+        "changeme",
+        "change-me",
+        "change_me",
+        "your-secret",
+        "secret-key-here",
+        "placeholder",
+        "sample-secret"
+    ];
+
+    /// <summary>Secret'ın minimum uzunluk kuralını sağlayıp sağlamadığını döner.</summary>
+    public static bool HasSufficientLength(string? secret) =>
+        !string.IsNullOrWhiteSpace(secret) && secret.Trim().Length >= MinimumLength;
+
+    /// <summary>Secret'ın bilinen bir varsayılan/şablon değer olup olmadığını döner.</summary>
+    public static bool LooksLikePlaceholder(string? secret)
+    {
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            return false;
+        }
+
+        var trimmed = secret.Trim();
+
+        // infra/env/*.example dosyaları placeholder'ları <ACIKLAMA> biçiminde yazıyor.
+        if (trimmed.StartsWith('<') && trimmed.EndsWith('>'))
+        {
+            return true;
+        }
+
+        return _placeholderFragments.Any(fragment => trimmed.Contains(fragment, StringComparison.OrdinalIgnoreCase));
     }
 }
