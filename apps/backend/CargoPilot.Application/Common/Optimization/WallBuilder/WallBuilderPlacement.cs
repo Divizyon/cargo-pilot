@@ -692,6 +692,9 @@ internal static class WallBuilderPlacement
     {
         var item = sequenced.Item;
         var supportThreshold = PlacementValidator.ThresholdOf(input);
+        var vcsWeights = input.VcsWeights is { } w
+            ? new BlockValue.Weights(w.Volume, w.Waste, w.Contact, w.BoxCount)
+            : BlockValue.Weights.Default;
         var orientations = PlacementValidator.GetOrientations(item);
 
         // Yonelim tercihi ARAMAYA acilmayi denedi ve kazandirmadi: 300 senaryoda
@@ -828,7 +831,7 @@ internal static class WallBuilderPlacement
                         space.Width, space.Height, space.Length, width, height, length, itemMin),
                     contactArea: width * length + wallContact,
                     boxCount: Math.Max(1, block),
-                    weights: BlockValue.Weights.Neutral);
+                    weights: vcsWeights);
 
                 if (bestFit is null || vcs > bestVcs
                     || (Math.Abs(vcs - bestVcs) < VcsTieEpsilon && candidate.IsBetterThan(bestFit.Value)))

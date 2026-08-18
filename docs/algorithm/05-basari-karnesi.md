@@ -14,7 +14,7 @@ sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa
 
 ## Tek satırda
 
-**Duvar örücü + GRASP, BR1-BR7: %88,10.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
+**Duvar örücü + GRASP, BR1-BR7: %88,34.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
 iyilerinin (~%94-95, ama örnek başına 240-320 saniyeyle) ~7 puan altında. Kayıp neredeyse eşit
 bölünüyor: yarısı duvar kesitinde kalan **kenar şeritleri**, yarısı yığının üstündeki **ölü hava**.
 Yığının içi masif.
@@ -30,10 +30,10 @@ oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 | Duvar örücü, kule yok | %77,00 | 5-13 ms |
 | Duvar örücü + static, yönelim eşlemesi hatalıyken | %80,09 | 2-5 ms |
 | Duvar örücü + static, sözlükbilimsel aday seçimi | %82,61 | 1-2 ms |
-| Duvar örücü + **static** | **%83,26** | 1-2 ms |
+| Duvar örücü + **static** | **%83,40** | 1-2 ms |
 | Duvar örücü + GRASP, yönelim eşlemesi hatalıyken | %86,23 | 1,1-2,0 sn |
 | Duvar örücü + GRASP, sözlükbilimsel aday seçimi | %87,73 | 1,3-2,0 sn |
-| Duvar örücü + **GRASP** — *üretim varsayılanı* | **%88,10** | 1,3-2,0 sn |
+| Duvar örücü + **GRASP** — *üretim varsayılanı* | **%88,34** | 1,3-2,0 sn |
 | Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%94-95 | örnek başına ~240-320 sn |
 
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
@@ -121,7 +121,7 @@ duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda de�
 | — | **Ağırlık dengesi duvar örücüde optimize edilmiyor.** Greedy'nin `BalanceScoring`'i kalktı; denge yalnız GRASP uygunluğunda, sıra düzeyinde | Bilerek kabul edilen gerileme (~3× kötü) |
 | — | **Üretim gecikmesi ~2 sn** ve arayüzde bekleme göstergesi yok | Kullanıcı deneyimi; F5'te açık |
 | — | İki ret sebebi hiç üretilmiyor (`NotStackable`, `GeometryConstraint`) | 12 Ağu 2026 raporundan devreden borç |
-| `DR-52` | **VCS üstelleri kalibre edilmedi** — dördü de `1`; kayıp ve temas terimleri yaklaşım | Bugünkü +0,65 kalibrasyonsuz bir taban; tarama F7-4'te |
+| `DR-53` | **VCS ince ayarında puan kalmadı** — 25 yapılandırma tarandı, kazanan bölge %83,35-83,40'ta düz | Kalan kazanç ileri bakışta (F7-4) |
 | `DR-43` | **Sıra araması doymuş** — 30 kat bütçe +0,04 puan getiriyor | Kalan açık sıralayıcıda değil; blok karar uzayında (F6-4) |
 | `DR-44` | **Duvar kesiti tam döşenmiyor** — static'te duvarların %91'i %95 kaplamanın altında | F6-3'ün gerekçesi |
 | `DR-45` ⚠ | **GRASP kutuların %45'ini hiçbir duvara koymuyor** | Açık **ürün** kararı: sahadaki ekip bu planı yükleyebiliyor mu? |

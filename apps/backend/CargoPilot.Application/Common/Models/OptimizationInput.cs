@@ -57,6 +57,15 @@ namespace CargoPilot.Application.Common.Models;
 /// Verilmezse sinir yoktur: bugunku davranis. Ideal %100 dolulugu varsaydigi
 /// icin 1,00 gercekci degildir; gercek ihtiyac tam yukte ~1,17'dir.
 /// </param>
+/// <param name="VcsWeights">
+/// Aday degerlendirme fonksiyonunun dort usteli: hacim, kayip, temas, kutu
+/// sayisi (bkz. <see cref="Optimization.WallBuilder.BlockValue"/>). Verilmezse
+/// <c>Neutral</c> — dordu de <c>1</c>.
+///
+/// Alan OLCUM icindir (DR-16'nin SupportThreshold icin kurdugu desen): usteller
+/// kaynakta yayinlanmadigi icin taranmak zorunda ve tarama kod degistirmeden
+/// yapilabilmeli. Uretim yollari doldurmaz.
+/// </param>
 /// <param name="Seed">
 /// Aramanin rastgelelik tohumu. Ayni tohum + ayni girdi bit birebir ayni plani
 /// uretir (R-C02/DR-06). Static sequencer'da kullanilmaz.
@@ -76,7 +85,8 @@ public sealed record OptimizationInput(
     int Seed = 0,
     SearchBudget? SearchBudget = null,
     decimal? SupportThreshold = null,
-    decimal? DepthSlack = null)
+    decimal? DepthSlack = null,
+    (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights = null)
 {
     /// <summary>
     /// Yüklemenin gerçekten <c>x = width</c> tarafından başlayıp başlamadığı.

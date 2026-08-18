@@ -26,6 +26,7 @@ public sealed record BenchOptions(
     int BrSet,
     decimal BrLoadRatio,
     decimal? DepthSlack,
+    (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights,
     string? BaselinePath,
     decimal? SupportThreshold,
     int Stall)
@@ -58,6 +59,7 @@ public sealed record BenchOptions(
         var brSet = -1;
         var brLoadRatio = 1m;
         decimal? depthSlack = null;
+        (double, double, double, double)? vcsWeights = null;
         string? baselinePath = null;
         decimal? supportThreshold = null;
         var stall = 15;
@@ -118,6 +120,9 @@ public sealed record BenchOptions(
                 case "--max-scenarios":
                     maxScenarios = ParseInt(value, arg);
                     break;
+                case "--vcs":
+                    vcsWeights = ParseVcs(value, arg);
+                    break;
                 case "--depth-slack":
                     depthSlack = ParseDecimal(value, arg);
                     break;
@@ -152,6 +157,7 @@ public sealed record BenchOptions(
             Math.Clamp(brSet, -1, 15),
             Math.Clamp(brLoadRatio, 0.05m, 1m),
             depthSlack,
+            vcsWeights,
             baselinePath,
             supportThreshold,
             Math.Max(1, stall));
@@ -190,6 +196,8 @@ public sealed record BenchOptions(
                                ikisi de varsayilan kosuya girmez, sayiyi kiyaslanamaz yapardi.
               --load-ratio R   br kipinde her urunun adedini R ile carpar (varsayilan 1).
                                Kismi doluluk sinamak icin: 0,5 yarim yuk demektir.
+              --vcs A,B,C,D    VCS ustelleri: hacim,kayip,temas,kutu (or. 1,2,0.5,1).
+                               Verilmezse dordu de 1 (kalibre edilmemis taban).
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
                                Verilmezse sinir yok (bugunku davranis).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
@@ -206,6 +214,16 @@ public sealed record BenchOptions(
         PrintUsage();
 
         return ExitUsage;
+    }
+
+    private static (double, double, double, double) ParseVcs(string? value, string flag)
+    {
+        var parts = (value ?? string.Empty).Split(',');
+        if (parts.Length != 4) throw new ArgumentException($"{flag} A,B,C,D bekliyor.", nameof(flag));
+
+        var n = parts.Select(p => double.Parse(p, CultureInfo.InvariantCulture)).ToArray();
+
+        return (n[0], n[1], n[2], n[3]);
     }
 
     private static SequencerKind ParseSequencer(string? value, string flag)

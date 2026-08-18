@@ -21,18 +21,41 @@ namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 ///   KUTU   — ayni hacmi AZ kutuyla doldurmak yeglenir: az kutu, az arayuz,
 ///            az parcalanma.
 ///
-/// USTELLER OLCULMEDI. Kaynakta fonksiyonun BICIMI var, katsayilari yok;
-/// elimizdeki inceleme de vermiyor. Bu yuzden dordu de <c>1</c> ile baslar —
-/// notr bir baslangic, kalibre edilmis bir deger degil. Kalibrasyon F7-4'un
-/// isidir ve o zamana kadar buradaki sayilar bir TAHMINDIR.
+/// USTELLER KAYNAKTA YAYINLANMADI; bizde OLCULEREK bulundu. BR1-BR7 uzerinde
+/// 25 yapilandirma tarandi ve fonksiyonun ustellerine karsi DUYARSIZ oldugu
+/// gorildu: kazanan bolgedeki her yapilandirma %83,35-83,40 arasinda kaliyor.
+/// Asil kazanc ustellerde degil BICIMDE — sozlukbilimsel anahtardan agirlikli
+/// carpima gecis +0,65 getirdi, tarama yalnizca +0,14 ekledi (DR-52, DR-53).
 /// </summary>
 internal static class BlockValue
 {
-    /// <summary>Ustellerin notr baslangici; hicbiri olculmedi.</summary>
     internal readonly record struct Weights(double Volume, double Waste, double Contact, double BoxCount)
     {
-        /// <summary>Dort terim de esit agirlikta.</summary>
+        /// <summary>
+        /// Dort terim de esit agirlikta. Kaynakta katsayi yayinlanmadigi icin
+        /// islevin ILK surumu bununla olculdu; kalibrasyonun kiyaslandigi
+        /// referans noktasidir, uretim degeri degil.
+        /// </summary>
         internal static Weights Neutral => new(1d, 1d, 1d, 1d);
+
+        /// <summary>
+        /// Olculmus varsayilan. BR1-BR7 uzerinde 25 yapilandirma tarandi; kazanan
+        /// bolge "hacim yuksek, kutu cezasi dusuk" olarak cikti:
+        ///
+        ///   notr 1,1,1,1     static %83,26 · GRASP %88,10
+        ///   3,2,0.5,0.5      static %83,40 · GRASP %88,34
+        ///
+        /// Tarama TEK BASINA kucuk bir kazanc verdi (+0,14 static). Asil kazanc
+        /// ustellerde degil BICIMDE: sozlukbilimsel anahtardan agirlikli carpima
+        /// gecis +0,65 getirmisti (DR-52). Yani fonksiyon ustellerine karsi
+        /// DUYARSIZ — "hacim yuksek, kutu dusuk" bolgesindeki her yapilandirma
+        /// %83,35-83,40 arasinda kaliyor.
+        ///
+        /// Tek belirgin yon: kutu sayisi ustelini BUYUTMEK zararli (2 yapinca
+        /// %81,77'ye dusuyor). Az kutuyla doldurma tercihi asiriya kacinca buyuk
+        /// bloklarin onunu kesiyor.
+        /// </summary>
+        internal static Weights Default => new(3d, 2d, 0.5d, 0.5d);
     }
 
     /// <summary>

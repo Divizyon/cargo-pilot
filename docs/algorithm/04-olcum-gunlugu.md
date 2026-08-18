@@ -1930,3 +1930,80 @@ değeri aldığında kazananı defter sırasına bırakmak makineye bağlı çı
 
 **Açık borç:** üsteller kalibre edilmedi. Dördü de `1` ve bu değerin en iyi olduğuna dair hiçbir
 ölçüm yok — tarama F7-4'ün işidir. Bugünkü +0,65, kalibrasyonsuz bir tabandır.
+
+---
+
+## F7-4 öncesi · VCS üstelleri tarandı — **fonksiyon üstellerine duyarsız çıktı**
+
+`DR-52` üstelleri açık borç bırakmıştı: kaynakta fonksiyonun biçimi var, katsayıları yok, dördü de
+`1` alınmıştı. Tarama yapılabilsin diye `OptimizationInput.VcsWeights` ve `br --vcs A,B,C,D`
+eklendi (`SupportThreshold`/`DepthSlack` deseni).
+
+BR1-BR7, 700 örnek, static — her fark **gerçek**, static saf hesaptır ve gürültüsüzdür.
+
+### Tek terim taraması (taban `1,1,1,1` = %83,26)
+
+| Değişen | Değer | Doluluk |
+|---|---|---|
+| hacim | 2 | %83,32 |
+| hacim | **0,5** | **%82,64** |
+| kayıp | 2 | %83,30 |
+| kayıp | 0,5 | %83,21 |
+| temas | 2 | %83,19 |
+| temas | **0** | **%82,98** |
+| kutu | **2** | **%81,77** |
+| kutu | 0,5 | %83,35 |
+| kutu | 0 | %83,32 |
+
+İki net yön: **hacim üstelini küçültmek zararlı** (0,5 → −0,62) ve **kutu cezasını büyütmek çok
+zararlı** (2 → −1,49). Az kutuyla doldurma tercihi aşırıya kaçınca büyük blokların önünü kesiyor.
+Temas terimini sıfırlamak da zarar veriyor, yani terim gerçekten çalışıyor.
+
+### Kombinasyonlar — ve plato
+
+| Yapılandırma | Doluluk |
+|---|---|
+| `2,1,1,0.5` | %83,35 |
+| `3,1,1,0.5` | %83,38 |
+| `2,1,0.5,0.5` | %83,38 |
+| `6,1,1,0.5` | %83,39 |
+| **`3,2,0.5,0.5`** | **%83,40** |
+
+25 yapılandırma tarandı. "Hacim yüksek, kutu cezası düşük" bölgesindeki **her** yapılandırma
+%83,35-83,40 arasında kalıyor. En iyi ile nötr arasındaki fark **+0,14**.
+
+### Asıl sonuç: kazanç üstellerde değil, biçimde
+
+| | Static | GRASP |
+|---|---|---|
+| Sözlükbilimsel anahtar | %82,61 | %87,73 |
+| VCS, nötr üsteller | %83,26 (+0,65) | %88,10 (+0,37) |
+| VCS, kalibre `3,2,0.5,0.5` | **%83,40** (+0,14) | **%88,34** (+0,24) |
+
+**Biçim değişikliği kalibrasyonun 4-5 katı kazandırdı.** Bu iyi haber: fonksiyon kırılgan değil,
+üsteller yanlış tahmin edilse bile kazancın çoğu duruyor. Kötü haber ise ince ayarda başka puan
+kalmamış olması.
+
+İlginç ayrıntı: kalibrasyon GRASP'ta (+0,24) static'ten (+0,14) daha çok kazandırdı. Beklenenin
+tersi — genelde arama, yerleştirici kazançlarını yutar. Buradaki üsteller aramanın kendi başına
+telafi edemediği bir tercih taşıyor.
+
+`3,2,0.5,0.5` varsayılan yapıldı. `Neutral` (1,1,1,1) referans noktası olarak duruyor; testler onu
+kullanıyor çünkü sınanan şey fonksiyonun **yönü**, kalibrasyonu değil.
+
+17 snapshot kaymadı, 153/35/228 yeşil, CI referansı **%83,40**.
+
+### F7-4 (beam çekirdeği) hakkında bir düzeltme
+
+Yol haritası F7-4'ü "blok yerleştirme beam search" diye yazmıştı. Ölçümler bu tarifi daralttı:
+
+- `DR-51`: blok zenginliği heterojenlikle çöküyor (BR15'te kutu/blok 1,5) — blok tarafı orada
+  dejenere.
+- Ölçüm günlüğü, daha önce: *"Bloğu x/z'de büyütmek — ±0"*. Blok **şekli** zaten nötr ölçülmüş ve
+  `RaiseBlock` bloğu maksimal büyütüyor.
+- `DR-49`: duvar sırasını değiştirmek sıfır kazanç.
+
+Yani F7-4'ün değeri blokta veya sırada değil, **ileri bakışta**: "bu kararı verirsem sonu ne olur".
+Bu da durum kopyalamalı gerçek bir beam gerektiriyor — `SpaceLedger` + yerleşim listesi + tüketim
+durumunun ucuz klonlanabilmesi. Kestirme yok; iki kestirme (duvar sırası, blok şekli) ölçümle
+elendi.

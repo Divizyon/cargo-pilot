@@ -58,6 +58,7 @@ public static class BrCommand
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,
                     DepthSlack = options.DepthSlack,
+                    VcsWeights = options.VcsWeights,
                 };
 
                 var started = Stopwatch.GetTimestamp();
