@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 using CargoPilot.Domain.Enums;
@@ -10,7 +10,7 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 /// sirasi aramasi.
 ///
 /// Neden arama: olcum, yerlestirme politikasinin da elle yazilan siralamanin da
-/// tavana vurdugunu gosterdi (bkz. ALGORITMA-GELISTIRME-LOG.md v6-v9). Konteynerin
+/// tavana vurdugunu gosterdi (bkz. docs/algorithm/04-olcum-gunlugu.md v6-v9). Konteynerin
 /// bolunmus halinden uretilen senaryolarda %100 veren bir sira VARDIR ama her
 /// senaryoda farklidir; sabit bir kural onu bulamaz.
 ///

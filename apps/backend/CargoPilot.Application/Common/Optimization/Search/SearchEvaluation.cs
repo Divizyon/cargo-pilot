@@ -1,4 +1,4 @@
-﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 using CargoPilot.Domain.Enums;
 
@@ -10,7 +10,7 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 /// Kiyasin gecerli olmasi buna bagli: uc arama da AYNI yerlestiriciyi, AYNI
 /// uygunluk fonksiyonunu ve AYNI tohum bireyleri kullanmak zorunda. Her biri
 /// kendi maliyet formulunu tasisaydi olculen sey arama degil, formul farki olurdu
-/// (ALGORITMA-RULEBOOK.md R-C22).
+/// (docs/algorithm/01-kurallar.md R-C22).
 /// </summary>
 internal static class SearchEvaluation
 {

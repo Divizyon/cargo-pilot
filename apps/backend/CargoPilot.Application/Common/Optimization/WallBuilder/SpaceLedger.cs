@@ -16,11 +16,11 @@ namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 /// kadar dustu (F2a). Yerlesemeyen kutularin %72,7'sinin bir bosluga sigip
 /// destek bulamamasi defterin kusuru degil, yigin ust yuzeyinin engebesinin
 /// olcusudur: cozum defteri kucultmek degil yuzeyi duzlestirmektir
-/// (ALGORITMA-GELISTIRME-LOG.md, F2a kaydi).
+/// (docs/algorithm/04-olcum-gunlugu.md, F2a kaydi).
 ///
 /// Kapsanan bosluklarin budanmasi opsiyonel degildir: her yerlestirme bir
 /// bosluğu alti parcaya kadar boler ve budama olmadan liste kutu sayisiyla
-/// ussel buyur (ALGORITMA-YOL-HARITASI.md RK-11).
+/// ussel buyur (docs/algorithm/03-yol-haritasi.md RK-11).
 /// </summary>
 internal sealed class SpaceLedger
 {

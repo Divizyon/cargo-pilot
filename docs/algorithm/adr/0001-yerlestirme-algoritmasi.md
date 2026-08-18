@@ -2,9 +2,10 @@
 
 - **Durum:** Kabul edildi · **üretimde tek yerleştirici** (greedy kaldırıldı, `DR-39`)
 - **Tarih:** 2026-08-18
-- **Kapsam:** `PlacementStrategy.WallBuilder`, `SequencerKind.Grasp`, `PlacementValidator`, `SpaceLedger`, `CargoPilot.Engine.Bench`
-- **Yerini aldığı:** yok · **Tamamladığı:** `ALGORITMA-YOL-HARITASI.md` F2-F5
-- **Ayrıntılı kayıtlar:** [ALGORITMA-GELISTIRME-LOG.md](../../ALGORITMA-GELISTIRME-LOG.md) (ölçüm günlüğü) · [ALGORITMA-RULEBOOK.md](../../ALGORITMA-RULEBOOK.md) (`DR-01`…`DR-38` karar kaydı, **§A1 güncel dosya haritası**)
+- **Kapsam:** `WallBuilderPlacement`, `SequencerKind.Grasp`, `PlacementValidator`, `SpaceLedger`, `CargoPilot.Engine.Bench`
+- **Yerini aldığı:** yok · **Tamamladığı:** `docs/algorithm/03-yol-haritasi.md` F2-F5
+- **Ayrıntılı kayıtlar:** [04-olcum-gunlugu.md](../04-olcum-gunlugu.md) (ölçüm günlüğü) · [02-kararlar.md](../02-kararlar.md) (`DR-01`…`DR-41` karar kaydı) · [01-kurallar.md](../01-kurallar.md) (**§A1 güncel dosya haritası**)
+- **Güncel sayılar burada değil:** bu belgenin tabloları *karar anındaki* ölçümdür. Bugünkü karne → [05-basari-karnesi.md](../05-basari-karnesi.md)
 
 ---
 
@@ -111,7 +112,7 @@ greedy'ye üstünlüğü giyotinde +0,8, BR'de **+3,8** görünüyordu.
 
 **Sonuçları:**
 - OR-Library `thpack1..7` depoya alındı (700 örnek, kaynak ve atıf
-  [data/README.md](../../apps/backend/CargoPilot.Engine.Bench/data/README.md)).
+  [data/README.md](../../../apps/backend/CargoPilot.Engine.Bench/data/README.md)).
 - BR'nin yönelim kısıtını `AllowedRotations` tam karşılamıyor (tiplerin %37'si). Bu yüzden her sayı
   **iki uçla** raporlanır: `strict` alt sınır, `free` üst sınır (`DR-20`). Hangi ucun ölçüldüğü
   belirtilmeden sayı literatürle kıyaslanamaz.
@@ -208,14 +209,14 @@ Bölme biçimi arayüz/plugin değil, motorun doğrudan çağırdığı **statik
 döngüye tek bir dolaylı çağrı eklenmedi. Taşımadan önce davranışı kilitleyen 16 anlık görüntü
 testi yazıldı ve yedi geçiş adımının hiçbirinde biri bile kaymadı.
 
-Kaynak: [`ALGORITMA.md`](../../ALGORITMA.md) satır 1-134 (*Mimari Raporu · Cargo Pilot Backend*).
+Kaynak: [`arsiv/2026-08-12-mimari-raporu.md`](../arsiv/2026-08-12-mimari-raporu.md) satır 1-134 (*Mimari Raporu · Cargo Pilot Backend*).
 Aynı dosyanın 135-511 arası 15 Ağustos tarihli *Adli İnceleme*'dir (OPT-01/OPT-02 kök neden
 analizi).
 
 > **Bu tarihli bir belgedir, güncel değildir.** Yazıldığından beri sayılar değişti:
 > `OptimizationEngine.cs` 240 → 299 satır, `VolumeScoring.cs` 28 → 55, snapshot 16 → 17,
 > motor testi 33 → 115, ve duvar örücü ile arama katmanı eklendi. **Güncel dosya haritası
-> [`ALGORITMA-RULEBOOK.md` §A1](../../ALGORITMA-RULEBOOK.md)'dedir.**
+> [`01-kurallar.md` §A1](../01-kurallar.md)'dedir.**
 
 ### Bugünkü düzen
 
@@ -258,7 +259,7 @@ apps/backend/CargoPilot.Engine.Bench/            ← ölçüm düzeneği, ÜRETI
    tipine dönüp motorun **kendi** yüklemlerini çağırır; kural bozulursa teşhis de bozulur, sessizce
    doğru sonuç vermez.
 
-Ayrıntılı dosya-satır-rol tablosu: [`ALGORITMA-RULEBOOK.md` §A1](../../ALGORITMA-RULEBOOK.md).
+Ayrıntılı dosya-satır-rol tablosu: [`01-kurallar.md` §A1](../01-kurallar.md).
 
 ### 12 Ağustos raporunun bıraktığı borçlar — bugünkü durum
 

@@ -1,6 +1,17 @@
 # Algoritma Geliştirme Günlüğü
 
+> **Kalıcı dosya — yalnızca sona eklenir.** Geçmiş kayıt silinmez ve düzeltilmez; bir sonuç
+> yanlışlandıysa **yeni bir kayıt** açılır ve eskisine atıf verilir. Reddedilen denemeler de
+> yazılır — "bu denendi mi" sorusunun tek cevabı burasıdır.
+>
+> Güncel özet [05-basari-karnesi.md](05-basari-karnesi.md)'de. Kararsızsan buraya yaz.
+
+
 Her değişiklik ve ölçüsü. Ölçüm düzeneği: `dotnet run --project CargoPilot.Engine.Bench -- soak`.
+
+**Not (18 Ağu 2026):** aşağıdaki erken kayıtlar giyotin korpusunda ölçüldü. `DR-19` ile
+birincil korpus **BR1-BR7** oldu; giyotin regresyon korpusu olarak kaldı. Korpusu değiştirmek
+bir kararı tersine çevirebilir — kayıtları okurken hangi korpus olduğuna bak.
 
 **Soak korpusu:** konteyner giyotin kesimlerle parçalara bölünür, parçalar kutu olur — yani
 üretilen yük konteynere **tam sığar** ve ulaşılabilir doluluk **%100**'dür. Ölçülen doluluk bu
@@ -1102,7 +1113,7 @@ kapatmalı. Aksi hâlde blok bir prizma olmaktan çıkar.
 Statik yolda büyük kazanç, aramada nötr — **arama bu kazancı sıralamayla zaten buluyormuş**.
 Yine de tutuldu: statik yol üretimin hızlı yolu (2-5 ms / 2 sn) ve kapının referansı.
 
-Kapı referansı tazelendi (`docs/algorithm/br-wallbuilder-static.json`, %79,86 → %80,09); greedy
+Kapı referansı tazelendi (`docs/algorithm/referans/br-wallbuilder-static.json`, %79,86 → %80,09); greedy
 referansı dokunulmadan geçti.
 
 ---

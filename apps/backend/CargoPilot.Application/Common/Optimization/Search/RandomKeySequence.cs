@@ -1,4 +1,4 @@
-﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 
 namespace CargoPilot.Application.Common.Optimization.Search;
@@ -10,7 +10,7 @@ namespace CargoPilot.Application.Common.Optimization.Search;
 /// permutasyon. Kopru random-key'dir: her kutuya bir <c>[0,1)</c> anahtari
 /// dusar, anahtarlar siralaninca permutasyon cikar. Boylece meta-sezgisel
 /// denklemlerini hic degistirmeden ayrik probleme uygulanabilir
-/// (ALGORITMA-RULEBOOK.md R-C15).
+/// (docs/algorithm/01-kurallar.md R-C15).
 ///
 /// Siralama KARARLI olmak zorunda: esit anahtarlarda cozum kutunun kendi
 /// sirasina duser, yoksa ayni vektor iki kez farkli permutasyon uretebilirdi.

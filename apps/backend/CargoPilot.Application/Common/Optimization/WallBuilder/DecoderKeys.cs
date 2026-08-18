@@ -1,4 +1,4 @@
-﻿namespace CargoPilot.Application.Common.Optimization.WallBuilder;
+namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 
 /// <summary>
 /// Yerlestiricinin plan duzeyindeki kararlari — kutu basina degil, plan basina.
@@ -15,7 +15,7 @@
 /// benzer — dolayisiyla birini secmek otekini feda etmek olurdu.
 ///
 /// Karar kromozoma tasinir, arama her ornek icin kendi cevabini bulur
-/// (ALGORITMA-RULEBOOK.md R-C15a).
+/// (docs/algorithm/01-kurallar.md R-C15a).
 /// </summary>
 /// <param name="WallDepthPreference">
 /// Yeni duvar acilirken derinlik tercihi: <c>-1</c> derin, <c>0</c> yansiz,

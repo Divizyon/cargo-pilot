@@ -1,5 +1,10 @@
 # Cargo Pilot Algoritma · Geliştirme Yol Haritası
 
+> **Kalıcı dosya.** Faz durumları burada güncellenir; biten faz silinmez, **durumu işaretlenir**.
+> Bir fazın ölçümü [04-olcum-gunlugu.md](04-olcum-gunlugu.md)'de, doğurduğu karar
+> [02-kararlar.md](02-kararlar.md)'de durur.
+
+
 ## 0. Özet
 
 - **Ne yapılacak:** Mevcut greedy yerleştirme motorunun yanına, aynı `IOptimizationEngine.Run` imzası altında seçilebilir bir **Wall-Builder + maximal-space** yerleştirici ve onu saran **GWCA** meta-sezgiseli eklenecek; GA/GRASP kıyas için referans olarak kalacak.
@@ -19,8 +24,8 @@
 
 > Bu bölüm §1'in yerine geçer. §1 ve sonrası **tarihsel kayıt** olarak duruyor; F0/F1'in
 > tamamlanma biçimi ve F2/F3'ün gerçek sonuçları aşağıdadır. Revizyonun dayanağı:
-> 22 ölçülmüş deneme (`ALGORITMA-GELISTIRME-LOG.md`) + dış araştırma
-> (`ALGORITMA-ARASTIRMA-ONERISI.md`).
+> 22 ölçülmüş deneme (`docs/algorithm/04-olcum-gunlugu.md`) + dış araştırma
+> (`docs/algorithm/arastirma/2026-08-17-yanit-olu-hava.md`).
 
 ### Tamamlananlar
 
@@ -136,7 +141,7 @@ yerleşimleri reddediyor.
 | F0-9 | `SUITE_RUN_VERSION` artışı + `scenarioResultSchema`/`aggregateSchema` alanları | `src/algorithm-test/utils/suiteStorage.ts` (`SUITE_RUN_VERSION`, `scenarioResultSchema`, `aggregateSchema`) |
 | F0-9b | **`isComparable` anahtarı genişletilir:** `seed + catalogSignature + generatorVersion` yanına `strategy`, `sequencer`, `suiteRunVersion`, `fixtureCatalogVersion`. Farklı strateji = **kıyaslanamaz**, regresyon değil. Strateji karşılaştırması göreli kapıya değil, eşleştirilmiş protokole (KK-03) gider | `utils/suiteStorage.ts` (`isComparable`, `findComparable`) |
 | F0-10 | `WallBuilder`/`Gwca` kriter/strateji enum'u ve panel etiketleri | `src/lib/types/loadingPlan.ts:39-45` · `src/algorithm-test/criteria.ts:203-217` · `suite/criteriaEffectiveness.ts:24-27,61,167-172` · `components/CriteriaMatrixPanel.tsx` · `cli/cliOptions.ts:54` |
-| F0-11 | **Tanım borcu (bloklayıcı):** RK-03 — baseline garantisi FillRate üzerinden mi, fitness üzerinden mi? `R-C21`/`R-D04` metni netleştirilir | `ALGORITMA-RULEBOOK.md` (doğrulanacak: dosya kökte, henüz commit edilmemiş) |
+| F0-11 | **Tanım borcu (bloklayıcı):** RK-03 — baseline garantisi FillRate üzerinden mi, fitness üzerinden mi? `R-C21`/`R-D04` metni netleştirilir | `docs/algorithm/01-kurallar.md` (doğrulanacak: dosya kökte, henüz commit edilmemiş) |
 | F0-12 | **Tanım borcu (bloklayıcı):** RK-05 — `WallCount==0` tanımı, `AvgWallFlushness`'in **tanım kümesi** ve NaN yasağı (`double.IsFinite` assert'i). *Formül katsayısı F3'e taşınır* | `R-C14` |
 | F0-13 | **Tanım borcu (bloklayıcı):** RK-14 sanal duvar semantiği (`positionZ` mi, `[z, z+length)` ayak izi mi) | `R-C13` |
 | F0-14 | **Kalibrasyon borcu — F0'da değil, F3 çıkışında kapanır:** RK-16 fitness katsayıları (1 büyük vs 5 küçük unplaced), RK-05 flushness ağırlığı. Kanıt: SC-58/SC-59 | `R-C18` (F3 kapısı) |
@@ -194,7 +199,7 @@ yerleşimleri reddediyor.
 
 **İş kalemleri**
 
-- Duvar/şerit yapıları: `R-C08` (derinlik = ilk kutunun `z`'si), `R-C09` (şerit `y` = ilk girenin `y`'si, artık maximal-space'e devrolur) — **yeni:** `Common/Optimization/WallBuilder/` (doğrulandı ve uygulandı; güncel dosya haritası `ALGORITMA-RULEBOOK.md` §A1)
+- Duvar/şerit yapıları: `R-C08` (derinlik = ilk kutunun `z`'si), `R-C09` (şerit `y` = ilk girenin `y`'si, artık maximal-space'e devrolur) — **yeni:** `Common/Optimization/WallBuilder/` (doğrulandı ve uygulandı; güncel dosya haritası `docs/algorithm/01-kurallar.md` §A1)
 - Maximal-space defteri: `R-C11`; **containment pruning zorunlu** (RK-11), `≤6 yeni boşluk` + "hiçbir boşluk başkasını kapsamaz" invariantı.
 - Aday nokta sırası: `R-C10` Chebyshev → `y`,`z`,`x` → yaratılış sırası; aynalı modda `x` ters (SC-56).
 - **Destek adayları boşluk köşeleriyle sınırlı olamaz** (RK-10): iki kutunun üstüne binen birleşik destek ≥%80 konumları aday üretilmeli.

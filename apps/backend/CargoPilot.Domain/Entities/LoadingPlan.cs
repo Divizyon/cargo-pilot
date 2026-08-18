@@ -1,4 +1,4 @@
-﻿using CargoPilot.Domain.Enums;
+using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Domain.Entities;
 
@@ -25,7 +25,7 @@ public sealed class LoadingPlan : BaseEntity {
     public ErpExportStatus? ErpExportStatus { get; private set; }
 
     // ── Kosu kimligi ─────────────────────────────────────────────────────────
-    // Determinizm sozlesmesi (ALGORITMA-RULEBOOK.md R-C02) "ayni tohum + ayni
+    // Determinizm sozlesmesi (docs/algorithm/01-kurallar.md R-C02) "ayni tohum + ayni
     // girdi bit birebir ayni plani uretir" der. Bu soz, planin HANGI sequencer
     // ve HANGI tohumla uretildigi kayitli degilse kullanilamaz: bir plani yeniden
     // uretmek isteyen kisinin elinde yalnizca sonuc kalirdi.

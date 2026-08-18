@@ -18,7 +18,7 @@ public sealed record OptimizationResult(
 /// Arama katmaninin kosu istatistigi. Aramasiz yollarda (Static sequencer)
 /// <c>null</c> kalir; boylece bugunku sonuc sozlesmesi degismez.
 /// Fitness skoru arama alaninin sayisidir ve <c>double</c> tutulur; geometri ve
-/// agirlik <c>decimal</c> kalir (ALGORITMA-YOL-HARITASI.md RK-18).
+/// agirlik <c>decimal</c> kalir (docs/algorithm/03-yol-haritasi.md RK-18).
 /// </summary>
 public sealed record SearchStats(
     int Iterations,

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json.Serialization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
@@ -162,7 +162,7 @@ internal sealed record SnapshotOutcome(
 /// <remarks>
 /// Sure ve <c>BestCostHistory</c> bilincli olarak disaridadir: ilki her kosuda
 /// farklidir, ikincisi katsayi kalibrasyonuyla birlikte kayar ve golden korpusu
-/// gereksiz yere kirmizi yakar (ALGORITMA-YOL-HARITASI.md RK-19).
+/// gereksiz yere kirmizi yakar (docs/algorithm/03-yol-haritasi.md RK-19).
 /// </remarks>
 internal sealed record SnapshotSearchStats(int Iterations, int Evaluations, bool SearchImproved)
 {

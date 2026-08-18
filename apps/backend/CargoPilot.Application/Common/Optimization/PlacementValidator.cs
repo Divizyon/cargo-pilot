@@ -1,4 +1,4 @@
-﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization;
@@ -65,7 +65,7 @@ internal static class PlacementValidator
 
     /// <summary>
     /// Ayni soru, esigi disaridan verilerek. Esik bir FIZIK KANUNU DEGIL, bir
-    /// POLITIKA (ALGORITMA-RULEBOOK.md DR-16): kimse olcup "%80 olmali" demedi.
+    /// POLITIKA (docs/algorithm/02-kararlar.md DR-16): kimse olcup "%80 olmali" demedi.
     /// Olcum bu kuralin en buyuk tikac oldugunu gosterdi — yerlesemeyen
     /// kutularin %72,7'si bir bosluga sigiyor ama yalnizca %3,2'si orada destek
     /// buluyor.
@@ -95,7 +95,7 @@ internal static class PlacementValidator
     /// Esikten ayri durur cunku esik "gecer mi" sorusunun cevabi, oran ise
     /// "ne kadar" sorusunun. Bosluk defteri ikincisine ihtiyac duyar: bir
     /// bosluğun tabanini TAM destekli bolgeye kirpmak icin orani bilmek gerekir
-    /// (ALGORITMA-RULEBOOK.md R-C09a).
+    /// (docs/algorithm/01-kurallar.md R-C09a).
     /// </summary>
     internal static decimal SupportRatio(
         List<PlacedBox> placed,

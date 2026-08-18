@@ -23,14 +23,14 @@ on:
     paths:
       - 'apps/backend/CargoPilot.Application/Common/Optimization/**'
       - 'apps/backend/CargoPilot.Engine.Bench/**'
-      - 'docs/algorithm/br-*.json'
+      - 'docs/algorithm/referans/br-*.json'
       - '.github/workflows/engine-bench.yml'
   pull_request:
     branches: [dev, test, main]
     paths:
       - 'apps/backend/CargoPilot.Application/Common/Optimization/**'
       - 'apps/backend/CargoPilot.Engine.Bench/**'
-      - 'docs/algorithm/br-*.json'
+      - 'docs/algorithm/referans/br-*.json'
   schedule:
     # Her gece 03:00 UTC. algorithm-suite 02:00'de koşuyor; ikisi çakışmasın.
     - cron: '0 3 * * *'
@@ -65,7 +65,7 @@ jobs:
       - name: Duvar örücü — BR1-BR7
         run: |
           dotnet run --project apps/backend/CargoPilot.Engine.Bench --no-build --configuration Release -- \
-            br --baseline "$GITHUB_WORKSPACE/docs/algorithm/br-wallbuilder-static.json" \
+            br --baseline "$GITHUB_WORKSPACE/docs/algorithm/referans/br-wallbuilder-static.json" \
                --report "$GITHUB_WORKSPACE/br-wallbuilder-run.json"
 
       # Kapi kaldiginda karsilastirmayi elle yapabilmek icin kosu ciktilari saklanir.

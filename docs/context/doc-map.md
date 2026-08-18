@@ -65,7 +65,8 @@ git ls-files '*.md' | xargs wc -l | tail -1 # → 12342
 > `docs/conventions/{BRANCHING,COMMITS}.md` → `{branching,commits}.md`,
 > `docs/AUDIT-TEST-PLANI.md` → `docs/archive/audit-test-plani-2026-08.md`,
 > `docs/context/branching-proposal.md` → `docs/archive/branching-proposal-2026-08.md`,
-> 3 algoritma tasarım dokümanı `apps/backend/docs/` → `docs/archive/algoritma-tasarimi/`.
+> 3 algoritma tasarım dokümanı `apps/backend/docs/` → `docs/archive/algoritma-tasarimi/`
+> (2026-08-18'de `docs/algorithm/arsiv/` altına alındı).
 > Yeni: kökte `CONTRIBUTING.md`. Tüm `docs` dokümanlarına standart şablon
 > (H1 → `**Son güncelleme:** … · **Durum:** …` → amaç cümlesi → `---`) uygulandı.
 
@@ -98,6 +99,27 @@ Kökte yalnızca konvansiyonel dosyalar durur. `devops-audit-raporu.md` 2026-08-
 | `KOORDINAT-UYUM-RAPORU.md` | 392 | **Yalnızca rapor** (2026-08-15) — 7 alanlı uyum denetimi, 177 tekil dosya:satır bulgusu (24 High). ⚠️ **Bayat** — kapı modeli de kapandı; güncel durum `KOORDINAT-BRANCH-DENETIMI-2026-08-16.md` ve `KOORDINAT-DUZELTME-PLANI.md` | Koordinat uyumsuzluğunun güncel durumunu sorarken |
 
 `docs/coordinate-standard.html` (36 KB) standardın görsel sürümüdür ve `.md` sayımına girmez.
+
+## docs/algorithm
+
+Yerleştirme motorunun tüm belgeleri. Kalıcı altı dosya + dört klasör; giriş [`README.md`](../algorithm/README.md).
+
+| Dosya | Satır | Özet | Şu soruda aç |
+|-------|------:|------|--------------|
+| `00-sozluk.md` | 88 | Terim sözlüğü: korpus / yerleştirici / sıralayıcı / ölçüm eksenleri. **Bir ölçüm satırı dördünü birden söyler** | Raporda geçen bir terimi anlamadığında |
+| `01-kurallar.md` | 504 | Bağlayıcı sözleşme ve tasarım kuralları (`R-*`). §A1 **güncel dosya haritası**, §A3 sekiz sert kapı, §A5 koordinat sözleşmesi | Motora dokunmadan önce |
+| `02-kararlar.md` | 177 | Karar kaydı (`DR-01`…`DR-41`), açık borç listesi, ölçüm kapsamının sınırları | "Bu neden böyle" sorusunda |
+| `03-yol-haritasi.md` | 689 | Faz planı, loop test harness tasarımı, senaryo kataloğu, risk kaydı (`RK-*`), kabul kriterleri | Sırada ne olduğunu sorduğunda |
+| `04-olcum-gunlugu.md` | 1282 | **Yalnızca sona eklenir.** Her denemenin ölçümü — kabul edilenler *ve* reddedilenler. "Bu denendi mi" sorusunun tek cevabı | Bir fikri denemeden önce |
+| `05-basari-karnesi.md` | 94 | **Üzerine yazılır.** Güncel doluluk (BR1-BR7 GRASP %86,23), küme kırılımı, test sayıları, açık liste | "Bugün ne kadar iyiyiz" |
+
+| Klasör | İçerik | Kural |
+|---|---|---|
+| `adr/` | Numaralı mimari karar kayıtları (bugün 1 tane: duvar örücü + arama katmanı) | Yazıldıktan sonra değiştirilmez |
+| `arastirma/` | Dış araştırma brifingi (17 Ağu) ve iki yanıt (ölü hava · blok arama) | Geldiği gibi durur |
+| `arsiv/` | 7 dondurulmuş tarihsel belge (2026-08-04 → 08-16) | **Asla düzenlenmez**, sayıları bayat |
+| `notlar/` | Geçici, tek kullanımlık notlar | Kalıcı bilgi yukarı taşınır; buraya atıf verilmez |
+| `referans/` | `br-wallbuilder-static.json` — CI doluluk kapısının referansı | Tazeleme günlük kaydıyla birlikte commit edilir |
 
 ## docs/conventions
 
@@ -137,9 +159,6 @@ güncel davranışın kaynağı değildir.
 | `koordinat-denetimi-2026-08-12.md` | 742 | **Yalnızca rapor** (2026-08-12, sürüm 2) — kodun o günkü standarda göre denetimi, dosya:satır kanıtlı sapma listesi. ⚠️ **Bayat** — `KOORDINAT-UYUM-RAPORU.md` bunun yerini aldı, z-yönü/`depth` bulguları artık geçersiz. **Tekil değeri:** §3 "standarda uygun dosyalar" ve §4 "artık uyumlu — dokunulmayacak" listeleri | Doğru olan kodu bozmamak için düzeltmeden önce · tarihsel karşılaştırma |
 | `devops-iyilestirme-analizi-2026-08.md` | 864 | **51 bulguluk** devops taraması (2026-08-03): compose, CI/CD, güvenlik, monitoring, doküman tutarsızlıkları. ⚠️ **Anlık görüntü, canlı değil.** 2026-08-16 triyajında 6 bulgu kapandı, 45'i `devops-backlog.md` Kategori 6'ya taşındı | Bir D-bulgusunun kanıt gövdesini okurken — **açık iş listesi için değil** |
 | `branch-denetimi-2026-08-03.md` | 308 | 30 remote branch + açık PR analizi ve temizlik kararları. **Uygulandı** ve envanteri bayat (bugün 20 dal). **Tekil değeri:** §7 kök neden + §8 trunk geçişinin neden geri alındığı | "Neden trunk'a geçmiyoruz?" sorusunda |
-| `algoritma-tasarimi/matematiksel-model.md` | 442 | **Tasarım arşivi** — bin packing matematiksel modeli (EP, dominance, maliyet fonksiyonu). Kod hem ileride hem geride. Fark listesi: `../kod-taramasi-2026-08.md` §4 | Algoritma tarihçesi |
-| `algoritma-tasarimi/sistem-mimarisi.md` | 348 | **Tasarım arşivi** — planlanan packing mimarisi; `PackingEngine` sınıfı hiç yazılmadı, gerçek motor `Application/Common/Optimization/` (7 dosya) | Algoritma tarihçesi |
-| `algoritma-tasarimi/bin-packing-uygulama-plani.md` | 422 | **Tasarım arşivi** — uygulama faz planı; güncel implementasyonla birebir değil | Algoritma tarihçesi |
 
 ## docs/context (bu klasör)
 

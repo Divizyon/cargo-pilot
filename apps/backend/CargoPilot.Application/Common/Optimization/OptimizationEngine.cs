@@ -9,7 +9,7 @@ namespace CargoPilot.Application.Common.Optimization;
 /// <see cref="WallBuilder.WallBuilderPlacement"/>'a, sira secimi ise
 /// <c>Search</c> altindaki sequencer'lara aittir.
 ///
-/// Greedy yerlestirici KALDIRILDI (ALGORITMA-RULEBOOK.md DR-39). Olcum duvar
+/// Greedy yerlestirici KALDIRILDI (docs/algorithm/02-kararlar.md DR-39). Olcum duvar
 /// orucunun gerceki yukte hem daha dolu hem statik yolda daha hizli oldugunu
 /// gosterdi: BR1-BR7'de %75,23 → %80,09 (static) / %86,23 (GRASP), sure
 /// ~65 ms → 2-5 ms (static). Kabul edilen bedel agirlik dengesidir; duvar

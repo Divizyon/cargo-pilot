@@ -9,7 +9,7 @@ namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 /// Yonelim neden sirayla birlikte tasiniyor: duvarin derinligini kutunun HANGI
 /// kenarinin z eksenine geldigi belirler. Sira aramaya acikken yonelim sabit
 /// kalirsa, arama duvar derinligini hic kontrol edemez — bir kutunun 40 mi 160 cm
-/// mi derinlik acacagi rastgele kalir (ALGORITMA-RULEBOOK.md R-C15).
+/// mi derinlik acacagi rastgele kalir (docs/algorithm/01-kurallar.md R-C15).
 /// </summary>
 /// <param name="Item">Yerlestirilecek kutu.</param>
 /// <param name="OrientationKey">

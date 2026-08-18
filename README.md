@@ -50,7 +50,8 @@ cargo-pilot/
 │   └── backend/      # .NET 8 Web API
 ├── database/         # Migration, seed ve DB scriptleri
 ├── docs/             # Proje dokümantasyonu
-│   ├── archive/      # Tarihsel doküman arşivi (algoritma tasarımı, geçmiş planlar)
+│   ├── algorithm/    # Yerleştirme algoritması: kurallar, kararlar, ölçüm günlüğü, ADR, arşiv
+│   ├── archive/      # Tarihsel doküman arşivi (geçmiş denetimler ve planlar)
 │   ├── context/      # Proje bağlamı, anlık görüntüler, doküman haritası
 │   ├── conventions/  # Branching ve commit kuralları
 │   ├── devops/       # Sunucu, monitoring, secret yönetimi

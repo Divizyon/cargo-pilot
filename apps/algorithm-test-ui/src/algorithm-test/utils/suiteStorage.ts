@@ -316,7 +316,7 @@ export function clearSuites(): void {
  *
  * Strateji/sıralayıcı anahtarın parçasıdır: farklı strateji bir gerileme değil,
  * başka bir motordur. Strateji karşılaştırması göreli kapıya değil, eşleştirilmiş
- * kıyas protokolüne gider (ALGORITMA-RULEBOOK.md KK-03).
+ * kıyas protokolüne gider (docs/algorithm/01-kurallar.md KK-03).
  */
 export function isComparable(a: SuiteRun, b: SuiteRun): boolean {
   return (

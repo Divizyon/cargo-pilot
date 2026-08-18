@@ -3,7 +3,7 @@ namespace CargoPilot.Domain.Enums;
 /// <summary>
 /// Kutu sirasini ureten katman. Static bugunku kriter tabanli siralamadir
 /// (ItemOrdering) ve varsayilandir; digerleri Wall-Builder uzerinde kiyaslanan
-/// meta-sezgisellerdir (ALGORITMA-RULEBOOK.md R-C22/DR-03).
+/// meta-sezgisellerdir (docs/algorithm/01-kurallar.md R-C22 + 02-kararlar.md DR-03).
 /// </summary>
 public enum SequencerKind
 {

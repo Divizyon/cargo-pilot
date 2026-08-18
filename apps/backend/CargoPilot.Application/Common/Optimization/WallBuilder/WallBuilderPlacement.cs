@@ -1,4 +1,4 @@
-﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization.WallBuilder;
@@ -18,7 +18,7 @@ namespace CargoPilot.Application.Common.Optimization.WallBuilder;
 /// (2) Duvar disiplini bir skor terimi degil, taramanin kapsamidir.
 ///
 /// Sert kisitlar KOPYALANMAZ: yedi kapinin tamami <see cref="PlacementValidator"/>
-/// uzerinden sorulur (ALGORITMA-RULEBOOK.md R-C01/R-C12).
+/// uzerinden sorulur (docs/algorithm/01-kurallar.md R-C01/R-C12).
 /// </summary>
 internal static class WallBuilderPlacement
 {
@@ -28,7 +28,7 @@ internal static class WallBuilderPlacement
     /// <summary>
     /// Varsayilan sirayla kosar. Siralama greedy ile ortaktir (hacim-azalan): iki
     /// alternatif olculdu ve ikisi de kotulesti — derinlik kovasi %74,12, LAFF
-    /// %72,32 (bkz. ALGORITMA-GELISTIRME-LOG.md).
+    /// %72,32 (bkz. docs/algorithm/04-olcum-gunlugu.md).
     /// </summary>
     internal static OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken)
     {
@@ -144,7 +144,7 @@ internal static class WallBuilderPlacement
             // — ama yalnizca o aday BOLGE ICINDEYSE. Bolge disi bir adayda durmak
             // LIFO sozunu deliyordu: bir sonraki duvarda bolge ici aday olsa bile
             // gorulmuyordu. Olculdu, uc LIFO testi bu yuzden kirildi
-            // (ALGORITMA-RULEBOOK.md DR-40).
+            // (docs/algorithm/02-kararlar.md DR-40).
             //
             // Bolge disi aday yine de saklanir: hicbir duvarda bolge ici yer
             // yoksa kutu bolgesi yuzunden disarida birakilmaz.
@@ -570,7 +570,7 @@ internal static class WallBuilderPlacement
     /// α=0,75 → %75,99). Kazanan bicim bu: sigdirmanin ARDINDAN, esit oturan
     /// adaylar arasinda karar vermek — %76,23 ve en kotu senaryo %60,16 →
     /// %62,89. Duzluk bir tercih olarak degerli, kisit olarak degil
-    /// (ALGORITMA-RULEBOOK.md R-C09b).
+    /// (docs/algorithm/01-kurallar.md R-C09b).
     /// </summary>
     private readonly record struct OrientationFit(
         decimal Y,
@@ -779,7 +779,7 @@ internal static class WallBuilderPlacement
     /// Komsuluk YERELDIR ve bu kasitli: kuresel hizalama denendi ve kaybetti
     /// (−0,55 puan, engebe kotulesti). Tek duzleme zorlanan sutunlar yerel
     /// uyumu bozuyor. Bu yuzden yalnizca temas eden ve ayni dikey bantta olan
-    /// kutular sayilir (ALGORITMA-RULEBOOK.md R-C09b, Ojha vd. 2020 WallE).
+    /// kutular sayilir (docs/algorithm/01-kurallar.md R-C09b, Ojha vd. 2020 WallE).
     /// </summary>
     private static decimal TopDeviation(
         List<PlacedBox> placed,

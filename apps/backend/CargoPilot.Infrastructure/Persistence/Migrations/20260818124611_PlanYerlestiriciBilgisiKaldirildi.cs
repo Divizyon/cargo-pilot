@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace CargoPilot.Infrastructure.Persistence.Migrations
 {
     /// <summary>
-    /// Greedy yerlestirici kaldirildi (ALGORITMA-RULEBOOK.md DR-39). Tek
+    /// Greedy yerlestirici kaldirildi (docs/algorithm/02-kararlar.md DR-39). Tek
     /// yerlestirici kaldigi icin planin hangisiyle uretildigini saklamanin bilgi
     /// degeri yok.
     ///

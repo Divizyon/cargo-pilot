@@ -1,8 +1,8 @@
-﻿namespace CargoPilot.Application.Common.Models;
+namespace CargoPilot.Application.Common.Models;
 
 /// <summary>
 /// Arama butcesi. Butce asildiginda o ana kadarki EN IYI birey doner; sonuc asla
-/// bos donmez (ALGORITMA-RULEBOOK.md R-C20).
+/// bos donmez (docs/algorithm/01-kurallar.md R-C20).
 /// </summary>
 /// <param name="MaxIterations">Azami iterasyon.</param>
 /// <param name="PopulationSize">Populasyon buyuklugu.</param>
