@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
@@ -71,7 +71,7 @@ internal static class EngineScenario
         LoadingType loadingType = LoadingType.Rear,
         bool clusterGroups = true,
         bool fillFromMaxX = false,
-        PlacementStrategy strategy = PlacementStrategy.Greedy,
+        PlacementStrategy strategy = PlacementStrategy.WallBuilder,
         SequencerKind sequencer = SequencerKind.Static,
         int seed = 0)
         => new(

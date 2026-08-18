@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Engine.Tests.Golden;
 
@@ -42,43 +42,15 @@ public sealed class ModulBayraklariTests
         Assert.Equal(withDefaults, withExplicitFlags);
     }
 
-    /// <summary>
-    /// Denge modülü kapatıldığında WeightBalance kriteri farklı bir plan üretir:
-    /// köşe tohumlaması ve denge terimi devre dışı kalır, ImproveBalance ikinci
-    /// geçişi hiç çalışmaz. Sonuç, açık hâldeki kusursuz dengenin bozulmasıdır.
-    /// </summary>
-    [Fact]
-    public void DengeKapali_WeightBalanceKriterinde_DahaDengesizPlanUretir()
-    {
-        var items = new List<OptimizationItemInput>
-        {
-            EngineScenario.Item(1, width: 100m, height: 100m, length: 100m, weight: 400m, quantity: 2),
-            EngineScenario.Item(2, width: 100m, height: 100m, length: 100m, weight: 20m, quantity: 6),
-        };
-
-        var input = EngineScenario.Input(items, LoadingPlanOptimizationCriteria.WeightBalance, vehicleMaxWeight: 5_000m);
-        var scenario = nameof(DengeKapali_WeightBalanceKriterinde_DahaDengesizPlanUretir);
-
-        var balanceOff = input with
-        {
-            Modules = new OptimizationModules(
-                UseVolume: false,
-                UseWeightBalance: false,
-                UseLifo: false,
-                UseContamination: true),
-        };
-
-        var enabled = EngineScenario.Run(input);
-        var disabled = EngineScenario.Run(balanceOff);
-
-        Assert.NotEqual(
-            GoldenMaster.Serialize(scenario, input, enabled),
-            GoldenMaster.Serialize(scenario, balanceOff, disabled));
-
-        Assert.True(
-            TotalBalanceOffset(disabled) > TotalBalanceOffset(enabled),
-            $"Denge modülü kapalıyken sapma artmalıydı: açık={TotalBalanceOffset(enabled)}, kapalı={TotalBalanceOffset(disabled)}");
-    }
+    // NOT: `DengeKapali_WeightBalanceKriterinde_DahaDengesizPlanUretir` testi
+    // kaldırıldı. Sınadığı mekanizmanın tamamı greedy'ye aitti — köşe
+    // tohumlaması, denge terimi ve `ImproveBalance` ikinci geçişi. Duvar örücü
+    // `UseWeightBalance` bayrağını hiç okumuyor, dolayısıyla bayrak açık ve
+    // kapalı hâlde birebir aynı planı üretiyor ve test "farklı olmalı" diye
+    // ısrar ederken aslında var olmayan bir modülü sınıyordu.
+    //
+    // Kaybın büyüklüğü silinmeden önce ölçüldü ve kayda geçti (`DR-39`):
+    // denge sapması greedy'nin ~3 katı. Bu bir kabul, bir unutma değil.
 
     /// <summary>
     /// LIFO modülü kapatıldığında bölge sözlüğü boş kalır: bölge tohumu da bölge
@@ -129,9 +101,6 @@ public sealed class ModulBayraklariTests
             disabled.Placements.Max(p => p.Z) < enabled.Placements.Max(p => p.Z),
             $"Bölge cezası kalkınca yük uzak yüzde toplanmalıydı: açık={enabled.Placements.Max(p => p.Z)}, kapalı={disabled.Placements.Max(p => p.Z)}");
     }
-
-    private static decimal TotalBalanceOffset(OptimizationResult result)
-        => (result.WeightBalanceOffsetX ?? 0m) + (result.WeightBalanceOffsetZ ?? 0m);
 
     private static OptimizationItemInput GroupItem(int index, int groupIndex, int unloadingOrder)
         => EngineScenario.Item(

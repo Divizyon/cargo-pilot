@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json.Serialization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
@@ -38,7 +38,6 @@ internal sealed record SnapshotVehicle(
     string LoadingType,
     bool ClusterGroups,
     bool FillFromMaxX,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] string? Strategy = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] string? Sequencer = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Seed = 0)
 {
@@ -52,7 +51,6 @@ internal sealed record SnapshotVehicle(
             input.LoadingType.ToString(),
             input.ClusterGroups,
             input.FillsFromMaxX,
-            NonDefault(input.Strategy, PlacementStrategy.Greedy),
             NonDefault(input.Sequencer, SequencerKind.Static),
             input.Seed);
 
@@ -73,7 +71,12 @@ internal sealed record SnapshotItem(
     string AllowedRotations,
     int Quantity,
     string? GroupId,
-    int? UnloadingOrder)
+    int? UnloadingOrder,
+    // Kirilganlik 12 Agustos 2026 raporunda "sonraki yenilemede eklensin" diye
+    // ertelenmisti. Kozmetik degil: InvariantScenarioSource girdiyi bu kayittan
+    // yeniden kuruyor, yani alan olmadan degismez testleri kirilganligi sessizce
+    // NonFragile okuyordu.
+    string FragilityType = "NonFragile")
 {
     public static SnapshotItem From(OptimizationItemInput item)
         => new(
@@ -89,7 +92,8 @@ internal sealed record SnapshotItem(
             item.AllowedRotations.ToString(),
             item.Quantity,
             item.GroupId.HasValue ? SnapshotFormat.Id(item.GroupId.Value) : null,
-            item.UnloadingOrder);
+            item.UnloadingOrder,
+            item.FragilityType.ToString());
 }
 
 /// <summary>

@@ -140,6 +140,16 @@ internal static class WallBuilderPlacement
             // kaldigini bilmeden "bu bosluk bir blok alir mi" sorusu sorulamaz.
             var remaining = RemainingUnits(instances, consumed, index, item.ItemId);
 
+            // Duvarlar acilis sirasiyla taranir ve ILK aday veren duvarda durulur
+            // — ama yalnizca o aday BOLGE ICINDEYSE. Bolge disi bir adayda durmak
+            // LIFO sozunu deliyordu: bir sonraki duvarda bolge ici aday olsa bile
+            // gorulmuyordu. Olculdu, uc LIFO testi bu yuzden kirildi
+            // (ALGORITMA-RULEBOOK.md DR-40).
+            //
+            // Bolge disi aday yine de saklanir: hicbir duvarda bolge ici yer
+            // yoksa kutu bolgesi yuzunden disarida birakilmaz.
+            var bestInZone = false;
+
             foreach (var wall in walls)
             {
                 if (wall.End - wall.Start < itemMinSide) continue;
@@ -150,9 +160,13 @@ internal static class WallBuilderPlacement
                 blockedByFragility |= attempt.BlockedByFragility;
                 if (attempt.Box is null) continue;
 
+                if (best is not null && !attempt.InZone) continue;
+
                 best = attempt.Box;
                 blockZLimit = wall.End;
-                break;
+                bestInZone = attempt.InZone;
+
+                if (bestInZone) break;
             }
 
             // Iki yedek kademe ve SIRALARI. Sabit hicbir sira kazanmiyor: cebi
@@ -161,7 +175,10 @@ internal static class WallBuilderPlacement
             // sira karari kromozomda durur (R-C15a).
             void OpenNewWall()
             {
-                if (best is not null) return;
+                // Elde bolge ICI bir aday varsa is bitti. Bolge DISI bir aday
+                // varsa is bitmedi: yeni duvar kutuyu kendi bolgesine
+                // yerlestirebilir ve o zaman bolge disi olani devirir (DR-40).
+                if (bestInZone) return;
 
                 var frontier = walls.Count > 0 ? walls[^1].End : 0m;
                 var opened = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
@@ -170,7 +187,9 @@ internal static class WallBuilderPlacement
                 blockedByFragility |= opened.BlockedByFragility;
 
                 if (opened.Box is null) return;
+                if (best is not null && !opened.InZone) return;
 
+                bestInZone = opened.InZone;
                 best = opened.Box;
                 blockZLimit = best.Z + best.Length;
                 walls.Add(new Wall(best.Z, best.Z + best.Length));
@@ -186,13 +205,19 @@ internal static class WallBuilderPlacement
             // yuzunden disarida birakmak, bicimi doluluga tercih etmek olurdu.
             void ScanPockets()
             {
-                if (best is not null) return;
+                if (bestInZone) return;
 
                 var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
                     0m, null, zoneStart, zoneEnd, remaining, 0m);
 
                 blockedByFragility |= anywhere.BlockedByFragility;
+
+                if (anywhere.Box is null) return;
+                if (best is not null && !anywhere.InZone) return;
+
+                bestInZone = anywhere.InZone;
                 best = anywhere.Box;
+                blockZLimit = null;
             }
 
             if (decoder.PocketBeforeNewWall)
@@ -221,8 +246,13 @@ internal static class WallBuilderPlacement
             totalWeight += best.Weight;
             ledger.Place(best.X, best.Y, best.Z, best.Width, best.Height, best.Length, minSide);
 
+            // Blok z ekseninde buyurken duvar bandini VE bolgeyi birden asamaz.
+            // Bolge sinirini eklemeden once blok, taban kutunun bolgesinden
+            // tasip bir sonraki grubun alanina giriyordu (DR-40).
+            var blockLimit = Math.Min(blockZLimit ?? input.VehicleLength, zoneEnd ?? input.VehicleLength);
+
             RaiseBlock(input, ledger, placements, instances, consumed, index + 1,
-                best, minSide, fillFromMaxX, blockZLimit ?? input.VehicleLength, ref totalWeight);
+                best, minSide, fillFromMaxX, blockLimit, groupZones, ref totalWeight);
 
             // Yerlesim durumu degisti: onceki basarisizliklar artik gecerli degil.
             failedSincePlacement.Clear();
@@ -262,6 +292,7 @@ internal static class WallBuilderPlacement
         decimal minSide,
         bool fillFromMaxX,
         decimal zLimit,
+        IReadOnlyDictionary<int, (decimal ZStart, decimal ZEnd)> groupZones,
         ref decimal totalWeight)
     {
         // Aynalanmis modda blok sola buyur; aksi halde ayni plan aynalandiginda
@@ -285,7 +316,7 @@ internal static class WallBuilderPlacement
                 var startY = k == 0 && i == 0 ? baseBox.Y + baseBox.Height : baseBox.Y;
 
                 var placed = FillColumn(input, ledger, placements, instances, consumed, from,
-                    baseBox, x, z, startY, minSide, ref totalWeight);
+                    baseBox, x, z, startY, minSide, groupZones, ref totalWeight);
 
                 filled += placed;
                 if (placed == 0) break;
@@ -315,6 +346,7 @@ internal static class WallBuilderPlacement
         decimal z,
         decimal startY,
         decimal minSide,
+        IReadOnlyDictionary<int, (decimal ZStart, decimal ZEnd)> groupZones,
         ref decimal totalWeight)
     {
         var width = baseBox.Width;
@@ -362,7 +394,7 @@ internal static class WallBuilderPlacement
         // tamamla. Aday, sutunun ayak izini ASMAYAN ilk yerlesmemis kutudur —
         // tasarsa blok bir prizma olmaktan cikardi.
         count += TopUp(input, ledger, placements, instances, consumed, from,
-            baseBox, x, z, top, minSide, ref totalWeight);
+            baseBox, x, z, top, minSide, groupZones, ref totalWeight);
 
         return count;
     }
@@ -388,6 +420,7 @@ internal static class WallBuilderPlacement
         decimal z,
         decimal top,
         decimal minSide,
+        IReadOnlyDictionary<int, (decimal ZStart, decimal ZEnd)> groupZones,
         ref decimal totalWeight)
     {
         var count = 0;
@@ -399,8 +432,16 @@ internal static class WallBuilderPlacement
             var item = instances[j].Item;
             if (item.ItemId == baseBox.ItemId) continue;
 
+            // Bilesik blok BASKA bir urunu tasiyor; o urunun KENDI bosaltma
+            // bolgesi taban kutununkinden farkli olabilir. Sorulmadiginda kutu
+            // bir baskasinin bolgesine yerlesiyordu ve LIFO sozu sessizce
+            // deliniyordu (DR-40). Dikey LIFO kurali zaten
+            // ViolatesStackability'de; eksik olan BOLGE kuraliydi.
+            var hasZone = groupZones.TryGetValue(item.UnloadingOrder ?? -1, out var itemZone);
+
             foreach (var (width, height, length, rotation) in PlacementValidator.GetOrientations(item))
             {
+                if (hasZone && !LifoPlacement.IsInsideZone(itemZone.ZStart, itemZone.ZEnd, z, length)) continue;
                 if (width > baseBox.Width || length > baseBox.Length) continue;
 
                 // Ayak izi uyumu: kucuk bir kutuyu genis bir sutunun tepesine
@@ -500,7 +541,13 @@ internal static class WallBuilderPlacement
         return -1;
     }
 
-    private readonly record struct Attempt(PlacedBox? Box, bool BlockedByFragility);
+    /// <summary>
+    /// Bir tarama denemesinin sonucu. <c>InZone</c> ayri tasinir cunku cagiran
+    /// "aday buldum mu" ile "aday KENDI bolgesinde mi" sorularini ayirmak
+    /// zorunda: bolge disi bir adayda taramayi durdurmak LIFO sozunu deler
+    /// (DR-40).
+    /// </summary>
+    private readonly record struct Attempt(PlacedBox? Box, bool InZone, bool BlockedByFragility);
 
     /// <summary>
     /// Bir z bandi. Derinligini o banda giren ilk kutu belirler (G&amp;R kurali).
@@ -533,6 +580,7 @@ internal static class WallBuilderPlacement
         decimal Flatness,
         decimal DepthWaste,
         decimal NegativeBaseArea,
+        decimal CornerDistance,
         LoadingPlanPlacementRotation Rotation)
     {
         public bool IsBetterThan(OrientationFit other)
@@ -558,8 +606,17 @@ internal static class WallBuilderPlacement
             if (byDepth != 0) return byDepth < 0;
 
             var byBase = NegativeBaseArea.CompareTo(other.NegativeBaseArea);
+            if (byBase != 0) return byBase < 0;
 
-            return byBase != 0 ? byBase < 0 : Rotation < other.Rotation;
+            // Baslangic kosesine yakinlik. Greedy'de bunu VolumeScoring.WidthTerm
+            // yapiyordu (katsayi 1, en zayif terim) ve gorevi ayniydi: esit
+            // adaylar arasinda yukleme kosesine yakin olani sec. Terim duvar
+            // orucude yoktu ve kazanani defter sirasi belirliyordu — yukleme
+            // kosesi sozlesmesi (docs/COORDINATE_STANDARD.md §7) boylece
+            // beraberlikte kayboluyordu.
+            var byCorner = CornerDistance.CompareTo(other.CornerDistance);
+
+            return byCorner != 0 ? byCorner < 0 : Rotation < other.Rotation;
         }
     }
 
@@ -616,6 +673,19 @@ internal static class WallBuilderPlacement
                 var y = space.Y;
                 var z = space.Z < zFloor ? zFloor : space.Z;
 
+                // Bolge ILERIDEYSE aday bolge basina cekilir. Greedy'de bolge
+                // baslangiclari extreme-point olarak tohumlaniyordu; duvar
+                // orucude oyle bir tohum yok ve defterdeki bosluk z = 80'den
+                // basliyorsa aday hep 80'de doguyordu — kutu bolgesi
+                // [100, 200) olsa bile. Uc LIFO testi bu yuzden kirilmisti
+                // (DR-40). Bosluk bolge basina yetmiyorsa dogal z korunur ve
+                // aday yedek kademeye kalir; boylece kutu bolgesi yuzunden
+                // disarida birakilmaz.
+                if (zoneStart.HasValue && zoneStart.Value > z && zoneStart.Value + length <= space.MaxZ)
+                {
+                    z = zoneStart.Value;
+                }
+
                 if (z + length > space.MaxZ) continue;
                 if (zLimit.HasValue && z + length > zLimit.Value) continue;
 
@@ -669,7 +739,9 @@ internal static class WallBuilderPlacement
                     y, depthPreference * length,
                     -block, space.Width * space.Length - width * length,
                     TopDeviation(placements, x, y, z, width, height, length),
-                    space.MaxZ - (z + length), -(width * length), rotation);
+                    space.MaxZ - (z + length), -(width * length),
+                    fillFromMaxX ? input.VehicleWidth - (x + width) : x,
+                    rotation);
 
                 if (bestFit is null || candidate.IsBetterThan(bestFit.Value))
                 {
@@ -689,7 +761,9 @@ internal static class WallBuilderPlacement
 
         // Bolge kisiti burada sertlesir: bolge ici aday varsa o kazanir, yoksa
         // kutu yalnizca bolgesi dar kaldi diye dusmez (greedy ile ayni kademe).
-        return new Attempt(bestInZone ?? best, blockedByFragility);
+        return bestInZone is not null
+            ? new Attempt(bestInZone, InZone: true, blockedByFragility)
+            : new Attempt(best, InZone: false, blockedByFragility);
     }
 
     /// <summary>

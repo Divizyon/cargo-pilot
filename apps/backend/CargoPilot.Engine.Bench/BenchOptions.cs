@@ -48,7 +48,7 @@ public sealed record BenchOptions(
         var port = 5099;
         string? dump = null;
         var verbose = false;
-        var strategy = PlacementStrategy.Greedy;
+        var strategy = PlacementStrategy.WallBuilder;
         var durationMinutes = 5;
         string? reportPath = null;
         var sequencer = SequencerKind.Static;

@@ -20,12 +20,18 @@ namespace CargoPilot.Application.Common.Models;
 /// okur.
 /// </param>
 /// <param name="Strategy">
-/// Yerlestirici secimi. Varsayilan <see cref="PlacementStrategy.Greedy"/>; bugunku
-/// davranis birebir korunur (ALGORITMA-RULEBOOK.md R-C07).
+/// Yerlestirici secimi. Varsayilan <see cref="PlacementStrategy.WallBuilder"/>
+/// (ALGORITMA-RULEBOOK.md DR-39); greedy kaldirildi.
 /// </param>
 /// <param name="Sequencer">
-/// Kutu sirasini ureten katman. Varsayilan <see cref="SequencerKind.Static"/> —
-/// bugunku <see cref="Optimization.ItemOrdering"/> siralamasi.
+/// Kutu sirasini ureten katman. Varsayilan <see cref="SequencerKind.Static"/> ve
+/// bu BILINCLIDIR: motoru dogrudan cagiran her yol (golden snapshot'lar,
+/// degismez testleri, doluluk kapisi) saf hesap olan statik yolu alir ve ciktisi
+/// makineden bagimsiz bayt kararli kalir. Uretim yolu GRASP'i
+/// <see cref="Optimization.SequencerSelection"/> uzerinden alir — orada
+/// belirtilmemis sequencer GRASP'a cozulur. GRASP'in butcesi duvar saati oldugu
+/// icin buraya varsayilan olarak konursa snapshot testleri makineye bagli
+/// hale gelirdi.
 /// </param>
 /// <param name="SearchBudget">
 /// Aramanin iterasyon/populasyon/sure butcesi. Verilmezse
@@ -52,7 +58,7 @@ public sealed record OptimizationInput(
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
     bool? FillFromMaxX = null,
-    PlacementStrategy Strategy = PlacementStrategy.Greedy,
+    PlacementStrategy Strategy = PlacementStrategy.WallBuilder,
     SequencerKind Sequencer = SequencerKind.Static,
     int Seed = 0,
     SearchBudget? SearchBudget = null,

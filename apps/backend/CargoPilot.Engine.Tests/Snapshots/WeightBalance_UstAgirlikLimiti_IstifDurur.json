@@ -24,7 +24,8 @@
       "AllowedRotations": "Fixed",
       "Quantity": 4,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     }
   ],
   "Outcome": {

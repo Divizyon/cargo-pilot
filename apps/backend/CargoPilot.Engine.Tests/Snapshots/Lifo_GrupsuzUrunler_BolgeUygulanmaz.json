@@ -24,7 +24,8 @@
       "AllowedRotations": "Fixed",
       "Quantity": 2,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     },
     {
       "ItemId": "00000000-0000-0000-0000-000000000002",
@@ -39,7 +40,8 @@
       "AllowedRotations": "Fixed",
       "Quantity": 2,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     },
     {
       "ItemId": "00000000-0000-0000-0000-000000000003",
@@ -54,7 +56,8 @@
       "AllowedRotations": "Fixed",
       "Quantity": 2,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     }
   ],
   "Outcome": {

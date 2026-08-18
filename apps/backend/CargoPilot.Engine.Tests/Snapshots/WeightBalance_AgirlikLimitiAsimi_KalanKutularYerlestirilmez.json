@@ -24,24 +24,25 @@
       "AllowedRotations": "All",
       "Quantity": 5,
       "GroupId": null,
-      "UnloadingOrder": null
+      "UnloadingOrder": null,
+      "FragilityType": "NonFragile"
     }
   ],
   "Outcome": {
     "TotalWeight": 200,
     "FillRate": 0.125,
-    "CenterOfGravityX": 100,
-    "CenterOfGravityY": 50,
-    "CenterOfGravityZ": 150,
-    "WeightBalanceOffsetX": 0,
-    "WeightBalanceOffsetZ": 25.0,
+    "CenterOfGravityX": 50,
+    "CenterOfGravityY": 100,
+    "CenterOfGravityZ": 50,
+    "WeightBalanceOffsetX": 50.0,
+    "WeightBalanceOffsetZ": 75.0,
     "Placements": [
       {
         "Order": 0,
         "ItemId": "00000000-0000-0000-0000-000000000001",
         "X": 0,
         "Y": 0,
-        "Z": 200,
+        "Z": 0,
         "Width": 100,
         "Height": 100,
         "Length": 100,
@@ -51,8 +52,8 @@
       {
         "Order": 1,
         "ItemId": "00000000-0000-0000-0000-000000000001",
-        "X": 100,
-        "Y": 0,
+        "X": 0,
+        "Y": 100,
         "Z": 0,
         "Width": 100,
         "Height": 100,
