@@ -176,25 +176,59 @@ jobs:
       FRONTEND_PORT: 3001
       MSSQL_PORT: 1434
       MSSQL_DATABASE: CargoPilotTest
-      # Secret yoksa CI için geçerli bir fallback parola kullanılır
-      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD || 'CiTestPassword123!' }}
+      # SEC-12: Kimlik bilgisi niteliğindeki değerlerde gömülü fallback YOK.
+      # Secret tanımlı değilse aşağıdaki doğrulama adımı pipeline'ı durdurur;
+      # herkesin görebildiği bir parola/anahtarla deploy edilmez.
+      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
       MINIO_API_PORT: 9002
       MINIO_CONSOLE_PORT: 9003
-      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER || 'minioadmin' }}
-      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD || 'minioadmin123' }}
+      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
       MINIO_BUCKET: cargo-pilot-test
-      # Seed için varsayılan admin şifresi — CI fallback değeri
-      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
-      # JWT secret — en az 32 karakter olmalı
-      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-at-least-32-chars-long!' }}
-      # Resend — CI'da dummy değerler; gerçek değerler sunucudaki .env.test'te
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'ci-resend-api-key-placeholder' }}
+      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
+      # Geçici CI yığını Test ortamında koşar: liste boşsa uygulama BAŞLAMAZ.
+      # Runner üzerinde frontend http://localhost:3001'de yayınlandığı için
+      # CI'ya özgü origin budur; sunucu değerleri .env.test'ten gelir.
+      CORS_ALLOWED_ORIGIN_0: ${{ secrets.CORS_ALLOWED_ORIGIN_0 || 'http://localhost:3001' }}
+      # Host header doğrulaması: healthcheck'ler localhost üzerinden gidiyor.
+      ALLOWED_HOSTS: localhost
+      # En az 32 karakter olmalı; uzunluk da doğrulama adımında kontrol edilir.
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      # Resend — secret yoksa boş bırakılır (compose'da da `${RESEND_API_KEY:-}`
+      # opsiyonel); CI'da e-posta gönderimi devre dışı kalır, sahte anahtar gömülmez.
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL || 'ci@example.com' }}
       RESEND_FROM_NAME: ${{ secrets.RESEND_FROM_NAME || 'Cargo Pilot CI' }}
       PASSWORD_RESET_FRONTEND_URL: ${{ secrets.PASSWORD_RESET_FRONTEND_URL || 'http://localhost:3001/auth/reset-password' }}
       EMAIL_CHANGE_FRONTEND_CONFIRM_URL: ${{ secrets.EMAIL_CHANGE_FRONTEND_CONFIRM_URL || 'http://localhost:3001/confirm-email-change' }}
 
     steps:
+      # SEC-12: Zorunlu kimlik bilgileri build/deploy başlamadan doğrulanır.
+      # Eksikse pipeline burada açık bir mesajla durur.
+      - name: Zorunlu secret'ları ve yapılandırmayı doğrula
+        run: |
+          missing=""
+          # CORS_ALLOWED_ORIGIN_0: Test/Production ortamlarında liste boşsa
+          # uygulama InvalidOperationException ile başlamıyor — konteyner
+          # ayağa kalkmadan burada yakalanır.
+          for var in JWT_SECRET MSSQL_SA_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD Seed__DefaultAdminPassword CORS_ALLOWED_ORIGIN_0; do
+            if [ -z "${!var}" ]; then
+              missing="${missing} ${var}"
+            fi
+          done
+          if [ -n "${missing}" ]; then
+            echo "::error::Zorunlu yapılandırma eksik (boş env:${missing})."
+            echo "Beklenen secret adları: JWT_SECRET, TEST_MSSQL_SA_PASSWORD, TEST_MINIO_ROOT_USER, TEST_MINIO_ROOT_PASSWORD, SEED_DEFAULT_ADMIN_PASSWORD."
+            echo "CORS_ALLOWED_ORIGIN_0 için CI varsayılanı vardır; boşsa job env bloğu bozulmuş demektir."
+            echo "Settings > Secrets and variables > Actions altından tanımlayın."
+            exit 1
+          fi
+          if [ "${#JWT_SECRET}" -lt 32 ]; then
+            echo "::error::JWT_SECRET en az 32 karakter olmalı (mevcut: ${#JWT_SECRET})."
+            exit 1
+          fi
+          echo "Zorunlu secret'lar tanımlı."
+
       - name: Kodu al
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -298,14 +332,21 @@ jobs:
       FRONTEND_PORT: 3001
       MSSQL_PORT: 1434
       MSSQL_DATABASE: CargoPilotTest
-      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD || 'CiTestPassword123!' }}
+      # SEC-12: gomulu fallback yok. Bu job `needs: [deploy]` ile kosuyor ve deploy
+      # job'u zorunlu secret'lari zaten dogruladi; secret eksikse buraya hic gelinmez.
+      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
       MINIO_API_PORT: 9002
       MINIO_CONSOLE_PORT: 9003
-      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER || 'minioadmin' }}
-      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD || 'minioadmin123' }}
+      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
       MINIO_BUCKET: cargo-pilot-test
-      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-at-least-32-chars-long!' }}
+      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      # SEC-01: bu yigin da Test ortaminda kosuyor; CORS listesi bossa uygulama
+      # baslamaz. Runner'da frontend http://localhost:3001'de yayinlanir.
+      CORS_ALLOWED_ORIGIN_0: ${{ secrets.CORS_ALLOWED_ORIGIN_0 || 'http://localhost:3001' }}
+      # Host header dogrulamasi: smoke istekleri localhost uzerinden gidiyor.
+      ALLOWED_HOSTS: localhost
       # E-posta gönderimi smoke kapsamında değil; placeholder yeterlidir.
       RESEND_API_KEY: ci-resend-api-key-placeholder
       RESEND_FROM_EMAIL: ci@example.com
@@ -403,7 +444,8 @@ jobs:
         env:
           E2E_BASE_URL: http://localhost:3001
           E2E_ADMIN_EMAIL: admin@cargopilot.com
-          E2E_ADMIN_PASSWORD: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD || 'Admin@CargoPilot1!' }}
+          # SEC-12: seed parolasi ile ayni deger olmali; gomulu fallback yok.
+          E2E_ADMIN_PASSWORD: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
           E2E_ERP_SERVER: erp-mssql,1433
           E2E_ERP_DATABASE: ERPTEST
           E2E_ERP_USER: sa

@@ -125,6 +125,37 @@ updates:
     open-pull-requests-limit: 5
     labels: ["dependencies", "docker"]
 
+  # DEP-02: infra/compose hiçbir ekosistemde izlenmiyordu; MinIO/MSSQL ve
+  # monitoring image'ları bu yüzden yıllarca sürüm bildirimi almadı.
+  # Ekosistem olarak "docker-compose" değil "docker" seçildi:
+  #   - "docker" getiricisi dizindeki TÜM *.yml dosyalarını alır ve iç içe
+  #     `image:` alanlarını (services.*.image dahil) okur → 4 compose dosyasının
+  #     tamamını kapsar.
+  #   - "docker-compose" getiricisinin ad kalıbı tek noktalı adlarla sınırlı:
+  #     docker-compose.prod.yml eşleşir, docker-compose.monitoring.prod.yml
+  #     EŞLEŞMEZ → monitoring image'ları kapsam dışı kalırdı.
+  - package-ecosystem: "docker"
+    directory: "/infra/compose"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      infra-images-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # MSSQL major geçişi (2022 → 2025) migration + backup/restore doğrulaması
+      # ister; tek başına image bump'ı olarak alınamaz.
+      - dependency-name: "mcr.microsoft.com/mssql/server"
+        update-types: ["version-update:semver-major"]
+
   # ── GitHub Actions ──────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
