@@ -52,15 +52,36 @@ internal static class WallBuilderPlacement
         IReadOnlyList<SequencedItem> instances,
         DecoderKeys decoder,
         CancellationToken cancellationToken)
+        => Run(input, instances, decoder, start: null, cancellationToken).Result;
+
+    /// <summary>
+    /// Verilen durumdan DEVAM EDER ve bitis durumunu da dondurur.
+    ///
+    /// Ileri bakisli arama (F7-4) icin gerekli: bir dal yarim kalmis bir
+    /// durumdan sonuna kadar goturulur, sonucu olculur, sonra baska bir dal
+    /// AYNI yarim durumdan yeniden baslar.
+    ///
+    /// <paramref name="start"/> <c>null</c> ise bos aractan baslar — bu, ayrim
+    /// yapilmadan onceki davranisin birebir aynisidir. Dongu zaten tuketilmis
+    /// birimleri atladigi icin yarim bir durumdan devam etmek ek bir kural
+    /// gerektirmez.
+    /// </summary>
+    internal static (OptimizationResult Result, PlacementState State) Run(
+        OptimizationInput input,
+        IReadOnlyList<SequencedItem> instances,
+        DecoderKeys decoder,
+        PlacementState? start,
+        CancellationToken cancellationToken)
     {
         var modules = OptimizationModules.Resolve(input);
 
-        var placements = new List<PlacedBox>();
-        var unplaced = new List<UnplacedBox>();
-        var totalWeight = 0m;
-
         var fillFromMaxX = input.FillsFromMaxX;
-        var ledger = new SpaceLedger(input.VehicleWidth, input.VehicleHeight, input.VehicleLength, fillFromMaxX);
+        var state = start ?? PlacementState.Fresh(input, instances.Count, DepthBudget(input, instances));
+
+        var placements = state.Placements;
+        var unplaced = state.Unplaced;
+        var ledger = state.Ledger;
+        var totalWeight = state.TotalWeight;
         var groupZones = LifoPlacement.ComputeGroupZones(
             [.. instances.Select(i => i.Item)], input.VehicleLength, modules.UseLifo);
 
@@ -76,7 +97,7 @@ internal static class WallBuilderPlacement
         // taramanin disinda kaliyor ve bir daha hic kullanilamiyordu. Duvar
         // insaati zaten "once mevcut duvarin bosluklarini doldur, sonra yenisini
         // ac" demek (R-C09).
-        var walls = new List<WallSegment>();
+        var walls = state.Walls;
 
         // Hedef derinlik: yuk aracin onune toplansin diye yerlestirmenin
         // gecemeyecegi z tavani. Ideal derinlik %100 dolulugu varsayar, bu
@@ -85,7 +106,7 @@ internal static class WallBuilderPlacement
         // Bu bir SERT sinir degil, bir TERCIHTIR: bir kutu hedefe sigmazsa
         // hedef adim adim buyutulur ve kutu yeniden denenir. Doluluk asla
         // dusmez; degisen sey yerin nasil kullanildigidir.
-        var depthBudget = DepthBudget(input, instances);
+        var depthBudget = state.DepthBudget;
 
         // Basarisiz denemenin bedeli agirdir: aday bulunamadiginda erken cikis
         // tetiklenmez ve defterin tamami taranir. Ayni urunden 88 adet ust uste
@@ -95,12 +116,12 @@ internal static class WallBuilderPlacement
         // durumu degismediyse sonuc da degismek zorunda. Bu yuzden basarisizlik
         // hatirlanir ve ilk basarili yerlestirmede unutulur — bellege alma saf,
         // ciktiyi degistirmez.
-        var failedSincePlacement = new Dictionary<Guid, UnplacedReason>();
+        var failedSincePlacement = state.FailedSincePlacement;
 
         // Kule insasi sirayi ONDEN tuketir: bir kutu yerlestiginde ayni urunun
         // sonraki birimleri dogrudan ustune yigilir. Bu yuzden dongu artik
         // foreach degil; tuketilen birimler atlanir.
-        var consumed = new bool[instances.Count];
+        var consumed = state.Consumed;
 
         for (var index = 0; index < instances.Count; index++)
         {
@@ -290,9 +311,14 @@ internal static class WallBuilderPlacement
             failedSincePlacement.Clear();
         }
 
-        return PlanResultBuilder.Build(
-            placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength,
-            walls: walls);
+        state.TotalWeight = totalWeight;
+        state.DepthBudget = depthBudget;
+
+        return (
+            PlanResultBuilder.Build(
+                placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength,
+                walls: walls),
+            state);
     }
 
     /// <summary>Hedef derinligin buyutulme adimi; her basarisizlikta tavan bu kadar acilir.</summary>

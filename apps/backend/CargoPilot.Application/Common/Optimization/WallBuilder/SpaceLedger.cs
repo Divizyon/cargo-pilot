@@ -34,6 +34,25 @@ internal sealed class SpaceLedger
         _spaces = [new FreeSpace(0m, 0m, 0m, width, height, length, _nextOrder++)];
     }
 
+    private SpaceLedger(SpaceLedger source)
+    {
+        _fillFromMaxX = source._fillFromMaxX;
+        _nextOrder = source._nextOrder;
+        _spaces = [.. source._spaces];
+    }
+
+    /// <summary>
+    /// Defterin bagimsiz bir kopyasi. Ileri bakisli arama (F7-4) bir karari
+    /// DENEYIP sonucunu gormek zorundadir; deneme icin durumun kopyalanabilmesi
+    /// gerekir.
+    ///
+    /// Kopya SIGDIR ve yeterlidir: <see cref="FreeSpace"/> bir
+    /// <c>readonly record struct</c>, yani liste kopyasi degerleri de kopyalar.
+    /// <c>_nextOrder</c> da tasinir — bosluk sirasi determinizmin parcasidir
+    /// (R-C02) ve kopyada sifirlansa iki dal ayni girdiden farkli plan uretirdi.
+    /// </summary>
+    public SpaceLedger Clone() => new(this);
+
     /// <summary>
     /// Tarama sirasinda sirali tutulur. Siralama her aday taramasinda yeniden
     /// yapilsaydi kutu basina degil, kutu x duvar basina bir <c>OrderBy</c>
