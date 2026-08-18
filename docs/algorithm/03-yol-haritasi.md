@@ -317,6 +317,116 @@ küçük bütçe eğrisi yok.
 
 ---
 
+### F7 — Blok tabanlı beam search (BSG) *(18 Ağustos 2026'da açıldı)*
+
+**Kaynak:** Araya/Guerrero/Nuñez BSG-VCS · `rilianx/Metasolver` deposu üzerinde yapılan inceleme
+ve yerel koşu. F6-4'ün ayrıntılandırılmış hâlidir.
+
+#### Neden: dört ayrı ölçüm aynı yeri gösteriyor
+
+| Kayıt | Bulgu | İşaret ettiği yer |
+|---|---|---|
+| `DR-43` | 30 kat arama bütçesi +0,04 puan | Sıra araması bitti |
+| `DR-44` | Duvarların %91'i %95 kaplamanın altında | Duvar yüzü döşenmiyor |
+| `DR-47` | Hedef derinlik kazancı yığın yüksekliğinde takılıyor | Katı platform üretilemiyor |
+| `DR-48` | Daha çok kutu doluluğu **düşürüyor** | Tek geçişli karar geri alınamıyor |
+
+Dördü de tek bir mimari sınırdan çıkıyor: **karar birimi kutudur, duvar değil.**
+
+#### Kusurun tam mekanizması
+
+Ana döngü kutu kutu ilerliyor (`WallBuilderPlacement.cs`, `for (var index = 0; ...)`). Sıradaki
+kutu için önce **bütün açık duvarlar** taranıyor — duvarlar kapanmıyor, bu kısım doğru ve `R-C09`
+bunu zaten söylüyor. Ama hiçbir açık duvara sığmayan **ilk** kutu, sırası geldiği anda yeni bir
+duvar açıyor.
+
+Sonuç: listede daha aşağıda duran ve 1. duvarı tamamlayacak kutular varken 1. duvar yarım
+kalmışken derinlik cephesi ilerliyor. O kutular sonradan gelip 1. duvara girebiliyor ama artık
+cephede kule ve bloklar örülmüş oluyor. Ölçüm doğruluyor: yüz kaplama %86,2, duvarların %91'i
+eşiğin altında.
+
+Doğru çözüm sırayı zorlamak **değil** — sıra zaten GRASP'ın işi ve o doydu (`DR-43`). Çözüm
+**karar birimini değiştirmek**: "sıradaki kutu nereye" yerine **"bu boşluğa hangi blok"**.
+
+#### BSG'nin parçaları ve bizdeki karşılıkları
+
+| Parça | Ne yapar | Bizde |
+|---|---|---|
+| Blok kataloğu | Her üründen `nx×ny×nz` diziler + bileşik bloklar, `min_fr` doluluk eşiğiyle, üst sınır ~10.000 | **Yok** — bloğu yerleştikten *sonra* büyütüyoruz (`RaiseBlock`), önceden üretmiyoruz |
+| Boşluk kümesi | Maximal space listesi | `SpaceLedger` ✅ |
+| Aksiyon | (blok, boşluk) çifti | **Yok** |
+| Değerlendirme (VCS) | `hacim^δ · (1−kayıp)^β · temas^α · (1/kutu sayısı)^γ`; kayıp terimi kalan kutularla knapsack tahmini | Kısmen — `OrientationFit` sözlükbilimsel anahtar, ağırlıklı çarpım değil |
+| Beam search | Her düğümde `w` aday üret, her birini greedy tamamla, en iyi `beams` kadarını tut | **Yok** — GRASP sıra permütasyonu arıyor |
+| DoubleEffort | Süre bitene kadar ışın genişliğini `√2` ile büyüt | Kısmen — GRASP tur sayısıyla |
+
+Çekirdek küçük: BSG döngüsü ~90 satır. Taşınacak asıl kütle `clpState` + blok üretici + VCS,
+toplam ~2.000 satır. **Bullet fizik bağımlılığı algoritmaya değil görselleştirmeye aittir**,
+taşınmaz.
+
+#### Duvar disiplini BSG'de yok — biz koyacağız
+
+BSG'nin duvar kavramı yoktur; boşluk kümesinin tamamına blok koyar. Duvar disiplini (`DR-12`,
+pazarlıksız) şöyle korunur:
+
+- Boşluk kümesi **aktif duvar bandıyla** filtrelenir: yalnız `[wallStart, wallEnd)` içindeki
+  boşluklar aday olur.
+- Aktif duvar hiçbir blok alamıyorsa duvar **kapanır** ve cephe ilerler.
+- Bandı taşan blok tamamen elenmez, **cezalandırılır**: VCS'ye bir taşma terimi eklenir. Böylece
+  "ikinci duvarın alanına geçilecekse doluluk pahasına bunu tercih et" davranışı, taşmayı yasak
+  değil **fiyat** yaparak kurulur.
+- `DepthSlack` hedef derinliği (`DR-47`) beam'in üst `z` sınırı olarak aynen geçerlidir.
+
+#### Referans sayıların dürüst okunması ⚠
+
+Yerel koşuda ölçülen (2 sn, sınıf başına ilk 8 örnek): BR1 %93,8 · BR4 %94,7 · BR7 %94,7.
+
+**Bunlar bizim sayılarımızla kıyaslanamaz.** `Space.cpp:58`'de blok yalnız `FSB`/`bottom_up`
+açıkken tabana ankrajlanıyor; varsayılan modda blok tavana da yaslanabiliyor ve **destek kısıtı
+yoktur**. Ölçülen şey *cutting* varyantıdır. `--fsb` bayrağı segfault verdiği için tam destekli
+hâli o depoda koşturulamadı.
+
+Literatürdeki tam-destek maliyeti BR1-BR7'de ~0,8 puan (Fanslau & Bortfeldt). Buna göre 2
+saniyede tam destekli gerçekçi referans **~%93**; bugünkü %87,73 ile arası ~5 puan.
+
+**Gerçekçi hedef %90-92 ve bu bir tahmindir.** Küçük bütçeli beam için yayımlanmış eğri yok.
+
+#### Adımlar
+
+| # | İş | Kapı |
+|---|---|---|
+| ~~F7-0~~ | ~~Ucuz sonda: duvar-öncelikli seçim~~ | ❌ **Reddedildi** — sıfır kazanç, `DR-49`. Teşhisi keskinleştirdi: sorun sıralama değil geometri |
+| ~~F7-0~~ *(özgün)* | **Ucuz sonda:** duvar-öncelikli seçim. Açık duvara sığmayan kutu geldiğinde yeni duvar açmadan önce sırada ileriye bakıp o duvara sığan ilk kutuyu öne çek. Beam değil, tek adımlık ileri bakış | Static BR1-BR7 **+0,5 puan** *veya* duvar yüzü kaplama **+3 puan**. Tutmazsa geri alınır, doğrudan F7-2'ye geçilir |
+| ~~F7-1~~ | ~~BR0-BR15 veri seti~~ | ✅ **Yapıldı** — `DR-50`. BR1-BR7 bit birebir korundu |
+| ~~F7-1~~ *(özgün)* | **BR0-BR15 veri seti** — `problems/clp/benchs/BR/` alınır, `DR-38`'in BR8-15 boşluğu kapanır. İlk 7 setin `thpack1-7` ile birebir olduğu doğrulanır | BR1-BR7 sayıları **değişmez** |
+| ~~F7-2~~ | ~~Blok kataloğu üretici~~ | ✅ **Yapıldı** — `DR-51`. Azami 2,7 ms / 1946 blok |
+| ~~F7-2~~ *(özgün)* | **Blok kataloğu üretici** — basit bloklar (tek ürün, tek yönelim, `nx×ny×nz`) + bileşik bloklar (`min_fr` eşiği), üst sınırlı | Katalog süresi < 50 ms |
+| ~~F7-3~~ | ~~VCS değerlendirme~~ | ✅ **Yapıldı** — `DR-52`. Kapı "gerileme yok"tu; static +0,65 / GRASP +0,37 geldi |
+| ~~F7-3~~ *(özgün)* | **VCS değerlendirme** — mevcut greedy'ye takılıp **beam olmadan** ölçülür; yalnız aday seçim ölçütü değişir | Static'te gerileme yok |
+| **F7-4** | **Beam search çekirdeği**, aktif duvar kısıtlı. ⚠ `DR-49`: ana döngüde yerleşen birimler de `consumed` işaretlenmeli — bugün yalnız blok inşasının yuttukları işaretli ve bu, döngünün tek yönde ilerlemesine dayanıyor. Beam sırayı serbest bıraktığı anda kutu iki kez yerleşir | Static BR1-BR7 **≥ %89** |
+| **F7-5** | **DoubleEffort** — bütçe bitene kadar ışın `√2` ile büyür | 2 sn bütçede **≥ %90** |
+| **F7-6** | **Sekiz sert kapı beam içinde** + değişmezler + determinizm | 17 snapshot · `PhysicalInvariants` · `R-C02` |
+
+#### Riskler
+
+| Risk | Etki | Karşılık |
+|---|---|---|
+| Referans sayılar destek kısıtsız ölçüldü | Hedef fazla iyimser olur | Hedef %90-92 yazıldı; %94 beklenmiyor |
+| `DoubleEffort` duvar saatine bağlı | GRASP'takiyle **aynı** sorun: kapı gürültüden kalır | Static yol saf hesap kalır, kapı static'i ölçmeye devam eder (`DR-28`) |
+| Blok kataloğu şişer | 2 sn bütçe blok üretimine gider | Katalog süresi F7-2'de kapıya bağlandı |
+| ~2.000 satır taşıma | `TreatWarningsAsErrors` + XML doküman zorunluluğu | Adım adım, her adımda yeşil |
+| Beam duvar disiplinini eritir | `DR-12` ihlali — kabul edilemez | Boşluk kümesi aktif duvarla filtrelenir; `WallDiagnostics` duvar dışı oranını zaten ölçüyor |
+| Bileşik blok GRASP'ta ±0 çıkmıştı | Blok zenginliği tek başına kazandırmaz | Beklenen: Fanslau & Bortfeldt'te basit→jenerik blok farkı yalnız 0,3 puan. **Kazanç arama şemasında** |
+
+#### Ne yapılmayacak
+
+- **Metasolver'ı olduğu gibi taşımak** — C++, Bullet bağımlılığı, birim testi yok. Taşınan fikirdir.
+- **Destek kısıtını gevşetmek** — `DR-16`'da ölçüldü ve korundu; referansa yetişmek için fizik bozulmaz.
+- **GRASP'ı erken silmek** — F7-4 kapısı geçilene kadar üretim varsayılanı GRASP kalır.
+
+**Süre:** F7-0 yarım gün · F7-1 yarım gün · F7-2…F7-6 açık uçlu (kaynakta 2-4 hafta)
+
+---
+
 ## 2. Loop Test Harness Tasarımı
 
 ### 2.1 Problem

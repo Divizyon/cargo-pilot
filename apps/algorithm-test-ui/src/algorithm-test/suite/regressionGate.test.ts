@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, SequencerKind } from '@/lib/types/loadingPlan';
 import { SUITE_RUN_VERSION, type SuiteRun, type SuiteScenarioResult } from '../utils/suiteStorage';
 import type { EffectivenessResult } from './criteriaEffectiveness';
 import { evaluateGate, type GateViolationId } from './regressionGate';
@@ -27,6 +27,7 @@ function result(overrides: Partial<SuiteScenarioResult> = {}): SuiteScenarioResu
     lifoZoneOverflowCm: null,
     unplacedReasons: [],
     durationMs: 1,
+    digest: 'x',
     error: null,
     ...overrides,
   };
@@ -40,8 +41,12 @@ function run(results: SuiteScenarioResult[], overrides: Partial<SuiteRun> = {}):
     completedAt: '2026-08-15T12:00:00.000Z',
     catalogSignature: 'sig',
     generatorVersion: 2,
+    sequencer: SequencerKind.Static,
+    searchSeed: 0,
+    fixtureCatalogVersion: null,
     engineVersion: null,
     coverage: [],
+    digest: 'run',
     results,
     aggregates: [],
     ...overrides,

@@ -31,8 +31,24 @@ export function footprintOverlapArea(a: Placement, b: Placement): number {
   return overlapX * overlapZ;
 }
 
+/**
+ * Motor `> 0` ile kesin eşitsizlik kullanır ama `decimal` aritmetiğinde
+ * "değiyor" tam eşitliktir. İstemcide aynı değerler double'a dönüştüğü için
+ * bitişik iki kutu ~1e-13 cm örtüşüyor görünebiliyor: LIFO bölge başlangıcı
+ * `vehicleLength / grupSayısı` (ör. 1360/3) devirli bir ondalık üretir ve
+ * kutunun bittiği yer ile bir sonrakinin başladığı yer double'da aynı sayıya
+ * yuvarlanmaz.
+ *
+ * Eşik olmadan bu artık gerçek bir ihlal gibi raporlanıyordu: ölçülen en büyük
+ * hayalet örtüşme 2,27e-13 cm — 2 pikometre. Aynı `CONTACT_EPSILON_CM`
+ * kardeş yüklemlerde (destek, doğrudan üstünde) zaten kullanılıyordu; burada
+ * eksikti.
+ */
 export function footprintsOverlap(a: Placement, b: Placement): boolean {
-  return footprintOverlapArea(a, b) > 0;
+  const overlapX = Math.min(a.positionX + a.width, b.positionX + b.width) - Math.max(a.positionX, b.positionX);
+  const overlapZ = Math.min(a.positionZ + a.length, b.positionZ + b.length) - Math.max(a.positionZ, b.positionZ);
+
+  return overlapX > CONTACT_EPSILON_CM && overlapZ > CONTACT_EPSILON_CM;
 }
 
 /**

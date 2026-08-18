@@ -124,6 +124,55 @@ public class OptimizationEngineOrientationTests
             orientations);
     }
 
+    /// <summary>
+    /// `NoVerticalWidth`, Bischoff &amp; Ratcliff'in `011` yönelim bayrağının birebir
+    /// karşılığıdır: `W` asla dikey duramaz, `H` ve `L` durabilir ve her dikey
+    /// seçim için yatay çift 90 derece dönebilir — dört yönelim (`DR-42`).
+    ///
+    /// Küme `All`'dan `W`'yi dikeye getiren ikisinin (`Roll`, `RollYaw`)
+    /// çıkarılmış hâlidir; bu test iki kümeyi birbirine bağlar.
+    /// </summary>
+    [Fact]
+    public void NoVerticalWidth_ReturnsFourOrientations()
+    {
+        var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoVerticalWidth);
+
+        var orientations = PlacementValidator.GetOrientations(item);
+
+        Assert.Equal(
+            [
+                (100m, 50m, 30m, LoadingPlanPlacementRotation.NoRotation),
+                (30m, 50m, 100m, LoadingPlanPlacementRotation.Yaw),
+                (100m, 30m, 50m, LoadingPlanPlacementRotation.Pitch),
+                (50m, 30m, 100m, LoadingPlanPlacementRotation.YawPitch)
+            ],
+            orientations);
+    }
+
+    /// <summary>Yükseklige gelen ölçü asla `W` olamaz; kural bu tek cümledir.</summary>
+    [Fact]
+    public void NoVerticalWidth_NeverPutsWidthOnVerticalAxis()
+    {
+        var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoVerticalWidth);
+
+        Assert.All(
+            PlacementValidator.GetOrientations(item),
+            o => Assert.NotEqual(100m, o.height));
+    }
+
+    /// <summary>
+    /// `NoVerticalWidth`, `All` kümesinin gerçek bir alt kümesidir. Ayrı bir
+    /// permütasyon listesi yazıldığı için ikisi sessizce ayrışabilir.
+    /// </summary>
+    [Fact]
+    public void NoVerticalWidth_AllKumesininAltKumesidir()
+    {
+        var item = CreateItem(100m, 50m, 30m, AllowedRotations.NoVerticalWidth);
+        var all = PlacementValidator.GetOrientations(CreateItem(100m, 50m, 30m, AllowedRotations.All));
+
+        Assert.All(PlacementValidator.GetOrientations(item), o => Assert.Contains(o, all));
+    }
+
     // ── Eksen kilidi değişmezleri ───────────────────────────────────────────
 
     [Fact]

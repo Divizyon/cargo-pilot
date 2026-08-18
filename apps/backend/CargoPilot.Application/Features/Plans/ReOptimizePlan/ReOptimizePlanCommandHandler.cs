@@ -1,4 +1,4 @@
-using CargoPilot.Application.Abstractions;
+﻿using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
@@ -86,7 +86,8 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             }
         }
 
-        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria, request.ClusterGroups);
+        var optimizationInput = BuildInput(vehicle, request.Items, itemMap, inlineGroupMap, request.OptimizationCriteria, request.ClusterGroups,
+            request.Sequencer, request.Seed);
 
         // Kontaminasyon modülü de bir optimizasyon modülüdür; bayrağı motor
         // dışında, filtrenin gerçekten çağrıldığı yerde uygulanır.
@@ -134,6 +135,18 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
 
         plan.Reoptimize(request.VehicleId, request.OptimizationCriteria, inputTotalQuantity);
 
+
+        // Planin nasil uretildigi sonucun kendisi kadar onemli: determinizm
+        // sozlesmesi (R-C02) ancak yerlestirici, sequencer ve tohum kayitliysa
+        // kullanilabilir.
+        plan.RecordOptimizationRun(
+            finalInput.Sequencer,
+            finalInput.Seed,
+            result.SearchStats?.Iterations,
+            result.SearchStats?.Evaluations,
+            result.SearchStats?.SearchImproved,
+            result.SearchStats?.DurationMs);
+
         await _planRepository.ReOptimizeWithResultAsync(plan, newInputItems, result, cancellationToken);
 
         if (_currentUserService.UserId is { } userId)
@@ -157,7 +170,9 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
         Dictionary<Guid, Item> itemMap,
         Dictionary<Guid, LoadingPlanItemGroup> groupMap,
         LoadingPlanOptimizationCriteria criteria,
-        bool clusterGroups)
+        bool clusterGroups,
+        SequencerKind? sequencer,
+        int seed)
     {
         var inputs = requestItems
             .Select(r =>
@@ -184,6 +199,8 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             Modules: null,
             // Yukleme kapinin oldugu yuzden baslamaz; baslangic kosesi kapi
             // listesinden turetilir.
-            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors));
+            FillFromMaxX: LoadingCorner.FillFromMaxX(vehicle.Doors),
+            Sequencer: SequencerSelection.Resolve(sequencer),
+            Seed: seed);
     }
 }

@@ -1686,3 +1686,247 @@ yükü ne kadar iyi yerleştiriyoruz" sorusuna kurulu; "yük artarsa ne oluyor" 
 yerleşen kutu). Yük taştığında sıra araması çok daha değerli hale geliyor.
 
 Yeni iş olarak açıldı; bu oturumda çözülmedi.
+
+---
+
+## F7-0 · Duvar-öncelikli seçim — **reddedildi: kazanç sıfır, üstelik gizli bir değişmezi kırıyor**
+
+Kullanıcının teşhisi: *"duvar tam dolabilecekken onu es geçip başka duvar açıyoruz."* Kodda
+karşılığı şu: yeni duvar, **sıradaki** kutu açık duvarların hiçbirine sığmadığı anda açılıyor —
+oysa listede aşağıda o duvarı tamamlayacak kutular olabilir.
+
+Denenen kural değişikliği: yeni duvar ancak **kalan hiçbir kutu** açık duvarlara sığmadığında
+açılsın. Sıradaki kutu sığmıyorsa ve ileride sığan biri varsa, sıradaki kutu **ertelensin**
+(kuyruğun sonuna atılsın, en fazla bir kez).
+
+### Ölçüm
+
+| | Taban | Duvar-öncelikli |
+|---|---|---|
+| Static BR1-BR7, 700 örnek | %82,61 | **%82,61** |
+| BR1 duvar yüzü kaplaması | %86,2 | %86,0 |
+| %95 eşiğinin altındaki duvar | %91 | %91 |
+
+**Hiçbir şey değişmedi.** Kapı (+0,5 puan *veya* +3 puan kaplama) tutmadı.
+
+### Neden değişmedi — teşhisi keskinleştiren asıl bulgu
+
+Premisim yanlıştı. Duvarlar **zaten kapanmıyor** (`R-C09`): her kutu için bütün açık duvarlar
+taranıyor. Yani box `i` duvar 2'yi açsa bile, box `i+1` hâlâ duvar 1'e girebiliyor ve giriyor.
+Erteleme yalnızca duvar 2'nin **ne zaman** açıldığını değiştiriyor, duvar 1'in doldurulup
+doldurulmadığını değil.
+
+Öyleyse duvar yüzü neden %86'da kalıyor? **Sıralama yüzünden değil, geometri yüzünden:** kesitte
+kalan boşluklara elimizdeki kutular, yerleştiricinin denediği yönelim ve konumlarda **girmiyor**.
+
+Bu, `DR-44`'ü sıralama açıklamasından temizliyor ve tek adaya indiriyor: **blok kataloğu +
+boşluk-blok kararı** (F7-2/F7-4). "Duvarı daha uzun süre açık tut" ailesindeki bütün fikirler
+konusuz kaldı.
+
+### Yan bulgu: ana döngünün tek yönlü ilerlemesi gizli bir değişmezmiş
+
+Deneme bir fizik değişmezini kırdı: `Buyuk500_WeightBalance` senaryosunda **501 kutu yerleşti,
+500 istenmişti** — bir kutu iki kez konmuş.
+
+Sebep: `consumed[]` yalnızca **blok inşasının yuttuğu** birimleri işaretliyor; ana döngüde yerleşen
+birimler işaretlenmiyor. Bu bugüne kadar güvenliydi çünkü döngü `instances` üzerinde **tek yönde**
+ilerliyor ve geriye hiç bakmıyor. Kuyruk bunu bozuyor: geç işlenen erken bir indeks için
+`RaiseBlock(index + 1, ...)` çağrısı, aradaki zaten yerleşmiş birimleri yeniden yutabiliyor.
+
+Yazılı bir kural değildi; kodun şeklinden doğan bir varsayımdı. **F7-4'te beam search sırayı
+serbestçe değiştireceği için bu tuzak orada da kurulur** — beam'e geçmeden önce ana döngüde
+yerleşen birimler de `consumed` işaretlenmeli. Yol haritasına not düşüldü.
+
+Değişiklik geri alındı; 129 test yeşil.
+
+---
+
+## F7-1 · BR0-BR15 alındı — `DR-38`'in veri boşluğu kapandı, ve heterojenlik merdiveni tamamlandı
+
+Kullanıcının paylaştığı Metasolver incelemesindeki bonus: `problems/clp/benchs/BR/` dizininde
+**BR0-BR15'in tamamı** duruyor. Uzun süredir açık olan borç (`DR-38`) tek bir indirme ile kapandı.
+
+### Önce doğrulama
+
+Benimsemenin ön koşulu, elimizdeki yedi kümenin aynı veri olduğuydu. BR1-BR7 dosyaları
+`thpack1-7` ile **satır sonu dışında birebir aynı** çıktı (CRLF/LF; boyut farkı satır sayısı
+kadar). Bu yüzden o yedi dosya **değiştirilmedi**, yalnız adları değişti — ve ölçüm bunu
+doğruladı: varsayılan koşu %82,61, bit birebir aynı, kapı geçti.
+
+### Adlandırma tuzağı kapatıldı
+
+Dosyalar `thpack{n}.txt` → `br{n}.txt` oldu. Sebep sadece tutarlılık değil: OR-Library'deki
+`thpack8`/`thpack9` **BR8/BR9 değildir** (Loh & Nee ve Ivancic problemleri, farklı ölçek ve
+başlık biçimi); `thpack10`/`thpack11` adresleri ise `thpack1`'in kopyasını döndürüyor. İki
+adlandırma şeması bir arada dursaydı bu karışıklık er geç bir ölçüme girerdi.
+
+### Heterojenlik merdiveni — hiç görmediğimiz uçlar
+
+| Küme | Kutu tipi | Static | GRASP | GRASP kazancı |
+|---|---|---|---|---|
+| **BR0** | 1 | **%84,28** | %84,41 | **+0,13** |
+| BR1 | 3 | %82,78 | %87,07 | +4,29 |
+| BR7 | 20 | %81,57 | %86,51 | +4,94 |
+| **BR8** | 30 | %80,36 | %85,26 | +4,90 |
+| BR9 | 40 | %79,26 | — | |
+| BR10 | 50 | %78,65 | — | |
+| BR11 | 60 | %77,63 | — | |
+| **BR12** | 70 | %77,35 | %81,23 | +3,88 |
+| BR13 | 80 | %77,52 | — | |
+| BR14 | 90 | %76,80 | — | |
+| **BR15** | 100 | **%76,78** | %80,09 | +3,31 |
+
+*(GRASP satırları 25 örnek, static satırları 100 örnek)*
+
+**Eğri sağlıklı ve tekdüze:** tek tiplide %84,28'den yüz tiplide %76,78'e düzgün iniyor. Anomali
+yok — `DR-48`'deki tekdüzelik kusuru *aynı araca artan yük* verildiğinde çıkıyor, kutu çeşidi
+arttığında değil.
+
+**BR0 arama katmanını çıplak gösteriyor:** tek kutu tipinde GRASP'ın kazancı **+0,13 puan**, yani
+yok. Sıralanacak bir şey olmayınca sıra araması işsiz kalıyor — beklenen ama ilk kez ölçüldü.
+Kazanç tip sayısıyla birlikte doğuyor ve BR7-BR8 civarında tepe yapıyor (+4,9).
+
+### Varsayılan koşu bilinçli olarak BR1-BR7'de bırakıldı
+
+`br` bayraksız çalıştırıldığında yine yalnız BR1-BR7 koşuyor. Literatürle kıyaslanan sayı budur ve
+gecelik kapı onu sabitliyor; yeni kümeleri sessizce katmak baş sayıyı hem kıyaslanamaz hem sekiz
+kat yavaş yapardı. BR0 ve BR8-BR15 `--set N` ile ölçülür.
+
+`--set` sentinel'i değişti: "hepsi" artık `0` değil, **bayrağın verilmemesi**. BR0 gerçek bir küme
+olduğu için `0` artık onu seçiyor.
+
+---
+
+## F7-2 · Blok kataloğu — **kapı rahat geçti, ama beklenmedik bir şey söylüyor**
+
+Bugünkü yerleştirici bloğu **tepkisel** üretiyor: önce bir kutu yerleşiyor, sonra `RaiseBlock`
+çevresine aynı ürünün kalanlarını örüyor. Yani blok bir **sonuç**. Blok tabanlı arama için blok bir
+**girdi** olmalı — "bu boşluğa hangi blok" sorusunu sorabilmek için adayların önceden elde olması
+gerekir.
+
+`BlockCatalog` yazıldı: her ürün için, her yönelimde, araca ve eldeki adede sığan bütün
+`nx × ny × nz` dizilimleri. Katalog **sert kurallara uyar** — dikey tekrar sayısı
+istiflenebilirlik, kırılganlık, `MaxStackCount` ve `MaxWeightOnTop` ile sınırlanır. Yasadışı blok
+üretmek arama bütçesini boşa harcamak olurdu ve daha kötüsü, aday yerleştirme anında sessizce
+düşerdi.
+
+Bileşik bloklar (farklı ürünlerin birleşimi) bu adımda **yok**: ölçüldü ve GRASP altında kazancı
+sıfırdı; literatürde de basit→jenerik blok farkı yalnız 0,3 puan. Önce arama şeması kurulur.
+
+11 sözleşme testi yazıldı: araç dışına taşma yok, eldeki adet aşılmıyor, istiflenemez ve kırılgan
+ürün tek katman, `MaxStackCount`/`MaxWeightOnTop` sütunu sınırlıyor, sıra deterministik.
+
+### Kapı: üretim süresi < 50 ms
+
+| Küme | Tip | Blok sayısı | Üretim | Kutu/blok ort | Azami kutu |
+|---|---|---|---|---|---|
+| **BR0** | 1 | 634 | 0,9 ms | **35,2** | **990** |
+| BR1 | 3 | 1385 | 2,0 ms | 18,8 | 70 |
+| BR4 | 10 | 1946 | 2,7 ms | 7,7 | 22 |
+| BR7 | 20 | 1852 | 2,6 ms | 4,7 | 16 |
+| BR8 | 30 | 1809 | 2,6 ms | 3,8 | 10 |
+| BR12 | 70 | 1073 | 1,9 ms | 2,0 | 6 |
+| **BR15** | 100 | 838 | 1,6 ms | **1,5** | 4 |
+
+**Kapı geçti, hem de rahat.** Azami 2,7 ms (eşik 50), azami 1946 blok (üst sınır 10.000, hiç
+dayanılmadı). Üst sınır ve süre endişesi ölçümle kapandı — 2 saniyelik bütçeye göre üretim maliyeti
+binde bir mertebesinde.
+
+### Beklenmedik bulgu: blok ile arama birbirini tamamlıyor
+
+Kutu/blok sütunu heterojenlikle birlikte **çöküyor**: BR0'da bir blok ortalama 35 kutu taşırken
+BR15'te 1,5 kutu taşıyor. Sebep basit — tip başına adet düşüyor (BR0'da 122 birim tek tipte,
+BR15'te tip başına 1-2 birim), blok kuracak malzeme kalmıyor.
+
+Bunu `F7-1`'deki GRASP kazançlarının yanına koyunca tablo netleşiyor:
+
+| Küme | Kutu/blok | GRASP kazancı |
+|---|---|---|
+| BR0 | **35,2** | **+0,13** |
+| BR1 | 18,8 | +4,29 |
+| BR8 | 3,8 | +4,90 |
+| BR15 | **1,5** | +3,31 |
+
+**İki mekanizma ters yönde çalışıyor.** Blok zenginliği aramanın işe yaramadığı yerde (BR0: tek
+tip, sıralanacak şey yok) azami; aramanın en değerli olduğu yerde (BR15) neredeyse yok.
+
+Bunun F7 için iki sonucu var:
+
+1. **BSG'nin "blok" tarafı BR15'te fiilen devre dışı kalacak** — blok tek kutuya dejenere olur ve
+   BSG düz bir "kutu-boşluk" beam search'e döner. Kazanç oradan gelmeyecek.
+2. **Ama asıl kaldıraç zaten blok zenginliği değil, arama şeması.** Fanslau & Bortfeldt'in kendi
+   verisi bunu söylüyordu (basit→jenerik blok farkı 0,3 puan) ve bizim bileşik blok ölçümümüz de
+   aynı yöne çıkmıştı. Bu ölçüm o iddiayı üçüncü bir yoldan doğruluyor.
+
+Yani F7-4 (beam çekirdeği) kapısı, F7-2'nin kendisinden daha belirleyici. Katalog gerekli ama
+yeterli değil — zaten öyle planlanmıştı.
+
+Testler 140/35/228 yeşil, kapı geçti (%82,61 — motor davranışı değişmedi, katalog henüz kimse
+tarafından çağrılmıyor).
+
+---
+
+## F7-3 · VCS aday değerlendirme — **kapı aşıldı: static +0,65, GRASP +0,37**
+
+Bugüne kadar aday seçimi **sözlükbilimseldi**: önce yerçekimi, eşitse duvar derinliği, eşitse blok,
+eşitse artık… Her anahtar bir öncekini asla deviremezdi. Koddaki gerekçe şuydu: *"ağırlıklı toplam
+olsaydı katsayıların kalibrasyonu yeni bir borç olurdu."*
+
+VCS (Araya, Guerrero & Nuñez 2017) ağırlıklı **çarpımdır** — dört terim birbirini dengeler:
+
+```
+değer = hacim^δ × (1 − kayıp)^β × temas^α × (1 / kutu)^γ
+```
+
+### Üsteller ölçülmedi — bu bir tahmindir
+
+Kaynakta fonksiyonun **biçimi** var, katsayıları yok; elimizdeki inceleme de vermiyor. Dördü de
+`1` alındı — nötr bir başlangıç, kalibre edilmiş değer değil. İki terim de yaklaşımdır:
+
+- **Kayıp:** kaynakta kalan kutu ölçüleriyle knapsack tahmini. Burada daha ucuzu — bloğu koyunca
+  kalan dilim en küçük kutunun kısa kenarından darsa o dilim kesin kayıptır. "Girer ama kötü
+  dolar" durumunu yakalamaz; buna karşılık maliyeti sabittir ve aday başına koşabilir.
+- **Temas:** taban ayak izi + araç yüzeylerine değme. Komşu kutulara değme hesaplanmıyor
+  (yerleşim listesini taramak gerekirdi, sıcak döngüde pahalı).
+
+### Ölçüm
+
+| | Taban | VCS | Fark |
+|---|---|---|---|
+| **Static, BR1-BR7, 700 örnek** | %82,61 | **%83,26** | **+0,65** |
+| **GRASP, 175 örnek** | %87,73 | **%88,10** | **+0,37** |
+
+Kümeye göre (static):
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 |
+|---|---|---|---|---|---|---|---|
+| Taban | %82,78 | %83,28 | %83,15 | %82,89 | %82,55 | %82,02 | %81,57 |
+| VCS | %82,47 | %83,35 | %83,68 | %83,40 | %83,59 | %83,17 | **%83,17** |
+| Fark | **−0,31** | +0,07 | +0,53 | +0,51 | +1,04 | +1,15 | **+1,60** |
+
+### İki şey söylüyor
+
+**1. Kazanç heterojenlikle büyüyor** — BR1 kaybediyor, BR7 en çok kazanıyor. Muhtemel sebep:
+sözlükbilimsel sıra az çeşitli yükte iyi çalışan bir önceliklendirmeydi (önce yerçekimi, sonra
+duvar derinliği…). Çok çeşitli yükte terimler arasında **ödünleşme** gerekiyor ve sert öncelik
+bunu yapamıyor. Bu, `DR-51`'in blok tablosunun **tam tersi** deseni: blok zenginliği BR1'de azami,
+VCS kazancı BR7'de azami. Üçüncü kez aynı sonuç — kaldıraç arama ve değerlendirme tarafında.
+
+**2. Arama bu kazancı silmiyor.** Bileşik blok statikte +2,87 verip GRASP'ta ±0 olmuştu; VCS
+GRASP'ta da +0,37 tutuyor. Yani aramanın kendi başına bulamadığı bir şey ekliyor.
+
+### `OrientationFit` kaldırılmadı
+
+VCS eşitliğinde eşlik bozucu olarak duruyor. Determinizm (`R-C02`) bunu gerektiriyor: iki aday aynı
+değeri aldığında kazananı defter sırasına bırakmak makineye bağlı çıktı üretirdi.
+
+### Kabul
+
+- 17 golden snapshot **kaymadı** — o senaryolar VCS altında da aynı çıktıyı veriyor.
+- 153/35/228 test yeşil; fizik değişmezleri hem static hem GRASP yolunda korunuyor.
+- Duvar yüzü kaplaması %86,2 → %86,3, yani değişmedi. Beklenen: `DR-49` bunun **geometri** sorunu
+  olduğunu göstermişti, aday seçimi sorunu değil.
+- CI referansı tazelendi: **%83,26**.
+
+**Açık borç:** üsteller kalibre edilmedi. Dördü de `1` ve bu değerin en iyi olduğuna dair hiçbir
+ölçüm yok — tarama F7-4'ün işidir. Bugünkü +0,65, kalibrasyonsuz bir tabandır.

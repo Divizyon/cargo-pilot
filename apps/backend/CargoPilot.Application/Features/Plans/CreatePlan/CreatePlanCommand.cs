@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using MediatR;
 
@@ -10,7 +10,9 @@ public sealed record CreatePlanCommand(
     IReadOnlyList<CreatePlanItemRequest> Items,
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     IReadOnlyList<CreatePlanGroupDefinition>? Groups = null,
-    bool ClusterGroups = true)
+    bool ClusterGroups = true,
+    SequencerKind? Sequencer = null,
+    int Seed = 0)
     : IRequest<Result<Guid>>;
 
 public sealed record CreatePlanGroupDefinition(
