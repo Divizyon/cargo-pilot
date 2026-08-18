@@ -291,7 +291,9 @@ aynı duvara çarpıyor. Bu, sıradaki işlerin önceliğini doğrudan belirledi
 | # | İş | Araştırmadaki karşılığı | Durum |
 |---|---|---|---|
 | F6-0 | **Teşhis: doygunluk** — 2 sn / 60 sn / frenler açık | (c)4 | ✅ **Doymuş** (+0,04 puan) |
-| F6-1 | **Teşhis: duvar yüzü kaplama** + ölü havanın kenar/tavan ayrışması | (c)1, (c)2, (c)3 | Ölçüldü — `WallDiagnostics` |
+| F6-1 | **Teşhis: duvar yüzü kaplama** + ölü havanın kenar/tavan ayrışması | (c)1, (c)2, (c)3 | ✅ Ölçüldü — `WallDiagnostics` |
+| F6-1′ | **Duvar sınırı tahminden ölçüme** (`OptimizationResult.Walls`) | — | ✅ Yapıldı; `DR-45`'i ortaya çıkardı |
+| **F6-P** | **Ürün kararı: GRASP kutuların %45'ini duvara koymuyor** | — | ⚠ **Kullanıcı kararı bekliyor** — `DR-45` |
 | F6-2 | **Yönelim eşlemesi:** `011` → dört yönelim (`NoVerticalWidth`) | (d) | Uygulandı |
 | F6-3 | **Duvar yüzü 2B tam kaplama** (G4/G5, pallet loading) | Öneri 3 | F6-1'in sonucuna bağlı |
 | F6-4 | **Blok yerleştirme beam search / greedy-lookahead**, aktif duvar kısıtlı, VCS değerlendirme | Öneri 1 | **En yüksek kaldıraç** |

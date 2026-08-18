@@ -76,7 +76,7 @@ internal static class WallBuilderPlacement
         // taramanin disinda kaliyor ve bir daha hic kullanilamiyordu. Duvar
         // insaati zaten "once mevcut duvarin bosluklarini doldur, sonra yenisini
         // ac" demek (R-C09).
-        var walls = new List<Wall>();
+        var walls = new List<WallSegment>();
 
         // Basarisiz denemenin bedeli agirdir: aday bulunamadiginda erken cikis
         // tetiklenmez ve defterin tamami taranir. Ayni urunden 88 adet ust uste
@@ -192,7 +192,7 @@ internal static class WallBuilderPlacement
                 bestInZone = opened.InZone;
                 best = opened.Box;
                 blockZLimit = best.Z + best.Length;
-                walls.Add(new Wall(best.Z, best.Z + best.Length));
+                walls.Add(new WallSegment(best.Z, best.Z + best.Length));
             }
 
             // Duvar bandi olmadan tum defteri tara. Olcum, yerlesemeyen kutularin
@@ -259,7 +259,8 @@ internal static class WallBuilderPlacement
         }
 
         return PlanResultBuilder.Build(
-            placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength);
+            placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength,
+            walls: walls);
     }
 
     /// <summary>
@@ -557,7 +558,6 @@ internal static class WallBuilderPlacement
     /// kutular o yukseklige mahkum kaliyor ve cogu disarida kaliyor. Bant
     /// disiplini z ekseninde ise yariyor, y ekseninde bogyor.
     /// </summary>
-    private sealed record Wall(decimal Start, decimal End);
 
     /// <summary>
     /// Aday karsilastirma anahtari (bosluk x yonelim). Kucuk olan kazanir;

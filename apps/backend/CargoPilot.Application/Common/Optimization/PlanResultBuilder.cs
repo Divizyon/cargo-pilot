@@ -18,7 +18,8 @@ internal static class PlanResultBuilder
         decimal vehicleWidth,
         decimal vehicleHeight,
         decimal vehicleLength,
-        SearchStats? searchStats = null)
+        SearchStats? searchStats = null,
+        IReadOnlyList<WallSegment>? walls = null)
     {
         var totalWeight = placements.Sum(p => p.Weight);
 
@@ -54,6 +55,6 @@ internal static class PlanResultBuilder
 
         return new OptimizationResult(
             placedResults, unplacedResults, totalWeight, fillRate,
-            cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ, searchStats);
+            cogX, cogY, cogZ, balanceOffsetX, balanceOffsetZ, searchStats, walls);
     }
 }

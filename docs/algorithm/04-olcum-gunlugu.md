@@ -1437,3 +1437,81 @@ sınırını yerleştiriciden doğrudan raporlamak ayrı bir iş olarak açık.
 Kazanç GRASP'ta static'ten küçük (+1,50 / +2,52) — beklenen: arama, kaybettiğimiz yönelimlerin bir
 kısmını zaten sıra değiştirerek telafi ediyordu. **BR1 yine en çok kazanan** ve artık en kötü küme
 değil; en kötü BR7 (%86,51).
+
+---
+
+## F6-1′ · Duvar sınırı tahminden ölçüme çevrildi — **beklenmedik bulgu: GRASP kutuların %45'ini duvara koymuyor**
+
+İlk `WallDiagnostics` duvarları **tahmin ediyordu**: yerleşimleri `z` ekseninde bağlantılı bileşene
+ayırıyordu, çünkü duvar sınırları yalnızca yerleştiricinin içinde biliniyordu. Tahminin yönünü
+kaydetmiştim — duvar sayısını düşük, kaplamayı yüksek gösterir. Ölçüme çevirince doğrulandı.
+
+`WallBuilderPlacement` zaten `walls` listesini tutuyordu; `OptimizationResult`'a `Walls` alanı
+(`WallSegment(Start, End)`) eklendi ve liste doğrudan oraya geçti. **Ek tahsis yok** — var olan
+liste dönüyor. Kalıcılık, API ve anlık görüntü eşlemelerinin hepsi alan alan olduğu için hiçbiri
+etkilenmedi: 17 snapshot bayt bayt aynı, kapı geçti. Sözleşme teste bağlandı
+(`DuvarDilimleri_ArtanSirada_VeCakismaz`, katalogdaki her senaryo).
+
+### Tahmin ne kadar kayırmış (BR1, 20 örnek)
+
+| | Tahmin | **Ölçüm** |
+|---|---|---|
+| Duvar sayısı (static) | 6,7 | **6,7** |
+| Duvar sayısı (GRASP) | 5,3 | **3,8** |
+| Ortalama duvar derinliği (static) | 86 cm | **86 cm** |
+| Ortalama duvar derinliği (GRASP) | 159 cm | **47 cm** |
+| Yüz kaplama (static) | %86,2 | **%86,2** |
+| Yüz kaplama (GRASP) | %89,6 | **%48,9** |
+
+Static'te tahmin ile ölçüm **birebir aynı** çıktı — orada her kutu bir duvara giriyor, dolayısıyla
+bağlantılı bileşen ayrıştırması doğru cevabı veriyordu. Fark tamamen GRASP tarafında.
+
+### Sebep: cep yerleşimi duvar kaydetmiyor
+
+`WallBuilderPlacement.ScanPockets` kutuyu **duvar bandı olmadan** tüm defteri tarayarak
+yerleştirir ve bir duvar kaydetmez. Kod bunu bilinçli bir ödünleşim olarak açıklıyor: *"Duvar
+disiplini bir ÇIKTI BİÇİMİDİR, fiziksel kural değil… Kutuyu bandı yüzünden dışarıda bırakmak,
+biçimi doluluğa tercih etmek olurdu."* Ölçüm de bunu destekliyordu: yerleşemeyen kutuların %75,5'i
+kalan bir boşluğa geometrik olarak sığıyordu.
+
+Ama `decoder.PocketBeforeNewWall` bir **kromozom genidir** (`DR-29`) ve açıkken cep taraması
+duvar açmadan **önce** denenir. Boş konteynerde cep taraması her zaman başarılı olur — yani ilk
+kutu bile duvarsız yerleşebilir ve o koşuda hiç duvar açılmayabilir.
+
+### Ölçülen sonuç
+
+| | Static | GRASP |
+|---|---|---|
+| **Duvar dışı kutu** | **%0,0** | **%45,0** |
+| Duvar sayısı | 6,7 | 3,8 |
+| Ortalama duvar derinliği | 86 cm | 47 cm |
+| Yüz kaplama, ortalama | %86,2 | %48,9 |
+| Yüz kaplama, en düşük | %74,0 | %43,3 |
+| %95 eşiğinin altındaki duvar | %91 | %46 |
+| Ölü hava · kenar şeridi | %8,5 | %3,0 |
+| Ölü hava · tavan artığı | %6,7 | %3,4 |
+
+**Arama, doluluğu duvar disiplininden vazgeçerek kazanıyor.** GRASP static'in 5 puan üstünde
+(%87,47 / %82,61) ama ürettiği planın neredeyse yarısı duvar yapısının dışında. Bu, kimsenin
+ölçmediği bir bedeldi; `PocketBeforeNewWall` geni ölçülürken yalnız doluluğa bakılmıştı.
+
+### Bunun neden önemli olduğu
+
+Katman inşasını müşteri **sahada yüklenemediği için** reddetti (`DR-12`) ve duvar örücüyü tam da
+bu yüzden seçtik. Cep yerleşimi katman inşası kadar kötü değil — kutu yine desteklenmiş ve sekiz
+sert kapıdan geçmiş durumda — ama "kapıdan içeri duvar duvar" çıktısı, kutuların %45'i için
+geçerli değil. **Bu bir üretim/ürün kararıdır, algoritma kararı değil:** sahadaki ekip bu planı
+yükleyebiliyor mu?
+
+Üç yol var ve ölçmeden seçilmemeli:
+
+1. **Olduğu gibi bırak.** Doluluk kazancı gerçek, kutular fiziksel olarak geçerli.
+2. **`PocketBeforeNewWall`'ı kapat** ya da cebi duvar bandına sınırla — doluluk kaybı ölçülmeli.
+3. **Cep yerleşimini de duvar olarak kaydet** — cep bir duvar açsın. Çıktı biçimi düzelir,
+   yerleşim aynı kalır. En ucuz seçenek gibi görünüyor ama duvar tanımını değiştirir.
+
+### Öneri 3'ün gerçek hedefi
+
+Static'in **ölçülmüş** yüz kaplaması %86,2 ve duvarların **%91'i** %95 eşiğinin altında — yani
+2B tam kaplama işi (Öneri 3) tahmin edilenden daha büyük bir açığı hedefliyor. Ölü hava static'te
+kenara ağır basıyor (%8,5 kenar / %6,7 tavan), bu da kesit sorununu doğruluyor.

@@ -62,22 +62,28 @@ algoritmada değil, veri eşlemesindeydi.
 | En düşük destek | %81,5-97,7 | Eşiği ihlal eden kutu **yok** |
 | Kalan boşluk sayısı | 3-16 | Hacim gerçekten parçalanmış |
 
-### Duvar (BR1, GRASP — `DR-44`)
+### Duvar (BR1, 20 örnek — `DR-44`, `DR-45`)
 
-| Ölçü | Değer | Okuma |
+Duvar sınırları yerleştiricinin kendisinden okunuyor (`OptimizationResult.Walls`), tahmin değil.
+
+| Ölçü | Static | GRASP |
 |---|---|---|
-| **Duvar yüzü kaplama, ortalama** | **%90,9** | Eşik %95 → **altında** |
-| %95 eşiğinin altındaki duvar oranı | **%77** | Kesit tam döşenmiyor |
-| Ölü hava · kenar şeridi (boş sütun) | %5,8 | Kesit kaynaklı |
-| Ölü hava · tavan artığı | %6,2 | Yükseklik kaynaklı |
+| **Duvar dışı kutu** | **%0,0** | **%45,0** ⚠ |
+| Duvar sayısı | 6,7 | 3,8 |
+| Ortalama duvar derinliği | 86 cm | 47 cm |
+| **Duvar yüzü kaplama, ortalama** | **%86,2** | %48,9 |
+| %95 eşiğinin altındaki duvar | **%91** | %46 |
+| Ölü hava · kenar şeridi | %8,5 | %3,0 |
+| Ölü hava · tavan artığı | %6,7 | %3,4 |
 
-Kayıp **eşit bölünüyor**: yalnız birini çözmek yarısını bırakır.
+İki ayrı sorun: **kesit tam döşenmiyor** (static'te duvarların %91'i eşik altında) ve **arama
+duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda değil).
 
 ## Güvence
 
 | | Durum |
 |---|---|
-| Motor testleri (`CargoPilot.Engine.Tests`) | **109/109** |
+| Motor testleri (`CargoPilot.Engine.Tests`) | **129/129** |
 | Altyapı testleri (`CargoPilot.Infrastructure.Tests`) | **35/35** |
 | Uygulama testleri (`CargoPilot.Application.Tests`) | **228/228** |
 | Test aracı (`apps/algorithm-test-ui`) | 201/201 |
@@ -110,5 +116,5 @@ Kayıp **eşit bölünüyor**: yalnız birini çözmek yarısını bırakır.
 | — | **Üretim gecikmesi ~2 sn** ve arayüzde bekleme göstergesi yok | Kullanıcı deneyimi; F5'te açık |
 | — | İki ret sebebi hiç üretilmiyor (`NotStackable`, `GeometryConstraint`) | 12 Ağu 2026 raporundan devreden borç |
 | `DR-43` | **Sıra araması doymuş** — 30 kat bütçe +0,04 puan getiriyor | Kalan açık sıralayıcıda değil; blok karar uzayında (F6-4) |
-| `DR-44` | **Duvar kesiti tam döşenmiyor** — duvarların %77'si %95 kaplamanın altında | F6-3'ün gerekçesi |
-| — | `WallDiagnostics` duvarları `z`'de bağlantılı bileşen olarak tahmin ediyor; yerleştirici duvar sınırını raporlamıyor | Duvar sayısı düşük, kaplama yüksek görünüyor |
+| `DR-44` | **Duvar kesiti tam döşenmiyor** — static'te duvarların %91'i %95 kaplamanın altında | F6-3'ün gerekçesi |
+| `DR-45` ⚠ | **GRASP kutuların %45'ini hiçbir duvara koymuyor** | Açık **ürün** kararı: sahadaki ekip bu planı yükleyebiliyor mu? |

@@ -12,7 +12,24 @@ public sealed record OptimizationResult(
     decimal? CenterOfGravityZ,
     decimal? WeightBalanceOffsetX,
     decimal? WeightBalanceOffsetZ,
-    SearchStats? SearchStats = null);
+    SearchStats? SearchStats = null,
+    IReadOnlyList<WallSegment>? Walls = null);
+
+/// <summary>
+/// Duvar orucunun ordugu duvar dilimleri, <c>z</c> ekseninde artan sirada.
+/// Dilimler cakismaz: bir duvarin derinligini ona giren ILK kutu belirler ve
+/// sonraki kutular o bandin icinde kalir.
+///
+/// Neden sonuca konuldu: duvar sinirlari yalnizca yerlestiricinin icinde
+/// biliniyordu. Teshis tarafi bunlari yerlesimlerden GERI CIKARMAYA calisiyordu
+/// (<c>z</c>'de baglantili bilesen) ve bir kutu iki duvara yayildiginda ikisini
+/// tek duvar sayiyordu; bu, duvar sayisini dusuk, yuz kaplama oranini yuksek
+/// gosteriyordu (<c>DR-44</c>). Tahmin yerine olcum.
+///
+/// Aramasiz ve duvar disi yollarda <c>null</c> kalir; hicbir kalicilik, API ya
+/// da anlik goruntu esleme yolu bu alani okumaz.
+/// </summary>
+public sealed record WallSegment(decimal Start, decimal End);
 
 /// <summary>
 /// Arama katmaninin kosu istatistigi. Aramasiz yollarda (Static sequencer)

@@ -22,6 +22,13 @@ namespace CargoPilot.Engine.Bench;
 /// biriken olu hava kenar seridi demektir (kesit sorunu), dolu sutunlarin
 /// uzerinde biriken ise tavan artigi demektir (derinlik ya da siralama).
 ///
+/// UCUNCU BIR SORU da bu olcuyle ortaya cikti: yerlestirici her kutuyu bir
+/// duvara koymuyor. <c>ScanPockets</c> duvar bandi olmadan tum defteri tarar ve
+/// kaydettigi bir duvar yoktur; <c>PocketBeforeNewWall</c> decoder geni acikken
+/// bu yol ONCE denenir. Bos konteynerde cep taramasi her zaman basarili
+/// oldugundan ilk kutu bile duvarsiz yerlesebilir. Dolayisiyla "duvar disi
+/// kutu orani" duvar disiplininin gercekte ne kadar tutuldugunun olcusudur.
+///
 /// Bu olcu ayni zamanda <c>R-C14</c>'un hic uretilmeyen iki metrigini
 /// (<c>WallCount</c>, <c>AvgWallFlushness</c>) karsilar; bkz. <c>DR-38</c>.
 /// </summary>
@@ -37,6 +44,8 @@ public static class WallDiagnostics
     private const double FlushThresholdPercent = 95d;
 
     public sealed record Report(
+        bool WallsReported,
+        double BoxesOutsideWallsPercent,
         int WallCount,
         double MeanFaceCoveragePercent,
         double MinFaceCoveragePercent,
@@ -53,13 +62,21 @@ public static class WallDiagnostics
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(result);
 
-        var walls = SegmentWalls(result.Placements);
-        if (walls.Count == 0) return new Report(0, 0, 0, 0, 0, 0, 0, 0);
+        var placed = result.Placements.Count;
+        var reported = result.Walls is not null;
+        var (walls, outside) = reported
+            ? FromResult(result)
+            : (SegmentWalls(result.Placements), 0);
+
+        var outsidePercent = placed == 0 ? 0d : 100d * outside / placed;
+        if (walls.Count == 0) return new Report(reported, outsidePercent, 0, 0, 0, 0, 0, 0, 0, 0);
 
         var coverages = walls.Select(w => FaceCoveragePercent(input, w)).ToList();
         var (emptyColumnPercent, abovePilePercent) = SplitDeadAir(input, result);
 
         return new Report(
+            WallsReported: reported,
+            BoxesOutsideWallsPercent: outsidePercent,
             WallCount: walls.Count,
             MeanFaceCoveragePercent: coverages.Average(),
             MinFaceCoveragePercent: coverages.Min(),
@@ -71,6 +88,35 @@ public static class WallDiagnostics
     }
 
     /// <summary>
+    /// Duvar sinirlarini yerlestiricinin kendisinden alir ve her duvarin kutularini
+    /// bandina gore dagitir. Bir kutu tam olarak bir banda dusner: yerlestirici
+    /// kutuyu o bandin icinde tutar.
+    ///
+    /// Hicbir banda dusmeyen kutu CEP yerlesimidir (<c>ScanPockets</c>): duvar
+    /// disiplini disinda konmustur. Bu kutular bir duvara zorla yazilmaz, ayri
+    /// sayilir — yoksa olcu kendi kor noktasini gizlerdi.
+    /// </summary>
+    private static (List<Wall> Walls, int Outside) FromResult(OptimizationResult result)
+    {
+        var walls = result.Walls!
+            .OrderBy(w => w.Start)
+            .Select(w => new Wall(w.Start, w.End, []))
+            .ToList();
+
+        var outside = 0;
+
+        foreach (var box in result.Placements.OrderBy(p => p.Z).ThenBy(p => p.PlacementId))
+        {
+            var index = walls.FindIndex(w => box.Z >= w.ZStart && box.Z < w.ZEnd);
+            if (index < 0) outside++;
+            else walls[index].Boxes.Add(box);
+        }
+
+        return ([.. walls.Where(w => w.Boxes.Count > 0)], outside);
+    }
+
+    /// <summary>
+    /// TAHMIN yolu — yalnizca yerlestirici duvar bildirmediginde kullanilir.
     /// Duvarlari z ekseninde baglantili bilesen olarak ayirir: bir kutu mevcut
     /// duvarin bittigi yerde ya da sonrasinda basliyorsa yeni duvar acilir.
     ///

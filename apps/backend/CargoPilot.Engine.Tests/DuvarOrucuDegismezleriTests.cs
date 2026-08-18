@@ -59,6 +59,29 @@ public sealed class DuvarOrucuDegismezleriTests
     }
 
     /// <summary>
+    /// Raporlanan duvar dilimleri bir sözleşmedir: `z` ekseninde artan sırada
+    /// gelirler, çakışmazlar ve her birinin derinliği pozitiftir. Teşhis tarafı
+    /// (`WallDiagnostics`) kutuları bu bantlara dağıtırken bunu varsayıyor;
+    /// varsayım sessizce bozulursa duvar dışı kutu oranı yanlış ölçülür.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Senaryolar))]
+    public void DuvarDilimleri_ArtanSirada_VeCakismaz(string senaryo)
+    {
+        var walls = EngineScenario.Run(InvariantScenarioSource.Load(senaryo)).Walls;
+
+        Assert.NotNull(walls);
+
+        var previousEnd = decimal.MinValue;
+        foreach (var wall in walls)
+        {
+            Assert.True(wall.End > wall.Start, $"{senaryo}: duvar derinligi pozitif degil ({wall.Start}-{wall.End})");
+            Assert.True(wall.Start >= previousEnd, $"{senaryo}: duvarlar cakisiyor ({previousEnd} > {wall.Start})");
+            previousEnd = wall.End;
+        }
+    }
+
+    /// <summary>
     /// Blok inşasının asıl sınavı: aynı üründen çok sayıda birim. Bu senaryoda
     /// kutular ana döngüden değil neredeyse tamamen bloktan yerleşir, yani
     /// blokun kapı çağrıları burada görünür.

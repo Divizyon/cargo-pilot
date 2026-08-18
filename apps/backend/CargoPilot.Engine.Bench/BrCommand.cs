@@ -145,8 +145,10 @@ public static class BrCommand
             $"           MAKSIMAL OLMAYAN bosluk %{maximality.Average(m => m.NonMaximalSharePercent):F1}" +
             $" · ortalama buyume %{maximality.Average(m => m.MeanGrowthPercent):F1}" +
             $" · azami buyume %{maximality.Average(m => m.MaxGrowthPercent):F0}"));
+        var wallSource = string.Create(CultureInfo.InvariantCulture,
+            $"DUVAR DISI kutu %{walls.Average(w => w.BoxesOutsideWallsPercent):F1}");
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"           DUVAR {walls.Average(w => w.WallCount):F1} adet"
+            $"           DUVAR {walls.Average(w => w.WallCount):F1} adet ({wallSource})"
             + $" · derinlik {walls.Average(w => w.MeanWallDepthCm):F0} cm"
             + $" · kutu/duvar {walls.Average(w => w.MeanBoxesPerWall):F1}"
             + $" · YUZ KAPLAMA ort %{walls.Average(w => w.MeanFaceCoveragePercent):F1}"
