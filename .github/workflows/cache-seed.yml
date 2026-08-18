@@ -30,6 +30,10 @@ name: Cache Seed (nightly)
 #   - `cache-cleanup.yml` 04:35 UTC'de koşuyor; seed 05:10'da, yani temizlikten SONRA.
 #     Nightly olduğu için seed girişleri `MAX_AGE_DAYS=7` yaş kuralına hiç yakalanmaz;
 #     boyut adımı ise `refs/heads/main`'i koruyor.
+#
+# Bu workflow ayrıca npm (`~/.npm`) cache'inin TEK yazıcısıdır; gerekçe aşağıdaki
+# "npm cache seed" bloğunda. Ek kota yükü ~130 MiB (tek giriş), karşılığında
+# `node-cache-*` prefix'inde 60 giriş / 4,47 GiB serbest kalır.
 
 on:
   schedule:
@@ -46,7 +50,7 @@ concurrency:
 
 jobs:
   seed-frontend-cache:
-    name: Frontend Build Cache Seed
+    name: Frontend Build ve npm Cache Seed
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -56,8 +60,9 @@ jobs:
     steps:
       # Önceki generation silinmeden yazılırsa `main` her gece bir generation daha
       # biriktirir ve boyut adımı `main`'i koruduğu için hiç tahliye edilmez.
-      # Yalnız buildkit girişleri silinir; CodeQL ve setup-node cache'lerine
-      # dokunulmaz (farklı key prefix'leri).
+      # Yalnız buildkit girişleri silinir; CodeQL ve npm cache'ine dokunulmaz
+      # (farklı key prefix'leri). npm girişinin burada silinmemesi ÖNEMLİ: main'deki
+      # o giriş artık tüm CI koşumlarının tek npm cache kaynağı.
       - name: Önceki seed generation'ını sil (refs/heads/main)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,6 +114,58 @@ jobs:
           ref: dev
           persist-credentials: false
 
+      # ── npm cache seed ────────────────────────────────────────────────────────
+      # Sorun: `setup-node`un dahili `cache: 'npm'`i, `package-lock.json` hiç
+      # değişmese bile HER ref'e kendi ~/.npm kopyasını yazıyordu. Üç yazıcı vardı
+      # (ci.yml'de frontend-ci ve algorithm-test-ui-ci, test-deploy.yml'de e2e-smoke)
+      # ve hepsi iş branch'i push'larında koşuyor. Ölçüm 2026-08-18: 60 giriş /
+      # 4,47 GiB = 10 GiB kotanın %45'i, ref başına 2-3 giriş.
+      #
+      # Çözüm: o üç yer artık `actions/cache/restore` ile YALNIZ OKUYOR; tek yazıcı
+      # burası. Bu workflow schedule ile koştuğu için ref'i default branch
+      # (refs/heads/main) ve GHA cache okuma kapsamı = kendi ref'i + PR base ref'i +
+      # DEFAULT BRANCH olduğundan giriş tüm branch'lerden ve PR'lardan okunabilir.
+      # Kararlı durum: tek giriş (~130 MiB), 60 giriş / 4,47 GiB yerine.
+      #
+      # `actions/cache` (birleşik) bilerek seçildi: isabet varsa post adımı yazmaz,
+      # yalnızca last_accessed_at tazelenir → main'de generation birikmez ve giriş
+      # cache-cleanup.yml'nin MAX_AGE_DAYS=7 yaş kuralına yakalanmaz.
+      #
+      # Anahtar iki lockfile'ın birleşik hash'i: ~/.npm tek bir paket deposu, iki
+      # uygulamanın paketleri aynı girişte durur. Tüketiciler aynı ifadeyi kullanır;
+      # lockfile'lardan biri iş branch'inde değişirse `npm-<os>-` prefix'i ile
+      # main'in son girişine düşülür ve npm yalnızca farkı indirir.
+      #
+      # Ağaç `dev`'den checkout edildiği için hash de dev'in lockfile'larından
+      # hesaplanır — iş branch'lerinin atası dev olduğu için isabet oranı en yüksek
+      # olan seçim bu.
+      - name: npm cache (apps/frontend + apps/algorithm-test-ui)
+        if: steps.quota.outputs.seed == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('apps/frontend/package-lock.json', 'apps/algorithm-test-ui/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      - name: Node.js kur
+        if: steps.quota.outputs.seed == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+
+      # `npm ci` yalnızca ~/.npm'i doldurmak için koşuyor; node_modules çıktısı
+      # kullanılmıyor. Build/test yok, bu yüzden bedeli ~1 dk runner.
+      - name: apps/frontend paketlerini indir
+        if: steps.quota.outputs.seed == 'true'
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: apps/algorithm-test-ui paketlerini indir
+        if: steps.quota.outputs.seed == 'true'
+        working-directory: apps/algorithm-test-ui
+        run: npm ci
+
       - name: Docker Buildx kur
         if: steps.quota.outputs.seed == 'true'
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
@@ -132,9 +189,10 @@ jobs:
             VITE_OAUTH_MICROSOFT_URL=${{ secrets.VITE_OAUTH_MICROSOFT_URL }}
             VITE_APP_ENV=test
           cache-from: type=gha,scope=frontend-test
-          cache-to: |
-            type=gha,mode=max,scope=frontend-test
-            type=gha,mode=max,scope=cargo-pilot-frontend-ci
+          # Tek scope: `cargo-pilot-frontend-ci` yazımı D-09 ile tüketicisiz kaldı
+          # (ci.yml'deki docker-build job'u kaldırıldı). Gerçek tüketiciler
+          # test-deploy.yml'deki build/deploy/e2e job'ları ve hepsi frontend-test okuyor.
+          cache-to: type=gha,mode=max,scope=frontend-test
 
       - name: Kota raporu
         if: always() && steps.quota.outputs.seed == 'true'

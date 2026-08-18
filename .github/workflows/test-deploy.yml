@@ -362,8 +362,18 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/frontend/package-lock.json
+
+      # setup-node'un dahili `cache: 'npm'`i yerine açık restore: yazma YOK.
+      # Bu job iş branch'i push'larında da koşuyor, yani her branch'e kendi ~/.npm
+      # kopyasını yazan üç yazıcıdan biriydi. Anahtar ci.yml ile birebir aynı;
+      # gerekçe ve tek yazıcı için cache-seed.yml'deki "npm cache seed" bloğuna bakın.
+      - name: npm cache geri yükle (yazmaz)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('apps/frontend/package-lock.json', 'apps/algorithm-test-ui/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
 
       - name: Bağımlılıkları yükle
         working-directory: apps/frontend
