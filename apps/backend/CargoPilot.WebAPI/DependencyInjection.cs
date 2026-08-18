@@ -1,8 +1,12 @@
+using System.Globalization;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using CargoPilot.Application.Abstractions;
+using CargoPilot.Infrastructure;
+using CargoPilot.WebAPI.Authentication;
 using CargoPilot.WebAPI.Filters;
 using CargoPilot.WebAPI.HealthChecks;
 using CargoPilot.WebAPI.Middlewares;
@@ -10,12 +14,14 @@ using CargoPilot.WebAPI.Services;
 using CargoPilot.WebAPI.Swagger;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Prometheus;
+using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace CargoPilot.WebAPI;
 
@@ -32,11 +38,17 @@ public static class DependencyInjection {
         WriteIndented          = false,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
+
     public static IServiceCollection AddPresentation(
         this IServiceCollection services,
         IConfiguration configuration,
+        IHostEnvironment environment,
         bool useInMemoryRepository = false)
     {
+        ArgumentNullException.ThrowIfNull(environment);
+
+        AddForwardedHeaders(services, configuration);
+
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -195,19 +207,25 @@ public static class DependencyInjection {
                         QueueLimit        = 0,
                     }));
         });
-        var corsOrigins = Enumerable.Range(1, 10)
-            .Select(i => configuration[$"CORS_ALLOWED_ORIGIN_{i}"])
-            .Where(o => !string.IsNullOrWhiteSpace(o))
-            .ToArray();
+        // Dagitim ortamlari origin listesini "Cors:AllowedOrigins" bolumunden
+        // (compose: Cors__AllowedOrigins__0) enjekte eder.
+        var corsOrigins = ReadStringArray(configuration, "Cors:AllowedOrigins");
+
+        if (corsOrigins.Length == 0 && !environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(
+                $"Cors:AllowedOrigins tanımlı değil. '{environment.EnvironmentName}' ortamında " +
+                "izin verilen origin listesi zorunludur (örn. Cors__AllowedOrigins__0=https://app.example.com). " +
+                "Açık uçlu CORS yalnızca Development ortamında kullanılabilir.");
+        }
 
         services.AddCors(options => {
             options.AddDefaultPolicy(builder => {
                 if (corsOrigins.Length > 0)
-                    builder.WithOrigins(corsOrigins!).AllowCredentials();
+                    builder.WithOrigins(corsOrigins).AllowCredentials();
                 else
-                    // S5122: CORS_ALLOWED_ORIGIN_* tanimli degilken calisan geri donus yolu.
-                    // Dagitim ortamlarinda origin listesi her zaman verilir; bu dal yalnizca
-                    // lokal/konteyner denemelerinde devreye girer.
+                    // S5122: Yalnizca Development ortaminda calisan geri donus yolu;
+                    // diger ortamlarda yukaridaki dogrulama uygulamayi baslatmaz.
 #pragma warning disable S5122
                     builder.AllowAnyOrigin();
 #pragma warning restore S5122
@@ -223,7 +241,12 @@ public static class DependencyInjection {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, JwtCurrentUserService>();
 
+        var metricsScrapeToken = ResolveMetricsScrapeToken(configuration);
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddScheme<MetricsScrapeOptions, MetricsScrapeAuthenticationHandler>(
+                MetricsScrapeDefaults.AuthenticationScheme,
+                options => options.Token = metricsScrapeToken)
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
@@ -289,6 +312,22 @@ public static class DependencyInjection {
             // SuperAdmin | CompanyAdmin | CompanyWorker | Individual
             options.AddPolicy("CompanyMember", policy =>
                 policy.RequireClaim("role", "SuperAdmin", "CompanyAdmin", "CompanyWorker", "Individual"));
+
+            // SEC-07 takibi: /metrics ve /health/detail'i SuperAdmin JWT'si korur, ancak
+            // Prometheus 60 dakikalik bir access token'i yenileyemez. Bu politika ek olarak
+            // uzun omurlu, yalnizca bu iki uca yetkili bir scrape token'ini kabul eder.
+            options.AddPolicy(MetricsScrapeDefaults.PolicyName, policy =>
+            {
+                policy.AddAuthenticationSchemes(
+                    JwtBearerDefaults.AuthenticationScheme,
+                    MetricsScrapeDefaults.AuthenticationScheme);
+
+                policy.RequireAssertion(context =>
+                    context.User.HasClaim("role", "SuperAdmin") ||
+                    context.User.HasClaim(
+                        MetricsScrapeDefaults.ScopeClaimType,
+                        MetricsScrapeDefaults.ReadScope));
+            });
         });
 
         services.AddControllers().AddJsonOptions(options =>
@@ -398,12 +437,28 @@ public static class DependencyInjection {
 
     public static WebApplication UsePresentation(this WebApplication app, bool useInMemoryRepository = false)
     {
+        ArgumentNullException.ThrowIfNull(app);
+
+        // Ters proxy (nginx) arkasinda gercek istemci IP'si ve semasi; rate limiter
+        // partition'lari dogru IP'yi gorebilmesi icin UseRateLimiter'dan once gelmeli.
+        app.UseForwardedHeaders();
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+
+        if (app.Environment.IsProduction())
+            app.UseHsts();
+
+        // Uygulama nginx arkasinda HTTP dinledigi icin varsayilan olarak kapali;
+        // TLS'i dogrudan sonlandiran dagitimlarda yapilandirmadan acilabilir.
+        if (app.Configuration.GetValue("Security:EnableHttpsRedirection", false))
+            app.UseHttpsRedirection();
+
         app.UseRouting();
         app.UseCors();
         app.UseRateLimiter();
         app.UseMiddleware<GlobalExceptionMiddleware>();
 
-        if (!app.Environment.IsProduction())
+        // Swagger varsayilan olarak yalnizca Development'ta acilir; digerleri opt-in.
+        if (app.Configuration.GetValue("Swagger:Enabled", app.Environment.IsDevelopment()))
         {
             app.UseSwagger();
             app.UseSwaggerUI(options =>
@@ -429,7 +484,9 @@ public static class DependencyInjection {
         }
 
         app.MapControllers();
-        app.MapMetrics("/metrics");
+
+        // SEC-07: Prometheus ciktisi ve bilesen bazli saglik detayi ic bilgi sizdirir.
+        app.MapMetrics("/metrics").RequireAuthorization(MetricsScrapeDefaults.PolicyName);
 
         app.MapHealthChecks("/health", new HealthCheckOptions
         {
@@ -450,9 +507,42 @@ public static class DependencyInjection {
                 [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
             },
             ResponseWriter = WriteDetailedHealthResponse
-        });
+        }).RequireAuthorization(MetricsScrapeDefaults.PolicyName);
 
         return app;
+    }
+
+    /// <summary>
+    /// <c>Metrics:ScrapeToken</c> degerini okur ve zayif/sablon token'lari reddeder.
+    /// Anahtar tanimli degilse <see langword="null"/> doner ve scrape scheme'i devre disi kalir.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Token tanimli ancak minimum uzunluktan kisa veya bilinen bir sablon degerse.
+    /// </exception>
+    internal static string? ResolveMetricsScrapeToken(IConfiguration configuration)
+    {
+        var token = configuration["Metrics:ScrapeToken"];
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return null;
+        }
+
+        token = token.Trim();
+
+        if (token.Length < MetricsScrapeDefaults.MinimumTokenLength)
+        {
+            throw new InvalidOperationException(
+                $"Metrics:ScrapeToken must be at least {MetricsScrapeDefaults.MinimumTokenLength} characters long.");
+        }
+
+        if (JwtSecretPolicy.LooksLikePlaceholder(token))
+        {
+            throw new InvalidOperationException(
+                "Metrics:ScrapeToken uses a known default/placeholder value. Provide a real token via environment (Metrics__ScrapeToken).");
+        }
+
+        return token;
     }
 
     /// <summary>
@@ -463,6 +553,11 @@ public static class DependencyInjection {
         HealthReport report)
     {
         context.Response.ContentType = "application/json; charset=utf-8";
+
+        // Exception mesajlari altyapi detayi (baglanti dizesi, host adi) sizdirabilir.
+        var exposeErrors = context.RequestServices
+            .GetRequiredService<IHostEnvironment>()
+            .IsDevelopment();
 
         var result = new
         {
@@ -475,7 +570,7 @@ public static class DependencyInjection {
                 description = e.Value.Description,
                 durationMs  = e.Value.Duration.TotalMilliseconds,
                 tags        = e.Value.Tags,
-                error       = e.Value.Exception?.Message
+                error       = exposeErrors ? e.Value.Exception?.Message : null
             })
         };
 
@@ -483,4 +578,74 @@ public static class DependencyInjection {
             JsonSerializer.Serialize(result, _healthJsonOptions),
             context.RequestAborted);
     }
+
+    /// <summary>
+    /// X-Forwarded-* başlıklarını yalnızca güvenilen proxy'lerden kabul edecek şekilde yapılandırır.
+    /// </summary>
+    private static void AddForwardedHeaders(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit     = configuration.GetValue("ForwardedHeaders:ForwardLimit", 1);
+
+            // Varsayilan liste (loopback) temizlenir; guven sinirini yapilandirma belirler.
+            options.KnownProxies.Clear();
+            options.KnownNetworks.Clear();
+
+            foreach (var proxy in ReadStringArray(configuration, "ForwardedHeaders:KnownProxies"))
+            {
+                if (IPAddress.TryParse(proxy, out var address))
+                    options.KnownProxies.Add(address);
+            }
+
+            foreach (var network in ReadStringArray(configuration, "ForwardedHeaders:KnownNetworks"))
+            {
+                var parsed = ParseNetwork(network);
+                if (parsed is not null)
+                    options.KnownNetworks.Add(parsed);
+            }
+
+            if (options.KnownProxies.Count > 0 || options.KnownNetworks.Count > 0)
+                return;
+
+            // Yapilandirma yoksa guvenli varsayilan: loopback + ozel (Docker/LAN) araliklari.
+            options.KnownProxies.Add(IPAddress.Loopback);
+            options.KnownProxies.Add(IPAddress.IPv6Loopback);
+            foreach (var network in GetDefaultTrustedNetworks())
+                options.KnownNetworks.Add(network);
+        });
+    }
+
+    // S1313: RFC1918 ozel ag araliklari sabittir; "ForwardedHeaders:KnownNetworks"
+    // tanimlanmadiginda kullanilan guvenli varsayilan guven sinirini olustururlar.
+#pragma warning disable S1313
+    private static IEnumerable<IPNetwork> GetDefaultTrustedNetworks()
+    {
+        yield return new IPNetwork(IPAddress.Parse("127.0.0.0"), 8);
+        yield return new IPNetwork(IPAddress.Parse("10.0.0.0"), 8);
+        yield return new IPNetwork(IPAddress.Parse("172.16.0.0"), 12);
+        yield return new IPNetwork(IPAddress.Parse("192.168.0.0"), 16);
+    }
+#pragma warning restore S1313
+
+    /// <summary>"10.0.0.0/8" biçimindeki CIDR değerini ayrıştırır; geçersizse null döner.</summary>
+    private static IPNetwork? ParseNetwork(string value)
+    {
+        var parts = value.Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2 ||
+            !IPAddress.TryParse(parts[0], out var prefix) ||
+            !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var prefixLength))
+        {
+            return null;
+        }
+
+        return new IPNetwork(prefix, prefixLength);
+    }
+
+    private static string[] ReadStringArray(IConfiguration configuration, string key) =>
+        configuration.GetSection(key).Get<string[]>()?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .ToArray() ?? [];
 }
